@@ -1,0 +1,3 @@
+{
+  "extends": "@convexpress-admin/config/tsconfig.base.json"
+}

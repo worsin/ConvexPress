@@ -1,0 +1,20 @@
+{
+  "name": "@convexpress-website/backend",
+  "version": "1.0.0",
+  "description": "Website consumer Convex API references (no schema/functions deployment)",
+  "license": "ISC",
+  "author": "",
+  "scripts": {
+    "check:consumer": "node -e \"console.log('ConvexPress-Website is Convex consumer-only. Use ConvexPress-Admin for Convex dev/deploy.')\""
+  },
+  "dependencies": {
+    "convex": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@convexpress-website/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
