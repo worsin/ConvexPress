@@ -1,0 +1,25 @@
+{
+  "name": "@convexpress-admin/backend",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "scripts": {
+    "dev": "convex dev",
+    "dev:setup": "convex dev --configure --until-success"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "convex": "catalog:",
+    "dotenv": "catalog:",
+    "jose": "^6.2.2",
+    "svix": "^1.89.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@convexpress-admin/config": "workspace:*",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/node": "^24.3.0",
+    "typescript": "catalog:"
+  }
+}

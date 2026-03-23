@@ -1,0 +1,313 @@
+import {
+  LayoutDashboard,
+  FileText,
+  Image,
+  File,
+  MessageSquare,
+  Users,
+  Palette,
+  Settings,
+  Wrench,
+  SlidersHorizontal,
+  Search,
+  RefreshCcw,
+} from "lucide-react";
+
+import type { AdminNavSection } from "./types";
+
+/**
+ * Admin sidebar navigation configuration.
+ * Mirrors WordPress admin menu structure.
+ * Items are filtered at render time by user capabilities.
+ */
+export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    to: "/dashboard",
+    icon: LayoutDashboard,
+    // No capability - all authenticated admin users can see Dashboard
+  },
+  {
+    id: "posts",
+    label: "Posts",
+    to: "/posts",
+    icon: FileText,
+    capability: "edit_posts",
+    separator: true,
+    children: [
+      { id: "posts-all", label: "All Posts", to: "/posts", exact: true },
+      {
+        id: "posts-new",
+        label: "Add New Post",
+        to: "/posts/new",
+        isAddNew: true,
+      },
+      {
+        id: "posts-categories",
+        label: "Categories",
+        to: "/posts/categories",
+        capability: "manage_categories",
+      },
+      {
+        id: "posts-tags",
+        label: "Tags",
+        to: "/posts/tags",
+        capability: "manage_categories",
+      },
+    ],
+  },
+  {
+    id: "media",
+    label: "Media",
+    to: "/media",
+    icon: Image,
+    capability: "upload_files",
+    children: [
+      { id: "media-library", label: "Library", to: "/media", exact: true },
+      { id: "media-new", label: "Add New", to: "/media/upload", isAddNew: true },
+    ],
+  },
+  {
+    id: "pages",
+    label: "Pages",
+    to: "/pages",
+    icon: File,
+    capability: "edit_pages",
+    children: [
+      { id: "pages-all", label: "All Pages", to: "/pages", exact: true },
+      {
+        id: "pages-new",
+        label: "Add New Page",
+        to: "/pages/new",
+        isAddNew: true,
+      },
+    ],
+  },
+  {
+    id: "comments",
+    label: "Comments",
+    to: "/comments",
+    icon: MessageSquare,
+    capability: "moderate_comments",
+    // badge: dynamically set from pending comment count
+    children: [
+      { id: "comments-all", label: "All Comments", to: "/comments", exact: true },
+      {
+        id: "comments-pending",
+        label: "Pending",
+        to: "/comments/pending",
+        capability: "moderate_comments",
+      },
+    ],
+  },
+  {
+    id: "custom-fields",
+    label: "Custom Fields",
+    to: "/custom-fields",
+    icon: SlidersHorizontal,
+    capability: "manage_options",
+    children: [
+      {
+        id: "custom-fields-all",
+        label: "Field Groups",
+        to: "/custom-fields",
+        exact: true,
+      },
+      {
+        id: "custom-fields-new",
+        label: "Add New",
+        to: "/custom-fields/new",
+        isAddNew: true,
+      },
+    ],
+  },
+  {
+    id: "users",
+    label: "Users",
+    to: "/users",
+    icon: Users,
+    capability: "list_users",
+    separator: true,
+    children: [
+      {
+        id: "users-all",
+        label: "All Users",
+        to: "/users",
+        exact: true,
+        capability: "list_users",
+      },
+      {
+        id: "users-new",
+        label: "Add New User",
+        to: "/users/new",
+        isAddNew: true,
+        capability: "create_users",
+      },
+      { id: "users-profile", label: "Your Profile", to: "/profile" },
+      {
+        id: "users-roles",
+        label: "Roles & Capabilities",
+        to: "/roles",
+        capability: "role.update",
+      },
+      {
+        id: "users-roles-new",
+        label: "Add New Role",
+        to: "/roles/new",
+        capability: "role.update",
+        isAddNew: true,
+      },
+    ],
+  },
+  {
+    id: "appearance",
+    label: "Appearance",
+    to: "/appearance",
+    icon: Palette,
+    capability: "edit_theme_options",
+    separator: true,
+    children: [
+      { id: "appearance-colors", label: "Website Colors", to: "/appearance/colors" },
+      { id: "appearance-menus", label: "Menus", to: "/menus" },
+      { id: "appearance-menu-locations", label: "Menu Locations", to: "/menus/locations" },
+    ],
+  },
+  {
+    id: "seo",
+    label: "SEO",
+    to: "/seo",
+    icon: Search,
+    capability: "seo.update_global",
+    children: [
+      { id: "seo-dashboard", label: "Dashboard", to: "/seo", exact: true },
+      { id: "seo-settings", label: "Settings", to: "/seo/settings" },
+      {
+        id: "seo-sitemap",
+        label: "Sitemap",
+        to: "/seo/sitemap",
+        capability: "seo.generate_sitemap",
+      },
+    ],
+  },
+  // Widgets section removed — widget infrastructure deprecated (AI handles frontend design)
+  {
+    id: "settings",
+    label: "Settings",
+    to: "/settings/general",
+    icon: Settings,
+    capability: "manage_settings",
+    children: [
+      {
+        id: "settings-general",
+        label: "General",
+        to: "/settings/general",
+        capability: "settings.update_general",
+      },
+      {
+        id: "settings-reading",
+        label: "Reading",
+        to: "/settings/reading",
+        capability: "settings.update_reading",
+      },
+      {
+        id: "settings-writing",
+        label: "Writing",
+        to: "/settings/writing",
+        capability: "settings.update_writing",
+      },
+      {
+        id: "settings-discussion",
+        label: "Discussion",
+        to: "/settings/discussion",
+        capability: "settings.update_discussion",
+      },
+      {
+        id: "settings-notifications",
+        label: "Notifications",
+        to: "/settings/notifications",
+        capability: "notification.update_preferences",
+      },
+      {
+        id: "settings-permalinks",
+        label: "Permalinks",
+        to: "/settings/permalinks",
+        capability: "settings.update_permalinks",
+      },
+      {
+        id: "settings-privacy",
+        label: "Privacy",
+        to: "/settings/privacy",
+        capability: "settings.update_privacy",
+      },
+      {
+        id: "settings-email",
+        label: "Email",
+        to: "/settings/email",
+        capability: "settings.update_email",
+      },
+      {
+        id: "settings-search",
+        label: "Search",
+        to: "/settings/search",
+        capability: "search.query",
+      },
+    ],
+  },
+  {
+    id: "tools",
+    label: "Tools",
+    to: "/tools",
+    icon: Wrench,
+    capability: "manage_options",
+    separator: true,
+    children: [
+      { id: "tools-activity", label: "Activity Log", to: "/tools/activity" },
+      { id: "tools-404-log", label: "404 Log", to: "/tools/404-log" },
+      { id: "tools-audit-log", label: "Audit Log", to: "/tools/audit-log" },
+      { id: "tools-roles", label: "Roles", to: "/tools/roles" },
+      {
+        id: "tools-capabilities",
+        label: "Capabilities",
+        to: "/tools/capabilities",
+      },
+      { id: "tools-events", label: "Events", to: "/tools/events" },
+      { id: "tools-routes", label: "Routes", to: "/tools/routes" },
+      {
+        id: "tools-email",
+        label: "Email Notifications",
+        to: "/tools/email-notifications",
+      },
+      {
+        id: "tools-site-notif",
+        label: "Site Notifications",
+        to: "/tools/site-notifications",
+      },
+      {
+        id: "tools-redirects",
+        label: "Redirects",
+        to: "/tools/redirects",
+        capability: "routing.create_redirect",
+      },
+      {
+        id: "tools-api-keys",
+        label: "API Keys",
+        to: "/api-keys",
+        capability: "api.create_key",
+      },
+      {
+        id: "tools-webhooks",
+        label: "Webhooks",
+        to: "/webhooks",
+        capability: "api.create_webhook",
+      },
+      {
+        id: "tools-wordpress-sync",
+        label: "WordPress Sync",
+        to: "/tools/wordpress-sync",
+        icon: RefreshCcw,
+        capability: "manage_options",
+      },
+    ],
+  },
+];
