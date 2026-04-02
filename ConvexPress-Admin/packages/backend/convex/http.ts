@@ -45,6 +45,7 @@ import { menusListHandler } from "./http/menus";
 import { settingsReadHandler } from "./http/settings";
 import { resendWebhookHandler } from "./http/resendWebhook";
 import { clerkWebhookHandler } from "./auth/clerkWebhook";
+import { analyticsTrackHandler } from "./http/analytics";
 import { httpAction } from "./_generated/server";
 
 const http = httpRouter();
@@ -349,6 +350,18 @@ http.route({
   path: "/webhooks/clerk",
   method: "POST",
   handler: clerkWebhookHandler,
+});
+
+// ─── Analytics Tracking (Public, no auth) ───────────────────────────────────
+http.route({
+  path: "/api/analytics/track",
+  method: "OPTIONS",
+  handler: corsPreflight,
+});
+http.route({
+  path: "/api/analytics/track",
+  method: "POST",
+  handler: analyticsTrackHandler,
 });
 
 export default http;
