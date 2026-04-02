@@ -5,8 +5,8 @@
  * renders scroll depth funnel, time on page, and internal link click metrics.
  */
 
-import { useState, useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useQuery, useAction } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import {
@@ -15,8 +15,12 @@ import {
   MousePointerClick,
   Target,
   Link as LinkIcon,
+  Timer,
+  Zap,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DataSourceIndicator } from "./DataSourceIndicator";
 
 // ─── Date Range Helpers ─────────────────────────────────────────────────────
 
@@ -46,6 +50,48 @@ function formatDuration(ms: number): string {
 
 function formatPercent(n: number): string {
   return (n * 100).toFixed(0) + "%";
+}
+
+function formatSeconds(sec: number): string {
+  if (sec === 0) return "--";
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/** Map the dashboard date range key to the GA4 date range key */
+function toGA4DateRange(
+  range: DateRange,
+): "last7days" | "last28days" | "last90days" | null {
+  switch (range) {
+    case "7d":
+      return "last7days";
+    case "30d":
+      return "last28days";
+    case "90d":
+      return "last90days";
+    case "all":
+      return null;
+  }
+}
+
+// ─── GA4 Engagement Data Types ─────────────────────────────────────────────
+
+/** Shape of data stored in gaCache for engagement queries */
+interface GA4EngagementData {
+  bounceRate: number;
+  avgSessionDuration: number;
+  pagesPerSession: number;
+  engagementRate: number;
+  totalEvents: number;
+  daily: Array<{
+    date: string;
+    bounceRate: number;
+    avgSessionDuration: number;
+    pagesPerSession: number;
+    engagementRate: number;
+    eventCount: number;
+  }>;
 }
 
 // Section labels for display
@@ -89,14 +135,58 @@ export function EngagementDashboard({ postId }: EngagementDashboardProps) {
   const [range, setRange] = useState<DateRange>("30d");
   const { startDate, endDate } = useMemo(() => getDateRange(range), [range]);
 
+  // ── GA4 connection check ──────────────────────────────────────────────
+  const isGA4Connected = useQuery(api.ga4.queries.isConnected);
+  const ga4DateRange = toGA4DateRange(range);
+
+  // GA4 cached engagement data (reactive)
+  const ga4Data = useQuery(
+    api.ga4.queries.getCachedEngagementData,
+    isGA4Connected && ga4DateRange
+      ? { dateRange: ga4DateRange }
+      : "skip",
+  );
+
+  // Trigger GA4 fetch on cache miss
+  const fetchEngagement = useAction(api.ga4.actions.fetchEngagementData);
+  const fetchInFlightRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      isGA4Connected &&
+      ga4DateRange &&
+      ga4Data === null &&
+      !fetchInFlightRef.current
+    ) {
+      fetchInFlightRef.current = true;
+      fetchEngagement({ dateRange: ga4DateRange })
+        .catch(() => {})
+        .finally(() => {
+          fetchInFlightRef.current = false;
+        });
+    }
+  }, [isGA4Connected, ga4Data, ga4DateRange, fetchEngagement]);
+
+  // ── Built-in engagement data (ALWAYS loaded — scroll depth is unique) ─
   const engagement = useQuery(api.analytics.queries.getEngagementSummary, {
     postId,
     startDate,
     endDate,
   });
 
+  // Determine data source for aggregate metrics
+  const ga4Engagement = isGA4Connected && ga4DateRange && ga4Data?.data
+    ? (ga4Data.data as GA4EngagementData)
+    : null;
+  const dataSource: "ga4" | "builtin" = ga4Engagement ? "ga4" : "builtin";
+
   // Loading state
-  if (engagement === undefined) {
+  const isLoading =
+    isGA4Connected === undefined ||
+    engagement === undefined ||
+    (isGA4Connected && ga4DateRange && ga4Data === undefined);
+
+  if (isLoading) {
     return <EngagementSkeleton />;
   }
 
@@ -111,56 +201,97 @@ export function EngagementDashboard({ postId }: EngagementDashboardProps) {
     );
   }
 
-  const hasData = engagement.avgTimeOnPage > 0 || engagement.totalInternalClicks > 0;
+  const hasBuiltinData = engagement.avgTimeOnPage > 0 || engagement.totalInternalClicks > 0;
+  const hasGA4Data = ga4Engagement !== null;
+  const hasData = hasBuiltinData || hasGA4Data;
 
   return (
     <div className="space-y-6">
-      {/* Date Range Selector */}
-      <div className="flex items-center gap-2">
-        {(["7d", "30d", "90d", "all"] as const).map((r) => (
-          <button
-            key={r}
-            type="button"
-            onClick={() => setRange(r)}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-              range === r
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {r === "7d" ? "7 Days" : r === "30d" ? "30 Days" : r === "90d" ? "90 Days" : "All Time"}
-          </button>
-        ))}
+      {/* Date Range Selector + Data Source Indicator */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {(["7d", "30d", "90d", "all"] as const).map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRange(r)}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                range === r
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {r === "7d" ? "7 Days" : r === "30d" ? "30 Days" : r === "90d" ? "90 Days" : "All Time"}
+            </button>
+          ))}
+        </div>
+        <DataSourceIndicator source={dataSource} />
       </div>
 
-      {/* Metric Cards */}
+      {/* GA4 fetching indicator */}
+      {isGA4Connected && ga4DateRange && ga4Data === null && (
+        <div className="flex items-center gap-2 rounded-lg border border-dashed bg-muted/40 px-4 py-2">
+          <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-xs text-muted-foreground">
+            Fetching engagement data from Google Analytics 4...
+          </p>
+        </div>
+      )}
+
+      {/* Metric Cards -- built-in metrics */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <MetricCard
           icon={Activity}
           label="Avg Time on Page"
-          value={hasData ? formatDuration(engagement.avgTimeOnPage) : "--"}
+          value={hasBuiltinData ? formatDuration(engagement.avgTimeOnPage) : "--"}
         />
         <MetricCard
           icon={Target}
           label="Avg Engaged Time"
-          value={hasData ? formatDuration(engagement.avgEngagedTime) : "--"}
+          value={hasBuiltinData ? formatDuration(engagement.avgEngagedTime) : "--"}
         />
         <MetricCard
           icon={MousePointerClick}
           label="Internal Clicks"
-          value={hasData ? String(engagement.totalInternalClicks) : "--"}
+          value={hasBuiltinData ? String(engagement.totalInternalClicks) : "--"}
         />
         <MetricCard
           icon={ArrowDownToLine}
           label="Deepest Section"
           value={
-            hasData
+            hasBuiltinData
               ? getDeepestSection(engagement.scrollDepthDistribution)
               : "--"
           }
         />
       </div>
+
+      {/* GA4-only engagement metrics */}
+      {hasGA4Data && ga4Engagement && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <MetricCard
+            icon={Timer}
+            label="Avg Session Duration"
+            value={formatSeconds(ga4Engagement.avgSessionDuration)}
+          />
+          <MetricCard
+            icon={Zap}
+            label="Engagement Rate"
+            value={formatPercent(ga4Engagement.engagementRate)}
+          />
+          <MetricCard
+            icon={BarChart3}
+            label="Bounce Rate"
+            value={formatPercent(ga4Engagement.bounceRate)}
+          />
+          <MetricCard
+            icon={MousePointerClick}
+            label="Total Events"
+            value={ga4Engagement.totalEvents.toLocaleString()}
+          />
+        </div>
+      )}
 
       {!hasData && (
         <div className="flex items-start gap-3 rounded-lg border border-dashed bg-muted/40 px-4 py-3">
