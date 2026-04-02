@@ -218,4 +218,14 @@ crons.daily(
   {},
 );
 
+// ─── GA4 Integration System ─────────────────────────────────────────────────
+// Hourly purge of expired gaCache entries (1-hour TTL).
+// Processes in batches of 100 per invocation to stay within mutation limits.
+// Added by: GA4 Integration System Expert
+crons.hourly(
+  "ga4-purge-expired-cache",
+  { minuteUTC: 5 },
+  internal.ga4.internals.deleteExpiredEntries,
+);
+
 export default crons;
