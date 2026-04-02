@@ -11,7 +11,7 @@
  * subscribed components automatically re-render with the new data.
  */
 
-import { query } from "../_generated/server";
+import { query, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
 import { currentUserCan } from "../helpers/permissions";
 import { ga4DateRangeArgs, ga4PathArgs } from "./validators";
@@ -205,6 +205,31 @@ export const getCachedEngagementData = query({
       data: cached.data,
       fetchedAt: cached.fetchedAt,
       source: "ga4" as const,
+    };
+  },
+});
+
+// ─── Internal Query (for actions) ──────────────────────────────────────────
+
+/**
+ * Internal query used by actions to read GA4 connection settings.
+ * Not client-callable.
+ */
+export const getConnectionStatusInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const settings = await ctx.db
+      .query("settings")
+      .withIndex("by_section", (q) => q.eq("section", "analytics"))
+      .unique();
+
+    if (!settings) return null;
+
+    const values = (settings.values as Record<string, unknown>) ?? {};
+    return {
+      connected: values.ga4Connected === true,
+      propertyId: (values.ga4PropertyId as string) ?? null,
+      serviceAccountEmail: (values.ga4ServiceAccountEmail as string) ?? null,
     };
   },
 });
