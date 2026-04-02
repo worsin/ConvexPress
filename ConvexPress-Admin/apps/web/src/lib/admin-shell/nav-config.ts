@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
   Search,
   RefreshCcw,
+  BarChart3,
 } from "lucide-react";
 
 import type { AdminNavSection } from "./types";
@@ -251,6 +252,13 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         label: "Search",
         to: "/settings/search",
         capability: "search.query",
+      },
+      {
+        id: "settings-analytics",
+        label: "Analytics",
+        to: "/settings/analytics",
+        icon: BarChart3,
+        capability: "manage_options",
       },
     ],
   },
