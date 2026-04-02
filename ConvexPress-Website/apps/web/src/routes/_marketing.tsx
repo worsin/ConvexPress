@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
+import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
 import { BackToTop } from "@/components/layout/BackToTop";
 import { ContentWrapper } from "@/components/layout/ContentWrapper";
 import { LayoutShellProvider } from "@/components/layout/LayoutShellProvider";
@@ -44,6 +45,7 @@ function MarketingLayoutInner() {
 
   return (
     <>
+      <AnalyticsProvider />
       <ThemeStyleInjector />
       {/* MobileNav is outside the inert wrapper so focus trap works */}
       <MobileNav menu={headerMenu} siteIdentity={siteIdentity} />
