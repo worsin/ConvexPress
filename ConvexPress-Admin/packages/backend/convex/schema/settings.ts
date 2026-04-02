@@ -30,6 +30,7 @@ export const settingsTables = {
       v.literal("privacy"),
       v.literal("email"),
       v.literal("media"),
+      v.literal("analytics"),
     ),
 
     /**
