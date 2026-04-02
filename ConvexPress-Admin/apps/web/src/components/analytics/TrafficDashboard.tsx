@@ -8,8 +8,8 @@
  * Supports date range selection: 7d, 30d, 90d, all time.
  */
 
-import { useState, useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useQuery, useAction } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import {
@@ -22,8 +22,10 @@ import {
   Smartphone,
   Tablet,
   ExternalLink,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DataSourceIndicator } from "./DataSourceIndicator";
 
 // ─── Date Range Helpers ─────────────────────────────────────────────────────
 
@@ -53,6 +55,23 @@ function formatPercent(n: number): string {
   return (n * 100).toFixed(1) + "%";
 }
 
+/** Map the dashboard date range key to the GA4 date range key */
+function toGA4DateRange(
+  range: DateRange,
+): "last7days" | "last28days" | "last90days" | null {
+  switch (range) {
+    case "7d":
+      return "last7days";
+    case "30d":
+      return "last28days";
+    case "90d":
+      return "last90days";
+    case "all":
+      // GA4 has no "all time" — skip GA4 for this range
+      return null;
+  }
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface DailyBreakdownEntry {
@@ -71,6 +90,87 @@ interface CountryEntry {
   pageviews: number;
 }
 
+// ─── GA4 Data Types ────────────────────────────────────────────────────────
+
+/** Shape of data stored in gaCache for traffic queries (from buildTrafficData) */
+interface GA4TrafficData {
+  totalPageviews: number;
+  totalSessions: number;
+  totalUsers: number;
+  newUsers: number;
+  sources: Array<{ channel: string; sessions: number }>;
+  referrers: Array<{ domain: string; sessions: number }>;
+  countries: Array<{ country: string; users: number }>;
+  devices: Array<{ category: string; sessions: number }>;
+  daily: Array<{
+    date: string;
+    pageviews: number;
+    sessions: number;
+    users: number;
+  }>;
+}
+
+/** Normalized GA4 traffic shaped to match built-in traffic rendering */
+interface NormalizedGA4Traffic {
+  totalPageviews: number;
+  totalUniqueVisitors: number;
+  avgBounceRate: number;
+  totalSessions: number;
+  pagesPerSession: number;
+  dailyBreakdown: DailyBreakdownEntry[];
+  topReferrers: ReferrerEntry[];
+  topCountries: CountryEntry[];
+  deviceBreakdown: { desktop: number; mobile: number; tablet: number };
+}
+
+/**
+ * Normalize GA4 cached traffic data into the same shape the dashboard renders.
+ * GA4 provides richer data -- we map it to the existing rendering format.
+ */
+function normalizeGA4Traffic(data: GA4TrafficData): NormalizedGA4Traffic {
+  // Map device categories to breakdown
+  const deviceBreakdown = { desktop: 0, mobile: 0, tablet: 0 };
+  for (const d of data.devices) {
+    const cat = d.category.toLowerCase();
+    if (cat === "desktop") deviceBreakdown.desktop += d.sessions;
+    else if (cat === "mobile") deviceBreakdown.mobile += d.sessions;
+    else if (cat === "tablet") deviceBreakdown.tablet += d.sessions;
+  }
+
+  return {
+    totalPageviews: data.totalPageviews,
+    totalUniqueVisitors: data.totalUsers,
+    avgBounceRate: 0, // GA4 bounce rate comes from engagement data, not traffic
+    totalSessions: data.totalSessions,
+    pagesPerSession:
+      data.totalSessions > 0
+        ? data.totalPageviews / data.totalSessions
+        : 0,
+    dailyBreakdown: data.daily.map((d) => ({
+      date: formatGA4Date(d.date),
+      pageviews: d.pageviews,
+      uniqueVisitors: d.users,
+    })),
+    topReferrers: data.referrers
+      .sort((a, b) => b.sessions - a.sessions)
+      .slice(0, 10)
+      .map((r) => ({ domain: r.domain, pageviews: r.sessions })),
+    topCountries: data.countries
+      .sort((a, b) => b.users - a.users)
+      .slice(0, 10)
+      .map((c) => ({ country: c.country, pageviews: c.users })),
+    deviceBreakdown,
+  };
+}
+
+/** Convert GA4 date format (YYYYMMDD) to ISO (YYYY-MM-DD) */
+function formatGA4Date(date: string): string {
+  if (date.length === 8 && !date.includes("-")) {
+    return `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
+  }
+  return date;
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 interface TrafficDashboardProps {
@@ -81,19 +181,69 @@ export function TrafficDashboard({ postId }: TrafficDashboardProps) {
   const [range, setRange] = useState<DateRange>("30d");
   const { startDate, endDate } = useMemo(() => getDateRange(range), [range]);
 
-  const traffic = useQuery(api.analytics.queries.getTrafficSummary, {
+  // ── GA4 connection check ──────────────────────────────────────────────
+  const isGA4Connected = useQuery(api.ga4.queries.isConnected);
+  const ga4DateRange = toGA4DateRange(range);
+
+  // GA4 cached data (reactive — re-renders when cache is written)
+  const ga4Data = useQuery(
+    api.ga4.queries.getCachedTrafficData,
+    isGA4Connected && ga4DateRange
+      ? { dateRange: ga4DateRange }
+      : "skip",
+  );
+
+  // Trigger GA4 fetch on cache miss
+  const fetchTraffic = useAction(api.ga4.actions.fetchTrafficData);
+  const fetchInFlightRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      isGA4Connected &&
+      ga4DateRange &&
+      ga4Data === null &&
+      !fetchInFlightRef.current
+    ) {
+      fetchInFlightRef.current = true;
+      fetchTraffic({ dateRange: ga4DateRange })
+        .catch(() => {
+          // Error handled by action (stored in settings)
+        })
+        .finally(() => {
+          fetchInFlightRef.current = false;
+        });
+    }
+  }, [isGA4Connected, ga4Data, ga4DateRange, fetchTraffic]);
+
+  // ── Built-in analytics data (always loaded as fallback) ───────────────
+  const builtinTraffic = useQuery(api.analytics.queries.getTrafficSummary, {
     postId,
     startDate,
     endDate,
   });
 
+  // Determine active data source
+  const useGA4 = isGA4Connected && ga4DateRange && ga4Data?.data;
+  const dataSource: "ga4" | "builtin" =
+    useGA4 ? "ga4" : "builtin";
+
+  // The traffic object used for rendering
+  const traffic = useGA4
+    ? normalizeGA4Traffic(ga4Data!.data as GA4TrafficData)
+    : builtinTraffic;
+
   // Loading state
-  if (traffic === undefined) {
+  const isLoading =
+    isGA4Connected === undefined ||
+    (isGA4Connected && ga4DateRange && ga4Data === undefined) ||
+    builtinTraffic === undefined;
+
+  if (isLoading) {
     return <TrafficSkeleton />;
   }
 
   // No data / no permission
-  if (traffic === null) {
+  if (traffic === null || traffic === undefined) {
     return (
       <div className="flex items-center justify-center py-12">
         <p className="text-sm text-muted-foreground">
@@ -108,33 +258,49 @@ export function TrafficDashboard({ postId }: TrafficDashboardProps) {
 
   return (
     <div className="space-y-6">
-      {/* Date Range Selector */}
-      <div className="flex items-center gap-2">
-        {(["7d", "30d", "90d", "all"] as const).map((r) => (
-          <button
-            key={r}
-            type="button"
-            onClick={() => setRange(r)}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-              range === r
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {r === "7d"
-              ? "7 Days"
-              : r === "30d"
-                ? "30 Days"
-                : r === "90d"
-                  ? "90 Days"
-                  : "All Time"}
-          </button>
-        ))}
+      {/* Date Range Selector + Data Source Indicator */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {(["7d", "30d", "90d", "all"] as const).map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRange(r)}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                range === r
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {r === "7d"
+                ? "7 Days"
+                : r === "30d"
+                  ? "30 Days"
+                  : r === "90d"
+                    ? "90 Days"
+                    : "All Time"}
+            </button>
+          ))}
+        </div>
+        <DataSourceIndicator source={dataSource} />
       </div>
 
+      {/* GA4 fetching indicator */}
+      {isGA4Connected && ga4DateRange && ga4Data === null && (
+        <div className="flex items-center gap-2 rounded-lg border border-dashed bg-muted/40 px-4 py-2">
+          <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-xs text-muted-foreground">
+            Fetching data from Google Analytics 4...
+          </p>
+        </div>
+      )}
+
       {/* Metric Cards */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className={cn(
+        "grid grid-cols-2 gap-3",
+        dataSource === "ga4" ? "lg:grid-cols-5" : "lg:grid-cols-4",
+      )}>
         <MetricCard
           icon={BarChart3}
           label="Pageviews"
@@ -155,6 +321,18 @@ export function TrafficDashboard({ postId }: TrafficDashboardProps) {
           label="Sessions"
           value={hasData ? formatNumber(traffic.totalSessions) : "--"}
         />
+        {/* GA4-only metric: pages per session */}
+        {dataSource === "ga4" && (
+          <MetricCard
+            icon={Layers}
+            label="Pages / Session"
+            value={
+              hasData && "pagesPerSession" in traffic
+                ? (traffic as NormalizedGA4Traffic).pagesPerSession.toFixed(1)
+                : "--"
+            }
+          />
+        )}
       </div>
 
       {!hasData && (
