@@ -197,4 +197,25 @@ crons.weekly(
   internal.wordpressSync.internals.cleanupOrphanedMappings,
 );
 
+// ─── Analytics System ────────────────────────────────────────────────────────
+// Daily rollup: aggregate yesterday's raw pageEvents into pageAnalyticsDaily.
+// Runs at 00:05 UTC to ensure the previous day's events are complete.
+// Added by: Analytics System Expert
+crons.daily(
+  "analytics-daily-rollup",
+  { hourUTC: 0, minuteUTC: 5 },
+  internal.analytics.internals.rollupDailyAnalytics,
+  {},
+);
+
+// Daily purge: delete raw pageEvents older than retention period (default 90 days).
+// Processes in batches of 1000; reschedules itself if more remain.
+// Added by: Analytics System Expert
+crons.daily(
+  "analytics-purge-expired",
+  { hourUTC: 1, minuteUTC: 0 },
+  internal.analytics.internals.purgeExpiredEvents,
+  {},
+);
+
 export default crons;
