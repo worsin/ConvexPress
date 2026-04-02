@@ -32,6 +32,7 @@ import { siteNotificationDefinitionsTables } from "./schema/siteNotificationDefi
 import { authTrackingTables } from "./schema/authTracking";
 import { wordpressSyncTables } from "./schema/wordpressSync";
 import { authTables } from "./schema/auth";
+import { analyticsTables } from "./schema/analytics";
 
 // ─── Compose Schema ──────────────────────────────────────────────────────────
 export default defineSchema({
@@ -64,4 +65,5 @@ export default defineSchema({
   ...authTrackingTables,
   ...wordpressSyncTables,
   ...authTables,
+  ...analyticsTables,
 });
