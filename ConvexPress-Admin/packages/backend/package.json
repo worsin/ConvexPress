@@ -9,9 +9,12 @@
     "dev:setup": "convex dev --configure --until-success"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.81.0",
+    "@tavily/core": "0.7.2",
     "bcryptjs": "^3.0.3",
     "convex": "catalog:",
     "dotenv": "catalog:",
+    "googleapis": "^171.4.0",
     "jose": "^6.2.2",
     "svix": "^1.89.0",
     "zod": "catalog:"
