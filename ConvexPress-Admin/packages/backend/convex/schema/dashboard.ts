@@ -4,7 +4,7 @@
  * One table supporting user-customizable dashboard preferences:
  *   - `dashboardPreferences` - Per-user, per-surface widget layout and visibility
  *
- * SmithHarper's dashboard mirrors WordPress's admin dashboard widget system:
+ * ConvexPress's dashboard mirrors WordPress's admin dashboard widget system:
  *   - Two-column layout (primary/secondary) on desktop, single column on mobile
  *   - Widgets can be hidden, collapsed, and reordered
  *   - Dismissable welcome panel

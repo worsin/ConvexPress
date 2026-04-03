@@ -2,7 +2,7 @@
  * Auth System - Token Refresh HTTP Action
  *
  * Handles POST /auth/refresh
- * Reads the HttpOnly smithharper_refresh cookie, validates the token,
+ * Reads the HttpOnly convexpress_refresh cookie, validates the token,
  * rotates it (revoke old, issue new), and returns a fresh access token.
  *
  * Implements refresh token rotation — every successful refresh invalidates
@@ -24,7 +24,7 @@ export const refreshHandler = httpAction(async (ctx, request) => {
 
   // ─── Extract refresh token from cookie ───────────────────────────────────
   const cookieHeader = request.headers.get("cookie") ?? "";
-  const refreshToken = parseCookie(cookieHeader, "smithharper_refresh");
+  const refreshToken = parseCookie(cookieHeader, "convexpress_refresh");
 
   if (!refreshToken) {
     return jsonResponse({ error: "No refresh token" }, 401, origin);
@@ -79,7 +79,7 @@ export const refreshHandler = httpAction(async (ctx, request) => {
   const isProduction =
     process.env.AUTH_ISSUER_URL?.startsWith("https://") ?? false;
   const cookieFlags = [
-    `smithharper_refresh=${newRawToken}`,
+    `convexpress_refresh=${newRawToken}`,
     "HttpOnly",
     "Path=/auth/refresh",
     `Max-Age=${7 * 24 * 60 * 60}`,

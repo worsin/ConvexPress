@@ -118,12 +118,12 @@ export const testWebhook = action({
     // 6. Build request headers
     const requestHeaders: Record<string, string> = {
       "Content-Type": webhook.contentType,
-      "User-Agent": "SmithHarper-Webhook/1.0",
-      "X-SmithHarper-Event": "api.webhook_triggered",
-      "X-SmithHarper-Signature": signature,
-      "X-SmithHarper-Delivery": deliveryId,
-      "X-SmithHarper-Webhook-Id": args.webhookId,
-      "X-SmithHarper-Timestamp": String(deliveredAt),
+      "User-Agent": "ConvexPress-Webhook/1.0",
+      "X-ConvexPress-Event": "api.webhook_triggered",
+      "X-ConvexPress-Signature": signature,
+      "X-ConvexPress-Delivery": deliveryId,
+      "X-ConvexPress-Webhook-Id": args.webhookId,
+      "X-ConvexPress-Timestamp": String(deliveredAt),
     };
 
     // 7. Send HTTP POST

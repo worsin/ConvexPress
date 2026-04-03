@@ -1,10 +1,10 @@
 /**
  * Yoast SEO Parser
  *
- * Maps Yoast SEO meta fields from WordPress to SmithHarper's SEO system.
+ * Maps Yoast SEO meta fields from WordPress to ConvexPress's SEO system.
  *
  * Yoast stores SEO data in postmeta with the `_yoast_wpseo_` prefix.
- * This parser extracts and normalizes that data for SmithHarper.
+ * This parser extracts and normalizes that data for ConvexPress.
  */
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -173,10 +173,10 @@ export function hasYoastMeta(metaItems: WPMetaItem[]): boolean {
   return false;
 }
 
-// ─── Conversion to SmithHarper Format ──────────────────────────────────────
+// ─── Conversion to ConvexPress Format ──────────────────────────────────────
 
 /**
- * Convert Yoast data to SmithHarper SEO postMeta format.
+ * Convert Yoast data to ConvexPress SEO postMeta format.
  *
  * @param yoast - Parsed Yoast data
  * @param urlMapping - Optional URL mapping for remapping image URLs
@@ -188,7 +188,7 @@ export function yoastToSEOMeta(
 ): Array<{ key: string; value: string }> {
   const result: Array<{ key: string; value: string }> = [];
 
-  // Map Yoast fields to SmithHarper SEO meta keys
+  // Map Yoast fields to ConvexPress SEO meta keys
   if (yoast.title) {
     result.push({ key: "_seo_title", value: yoast.title });
   }

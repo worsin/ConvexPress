@@ -2,7 +2,7 @@
  * WordPress ID Mapping Helpers
  *
  * Internal functions for managing the mapping between WordPress IDs
- * and SmithHarper Convex IDs during import.
+ * and ConvexPress Convex IDs during import.
  *
  * These are used by the import phases to:
  *   - Check if an object has already been imported (deduplication)

@@ -244,6 +244,37 @@ type AnalyticsCapability =
   | "analytics.view"
   | "analytics.manage";
 
+// ─── KB Capabilities (13) ───────────────────────────────────────────────────
+
+type KBCapability =
+  | "kb.view"
+  | "kb.create"
+  | "kb.edit"
+  | "kb.editOwn"
+  | "kb.delete"
+  | "kb.publish"
+  | "kb.manageCategories"
+  | "kb.manageTags"
+  | "kb.manageCollections"
+  | "kb.manageWorkflows"
+  | "kb.manageTemplates"
+  | "kb.moderateComments"
+  | "kb.viewAnalytics";
+
+// ─── Ticket Capabilities (10) ────────────────────────────────────────────────
+
+type TicketCapability =
+  | "ticket.view"
+  | "ticket.viewAll"
+  | "ticket.respond"
+  | "ticket.assign"
+  | "ticket.updateStatus"
+  | "ticket.updatePriority"
+  | "ticket.close"
+  | "ticket.manageCannedResponses"
+  | "ticket.viewAnalytics"
+  | "ticket.viewInternalNotes";
+
 // ─── Settings Management Capability (1) ─────────────────────────────────────
 // WordPress-standard "manage_options" used by admin-only settings operations.
 

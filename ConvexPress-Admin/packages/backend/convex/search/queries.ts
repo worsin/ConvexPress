@@ -26,7 +26,8 @@ import {
   requireCan,
   currentUserCan,
   getCurrentRoleLevel,
-, getUserIdentifier } from "../helpers/permissions";
+  getUserIdentifier,
+} from "../helpers/permissions";
 import {
   searchQueryArgs,
   adminSearchQueryArgs,

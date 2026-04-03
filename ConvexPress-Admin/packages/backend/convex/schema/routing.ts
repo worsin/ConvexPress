@@ -5,7 +5,7 @@
  *   - `redirects`  - URL redirect rules (manual, slug change, permalink change, import)
  *   - `notFound`   - 404 hit aggregation for admin review and redirect creation
  *
- * SmithHarper diverges from WordPress in key ways:
+ * ConvexPress diverges from WordPress in key ways:
  *   - Built-in redirect table (WordPress requires plugins like Redirection or Yoast)
  *   - Built-in 404 logging with hit aggregation (no WordPress equivalent)
  *   - Auto-redirect generation on slug changes (WordPress uses _wp_old_slug post meta)

@@ -300,7 +300,7 @@ export function buildRssChannel(config: RssChannelConfig): string {
     <atom:link href="${escapeXml(config.feedUrl)}" rel="self" type="application/rss+xml" />
     <sy:updatePeriod>hourly</sy:updatePeriod>
     <sy:updateFrequency>1</sy:updateFrequency>
-    <generator>SmithHarper CMS</generator>
+    <generator>ConvexPress</generator>
 ${items}
   </channel>
 </rss>`;
@@ -335,7 +335,7 @@ export function buildRssCommentChannel(
     <atom:link href="${escapeXml(config.feedUrl)}" rel="self" type="application/rss+xml" />
     <sy:updatePeriod>hourly</sy:updatePeriod>
     <sy:updateFrequency>1</sy:updateFrequency>
-    <generator>SmithHarper CMS</generator>
+    <generator>ConvexPress</generator>
 ${items}
   </channel>
 </rss>`;
@@ -412,7 +412,7 @@ export function buildAtomFeed(config: AtomFeedConfig): string {
     <link href="${escapeXml(config.feedUrl)}" rel="self" type="application/atom+xml" />
     <id>${escapeXml(config.id)}</id>
     <updated>${toIso8601(config.updated)}</updated>
-    <generator uri="https://smithharper.dev" version="1.0">SmithHarper CMS</generator>
+    <generator uri="https://convexpress.dev" version="1.0">ConvexPress</generator>
 ${entries}
 </feed>`;
 }
@@ -438,7 +438,7 @@ export function buildAtomCommentFeed(
     <link href="${escapeXml(config.feedUrl)}" rel="self" type="application/atom+xml" />
     <id>${escapeXml(config.id)}</id>
     <updated>${toIso8601(config.updated)}</updated>
-    <generator uri="https://smithharper.dev" version="1.0">SmithHarper CMS</generator>
+    <generator uri="https://convexpress.dev" version="1.0">ConvexPress</generator>
 ${entries}
 </feed>`;
 }

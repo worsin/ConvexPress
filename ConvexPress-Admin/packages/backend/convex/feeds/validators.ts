@@ -38,7 +38,7 @@ export const COMMENT_FEED_MAX_AGE = 1800;
 
 export const FEED_SETTINGS_DEFAULTS = {
   siteTitle: "My Site",
-  siteDescription: "Just another SmithHarper site",
+  siteDescription: "Just another ConvexPress site",
   siteUrl: "",
   language: "en-US",
   feedItemCount: 10,

@@ -25,6 +25,36 @@ export {
   postTypeValidator,
 };
 
+// ─── Structured Content Validators ─────────────────────────────────────────
+
+export const heroValidator = v.optional(v.object({
+  title: v.optional(v.string()),
+  subtitle: v.optional(v.string()),
+  content: v.optional(v.string()),
+  imageId: v.optional(v.id("media")),
+  videoUrl: v.optional(v.string()),
+  ctaText: v.optional(v.string()),
+  ctaUrl: v.optional(v.string()),
+}));
+
+export const topicValidator = v.object({
+  title: v.optional(v.string()),
+  subtitle: v.optional(v.string()),
+  content: v.optional(v.string()),
+  imageId: v.optional(v.id("media")),
+  videoUrl: v.optional(v.string()),
+});
+
+export const topicsValidator = v.optional(v.array(topicValidator));
+
+export const summaryValidator = v.optional(v.object({
+  title: v.optional(v.string()),
+  content: v.optional(v.string()),
+}));
+
+/** Maximum number of topic sections per post/page. */
+export const MAX_TOPICS = 5;
+
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 /** Maximum title length in characters. */
@@ -73,6 +103,13 @@ export const createPostArgs = {
   // Taxonomy IDs - passed to Taxonomy System after creation
   categoryIds: v.optional(v.array(v.id("terms"))),
   tagIds: v.optional(v.array(v.id("terms"))),
+  // Structured content fields
+  hero: heroValidator,
+  topics: topicsValidator,
+  summary: summaryValidator,
+  sources: v.optional(v.string()),
+  tableOfContents: v.optional(v.string()),
+  pagePrompt: v.optional(v.string()),
 };
 
 /**
@@ -98,6 +135,13 @@ export const updatePostArgs = {
   // Taxonomy IDs - update category/tag assignments
   categoryIds: v.optional(v.array(v.id("terms"))),
   tagIds: v.optional(v.array(v.id("terms"))),
+  // Structured content fields
+  hero: heroValidator,
+  topics: topicsValidator,
+  summary: summaryValidator,
+  sources: v.optional(v.string()),
+  tableOfContents: v.optional(v.string()),
+  pagePrompt: v.optional(v.string()),
 };
 
 /**

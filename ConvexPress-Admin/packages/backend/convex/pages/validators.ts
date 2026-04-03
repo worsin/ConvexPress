@@ -12,6 +12,11 @@
  */
 
 import { v } from "convex/values";
+import {
+  heroValidator,
+  topicsValidator,
+  summaryValidator,
+} from "../posts/validators";
 
 // ─── Shared Validators ───────────────────────────────────────────────────────
 
@@ -96,6 +101,13 @@ export const createPageArgs = {
   slug: v.optional(v.string()),
   publishedAt: v.optional(v.number()),
   scheduledAt: v.optional(v.number()),
+  // Structured content fields
+  hero: heroValidator,
+  topics: topicsValidator,
+  summary: summaryValidator,
+  sources: v.optional(v.string()),
+  tableOfContents: v.optional(v.string()),
+  pagePrompt: v.optional(v.string()),
 };
 
 // Note: createPageArgs already includes "auto-draft" in the status union.
@@ -129,6 +141,13 @@ export const updatePageArgs = {
   password: v.optional(v.string()),
   slug: v.optional(v.string()),
   scheduledAt: v.optional(v.number()),
+  // Structured content fields
+  hero: heroValidator,
+  topics: topicsValidator,
+  summary: summaryValidator,
+  sources: v.optional(v.string()),
+  tableOfContents: v.optional(v.string()),
+  pagePrompt: v.optional(v.string()),
 };
 
 /**

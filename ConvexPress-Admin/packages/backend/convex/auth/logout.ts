@@ -2,7 +2,7 @@
  * Auth System - Logout HTTP Action
  *
  * Handles POST /auth/logout
- * Clears the smithharper_refresh cookie by setting Max-Age=0.
+ * Clears the convexpress_refresh cookie by setting Max-Age=0.
  *
  * Note: This clears the browser cookie but does NOT revoke the token
  * server-side (token expires naturally after 7 days). For immediate
@@ -20,7 +20,7 @@ export const logoutHandler = httpAction(async (_, request) => {
     process.env.AUTH_ISSUER_URL?.startsWith("https://") ?? false;
 
   const clearCookie = [
-    "smithharper_refresh=",
+    "convexpress_refresh=",
     "HttpOnly",
     "Path=/auth/refresh",
     "Max-Age=0",

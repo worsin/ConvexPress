@@ -150,7 +150,7 @@ export const wordpressSyncTables = {
    * WordPress ID to Convex ID mappings
    *
    * Preserves the relationship between WordPress object IDs and
-   * SmithHarper Convex IDs for reference resolution during import.
+   * ConvexPress Convex IDs for reference resolution during import.
    */
   wpIdMappings: defineTable({
     // Reference to the WordPress site
@@ -159,7 +159,7 @@ export const wordpressSyncTables = {
     objectType: objectTypeValidator,
     // Original WordPress ID
     wpId: v.number(),
-    // SmithHarper Convex ID (stored as string for flexibility)
+    // ConvexPress Convex ID (stored as string for flexibility)
     convexId: v.string(),
     // When this mapping was created
     createdAt: v.number(),
