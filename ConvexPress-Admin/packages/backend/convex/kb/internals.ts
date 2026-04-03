@@ -135,3 +135,106 @@ export const getUnsyncedForRag = internalQuery({
       .take(50);
   },
 });
+
+// ─── Get Article for External Sync ─────────────────────────────────────────
+
+/**
+ * Load a full article enriched with category slug and article tag slugs.
+ * Used by Meilisearch and RAG sync actions.
+ */
+export const getArticleForSync = internalQuery({
+  args: { articleId: v.id("kb_articles") },
+  handler: async (ctx, { articleId }) => {
+    const article = await ctx.db.get(articleId);
+    if (!article) return null;
+
+    // Resolve category slug
+    const category = article.categoryId ? await ctx.db.get(article.categoryId) : null;
+
+    // Resolve tags via junction table
+    const articleTagRows = await ctx.db
+      .query("kb_articleTags")
+      .withIndex("by_article", (q) => q.eq("articleId", articleId))
+      .collect();
+
+    const tagSlugs: string[] = [];
+    for (const row of articleTagRows) {
+      const tag = await ctx.db.get(row.tagId);
+      if (tag) tagSlugs.push(tag.slug);
+    }
+
+    return {
+      ...article,
+      categorySlug: category?.slug ?? null,
+      tags: tagSlugs,
+    };
+  },
+});
+
+// ─── Mark Meilisearch Synced ────────────────────────────────────────────────
+
+export const markMeilisearchSynced = internalMutation({
+  args: { articleId: v.id("kb_articles") },
+  handler: async (ctx, { articleId }) => {
+    await ctx.db.patch(articleId, {
+      meilisearchSynced: true,
+      meilisearchSyncedAt: Date.now(),
+    });
+  },
+});
+
+// ─── Mark RAG Synced ────────────────────────────────────────────────────────
+
+export const markRagSynced = internalMutation({
+  args: { articleId: v.id("kb_articles") },
+  handler: async (ctx, { articleId }) => {
+    await ctx.db.patch(articleId, {
+      ragSynced: true,
+      ragSyncedAt: Date.now(),
+    });
+  },
+});
+
+// ─── Insert RAG Chunk ────────────────────────────────────────────────────────
+
+export const insertRagChunk = internalMutation({
+  args: {
+    articleId: v.id("kb_articles"),
+    articleSlug: v.string(),
+    content: v.string(),
+    chunkIndex: v.number(),
+    embedding: v.array(v.number()),
+    metadata: v.object({
+      title: v.string(),
+      categorySlug: v.optional(v.string()),
+      excerpt: v.optional(v.string()),
+    }),
+    now: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return ctx.db.insert("kb_ragChunks", {
+      articleId: args.articleId,
+      articleSlug: args.articleSlug,
+      content: args.content,
+      chunkIndex: args.chunkIndex,
+      embedding: args.embedding,
+      metadata: args.metadata,
+      createdAt: args.now,
+      updatedAt: args.now,
+    });
+  },
+});
+
+// ─── Get All RAG Chunks ──────────────────────────────────────────────────────
+
+/**
+ * Load all RAG chunks for cosine similarity scoring.
+ * NOTE: This is efficient for small-to-medium KB sizes but will need
+ * vector index support (or batched pagination) for very large deployments.
+ */
+export const getAllRagChunks = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return ctx.db.query("kb_ragChunks").collect();
+  },
+});
