@@ -17,23 +17,28 @@
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
+import { resolveServiceKey } from "../helpers/serviceKeys";
 
 // ─── Settings Helper ────────────────────────────────────────────────────────
 
 /**
- * Read AI settings from the database, falling back to env vars.
+ * Read AI settings from the settings table, falling back to env vars.
+ * Uses the shared resolveServiceKey helper for consistent key resolution.
  * Returns resolved provider, apiKey, model, and tavilyApiKey.
  */
 async function resolveAiSettings(ctx: {
   runQuery: (query: any, args?: any) => Promise<any>;
 }) {
-  const settings = await ctx.runQuery(internal.ai.helpers.getAiSettings);
+  const settings = (await ctx.runQuery(
+    internal.settings.internals.getInternal,
+    { section: "ai" },
+  )) as Record<string, unknown> | null;
 
   return {
-    provider: (settings?.provider || "anthropic") as "openrouter" | "anthropic",
-    apiKey: settings?.apiKey || process.env.ANTHROPIC_API_KEY || "",
-    defaultModel: settings?.defaultModel || "claude-sonnet-4-20250514",
-    tavilyApiKey: settings?.tavilyApiKey || process.env.TAVILY_API_KEY || "",
+    provider: ((settings?.provider as string) || "anthropic") as "openrouter" | "anthropic",
+    apiKey: resolveServiceKey(settings, "apiKey", "ANTHROPIC_API_KEY") ?? "",
+    defaultModel: (settings?.defaultModel as string) || "claude-sonnet-4-20250514",
+    tavilyApiKey: resolveServiceKey(settings, "tavilyApiKey", "TAVILY_API_KEY") ?? "",
   };
 }
 
