@@ -75,12 +75,11 @@ export const create = mutation({
     }
 
     const slug = await generateArticleSlug(ctx, title || "untitled");
-    const content = args.content ?? "";
-    const plainText = args.contentPlainText ?? extractPlainText(content);
-    const excerpt = args.excerpt ?? generateExcerpt(plainText);
-    const readingTime = calculateReadingTime(plainText);
+    let content = args.content ?? "";
+    let contentPlainText = args.contentPlainText ?? extractPlainText(content);
+    let readingTimeMinutes = calculateReadingTime(contentPlainText);
 
-    // If a template was specified, increment its usage count
+    // If a template was specified, increment its usage count and apply content
     if (args.templateId) {
       const template = await ctx.db.get(args.templateId);
       if (template) {
@@ -88,8 +87,17 @@ export const create = mutation({
           usageCount: template.usageCount + 1,
           updatedAt: Date.now(),
         });
+        // Apply template content if caller didn't provide their own
+        if (!args.content && template.content) {
+          content = template.content;
+          contentPlainText = extractPlainText(template.content);
+          readingTimeMinutes = calculateReadingTime(contentPlainText);
+        }
       }
     }
+
+    const plainText = contentPlainText;
+    const excerpt = args.excerpt ?? generateExcerpt(plainText);
 
     const now = Date.now();
     const articleId = await ctx.db.insert("kb_articles", {
@@ -113,7 +121,7 @@ export const create = mutation({
       uniqueViewCount: 0,
       helpfulVotes: 0,
       notHelpfulVotes: 0,
-      readingTimeMinutes: readingTime,
+      readingTimeMinutes: readingTimeMinutes,
       version: 1,
       lastMajorUpdate: undefined,
       isFeatured: false,
