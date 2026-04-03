@@ -11,6 +11,7 @@
  */
 
 import { internalMutation, internalQuery } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { logDeflectionInternalArgs, DEFLECTION_LOG_RETENTION_MS } from "./validators";
 
@@ -65,6 +66,11 @@ export const cleanupOldLogs = internalMutation({
     for (const log of oldLogs) {
       await ctx.db.delete(log._id);
       deleted++;
+    }
+
+    // If we hit the batch limit, there may be more records — reschedule immediately
+    if (deleted >= 500) {
+      await ctx.scheduler.runAfter(0, internal.support.internals.cleanupOldLogs, {});
     }
 
     return { deleted };

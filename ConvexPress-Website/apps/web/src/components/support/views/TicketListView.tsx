@@ -29,22 +29,22 @@ const STATUS_CONFIG: Record<
   open: {
     label: "Open",
     icon: AlertCircle,
-    className: "text-yellow-600 bg-yellow-500/10",
+    className: "text-warning bg-warning/10",
   },
   awaitingResponse: {
     label: "Awaiting Reply",
     icon: Clock,
-    className: "text-blue-600 bg-blue-500/10",
+    className: "text-primary bg-primary/10",
   },
   inProgress: {
     label: "In Progress",
     icon: Loader2,
-    className: "text-purple-600 bg-purple-500/10",
+    className: "text-accent-foreground bg-accent/10",
   },
   resolved: {
     label: "Resolved",
     icon: CheckCircle,
-    className: "text-green-600 bg-green-500/10",
+    className: "text-success bg-success/10",
   },
   closed: {
     label: "Closed",

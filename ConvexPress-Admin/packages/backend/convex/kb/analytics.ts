@@ -31,20 +31,20 @@ export const trackPageView = mutation({
     const user = await getCurrentUser(ctx);
     const now = Date.now();
 
-    // Session-based deduplication: skip if same session+article viewed within 30 min
-    const recentViews = await ctx.db
+    // Check if this session has EVER viewed this article
+    const priorView = await ctx.db
       .query("kb_pageViews")
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
-      .order("desc")
-      .take(10);
+      .filter((q) => q.eq(q.field("articleId"), args.articleId))
+      .first();
 
-    const recentForArticle = recentViews.find(
-      (v) => v.articleId === args.articleId && now - v.createdAt < PAGE_VIEW_DEDUP_WINDOW_MS,
-    );
-
-    if (recentForArticle) {
-      return recentForArticle._id; // Deduplicated
+    // Session-based deduplication: skip if same session+article viewed within 30 min
+    if (priorView && now - priorView.createdAt < PAGE_VIEW_DEDUP_WINDOW_MS) {
+      return priorView._id; // Deduplicated
     }
+
+    // isNewUnique: this session has never viewed this article before
+    const isNewUnique = !priorView;
 
     // Record the view
     const viewId = await ctx.db.insert("kb_pageViews", {
@@ -60,7 +60,6 @@ export const trackPageView = mutation({
     // Increment article view counts
     const article = await ctx.db.get(args.articleId);
     if (article) {
-      const isNewUnique = !recentViews.some((v) => v.articleId === args.articleId);
       await ctx.db.patch(args.articleId, {
         viewCount: article.viewCount + 1,
         uniqueViewCount: isNewUnique ? article.uniqueViewCount + 1 : article.uniqueViewCount,
