@@ -310,9 +310,15 @@ async function completeSetup() {
     mode: state.mode,
   };
 
-  // Server mode: include deploy key
+  // Server mode: include deploy key and admin credentials
   if (state.mode === "server") {
     options.adminKey = state.deployKey;
+
+    if (state.adminName || state.adminEmail || state.adminPassword) {
+      options.adminName = state.adminName;
+      options.adminEmail = state.adminEmail;
+      options.adminPassword = state.adminPassword;
+    }
   }
 
   try {
