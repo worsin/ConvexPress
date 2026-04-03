@@ -123,6 +123,33 @@ function launchApp(): void {
 async function initShellUpdater(): Promise<void> {
   try {
     const { autoUpdater } = await import("electron-updater");
+
+    // Forward update events to the renderer
+    autoUpdater.on("checking-for-update", () => {
+      const win = windowManager.getMainWindow();
+      if (win && !win.isDestroyed()) {
+        win.webContents.send("app:checking-for-updates");
+      }
+    });
+    autoUpdater.on("update-available", (info) => {
+      const win = windowManager.getMainWindow();
+      if (win && !win.isDestroyed()) {
+        win.webContents.send("app:update-available", info);
+      }
+    });
+    autoUpdater.on("update-downloaded", (info) => {
+      const win = windowManager.getMainWindow();
+      if (win && !win.isDestroyed()) {
+        win.webContents.send("app:update-downloaded", info);
+      }
+    });
+    autoUpdater.on("error", (err) => {
+      const win = windowManager.getMainWindow();
+      if (win && !win.isDestroyed()) {
+        win.webContents.send("app:update-error", err.message);
+      }
+    });
+
     autoUpdater.checkForUpdates().catch(() => {});
 
     // Check every 4 hours
