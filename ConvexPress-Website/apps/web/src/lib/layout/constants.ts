@@ -65,9 +65,7 @@ export const MAX_WIDTH_MAP: Record<LayoutConfig["contentMaxWidth"], string> = {
 export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   contentMaxWidth: "lg",
   sidebarPosition: "right",
-  sidebarWidgetArea: "sidebar-1",
   headerStyle: "default",
-  footerColumns: 3,
   stickyHeader: true,
 };
 

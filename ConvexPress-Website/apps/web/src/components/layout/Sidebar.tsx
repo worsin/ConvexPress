@@ -1,22 +1,24 @@
 import { cn } from "@/lib/utils";
 
-import { WidgetArea } from "./WidgetArea";
-
 interface SidebarProps {
-  widgetAreaSlug?: string;
   position?: "left" | "right";
   className?: string;
+  children?: React.ReactNode;
 }
 
 /**
- * Optional sidebar rendering widget area content.
+ * Optional sidebar for supplementary content.
  * Hidden on mobile, sticky below the header on desktop.
+ *
+ * Previously rendered widget areas; now accepts children directly.
  */
 export function Sidebar({
-  widgetAreaSlug = "sidebar-1",
   position = "right",
   className,
+  children,
 }: SidebarProps) {
+  if (!children) return null;
+
   return (
     <aside
       data-slot="sidebar"
@@ -29,7 +31,7 @@ export function Sidebar({
         className,
       )}
     >
-      <WidgetArea slug={widgetAreaSlug} />
+      {children}
     </aside>
   );
 }

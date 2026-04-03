@@ -45,7 +45,7 @@ export interface ResolvedMenu {
  * Site identity settings consumed by the header.
  */
 export interface SiteIdentity {
-  /** Site title (e.g., "SmithHarper") */
+  /** Site title (e.g., "ConvexPress") */
   title: string;
   /** Site tagline / description */
   tagline: string;
@@ -65,12 +65,8 @@ export interface LayoutConfig {
   contentMaxWidth: "sm" | "md" | "lg" | "xl" | "full";
   /** Sidebar position for the current content type */
   sidebarPosition: "left" | "right" | "none";
-  /** Sidebar widget area slug */
-  sidebarWidgetArea: string;
   /** Header style variant */
   headerStyle: "default" | "centered" | "split";
-  /** Footer widget area column count */
-  footerColumns: 1 | 2 | 3 | 4;
   /** Whether sticky header is enabled */
   stickyHeader: boolean;
 }
