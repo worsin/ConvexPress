@@ -9,6 +9,7 @@
  * Functions:
  *   requestPasswordReset   - User requests a password reset (forgot-password flow)
  *   adminResetUserPassword - Admin triggers a password reset for another user
+ *   completePasswordReset  - User completes a password reset with token + new password
  *
  * WordPress equivalent: No direct equivalent.
  * WordPress admins can set passwords directly; ConvexPress only allows
@@ -18,7 +19,7 @@
 import { action } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
-import { adminResetUserPasswordArgs } from "./validators";
+import { adminResetUserPasswordArgs, completePasswordResetArgs } from "./validators";
 
 /** Token expiry: 24 hours */
 const RESET_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
@@ -97,7 +98,7 @@ export const requestPasswordReset = action({
       internal.password.queries.getSiteUrl,
     );
 
-    const resetUrl = `${siteUrl}/reset-password?token=${token}`;
+    const resetUrl = `${siteUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
 
     // 4. Store hashed token and queue the reset email via internal mutation.
     // This mutation silently does nothing if the email doesn't exist (enum prevention).
@@ -192,7 +193,7 @@ export const adminResetUserPassword = action({
       internal.password.queries.getSiteUrl,
     );
 
-    const resetUrl = `${siteUrl}/reset-password?token=${token}`;
+    const resetUrl = `${siteUrl}/reset-password?token=${token}&email=${encodeURIComponent(targetUser.email)}`;
 
     // 5. Store hashed token and queue the reset email
     await ctx.runMutation(internal.password.mutations.storeResetToken, {
@@ -208,5 +209,116 @@ export const adminResetUserPassword = action({
       adminId: caller._id,
       timestamp: Date.now(),
     });
+  },
+});
+
+// ─── completePasswordReset ─────────────────────────────────────────────────
+
+/**
+ * Public action for completing a password reset.
+ *
+ * Called from the website's reset-password form. This action:
+ *   1. Hashes the raw token from the URL
+ *   2. Verifies the token via internal mutation (checks email, hash, expiry)
+ *   3. Updates the user's password in Clerk via the Backend API
+ *   4. Records the reset completion in ConvexPress (clears token, emits event)
+ *
+ * Auth: None required (public -- user is not signed in during password reset)
+ *
+ * @throws ConvexError "INVALID_TOKEN" if the token is invalid, expired, or email mismatch
+ * @throws ConvexError "PASSWORD_UPDATE_FAILED" if the Clerk API call fails
+ */
+export const completePasswordReset = action({
+  args: completePasswordResetArgs,
+  handler: async (ctx, args) => {
+    const email = args.email.trim().toLowerCase();
+    const token = args.token.trim();
+    const newPassword = args.newPassword;
+
+    // Basic input validation
+    if (!email || !token || !newPassword) {
+      throw new ConvexError({
+        code: "INVALID_INPUT",
+        message: "Email, token, and new password are required.",
+      });
+    }
+
+    if (newPassword.length < 8) {
+      throw new ConvexError({
+        code: "INVALID_INPUT",
+        message: "Password must be at least 8 characters.",
+      });
+    }
+
+    // 1. Hash the raw token for comparison against the stored hash
+    const tokenHash = await hashToken(token);
+
+    // 2. Verify the token via internal mutation
+    const result = await ctx.runMutation(
+      internal.password.internals.verifyResetToken,
+      { email, tokenHash },
+    );
+
+    if (!result) {
+      throw new ConvexError({
+        code: "INVALID_TOKEN",
+        message: "This reset link is invalid or has expired. Please request a new one.",
+      });
+    }
+
+    // 3. Look up the user to get the Clerk user ID
+    const user = await ctx.runQuery(internal.password.queries.getUserByEmail, {
+      email,
+    });
+
+    if (!user || !user.clerkUserId) {
+      throw new ConvexError({
+        code: "INVALID_TOKEN",
+        message: "Unable to complete password reset. Please request a new link.",
+      });
+    }
+
+    // 4. Update the password in Clerk via the Backend API
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+    if (!clerkSecretKey) {
+      throw new ConvexError({
+        code: "PASSWORD_UPDATE_FAILED",
+        message: "Password reset is temporarily unavailable. Please try again later.",
+      });
+    }
+
+    const clerkResponse = await fetch(
+      `https://api.clerk.com/v1/users/${user.clerkUserId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${clerkSecretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password: newPassword }),
+      },
+    );
+
+    if (!clerkResponse.ok) {
+      const errorBody = await clerkResponse.text();
+      console.error(
+        `[completePasswordReset] Clerk API error: ${clerkResponse.status} ${errorBody}`,
+      );
+      throw new ConvexError({
+        code: "PASSWORD_UPDATE_FAILED",
+        message: "Failed to update password. Please try again or request a new reset link.",
+      });
+    }
+
+    // 5. Record the reset completion in ConvexPress
+    await ctx.runMutation(
+      internal.password.mutations.handlePasswordResetCompleted,
+      {
+        userId: result.userId,
+        timestamp: Date.now(),
+      },
+    );
+
+    return { success: true };
   },
 });
