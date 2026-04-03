@@ -33,7 +33,10 @@ export type SettingsSection =
   | "kb.search"
   // Ticket System sections
   | "ticket.general"
-  | "ticket.sla";
+  | "ticket.sla"
+  // Support Bridge System sections
+  | "support.widget"
+  | "support.ai";
 
 /**
  * Ordered array of all valid section names.
@@ -55,6 +58,9 @@ export const SECTION_NAMES: SettingsSection[] = [
   // Ticket System sections
   "ticket.general",
   "ticket.sla",
+  // Support Bridge System sections
+  "support.widget",
+  "support.ai",
 ];
 
 /**
@@ -435,6 +441,26 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   // Ticket System sections
   "ticket.general": TICKET_GENERAL_DEFAULTS,
   "ticket.sla": TICKET_SLA_DEFAULTS,
+  // Support Bridge System sections
+  "support.widget": {
+    enabled: true,
+    widgetTitle: "Support",
+    widgetSubtitle: "How can we help you today?",
+    widgetColor: "#3b82f6",
+    showKbSearch: true,
+    showTicketHistory: true,
+    aiEnabled: false,
+    escalationButtonLabel: "Contact Support",
+  },
+  "support.ai": {
+    aiProvider: null,
+    aiApiKey: "",
+    aiModel: "",
+    meilisearchEnabled: false,
+    meilisearchUrl: "",
+    meilisearchApiKey: "",
+    ragEnabled: false,
+  },
 };
 
 /**

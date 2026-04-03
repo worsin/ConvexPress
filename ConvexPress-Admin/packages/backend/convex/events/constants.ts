@@ -41,6 +41,7 @@ export const SYSTEM = {
   SITEMAP: "sitemap",
   KB: "kb",
   TICKET: "ticket",
+  SUPPORT: "support",
 } as const;
 
 export type SystemSlug = (typeof SYSTEM)[keyof typeof SYSTEM];
@@ -260,6 +261,12 @@ export const TICKET_EVENTS = {
   RATED: "ticket.rated",
 } as const;
 
+/** Support Bridge System events (2) */
+export const SUPPORT_EVENTS = {
+  DEFLECTION_ATTEMPTED: "support.deflection_attempted",
+  DEFLECTION_ESCALATED: "support.deflection_escalated",
+} as const;
+
 // ─── All Event Codes ───────────────────────────────────────────────────────
 
 /**
@@ -292,6 +299,7 @@ export const ALL_EVENT_CODES: string[] = [
   ...Object.values(DASHBOARD_EVENTS),
   ...Object.values(KB_EVENTS),
   ...Object.values(TICKET_EVENTS),
+  ...Object.values(SUPPORT_EVENTS),
 ];
 
 /** Set for O(1) lookup of valid event codes. */
@@ -335,6 +343,7 @@ export const EVENT_CODES_BY_SYSTEM: Record<string, readonly string[]> = {
   [SYSTEM.AUDIT]: Object.values(AUDIT_EVENTS),
   [SYSTEM.KB]: Object.values(KB_EVENTS),
   [SYSTEM.TICKET]: Object.values(TICKET_EVENTS),
+  [SYSTEM.SUPPORT]: Object.values(SUPPORT_EVENTS),
 };
 
 // ─── Wildcard / Global Patterns ────────────────────────────────────────────

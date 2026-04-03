@@ -1,0 +1,233 @@
+/**
+ * Support Bridge System - Settings Functions
+ *
+ * Support-specific settings stored in the global settings table using the
+ * section-based approach. Two sections:
+ *
+ *   support.widget - Widget appearance, visibility, feature toggles
+ *   support.ai     - AI provider, API key, model, Meilisearch and RAG config
+ *
+ * Defaults:
+ *   support.widget:
+ *     enabled              - true
+ *     widgetTitle          - "Support"
+ *     widgetSubtitle       - "How can we help you today?"
+ *     widgetColor          - "#3b82f6"
+ *     showKbSearch         - true
+ *     showTicketHistory    - true
+ *     aiEnabled            - false
+ *     escalationButtonLabel - "Contact Support"
+ *   support.ai:
+ *     aiProvider           - null (not configured)
+ *     aiApiKey             - ""
+ *     aiModel              - ""
+ *     meilisearchEnabled   - false
+ *     meilisearchUrl       - ""
+ *     meilisearchApiKey    - ""
+ *     ragEnabled           - false
+ */
+
+import { mutation, query } from "../_generated/server";
+import { v } from "convex/values";
+import { requireCan, currentUserCan } from "../helpers/permissions";
+import { emitEvent } from "../helpers/events";
+import { SYSTEM } from "../events/constants";
+import { computeChanges } from "../settings/helpers";
+
+// ─── Defaults ─────────────────────────────────────────────────────────────────
+
+export const SUPPORT_WIDGET_DEFAULTS = {
+  enabled: true,
+  widgetTitle: "Support",
+  widgetSubtitle: "How can we help you today?",
+  widgetColor: "#3b82f6",
+  showKbSearch: true,
+  showTicketHistory: true,
+  aiEnabled: false,
+  escalationButtonLabel: "Contact Support",
+} as const;
+
+export const SUPPORT_AI_DEFAULTS = {
+  aiProvider: null as "openai" | "anthropic" | null,
+  aiApiKey: "",
+  aiModel: "",
+  meilisearchEnabled: false,
+  meilisearchUrl: "",
+  meilisearchApiKey: "",
+  ragEnabled: false,
+} as const;
+
+// ─── getSupportSettings ───────────────────────────────────────────────────────
+
+/**
+ * Get all support settings, merged with defaults.
+ *
+ * Returns an object with two sections:
+ *   - widget: { enabled, widgetTitle, widgetSubtitle, widgetColor, ... }
+ *   - ai: { aiProvider, aiApiKey, aiModel, meilisearchEnabled, ... }
+ *
+ * @auth manage_options (Administrator only)
+ */
+export const getSupportSettings = query({
+  args: {},
+  handler: async (ctx) => {
+    const canView = await currentUserCan(ctx, "manage_options");
+    if (!canView) return null;
+
+    const [widgetDoc, aiDoc] = await Promise.all([
+      ctx.db
+        .query("settings")
+        .withIndex("by_section", (q) => q.eq("section", "support.widget"))
+        .unique(),
+      ctx.db
+        .query("settings")
+        .withIndex("by_section", (q) => q.eq("section", "support.ai"))
+        .unique(),
+    ]);
+
+    return {
+      widget: {
+        ...SUPPORT_WIDGET_DEFAULTS,
+        ...(widgetDoc ? (widgetDoc.values as Record<string, unknown>) : {}),
+      } as typeof SUPPORT_WIDGET_DEFAULTS,
+      ai: {
+        ...SUPPORT_AI_DEFAULTS,
+        ...(aiDoc ? (aiDoc.values as Record<string, unknown>) : {}),
+      } as typeof SUPPORT_AI_DEFAULTS,
+    };
+  },
+});
+
+// ─── updateSupportSettings ────────────────────────────────────────────────────
+
+/**
+ * Update support settings. Administrator only.
+ *
+ * Both sections can be updated in a single call. Omitted sections are left
+ * unchanged.
+ *
+ * @auth manage_options (Administrator only)
+ */
+export const updateSupportSettings = mutation({
+  args: {
+    widget: v.optional(
+      v.object({
+        enabled: v.optional(v.boolean()),
+        widgetTitle: v.optional(v.string()),
+        widgetSubtitle: v.optional(v.string()),
+        widgetColor: v.optional(v.string()),
+        showKbSearch: v.optional(v.boolean()),
+        showTicketHistory: v.optional(v.boolean()),
+        aiEnabled: v.optional(v.boolean()),
+        escalationButtonLabel: v.optional(v.string()),
+      }),
+    ),
+    ai: v.optional(
+      v.object({
+        aiProvider: v.optional(
+          v.union(v.literal("openai"), v.literal("anthropic"), v.null()),
+        ),
+        aiApiKey: v.optional(v.string()),
+        aiModel: v.optional(v.string()),
+        meilisearchEnabled: v.optional(v.boolean()),
+        meilisearchUrl: v.optional(v.string()),
+        meilisearchApiKey: v.optional(v.string()),
+        ragEnabled: v.optional(v.boolean()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireCan(ctx, "manage_options");
+    const now = Date.now();
+    const updatedSections: string[] = [];
+
+    // ── support.widget ────────────────────────────────────────────────────────
+    if (args.widget !== undefined) {
+      const existingDoc = await ctx.db
+        .query("settings")
+        .withIndex("by_section", (q) => q.eq("section", "support.widget"))
+        .unique();
+
+      const oldValues: Record<string, unknown> = existingDoc
+        ? { ...SUPPORT_WIDGET_DEFAULTS, ...(existingDoc.values as Record<string, unknown>) }
+        : { ...SUPPORT_WIDGET_DEFAULTS };
+
+      const newValues: Record<string, unknown> = {
+        ...oldValues,
+        ...Object.fromEntries(
+          Object.entries(args.widget).filter(([, val]) => val !== undefined),
+        ),
+      };
+
+      const changes = computeChanges(oldValues, newValues);
+
+      if (changes.length > 0) {
+        if (existingDoc) {
+          await ctx.db.patch(existingDoc._id, {
+            values: newValues,
+            updatedAt: now,
+            updatedBy: user._id,
+          });
+        } else {
+          await ctx.db.insert("settings", {
+            section: "support.widget",
+            values: newValues,
+            updatedAt: now,
+            updatedBy: user._id,
+          });
+        }
+        updatedSections.push("support.widget");
+      }
+    }
+
+    // ── support.ai ────────────────────────────────────────────────────────────
+    if (args.ai !== undefined) {
+      const existingDoc = await ctx.db
+        .query("settings")
+        .withIndex("by_section", (q) => q.eq("section", "support.ai"))
+        .unique();
+
+      const oldValues: Record<string, unknown> = existingDoc
+        ? { ...SUPPORT_AI_DEFAULTS, ...(existingDoc.values as Record<string, unknown>) }
+        : { ...SUPPORT_AI_DEFAULTS };
+
+      const newValues: Record<string, unknown> = {
+        ...oldValues,
+        ...Object.fromEntries(
+          Object.entries(args.ai).filter(([, val]) => val !== undefined),
+        ),
+      };
+
+      const changes = computeChanges(oldValues, newValues);
+
+      if (changes.length > 0) {
+        if (existingDoc) {
+          await ctx.db.patch(existingDoc._id, {
+            values: newValues,
+            updatedAt: now,
+            updatedBy: user._id,
+          });
+        } else {
+          await ctx.db.insert("settings", {
+            section: "support.ai",
+            values: newValues,
+            updatedAt: now,
+            updatedBy: user._id,
+          });
+        }
+        updatedSections.push("support.ai");
+      }
+    }
+
+    // Emit settings event if anything changed
+    if (updatedSections.length > 0) {
+      await emitEvent(ctx, "settings.updated", SYSTEM.SETTINGS, {
+        sections: updatedSections,
+        updatedBy: user._id,
+        timestamp: now,
+      });
+    }
+
+    return { updatedSections };
+  },
+});
