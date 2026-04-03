@@ -240,12 +240,14 @@ export const DASHBOARD_EVENTS = {
   WELCOME_DISMISSED: "dashboard.welcome_dismissed",
 } as const;
 
-/** Knowledge Base System events (6) */
+/** Knowledge Base System events (8) */
 export const KB_EVENTS = {
   ARTICLE_CREATED: "kb.article_created",
   ARTICLE_PUBLISHED: "kb.article_published",
+  ARTICLE_UNPUBLISHED: "kb.article_unpublished",
   ARTICLE_UPDATED: "kb.article_updated",
   ARTICLE_ARCHIVED: "kb.article_archived",
+  ARTICLE_DELETED: "kb.article_deleted",
   COMMENT_CREATED: "kb.comment_created",
   FEEDBACK_SUBMITTED: "kb.feedback_submitted",
 } as const;

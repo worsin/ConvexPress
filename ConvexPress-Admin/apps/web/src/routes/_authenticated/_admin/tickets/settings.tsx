@@ -59,29 +59,29 @@ function TicketSettingsForm() {
       <h1 className="text-2xl font-bold">Ticket Settings</h1>
 
       {/* General */}
-      <div className="rounded-lg border border-black/10 p-6 space-y-4">
+      <div className="rounded-lg border border-border p-6 space-y-4">
         <h2 className="text-lg font-semibold">General</h2>
 
         <div>
-          <label className="block text-sm font-medium text-black/70 mb-1">
+          <label className="block text-sm font-medium text-foreground/70 mb-1">
             Default Priority
           </label>
           <select
             value={defaultPriority}
             onChange={(e) => setDefaultPriority(e.target.value)}
-            className="w-full max-w-xs px-3 py-1.5 text-sm border border-black/15 rounded-md bg-card"
+            className="w-full max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card"
           >
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
           </select>
-          <p className="text-xs text-black/40 mt-1">
+          <p className="text-xs text-foreground/40 mt-1">
             Applied when a ticket is created without an explicit priority.
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-black/70 mb-1">
+          <label className="block text-sm font-medium text-foreground/70 mb-1">
             Auto-close resolved tickets after (days)
           </label>
           <input
@@ -89,20 +89,20 @@ function TicketSettingsForm() {
             min={0}
             value={autoCloseDays}
             onChange={(e) => setAutoCloseDays(Number(e.target.value))}
-            className="w-full max-w-xs px-3 py-1.5 text-sm border border-black/15 rounded-md bg-card"
+            className="w-full max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card"
           />
-          <p className="text-xs text-black/40 mt-1">
+          <p className="text-xs text-foreground/40 mt-1">
             Set to 0 to disable auto-close.
           </p>
         </div>
       </div>
 
       {/* SLA Targets */}
-      <div className="rounded-lg border border-black/10 p-6 space-y-4">
+      <div className="rounded-lg border border-border p-6 space-y-4">
         <h2 className="text-lg font-semibold">SLA Targets</h2>
 
         <div>
-          <label className="block text-sm font-medium text-black/70 mb-1">
+          <label className="block text-sm font-medium text-foreground/70 mb-1">
             First Response Target (minutes)
           </label>
           <input
@@ -110,15 +110,15 @@ function TicketSettingsForm() {
             min={1}
             value={slaFirstResponse}
             onChange={(e) => setSlaFirstResponse(Number(e.target.value))}
-            className="w-full max-w-xs px-3 py-1.5 text-sm border border-black/15 rounded-md bg-card"
+            className="w-full max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card"
           />
-          <p className="text-xs text-black/40 mt-1">
+          <p className="text-xs text-foreground/40 mt-1">
             Default: 240 minutes (4 hours)
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-black/70 mb-1">
+          <label className="block text-sm font-medium text-foreground/70 mb-1">
             Resolution Target (minutes)
           </label>
           <input
@@ -126,18 +126,18 @@ function TicketSettingsForm() {
             min={1}
             value={slaResolution}
             onChange={(e) => setSlaResolution(Number(e.target.value))}
-            className="w-full max-w-xs px-3 py-1.5 text-sm border border-black/15 rounded-md bg-card"
+            className="w-full max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card"
           />
-          <p className="text-xs text-black/40 mt-1">
+          <p className="text-xs text-foreground/40 mt-1">
             Default: 2880 minutes (48 hours)
           </p>
         </div>
       </div>
 
       {/* Categories (informational for now) */}
-      <div className="rounded-lg border border-black/10 p-6 space-y-2">
+      <div className="rounded-lg border border-border p-6 space-y-2">
         <h2 className="text-lg font-semibold">Categories</h2>
-        <p className="text-sm text-black/50">
+        <p className="text-sm text-muted-foreground">
           Ticket categories are currently fixed: Billing, Technical, Account,
           Feature Request, General, Other.
         </p>
@@ -152,7 +152,7 @@ function TicketSettingsForm() {
           ].map((cat) => (
             <span
               key={cat}
-              className="text-xs bg-black/5 px-2 py-1 rounded border border-black/10"
+              className="text-xs bg-muted px-2 py-1 rounded border border-border"
             >
               {cat}
             </span>
@@ -164,7 +164,7 @@ function TicketSettingsForm() {
       <button
         onClick={() => void handleSave()}
         disabled={isSaving}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
       >
         <Save className="h-4 w-4" />
         {isSaving ? "Saving..." : "Save Settings"}
