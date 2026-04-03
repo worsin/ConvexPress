@@ -5,7 +5,7 @@
  * Shows current phase, progress bars, and controls.
  */
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { Link } from "@tanstack/react-router";
@@ -59,7 +59,7 @@ export function SyncJobCard({ siteId, siteName, siteUrl }: SyncJobCardProps) {
   // Mutations
   const pauseJob = useMutation(api.wordpressSync.mutations.pauseJob);
   const cancelJob = useMutation(api.wordpressSync.mutations.cancelJob);
-  const resumeSync = useMutation(api.wordpressSync.actions.resumeSync);
+  const resumeSync = useAction(api.wordpressSync.actions.resumeSync);
 
   if (!activeJob) {
     return null;

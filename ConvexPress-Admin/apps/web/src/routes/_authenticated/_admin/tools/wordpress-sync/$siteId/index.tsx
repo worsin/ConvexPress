@@ -6,7 +6,7 @@
  */
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { toast } from "sonner";
@@ -17,11 +17,9 @@ import {
   PlayIcon,
   PauseIcon,
   RefreshCcwIcon,
-  SettingsIcon,
   TrashIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ClockIcon,
   AlertTriangleIcon,
   InfoIcon,
 } from "lucide-react";
@@ -31,7 +29,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 
@@ -50,11 +47,14 @@ function SiteDetailPage() {
   const [showDelete, setShowDelete] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
 
-  // Queries
+  // Queries (all reactive via Convex subscriptions)
   const site = useQuery(api.wordpressSync.queries.getSite, {
     siteId: siteId as Id<"wordpressSites">,
   });
   const activeJob = useQuery(api.wordpressSync.queries.getActiveJob, {
+    siteId: siteId as Id<"wordpressSites">,
+  });
+  const latestJob = useQuery(api.wordpressSync.queries.getLatestJob, {
     siteId: siteId as Id<"wordpressSites">,
   });
   const importStats = useQuery(api.wordpressSync.queries.getImportStats, {
@@ -62,11 +62,11 @@ function SiteDetailPage() {
   });
 
   // Mutations
-  const startSync = useMutation(api.wordpressSync.actions.startSync);
-  const resumeSync = useMutation(api.wordpressSync.actions.resumeSync);
+  const startSync = useAction(api.wordpressSync.actions.startSync);
+  const resumeSync = useAction(api.wordpressSync.actions.resumeSync);
   const pauseJob = useMutation(api.wordpressSync.mutations.pauseJob);
   const cancelJob = useMutation(api.wordpressSync.mutations.cancelJob);
-  const testConnection = useMutation(
+  const testConnection = useAction(
     api.wordpressSync.actions.testSiteConnection,
   );
   const deleteSite = useMutation(api.wordpressSync.mutations.deleteSite);
@@ -136,7 +136,9 @@ function SiteDetailPage() {
     try {
       const result = await testConnection({ siteId: site._id });
       if (result.success) {
-        toast.success(`Connected! WordPress ${result.wpVersion}`);
+        toast.success(
+          `Connected! ${result.siteInfo.name}${result.siteInfo.namespaces?.includes("wp/v2") ? " (WP 5.0+)" : ""}`,
+        );
       } else {
         toast.error(result.error || "Connection failed");
       }
@@ -328,17 +330,24 @@ function SiteDetailPage() {
       </div>
 
       {/* Active Sync Progress */}
-      {hasActiveJob && activeJob && (
-        <SyncProgress job={activeJob} />
+      {hasActiveJob && activeJob && <SyncProgress job={activeJob} />}
+
+      {/* Last Sync Result (when no active job but there's a recent completed/failed job) */}
+      {!hasActiveJob && latestJob && ["completed", "failed"].includes(latestJob.status) && (
+        <SyncProgress job={latestJob} />
       )}
 
       {/* Job History */}
       <JobHistory siteId={site._id} />
 
-      {/* Error Log (if there are errors) */}
-      {activeJob && activeJob.errors.length > 0 && (
-        <ErrorLog errors={activeJob.errors} />
-      )}
+      {/* Error Log -- show errors from active or latest job */}
+      {(() => {
+        const jobWithErrors = activeJob ?? latestJob;
+        if (jobWithErrors && jobWithErrors.errors.length > 0) {
+          return <ErrorLog errors={jobWithErrors.errors} />;
+        }
+        return null;
+      })()}
 
       {/* Danger Zone */}
       <Card className="border-destructive/30">

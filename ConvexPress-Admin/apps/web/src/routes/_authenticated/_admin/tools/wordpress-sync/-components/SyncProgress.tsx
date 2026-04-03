@@ -2,9 +2,11 @@
  * Sync Progress
  *
  * Detailed real-time sync progress display.
- * Shows all phases with progress bars and stats.
+ * Shows all phases with progress bars, item counts, status icons, and timing.
+ * Updates in real-time via Convex reactive queries.
  */
 
+import { useEffect, useState } from "react";
 import {
   UsersIcon,
   FolderTreeIcon,
@@ -16,6 +18,9 @@ import {
   CheckCircleIcon,
   Loader2Icon,
   ClockIcon,
+  XCircleIcon,
+  PauseCircleIcon,
+  CircleDotIcon,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +37,13 @@ interface PhaseProgress {
 
 interface Job {
   _id: string;
-  status: "pending" | "running" | "paused" | "completed" | "failed" | "cancelled";
+  status:
+    | "pending"
+    | "running"
+    | "paused"
+    | "completed"
+    | "failed"
+    | "cancelled";
   currentPhase: string;
   progress: {
     users: PhaseProgress;
@@ -67,19 +78,28 @@ const PHASE_CONFIG = {
 type Phase = keyof typeof PHASE_CONFIG;
 
 export function SyncProgress({ job }: SyncProgressProps) {
+  // Live elapsed timer
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (job.status !== "running") return;
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [job.status]);
+
   // Calculate overall progress
   const phases = Object.entries(job.progress) as [Phase, PhaseProgress][];
   const totalItems = phases.reduce((sum, [, p]) => sum + p.total, 0);
-  const completedItems = phases.reduce(
-    (sum, [, p]) => sum + p.imported + p.failed,
-    0,
-  );
+  const importedItems = phases.reduce((sum, [, p]) => sum + p.imported, 0);
   const failedItems = phases.reduce((sum, [, p]) => sum + p.failed, 0);
-  const overallProgress = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
+  const completedItems = importedItems + failedItems;
+  const overallProgress =
+    totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
 
   // Calculate elapsed time
   const startedAt = job.startedAt;
-  const elapsed = startedAt ? Date.now() - startedAt : 0;
+  const endedAt = job.completedAt || (job.status === "running" ? now : job.pausedAt);
+  const elapsed = startedAt && endedAt ? endedAt - startedAt : 0;
 
   // Sort phases by order
   const sortedPhases = [...phases].sort(
@@ -91,24 +111,25 @@ export function SyncProgress({ job }: SyncProgressProps) {
     ([phase]) => phase === job.currentPhase,
   );
 
+  const isFinished = ["completed", "failed", "cancelled"].includes(job.status);
+
   return (
-    <Card>
+    <Card
+      className={cn(
+        isFinished && job.status === "completed" && "border-success/30",
+        isFinished && job.status === "failed" && "border-destructive/30",
+      )}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            {job.status === "running" ? (
-              <Loader2Icon className="h-4 w-4 text-primary animate-spin" />
-            ) : job.status === "paused" ? (
-              <ClockIcon className="h-4 w-4 text-warning" />
-            ) : (
-              <CheckCircleIcon className="h-4 w-4 text-success" />
-            )}
-            Sync Progress
+            <JobStatusIcon status={job.status} />
+            {isFinished ? "Sync Result" : "Sync Progress"}
           </CardTitle>
           <div className="flex items-center gap-3">
             {startedAt && (
-              <span className="text-sm text-muted-foreground">
-                Elapsed: {formatDuration(elapsed)}
+              <span className="text-sm text-muted-foreground tabular-nums">
+                {formatDuration(elapsed)}
               </span>
             )}
             <StatusBadge status={job.status} />
@@ -121,8 +142,9 @@ export function SyncProgress({ job }: SyncProgressProps) {
         <div>
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="font-medium">Overall Progress</span>
-            <span className="text-muted-foreground">
-              {completedItems.toLocaleString()} / {totalItems.toLocaleString()}
+            <span className="text-muted-foreground tabular-nums">
+              {importedItems.toLocaleString()} / {totalItems.toLocaleString()}
+              {" imported"}
               {failedItems > 0 && (
                 <span className="text-destructive ml-2">
                   ({failedItems} failed)
@@ -130,73 +152,47 @@ export function SyncProgress({ job }: SyncProgressProps) {
               )}
             </span>
           </div>
-          <Progress value={overallProgress} className="h-3" />
+          <Progress
+            value={overallProgress}
+            className={cn(
+              "h-3",
+              job.status === "completed" && "[&>div]:bg-success",
+              job.status === "failed" && "[&>div]:bg-destructive",
+            )}
+          />
           <p className="text-xs text-muted-foreground mt-1">
             {Math.round(overallProgress)}% complete
           </p>
         </div>
 
-        {/* Phase Progress */}
+        {/* Phase Progress Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {sortedPhases.map(([phase, progress], index) => {
             const config = PHASE_CONFIG[phase];
-            const Icon = config.icon;
             const isCurrent = job.currentPhase === phase;
             const isComplete =
               progress.imported + progress.failed >= progress.total &&
               progress.total > 0;
-            const isPending = index > currentPhaseIndex;
+            const isPending = !isFinished && index > currentPhaseIndex;
+            const hasErrors = progress.failed > 0;
             const phaseProgress =
               progress.total > 0
                 ? ((progress.imported + progress.failed) / progress.total) * 100
                 : 0;
 
             return (
-              <div
+              <PhaseCard
                 key={phase}
-                className={cn(
-                  "p-4 rounded-lg border transition-colors",
-                  isCurrent && job.status === "running" && "border-primary bg-primary/5",
-                  isCurrent && job.status === "paused" && "border-warning bg-warning/5",
-                  isComplete && "border-success/30 bg-success/5",
-                  isPending && "opacity-50",
-                )}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    {isComplete ? (
-                      <CheckCircleIcon className="h-4 w-4 text-success" />
-                    ) : isCurrent && job.status === "running" ? (
-                      <Loader2Icon className="h-4 w-4 text-primary animate-spin" />
-                    ) : (
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                    )}
-                    <span
-                      className={cn(
-                        "font-medium",
-                        isCurrent && "text-primary",
-                        isComplete && "text-success",
-                      )}
-                    >
-                      {config.label}
-                    </span>
-                  </div>
-                  <span className="text-sm text-muted-foreground tabular-nums">
-                    {progress.imported} / {progress.total}
-                  </span>
-                </div>
-
-                <Progress
-                  value={phaseProgress}
-                  className={cn("h-2", isComplete && "[&>div]:bg-success")}
-                />
-
-                {progress.failed > 0 && (
-                  <p className="text-xs text-destructive mt-2">
-                    {progress.failed} failed
-                  </p>
-                )}
-              </div>
+                label={config.label}
+                icon={config.icon}
+                progress={progress}
+                phaseProgress={phaseProgress}
+                isCurrent={isCurrent}
+                isComplete={isComplete}
+                isPending={isPending}
+                hasErrors={hasErrors}
+                jobStatus={job.status}
+              />
             );
           })}
         </div>
@@ -205,19 +201,184 @@ export function SyncProgress({ job }: SyncProgressProps) {
   );
 }
 
+// ─── Phase Card ──────────────────────────────────────────────────────────────
+
+interface PhaseCardProps {
+  label: string;
+  icon: React.ElementType;
+  progress: PhaseProgress;
+  phaseProgress: number;
+  isCurrent: boolean;
+  isComplete: boolean;
+  isPending: boolean;
+  hasErrors: boolean;
+  jobStatus: string;
+}
+
+function PhaseCard({
+  label,
+  icon: Icon,
+  progress,
+  phaseProgress,
+  isCurrent,
+  isComplete,
+  isPending,
+  hasErrors,
+  jobStatus,
+}: PhaseCardProps) {
+  return (
+    <div
+      className={cn(
+        "p-4 rounded-lg border transition-colors",
+        isCurrent && jobStatus === "running" && "border-primary bg-primary/5",
+        isCurrent && jobStatus === "paused" && "border-warning bg-warning/5",
+        isComplete && !hasErrors && "border-success/30 bg-success/5",
+        isComplete && hasErrors && "border-warning/30 bg-warning/5",
+        isPending && "opacity-50",
+      )}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <PhaseStatusIcon
+            isCurrent={isCurrent}
+            isComplete={isComplete}
+            isPending={isPending}
+            hasErrors={hasErrors}
+            jobStatus={jobStatus}
+            icon={Icon}
+          />
+          <span
+            className={cn(
+              "font-medium text-sm",
+              isCurrent && jobStatus === "running" && "text-primary",
+              isComplete && !hasErrors && "text-success",
+              isComplete && hasErrors && "text-warning",
+              isPending && "text-muted-foreground",
+            )}
+          >
+            {label}
+          </span>
+        </div>
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {progress.imported}
+          {progress.total > 0 && ` / ${progress.total}`}
+        </span>
+      </div>
+
+      <Progress
+        value={phaseProgress}
+        className={cn(
+          "h-2",
+          isComplete && !hasErrors && "[&>div]:bg-success",
+          isComplete && hasErrors && "[&>div]:bg-warning",
+        )}
+      />
+
+      {/* Phase stats */}
+      <div className="flex items-center justify-between mt-2">
+        {hasErrors ? (
+          <span className="text-xs text-destructive">
+            {progress.failed} failed
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            {isComplete
+              ? "Complete"
+              : isPending
+                ? "Pending"
+                : isCurrent
+                  ? jobStatus === "paused"
+                    ? "Paused"
+                    : "In progress..."
+                  : ""}
+          </span>
+        )}
+        {progress.total > 0 && (
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {Math.round(phaseProgress)}%
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Phase Status Icon ───────────────────────────────────────────────────────
+
+function PhaseStatusIcon({
+  isCurrent,
+  isComplete,
+  isPending,
+  hasErrors,
+  jobStatus,
+  icon: FallbackIcon,
+}: {
+  isCurrent: boolean;
+  isComplete: boolean;
+  isPending: boolean;
+  hasErrors: boolean;
+  jobStatus: string;
+  icon: React.ElementType;
+}) {
+  if (isComplete && !hasErrors) {
+    return <CheckCircleIcon className="h-4 w-4 text-success" />;
+  }
+  if (isComplete && hasErrors) {
+    return <XCircleIcon className="h-4 w-4 text-warning" />;
+  }
+  if (isCurrent && jobStatus === "running") {
+    return <Loader2Icon className="h-4 w-4 text-primary animate-spin" />;
+  }
+  if (isCurrent && jobStatus === "paused") {
+    return <PauseCircleIcon className="h-4 w-4 text-warning" />;
+  }
+  if (isPending) {
+    return <CircleDotIcon className="h-4 w-4 text-muted-foreground/50" />;
+  }
+  return <FallbackIcon className="h-4 w-4 text-muted-foreground" />;
+}
+
+// ─── Job Status Icon ─────────────────────────────────────────────────────────
+
+function JobStatusIcon({ status }: { status: string }) {
+  switch (status) {
+    case "running":
+      return <Loader2Icon className="h-4 w-4 text-primary animate-spin" />;
+    case "paused":
+      return <PauseCircleIcon className="h-4 w-4 text-warning" />;
+    case "completed":
+      return <CheckCircleIcon className="h-4 w-4 text-success" />;
+    case "failed":
+      return <XCircleIcon className="h-4 w-4 text-destructive" />;
+    case "cancelled":
+      return <XCircleIcon className="h-4 w-4 text-muted-foreground" />;
+    default:
+      return <ClockIcon className="h-4 w-4 text-muted-foreground" />;
+  }
+}
+
 // ─── Status Badge ────────────────────────────────────────────────────────────
 
 function StatusBadge({
   status,
 }: {
-  status: "pending" | "running" | "paused" | "completed" | "failed" | "cancelled";
+  status:
+    | "pending"
+    | "running"
+    | "paused"
+    | "completed"
+    | "failed"
+    | "cancelled";
 }) {
   const config = {
     pending: { label: "Pending", className: "bg-muted text-muted-foreground" },
     running: { label: "Running", className: "bg-primary/10 text-primary" },
     paused: { label: "Paused", className: "bg-warning/10 text-warning" },
     completed: { label: "Completed", className: "bg-success/10 text-success" },
-    failed: { label: "Failed", className: "bg-destructive/10 text-destructive" },
+    failed: {
+      label: "Failed",
+      className: "bg-destructive/10 text-destructive",
+    },
     cancelled: {
       label: "Cancelled",
       className: "bg-muted text-muted-foreground",

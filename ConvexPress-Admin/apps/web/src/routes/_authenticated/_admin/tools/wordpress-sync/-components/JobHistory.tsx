@@ -2,6 +2,7 @@
  * Job History
  *
  * Table of past sync jobs for a site.
+ * Shows status, timing, item counts, and error counts.
  */
 
 import { useQuery, useMutation } from "convex/react";
@@ -31,12 +32,39 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn, formatDate, formatDateTime, formatDuration } from "@/lib/utils";
 
+interface PhaseProgress {
+  total: number;
+  imported: number;
+  failed: number;
+  cursor?: number;
+}
+
+interface SyncJob {
+  _id: Id<"wordpressSyncJobs">;
+  siteId: Id<"wordpressSites">;
+  status:
+    | "pending"
+    | "running"
+    | "paused"
+    | "completed"
+    | "failed"
+    | "cancelled";
+  currentPhase: string;
+  progress: Record<string, PhaseProgress>;
+  errors: Array<{ phase: string; wpId: number; message: string; timestamp: number }>;
+  startedAt?: number;
+  completedAt?: number;
+  pausedAt?: number;
+  createdBy: Id<"users">;
+  createdAt: number;
+  updatedAt: number;
+}
+
 interface JobHistoryProps {
   siteId: Id<"wordpressSites">;
 }
 
 export function JobHistory({ siteId }: JobHistoryProps) {
-  // Get job history (excluding active jobs)
   const jobs = useQuery(api.wordpressSync.queries.listJobs, {
     siteId,
     limit: 10,
@@ -63,8 +91,9 @@ export function JobHistory({ siteId }: JobHistoryProps) {
     );
   }
 
-  const completedJobs = jobs?.filter(
-    (job) => !["running", "paused", "pending"].includes(job.status),
+  const completedJobs = (jobs as SyncJob[] | undefined)?.filter(
+    (job: SyncJob) =>
+      !["running", "paused", "pending"].includes(job.status),
   );
 
   if (!completedJobs || completedJobs.length === 0) {
@@ -106,19 +135,21 @@ export function JobHistory({ siteId }: JobHistoryProps) {
               <TableHead>Duration</TableHead>
               <TableHead>Imported</TableHead>
               <TableHead>Failed</TableHead>
+              <TableHead>Errors</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {completedJobs.map((job) => {
-              // Calculate totals
-              const progress = job.progress;
-              const imported = Object.values(progress).reduce(
-                (sum, p) => sum + p.imported,
+              // Calculate totals with proper typing
+              const progress = job.progress as Record<string, PhaseProgress>;
+              const progressValues = Object.values(progress) as PhaseProgress[];
+              const imported = progressValues.reduce(
+                (sum: number, p: PhaseProgress) => sum + p.imported,
                 0,
               );
-              const failed = Object.values(progress).reduce(
-                (sum, p) => sum + p.failed,
+              const failed = progressValues.reduce(
+                (sum: number, p: PhaseProgress) => sum + p.failed,
                 0,
               );
 
@@ -128,33 +159,51 @@ export function JobHistory({ siteId }: JobHistoryProps) {
                   ? job.completedAt - job.startedAt
                   : null;
 
+              // Error count
+              const errorCount = job.errors?.length ?? 0;
+
               return (
                 <TableRow key={job._id}>
                   <TableCell>
                     <StatusBadge status={job.status} />
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm" title={formatDateTime(job.startedAt)}>
+                    <span
+                      className="text-sm"
+                      title={formatDateTime(job.startedAt)}
+                    >
                       {formatDate(job.startedAt)}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-muted-foreground">
-                      {duration ? formatDuration(duration) : "-"}
+                    <span className="text-sm text-muted-foreground tabular-nums">
+                      {duration ? formatDuration(duration) : "--"}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm font-medium text-success">
+                    <span className="text-sm font-medium text-success tabular-nums">
                       {imported.toLocaleString()}
                     </span>
                   </TableCell>
                   <TableCell>
                     {failed > 0 ? (
-                      <span className="text-sm font-medium text-destructive">
+                      <span className="text-sm font-medium text-destructive tabular-nums">
                         {failed.toLocaleString()}
                       </span>
                     ) : (
                       <span className="text-sm text-muted-foreground">0</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {errorCount > 0 ? (
+                      <Badge
+                        variant="outline"
+                        className="text-xs text-destructive border-destructive/30"
+                      >
+                        {errorCount}
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">--</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -182,7 +231,13 @@ export function JobHistory({ siteId }: JobHistoryProps) {
 function StatusBadge({
   status,
 }: {
-  status: "pending" | "running" | "paused" | "completed" | "failed" | "cancelled";
+  status:
+    | "pending"
+    | "running"
+    | "paused"
+    | "completed"
+    | "failed"
+    | "cancelled";
 }) {
   const config = {
     pending: {
