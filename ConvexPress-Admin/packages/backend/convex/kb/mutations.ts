@@ -53,6 +53,9 @@ export const create = mutation({
     const user = await requireCan(ctx, "kb.create");
 
     const title = (args.title ?? "").trim();
+    if (!title || title.length === 0) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Title is required" });
+    }
     if (title.length > MAX_KB_TITLE_LENGTH) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
@@ -72,6 +75,11 @@ export const create = mutation({
         code: "VALIDATION_ERROR",
         message: `Maximum ${MAX_KEYWORDS} keywords allowed`,
       });
+    }
+
+    const MAX_KB_CONTENT_LENGTH = 5 * 1024 * 1024; // 5MB
+    if (args.content && args.content.length > MAX_KB_CONTENT_LENGTH) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Content exceeds maximum length" });
     }
 
     const slug = await generateArticleSlug(ctx, title || "untitled");
@@ -275,6 +283,10 @@ export const publish = mutation({
 
     if (article.status === "published") {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Article is already published" });
+    }
+
+    if (!article.content || article.contentPlainText.trim().length === 0) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Cannot publish an article with no content" });
     }
 
     const now = Date.now();

@@ -27,6 +27,20 @@ export const submitHelpful = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
 
+    const article = await ctx.db.get(args.articleId);
+    if (!article) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+    }
+
+    if (!args.sessionId || args.sessionId.length > 128) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Invalid session ID" });
+    }
+
+    const MAX_FEEDBACK_COMMENT = 1000;
+    if (args.comment && args.comment.length > MAX_FEEDBACK_COMMENT) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Comment too long" });
+    }
+
     // Check for existing feedback from this session
     const existing = await ctx.db
       .query("kb_articleFeedback")
@@ -103,8 +117,22 @@ export const submitRating = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
 
-    if (args.rating < 1 || args.rating > 5) {
-      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Rating must be between 1 and 5" });
+    const article = await ctx.db.get(args.articleId);
+    if (!article) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+    }
+
+    if (!args.sessionId || args.sessionId.length > 128) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Invalid session ID" });
+    }
+
+    if (args.rating < 1 || args.rating > 5 || !Number.isInteger(args.rating)) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Rating must be an integer between 1 and 5" });
+    }
+
+    const MAX_FEEDBACK_COMMENT = 1000;
+    if (args.comment && args.comment.length > MAX_FEEDBACK_COMMENT) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Comment too long" });
     }
 
     // Check for existing feedback from this session

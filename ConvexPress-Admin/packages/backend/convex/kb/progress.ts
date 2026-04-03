@@ -39,6 +39,16 @@ export const trackProgress = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
+    if (args.progressPercent < 0 || args.progressPercent > 100) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Progress must be between 0 and 100" });
+    }
+    if (args.scrollPosition < 0) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Scroll position must be non-negative" });
+    }
+    if (args.readTime < 0) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Read time must be non-negative" });
+    }
+
     const existing = await ctx.db
       .query("kb_userProgress")
       .withIndex("by_user_article", (q) =>

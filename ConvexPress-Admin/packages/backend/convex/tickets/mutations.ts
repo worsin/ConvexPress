@@ -146,10 +146,8 @@ export const create = mutation({
 
     // ── Snapshot user data ──────────────────────────────────────────────
     const userEmailSnapshot = user.email;
-    const userNameSnapshot =
-      user.displayName || user.firstName
-        ? [user.firstName, user.lastName].filter(Boolean).join(" ")
-        : user.email;
+    const userNameSnapshot = user.displayName
+      ?? (user.firstName ? [user.firstName, user.lastName].filter(Boolean).join(" ") : user.email);
 
     // ── Resolve default priority from settings ──────────────────────────
     let defaultPriority: "low" | "medium" | "high" = "medium";
@@ -173,7 +171,9 @@ export const create = mutation({
       status: "open",
       priority: args.priority ?? defaultPriority,
       source: args.source ?? "dashboard",
-      tags: args.tags ?? [],
+      tags: args.tags
+        ? args.tags.map(t => t.trim().toLowerCase().replace(/<[^>]*>/g, '')).filter(t => t.length > 0 && t.length <= MAX_TAG_LENGTH)
+        : [],
       aiAttempted: args.aiAttempted ?? false,
       aiQuery: args.aiQuery,
       aiResponse: args.aiResponse,
@@ -269,10 +269,8 @@ export const reply = mutation({
     const sequence = (lastMessage?.sequence ?? -1) + 1;
 
     const now = Date.now();
-    const userNameSnapshot =
-      user.displayName || user.firstName
-        ? [user.firstName, user.lastName].filter(Boolean).join(" ")
-        : user.email;
+    const userNameSnapshot = user.displayName
+      ?? (user.firstName ? [user.firstName, user.lastName].filter(Boolean).join(" ") : user.email);
 
     // ── Insert message ──────────────────────────────────────────────────
     const messageId = await ctx.db.insert("ticket_messages", {
@@ -365,10 +363,8 @@ export const adminReply = mutation({
     const sequence = (lastMessage?.sequence ?? -1) + 1;
 
     const now = Date.now();
-    const senderName =
-      user.displayName || user.firstName
-        ? [user.firstName, user.lastName].filter(Boolean).join(" ")
-        : user.email;
+    const senderName = user.displayName
+      ?? (user.firstName ? [user.firstName, user.lastName].filter(Boolean).join(" ") : user.email);
 
     // ── Insert message ──────────────────────────────────────────────────
     const messageId = await ctx.db.insert("ticket_messages", {
@@ -744,20 +740,15 @@ export const addTags = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
 
-    // Validate tag constraints
-    for (const tag of args.tags) {
-      if (tag.trim().length === 0 || tag.length > MAX_TAG_LENGTH) {
-        throw new ConvexError({
-          code: "VALIDATION",
-          message: `Tag must be between 1 and ${MAX_TAG_LENGTH} characters`,
-        });
-      }
-    }
+    // Sanitize and validate tags
+    const sanitizedTags = args.tags
+      .map(t => t.trim().toLowerCase().replace(/<[^>]*>/g, ''))
+      .filter(t => t.length > 0 && t.length <= MAX_TAG_LENGTH);
 
     // Deduplicate
     const existingTags = new Set(ticket.tags);
-    const newTags = args.tags.filter((t) => !existingTags.has(t.trim()));
-    const merged = [...ticket.tags, ...newTags.map((t) => t.trim())];
+    const newTags = sanitizedTags.filter((t) => !existingTags.has(t));
+    const merged = [...ticket.tags, ...newTags];
 
     if (merged.length > MAX_TAGS) {
       throw new ConvexError({

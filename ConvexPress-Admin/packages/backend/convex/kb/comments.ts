@@ -206,6 +206,13 @@ export const vote = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Comment not found" });
     }
 
+    if (comment.isDeleted) {
+      throw new ConvexError({ code: "FORBIDDEN", message: "Cannot vote on a deleted comment" });
+    }
+    if (!comment.isApproved) {
+      throw new ConvexError({ code: "FORBIDDEN", message: "Cannot vote on an unapproved comment" });
+    }
+
     // Check for existing vote
     const existingVote = await ctx.db
       .query("kb_commentVotes")
