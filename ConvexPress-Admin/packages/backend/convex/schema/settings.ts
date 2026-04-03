@@ -33,6 +33,13 @@ export const settingsTables = {
       v.literal("analytics"),
       v.literal("ai"),
       v.literal("search"),
+      // Knowledge Base System sections
+      v.literal("kb.general"),
+      v.literal("kb.features"),
+      v.literal("kb.search"),
+      // Ticket System sections
+      v.literal("ticket.general"),
+      v.literal("ticket.sla"),
     ),
 
     /**

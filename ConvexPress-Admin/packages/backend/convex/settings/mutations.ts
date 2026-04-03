@@ -55,6 +55,13 @@ const SECTION_CAPABILITY_MAP: Record<
   email: "settings.update_email",
   ai: "manage_options",
   search: "manage_options",
+  // Knowledge Base System sections
+  "kb.general": "manage_options",
+  "kb.features": "manage_options",
+  "kb.search": "manage_options",
+  // Ticket System sections
+  "ticket.general": "manage_options",
+  "ticket.sla": "manage_options",
 };
 
 // ─── updateSection ───────────────────────────────────────────────────────────

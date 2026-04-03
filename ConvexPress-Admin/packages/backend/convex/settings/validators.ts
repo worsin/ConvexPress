@@ -26,6 +26,13 @@ export const sectionValidator = v.union(
   v.literal("email"),
   v.literal("ai"),
   v.literal("search"),
+  // Knowledge Base System sections
+  v.literal("kb.general"),
+  v.literal("kb.features"),
+  v.literal("kb.search"),
+  // Ticket System sections
+  v.literal("ticket.general"),
+  v.literal("ticket.sla"),
 );
 
 // ─── Per-Section Value Validators ────────────────────────────────────────────
