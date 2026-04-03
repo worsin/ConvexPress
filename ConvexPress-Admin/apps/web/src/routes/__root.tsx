@@ -32,11 +32,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   head: () => ({
     meta: [
       {
-        title: "SmithHarper Admin",
+        title: "ConvexPress Admin",
       },
       {
         name: "description",
-        content: "SmithHarper CMS Admin Panel",
+        content: "ConvexPress Admin Panel",
       },
     ],
     links: [

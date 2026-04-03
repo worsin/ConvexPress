@@ -24,6 +24,62 @@ export type PostVisibility = "public" | "private" | "password";
 /** Comment status values */
 export type CommentStatus = "open" | "closed";
 
+// ─── Structured Content Types ──────────────────────────────────────────────
+
+/** Hero section for structured content */
+export interface HeroFields {
+  title: string;
+  subtitle: string;
+  content: string;
+  imageId: string | null;
+  videoUrl: string;
+  ctaText: string;
+  ctaUrl: string;
+}
+
+/** Topic section for structured content */
+export interface TopicFields {
+  title: string;
+  subtitle: string;
+  content: string;
+  imageId: string | null;
+  videoUrl: string;
+}
+
+/** Summary section for structured content */
+export interface SummaryFields {
+  title: string;
+  content: string;
+}
+
+/** Default hero values */
+export const DEFAULT_HERO: HeroFields = {
+  title: "",
+  subtitle: "",
+  content: "",
+  imageId: null,
+  videoUrl: "",
+  ctaText: "",
+  ctaUrl: "",
+};
+
+/** Default topic values */
+export const DEFAULT_TOPIC: TopicFields = {
+  title: "",
+  subtitle: "",
+  content: "",
+  imageId: null,
+  videoUrl: "",
+};
+
+/** Default summary values */
+export const DEFAULT_SUMMARY: SummaryFields = {
+  title: "",
+  content: "",
+};
+
+// ─── Editor Form Types ────────────────────────────────────────────────────
+
 /** The form values managed by TanStack Form */
 export interface EditorFormValues {
   title: string;
@@ -41,6 +97,13 @@ export interface EditorFormValues {
   categoryIds: string[];
   tagIds: string[];
   menuOrder: number;
+  // Structured content fields
+  hero: HeroFields;
+  topics: TopicFields[];
+  summary: SummaryFields;
+  sources: string;
+  tableOfContents: string;
+  pagePrompt: string;
 }
 
 /** Default form values for a new post */
@@ -60,6 +123,13 @@ export const DEFAULT_EDITOR_FORM_VALUES: EditorFormValues = {
   categoryIds: [],
   tagIds: [],
   menuOrder: 0,
+  // Structured content defaults
+  hero: DEFAULT_HERO,
+  topics: [],
+  summary: DEFAULT_SUMMARY,
+  sources: "",
+  tableOfContents: "",
+  pagePrompt: "",
 };
 
 /** Autosave state tracked separately from form */

@@ -24,7 +24,7 @@ import {
 const EDITOR_ONLY_METABOXES = ["author"];
 
 /** localStorage key pattern */
-const LS_KEY_PREFIX = "smithharper_metabox_prefs_";
+const LS_KEY_PREFIX = "convexpress_metabox_prefs_";
 
 interface MetaboxPrefsStored {
   order: string[];

@@ -117,7 +117,7 @@ const statusTabs: StatusTab[] = [
 const config: ListTableConfig<EmailRow> = {
   entityName: "email notification",
   entityNamePlural: "email notifications",
-  storageKey: "smithharper-tools-email-notifications",
+  storageKey: "convexpress-tools-email-notifications",
   columns,
   statusTabs,
   bulkActions: [],

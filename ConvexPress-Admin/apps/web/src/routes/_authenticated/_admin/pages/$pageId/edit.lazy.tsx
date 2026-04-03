@@ -114,6 +114,31 @@ function EditPagePage() {
     categoryIds: [] as string[],
     tagIds: [] as string[],
     menuOrder: page.menuOrder ?? 0,
+    // Structured content fields
+    hero: (page as any).hero
+      ? {
+          title: (page as any).hero.title ?? "",
+          subtitle: (page as any).hero.subtitle ?? "",
+          content: (page as any).hero.content ?? "",
+          imageId: (page as any).hero.imageId ?? null,
+          videoUrl: (page as any).hero.videoUrl ?? "",
+          ctaText: (page as any).hero.ctaText ?? "",
+          ctaUrl: (page as any).hero.ctaUrl ?? "",
+        }
+      : { title: "", subtitle: "", content: "", imageId: null, videoUrl: "", ctaText: "", ctaUrl: "" },
+    topics: ((page as any).topics ?? []).map((t: any) => ({
+      title: t.title ?? "",
+      subtitle: t.subtitle ?? "",
+      content: t.content ?? "",
+      imageId: t.imageId ?? null,
+      videoUrl: t.videoUrl ?? "",
+    })),
+    summary: (page as any).summary
+      ? { title: (page as any).summary.title ?? "", content: (page as any).summary.content ?? "" }
+      : { title: "", content: "" },
+    sources: (page as any).sources ?? "",
+    tableOfContents: (page as any).tableOfContents ?? "",
+    pagePrompt: (page as any).pagePrompt ?? "",
   };
 
   return (

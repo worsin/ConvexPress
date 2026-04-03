@@ -126,6 +126,31 @@ function EditPostPage() {
     categoryIds: postTaxonomies?.categories?.map((c: { _id: string }) => c._id) ?? [],
     tagIds: postTaxonomies?.tags?.map((t: { _id: string }) => t._id) ?? [],
     menuOrder: post.menuOrder ?? 0,
+    // Structured content fields
+    hero: post.hero
+      ? {
+          title: post.hero.title ?? "",
+          subtitle: post.hero.subtitle ?? "",
+          content: post.hero.content ?? "",
+          imageId: post.hero.imageId ?? null,
+          videoUrl: post.hero.videoUrl ?? "",
+          ctaText: post.hero.ctaText ?? "",
+          ctaUrl: post.hero.ctaUrl ?? "",
+        }
+      : { title: "", subtitle: "", content: "", imageId: null, videoUrl: "", ctaText: "", ctaUrl: "" },
+    topics: (post.topics ?? []).map((t: any) => ({
+      title: t.title ?? "",
+      subtitle: t.subtitle ?? "",
+      content: t.content ?? "",
+      imageId: t.imageId ?? null,
+      videoUrl: t.videoUrl ?? "",
+    })),
+    summary: post.summary
+      ? { title: post.summary.title ?? "", content: post.summary.content ?? "" }
+      : { title: "", content: "" },
+    sources: post.sources ?? "",
+    tableOfContents: post.tableOfContents ?? "",
+    pagePrompt: post.pagePrompt ?? "",
   };
 
   return (

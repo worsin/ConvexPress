@@ -9,9 +9,9 @@
  *   - Handles content change callbacks to sync with the EditorLayout form
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, type Editor } from "@tiptap/react";
-import { useEditorConfig } from "./useEditorConfig";
+import { useEditorConfig, SHARED_EDITOR_OPTIONS } from "./useEditorConfig";
 import type { SlashMenuState } from "./extensions/slash-commands";
 
 interface UseContentEditorOptions {
@@ -47,6 +47,18 @@ export function useContentEditor(options: UseContentEditorOptions = {}) {
 
   const onContentChangeRef = useRef(onContentChange);
   onContentChangeRef.current = onContentChange;
+
+  // Debounce timer ref for onUpdate — avoids serializing JSON on every keystroke
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   // Slash command menu state
   const [slashMenu, setSlashMenu] = useState<SlashMenuContext>({
@@ -89,6 +101,7 @@ export function useContentEditor(options: UseContentEditorOptions = {}) {
 
   // Initialize editor
   const editor = useEditor({
+    ...SHARED_EDITOR_OPTIONS,
     extensions,
     content: parsedContent,
     editable,
@@ -102,12 +115,17 @@ export function useContentEditor(options: UseContentEditorOptions = {}) {
       },
     },
     onUpdate: ({ editor: ed }) => {
-      // Serialize content and notify parent
-      const json = JSON.stringify(ed.getJSON());
-      onContentChangeRef.current?.(json);
-
-      // Update stats
+      // Update stats immediately (cheap operation)
       updateStats(ed);
+
+      // Debounce content serialization to avoid JSON.stringify on every keystroke
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      debounceTimerRef.current = setTimeout(() => {
+        const json = JSON.stringify(ed.getJSON());
+        onContentChangeRef.current?.(json);
+      }, 300);
     },
     onCreate: ({ editor: ed }) => {
       updateStats(ed);

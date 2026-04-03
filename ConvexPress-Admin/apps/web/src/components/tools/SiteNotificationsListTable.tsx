@@ -122,7 +122,7 @@ const statusTabs: StatusTab[] = [
 const config: ListTableConfig<SiteNotifRow> = {
   entityName: "site notification",
   entityNamePlural: "site notifications",
-  storageKey: "smithharper-tools-site-notifications",
+  storageKey: "convexpress-tools-site-notifications",
   columns,
   statusTabs,
   bulkActions: [],

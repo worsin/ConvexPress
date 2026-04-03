@@ -2,7 +2,7 @@
  * useCan Hook
  *
  * Client-side capability check hook for conditional rendering.
- * The SmithHarper equivalent of WordPress's `current_user_can()`.
+ * The ConvexPress equivalent of WordPress's `current_user_can()`.
  *
  * IMPORTANT: This is for UI convenience only.
  * The backend `requireCan()` is the actual security boundary.

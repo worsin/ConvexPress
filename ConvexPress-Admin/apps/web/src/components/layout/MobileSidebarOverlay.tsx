@@ -151,7 +151,7 @@ export function MobileSidebarOverlay() {
           <div className="flex items-center gap-2">
             <Shield className="size-5 shrink-0 text-sidebar-primary-foreground" />
             <span className="text-sm font-semibold text-sidebar-foreground">
-              SmithHarper
+              ConvexPress
             </span>
           </div>
           <button

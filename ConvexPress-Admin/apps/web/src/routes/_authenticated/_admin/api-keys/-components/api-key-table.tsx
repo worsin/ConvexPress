@@ -204,7 +204,7 @@ const apiKeyRowActions: RowAction<ApiKey>[] = [
 const apiKeyListConfig: ListTableConfig<ApiKey> = {
   entityName: "API key",
   entityNamePlural: "API keys",
-  storageKey: "smithharper-api-keys-screen-options",
+  storageKey: "convexpress-api-keys-screen-options",
   columns: apiKeyColumns,
   statusTabs: apiKeyStatusTabs,
   bulkActions: [],

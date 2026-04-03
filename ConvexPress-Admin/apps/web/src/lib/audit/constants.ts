@@ -112,8 +112,6 @@ export const SYSTEM_LABELS: Record<string, string> = {
   audit: "Audit Log System",
   event: "Event Dispatcher",
   routing: "Routing System",
-  widget: "Widget System",
-  theme: "Theme System",
   feed: "RSS/Feed System",
   sitemap: "Sitemap System",
 };

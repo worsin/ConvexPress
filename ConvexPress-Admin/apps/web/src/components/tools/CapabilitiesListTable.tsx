@@ -119,7 +119,7 @@ const statusTabs: StatusTab[] = [
 const config: ListTableConfig<CapabilityRow> = {
   entityName: "capability",
   entityNamePlural: "capabilities",
-  storageKey: "smithharper-tools-capabilities",
+  storageKey: "convexpress-tools-capabilities",
   columns,
   statusTabs,
   bulkActions: [],

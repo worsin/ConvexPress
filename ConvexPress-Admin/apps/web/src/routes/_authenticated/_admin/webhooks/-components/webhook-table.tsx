@@ -222,7 +222,7 @@ const webhookRowActions: RowAction<Webhook>[] = [
 const webhookListConfig: ListTableConfig<Webhook> = {
   entityName: "webhook",
   entityNamePlural: "webhooks",
-  storageKey: "smithharper-webhooks-screen-options",
+  storageKey: "convexpress-webhooks-screen-options",
   columns: webhookColumns,
   statusTabs: webhookStatusTabs,
   bulkActions: [],
