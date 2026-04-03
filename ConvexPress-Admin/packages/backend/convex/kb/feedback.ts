@@ -116,22 +116,52 @@ export const submitRating = mutation({
       .first();
 
     if (existing) {
+      const newIsHelpful = args.rating >= 4;
+      const oldIsHelpful = existing.isHelpful;
       await ctx.db.patch(existing._id, {
         rating: args.rating,
         comment: args.comment,
+        isHelpful: newIsHelpful,
       });
+      if (newIsHelpful !== oldIsHelpful) {
+        const article = await ctx.db.get(args.articleId);
+        if (article) {
+          if (newIsHelpful) {
+            await ctx.db.patch(args.articleId, {
+              helpfulVotes: article.helpfulVotes + 1,
+              notHelpfulVotes: Math.max(0, article.notHelpfulVotes - 1),
+            });
+          } else {
+            await ctx.db.patch(args.articleId, {
+              notHelpfulVotes: article.notHelpfulVotes + 1,
+              helpfulVotes: Math.max(0, article.helpfulVotes - 1),
+            });
+          }
+        }
+      }
       return existing._id;
     }
 
+    const isHelpful = args.rating >= 4;
     const feedbackId = await ctx.db.insert("kb_articleFeedback", {
       articleId: args.articleId,
       userId: user?._id,
       sessionId: args.sessionId,
-      isHelpful: args.rating >= 4,
+      isHelpful,
       rating: args.rating,
       comment: args.comment,
       createdAt: Date.now(),
     });
+
+    // Update denormalized counts on article
+    const article = await ctx.db.get(args.articleId);
+    if (article) {
+      if (isHelpful) {
+        await ctx.db.patch(args.articleId, { helpfulVotes: article.helpfulVotes + 1 });
+      } else {
+        await ctx.db.patch(args.articleId, { notHelpfulVotes: article.notHelpfulVotes + 1 });
+      }
+    }
 
     return feedbackId;
   },

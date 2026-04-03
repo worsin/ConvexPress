@@ -150,11 +150,19 @@ function TicketListTable() {
 
   const stats = useQuery(api.tickets.queries.getStats);
 
-  if (!result) {
+  if (result === undefined) {
     return (
       <div className="p-6 animate-pulse space-y-4">
         <div className="h-8 bg-muted rounded w-1/4" />
         <div className="h-64 bg-muted rounded" />
+      </div>
+    );
+  }
+
+  if (result === null) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        You don&apos;t have permission to view tickets.
       </div>
     );
   }

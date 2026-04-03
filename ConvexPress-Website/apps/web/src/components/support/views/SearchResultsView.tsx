@@ -29,6 +29,7 @@ export function SearchResultsView({
   query,
   sessionId,
   onSelectArticle,
+  onAIAnswer,
   onStillNeedHelp,
 }: SearchResultsViewProps) {
   const generateAnswer = useAction(api.support.deflection.generateAnswer);
@@ -112,9 +113,18 @@ export function SearchResultsView({
       {/* AI Answer */}
       {hasAIAnswer && (
         <div className="rounded-lg border border-border bg-muted/30 p-3">
-          <div className="mb-2 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-xs font-medium text-primary">AI Answer</span>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-primary">AI Answer</span>
+            </div>
+            <button
+              type="button"
+              onClick={onAIAnswer}
+              className="text-xs text-primary hover:underline"
+            >
+              View full answer
+            </button>
           </div>
           <p className="text-sm leading-relaxed text-foreground">
             {result.answer}

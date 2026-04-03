@@ -252,12 +252,13 @@ export const KB_EVENTS = {
   FEEDBACK_SUBMITTED: "kb.feedback_submitted",
 } as const;
 
-/** Ticket System events (7) */
+/** Ticket System events (8) */
 export const TICKET_EVENTS = {
   CREATED: "ticket.created",
   REPLIED: "ticket.replied",
   ASSIGNED: "ticket.assigned",
   STATUS_CHANGED: "ticket.status_changed",
+  PRIORITY_CHANGED: "ticket.priority_changed",
   RESOLVED: "ticket.resolved",
   CLOSED: "ticket.closed",
   RATED: "ticket.rated",

@@ -49,7 +49,14 @@ export function TicketDetailView({
     }
   };
 
-  if (messages === undefined) {
+  if (messages === undefined || messages === null) {
+    if (messages === null) {
+      return (
+        <div className="flex items-center justify-center p-8 text-center text-sm text-muted-foreground">
+          Ticket not found or you do not have permission to view it.
+        </div>
+      );
+    }
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

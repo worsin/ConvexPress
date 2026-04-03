@@ -81,7 +81,7 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
   const updateStatus = useMutation(api.tickets.mutations.updateStatus);
   const updatePriority = useMutation(api.tickets.mutations.updatePriority);
 
-  if (!data) {
+  if (data === undefined) {
     return (
       <div className="p-6 animate-pulse space-y-4">
         <div className="h-8 bg-muted rounded w-1/3" />

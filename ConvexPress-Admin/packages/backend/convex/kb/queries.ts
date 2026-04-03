@@ -39,8 +39,8 @@ export const list = query({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const page = args.page ?? 1;
-    const perPage = Math.min(args.perPage ?? DEFAULT_KB_PER_PAGE_ADMIN, MAX_KB_PER_PAGE);
+    const page = Math.max(1, args.page ?? 1);
+    const perPage = Math.min(MAX_KB_PER_PAGE, Math.max(1, args.perPage ?? DEFAULT_KB_PER_PAGE_ADMIN));
 
     let articlesQuery;
 
@@ -216,8 +216,8 @@ export const getBySlug = query({
 export const listPublished = query({
   args: listPublishedArticlesArgs,
   handler: async (ctx, args) => {
-    const page = args.page ?? 1;
-    const perPage = Math.min(args.perPage ?? DEFAULT_KB_PER_PAGE_WEBSITE, MAX_KB_PER_PAGE);
+    const page = Math.max(1, args.page ?? 1);
+    const perPage = Math.min(MAX_KB_PER_PAGE, Math.max(1, args.perPage ?? DEFAULT_KB_PER_PAGE_WEBSITE));
 
     let articlesQuery;
     if (args.categoryId) {
@@ -227,7 +227,7 @@ export const listPublished = query({
     } else {
       articlesQuery = ctx.db
         .query("kb_articles")
-        .withIndex("by_published");
+        .withIndex("by_status", (q) => q.eq("status", "published"));
     }
 
     const allArticles = await articlesQuery.collect();
@@ -277,12 +277,12 @@ export const getPopular = query({
 
     const articles = await ctx.db
       .query("kb_articles")
-      .withIndex("by_views")
-      .order("desc")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
       .collect();
 
     return articles
       .filter((a) => a.status === "published")
+      .sort((a, b) => b.viewCount - a.viewCount)
       .slice(0, limit)
       .map((a) => ({
         _id: a._id,
@@ -304,12 +304,12 @@ export const getRecent = query({
 
     const articles = await ctx.db
       .query("kb_articles")
-      .withIndex("by_published")
-      .order("desc")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
       .collect();
 
     return articles
       .filter((a) => a.status === "published")
+      .sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0))
       .slice(0, limit)
       .map((a) => ({
         _id: a._id,
