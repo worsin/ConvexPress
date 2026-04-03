@@ -76,7 +76,7 @@ function TicketAnalyticsPage() {
                 label="Active Tickets"
                 value={stats.totalActive}
                 icon={BarChart3}
-                subtext={`${(stats.counts as any)?.open ?? 0} open, ${(stats.counts as any)?.inProgress ?? 0} in progress`}
+                subtext={`${(stats.counts as Record<string, number>)?.open ?? 0} open, ${(stats.counts as Record<string, number>)?.inProgress ?? 0} in progress`}
               />
               <StatCard
                 label="Avg First Response"
@@ -109,7 +109,7 @@ function TicketAnalyticsPage() {
               </h2>
               <div className="grid grid-cols-5 gap-3">
                 {Object.entries(stats.counts as Record<string, number>).map(
-                  ([status, count]) => (
+                ([status, count]) => (
                     <div key={status} className="text-center">
                       <div className="text-lg font-bold">{count}</div>
                       <div className="text-xs text-muted-foreground capitalize">
@@ -176,19 +176,19 @@ function TicketAnalyticsPage() {
               <div>
                 <span className="text-muted-foreground">AI Queries:</span>{" "}
                 <span className="font-medium">
-                  {(rateLimitStats as any)?.aiQueryCount ?? 0}
+                  {(rateLimitStats as Record<string, number>)?.aiQueryCount ?? 0}
                 </span>
               </div>
               <div>
                 <span className="text-muted-foreground">Ticket Creations:</span>{" "}
                 <span className="font-medium">
-                  {(rateLimitStats as any)?.ticketCreateCount ?? 0}
+                  {(rateLimitStats as Record<string, number>)?.ticketCreateCount ?? 0}
                 </span>
               </div>
               <div>
                 <span className="text-muted-foreground">Searches:</span>{" "}
                 <span className="font-medium">
-                  {(rateLimitStats as any)?.searchCount ?? 0}
+                  {(rateLimitStats as Record<string, number>)?.searchCount ?? 0}
                 </span>
               </div>
             </div>

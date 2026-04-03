@@ -9,6 +9,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, X, Check, GitBranch, PlusCircle, MinusCircle } from "lucide-react";
@@ -52,7 +53,8 @@ function KBWorkflowsPage() {
 }
 
 function KBWorkflowsContent() {
-  const workflows = useQuery(api.kb.workflows.list) ?? [];
+  const workflowsResult = useQuery(api.kb.workflows.list);
+  const workflows = workflowsResult ?? [];
   const createWorkflow = useMutation(api.kb.workflows.create);
   const updateWorkflow = useMutation(api.kb.workflows.update);
   const removeWorkflow = useMutation(api.kb.workflows.remove);
@@ -113,14 +115,14 @@ function KBWorkflowsContent() {
         steps: form.steps.map((s) => ({
           name: s.name.trim(),
           requiredApprovals: s.requiredApprovals,
-          assigneeId: s.assigneeId as any,
+          assigneeId: s.assigneeId as Id<"users"> | undefined,
         })),
       });
       toast.success("Workflow created");
       setForm(EMPTY_FORM);
       setShowCreate(false);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to create workflow");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to create workflow");
     } finally {
       setIsSaving(false);
     }
@@ -134,21 +136,21 @@ function KBWorkflowsContent() {
     setIsSaving(true);
     try {
       await updateWorkflow({
-        workflowId: editingId as any,
+        workflowId: editingId as Id<"kb_workflows">,
         name: form.name.trim(),
         description: form.description || undefined,
         isDefault: form.isDefault,
         steps: form.steps.map((s) => ({
           name: s.name.trim(),
           requiredApprovals: s.requiredApprovals,
-          assigneeId: s.assigneeId as any,
+          assigneeId: s.assigneeId as Id<"users"> | undefined,
         })),
       });
       toast.success("Workflow updated");
       setEditingId(null);
       setForm(EMPTY_FORM);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to update workflow");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to update workflow");
     } finally {
       setIsSaving(false);
     }
@@ -156,15 +158,25 @@ function KBWorkflowsContent() {
 
   async function handleDelete(workflowId: string) {
     try {
-      await removeWorkflow({ workflowId: workflowId as any });
+      await removeWorkflow({ workflowId: workflowId as Id<"kb_workflows"> });
       toast.success("Workflow deleted");
       setConfirmDelete(null);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to delete workflow");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to delete workflow");
     }
   }
 
   const isFormOpen = showCreate || !!editingId;
+
+  if (workflowsResult === undefined) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-44 bg-muted rounded animate-pulse" />
+        <div className="h-32 bg-muted rounded-lg animate-pulse" />
+        <div className="h-32 bg-muted rounded-lg animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -354,12 +366,14 @@ function KBWorkflowsContent() {
                     <>
                       <button
                         onClick={() => startEdit(w)}
+                        aria-label={`Edit ${w.name}`}
                         className="p-1.5 rounded hover:bg-muted transition-colors text-foreground/60 hover:text-foreground"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => setConfirmDelete(w._id)}
+                        aria-label={`Delete ${w.name}`}
                         className="p-1.5 rounded hover:bg-destructive/10 text-foreground/60 hover:text-destructive transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />

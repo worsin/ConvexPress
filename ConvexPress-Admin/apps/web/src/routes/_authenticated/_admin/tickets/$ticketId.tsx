@@ -98,7 +98,37 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
     );
   }
 
-  const { ticket, messages } = data as any;
+  // data is non-null and non-undefined at this point
+  const { ticket, messages } = data as {
+    ticket: Record<string, unknown> & {
+      _id: Id<"ticket_tickets">;
+      subject: string;
+      ticketNumber: string;
+      userNameSnapshot: string;
+      userEmailSnapshot: string;
+      status: string;
+      priority: string;
+      category: string;
+      source: string;
+      tags: string[];
+      aiAttempted?: boolean;
+      createdAt: number;
+      firstResponseAt?: number;
+      resolvedAt?: number;
+      rating?: number;
+      ratingComment?: string;
+    };
+    messages: Array<{
+      _id: string;
+      senderName: string;
+      senderType: "admin" | "user" | "system";
+      isInternal?: boolean;
+      content: string;
+      createdAt: number;
+      editedAt?: number;
+      attachments?: Array<{ name: string; size: number }>;
+    }>;
+  };
 
   async function handleReply() {
     if (!replyContent.trim()) return;
@@ -111,8 +141,8 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
       setReplyContent("");
       setIsInternal(false);
       toast.success(isInternal ? "Internal note added" : "Reply sent");
-    } catch (error: any) {
-      toast.error(error?.data?.message ?? "Failed to send reply");
+    } catch (error: unknown) {
+      toast.error((error as { data?: { message?: string } })?.data?.message ?? "Failed to send reply");
     }
   }
 
@@ -120,11 +150,11 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
     try {
       await updateStatus({
         ticketId: ticketId as Id<"ticket_tickets">,
-        status: newStatus as any,
+        status: newStatus as "open" | "awaitingResponse" | "inProgress" | "resolved" | "closed",
       });
       toast.success(`Status updated to ${newStatus}`);
-    } catch (error: any) {
-      toast.error(error?.data?.message ?? "Failed to update status");
+    } catch (error: unknown) {
+      toast.error((error as { data?: { message?: string } })?.data?.message ?? "Failed to update status");
     }
   }
 
@@ -132,11 +162,11 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
     try {
       await updatePriority({
         ticketId: ticketId as Id<"ticket_tickets">,
-        priority: newPriority as any,
+        priority: newPriority as "low" | "medium" | "high" | "urgent",
       });
       toast.success("Priority updated");
-    } catch (error: any) {
-      toast.error(error?.data?.message ?? "Failed to update priority");
+    } catch (error: unknown) {
+      toast.error((error as { data?: { message?: string } })?.data?.message ?? "Failed to update priority");
     }
   }
 
@@ -145,7 +175,7 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
-          onClick={() => void navigate({ to: "/_authenticated/_admin/tickets/" })}
+          onClick={() => void navigate({ to: "/tickets/" })}
           className="p-1 rounded hover:bg-muted"
           aria-label="Back to tickets"
         >
@@ -165,7 +195,7 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
         <div className="col-span-2 space-y-4">
           {/* Messages */}
           <div className="space-y-3">
-            {(messages as any[]).map((msg: any) => (
+            {messages.map((msg) => (
               <div
                 key={msg._id}
                 className={`rounded-lg border p-4 ${

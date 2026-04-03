@@ -14,6 +14,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { useNavigate } from "@tanstack/react-router";
 import { Route } from "@/routes/_authenticated/_admin/kb/index";
 
@@ -22,12 +23,12 @@ export function KBArticleListTable() {
   const navigate = useNavigate();
 
   const articles = useQuery(api.kb.queries.list, {
-    status: search.status as any,
+    status: search.status,
     search: search.search,
     page: search.page ?? 1,
     perPage: search.perPage ?? 20,
-    categoryId: search.categoryId as any,
-    authorId: search.authorId as any,
+    categoryId: search.categoryId as Id<"kb_categories"> | undefined,
+    authorId: search.authorId as Id<"users"> | undefined,
   });
 
   return (
@@ -69,8 +70,12 @@ export function KBArticleListTable() {
 
       {/* Article list -- placeholder for full list table implementation */}
       <div className="rounded-lg border border-border bg-card">
-        {!articles ? (
-          <div className="p-8 text-center text-muted-foreground">Loading...</div>
+        {articles === undefined ? (
+          <div className="animate-pulse space-y-2 p-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-10 bg-muted rounded" />
+            ))}
+          </div>
         ) : articles.items.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             No articles found.
@@ -87,7 +92,7 @@ export function KBArticleListTable() {
               </tr>
             </thead>
             <tbody>
-              {articles.items.map((article: any) => (
+              {articles.items.map((article) => (
                 <tr
                   key={article._id}
                   className="border-b border-border hover:bg-muted/50 cursor-pointer"

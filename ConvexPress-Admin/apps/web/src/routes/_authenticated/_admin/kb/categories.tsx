@@ -9,6 +9,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, X, Check, Folder } from "lucide-react";
@@ -51,7 +52,8 @@ function KBCategoriesPage() {
 }
 
 function KBCategoriesContent() {
-  const categories = useQuery(api.kb.categories.list) ?? [];
+  const categoriesResult = useQuery(api.kb.categories.list);
+  const categories = categoriesResult ?? [];
   const createCategory = useMutation(api.kb.categories.create);
   const updateCategory = useMutation(api.kb.categories.update);
   const removeCategory = useMutation(api.kb.categories.remove);
@@ -73,13 +75,13 @@ function KBCategoriesContent() {
         name: newCat.name.trim(),
         description: newCat.description || undefined,
         icon: newCat.icon || undefined,
-        parentId: (newCat.parentId as any) || undefined,
+        parentId: (newCat.parentId as Id<"kb_categories">) || undefined,
       });
       toast.success("Category created");
       setNewCat(EMPTY_NEW);
       setShowCreate(false);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to create category");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to create category");
     } finally {
       setIsSaving(false);
     }
@@ -90,15 +92,15 @@ function KBCategoriesContent() {
     setIsSaving(true);
     try {
       await updateCategory({
-        categoryId: editing.id as any,
+        categoryId: editing.id as Id<"kb_categories">,
         name: editing.name.trim(),
         description: editing.description || undefined,
         icon: editing.icon || undefined,
       });
       toast.success("Category updated");
       setEditing(null);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to update category");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to update category");
     } finally {
       setIsSaving(false);
     }
@@ -106,12 +108,21 @@ function KBCategoriesContent() {
 
   async function handleDelete(categoryId: string) {
     try {
-      await removeCategory({ categoryId: categoryId as any });
+      await removeCategory({ categoryId: categoryId as Id<"kb_categories"> });
       toast.success("Category deleted");
       setConfirmDelete(null);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to delete category");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to delete category");
     }
+  }
+
+  if (categoriesResult === undefined) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-48 bg-muted rounded animate-pulse" />
+        <div className="h-64 bg-muted rounded-lg animate-pulse" />
+      </div>
+    );
   }
 
   return (
@@ -259,12 +270,14 @@ function KBCategoriesContent() {
                           <button
                             onClick={() => void handleUpdate()}
                             disabled={isSaving}
+                            aria-label="Save changes"
                             className="p-1 rounded hover:bg-primary/10 text-primary transition-colors disabled:opacity-50"
                           >
                             <Check className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => setEditing(null)}
+                            aria-label="Cancel editing"
                             className="p-1 rounded hover:bg-muted transition-colors"
                           >
                             <X className="h-4 w-4" />
@@ -323,12 +336,14 @@ function KBCategoriesContent() {
                           <div className="flex justify-end gap-1">
                             <button
                               onClick={() => setEditing({ id: cat._id, name: cat.name, description: cat.description ?? "", icon: cat.icon ?? "" })}
+                              aria-label={`Edit ${cat.name}`}
                               className="p-1 rounded hover:bg-muted transition-colors text-foreground/60 hover:text-foreground"
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => setConfirmDelete(cat._id)}
+                              aria-label={`Delete ${cat.name}`}
                               className="p-1 rounded hover:bg-destructive/10 text-foreground/60 hover:text-destructive transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
