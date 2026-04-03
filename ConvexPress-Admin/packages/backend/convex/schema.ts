@@ -34,6 +34,7 @@ import { wordpressSyncTables } from "./schema/wordpressSync";
 import { authTables } from "./schema/auth";
 import { analyticsTables } from "./schema/analytics";
 import { ga4Tables } from "./schema/ga4";
+import { kbTables } from "./schema/kb";
 
 // ─── Compose Schema ──────────────────────────────────────────────────────────
 export default defineSchema({
@@ -68,4 +69,5 @@ export default defineSchema({
   ...authTables,
   ...analyticsTables,
   ...ga4Tables,
+  ...kbTables,
 });
