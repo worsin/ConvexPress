@@ -53,6 +53,8 @@ const SECTION_CAPABILITY_MAP: Record<
   permalinks: "settings.update_permalinks",
   privacy: "settings.update_privacy",
   email: "settings.update_email",
+  media: "manage_options",
+  analytics: "manage_options",
   ai: "manage_options",
   search: "manage_options",
   // Knowledge Base System sections
@@ -62,6 +64,9 @@ const SECTION_CAPABILITY_MAP: Record<
   // Ticket System sections
   "ticket.general": "manage_options",
   "ticket.sla": "manage_options",
+  // Support Bridge System sections
+  "support.widget": "manage_options",
+  "support.ai": "manage_options",
 };
 
 // ─── updateSection ───────────────────────────────────────────────────────────

@@ -24,6 +24,8 @@ export const sectionValidator = v.union(
   v.literal("permalinks"),
   v.literal("privacy"),
   v.literal("email"),
+  v.literal("media"),
+  v.literal("analytics"),
   v.literal("ai"),
   v.literal("search"),
   // Knowledge Base System sections
@@ -33,6 +35,9 @@ export const sectionValidator = v.union(
   // Ticket System sections
   v.literal("ticket.general"),
   v.literal("ticket.sla"),
+  // Support Bridge System sections
+  v.literal("support.widget"),
+  v.literal("support.ai"),
 );
 
 // ─── Per-Section Value Validators ────────────────────────────────────────────

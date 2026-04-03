@@ -501,10 +501,27 @@ export function validateSectionValues(
       return validatePrivacy(values);
     case "email":
       return validateEmail(values);
+    case "media":
+      return []; // Media settings validated at media system level
+    case "analytics":
+      return []; // Analytics settings validated at analytics system level
     case "ai":
       return validateAI(values);
     case "search":
       return validateSearch(values);
+    // Knowledge Base System sections
+    case "kb.general":
+    case "kb.features":
+    case "kb.search":
+      return []; // KB settings validated at KB system level
+    // Ticket System sections
+    case "ticket.general":
+    case "ticket.sla":
+      return []; // Ticket settings validated at ticket system level
+    // Support Bridge System sections
+    case "support.widget":
+    case "support.ai":
+      return []; // Support settings validated at support system level
     default:
       return [];
   }
