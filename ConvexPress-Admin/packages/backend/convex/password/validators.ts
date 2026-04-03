@@ -19,8 +19,8 @@ export const RESET_HEURISTIC_WINDOW_MS = 60 * 60 * 1000;
 // Used when the Settings System hasn't been implemented or has no overrides.
 
 export const PASSWORD_SETTINGS_DEFAULTS = {
-  /** Send SmithHarper-branded reset email in addition to WorkOS's. */
-  sendPasswordResetEmail: false,
+  /** Send password reset email via Resend when a reset is requested. */
+  sendPasswordResetEmail: true,
   /** Send confirmation email when password changes. */
   sendPasswordChangedEmail: true,
   /** Send admin notification when any user resets password. */
@@ -32,30 +32,47 @@ export const PASSWORD_SETTINGS_DEFAULTS = {
 /**
  * Arguments for recordResetRequest (internal mutation).
  * Called from server action when user submits forgot-password form.
+ * Includes the hashed token and reset URL for email delivery.
  */
 export const recordResetRequestArgs = {
   email: v.string(),
-  /** Optional reset URL from WorkOS response, included in event payload for email template. */
-  resetUrl: v.optional(v.string()),
+  /** SHA-256 hash of the reset token (stored on user record). */
+  tokenHash: v.string(),
+  /** Unix timestamp (ms) when the token expires. */
+  tokenExpiresAt: v.number(),
+  /** Full reset URL to include in the email. */
+  resetUrl: v.string(),
+};
+
+/**
+ * Arguments for storeResetToken (internal mutation).
+ * Called from admin-initiated reset flow where we already have the userId.
+ */
+export const storeResetTokenArgs = {
+  userId: v.id("users"),
+  /** SHA-256 hash of the reset token. */
+  tokenHash: v.string(),
+  /** Unix timestamp (ms) when the token expires. */
+  tokenExpiresAt: v.number(),
+  /** Full reset URL to include in the email. */
+  resetUrl: v.string(),
 };
 
 /**
  * Arguments for handlePasswordChanged (internal mutation).
- * Called from WorkOS webhook handler when a profile password change is detected.
+ * Called when a profile password change is detected.
  */
 export const handlePasswordChangedArgs = {
   userId: v.id("users"),
-  workosId: v.string(),
   timestamp: v.number(),
 };
 
 /**
  * Arguments for handlePasswordResetCompleted (internal mutation).
- * Called from WorkOS webhook handler when a reset completion is detected.
+ * Called when a reset completion is detected.
  */
 export const handlePasswordResetCompletedArgs = {
   userId: v.id("users"),
-  workosId: v.string(),
   timestamp: v.number(),
 };
 
@@ -73,7 +90,7 @@ export const recordAdminResetArgs = {
 
 /**
  * Arguments for adminResetUserPassword (public action).
- * Admin triggers a password reset for another user via WorkOS API.
+ * Admin triggers a password reset for another user.
  */
 export const adminResetUserPasswordArgs = {
   targetUserId: v.id("users"),

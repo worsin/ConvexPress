@@ -2,18 +2,20 @@
  * Password Management System - Queries
  *
  * Public query for password status (used by dashboard/settings and admin user edit).
- * Internal queries used by the adminResetUserPassword action.
+ * Internal queries used by the password reset actions.
  *
  * Functions:
- *   getPasswordStatus  (public)   - Get password metadata for self or another user
- *   getUserByWorkosId  (internal) - Look up user by WorkOS ID (for action auth)
- *   getUserById        (internal) - Look up user by Convex ID (for action target)
- *   getUserRoleLevel   (internal) - Get a user's role level (for action auth)
+ *   getPasswordStatus          (public)   - Get password metadata for self or another user
+ *   getUserBySubject           (internal) - Look up user by auth subject (for action auth)
+ *   getUserById                (internal) - Look up user by Convex ID (for action target)
+ *   getUserRoleLevel           (internal) - Get a user's role level (for action auth)
+ *   getRegistrationMethodByEmail (internal) - Check if email is OAuth-registered
+ *   getSiteUrl                 (internal) - Get site URL from settings
  */
 
 import { query, internalQuery } from "../_generated/server";
 import { v, ConvexError } from "convex/values";
-import { getCurrentUser, requireAuth , lookupUserByIdentifier } from "../helpers/permissions";
+import { getCurrentUser, lookupUserByIdentifier } from "../helpers/permissions";
 import { getPasswordStatusArgs } from "./validators";
 
 // ─── getPasswordStatus (Public Query) ───────────────────────────────────────
@@ -49,9 +51,8 @@ export const getPasswordStatus = query({
       if (!currentUser) return null;
 
       // Check if the current user is an Administrator (role level 100)
-      // We use the role system to check
       if (currentUser.roleId) {
-        const role = await ctx.db.get("roles", currentUser.roleId);
+        const role = await ctx.db.get(currentUser.roleId);
         if (!role || role.level < 100) {
           throw new ConvexError({
             code: "FORBIDDEN",
@@ -68,7 +69,7 @@ export const getPasswordStatus = query({
         }
       }
 
-      targetUser = await ctx.db.get("users", args.userId);
+      targetUser = await ctx.db.get(args.userId);
     } else {
       // Viewing own status: just need authentication
       targetUser = await lookupUserByIdentifier(ctx, identity.subject);
@@ -87,13 +88,14 @@ export const getPasswordStatus = query({
 // ─── Internal Queries (for actions) ─────────────────────────────────────────
 
 /**
- * Look up a user by identifier (workosUserId, clerkUserId, or Convex _id).
+ * Look up a user by auth identity subject.
  * Used by adminResetUserPassword action to identify the caller.
+ * Handles both Convex Auth (subject = user _id) and Clerk (subject = clerk user ID).
  */
-export const getUserByWorkosId = internalQuery({
-  args: { workosId: v.string() },
+export const getUserBySubject = internalQuery({
+  args: { subject: v.string() },
   handler: async (ctx, args) => {
-    return await lookupUserByIdentifier(ctx, args.workosId);
+    return await lookupUserByIdentifier(ctx, args.subject);
   },
 });
 
@@ -104,7 +106,7 @@ export const getUserByWorkosId = internalQuery({
 export const getUserById = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    return await ctx.db.get("users", args.userId);
+    return await ctx.db.get(args.userId);
   },
 });
 
@@ -114,10 +116,6 @@ export const getUserById = internalQuery({
  *
  * Used by requestPasswordReset action to provide an OAuth hint
  * without confirming or denying email existence explicitly.
- *
- * Note: This is intentionally exposed as a limited hint. The action
- * still returns the same success message regardless, but can include
- * a soft hint about OAuth if the user exists.
  */
 export const getRegistrationMethodByEmail = internalQuery({
   args: { email: v.string() },
@@ -143,12 +141,12 @@ export const getRegistrationMethodByEmail = internalQuery({
 export const getUserRoleLevel = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get("users", args.userId);
+    const user = await ctx.db.get(args.userId);
     if (!user) return 0;
 
     // New role system: resolve via roleId
     if (user.roleId) {
-      const role = await ctx.db.get("roles", user.roleId);
+      const role = await ctx.db.get(user.roleId);
       if (role && role.status === "active") {
         return role.level ?? 0;
       }
@@ -169,5 +167,23 @@ export const getUserRoleLevel = internalQuery({
     }
 
     return 0;
+  },
+});
+
+/**
+ * Get the site URL from the general settings.
+ * Used to build password reset links.
+ * Falls back to empty string if no site URL is configured.
+ */
+export const getSiteUrl = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const generalSettings = await ctx.db
+      .query("settings")
+      .withIndex("by_section", (q) => q.eq("section", "general"))
+      .unique();
+
+    const values = (generalSettings?.values ?? {}) as Record<string, unknown>;
+    return (values.siteUrl as string) ?? "";
   },
 });
