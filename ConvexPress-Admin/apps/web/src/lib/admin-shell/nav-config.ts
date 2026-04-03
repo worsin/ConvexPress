@@ -118,6 +118,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       { id: "tickets-all", label: "All Tickets", to: "/tickets", exact: true },
       { id: "tickets-canned", label: "Canned Responses", to: "/tickets/canned-responses", capability: "manage_options" },
       { id: "tickets-analytics", label: "Analytics", to: "/tickets/analytics" },
+      { id: "support-analytics", label: "Deflection Analytics", to: "/support/analytics", icon: BarChart3, capability: "manage_options" },
       { id: "tickets-settings", label: "Settings", to: "/tickets/settings", capability: "manage_options" },
     ],
   },

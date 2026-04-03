@@ -148,21 +148,21 @@ function SupportAnalyticsDashboard() {
             label="Helpful"
             count={stats.outcomes.helpful}
             total={stats.totalQueries}
-            className="text-green-600"
+            className="text-success"
           />
           <OutcomeCard
             icon={ThumbsDown}
             label="Not Helpful"
             count={stats.outcomes.notHelpful}
             total={stats.totalQueries}
-            className="text-red-600"
+            className="text-destructive"
           />
           <OutcomeCard
             icon={ArrowUpRight}
             label="Escalated"
             count={stats.outcomes.escalated}
             total={stats.totalQueries}
-            className="text-orange-600"
+            className="text-warning"
           />
           <OutcomeCard
             icon={Ban}
