@@ -27,8 +27,8 @@ function AdminLayout() {
   // Derive site title from settings with fallback
   const siteTitle =
     generalSettings && typeof generalSettings === "object" && "siteTitle" in generalSettings
-      ? String(generalSettings.siteTitle ?? "SmithHarper")
-      : "SmithHarper";
+      ? String(generalSettings.siteTitle ?? "ConvexPress")
+      : "ConvexPress";
 
   return (
     <AuthProvider>

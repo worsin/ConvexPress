@@ -16,11 +16,11 @@ import { EMAIL_TEMPLATES } from "./constants";
  * These match the backend injectGlobalVariables() output.
  */
 export const GLOBAL_SAMPLE_VARIABLES: Record<string, string> = {
-  site_name: "SmithHarper CMS",
+  site_name: "ConvexPress",
   site_url: "https://example.com",
   current_year: new Date().getFullYear().toString(),
   logo_url: "https://example.com/logo.png",
-  footer_text: "SmithHarper CMS - Empowering content creators.",
+  footer_text: "ConvexPress - Empowering content creators.",
   unsubscribe_url: "https://example.com/unsubscribe?token=sample-token",
   recipient_name: "Jane Smith",
 };
@@ -99,18 +99,18 @@ export const TEMPLATE_SAMPLE_VARIABLES: Record<string, Record<string, string>> =
     // Content
     [EMAIL_TEMPLATES.POST_PUBLISHED_AUTHOR]: {
       author_name: "Jane Smith",
-      title: "Getting Started with SmithHarper CMS",
-      post_title: "Getting Started with SmithHarper CMS",
+      title: "Getting Started with ConvexPress",
+      post_title: "Getting Started with ConvexPress",
       post_url: "https://example.com/blog/getting-started",
       published_at: new Date().toLocaleString(),
     },
     [EMAIL_TEMPLATES.POST_PUBLISHED_SUBSCRIBERS]: {
-      title: "Getting Started with SmithHarper CMS",
-      post_title: "Getting Started with SmithHarper CMS",
+      title: "Getting Started with ConvexPress",
+      post_title: "Getting Started with ConvexPress",
       excerpt:
-        "Learn how to set up and customize your new SmithHarper CMS installation with this comprehensive guide...",
+        "Learn how to set up and customize your new ConvexPress installation with this comprehensive guide...",
       post_excerpt:
-        "Learn how to set up and customize your new SmithHarper CMS installation with this comprehensive guide...",
+        "Learn how to set up and customize your new ConvexPress installation with this comprehensive guide...",
       post_url: "https://example.com/blog/getting-started",
       author_name: "Jane Smith",
     },
@@ -133,7 +133,7 @@ export const TEMPLATE_SAMPLE_VARIABLES: Record<string, Record<string, string>> =
       commenter_name: "Alex Reader",
       comment_excerpt:
         "This is a really helpful article! I especially liked the section about...",
-      post_title: "Getting Started with SmithHarper CMS",
+      post_title: "Getting Started with ConvexPress",
       post_url: "https://example.com/blog/getting-started",
       comment_url:
         "https://example.com/blog/getting-started#comment-42",
@@ -142,13 +142,13 @@ export const TEMPLATE_SAMPLE_VARIABLES: Record<string, Record<string, string>> =
       commenter_name: "New User",
       comment_excerpt:
         "I have a question about the installation process. Can you clarify...",
-      post_title: "Getting Started with SmithHarper CMS",
+      post_title: "Getting Started with ConvexPress",
       moderation_url: "https://example.com/admin/comments?pending",
     },
     [EMAIL_TEMPLATES.COMMENT_APPROVED]: {
       commenter_name: "Alex Reader",
       comment_excerpt: "This is a really helpful article!",
-      post_title: "Getting Started with SmithHarper CMS",
+      post_title: "Getting Started with ConvexPress",
       comment_url:
         "https://example.com/blog/getting-started#comment-42",
     },
@@ -156,7 +156,7 @@ export const TEMPLATE_SAMPLE_VARIABLES: Record<string, Record<string, string>> =
       original_commenter_name: "Alex Reader",
       replier_name: "Jane Smith",
       reply_excerpt: "Thanks for the kind words! Glad you found it helpful.",
-      post_title: "Getting Started with SmithHarper CMS",
+      post_title: "Getting Started with ConvexPress",
       comment_url:
         "https://example.com/blog/getting-started#comment-43",
     },
@@ -197,7 +197,7 @@ export const TEMPLATE_SAMPLE_VARIABLES: Record<string, Record<string, string>> =
     [EMAIL_TEMPLATES.REVISION_RESTORED]: {
       editor_name: "Jane Smith",
       user: "Jane Smith",
-      post_title: "Getting Started with SmithHarper CMS",
+      post_title: "Getting Started with ConvexPress",
       revision_date: new Date(
         Date.now() - 3 * 24 * 60 * 60 * 1000,
       ).toLocaleString(),
@@ -244,7 +244,7 @@ export const TEMPLATE_SAMPLE_VARIABLES: Record<string, Record<string, string>> =
       new_posts: "5",
       new_comments: "23",
       post_count: "5",
-      top_post: "Getting Started with SmithHarper CMS",
+      top_post: "Getting Started with ConvexPress",
       dashboard_url: "https://example.com/admin/dashboard",
     },
   };

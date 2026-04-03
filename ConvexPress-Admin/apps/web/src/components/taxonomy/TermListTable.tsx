@@ -219,7 +219,7 @@ export function TermListTable({ taxonomy, data }: TermListTableProps) {
     () => ({
       entityName,
       entityNamePlural,
-      storageKey: `smithharper-${entityNamePlural}-screen-options`,
+      storageKey: `convexpress-${entityNamePlural}-screen-options`,
       columns,
       statusTabs: [],
       bulkActions: termBulkActions,

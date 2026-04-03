@@ -2,7 +2,7 @@ import type { AdminNavSection } from "./types";
 
 /**
  * Legacy WordPress capability keys used in nav config mapped to
- * SmithHarper's canonical dot-capability system.
+ * ConvexPress's canonical dot-capability system.
  */
 const LEGACY_CAPABILITY_MAP: Record<string, string[]> = {
   edit_posts: ["post.read", "post.create", "post.update"],

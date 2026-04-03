@@ -185,7 +185,7 @@ const roleRowActions: RowAction<RoleRow>[] = [
 const roleListConfig: ListTableConfig<RoleRow> = {
   entityName: "role",
   entityNamePlural: "roles",
-  storageKey: "smithharper-roles-screen-options",
+  storageKey: "convexpress-roles-screen-options",
   columns: roleColumns,
   statusTabs: roleStatusTabs,
   bulkActions: [],

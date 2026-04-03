@@ -241,7 +241,7 @@ const redirectRowActions: RowAction<RedirectRow>[] = [
 const redirectListConfig: ListTableConfig<RedirectRow> = {
   entityName: "redirect",
   entityNamePlural: "redirects",
-  storageKey: "smithharper-redirects-screen-options",
+  storageKey: "convexpress-redirects-screen-options",
   columns: redirectColumns,
   statusTabs: redirectStatusTabs,
   bulkActions: redirectBulkActions,

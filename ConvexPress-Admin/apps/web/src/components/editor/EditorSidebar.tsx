@@ -4,7 +4,7 @@
  * In the WordPress Gutenberg editor, the right sidebar has two tabs:
  * "Document" (post settings) and "Block" (selected block settings).
  *
- * In SmithHarper, the Document tab content is rendered by the existing
+ * In ConvexPress, the Document tab content is rendered by the existing
  * metabox components in EditorLayout. This sidebar would be used if
  * a tabbed sidebar layout is implemented in the future.
  *

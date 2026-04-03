@@ -5,7 +5,7 @@
  * Used by the revision comparison page to compute and render diffs
  * between two revision snapshots.
  *
- * SmithHarper computes diffs on the client, not the server:
+ * ConvexPress computes diffs on the client, not the server:
  *   - Convex is not ideal for CPU-intensive text processing
  *   - Client-side diff libraries are mature and fast
  *   - The compare query returns raw content; client computes diff locally

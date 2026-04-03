@@ -5,7 +5,7 @@
  *
  * Displays:
  *   - Convex connection status (inferred from data availability)
- *   - SmithHarper version
+ *   - ConvexPress version
  *   - Deployment environment
  *
  * This is a lightweight status widget. More detailed system info
@@ -26,7 +26,7 @@ import { useConvex } from "convex/react";
  * or `settings.cms_version` key is available in the general settings.
  * For now, this constant is maintained manually.
  */
-const CMS_VERSION = "SmithHarper 1.0";
+const CMS_VERSION = "ConvexPress 1.0";
 
 function SystemHealthWidget() {
   // Check if Convex client is connected

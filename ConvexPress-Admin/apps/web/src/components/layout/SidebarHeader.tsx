@@ -16,7 +16,7 @@ export function SidebarHeader({ collapsed }: SidebarHeaderProps) {
       <Shield className="size-5 shrink-0 text-sidebar-primary-foreground" aria-hidden="true" />
       {!collapsed && (
         <span className="text-sm font-semibold text-sidebar-foreground truncate">
-          SmithHarper
+          ConvexPress
         </span>
       )}
     </div>

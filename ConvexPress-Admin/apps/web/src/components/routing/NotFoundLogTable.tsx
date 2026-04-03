@@ -183,7 +183,7 @@ const notFoundRowActions: RowAction<NotFoundRow>[] = [
 const notFoundListConfig: ListTableConfig<NotFoundRow> = {
   entityName: "404 entry",
   entityNamePlural: "404 entries",
-  storageKey: "smithharper-404-log-screen-options",
+  storageKey: "convexpress-404-log-screen-options",
   columns: notFoundColumns,
   statusTabs: notFoundStatusTabs,
   bulkActions: notFoundBulkActions,

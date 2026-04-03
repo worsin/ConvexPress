@@ -7,6 +7,8 @@
  */
 
 import { Component, useCallback, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
+import { Sparkles } from "lucide-react";
+import { useAiGeneration } from "@/hooks/useAiGeneration";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -44,7 +46,15 @@ import { useEditorKeyboardShortcuts } from "@/hooks/useEditorKeyboardShortcuts";
 import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { useAuth } from "@/lib/auth-context";
 import { ContentEditorProvider } from "./ContentEditorProvider";
-import type { EditorContentType, EditorFormValues, TagItem, EditorContextValue } from "@/types/editor";
+import type { EditorContentType, EditorFormValues, TagItem, EditorContextValue, HeroFields, TopicFields, SummaryFields } from "@/types/editor";
+import {
+  StructuredContentSection,
+  HeroSectionEditor,
+  TopicsListEditor,
+  SummarySectionEditor,
+  SourcesEditor,
+  TableOfContentsEditor,
+} from "./structured";
 
 /** Shape of general settings response */
 interface GeneralSettings {
@@ -192,6 +202,41 @@ function EditorLayoutInner({
 
   // Slug manual edit tracking
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+
+  // Structured content section collapse state
+  const [structuredCollapse, setStructuredCollapse] = useState<Record<string, boolean>>({
+    hero: false,
+    topics: false,
+    summary: true,
+    sources: true,
+    toc: true,
+  });
+  const toggleStructuredCollapse = useCallback((key: string) => {
+    setStructuredCollapse((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  // AI content generation
+  const {
+    isGenerating,
+    currentSection: aiCurrentSection,
+    handleGenerateAll,
+    handleRegenerateSection,
+  } = useAiGeneration(postId);
+
+  const handleRegenerate = useCallback((section: string, index?: number) => {
+    const sectionMap: Record<string, "hero" | "topic" | "summary" | "sources" | "tableOfContents"> = {
+      "hero": "hero",
+      "all topics": "topic",
+      "topic": "topic",
+      "summary": "summary",
+      "sources": "sources",
+      "table of contents": "tableOfContents",
+    };
+    const mapped = sectionMap[section];
+    if (mapped) {
+      handleRegenerateSection(mapped, index);
+    }
+  }, [handleRegenerateSection]);
 
   // Autosave
   const autosaveState = useAutosave({
@@ -521,6 +566,111 @@ function EditorLayoutInner({
               readOnly={false}
             />
           </ContentEditorProvider>
+
+          {/* ── AI Content Prompt + Generate All ────────────────────── */}
+          <div className="border border-border bg-card p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Content Prompt
+              </label>
+              <button
+                type="button"
+                onClick={handleGenerateAll}
+                disabled={isGenerating || !formValues.pagePrompt}
+                title={!formValues.pagePrompt ? "Enter a content prompt first" : "Generate all sections using AI"}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isGenerating && aiCurrentSection === "all" ? (
+                  <>
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="size-3.5" />
+                    Generate All with AI
+                  </>
+                )}
+              </button>
+            </div>
+            <textarea
+              value={formValues.pagePrompt}
+              onChange={(e) => form.setFieldValue("pagePrompt", e.target.value)}
+              placeholder="Describe what this content should be about. Each topic will be researched and written with source citations..."
+              rows={3}
+              className="w-full border border-border bg-background px-2.5 py-1.5 text-sm outline-hidden focus:border-primary transition-colors resize-y"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Save your draft first, then click Generate All. Blog posts get full web research per topic. Pages get lighter generation.
+            </p>
+          </div>
+
+          {/* ── Structured Content Sections ─────────────────────────── */}
+          <StructuredContentSection
+            title="Hero Section"
+            isCollapsed={structuredCollapse.hero}
+            onToggleCollapse={() => toggleStructuredCollapse("hero")}
+            onRegenerate={() => handleRegenerate("hero")}
+            isRegenerating={isGenerating && aiCurrentSection === "hero"}
+          >
+            <HeroSectionEditor
+              value={formValues.hero}
+              onChange={(hero: HeroFields) => form.setFieldValue("hero", hero)}
+            />
+          </StructuredContentSection>
+
+          <StructuredContentSection
+            title="Topics"
+            isCollapsed={structuredCollapse.topics}
+            onToggleCollapse={() => toggleStructuredCollapse("topics")}
+            onRegenerate={() => handleRegenerate("all topics")}
+            isRegenerating={isGenerating && (aiCurrentSection === "topic" || aiCurrentSection?.startsWith("topic-"))}
+          >
+            <TopicsListEditor
+              value={formValues.topics}
+              onChange={(topics: TopicFields[]) => form.setFieldValue("topics", topics)}
+              onRegenerateTopic={(index: number) => handleRegenerate("topic", index)}
+            />
+          </StructuredContentSection>
+
+          <StructuredContentSection
+            title="Summary"
+            isCollapsed={structuredCollapse.summary}
+            onToggleCollapse={() => toggleStructuredCollapse("summary")}
+            onRegenerate={() => handleRegenerate("summary")}
+            isRegenerating={isGenerating && aiCurrentSection === "summary"}
+          >
+            <SummarySectionEditor
+              value={formValues.summary}
+              onChange={(summary: SummaryFields) => form.setFieldValue("summary", summary)}
+            />
+          </StructuredContentSection>
+
+          <StructuredContentSection
+            title="Sources"
+            isCollapsed={structuredCollapse.sources}
+            onToggleCollapse={() => toggleStructuredCollapse("sources")}
+            onRegenerate={() => handleRegenerate("sources")}
+            isRegenerating={isGenerating && aiCurrentSection === "sources"}
+          >
+            <SourcesEditor
+              value={formValues.sources}
+              onChange={(sources: string) => form.setFieldValue("sources", sources)}
+            />
+          </StructuredContentSection>
+
+          <StructuredContentSection
+            title="Table of Contents"
+            isCollapsed={structuredCollapse.toc}
+            onToggleCollapse={() => toggleStructuredCollapse("toc")}
+            onRegenerate={() => handleRegenerate("table of contents")}
+            isRegenerating={isGenerating && aiCurrentSection === "tableOfContents"}
+          >
+            <TableOfContentsEditor
+              value={formValues.tableOfContents}
+              onChange={(toc: string) => form.setFieldValue("tableOfContents", toc)}
+            />
+          </StructuredContentSection>
 
           {/* Custom fields: normal position (below editor) */}
           {postId && (

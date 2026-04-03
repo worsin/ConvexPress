@@ -104,7 +104,7 @@ export function previewTemplate(
     title: opts.sampleTitle ?? "Example Post Title",
     siteName: opts.siteTitle ?? "My Site",
     separator: opts.separator ?? "|",
-    tagline: opts.tagline ?? "Just another SmithHarper site",
+    tagline: opts.tagline ?? "Just another ConvexPress site",
     authorName: "John Doe",
     termTitle: "Technology",
     searchPhrase: "search query",

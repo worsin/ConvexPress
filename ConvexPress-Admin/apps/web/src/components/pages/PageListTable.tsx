@@ -267,7 +267,7 @@ const pageRowActions: RowAction<PageRow>[] = [
 const pageListConfig: ListTableConfig<PageRow> = {
   entityName: "page",
   entityNamePlural: "pages",
-  storageKey: "smithharper-pages-screen-options",
+  storageKey: "convexpress-pages-screen-options",
   columns: pageColumns,
   statusTabs: pageStatusTabs,
   bulkActions: pageBulkActions,

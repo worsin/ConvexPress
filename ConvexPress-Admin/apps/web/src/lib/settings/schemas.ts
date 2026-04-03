@@ -264,7 +264,7 @@ export type PrivacySettingsSchema = z.infer<typeof privacySettingsSchema>;
 
 export const generalDefaults: GeneralSettingsSchema = {
   siteTitle: "My Site",
-  tagline: "Just another SmithHarper site",
+  tagline: "Just another ConvexPress site",
   siteUrl: "",
   homeUrl: "",
   adminEmail: "",

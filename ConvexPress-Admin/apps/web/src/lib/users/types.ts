@@ -51,7 +51,7 @@ export interface User {
   phone?: string;
   profilePictureUrl?: string;
 
-  // SmithHarper-managed fields
+  // ConvexPress-managed fields
   username?: string;
   nickname?: string;
   displayName?: string;

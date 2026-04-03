@@ -298,7 +298,7 @@ const postRowActions: RowAction<PostWithAuthor>[] = [
 const postListConfig: ListTableConfig<PostWithAuthor> = {
   entityName: "post",
   entityNamePlural: "posts",
-  storageKey: "smithharper-posts-screen-options",
+  storageKey: "convexpress-posts-screen-options",
   columns: postColumns,
   statusTabs: postStatusTabs,
   bulkActions: postBulkActions,

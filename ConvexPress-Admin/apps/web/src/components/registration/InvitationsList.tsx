@@ -2,7 +2,7 @@
  * Registration System - Invitations List
  *
  * WordPress equivalent: Table of invitations on the "Users > Add New" page.
- * (WordPress doesn't have this -- SmithHarper enhancement.)
+ * (WordPress doesn't have this -- ConvexPress enhancement.)
  *
  * Displays all invitations in a table with columns:
  *   Email, Role, Status, Invited By, Sent Date, Expires Date, Actions

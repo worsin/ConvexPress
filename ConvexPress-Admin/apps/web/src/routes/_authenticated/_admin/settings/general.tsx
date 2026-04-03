@@ -145,7 +145,7 @@ function GeneralSettingsPage() {
             >
               <TextField
                 field={field}
-                placeholder="Just another SmithHarper site"
+                placeholder="Just another ConvexPress site"
                 maxLength={500}
               />
             </SettingsField>
@@ -164,7 +164,7 @@ function GeneralSettingsPage() {
               label="Site Address (URL)"
               htmlFor="siteUrl"
               required
-              description="The URL where SmithHarper's core files reside."
+              description="The URL where ConvexPress's core files reside."
               error={field.state.meta.errors[0]?.toString()}
             >
               <TextField
@@ -256,7 +256,7 @@ function GeneralSettingsPage() {
               <CheckboxField
                 field={field}
                 label="Send a branded reset email"
-                description="Send a SmithHarper-branded password reset email in addition to the default authentication provider email."
+                description="Send a ConvexPress-branded password reset email in addition to the default authentication provider email."
               />
             </SettingsField>
           )}

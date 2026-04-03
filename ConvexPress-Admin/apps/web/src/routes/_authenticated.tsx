@@ -77,7 +77,7 @@ function LoginForm({ onLogin }: { onLogin: (id: string, pw: string) => Promise<u
     <div className="flex h-svh items-center justify-center">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">SmithHarper Admin</h1>
+          <h1 className="text-2xl font-bold">ConvexPress Admin</h1>
           <p className="text-sm text-muted-foreground mt-1">Sign in to continue</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -1,7 +1,7 @@
 /**
  * DocumentPanel - Document settings tab in the sidebar
  *
- * In SmithHarper, the document panel content is primarily handled by the
+ * In ConvexPress, the document panel content is primarily handled by the
  * existing metabox components (PublishBox, CategoriesMetabox, TagsMetabox, etc.)
  * which are rendered directly in the EditorLayout sidebar.
  *

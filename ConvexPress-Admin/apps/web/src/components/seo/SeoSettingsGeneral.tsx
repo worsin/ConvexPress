@@ -66,7 +66,7 @@ export function SeoSettingsGeneral() {
   const homepagePreview = previewTemplate(homepageTitle, {
     siteTitle: siteTitle || "My Site",
     separator,
-    tagline: tagline || "Just another SmithHarper site",
+    tagline: tagline || "Just another ConvexPress site",
   });
   const statusText =
     status === "saving"

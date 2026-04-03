@@ -19,6 +19,9 @@ import type {
   CommentStatus,
   PostStatus,
   PostVisibility,
+  HeroFields,
+  TopicFields,
+  SummaryFields,
 } from "@/types/editor";
 import { DEFAULT_EDITOR_FORM_VALUES } from "@/types/editor";
 
@@ -43,6 +46,13 @@ interface PostUpdateArgs {
   scheduledAt?: number;
   categoryIds?: Id<"terms">[];
   tagIds?: Id<"terms">[];
+  // Structured content fields
+  hero?: object;
+  topics?: object[];
+  summary?: object;
+  sources?: string;
+  tableOfContents?: string;
+  pagePrompt?: string;
 }
 
 /** Zod validation schema for editor form */
@@ -79,6 +89,30 @@ export const editorFormSchema = z
     categoryIds: z.array(z.string()),
     tagIds: z.array(z.string()),
     menuOrder: z.number().int(),
+    // Structured content fields
+    hero: z.object({
+      title: z.string(),
+      subtitle: z.string(),
+      content: z.string(),
+      imageId: z.string().nullable(),
+      videoUrl: z.string(),
+      ctaText: z.string(),
+      ctaUrl: z.string(),
+    }),
+    topics: z.array(z.object({
+      title: z.string(),
+      subtitle: z.string(),
+      content: z.string(),
+      imageId: z.string().nullable(),
+      videoUrl: z.string(),
+    })).max(5, "Maximum 5 topics allowed"),
+    summary: z.object({
+      title: z.string(),
+      content: z.string(),
+    }),
+    sources: z.string(),
+    tableOfContents: z.string(),
+    pagePrompt: z.string(),
   })
   .refine(
     (data) =>
@@ -158,6 +192,41 @@ export function useEditorForm(options: UseEditorFormOptions) {
       if (values.tagIds !== undefined) {
         args.tagIds = values.tagIds as Id<"terms">[];
       }
+
+      // Structured content fields
+      if (values.hero !== undefined) {
+        const h = values.hero;
+        const hasContent = h.title || h.subtitle || h.content || h.imageId || h.videoUrl || h.ctaText || h.ctaUrl;
+        args.hero = hasContent ? {
+          title: h.title || undefined,
+          subtitle: h.subtitle || undefined,
+          content: h.content || undefined,
+          imageId: h.imageId ? (h.imageId as unknown as Id<"media">) : undefined,
+          videoUrl: h.videoUrl || undefined,
+          ctaText: h.ctaText || undefined,
+          ctaUrl: h.ctaUrl || undefined,
+        } : undefined;
+      }
+      if (values.topics !== undefined && values.topics.length > 0) {
+        args.topics = values.topics.map((t) => ({
+          title: t.title || undefined,
+          subtitle: t.subtitle || undefined,
+          content: t.content || undefined,
+          imageId: t.imageId ? (t.imageId as unknown as Id<"media">) : undefined,
+          videoUrl: t.videoUrl || undefined,
+        }));
+      }
+      if (values.summary !== undefined) {
+        const s = values.summary;
+        const hasContent = s.title || s.content;
+        args.summary = hasContent ? {
+          title: s.title || undefined,
+          content: s.content || undefined,
+        } : undefined;
+      }
+      if (values.sources !== undefined) args.sources = values.sources || undefined;
+      if (values.tableOfContents !== undefined) args.tableOfContents = values.tableOfContents || undefined;
+      if (values.pagePrompt !== undefined) args.pagePrompt = values.pagePrompt || undefined;
 
       return args;
     },

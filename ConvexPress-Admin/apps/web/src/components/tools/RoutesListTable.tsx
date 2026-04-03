@@ -123,7 +123,7 @@ const statusTabs: StatusTab[] = [
 const config: ListTableConfig<RouteRow> = {
   entityName: "route",
   entityNamePlural: "routes",
-  storageKey: "smithharper-tools-routes",
+  storageKey: "convexpress-tools-routes",
   columns,
   statusTabs,
   bulkActions: [],

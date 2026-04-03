@@ -14,8 +14,8 @@ export function getConsumerSiteUrl(): string {
 
   if (typeof window !== "undefined") {
     const hostname = window.location.hostname;
-    if (hostname.includes("smithharper.com")) {
-      return "https://smithharper.com";
+    if (hostname.includes("convexpress.com")) {
+      return "https://convexpress.com";
     }
   }
 

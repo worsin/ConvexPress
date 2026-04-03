@@ -57,7 +57,7 @@ export function WelcomePanel({
 
       <div className="p-4 pb-5">
         <h2 className="text-sm font-semibold text-foreground mb-1">
-          Welcome to SmithHarper{displayName ? `, ${displayName}` : ""}!
+          Welcome to ConvexPress{displayName ? `, ${displayName}` : ""}!
         </h2>
         <p className="text-xs text-muted-foreground mb-4">
           Here are some links to get you started:

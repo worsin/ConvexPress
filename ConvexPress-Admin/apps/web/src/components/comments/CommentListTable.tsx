@@ -262,7 +262,7 @@ const commentRowActions: RowAction<CommentRow>[] = [
 const commentListConfig: ListTableConfig<CommentRow> = {
   entityName: "comment",
   entityNamePlural: "comments",
-  storageKey: "smithharper-comments-screen-options",
+  storageKey: "convexpress-comments-screen-options",
   columns: commentColumns,
   statusTabs: commentStatusTabs,
   bulkActions: commentBulkActions,

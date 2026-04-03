@@ -233,7 +233,7 @@ const mediaRowActions: RowAction<MediaItem>[] = [
 const mediaListConfig: ListTableConfig<MediaItem> = {
   entityName: "media",
   entityNamePlural: "media",
-  storageKey: "smithharper-media-screen-options",
+  storageKey: "convexpress-media-screen-options",
   columns: mediaColumns,
   statusTabs: mediaStatusTabs,
   bulkActions: mediaBulkActions,

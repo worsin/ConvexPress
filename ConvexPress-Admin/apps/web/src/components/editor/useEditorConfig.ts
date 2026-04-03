@@ -1,7 +1,7 @@
 /**
  * useEditorConfig - TipTap editor configuration hook
  *
- * Returns the full array of TipTap extensions configured for the SmithHarper
+ * Returns the full array of TipTap extensions configured for the ConvexPress
  * content editor. This is the central extension registry.
  *
  * Key decisions:
@@ -57,6 +57,15 @@ interface UseEditorConfigOptions {
   onSlashMenuOpen?: (state: SlashMenuState) => void;
   onSlashMenuClose?: () => void;
 }
+
+/**
+ * enableContentCheck: true ensures the editor validates content against the
+ * schema on every transaction. Mismatches throw instead of being silently
+ * ignored, catching data-integrity bugs during development.
+ */
+export const SHARED_EDITOR_OPTIONS = {
+  enableContentCheck: true,
+} as const;
 
 export function useEditorConfig(options: UseEditorConfigOptions = {}) {
   const {

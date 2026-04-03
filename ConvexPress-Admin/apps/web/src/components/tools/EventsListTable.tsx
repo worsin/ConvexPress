@@ -121,7 +121,7 @@ const statusTabs: StatusTab[] = [
 const config: ListTableConfig<EventRow> = {
   entityName: "event",
   entityNamePlural: "events",
-  storageKey: "smithharper-tools-events",
+  storageKey: "convexpress-tools-events",
   columns,
   statusTabs,
   bulkActions: [],
