@@ -39,6 +39,7 @@ export const SYSTEM = {
   ROUTING: "routing",
   FEED: "feed",
   SITEMAP: "sitemap",
+  KB: "kb",
 } as const;
 
 export type SystemSlug = (typeof SYSTEM)[keyof typeof SYSTEM];
@@ -237,6 +238,16 @@ export const DASHBOARD_EVENTS = {
   WELCOME_DISMISSED: "dashboard.welcome_dismissed",
 } as const;
 
+/** Knowledge Base System events (6) */
+export const KB_EVENTS = {
+  ARTICLE_CREATED: "kb.article_created",
+  ARTICLE_PUBLISHED: "kb.article_published",
+  ARTICLE_UPDATED: "kb.article_updated",
+  ARTICLE_ARCHIVED: "kb.article_archived",
+  COMMENT_CREATED: "kb.comment_created",
+  FEEDBACK_SUBMITTED: "kb.feedback_submitted",
+} as const;
+
 // ─── All Event Codes ───────────────────────────────────────────────────────
 
 /**
@@ -267,6 +278,7 @@ export const ALL_EVENT_CODES: string[] = [
   ...Object.values(EVENT_EVENTS),
   ...Object.values(AUDIT_EVENTS),
   ...Object.values(DASHBOARD_EVENTS),
+  ...Object.values(KB_EVENTS),
 ];
 
 /** Set for O(1) lookup of valid event codes. */
@@ -308,6 +320,7 @@ export const EVENT_CODES_BY_SYSTEM: Record<string, readonly string[]> = {
   [SYSTEM.API]: Object.values(API_EVENTS),
   [SYSTEM.EVENT]: Object.values(EVENT_EVENTS),
   [SYSTEM.AUDIT]: Object.values(AUDIT_EVENTS),
+  [SYSTEM.KB]: Object.values(KB_EVENTS),
 };
 
 // ─── Wildcard / Global Patterns ────────────────────────────────────────────
