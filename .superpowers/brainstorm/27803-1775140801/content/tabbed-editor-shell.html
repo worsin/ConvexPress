@@ -1,0 +1,102 @@
+<h2>Tabbed Editor Shell</h2>
+<p class="subtitle">The shared layout wrapper for post/page detail views</p>
+
+<div class="section">
+  <h3>Route Structure</h3>
+  <div style="font-family: monospace; background: rgba(255,255,255,0.05); padding: 16px; border-radius: 8px; line-height: 1.8; font-size: 14px;">
+    /admin/posts/$postId/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="opacity:0.5"># Layout route (tab bar + header)</span><br>
+    &nbsp;&nbsp;├── /edit &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="opacity:0.5"># Content tab (existing editor)</span><br>
+    &nbsp;&nbsp;├── /seo &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="opacity:0.5"># SEO analysis dashboard</span><br>
+    &nbsp;&nbsp;├── /traffic &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="opacity:0.5"># Traffic analytics</span><br>
+    &nbsp;&nbsp;└── /engagement &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="opacity:0.5"># On-page engagement</span><br>
+    <br>
+    /admin/pages/$pageId/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="opacity:0.5"># Same structure for pages</span><br>
+    &nbsp;&nbsp;├── /edit<br>
+    &nbsp;&nbsp;├── /seo<br>
+    &nbsp;&nbsp;├── /traffic<br>
+    &nbsp;&nbsp;└── /engagement
+  </div>
+</div>
+
+<div class="section">
+  <h3>Layout Mockup</h3>
+  <div class="mockup">
+    <div class="mockup-header">Post Detail View — /admin/posts/$postId/edit</div>
+    <div class="mockup-body" style="padding: 0;">
+      <!-- Top bar with post title and status -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 11px; opacity: 0.5; text-transform: uppercase; letter-spacing: 1px;">Editing Post</span>
+          <span style="font-weight: 600; font-size: 16px;">How to Build a WordPress Replacement with Convex</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="background: rgba(34,197,94,0.2); color: #22c55e; padding: 2px 10px; border-radius: 12px; font-size: 12px;">Published</span>
+          <span style="opacity: 0.4; font-size: 12px;">Last saved 2m ago</span>
+        </div>
+      </div>
+
+      <!-- Tab bar -->
+      <div style="display: flex; gap: 0; border-bottom: 2px solid rgba(255,255,255,0.08); padding: 0 24px;">
+        <div style="padding: 12px 20px; border-bottom: 2px solid #3b82f6; margin-bottom: -2px; font-weight: 600; font-size: 14px; color: #3b82f6; cursor: pointer;">
+          Content
+        </div>
+        <div style="padding: 12px 20px; font-size: 14px; opacity: 0.5; cursor: pointer;">
+          SEO
+          <span style="background: rgba(234,179,8,0.2); color: #eab308; padding: 1px 6px; border-radius: 8px; font-size: 11px; margin-left: 6px;">72</span>
+        </div>
+        <div style="padding: 12px 20px; font-size: 14px; opacity: 0.5; cursor: pointer;">
+          Traffic
+          <span style="opacity: 0.4; font-size: 11px; margin-left: 6px;">1.2k views</span>
+        </div>
+        <div style="padding: 12px 20px; font-size: 14px; opacity: 0.5; cursor: pointer;">
+          Engagement
+          <span style="opacity: 0.4; font-size: 11px; margin-left: 6px;">3m 12s avg</span>
+        </div>
+      </div>
+
+      <!-- Content area placeholder -->
+      <div style="padding: 32px 24px; min-height: 300px;">
+        <div style="display: grid; grid-template-columns: 1fr 340px; gap: 24px;">
+          <!-- Main column -->
+          <div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+              <div style="opacity: 0.3; font-size: 13px; margin-bottom: 8px;">Title</div>
+              <div style="font-size: 20px; font-weight: 600;">How to Build a WordPress Replacement with Convex</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 16px; min-height: 200px;">
+              <div style="opacity: 0.3; font-size: 13px; margin-bottom: 8px;">Content Editor</div>
+              <div style="opacity: 0.15;">The existing TipTap editor, structured content sections, AI generation — everything currently in EditorLayout lives here unchanged.</div>
+            </div>
+          </div>
+          <!-- Sidebar -->
+          <div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+              <div style="opacity: 0.4; font-size: 13px;">Publish Box</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+              <div style="opacity: 0.4; font-size: 13px;">Categories / Tags / Featured Image / SEO Metabox / etc.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Key Design Decisions</h3>
+  <div style="display: grid; gap: 12px;">
+    <div style="background: rgba(255,255,255,0.03); padding: 14px 16px; border-radius: 8px; border-left: 3px solid #3b82f6;">
+      <strong>Tab bar shows live badges</strong> — SEO score (color-coded), total views, avg engagement time. Quick glanceable health without switching tabs.
+    </div>
+    <div style="background: rgba(255,255,255,0.03); padding: 14px 16px; border-radius: 8px; border-left: 3px solid #3b82f6;">
+      <strong>Layout route loads post data once</strong> — The parent route fetches the post record and passes it to all child tabs via outlet context. No redundant queries.
+    </div>
+    <div style="background: rgba(255,255,255,0.03); padding: 14px 16px; border-radius: 8px; border-left: 3px solid #3b82f6;">
+      <strong>Content tab is the existing editor</strong> — EditorLayout moves into the /edit child route unchanged. Zero disruption to what's already working.
+    </div>
+    <div style="background: rgba(255,255,255,0.03); padding: 14px 16px; border-radius: 8px; border-left: 3px solid #3b82f6;">
+      <strong>Same structure for posts and pages</strong> — Identical tab layout, shared components. The content type is just a prop.
+    </div>
+  </div>
+</div>

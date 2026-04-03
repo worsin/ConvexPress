@@ -1,0 +1,154 @@
+<h2>SEO Tab Dashboard</h2>
+<p class="subtitle">/admin/posts/$postId/seo — Per-post SEO analysis and optimization</p>
+
+<div class="section">
+  <h3>Dashboard Mockup</h3>
+  <div class="mockup">
+    <div class="mockup-header">SEO Tab — "How to Build a WordPress Replacement with Convex"</div>
+    <div class="mockup-body" style="padding: 0;">
+
+      <!-- Score banner -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid rgba(255,255,255,0.08);">
+        <div style="padding: 20px 24px; border-right: 1px solid rgba(255,255,255,0.08); text-align: center;">
+          <div style="font-size: 36px; font-weight: 700; color: #eab308;">72</div>
+          <div style="font-size: 12px; opacity: 0.5; margin-top: 4px;">SEO Score</div>
+        </div>
+        <div style="padding: 20px 24px; border-right: 1px solid rgba(255,255,255,0.08); text-align: center;">
+          <div style="font-size: 36px; font-weight: 700; color: #22c55e;">85</div>
+          <div style="font-size: 12px; opacity: 0.5; margin-top: 4px;">Readability</div>
+        </div>
+        <div style="padding: 20px 24px; border-right: 1px solid rgba(255,255,255,0.08); text-align: center;">
+          <div style="font-size: 36px; font-weight: 700; color: #3b82f6;">14</div>
+          <div style="font-size: 12px; opacity: 0.5; margin-top: 4px;">Issues Found</div>
+        </div>
+        <div style="padding: 20px 24px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 700; color: #22c55e;">Yes</div>
+          <div style="font-size: 12px; opacity: 0.5; margin-top: 4px;">Cornerstone</div>
+        </div>
+      </div>
+
+      <!-- Two column layout -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 24px;">
+
+        <!-- Left: Issues & Recommendations -->
+        <div>
+          <div style="font-weight: 600; font-size: 15px; margin-bottom: 16px;">Issues & Recommendations</div>
+
+          <!-- Critical -->
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #ef4444; margin-bottom: 8px;">Critical (3)</div>
+            <div style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; font-size: 13px;">
+              Focus keyphrase not found in meta description
+            </div>
+            <div style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; font-size: 13px;">
+              Meta description too short (89/120 chars minimum)
+            </div>
+            <div style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; font-size: 13px;">
+              No internal links found in content
+            </div>
+          </div>
+
+          <!-- Warnings -->
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #eab308; margin-bottom: 8px;">Warnings (5)</div>
+            <div style="background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.2); border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; font-size: 13px;">
+              Keyphrase density low (0.4% — aim for 1-2%)
+            </div>
+            <div style="background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.2); border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; font-size: 13px;">
+              Only 2 of 5 subheadings contain the keyphrase
+            </div>
+            <div style="background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.2); border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; font-size: 13px;">
+              No outbound links found
+            </div>
+          </div>
+
+          <!-- Passed -->
+          <div>
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #22c55e; margin-bottom: 8px;">Passed (6)</div>
+            <div style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.15); border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; font-size: 13px; opacity: 0.7;">
+              Keyphrase in SEO title ✓
+            </div>
+            <div style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.15); border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; font-size: 13px; opacity: 0.7;">
+              Image alt tags contain keyphrase ✓
+            </div>
+            <div style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.15); border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; font-size: 13px; opacity: 0.7;">
+              Content length sufficient (2,340 words) ✓
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Previews & Meta -->
+        <div>
+          <div style="font-weight: 600; font-size: 15px; margin-bottom: 16px;">Search & Social Previews</div>
+
+          <!-- SERP Preview -->
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.4; margin-bottom: 10px;">Google Search Preview</div>
+            <div style="font-family: Arial, sans-serif;">
+              <div style="font-size: 12px; color: #70757a;">convexpress.com > blog > wordpress-replacement</div>
+              <div style="font-size: 18px; color: #1a0dab; margin: 4px 0;">How to Build a WordPress Replacement with Convex</div>
+              <div style="font-size: 13px; color: #4d5156; line-height: 1.4;">Learn how to build a modern, real-time CMS using Convex as your backend. Full guide with code examples...</div>
+            </div>
+          </div>
+
+          <!-- OG Preview -->
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.4; margin-bottom: 10px;">Facebook / Open Graph</div>
+            <div style="background: rgba(255,255,255,0.05); border-radius: 6px; overflow: hidden;">
+              <div style="height: 120px; background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(168,85,247,0.3)); display: flex; align-items: center; justify-content: center; opacity: 0.5;">Featured Image</div>
+              <div style="padding: 10px 12px;">
+                <div style="font-size: 11px; opacity: 0.4;">convexpress.com</div>
+                <div style="font-size: 14px; font-weight: 600; margin: 2px 0;">How to Build a WordPress Replacement with Convex</div>
+                <div style="font-size: 12px; opacity: 0.5;">Learn how to build a modern, real-time CMS...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Twitter Preview -->
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.4; margin-bottom: 10px;">Twitter / X Card</div>
+            <div style="background: rgba(255,255,255,0.05); border-radius: 6px; overflow: hidden;">
+              <div style="height: 100px; background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(168,85,247,0.3)); display: flex; align-items: center; justify-content: center; opacity: 0.5;">Card Image</div>
+              <div style="padding: 10px 12px;">
+                <div style="font-size: 14px; font-weight: 600;">How to Build a WordPress Replacement with Convex</div>
+                <div style="font-size: 12px; opacity: 0.5; margin-top: 2px;">convexpress.com</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Keyphrase Analysis -->
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 16px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.4; margin-bottom: 10px;">Focus Keyphrase Analysis</div>
+            <div style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #3b82f6;">"wordpress replacement convex"</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+              <div>Density: <span style="color: #eab308;">0.4%</span></div>
+              <div>In title: <span style="color: #22c55e;">Yes</span></div>
+              <div>In H1: <span style="color: #22c55e;">Yes</span></div>
+              <div>In meta: <span style="color: #ef4444;">No</span></div>
+              <div>In URL: <span style="color: #22c55e;">Yes</span></div>
+              <div>In images: <span style="color: #22c55e;">Yes</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>What This Tab Shows</h3>
+  <div style="display: grid; gap: 12px;">
+    <div style="background: rgba(255,255,255,0.03); padding: 14px 16px; border-radius: 8px; border-left: 3px solid #a855f7;">
+      <strong>Score cards at top</strong> — SEO score, readability score, issue count, cornerstone status. All data already computed by the existing useSeoAnalysis and useReadabilityAnalysis hooks.
+    </div>
+    <div style="background: rgba(255,255,255,0.03); padding: 14px 16px; border-radius: 8px; border-left: 3px solid #a855f7;">
+      <strong>Issues grouped by severity</strong> — Critical (red), Warnings (yellow), Passed (green). Same analysis the sidebar metabox already runs, just displayed in full-page glory with room to breathe.
+    </div>
+    <div style="background: rgba(255,255,255,0.03); padding: 14px 16px; border-radius: 8px; border-left: 3px solid #a855f7;">
+      <strong>SERP + Social previews</strong> — Google, Facebook OG, Twitter card. Already built as SerpPreview, FacebookPreview, TwitterPreview components. Just recomposed into the full-page layout.
+    </div>
+    <div style="background: rgba(255,255,255,0.03); padding: 14px 16px; border-radius: 8px; border-left: 3px solid #a855f7;">
+      <strong>Read-only dashboard, not an editor</strong> — The actual SEO data entry stays in the Content tab's sidebar metabox. This tab is the analysis view — see your scores, understand the issues, see the previews. Edit in Content, verify in SEO.
+    </div>
+  </div>
+</div>
