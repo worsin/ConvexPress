@@ -5,7 +5,7 @@
  */
 
 import { Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { toast } from "sonner";
@@ -71,10 +71,10 @@ function SiteCard({ site }: { site: Site }) {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   // Actions
-  const testConnection = useMutation(
+  const testConnection = useAction(
     api.wordpressSync.actions.testSiteConnection,
   );
-  const startSync = useMutation(api.wordpressSync.actions.startSync);
+  const startSync = useAction(api.wordpressSync.actions.startSync);
   const deleteSite = useMutation(api.wordpressSync.mutations.deleteSite);
 
   const handleTestConnection = async () => {
@@ -156,20 +156,17 @@ function SiteCard({ site }: { site: Site }) {
 
             {/* Actions dropdown */}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <MoreHorizontalIcon className="h-4 w-4" />
-                </Button>
+              <DropdownMenuTrigger
+                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center rounded-md hover:bg-muted"
+              >
+                <MoreHorizontalIcon className="h-4 w-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem>
                   <Link
                     to="/tools/wordpress-sync/$siteId"
                     params={{ siteId: site._id }}
+                    className="flex items-center w-full"
                   >
                     <SettingsIcon className="mr-2 h-4 w-4" />
                     Manage Site
