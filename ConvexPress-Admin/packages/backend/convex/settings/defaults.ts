@@ -26,7 +26,14 @@ export type SettingsSection =
   | "privacy"
   | "email"
   | "ai"
-  | "search";
+  | "search"
+  // Knowledge Base System sections
+  | "kb.general"
+  | "kb.features"
+  | "kb.search"
+  // Ticket System sections
+  | "ticket.general"
+  | "ticket.sla";
 
 /**
  * Ordered array of all valid section names.
@@ -41,6 +48,13 @@ export const SECTION_NAMES: SettingsSection[] = [
   "email",
   "ai",
   "search",
+  // Knowledge Base System sections
+  "kb.general",
+  "kb.features",
+  "kb.search",
+  // Ticket System sections
+  "ticket.general",
+  "ticket.sla",
 ];
 
 /**
@@ -203,6 +217,51 @@ export interface SearchSettings {
   meilisearchApiKey: string;
 }
 
+// ─── Knowledge Base Settings Types ───────────────────────────────────────────
+
+export interface KbGeneralSettings {
+  siteName: string;
+  siteDescription: string;
+  homepageLayout: "categories" | "search" | "featured";
+  articlesPerPage: number;
+}
+
+export interface KbFeaturesSettings {
+  commentsEnabled: boolean;
+  bookmarksEnabled: boolean;
+  progressTrackingEnabled: boolean;
+  ratingsEnabled: boolean;
+  relatedArticlesEnabled: boolean;
+}
+
+export interface KbSearchSettings {
+  meilisearchEnabled: boolean;
+  meilisearchUrl: string;
+  meilisearchApiKey: string;
+  ragEnabled: boolean;
+  ragProvider: "openai" | "anthropic";
+  ragApiKey: string;
+  ragModel: string;
+}
+
+// ─── Ticket Settings Types ────────────────────────────────────────────────────
+
+export interface TicketGeneralSettings {
+  /** Array of available ticket categories */
+  categories: Array<{ value: string; label: string }>;
+  /** Default priority for new tickets */
+  defaultPriority: "low" | "medium" | "high" | "urgent";
+  /** Days to auto-close resolved tickets (0 = disabled) */
+  autoCloseAfterDays: number;
+}
+
+export interface TicketSlaSettings {
+  /** First response SLA target in minutes */
+  firstResponseTarget: number;
+  /** Resolution SLA target in minutes */
+  resolutionTarget: number;
+}
+
 // ─── Default Values ──────────────────────────────────────────────────────────
 
 export const GENERAL_DEFAULTS: GeneralSettings = {
@@ -310,6 +369,53 @@ export const SEARCH_DEFAULTS: SearchSettings = {
   meilisearchApiKey: "",
 };
 
+// ─── Knowledge Base Defaults ──────────────────────────────────────────────────
+
+export const KB_GENERAL_DEFAULTS: KbGeneralSettings = {
+  siteName: "Help Center",
+  siteDescription: "Find answers to your questions",
+  homepageLayout: "categories",
+  articlesPerPage: 20,
+};
+
+export const KB_FEATURES_DEFAULTS: KbFeaturesSettings = {
+  commentsEnabled: true,
+  bookmarksEnabled: true,
+  progressTrackingEnabled: true,
+  ratingsEnabled: true,
+  relatedArticlesEnabled: true,
+};
+
+export const KB_SEARCH_DEFAULTS: KbSearchSettings = {
+  meilisearchEnabled: false,
+  meilisearchUrl: "",
+  meilisearchApiKey: "",
+  ragEnabled: false,
+  ragProvider: "openai",
+  ragApiKey: "",
+  ragModel: "",
+};
+
+// ─── Ticket Defaults ──────────────────────────────────────────────────────────
+
+export const TICKET_GENERAL_DEFAULTS: TicketGeneralSettings = {
+  categories: [
+    { value: "billing", label: "Billing" },
+    { value: "technical", label: "Technical" },
+    { value: "account", label: "Account" },
+    { value: "featureRequest", label: "Feature Request" },
+    { value: "general", label: "General" },
+    { value: "other", label: "Other" },
+  ],
+  defaultPriority: "medium",
+  autoCloseAfterDays: 14,
+};
+
+export const TICKET_SLA_DEFAULTS: TicketSlaSettings = {
+  firstResponseTarget: 240, // 4 hours in minutes
+  resolutionTarget: 2880, // 48 hours in minutes
+};
+
 // ─── Defaults Map ────────────────────────────────────────────────────────────
 
 const DEFAULTS_MAP: Record<SettingsSection, object> = {
@@ -322,6 +428,13 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   email: EMAIL_DEFAULTS,
   ai: AI_DEFAULTS,
   search: SEARCH_DEFAULTS,
+  // Knowledge Base System sections
+  "kb.general": KB_GENERAL_DEFAULTS,
+  "kb.features": KB_FEATURES_DEFAULTS,
+  "kb.search": KB_SEARCH_DEFAULTS,
+  // Ticket System sections
+  "ticket.general": TICKET_GENERAL_DEFAULTS,
+  "ticket.sla": TICKET_SLA_DEFAULTS,
 };
 
 /**
