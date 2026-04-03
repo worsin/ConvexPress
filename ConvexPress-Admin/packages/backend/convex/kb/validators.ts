@@ -5,6 +5,7 @@
  * Centralizes validation logic so mutations and queries stay clean.
  */
 
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import {
   kbArticleStatusValidator,
@@ -118,12 +119,20 @@ export const createVersionArgs = {
 // ─── Article Query Args ─────────────────────────────────────────────────────
 
 export const listArticlesArgs = {
+  paginationOpts: paginationOptsValidator,
   status: v.optional(kbArticleStatusValidator),
   categoryId: v.optional(v.id("kb_categories")),
   authorId: v.optional(v.id("users")),
   search: v.optional(v.string()),
-  page: v.optional(v.number()),
-  perPage: v.optional(v.number()),
+};
+
+/** Convenience alias used directly in the admin list query. */
+export const paginatedListArgs = {
+  paginationOpts: paginationOptsValidator,
+  status: v.optional(kbArticleStatusValidator),
+  categoryId: v.optional(v.id("kb_categories")),
+  authorId: v.optional(v.id("users")),
+  search: v.optional(v.string()),
 };
 
 export const getArticleByIdArgs = {
@@ -135,9 +144,14 @@ export const getArticleBySlugArgs = {
 };
 
 export const listPublishedArticlesArgs = {
+  paginationOpts: paginationOptsValidator,
   categoryId: v.optional(v.id("kb_categories")),
-  page: v.optional(v.number()),
-  perPage: v.optional(v.number()),
+};
+
+/** Convenience alias used directly in the public listPublished query. */
+export const paginatedPublishedArgs = {
+  paginationOpts: paginationOptsValidator,
+  categoryId: v.optional(v.id("kb_categories")),
 };
 
 export const getPopularArticlesArgs = {
