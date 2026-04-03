@@ -39,6 +39,7 @@ import {
   EMAIL_TEMPLATES,
 } from "../helpers/email";
 import { getUserIdentifier, lookupUserByIdentifier } from "../helpers/permissions";
+import { resolveServiceKey } from "../helpers/serviceKeys";
 import {
   queueEmailInternalArgs,
   sendEmailArgs,
@@ -109,12 +110,17 @@ export const sendEmail = internalAction({
       return;
     }
 
-    // 2. Get Resend API key from environment
-    const apiKey = process.env.RESEND_API_KEY;
+    // 2. Get Resend API key (settings table first, env var fallback)
+    const emailSettings = await ctx.runQuery(
+      internal.settings.internals.getInternal,
+      { section: "email" },
+    ) as Record<string, unknown> | null;
+
+    const apiKey = resolveServiceKey(emailSettings, "resendApiKey", "RESEND_API_KEY");
     if (!apiKey) {
       await ctx.runMutation(internal.emails.internals.handleSendFailure, {
         queueId: args.queueId,
-        error: "RESEND_API_KEY environment variable is not configured",
+        error: "Resend API key is not configured. Set it in Settings > Email or as the RESEND_API_KEY environment variable.",
         isRetryable: false,
       });
       return;
@@ -1383,7 +1389,7 @@ export const onProfileDeactivated = internalMutation({
         recipientUserId: getUserIdentifier(user),
         variables: {
           reason: payload.reason ?? "",
-          support_email: "support@smithharper.com",
+          support_email: "support@convexpress.com",
         },
         eventId: args.eventId,
       });

@@ -5,7 +5,9 @@
  * - sendTestEmail: Send a test email via Resend to verify configuration
  */
 import { action } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
+import { resolveServiceKey } from "../helpers/serviceKeys";
 
 export const sendTestEmail = action({
   args: {
@@ -21,19 +23,28 @@ export const sendTestEmail = action({
       });
     }
 
-    const apiKey = process.env.RESEND_API_KEY;
+    // Read email settings (settings table first, env var fallback)
+    const emailSettings = await ctx.runQuery(
+      internal.settings.internals.getInternal,
+      { section: "email" },
+    ) as Record<string, unknown> | null;
+
+    const apiKey = resolveServiceKey(emailSettings, "resendApiKey", "RESEND_API_KEY");
     if (!apiKey) {
       throw new ConvexError({
         code: "CONFIGURATION_ERROR",
         message:
-          "RESEND_API_KEY is not configured. Set it in your Convex environment variables.",
+          "Resend API key is not configured. Set it in Settings > Email or as the RESEND_API_KEY environment variable.",
       });
     }
 
-    // Get the from address from env or use default
+    // Get the from address and name from settings with env/default fallback
     const fromAddress =
-      process.env.EMAIL_FROM_ADDRESS ?? "noreply@smithharper.com";
-    const fromName = process.env.EMAIL_FROM_NAME ?? "SmithHarper CMS";
+      resolveServiceKey(emailSettings, "fromAddress", "EMAIL_FROM_ADDRESS") ??
+      "noreply@convexpress.com";
+    const fromName =
+      resolveServiceKey(emailSettings, "fromName", "EMAIL_FROM_NAME") ??
+      "ConvexPress";
 
     try {
       const response = await fetch("https://api.resend.com/emails", {
@@ -45,20 +56,20 @@ export const sendTestEmail = action({
         body: JSON.stringify({
           from: `${fromName} <${fromAddress}>`,
           to: [args.recipientEmail],
-          subject: "SmithHarper CMS — Test Email",
+          subject: "ConvexPress — Test Email",
           html: `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
               <h2 style="color: #1a1a1a; margin-bottom: 16px;">Test Email Successful</h2>
               <p style="color: #4a4a4a; line-height: 1.6;">
-                This is a test email from your SmithHarper CMS installation. If you're reading this, your email configuration is working correctly.
+                This is a test email from your ConvexPress installation. If you're reading this, your email configuration is working correctly.
               </p>
               <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
               <p style="color: #999; font-size: 12px;">
-                Sent from SmithHarper CMS at ${new Date().toISOString()}
+                Sent from ConvexPress at ${new Date().toISOString()}
               </p>
             </div>
           `,
-          text: "This is a test email from your SmithHarper CMS installation. If you're reading this, your email configuration is working correctly.",
+          text: "This is a test email from your ConvexPress installation. If you're reading this, your email configuration is working correctly.",
         }),
       });
 
