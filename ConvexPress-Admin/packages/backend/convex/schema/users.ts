@@ -14,12 +14,10 @@ import { v } from "convex/values";
  *   - Preferences
  *   - Denormalized counts
  *   - Timestamps
- *   - Legacy fields (preserved for backward compatibility)
  */
 export const usersTables = {
   users: defineTable({
     // === Auth Identity Fields ===
-    workosUserId: v.optional(v.string()), // Legacy field (preserved for backward compatibility)
     authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"))),
     passwordHash: v.optional(v.string()),
     clerkUserId: v.optional(v.string()),
@@ -124,7 +122,6 @@ export const usersTables = {
     wpUserId: v.optional(v.number()), // Original WordPress user ID
     wpSourceSiteId: v.optional(v.id("wordpressSites")), // Source WordPress site
   })
-    .index("by_workosUserId", ["workosUserId"])
     .index("by_email", ["email"])
     .index("by_slug", ["slug"])
     .index("by_username", ["username"])
