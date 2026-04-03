@@ -31,6 +31,8 @@ export const settingsTables = {
       v.literal("email"),
       v.literal("media"),
       v.literal("analytics"),
+      v.literal("ai"),
+      v.literal("search"),
     ),
 
     /**

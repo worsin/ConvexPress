@@ -428,6 +428,54 @@ function validateEmail(values: Record<string, unknown>): ValidationError[] {
   return errors;
 }
 
+function validateAI(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  // provider: must be "openrouter" or "anthropic"
+  if (values.provider !== undefined &&
+    (!isString(values.provider) || !["openrouter", "anthropic"].includes(values.provider))) {
+    errors.push({ field: "provider", message: "Provider must be 'openrouter' or 'anthropic'." });
+  }
+
+  // apiKey: string, max 500
+  if (values.apiKey !== undefined && isString(values.apiKey) && values.apiKey.length > 500) {
+    errors.push({ field: "apiKey", message: "API key must be 500 characters or less." });
+  }
+
+  // defaultModel: string, max 200
+  if (values.defaultModel !== undefined && isString(values.defaultModel) && values.defaultModel.length > 200) {
+    errors.push({ field: "defaultModel", message: "Default model must be 200 characters or less." });
+  }
+
+  // tavilyApiKey: string, max 500
+  if (values.tavilyApiKey !== undefined && isString(values.tavilyApiKey) && values.tavilyApiKey.length > 500) {
+    errors.push({ field: "tavilyApiKey", message: "Tavily API key must be 500 characters or less." });
+  }
+
+  return errors;
+}
+
+function validateSearch(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  // meilisearchHost: valid URL or empty
+  if (isString(values.meilisearchHost) && values.meilisearchHost.length > 0) {
+    if (!isValidUrl(values.meilisearchHost)) {
+      errors.push({ field: "meilisearchHost", message: "Meilisearch host must be a valid URL." });
+    }
+    if (values.meilisearchHost.length > 500) {
+      errors.push({ field: "meilisearchHost", message: "Meilisearch host must be 500 characters or less." });
+    }
+  }
+
+  // meilisearchApiKey: string, max 500
+  if (values.meilisearchApiKey !== undefined && isString(values.meilisearchApiKey) && values.meilisearchApiKey.length > 500) {
+    errors.push({ field: "meilisearchApiKey", message: "Meilisearch API key must be 500 characters or less." });
+  }
+
+  return errors;
+}
+
 // ─── Main Validator ───────────────────────────────────────────────────────────
 
 /**
@@ -453,6 +501,10 @@ export function validateSectionValues(
       return validatePrivacy(values);
     case "email":
       return validateEmail(values);
+    case "ai":
+      return validateAI(values);
+    case "search":
+      return validateSearch(values);
     default:
       return [];
   }
