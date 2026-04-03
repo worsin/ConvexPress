@@ -11,7 +11,7 @@ import type { Id } from "@backend/convex/_generated/dataModel";
 
 export type GenerationStatus = "idle" | "generating" | "done" | "error";
 
-export function useAiGeneration(postId: string | undefined) {
+export function useAiGeneration(postId: string | undefined, onComplete?: () => void) {
   const [status, setStatus] = useState<GenerationStatus>("idle");
   const [currentSection, setCurrentSection] = useState<string | null>(null);
 
@@ -24,9 +24,11 @@ export function useAiGeneration(postId: string | undefined) {
     setCurrentSection("all");
     try {
       const result = await generateAll({ postId: postId as Id<"posts"> });
-      toast.success(`Generated ${result.topicCount} topics with ${result.sourceCount} sources. Reload to see changes.`);
+      toast.success(`Generated ${result.topicCount} topics with ${result.sourceCount} sources.`);
       setStatus("done");
-      window.location.reload();
+      // The Convex reactive query will automatically update the post data.
+      // Notify the parent so it can refresh form state from the updated data.
+      onComplete?.();
     } catch (err: any) {
       console.error("AI generation error:", err);
       const msg = err?.data?.message || err?.message || "Generation failed. Check that API keys are configured.";
@@ -35,7 +37,7 @@ export function useAiGeneration(postId: string | undefined) {
     } finally {
       setCurrentSection(null);
     }
-  }, [postId, generateAll]);
+  }, [postId, generateAll, onComplete]);
 
   const handleRegenerateSection = useCallback(async (
     section: "hero" | "topic" | "summary" | "sources" | "tableOfContents",
@@ -50,9 +52,11 @@ export function useAiGeneration(postId: string | undefined) {
         section,
         topicIndex,
       });
-      toast.success(`${section} regenerated. Reload to see changes.`);
+      toast.success(`${section} regenerated successfully.`);
       setStatus("done");
-      window.location.reload();
+      // The Convex reactive query will automatically update the post data.
+      // Notify the parent so it can refresh form state from the updated data.
+      onComplete?.();
     } catch (err: any) {
       console.error("AI section generation error:", err);
       const msg = err?.data?.message || err?.message || "Generation failed";
@@ -61,7 +65,7 @@ export function useAiGeneration(postId: string | undefined) {
     } finally {
       setCurrentSection(null);
     }
-  }, [postId, generateSection]);
+  }, [postId, generateSection, onComplete]);
 
   return {
     status,
