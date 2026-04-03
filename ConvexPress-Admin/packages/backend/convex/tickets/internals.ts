@@ -12,6 +12,8 @@
 
 import { internalMutation } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { emitEvent } from "../helpers/events";
+import { TICKET_EVENTS, SYSTEM } from "../events/constants";
 import { v } from "convex/values";
 
 // ─── autoCloseResolved ──────────────────────────────────────────────────────
@@ -80,6 +82,20 @@ export const autoCloseResolved = internalMutation({
         content: `This ticket was automatically closed after ${autoCloseAfterDays} days in resolved status.`,
         isInternal: false,
         createdAt: now,
+      });
+
+      // Increment messageCount for the system message
+      await ctx.db.patch(ticket._id, {
+        messageCount: ticket.messageCount + 1,
+        updatedAt: now,
+      });
+
+      // Emit CLOSED event
+      await emitEvent(ctx, TICKET_EVENTS.CLOSED, SYSTEM.TICKET, {
+        ticketId: ticket._id,
+        ticketNumber: ticket.ticketNumber,
+        previousStatus: ticket.status,
+        autoClosedAfterDays: autoCloseAfterDays,
       });
     }
 

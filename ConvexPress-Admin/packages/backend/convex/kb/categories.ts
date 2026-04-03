@@ -180,6 +180,19 @@ export const update = mutation({
       if (args.parentId === args.categoryId) {
         throw new ConvexError({ code: "VALIDATION_ERROR", message: "Category cannot be its own parent" });
       }
+      // Prevent circular parenting (A -> B -> A)
+      if (args.parentId) {
+        let current = await ctx.db.get(args.parentId);
+        while (current) {
+          if (current._id === args.categoryId) {
+            throw new ConvexError({
+              code: "VALIDATION_ERROR",
+              message: "Circular parent reference detected: this would create a cycle",
+            });
+          }
+          current = current.parentId ? await ctx.db.get(current.parentId) : null;
+        }
+      }
       updates.parentId = args.parentId;
     }
     if (args.isPublished !== undefined) updates.isPublished = args.isPublished;
@@ -242,6 +255,8 @@ export const remove = mutation({
     for (const article of articles) {
       await ctx.db.patch(article._id, {
         categoryId: undefined,
+        meilisearchSynced: false,
+        ragSynced: false,
         updatedAt: Date.now(),
       });
     }

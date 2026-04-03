@@ -229,20 +229,13 @@ export const remove = mutation({
       });
     }
 
+    // Soft delete: replace content but keep the message record.
+    // messageCount is NOT decremented because the message still exists.
     await ctx.db.patch(args.messageId, {
       content: "[Message removed]",
       attachments: undefined,
       editedAt: Date.now(),
     });
-
-    // Update ticket message count
-    const ticket = await ctx.db.get(message.ticketId);
-    if (ticket) {
-      await ctx.db.patch(message.ticketId, {
-        messageCount: Math.max(0, ticket.messageCount - 1),
-        updatedAt: Date.now(),
-      });
-    }
 
     return { messageId: args.messageId };
   },

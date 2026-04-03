@@ -191,6 +191,12 @@ export const submitRating = mutation({
       }
     }
 
+    await emitEvent(ctx, KB_EVENTS.FEEDBACK_SUBMITTED, SYSTEM.KB, {
+      feedbackId,
+      articleId: args.articleId,
+      rating: args.rating,
+    });
+
     return feedbackId;
   },
 });
