@@ -169,8 +169,8 @@ function TicketThreadPage() {
         ))}
       </div>
 
-      {/* Reply Box (visible for non-closed tickets) */}
-      {ticket.status !== "closed" && (
+      {/* Reply Box (visible for open/in-progress tickets only) */}
+      {(ticket.status === "open" || ticket.status === "awaitingResponse" || ticket.status === "inProgress") && (
         <div className="space-y-3">
           <textarea
             value={replyContent}
@@ -220,6 +220,7 @@ function TicketThreadPage() {
                     setRating(star);
                     setShowRating(true);
                   }}
+                  aria-label={`Rate ${star} out of 5 stars`}
                   className="p-1"
                 >
                   <Star

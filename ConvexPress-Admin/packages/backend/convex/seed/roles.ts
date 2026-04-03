@@ -77,6 +77,12 @@ const ALL_ADMIN_PAGES: string[] = [
   "/admin/registration",
   "/admin/events",
   "/admin/password-management",
+  "/admin/kb",
+  "/admin/kb/*",
+  "/admin/tickets",
+  "/admin/tickets/*",
+  "/admin/support",
+  "/admin/support/*",
 ];
 
 const EDITOR_PAGES: string[] = [
@@ -97,6 +103,10 @@ const EDITOR_PAGES: string[] = [
   "/admin/users/profile",
   "/admin/seo",
   "/admin/custom-fields",
+  "/admin/kb",
+  "/admin/kb/*",
+  "/admin/tickets",
+  "/admin/tickets/*",
 ];
 
 const AUTHOR_PAGES: string[] = [

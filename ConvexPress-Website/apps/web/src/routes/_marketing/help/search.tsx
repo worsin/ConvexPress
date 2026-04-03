@@ -46,10 +46,12 @@ function KbSearchResults() {
 
   const { data } = useSuspenseQuery(
     // @ts-expect-error - Convex query type mismatch with useSuspenseQuery
-    convexQuery(api.kb.search.search, {
-      query: q?.trim() ?? "",
-      limit: 20,
-    }),
+    hasQuery
+      ? convexQuery(api.kb.search.search, {
+          query: q!.trim(),
+          limit: 20,
+        })
+      : { queryKey: ["kb-search-empty"], queryFn: () => ({ results: [], total: 0 }) },
   );
 
   function handleSearchSubmit(e: React.FormEvent<HTMLFormElement>) {

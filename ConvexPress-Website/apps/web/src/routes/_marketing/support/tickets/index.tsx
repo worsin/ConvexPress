@@ -95,7 +95,7 @@ function MyTicketsPage() {
             to="/support/tickets"
             search={{ status: tab.key as any }}
             className={`px-3 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
-              search.status === tab.key
+              (tab.key === undefined ? !search.status : search.status === tab.key)
                 ? "border-primary text-primary"
                 : "border-transparent text-foreground/60 hover:text-foreground/80"
             }`}
