@@ -2,7 +2,7 @@
  * WordPress Sync Dashboard
  *
  * Main dashboard showing connected sites, sync stats, and controls.
- * Uses real Convex queries for all data.
+ * Uses real Convex queries for all data with real-time subscriptions.
  */
 
 import { useState } from "react";
@@ -17,19 +17,41 @@ import {
   AlertTriangleIcon,
 } from "lucide-react";
 
+import type { Id } from "@backend/convex/_generated/dataModel";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { SitesList } from "./SitesList";
-import { AddSiteDialog } from "./AddSiteDialog";
+import { AddSiteForm } from "./AddSiteDialog";
 import { SyncJobCard } from "./SyncJobCard";
+
+/** Shape returned by listSites query (without applicationPassword). */
+interface SiteSummary {
+  _id: Id<"wordpressSites">;
+  name: string;
+  siteUrl: string;
+  username: string;
+  status: "active" | "inactive" | "error";
+  lastConnectionTest?: number;
+  lastSyncAt?: number;
+  connectionError?: string;
+  wpVersion?: string;
+  siteName?: string;
+  siteDescription?: string;
+  createdAt: number;
+  updatedAt: number;
+  activeJob: boolean;
+}
 
 export function WordPressSyncDashboard() {
   const [isAddingNew, setIsAddingNew] = useState(false);
 
-  // Fetch sites and overview data
-  const sites = useQuery(api.wordpressSync.queries.listSites);
+  // Fetch sites and overview data (real-time via Convex subscriptions)
+  const sites = useQuery(api.wordpressSync.queries.listSites) as
+    | SiteSummary[]
+    | undefined;
   const overview = useQuery(api.wordpressSync.queries.getOverview);
 
   const isLoading = sites === undefined || overview === undefined;
@@ -55,10 +77,12 @@ export function WordPressSyncDashboard() {
             </p>
           </div>
         </div>
-        <Button onClick={() => setIsAddingNew(true)}>
-          <PlusIcon className="mr-2 h-4 w-4" />
-          Add WordPress Site
-        </Button>
+        {!isAddingNew && (
+          <Button onClick={() => setIsAddingNew(true)}>
+            <PlusIcon className="mr-2 h-4 w-4" />
+            Add WordPress Site
+          </Button>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -76,8 +100,12 @@ export function WordPressSyncDashboard() {
         <StatCard
           icon={DatabaseIcon}
           label="Total Imported"
-          value={overview.totalImported}
-          sublabel="items synced"
+          value={overview.totalImported.toLocaleString()}
+          sublabel={
+            overview.totalImportedIsApproximate
+              ? "10,000+ items synced"
+              : "items synced"
+          }
         />
         <StatCard
           icon={ClockIcon}
@@ -93,6 +121,9 @@ export function WordPressSyncDashboard() {
           variant={overview.activeJobs > 0 ? "warning" : "default"}
         />
       </div>
+
+      {/* Add Site Form (inline, collapsible) */}
+      <AddSiteForm open={isAddingNew} onOpenChange={setIsAddingNew} />
 
       {/* Active Sync Jobs */}
       {overview.activeJobs > 0 && (
@@ -120,15 +151,12 @@ export function WordPressSyncDashboard() {
         <h2 className="text-lg font-semibold mb-3 text-foreground">
           Connected Sites
         </h2>
-        {sites.length === 0 ? (
+        {sites.length === 0 && !isAddingNew ? (
           <EmptyState onAddClick={() => setIsAddingNew(true)} />
-        ) : (
+        ) : sites.length === 0 ? null : (
           <SitesList sites={sites} />
         )}
       </section>
-
-      {/* Add Site Dialog */}
-      <AddSiteDialog open={isAddingNew} onClose={() => setIsAddingNew(false)} />
     </div>
   );
 }
@@ -184,7 +212,8 @@ function EmptyState({ onAddClick }: { onAddClick: () => void }) {
         </h3>
         <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
           Connect your WordPress site to import all content including posts,
-          pages, users, media, categories, tags, comments, and menus.
+          pages, users, media, categories, tags, comments, and menus. Designed
+          for WordPress sites built with Elementor.
         </p>
         <Button onClick={onAddClick}>
           <PlusIcon className="mr-2 h-4 w-4" />
@@ -235,26 +264,19 @@ function formatLastSync(timestamp?: number): string {
   const now = Date.now();
   const diff = now - timestamp;
 
-  // Less than a minute
   if (diff < 60 * 1000) return "Just now";
-
-  // Less than an hour
   if (diff < 60 * 60 * 1000) {
     const mins = Math.floor(diff / (60 * 1000));
     return `${mins} min ago`;
   }
-
-  // Less than a day
   if (diff < 24 * 60 * 60 * 1000) {
     const hours = Math.floor(diff / (60 * 60 * 1000));
     return `${hours}h ago`;
   }
 
-  // More than a day
   const days = Math.floor(diff / (24 * 60 * 60 * 1000));
   if (days === 1) return "Yesterday";
   if (days < 7) return `${days} days ago`;
 
-  // Format as date
   return new Date(timestamp).toLocaleDateString();
 }
