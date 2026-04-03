@@ -3,14 +3,12 @@
  *
  * Settings for the ticket system: default priority, auto-close config,
  * SLA first-response and resolution targets.
- *
- * NOTE: api.tickets.settings (getSettings / updateSettings) is not yet
- * implemented in the backend. These calls are wired but will be no-ops
- * until Task 10 (Ticket Settings backend) is complete.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@convexpress-admin/backend/generated/api";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
@@ -34,18 +32,45 @@ function TicketSettingsPage() {
 // ─── Form Component ───────────────────────────────────────────────────────────
 
 function TicketSettingsForm() {
-  // Local state while backend settings API is pending
+  const settings = useQuery(api.tickets.settings.getTicketSettings);
+  const updateSettings = useMutation(api.tickets.settings.updateTicketSettings);
+
   const [autoCloseDays, setAutoCloseDays] = useState(14);
   const [slaFirstResponse, setSlaFirstResponse] = useState(240);
   const [slaResolution, setSlaResolution] = useState(2880);
   const [defaultPriority, setDefaultPriority] = useState("medium");
   const [isSaving, setIsSaving] = useState(false);
 
+  // Sync form state when settings load
+  useEffect(() => {
+    if (!settings) return;
+    if (settings.general.defaultPriority !== undefined) {
+      setDefaultPriority(settings.general.defaultPriority);
+    }
+    if (settings.general.autoCloseAfterDays !== undefined) {
+      setAutoCloseDays(settings.general.autoCloseAfterDays);
+    }
+    if (settings.sla.firstResponseTarget !== undefined) {
+      setSlaFirstResponse(settings.sla.firstResponseTarget);
+    }
+    if (settings.sla.resolutionTarget !== undefined) {
+      setSlaResolution(settings.sla.resolutionTarget);
+    }
+  }, [settings]);
+
   async function handleSave() {
     setIsSaving(true);
     try {
-      // TODO: wire to api.tickets.settings.updateSettings once backend is ready
-      // await updateSettings({ autoCloseDays, slaFirstResponse, slaResolution, defaultPriority });
+      await updateSettings({
+        general: {
+          defaultPriority: defaultPriority as "low" | "medium" | "high" | "urgent",
+          autoCloseAfterDays: autoCloseDays,
+        },
+        sla: {
+          firstResponseTarget: slaFirstResponse,
+          resolutionTarget: slaResolution,
+        },
+      });
       toast.success("Settings saved");
     } catch (error: any) {
       toast.error(error?.data?.message ?? "Failed to save settings");
@@ -163,7 +188,7 @@ function TicketSettingsForm() {
       {/* Save */}
       <button
         onClick={() => void handleSave()}
-        disabled={isSaving}
+        disabled={isSaving || settings === undefined}
         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
       >
         <Save className="h-4 w-4" />

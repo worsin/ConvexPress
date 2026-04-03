@@ -2,13 +2,15 @@
  * Knowledge Base System - Internal Functions
  *
  * Non-client-callable functions for scheduled operations:
- *   publishScheduled   - Auto-publish a scheduled article
- *   syncToMeilisearch  - Sync article to Meilisearch (placeholder)
- *   syncToRag          - Sync article to RAG (placeholder)
- *   cleanupPageViews   - Purge old page views (90-day retention)
+ *   publishScheduled      - Auto-publish a single scheduled article (by ID)
+ *   publishScheduledBatch - Cron entry: scan & publish all due scheduled articles
+ *   syncToMeilisearch     - Sync article to Meilisearch (placeholder)
+ *   syncToRag             - Sync article to RAG (placeholder)
+ *   cleanupPageViews      - Purge old page views (90-day retention)
  */
 
 import { internalMutation, internalQuery } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { emitEvent } from "../helpers/events";
 import { KB_EVENTS, SYSTEM } from "../events/constants";
@@ -51,6 +53,60 @@ export const publishScheduled = internalMutation({
       publishedAt: now,
       scheduledPublish: true,
     });
+  },
+});
+
+// ─── Publish Scheduled (Batch / Cron Entry) ─────────────────────────────────
+
+/**
+ * Scan all draft articles with a scheduledAt in the past and publish them.
+ * Called by the every-5-minute cron. Processes up to 50 per run to stay
+ * within mutation time limits.
+ */
+export const publishScheduledBatch = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+
+    const drafts = await ctx.db
+      .query("kb_articles")
+      .withIndex("by_status_updated", (q) => q.eq("status", "draft"))
+      .collect();
+
+    const due = drafts
+      .filter((a) => a.scheduledAt !== undefined && a.scheduledAt <= now)
+      .slice(0, 50);
+
+    for (const article of due) {
+      await ctx.db.patch(article._id, {
+        status: "published",
+        publishedAt: now,
+        scheduledAt: undefined,
+        updatedAt: now,
+        meilisearchSynced: false,
+        ragSynced: false,
+      });
+
+      if (article.categoryId) {
+        const category = await ctx.db.get(article.categoryId);
+        if (category) {
+          await ctx.db.patch(article.categoryId, {
+            articleCount: category.articleCount + 1,
+            updatedAt: now,
+          });
+        }
+      }
+
+      await emitEvent(ctx, KB_EVENTS.ARTICLE_PUBLISHED, SYSTEM.KB, {
+        articleId: article._id,
+        title: article.title,
+        authorId: article.authorId,
+        publishedAt: now,
+        scheduledPublish: true,
+      });
+    }
+
+    return { published: due.length };
   },
 });
 
@@ -97,17 +153,18 @@ export const cleanupPageViews = internalMutation({
 
     const oldViews = await ctx.db
       .query("kb_pageViews")
-      .withIndex("by_date")
-      .collect();
+      .withIndex("by_date", (q) => q.lt("createdAt", ninetyDaysAgo))
+      .take(500);
 
     let deleted = 0;
     for (const view of oldViews) {
-      if (view.createdAt < ninetyDaysAgo) {
-        await ctx.db.delete(view._id);
-        deleted++;
-      }
-      // Safety limit to avoid timeout
-      if (deleted >= 500) break;
+      await ctx.db.delete(view._id);
+      deleted++;
+    }
+
+    // Self-reschedule if there are more to delete
+    if (deleted >= 500) {
+      await ctx.scheduler.runAfter(0, internal.kb.internals.cleanupPageViews, {});
     }
 
     return { deleted };

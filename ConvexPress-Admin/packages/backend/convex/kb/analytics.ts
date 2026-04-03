@@ -28,6 +28,16 @@ import {
 export const trackPageView = mutation({
   args: trackPageViewArgs,
   handler: async (ctx, args) => {
+    // Validate sessionId
+    if (!args.sessionId || args.sessionId.length > 128) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Invalid session ID" });
+    }
+    // Validate article exists
+    const article = await ctx.db.get(args.articleId);
+    if (!article) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+    }
+
     const user = await getCurrentUser(ctx);
     const now = Date.now();
 
@@ -58,7 +68,6 @@ export const trackPageView = mutation({
     });
 
     // Increment article view counts
-    const article = await ctx.db.get(args.articleId);
     if (article) {
       await ctx.db.patch(args.articleId, {
         viewCount: article.viewCount + 1,
@@ -75,8 +84,15 @@ export const trackPageView = mutation({
 export const updateDuration = mutation({
   args: updateDurationArgs,
   handler: async (ctx, args) => {
-    const view = await ctx.db.get(args.pageViewId);
-    if (!view) return;
+    // Validate duration range
+    if (args.duration < 0 || args.duration > 3600) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Duration must be between 0 and 3600 seconds" });
+    }
+    // Validate page view exists
+    const pageView = await ctx.db.get(args.pageViewId);
+    if (!pageView) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Page view not found" });
+    }
 
     await ctx.db.patch(args.pageViewId, { duration: args.duration });
   },
@@ -87,6 +103,15 @@ export const updateDuration = mutation({
 export const trackSearch = mutation({
   args: trackSearchArgs,
   handler: async (ctx, args) => {
+    // Validate query
+    if (!args.query || args.query.trim().length === 0 || args.query.length > 500) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Query must be non-empty and at most 500 characters" });
+    }
+    // Validate resultCount
+    if (args.resultCount < 0) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Result count must be >= 0" });
+    }
+
     const user = await getCurrentUser(ctx);
 
     const searchId = await ctx.db.insert("kb_searchQueries", {
