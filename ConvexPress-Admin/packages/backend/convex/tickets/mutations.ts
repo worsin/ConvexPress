@@ -36,7 +36,7 @@
 import { ConvexError } from "convex/values";
 import { mutation } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { requireCan, requireAuth, getCurrentUser } from "../helpers/permissions";
+import { requireCan, requireAuth, getCurrentUser, currentUserCan } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { TICKET_EVENTS, SYSTEM } from "../events/constants";
 import {
@@ -159,6 +159,17 @@ export const create = mutation({
       defaultPriority = prioritySetting.values.defaultPriority;
     }
 
+    // ── Resolve effective priority ──────────────────────────────────────
+    // "urgent" priority is restricted to staff only (ticket.updatePriority).
+    // If a regular user submits "urgent", silently downgrade to the configured default.
+    let effectivePriority = args.priority ?? defaultPriority;
+    if (effectivePriority === "urgent") {
+      const canSetUrgent = await currentUserCan(ctx, "ticket.updatePriority");
+      if (!canSetUrgent) {
+        effectivePriority = defaultPriority;
+      }
+    }
+
     // ── Insert ticket ───────────────────────────────────────────────────
     const ticketId = await ctx.db.insert("ticket_tickets", {
       ticketNumber,
@@ -169,7 +180,7 @@ export const create = mutation({
       description: args.description.trim(),
       category: args.category,
       status: "open",
-      priority: args.priority ?? defaultPriority,
+      priority: effectivePriority,
       source: args.source ?? "dashboard",
       tags: args.tags
         ? args.tags.map(t => t.trim().toLowerCase().replace(/<[^>]*>/g, '')).filter(t => t.length > 0 && t.length <= MAX_TAG_LENGTH)
@@ -203,7 +214,7 @@ export const create = mutation({
       ticketNumber,
       userId: user._id,
       category: args.category,
-      priority: args.priority ?? defaultPriority,
+      priority: effectivePriority,
       source: args.source ?? "dashboard",
       aiAttempted: args.aiAttempted ?? false,
     });

@@ -31,7 +31,7 @@ import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 import { requireCan, currentUserCan } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
-import { SYSTEM } from "../events/constants";
+import { SYSTEM, SETTINGS_EVENTS } from "../events/constants";
 import { computeChanges } from "../settings/helpers";
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -237,7 +237,7 @@ export const updateSupportSettings = mutation({
 
     // Emit settings event if anything changed
     if (updatedSections.length > 0) {
-      await emitEvent(ctx, "settings.updated", SYSTEM.SETTINGS, {
+      await emitEvent(ctx, SETTINGS_EVENTS.UPDATED, SYSTEM.SETTINGS, {
         sections: updatedSections,
         updatedBy: user._id,
         timestamp: now,
