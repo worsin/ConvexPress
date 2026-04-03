@@ -17,7 +17,9 @@ export const Route = createFileRoute(
   },
   head: ({ params }) => ({
     meta: [
-      { title: `${params.articleSlug} - Help Center - ConvexPress` },
+      {
+        title: `${params.articleSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} - Help Center - ConvexPress`,
+      },
     ],
   }),
 });
@@ -30,7 +32,7 @@ function ArticleContent({ content, plainText }: { content?: string; plainText?: 
     try {
       const doc = JSON.parse(content);
       if (doc.type === "doc" && Array.isArray(doc.content)) {
-        return <div className="prose max-w-none">{renderTipTapNodes(doc.content)}</div>;
+        return <div className="max-w-none leading-relaxed text-foreground [&_p]:mb-4 [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:mb-2 [&_ul]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-border [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:my-4 [&_pre]:bg-muted [&_pre]:rounded [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-4 [&_code]:bg-muted [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-sm [&_hr]:border-border [&_hr]:my-6 [&_a]:text-primary [&_a]:underline">{renderTipTapNodes(doc.content)}</div>;
       }
     } catch {
       // Not JSON, fall through
@@ -40,7 +42,7 @@ function ArticleContent({ content, plainText }: { content?: string; plainText?: 
   // Fallback to plain text
   if (plainText) {
     return (
-      <div className="prose max-w-none whitespace-pre-wrap text-foreground">
+      <div className="max-w-none whitespace-pre-wrap text-foreground leading-relaxed">
         {plainText}
       </div>
     );
@@ -77,17 +79,42 @@ function renderTipTapNodes(nodes: any[]): React.ReactNode[] {
   });
 }
 
+function sanitizeLinkHref(href: string | undefined): string | undefined {
+  if (!href) return undefined;
+  const lower = href.trim().toLowerCase();
+  if (lower.startsWith("javascript:") || lower.startsWith("data:")) return undefined;
+  return href;
+}
+
+function isExternalLink(href: string): boolean {
+  return href.startsWith("http://") || href.startsWith("https://") || href.startsWith("//");
+}
+
 function renderInlineContent(content?: any[]): React.ReactNode {
   if (!content) return null;
   return content.map((node, i) => {
     if (node.type === "text") {
       let text: React.ReactNode = node.text;
       if (node.marks) {
-        for (const mark of node.marks) {
-          if (mark.type === "bold") text = <strong key={i}>{text}</strong>;
-          if (mark.type === "italic") text = <em key={i}>{text}</em>;
-          if (mark.type === "code") text = <code key={i}>{text}</code>;
-          if (mark.type === "link") text = <a key={i} href={mark.attrs?.href} className="text-primary underline">{text}</a>;
+        for (const [markIndex, mark] of node.marks.entries()) {
+          const markKey = `${i}-${markIndex}`;
+          if (mark.type === "bold") text = <strong key={markKey}>{text}</strong>;
+          else if (mark.type === "italic") text = <em key={markKey}>{text}</em>;
+          else if (mark.type === "code") text = <code key={markKey}>{text}</code>;
+          else if (mark.type === "link") {
+            const safeHref = sanitizeLinkHref(mark.attrs?.href);
+            const external = safeHref ? isExternalLink(safeHref) : false;
+            text = (
+              <a
+                key={markKey}
+                href={safeHref}
+                className="text-primary underline"
+                {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              >
+                {text}
+              </a>
+            );
+          }
         }
       }
       return <span key={i}>{text}</span>;
@@ -255,7 +282,7 @@ function ArticleReader() {
               <Link
                 key={related._id}
                 to="/help/$categorySlug/$articleSlug"
-                params={{ categorySlug, articleSlug: related.slug }}
+                params={{ categorySlug: related.categorySlug ?? categorySlug, articleSlug: related.slug }}
                 className="block text-primary hover:underline"
               >
                 {related.title}

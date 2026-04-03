@@ -693,6 +693,181 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     eventCode: "api.webhook_triggered",
   },
 
+  // ═══ Knowledge Base & Ticket ════════════════════════════════════════════════
+
+  {
+    slug: "ticket_reply_notification",
+    name: "Ticket Reply Notification",
+    description: "Sent to ticket submitter when support replies to their ticket",
+    subjectTemplate: "New reply on ticket {{ticketNumber}}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">New Reply on Your Ticket</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        <strong>{senderName}</strong> replied to your ticket: <strong>{ticketNumber}</strong> - {subject}
+      </p>
+    `),
+    preheaderText: "You have a new reply on your support ticket",
+    availableVariables: [
+      { name: "ticketNumber", description: "Ticket number/ID", required: true },
+      { name: "subject", description: "Ticket subject", required: true },
+      { name: "senderName", description: "Name of the person who replied", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "support",
+    eventCode: "ticket.reply_added",
+  },
+
+  {
+    slug: "ticket_user_reply",
+    name: "Ticket User Reply",
+    description: "Sent to support agents when a customer replies to their ticket",
+    subjectTemplate: "Customer replied to {{ticketNumber}}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Customer Replied</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        <strong>{userName}</strong> replied to ticket <strong>{ticketNumber}</strong>.
+      </p>
+    `),
+    preheaderText: "A customer has replied to a support ticket",
+    availableVariables: [
+      { name: "ticketNumber", description: "Ticket number/ID", required: true },
+      { name: "userName", description: "Name of the customer who replied", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "employee",
+    category: "support",
+    eventCode: "ticket.reply_added",
+  },
+
+  {
+    slug: "ticket_assigned",
+    name: "Ticket Assigned",
+    description: "Sent to an agent when a ticket is assigned to them",
+    subjectTemplate: "Ticket {{ticketNumber}} assigned to you",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Ticket Assigned to You</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        You've been assigned to ticket: <strong>{ticketNumber}</strong> - {subject}
+      </p>
+    `),
+    preheaderText: "A support ticket has been assigned to you",
+    availableVariables: [
+      { name: "ticketNumber", description: "Ticket number/ID", required: true },
+      { name: "subject", description: "Ticket subject", required: true },
+    ],
+    priority: "immediate",
+    recipientType: "employee",
+    category: "support",
+    eventCode: "ticket.assigned",
+  },
+
+  {
+    slug: "ticket_resolved",
+    name: "Ticket Resolved",
+    description: "Sent to the ticket submitter when their ticket is resolved",
+    subjectTemplate: "Your ticket {{ticketNumber}} has been resolved",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Ticket Resolved</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Your support ticket has been resolved. Thank you for reaching out.
+      </p>
+    `),
+    preheaderText: "Your support ticket has been resolved",
+    availableVariables: [
+      { name: "ticketNumber", description: "Ticket number/ID", required: true },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "support",
+    eventCode: "ticket.resolved",
+  },
+
+  {
+    slug: "kb_workflow_step_ready",
+    name: "KB Workflow Step Ready",
+    description: "Sent when a knowledge base article is ready for review",
+    subjectTemplate: "Article ready for review: {{articleTitle}}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Article Ready for Review</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        An article needs your review: <strong>{articleTitle}</strong>
+      </p>
+    `),
+    preheaderText: "A knowledge base article is awaiting your review",
+    availableVariables: [
+      { name: "articleTitle", description: "Title of the article", required: true },
+    ],
+    priority: "immediate",
+    recipientType: "employee",
+    category: "knowledge_base",
+    eventCode: "kb.workflow_step_ready",
+  },
+
+  {
+    slug: "kb_workflow_approved",
+    name: "KB Article Approved",
+    description: "Sent when a knowledge base article is approved and published",
+    subjectTemplate: "Your article has been approved: {{articleTitle}}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Article Approved</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Your article <strong>{articleTitle}</strong> has been approved and published.
+      </p>
+    `),
+    preheaderText: "Your knowledge base article has been approved",
+    availableVariables: [
+      { name: "articleTitle", description: "Title of the article", required: true },
+    ],
+    priority: "immediate",
+    recipientType: "employee",
+    category: "knowledge_base",
+    eventCode: "kb.workflow_approved",
+  },
+
+  {
+    slug: "kb_workflow_rejected",
+    name: "KB Article Needs Revisions",
+    description: "Sent when a knowledge base article is rejected and needs revisions",
+    subjectTemplate: "Article needs revisions: {{articleTitle}}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Article Needs Revisions</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Your article <strong>{articleTitle}</strong> was not approved and needs revisions.
+      </p>
+    `),
+    preheaderText: "Your knowledge base article needs revisions",
+    availableVariables: [
+      { name: "articleTitle", description: "Title of the article", required: true },
+    ],
+    priority: "immediate",
+    recipientType: "employee",
+    category: "knowledge_base",
+    eventCode: "kb.workflow_rejected",
+  },
+
+  {
+    slug: "kb_comment_notification",
+    name: "KB Comment Notification",
+    description: "Sent when someone comments on a knowledge base article",
+    subjectTemplate: "New comment on {{articleTitle}}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">New Comment on Your Article</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        <strong>{commenterName}</strong> commented on your article: <strong>{articleTitle}</strong>
+      </p>
+    `),
+    preheaderText: "Someone commented on your knowledge base article",
+    availableVariables: [
+      { name: "articleTitle", description: "Title of the article", required: true },
+      { name: "commenterName", description: "Name of the commenter", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "employee",
+    category: "knowledge_base",
+    eventCode: "kb.comment_added",
+  },
+
   // ═══ Digest ══════════════════════════════════════════════════════════════════
 
   {

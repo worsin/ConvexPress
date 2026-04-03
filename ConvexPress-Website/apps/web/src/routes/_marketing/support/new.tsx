@@ -91,10 +91,11 @@ function CreateTicketPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Category */}
         <div>
-          <label className="block text-sm font-medium text-foreground/70 mb-1">
+          <label htmlFor="ticket-category" className="block text-sm font-medium text-foreground/70 mb-1">
             Category
           </label>
           <select
+            id="ticket-category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card"
@@ -109,10 +110,11 @@ function CreateTicketPage() {
 
         {/* Subject */}
         <div>
-          <label className="block text-sm font-medium text-foreground/70 mb-1">
+          <label htmlFor="ticket-subject" className="block text-sm font-medium text-foreground/70 mb-1">
             Subject
           </label>
           <input
+            id="ticket-subject"
             type="text"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
@@ -127,10 +129,12 @@ function CreateTicketPage() {
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-foreground/70 mb-1">
+          <label htmlFor="ticket-description" className="block text-sm font-medium text-foreground/70 mb-1">
             Description
           </label>
           <textarea
+            id="ticket-description"
+            aria-label="Describe your issue"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Please describe your issue in detail. Include any steps to reproduce, expected behavior, and screenshots if applicable."

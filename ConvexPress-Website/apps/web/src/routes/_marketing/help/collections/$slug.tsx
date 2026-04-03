@@ -12,7 +12,9 @@ export const Route = createFileRoute("/_marketing/help/collections/$slug")({
   },
   head: ({ params }) => ({
     meta: [
-      { title: `${params.slug} - Collections - Help Center - ConvexPress` },
+      {
+        title: `${params.slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} - Collections - Help Center - ConvexPress`,
+      },
     ],
   }),
 });
