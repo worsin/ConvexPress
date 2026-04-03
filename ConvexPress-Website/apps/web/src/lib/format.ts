@@ -1,5 +1,5 @@
 /**
- * Shared formatting utilities for the SmithHarper website app.
+ * Shared formatting utilities for the ConvexPress website app.
  * Centralized to avoid duplication across dashboard components.
  */
 

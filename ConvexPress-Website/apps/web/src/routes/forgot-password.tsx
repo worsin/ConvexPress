@@ -16,7 +16,7 @@ export const Route = createFileRoute("/forgot-password")({
         content: "noindex, nofollow",
       },
       {
-        title: "Forgot Password - SmithHarper",
+        title: "Forgot Password - ConvexPress",
       },
     ],
   }),

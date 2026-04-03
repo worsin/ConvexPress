@@ -248,7 +248,7 @@ function RenderGallery({ block }: { block: GalleryBlock }) {
         gridTemplateColumns: `repeat(${Math.min(columns, 4)}, minmax(0, 1fr))`,
       }}
     >
-      {block.content.map((image, index) => (
+      {block.content.map((image, _index) => (
         <figure key={image.attrs.src}>
           <img
             src={image.attrs.src}

@@ -45,8 +45,8 @@ export function AIAnswerView({
       excerpt: string;
       score: number;
     }>;
-    confidence: number;
-    aiGenerated: boolean;
+    confidence: string;
+    usedAi: boolean;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [feedbackGiven, setFeedbackGiven] = useState(false);
@@ -103,7 +103,7 @@ export function AIAnswerView({
     );
   }
 
-  if (!result?.aiGenerated || !result.answer) {
+  if (!result?.usedAi || !result.answer) {
     return (
       <div className="flex flex-col items-center gap-3 p-8 text-center">
         <p className="text-sm text-muted-foreground">

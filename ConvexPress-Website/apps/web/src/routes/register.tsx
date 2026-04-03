@@ -23,7 +23,7 @@ export const Route = createFileRoute("/register")({
         content: "noindex, nofollow",
       },
       {
-        title: "Create Account - SmithHarper",
+        title: "Create Account - ConvexPress",
       },
     ],
   }),

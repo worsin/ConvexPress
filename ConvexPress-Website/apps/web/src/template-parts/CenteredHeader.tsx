@@ -15,7 +15,7 @@ interface CenteredHeaderProps {
 }
 
 export function CenteredHeader({
-  siteName = "SmithHarper",
+  siteName = "ConvexPress",
   tagline,
   logo,
   navigation,

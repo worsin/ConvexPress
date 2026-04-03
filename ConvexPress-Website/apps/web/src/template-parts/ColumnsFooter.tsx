@@ -18,7 +18,7 @@ interface ColumnsFooterProps {
 }
 
 export function ColumnsFooter({
-  siteName = "SmithHarper",
+  siteName = "ConvexPress",
   copyrightText,
   showPoweredBy = true,
   columns,
@@ -55,7 +55,7 @@ export function ColumnsFooter({
                 About
               </h4>
               <p className="text-sm text-muted-foreground">
-                A modern website powered by SmithHarper CMS.
+                A modern website powered by ConvexPress.
               </p>
             </div>
             <div>
@@ -99,7 +99,7 @@ export function ColumnsFooter({
           <p className="text-sm text-muted-foreground">{copyright}</p>
           {showPoweredBy && (
             <p className="text-xs text-muted-foreground/60">
-              Powered by SmithHarper CMS
+              Powered by ConvexPress
             </p>
           )}
         </div>

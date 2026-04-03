@@ -1,7 +1,7 @@
 /**
  * Canonical URL Middleware
  *
- * Normalizes incoming URLs to their canonical form. This is the SmithHarper
+ * Normalizes incoming URLs to their canonical form. This is the ConvexPress
  * equivalent of WordPress's redirect_canonical() function.
  *
  * Normalization rules (in order):

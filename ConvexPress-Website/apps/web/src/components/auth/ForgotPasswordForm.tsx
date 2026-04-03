@@ -51,7 +51,7 @@ export function ForgotPasswordForm({
       try {
         // Call Convex action to trigger password reset + record audit event.
         // The action always succeeds (email enumeration prevention) -- it silently
-        // does nothing if the email doesn't exist in SmithHarper.
+        // does nothing if the email doesn't exist in ConvexPress.
         // Returns { oauthHint: boolean } if the user registered via OAuth.
         const result = await requestPasswordReset({ email: trimmedEmail });
         const oauthHint = result && typeof result === "object" && "oauthHint" in result

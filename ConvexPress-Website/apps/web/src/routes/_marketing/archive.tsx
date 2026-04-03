@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_marketing/archive")({
   component: ArchivePage,
   head: () => ({
     meta: [
-      { title: "Archive - SmithHarper" },
+      { title: "Archive - ConvexPress" },
       {
         name: "description",
         content: "Browse all posts by date.",

@@ -2,7 +2,7 @@
  * URL Generation Utilities
  *
  * Pure functions for generating URLs for all content types based on
- * the current permalink settings. These are the SmithHarper equivalents
+ * the current permalink settings. These are the ConvexPress equivalents
  * of WordPress's get_permalink(), get_page_link(), get_category_link(),
  * get_tag_link(), and get_author_posts_url().
  *

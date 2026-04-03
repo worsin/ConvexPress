@@ -23,7 +23,7 @@ export function WebsiteAdminBar() {
     >
       {/* Left side */}
       <div className="flex items-center gap-4">
-        <span className="text-xs font-semibold">SmithHarper</span>
+        <span className="text-xs font-semibold">ConvexPress</span>
         <a
           href={dashboardUrl}
           target="_blank"

@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_marketing/author/$slug")({
     meta: [
       // Initial title uses slug as a fallback; the component updates
       // document.title with the author's display name once data loads.
-      { title: `Author: ${params.slug} - SmithHarper` },
+      { title: `Author: ${params.slug} - ConvexPress` },
     ],
     links: [
       {
@@ -68,7 +68,7 @@ function AuthorArchive() {
   // once data is loaded, replacing the slug-based fallback from head().
   useEffect(() => {
     if (author?.displayName) {
-      document.title = `Author: ${author.displayName} - SmithHarper`;
+      document.title = `Author: ${author.displayName} - ConvexPress`;
     }
   }, [author?.displayName]);
 

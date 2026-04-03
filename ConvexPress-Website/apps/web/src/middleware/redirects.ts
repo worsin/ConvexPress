@@ -55,7 +55,14 @@ export interface ResolvedRedirect {
  * @returns ResolvedRedirect if a match was found, null otherwise
  */
 export function processRedirectResult(
-  redirectRecord: { sourceUrl: string; targetUrl: string; statusCode: number } | null,
+  redirectRecord: {
+    _id?: string;
+    sourceUrl: string;
+    targetUrl: string;
+    statusCode: number;
+    _resolvedTargetUrl?: string;
+    matchType?: "exact" | "prefix" | "regex";
+  } | null,
 ): ResolvedRedirect | null {
   if (!redirectRecord) return null;
 
@@ -66,10 +73,10 @@ export function processRedirectResult(
     redirectRecord._resolvedTargetUrl || redirectRecord.targetUrl;
 
   return {
-    redirectId: redirectRecord._id,
+    redirectId: redirectRecord._id ?? "",
     targetUrl,
-    statusCode: redirectRecord.statusCode,
-    matchType: redirectRecord.matchType,
+    statusCode: redirectRecord.statusCode as 301 | 302 | 307 | 308,
+    matchType: redirectRecord.matchType ?? "exact",
   };
 }
 

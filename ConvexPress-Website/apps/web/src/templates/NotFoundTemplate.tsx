@@ -6,8 +6,12 @@
 
 import type { ReactNode } from "react";
 
-interface NotFoundTemplateProps {
+export interface NotFoundTemplateProps {
   children?: ReactNode;
+  // Props from TanStack Router's NotFoundRouteProps
+  data?: unknown;
+  isNotFound?: boolean;
+  routeId?: string;
 }
 
 export function NotFoundTemplate({ children }: NotFoundTemplateProps) {

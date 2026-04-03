@@ -1,5 +1,5 @@
 /**
- * Client-side auth utilities for the SmithHarper website.
+ * Client-side auth utilities for the ConvexPress website.
  *
  * Provides capability checking for the website frontend.
  * This is the website-side equivalent of the admin's auth-context.tsx.
@@ -116,7 +116,7 @@ export function userHasRole(
 /**
  * Check if a user can edit a specific piece of content.
  *
- * SmithHarper uses a meta-capability pattern where ownership is resolved
+ * ConvexPress uses a meta-capability pattern where ownership is resolved
  * at the backend level via `mapMetaCap()`. On the client side, we replicate
  * this logic: a user can edit content if they have the concrete capability
  * AND either they own the content OR their role level is Editor+ (80+).

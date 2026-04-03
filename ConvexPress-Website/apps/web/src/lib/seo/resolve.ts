@@ -167,7 +167,7 @@ export function resolvePostSeoFromQueries(
 ): ResolvedSeoData {
   const { titles, social, schema } = settings;
   const sep = titles.separator || "|";
-  const siteName = titles.siteTitle || "SmithHarper";
+  const siteName = titles.siteTitle || "ConvexPress";
 
   // Build template variables
   const templateVars: Record<string, string> = {
@@ -566,7 +566,7 @@ export function buildHeadLinks(
 export function createFallbackSeo(
   title: string,
   siteUrl: string,
-  siteName: string = "SmithHarper",
+  siteName: string = "ConvexPress",
 ): ResolvedSeoData {
   return {
     title: `${title} | ${siteName}`,

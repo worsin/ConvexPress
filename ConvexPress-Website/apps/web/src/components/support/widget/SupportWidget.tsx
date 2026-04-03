@@ -37,8 +37,10 @@ export function SupportWidget() {
 
   // Don't render until config loads, or if widget is disabled
   if (config === undefined) return null;
-  if (!config.isEnabled) return null;
+  if (!config.enabled) return null;
 
+  const position = config?.position ?? "bottomRight";
+  const greeting = config?.widgetTitle ?? "Hi! How can we help?";
   const title = VIEW_TITLES[state.currentView] ?? "Support";
   const showBack = state.currentView !== "home";
 
@@ -46,13 +48,13 @@ export function SupportWidget() {
     <>
       <WidgetButton
         isOpen={state.isOpen}
-        position={config.position}
+        position={position}
         onClick={state.isOpen ? state.close : state.open}
       />
 
       <WidgetPanel
         isOpen={state.isOpen}
-        position={config.position}
+        position={position}
         title={title}
         showBack={showBack}
         onBack={state.goBack}
@@ -60,7 +62,7 @@ export function SupportWidget() {
       >
         {state.currentView === "home" && (
           <HomeView
-            greeting={config.greeting}
+            greeting={greeting}
             onSearch={state.search}
             onShowTickets={state.showTickets}
             onNewTicket={state.createTicket}

@@ -1,7 +1,7 @@
 /**
- * Theme System - Tailwind CSS v4 Integration
+ * Theme CSS - Tailwind CSS v4 Integration
  *
- * Maps SmithHarper theme CSS custom properties (--sh-*) to Tailwind v4 @theme tokens.
+ * Maps ConvexPress theme CSS custom properties (--sh-*) to Tailwind v4 @theme tokens.
  * These variables are injected by ThemeStyleInjector from Convex theme data.
  *
  * Usage in components:

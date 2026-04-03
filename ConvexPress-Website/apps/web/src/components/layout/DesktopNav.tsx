@@ -19,20 +19,13 @@ interface DesktopNavProps {
  */
 export function DesktopNav({ menu, className }: DesktopNavProps) {
   if (!menu) {
-    // Loading skeleton
+    // No menu assigned or still loading — render empty nav to avoid layout shift
     return (
       <nav
         data-slot="desktop-nav"
         aria-label="Primary navigation"
         className={cn("hidden lg:flex items-center gap-1", className)}
-      >
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={`skeleton-${i}`}
-            className="h-4 w-16 animate-pulse bg-muted"
-          />
-        ))}
-      </nav>
+      />
     );
   }
 

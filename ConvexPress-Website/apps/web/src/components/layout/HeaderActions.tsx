@@ -7,6 +7,7 @@ import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
 
 import { UserMenu } from "./UserMenu";
 import { WebsiteNotificationBell } from "./WebsiteNotificationBell";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface HeaderActionsProps {
   className?: string;
@@ -33,6 +34,9 @@ export function HeaderActions({ className }: HeaderActionsProps) {
       >
         <Search className="size-4" aria-hidden="true" />
       </button>
+
+      {/* Theme toggle */}
+      <ThemeToggle />
 
       {/* User menu or login link */}
       {isLoaded && (

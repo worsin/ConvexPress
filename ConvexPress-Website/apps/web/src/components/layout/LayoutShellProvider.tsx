@@ -43,8 +43,10 @@ function reducer(state: UIState, action: Action): UIState {
       };
     case "CLOSE_SEARCH":
       return { ...state, searchOpen: false };
-    default:
-      return state;
+    default: {
+      const _exhaustiveCheck: never = action;
+      return _exhaustiveCheck;
+    }
   }
 }
 

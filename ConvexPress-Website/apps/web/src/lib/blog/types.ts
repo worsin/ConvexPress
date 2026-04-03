@@ -356,7 +356,7 @@ export interface PageDetail {
  * Comment tree node returned by the Convex `comments.forPost` query.
  * Matches the `CommentTreeNode` shape from `helpers/comment.ts`.
  *
- * All commenters must be authenticated in SmithHarper (no guest fields).
+ * All commenters must be authenticated in ConvexPress (no guest fields).
  */
 export interface CommentData {
   _id: string;
