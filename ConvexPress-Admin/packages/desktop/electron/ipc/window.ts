@@ -1,2 +1,28 @@
-// ConvexPress Desktop - ipc/window.ts (implementation pending)
-// IPC handlers for window management (minimize, maximize, close)
+import { ipcMain, BrowserWindow } from "electron";
+
+export function registerWindowHandlers(): void {
+  ipcMain.handle("window:minimize", (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize();
+  });
+
+  ipcMain.handle("window:maximize", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return;
+    win.isMaximized() ? win.unmaximize() : win.maximize();
+  });
+
+  ipcMain.handle("window:close", (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.hide();
+  });
+
+  ipcMain.handle("window:is-maximized", (event) => {
+    return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false;
+  });
+}
+
+export function unregisterWindowHandlers(): void {
+  ipcMain.removeHandler("window:minimize");
+  ipcMain.removeHandler("window:maximize");
+  ipcMain.removeHandler("window:close");
+  ipcMain.removeHandler("window:is-maximized");
+}
