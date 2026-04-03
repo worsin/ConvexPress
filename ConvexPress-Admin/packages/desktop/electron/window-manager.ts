@@ -81,6 +81,14 @@ class WindowManager {
       console.error("[Renderer CRASHED]", details);
     });
 
+    // Forward maximize/unmaximize state to the renderer
+    win.on("maximize", () => {
+      win.webContents.send("window:maximized", true);
+    });
+    win.on("unmaximize", () => {
+      win.webContents.send("window:maximized", false);
+    });
+
     // Hide instead of close (keep alive via tray) unless quitting
     win.on("close", (e) => {
       if (!isQuitting()) {
