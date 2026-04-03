@@ -225,6 +225,34 @@ export const insertRagChunk = internalMutation({
   },
 });
 
+// ─── Remove Article RAG Chunks ─────────────────────────────────────────────
+
+/**
+ * Delete all RAG chunks stored for a given article.
+ *
+ * This is a standard mutation (no embedding API calls). It is called by
+ * ingestArticle (in rag.ts, a "use node" file) before re-ingestion and
+ * by the article remove mutation.
+ *
+ * Lives in internals.ts (Convex runtime) rather than rag.ts (Node.js runtime)
+ * because mutations cannot run in Node.js -- only actions can.
+ */
+export const removeArticleChunks = internalMutation({
+  args: { articleId: v.id("kb_articles") },
+  handler: async (ctx, args) => {
+    const chunks = await ctx.db
+      .query("kb_ragChunks")
+      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .collect();
+
+    for (const chunk of chunks) {
+      await ctx.db.delete(chunk._id);
+    }
+
+    return { deleted: chunks.length };
+  },
+});
+
 // ─── Get All RAG Chunks ──────────────────────────────────────────────────────
 
 /**

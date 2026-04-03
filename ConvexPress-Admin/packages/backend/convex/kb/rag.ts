@@ -7,8 +7,10 @@
  * Settings > KB > Search (ragEnabled = true, ragProvider, ragApiKey, ragModel).
  *
  *   ingestArticle       - Chunk article content, generate embeddings, store in kb_ragChunks
- *   removeArticleChunks - Delete all RAG chunks for an article (mutation, no embedding)
  *   searchRag           - Embed a query, compute cosine similarity, return top matches
+ *
+ * NOTE: removeArticleChunks (internalMutation) lives in internals.ts because
+ * mutations cannot be defined in "use node" files.
  *
  * Chunking strategy: 1000-character chunks with 200-character overlap.
  * Embedding models:
@@ -17,7 +19,7 @@
  *     (Anthropic does not offer a public embeddings endpoint as of 2025)
  */
 
-import { action, internalMutation } from "../_generated/server";
+import { action } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 
@@ -220,7 +222,9 @@ export const ingestArticle = action({
     }
 
     // Remove existing chunks for this article before reinserting
-    await ctx.runMutation(internal.kb.rag.removeArticleChunks, {
+    // (removeArticleChunks lives in internals.ts because mutations
+    //  cannot be defined in "use node" files)
+    await ctx.runMutation(internal.kb.internals.removeArticleChunks, {
       articleId: args.articleId,
     });
 
@@ -255,30 +259,6 @@ export const ingestArticle = action({
     });
 
     return { success: true, chunksCreated };
-  },
-});
-
-// ─── removeArticleChunks ─────────────────────────────────────────────────────
-
-/**
- * Delete all RAG chunks stored for a given article.
- *
- * This is a standard mutation (no embedding API calls). It is called by
- * ingestArticle before re-ingestion and by the article remove mutation.
- */
-export const removeArticleChunks = internalMutation({
-  args: { articleId: v.id("kb_articles") },
-  handler: async (ctx, args) => {
-    const chunks = await ctx.db
-      .query("kb_ragChunks")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
-
-    for (const chunk of chunks) {
-      await ctx.db.delete(chunk._id);
-    }
-
-    return { deleted: chunks.length };
   },
 });
 
