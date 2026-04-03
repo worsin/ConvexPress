@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { useMutation, useQuery } from "convex/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import type React from "react";
 
 export const Route = createFileRoute(
@@ -106,47 +106,45 @@ function ArticleReader() {
     convexQuery(api.kb.queries.getBySlug, { slug: articleSlug }),
   );
 
-  // Stable session ID for this browser session
-  const sessionIdRef = useRef<string>(
-    typeof sessionStorage !== "undefined"
-      ? (sessionStorage.getItem("kb_session_id") ??
-         (() => {
-           const id = crypto.randomUUID();
-           sessionStorage.setItem("kb_session_id", id);
-           return id;
-         })())
-      : crypto.randomUUID(),
-  );
+  // Session ID — initialized client-side only to avoid SSR hydration mismatches
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    let id = sessionStorage.getItem("kb_session_id");
+    if (!id) {
+      id = crypto.randomUUID();
+      sessionStorage.setItem("kb_session_id", id);
+    }
+    setSessionId(id);
+  }, []);
 
   const trackView = useMutation(api.kb.analytics.trackPageView);
   const submitFeedback = useMutation(api.kb.feedback.submitHelpful);
 
   const art = article as any;
 
-  // Track page view on mount
+  // Track page view on mount — only after sessionId is ready client-side
   useEffect(() => {
-    if (!art?._id) return;
+    if (!art?._id || !sessionId) return;
     void trackView({
       articleId: art._id,
-      sessionId: sessionIdRef.current,
+      sessionId,
       referrer: typeof document !== "undefined" ? document.referrer : undefined,
       userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
     });
-  }, [art?._id]);
+  }, [art?._id, sessionId]);
 
   // Get existing feedback to show which button is already selected
   const userFeedback = useQuery(
-    art?._id ? api.kb.feedback.getUserFeedback : ("skip" as any),
-    art?._id
-      ? { articleId: art._id, sessionId: sessionIdRef.current }
-      : ("skip" as any),
+    api.kb.feedback.getUserFeedback,
+    sessionId && art?._id ? { articleId: art._id, sessionId } : "skip",
   ) as any;
 
   async function handleFeedback(isHelpful: boolean) {
-    if (!art?._id) return;
+    if (!art?._id || !sessionId) return;
     await submitFeedback({
       articleId: art._id,
-      sessionId: sessionIdRef.current,
+      sessionId,
       isHelpful,
     });
   }

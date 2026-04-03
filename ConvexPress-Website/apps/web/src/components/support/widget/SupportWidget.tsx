@@ -32,7 +32,7 @@ const VIEW_TITLES: Record<string, string> = {
 
 export function SupportWidget() {
   const config = useQuery(api.support.widget.getConfig);
-  const sessionId = useSessionId();
+  const { sessionId, isReady } = useSessionId();
   const state = useWidgetState();
 
   // Don't render until config loads, or if widget is disabled
@@ -69,7 +69,7 @@ export function SupportWidget() {
           />
         )}
 
-        {state.currentView === "searchResults" && (
+        {state.currentView === "searchResults" && isReady && sessionId && (
           <SearchResultsView
             query={state.searchQuery}
             sessionId={sessionId}
@@ -82,7 +82,7 @@ export function SupportWidget() {
           />
         )}
 
-        {state.currentView === "aiAnswer" && (
+        {state.currentView === "aiAnswer" && isReady && sessionId && (
           <AIAnswerView
             query={state.searchQuery}
             sessionId={sessionId}
@@ -91,7 +91,7 @@ export function SupportWidget() {
           />
         )}
 
-        {state.currentView === "ticketForm" && (
+        {state.currentView === "ticketForm" && isReady && sessionId && (
           <TicketFormView
             sessionId={sessionId}
             prefillQuery={state.searchQuery}
