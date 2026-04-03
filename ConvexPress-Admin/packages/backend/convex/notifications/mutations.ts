@@ -107,14 +107,14 @@ export const markAllRead = mutation({
     }
 
     const now = Date.now();
-    const workosUserId = getUserIdentifier(user);
+    const userIdentifier = getUserIdentifier(user);
 
     // 2. Query unread notifications for this user
     // Using by_user_unread index where readAt is undefined
     const unreadNotifications = await ctx.db
       .query("siteNotifications")
       .withIndex("by_user_unread", (q) =>
-        q.eq("userId", workosUserId).eq("readAt", undefined),
+        q.eq("userId", userIdentifier).eq("readAt", undefined),
       )
       .take(100); // Process in batches of 100
 
@@ -140,7 +140,7 @@ export const markAllRead = mutation({
         0,
         internal.notifications.internals.markAllReadBatch,
         {
-          userId: workosUserId,
+          userId: userIdentifier,
           beforeTimestamp: args.beforeTimestamp,
         },
       );
@@ -224,12 +224,12 @@ export const dismissAll = mutation({
     }
 
     const now = Date.now();
-    const workosUserId = getUserIdentifier(user);
+    const userIdentifier = getUserIdentifier(user);
 
     // 2. Query all notifications for this user
     const notifications = await ctx.db
       .query("siteNotifications")
-      .withIndex("by_user", (q) => q.eq("userId", workosUserId))
+      .withIndex("by_user", (q) => q.eq("userId", userIdentifier))
       .take(100);
 
     // 3. Filter to read, non-dismissed
@@ -278,7 +278,7 @@ export const updatePreferences = mutation({
     }
 
     const now = Date.now();
-    const workosUserId = getUserIdentifier(user);
+    const userIdentifier = getUserIdentifier(user);
     let count = 0;
 
     // 3. Process each preference
@@ -296,7 +296,7 @@ export const updatePreferences = mutation({
         .query("notificationPreferences")
         .withIndex("by_user_key", (q) =>
           q
-            .eq("userId", workosUserId)
+            .eq("userId", userIdentifier)
             .eq("notificationKey", pref.notificationKey),
         )
         .unique();
@@ -311,7 +311,7 @@ export const updatePreferences = mutation({
       } else {
         // Create new
         await ctx.db.insert("notificationPreferences", {
-          userId: workosUserId,
+          userId: userIdentifier,
           notificationKey: pref.notificationKey,
           siteEnabled: pref.siteEnabled,
           toastEnabled: pref.toastEnabled,

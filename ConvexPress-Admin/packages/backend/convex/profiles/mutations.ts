@@ -14,12 +14,11 @@
  *   - uploadAvatar - Upload a custom avatar (any authenticated user)
  *   - removeAvatar - Remove custom avatar (any authenticated user)
  *
- * All mutations require WorkOS authentication and appropriate capabilities.
+ * All mutations require authentication and appropriate capabilities.
  * All write operations emit events via the Event Dispatcher System.
  */
 
 import { mutation } from "../_generated/server";
-import { internal } from "../_generated/api";
 import { ConvexError } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { requireCan, resolveUserRole } from "../helpers/permissions";
@@ -407,9 +406,8 @@ export const updateUser = mutation({
  * as a proxy for "can manage users"; profile.create doesn't exist in the capability
  * system, so we use the admin-level profile capability).
  *
- * Note: This creates a Convex-side user record. The user will NOT have a WorkOS
- * account until they register via WorkOS AuthKit. This is primarily for
- * pre-provisioning user records.
+ * Note: This creates a Convex-side user record with local auth. This is
+ * primarily for pre-provisioning user records.
  */
 export const createUser = mutation({
   args: createUserArgs,
@@ -483,7 +481,7 @@ export const createUser = mutation({
  * Deactivate a user account.
  *
  * Requires `profile.deactivate` capability (Administrator only).
- * Prevents the user from logging in. Revokes WorkOS sessions.
+ * Prevents the user from logging in.
  *
  * Safety checks:
  *   - Cannot deactivate yourself
@@ -543,16 +541,7 @@ export const deactivateUser = mutation({
       updatedAt: now,
     });
 
-    // 7. Schedule WorkOS session revocation (async)
-    if (targetUser.workosUserId) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.profiles.internals.revokeWorkosSession,
-        { workosUserId: targetUser.workosUserId },
-      );
-    }
-
-    // 8. Emit event
+    // 7. Emit event
     await emitEvent(ctx, PROFILE_EVENTS.DEACTIVATED, SYSTEM.PROFILE, {
       userId: args.userId,
       deactivatedBy: currentUser._id,
@@ -684,7 +673,6 @@ export const deleteUser = mutation({
 
     // 6. Store data before deletion (needed for events and cleanup)
     const deletedEmail = targetUser.email;
-    const deletedWorkosId = targetUser.workosUserId;
     const deletedAvatarStorageId = targetUser.avatarStorageId;
 
     // 7. Handle content (posts/pages)
@@ -704,21 +692,11 @@ export const deleteUser = mutation({
     // 9. Delete the user record
     await ctx.db.delete("users", args.userId);
 
-    // 10. Schedule WorkOS user deletion (async)
-    if (deletedWorkosId) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.profiles.internals.deleteWorkosUser,
-        { workosUserId: deletedWorkosId },
-      );
-    }
-
-    // 11. Emit event (uses stored data since the record is now deleted)
+    // 10. Emit event (uses stored data since the record is now deleted)
     await emitEvent(ctx, "profile.deleted", SYSTEM.PROFILE, {
       userId: args.userId,
       deletedBy: currentUser._id,
       email: deletedEmail,
-      workosId: deletedWorkosId,
       contentAction: args.deleteContent ? "delete" : "reassign",
       reassignTo: args.reassignTo,
     });
@@ -766,7 +744,6 @@ export const bulkDeleteUsers = mutation({
 
         // Store data before deletion
         const deletedEmail = targetUser.email;
-        const deletedWorkosId = targetUser.workosUserId;
         const deletedAvatarStorageId = targetUser.avatarStorageId;
 
         // Delete avatar from storage
@@ -781,21 +758,11 @@ export const bulkDeleteUsers = mutation({
         // Delete user record
         await ctx.db.delete("users", userId);
 
-        // Schedule WorkOS user deletion (async)
-        if (deletedWorkosId) {
-          await ctx.scheduler.runAfter(
-            0,
-            internal.profiles.internals.deleteWorkosUser,
-            { workosUserId: deletedWorkosId },
-          );
-        }
-
         // Emit event per user
         await emitEvent(ctx, "profile.deleted", SYSTEM.PROFILE, {
           userId,
           deletedBy: currentUser._id,
           email: deletedEmail,
-          workosId: deletedWorkosId,
           contentAction: args.deleteContent ? "delete" : "reassign",
           reassignTo: args.reassignTo,
         });
@@ -971,7 +938,7 @@ export const uploadAvatar = mutation({
 });
 
 /**
- * Remove custom avatar, falling back to WorkOS/OAuth avatar or initials.
+ * Remove custom avatar, falling back to OAuth provider avatar or initials.
  *
  * Requires `profile.upload_avatar` capability (all authenticated users).
  */

@@ -9,7 +9,7 @@
  *   - edit_published_posts (already published content)
  *   - edit_private_posts (private visibility content)
  *
- * SmithHarper maps these to the capability system defined in types/capabilities.ts:
+ * ConvexPress maps these to the capability system defined in types/capabilities.ts:
  *   - post.create, post.update, post.delete, post.publish, etc.
  *   - Ownership is checked by comparing post.authorId with the user's _id
  *   - Role level is used to determine "others'" access (Editor = 80+)
@@ -31,7 +31,6 @@ import { resolveUserRole } from "../helpers/permissions";
 /** Minimal user shape needed for post auth checks. */
 export type AuthUser = {
   _id: Id<"users">;
-  workosUserId?: string;
   clerkUserId?: string;
   email: string;
   roleId?: Id<"roles">;

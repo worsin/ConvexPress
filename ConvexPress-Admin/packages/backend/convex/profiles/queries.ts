@@ -5,7 +5,7 @@
  *
  * Queries:
  *   - getProfile - Get current user's full profile (requires auth)
- *   - getUser - Get any user by ID, slug, or workosUserId (mixed access)
+ *   - getUser - Get any user by ID, slug, or external auth ID (mixed access)
  *   - getUserBySlug - Get public profile by slug (public, for author archives)
  *   - listUsers - Paginated list with search/filters (admin only)
  *   - getDisplayNameOptions - Generate display name dropdown options
@@ -56,14 +56,14 @@ export const getProfile = query({
 });
 
 /**
- * Get any user by ID, slug, or workosUserId.
+ * Get any user by ID, slug, or external auth identifier.
  *
  * Auth: Mixed.
  *   - If current user is the target or an Administrator (level 100): full document
  *   - If authenticated but non-admin viewing another user: public fields only
  *   - If not authenticated: public fields only (when accessed by slug)
  *
- * At least one of userId, slug, or workosUserId must be provided.
+ * At least one of userId, slug, or externalAuthId must be provided.
  */
 export const getUser = query({
   args: getUserArgs,
@@ -78,8 +78,8 @@ export const getUser = query({
         .query("users")
         .withIndex("by_slug", (q) => q.eq("slug", args.slug!))
         .unique();
-    } else if (args.workosUserId) {
-      targetUser = await lookupUserByIdentifier(ctx, args.workosUserId!);
+    } else if (args.externalAuthId) {
+      targetUser = await lookupUserByIdentifier(ctx, args.externalAuthId!);
     }
 
     if (!targetUser) return null;

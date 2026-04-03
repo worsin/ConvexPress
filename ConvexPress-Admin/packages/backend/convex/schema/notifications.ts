@@ -18,7 +18,7 @@
  *
  * WordPress Equivalent:
  *   No direct equivalent. WordPress `admin_notices` are transient, session-scoped,
- *   and globally targeted. SmithHarper notifications are persistent, per-user,
+ *   and globally targeted. ConvexPress notifications are persistent, per-user,
  *   real-time, with full history and per-type preferences.
  *
  * Owned by the Site Notification System.
@@ -31,7 +31,7 @@ export const notificationTables = {
   // ─── Site Notifications ──────────────────────────────────────────────────────
   siteNotifications: defineTable({
     // --- Identity ---
-    /** WorkOS user ID - the recipient */
+    /** User identifier - the recipient */
     userId: v.string(),
 
     /** Notification type key (e.g., "post_published"). One of 30 defined keys. */
@@ -83,7 +83,7 @@ export const notificationTables = {
     groupCount: v.optional(v.number()),
 
     // --- Actor Context ---
-    /** WorkOS user ID of the person who triggered this */
+    /** User identifier of the person who triggered this */
     actorId: v.optional(v.string()),
 
     /** Display name of the actor (denormalized snapshot, max 100 chars) */
@@ -124,7 +124,7 @@ export const notificationTables = {
   // ─── Notification Preferences ────────────────────────────────────────────────
   notificationPreferences: defineTable({
     // --- Identity ---
-    /** WorkOS user ID */
+    /** User identifier */
     userId: v.string(),
 
     /** Notification type key (e.g., "post_published") */

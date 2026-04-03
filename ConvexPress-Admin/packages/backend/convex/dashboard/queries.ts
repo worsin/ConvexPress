@@ -388,7 +388,7 @@ export const getWebsiteDashboard = query({
     };
 
     // ── My Comments ────────────────────────────────────────────────────────
-    // Comments use WorkOS user ID as authorId (string), not Convex ID
+    // Comments use user identifier as authorId (string), not Convex ID
     const userComments = await ctx.db
       .query("comments")
       .withIndex("by_author", (q) =>
@@ -414,7 +414,7 @@ export const getWebsiteDashboard = query({
     );
 
     // ── Unread Notifications ───────────────────────────────────────────────
-    // siteNotifications uses WorkOS user ID as userId (string)
+    // siteNotifications uses user identifier as userId (string)
     // Unread notifications have readAt === undefined
     const unreadNotifications = await ctx.db
       .query("siteNotifications")

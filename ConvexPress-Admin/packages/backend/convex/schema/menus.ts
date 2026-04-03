@@ -7,7 +7,7 @@
  *   - `menuLocations` - Theme-registered locations and their assigned menus
  *
  * Unlike WordPress, which overloads the taxonomy and post systems to store menus,
- * SmithHarper uses three dedicated Convex tables with proper typing and indexes.
+ * ConvexPress uses three dedicated Convex tables with proper typing and indexes.
  *
  * Key design decisions:
  *   - Menu items support 5 link types: page, post, category, tag, custom
@@ -59,7 +59,7 @@ export const menuTables = {
     itemCount: v.optional(v.number()), // Cached count of menu items (for admin list)
 
     // === Authorship ===
-    createdBy: v.string(), // WorkOS user ID of creator
+    createdBy: v.string(), // User identifier of creator
 
     // === Timestamps ===
     createdAt: v.number(),

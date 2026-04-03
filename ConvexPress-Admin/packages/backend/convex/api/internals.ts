@@ -271,7 +271,7 @@ export const authenticateRequest = internalMutation({
  *   3. Construct payload JSON
  *   4. Decrypt signing secret (AES-256-GCM)
  *   5. Compute HMAC-SHA256 signature
- *   6. HTTP POST to delivery URL with SmithHarper headers
+ *   6. HTTP POST to delivery URL with ConvexPress headers
  *   7. Log delivery result to webhookDeliveries table
  *   8. On success: reset consecutiveFailures, update lastDeliveryAt
  *   9. On failure: increment consecutiveFailures, auto-disable if threshold reached
@@ -344,12 +344,12 @@ export const deliverWebhook = internalAction({
     // 6. Build request headers
     const requestHeaders: Record<string, string> = {
       "Content-Type": webhook.contentType,
-      "User-Agent": "SmithHarper-Webhook/1.0",
-      "X-SmithHarper-Event": eventCode,
-      "X-SmithHarper-Signature": signature,
-      "X-SmithHarper-Delivery": deliveryId,
-      "X-SmithHarper-Webhook-Id": webhookId,
-      "X-SmithHarper-Timestamp": String(deliveredAt),
+      "User-Agent": "ConvexPress-Webhook/1.0",
+      "X-ConvexPress-Event": eventCode,
+      "X-ConvexPress-Signature": signature,
+      "X-ConvexPress-Delivery": deliveryId,
+      "X-ConvexPress-Webhook-Id": webhookId,
+      "X-ConvexPress-Timestamp": String(deliveredAt),
     };
 
     // 7. Send HTTP POST
@@ -685,7 +685,7 @@ export const cleanupDeliveryLogs = internalMutation({
  * access ctx.auth or ctx.db directly.
  *
  * Checks:
- *   1. User is authenticated via WorkOS
+ *   1. User is authenticated
  *   2. User has api.create_webhook capability
  *   3. Webhook exists and is active
  *
@@ -704,7 +704,7 @@ export const verifyWebhookTestPermission = internalMutation({
       };
     }
 
-    // Look up user by WorkOS ID
+    // Look up user by identifier
     const user = await lookupUserByIdentifier(ctx, identity.subject);
 
     if (!user || user.status !== "active") {

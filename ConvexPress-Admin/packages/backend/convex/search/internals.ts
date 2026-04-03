@@ -600,11 +600,11 @@ export const cleanupOrphanedIndex = internalMutation({
  */
 export const checkReindexPermission = internalQuery({
   args: {
-    workosUserId: v.string(),
+    userId: v.string(),
   },
   handler: async (ctx, args): Promise<boolean> => {
-    // Look up user by identifier (workosUserId, clerkUserId, or Convex _id)
-    const user = await lookupUserByIdentifier(ctx, args.workosUserId);
+    // Look up user by identifier (clerkUserId or Convex _id)
+    const user = await lookupUserByIdentifier(ctx, args.userId);
 
     if (!user) return false;
 

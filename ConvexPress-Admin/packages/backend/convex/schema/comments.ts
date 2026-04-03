@@ -7,15 +7,15 @@
  *   - `commentLikes` - Like/unlike tracking per user-comment pair
  *   - `commentFlags` - Flag/report tracking per user-comment pair
  *
- * SmithHarper diverges from WordPress in several key ways:
- *   - All commenters must be authenticated via WorkOS (no anonymous comments)
+ * ConvexPress diverges from WordPress in several key ways:
+ *   - All commenters must be authenticated (no anonymous comments)
  *   - Built-in like/unlike toggle (commentLikes table)
  *   - Built-in flagging for review (commentFlags table)
  *   - Real-time via Convex subscriptions
  *   - No pingbacks/trackbacks (obsolete protocol)
  *
  * Key design decisions:
- *   - `authorId` is a WorkOS user ID string (not a Convex ID) to match WorkOS auth
+ *   - `authorId` is a user identifier string (not a Convex ID) to support multiple auth sources
  *   - Author name/avatar are denormalized at creation time for fast reads
  *   - `likeCount` and `flagCount` are denormalized on the comments table
  *   - Threading via `parentId` self-reference with configurable max depth
@@ -65,9 +65,9 @@ export const commentTables = {
     status: commentApprovalStatusValidator, // comment_approved - Moderation status
 
     // ── Authorship ───────────────────────────────────────────────────────
-    authorId: v.string(), // WorkOS user ID (required - no anonymous comments)
-    authorName: v.string(), // Denormalized display name (from WorkOS profile)
-    authorAvatarUrl: v.optional(v.string()), // Denormalized avatar URL (from WorkOS profile)
+    authorId: v.string(), // User identifier string (required - no anonymous comments)
+    authorName: v.string(), // Denormalized display name
+    authorAvatarUrl: v.optional(v.string()), // Denormalized avatar URL
 
     // ── Threading ────────────────────────────────────────────────────────
     parentId: v.optional(v.id("comments")), // Parent comment ID for replies (undefined = top-level)
@@ -78,7 +78,7 @@ export const commentTables = {
     flagCount: v.number(), // Denormalized count of flags
 
     // ── Moderation Metadata ──────────────────────────────────────────────
-    moderatedBy: v.optional(v.string()), // WorkOS user ID of moderator who acted
+    moderatedBy: v.optional(v.string()), // User identifier of moderator who acted
     moderatedAt: v.optional(v.number()), // When moderation action was taken
     flaggedReasons: v.optional(v.array(v.string())), // Collected flag reasons
 
@@ -130,12 +130,12 @@ export const commentTables = {
   /**
    * Comment likes table - one record per user-comment like relationship.
    *
-   * No WordPress equivalent (built-in SmithHarper feature).
+   * No WordPress equivalent (built-in ConvexPress feature).
    * The `by_user_comment` index enforces uniqueness: one like per user per comment.
    */
   commentLikes: defineTable({
     commentId: v.id("comments"), // The comment being liked
-    userId: v.string(), // WorkOS user ID of the liker
+    userId: v.string(), // User identifier of the liker
     createdAt: v.number(), // When the like was created
   })
     .index("by_comment", ["commentId"]) // All likes for a comment
@@ -145,12 +145,12 @@ export const commentTables = {
   /**
    * Comment flags table - one record per user-comment flag relationship.
    *
-   * No WordPress equivalent (built-in SmithHarper feature).
+   * No WordPress equivalent (built-in ConvexPress feature).
    * The `by_user_comment` index enforces uniqueness: one flag per user per comment.
    */
   commentFlags: defineTable({
     commentId: v.id("comments"), // The comment being flagged
-    userId: v.string(), // WorkOS user ID of the flagger
+    userId: v.string(), // User identifier of the flagger
     reason: v.string(), // Flag reason: spam, harassment, off-topic, misinformation, other
     details: v.optional(v.string()), // Optional additional details (max 500 chars)
     createdAt: v.number(), // When the flag was created

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace WorkOS AuthKit with custom Convex JWT auth (admin) + Clerk (website), preserving all existing backend permission infrastructure.
+**Goal:** Replace Convex Auth with custom Convex JWT auth (admin) + Clerk (website), preserving all existing backend permission infrastructure.
 
 **Architecture:** Two JWT providers in one Convex `auth.config.ts` — a custom local issuer for admin username/password auth, and Clerk for website public auth. Single `users` table with `authSource` field. The `getCurrentUser()` function in `permissions.ts` is the single chokepoint — update it once, and all 100+ backend files keep working.
 
@@ -23,33 +23,33 @@ This phase builds the custom JWT auth system in the Convex backend. No frontend 
 
 - [ ] **Step 1: Add new auth fields and indexes to users schema**
 
-Replace the WorkOS-synced fields section and add new auth fields:
+Replace the Convex Auth-synced fields section and add new auth fields:
 
 ```typescript
 // Replace:
-//   workosUserId: v.string(),
+//   clerkUserId: v.string(),
 // With:
     // authSource is optional during migration — backfill sets it on existing users
     authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"))),
     passwordHash: v.optional(v.string()),
     clerkUserId: v.optional(v.string()),
-    // Keep workosUserId during grace period (optional, for migration)
-    workosUserId: v.optional(v.string()),
+    // Keep clerkUserId during grace period (optional, for migration)
+    clerkUserId: v.optional(v.string()),
 ```
 
-Update indexes — remove `by_workosUserId` as required index, add new ones:
+Update indexes — remove `by_clerkUserId` as required index, add new ones:
 
 ```typescript
 // Remove:
-//   .index("by_workosUserId", ["workosUserId"])
+//   .index("by_clerkUserId", ["clerkUserId"])
 // Add:
     .index("by_clerkUserId", ["clerkUserId"])
     .index("by_authSource", ["authSource"])
-    // Keep workosUserId index as optional during grace period
-    .index("by_workosUserId", ["workosUserId"])
+    // Keep clerkUserId index as optional during grace period
+    .index("by_clerkUserId", ["clerkUserId"])
 ```
 
-Note: `workosUserId` changes from required `v.string()` to `v.optional(v.string())`. This is a breaking schema change — existing user documents have this field populated, so the data is compatible (optional accepts existing values). But the index may need data backfill for the new required `authSource` field on existing users.
+Note: `clerkUserId` changes from required `v.string()` to `v.optional(v.string())`. This is a breaking schema change — existing user documents have this field populated, so the data is compatible (optional accepts existing values). But the index may need data backfill for the new required `authSource` field on existing users.
 
 - [ ] **Step 2: Create refresh tokens schema**
 
@@ -91,13 +91,13 @@ git commit -m "feat(schema): add authSource, clerkUserId, passwordHash fields an
 
 ---
 
-### Task 2: Remove WorkOS Convex Component
+### Task 2: Remove Convex Auth Convex Component
 
 **Files:**
 - Modify: `ConvexPress-Admin/packages/backend/convex/convex.config.ts`
 - Modify: `ConvexPress-Admin/packages/backend/package.json`
 
-- [ ] **Step 1: Remove WorkOS from convex.config.ts**
+- [ ] **Step 1: Remove Convex Auth from convex.config.ts**
 
 Replace entire file:
 
@@ -109,17 +109,17 @@ const app = defineApp();
 export default app;
 ```
 
-- [ ] **Step 2: Remove `@convex-dev/workos-authkit` from backend package.json**
+- [ ] **Step 2: Remove `@convex-dev/auth-authkit` from backend package.json**
 
 ```bash
-cd ConvexPress-Admin/packages/backend && bun remove @convex-dev/workos-authkit
+cd ConvexPress-Admin/packages/backend && bun remove @convex-dev/auth-authkit
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add ConvexPress-Admin/packages/backend/convex/convex.config.ts ConvexPress-Admin/packages/backend/package.json
-git commit -m "feat(backend): remove WorkOS AuthKit Convex component"
+git commit -m "feat(backend): remove Convex Auth Convex component"
 ```
 
 ---
@@ -137,7 +137,7 @@ export default {
     {
       // Admin: custom JWT provider (explicit JWKS URL, not OIDC discovery)
       type: "customJwt" as const,
-      issuer: "smithharper-admin",
+      issuer: "convexpress-admin",
       algorithm: "ES256" as const,
       jwks: `${process.env.AUTH_ISSUER_URL}/.well-known/jwks.json`,
     },
@@ -181,8 +181,8 @@ import bcrypt from "bcryptjs";
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const ALG = "ES256";
-const ISSUER = "smithharper-admin";
-const AUDIENCE = "smithharper-admin";
+const ISSUER = "convexpress-admin";
+const AUDIENCE = "convexpress-admin";
 const ACCESS_TOKEN_EXPIRY = "15m";
 const REFRESH_TOKEN_BYTES = 32;
 const BCRYPT_COST = 12;
@@ -232,7 +232,7 @@ export async function getJWKS(): Promise<{ keys: object[] }> {
         ...publicOnly,
         alg: ALG,
         use: "sig",
-        kid: "smithharper-admin-1",
+        kid: "convexpress-admin-1",
       },
     ],
   };
@@ -412,7 +412,7 @@ export const loginHandler = httpAction(async (ctx, request) => {
   // Set refresh token as httpOnly cookie
   const isProduction = process.env.AUTH_ISSUER_URL?.startsWith("https://") ?? false;
   const cookieFlags = [
-    `smithharper_refresh=${rawRefreshToken}`,
+    `convexpress_refresh=${rawRefreshToken}`,
     "HttpOnly",
     `Path=/auth/refresh`,
     `Max-Age=${7 * 24 * 60 * 60}`,
@@ -492,7 +492,7 @@ export const refreshHandler = httpAction(async (ctx, request) => {
 
   // Parse refresh token from cookie
   const cookieHeader = request.headers.get("cookie") ?? "";
-  const refreshToken = parseCookie(cookieHeader, "smithharper_refresh");
+  const refreshToken = parseCookie(cookieHeader, "convexpress_refresh");
 
   if (!refreshToken) {
     return jsonResponse({ error: "No refresh token" }, 401, origin);
@@ -545,7 +545,7 @@ export const refreshHandler = httpAction(async (ctx, request) => {
 
   const isProduction = process.env.AUTH_ISSUER_URL?.startsWith("https://") ?? false;
   const cookieFlags = [
-    `smithharper_refresh=${newRawToken}`,
+    `convexpress_refresh=${newRawToken}`,
     "HttpOnly",
     `Path=/auth/refresh`,
     `Max-Age=${7 * 24 * 60 * 60}`,
@@ -852,7 +852,7 @@ git commit -m "feat(auth): internal functions for user lookup, lockout, and refr
 **Files:**
 - Modify: `ConvexPress-Admin/packages/backend/convex/http.ts`
 
-- [ ] **Step 1: Remove WorkOS routes, add auth routes**
+- [ ] **Step 1: Remove Convex Auth routes, add auth routes**
 
 At the top of `http.ts`:
 - Remove: `import { authKit } from "./auth";`
@@ -925,7 +925,7 @@ export const logoutHandler = httpAction(async (_, request) => {
   const isProduction = process.env.AUTH_ISSUER_URL?.startsWith("https://") ?? false;
 
   const clearCookie = [
-    "smithharper_refresh=",
+    "convexpress_refresh=",
     "HttpOnly",
     "Path=/auth/refresh",
     "Max-Age=0",
@@ -963,22 +963,22 @@ git commit -m "feat(auth): register login, refresh, and JWKS HTTP routes"
 
 In `permissions.ts`, update the `getCurrentUser` function and the `UserDoc` type:
 
-Update `UserDoc` type — add new fields, make `workosUserId` optional:
+Update `UserDoc` type — add new fields, make `clerkUserId` optional:
 
 ```typescript
 // In the UserDoc type, change:
-//   workosUserId: string;
+//   clerkUserId: string;
 // To:
   authSource: "local" | "clerk";
   passwordHash?: string;
   clerkUserId?: string;
-  workosUserId?: string;  // Grace period — will be removed
+  clerkUserId?: string;  // Grace period — will be removed
 ```
 
 Replace the `getCurrentUser` function body:
 
 ```typescript
-const ADMIN_ISSUER = "smithharper-admin";
+const ADMIN_ISSUER = "convexpress-admin";
 
 export async function getCurrentUser(
   ctx: QueryCtx | MutationCtx,
@@ -1003,12 +1003,12 @@ export async function getCurrentUser(
     )
     .unique();
 
-  // Fallback: check workosUserId for migration grace period
+  // Fallback: check clerkUserId for migration grace period
   if (!user) {
     const legacyUser = await ctx.db
       .query("users")
-      .withIndex("by_workosUserId", (q) =>
-        q.eq("workosUserId", identity.subject),
+      .withIndex("by_clerkUserId", (q) =>
+        q.eq("clerkUserId", identity.subject),
       )
       .first();
     return legacyUser as UserDoc | null;
@@ -1018,7 +1018,7 @@ export async function getCurrentUser(
 }
 ```
 
-Also update the JSDoc comment at the top to remove "WorkOS" references.
+Also update the JSDoc comment at the top to remove "Convex Auth" references.
 
 - [ ] **Step 2: Commit**
 
@@ -1036,7 +1036,7 @@ git commit -m "feat(auth): update getCurrentUser for dual-provider auth (admin J
 
 - [ ] **Step 1: Rewrite checkAdminAccess to use getCurrentUser()**
 
-Read the current `users.ts` file. Find the `checkAdminAccess` query and replace its user lookup (which directly uses `by_workosUserId`) with a call to `getCurrentUser()` from the permissions helper:
+Read the current `users.ts` file. Find the `checkAdminAccess` query and replace its user lookup (which directly uses `by_clerkUserId`) with a call to `getCurrentUser()` from the permissions helper:
 
 ```typescript
 import { getCurrentUser } from "./helpers/permissions";
@@ -1066,30 +1066,30 @@ export const checkAdminAccess = query({
 });
 ```
 
-Also update any other functions in `users.ts` that directly use `by_workosUserId`.
+Also update any other functions in `users.ts` that directly use `by_clerkUserId`.
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add ConvexPress-Admin/packages/backend/convex/users.ts
-git commit -m "fix(auth): rewrite checkAdminAccess to use getCurrentUser instead of workosUserId"
+git commit -m "fix(auth): rewrite checkAdminAccess to use getCurrentUser instead of clerkUserId"
 ```
 
 ---
 
-### Task 12: Delete WorkOS auth.ts and Update Remaining Backend Files
+### Task 12: Delete Convex Auth auth.ts and Update Remaining Backend Files
 
 **Files:**
 - Delete: `ConvexPress-Admin/packages/backend/convex/auth.ts`
-- Modify: 18+ backend files that reference `by_workosUserId` or import from `./auth`
+- Modify: 18+ backend files that reference `by_clerkUserId` or import from `./auth`
 
-- [ ] **Step 1: Delete the WorkOS auth.ts file**
+- [ ] **Step 1: Delete the Convex Auth auth.ts file**
 
-Delete `ConvexPress-Admin/packages/backend/convex/auth.ts` (the WorkOS webhook handler).
+Delete `ConvexPress-Admin/packages/backend/convex/auth.ts` (the auth webhook handler).
 
-- [ ] **Step 2: Update all remaining files that use `by_workosUserId`**
+- [ ] **Step 2: Update all remaining files that use `by_clerkUserId`**
 
-For each of these files, replace `.withIndex("by_workosUserId", ...)` lookups with the appropriate pattern:
+For each of these files, replace `.withIndex("by_clerkUserId", ...)` lookups with the appropriate pattern:
 
 **Pattern A — If in an authenticated context (has `ctx` with auth):**
 Use `getCurrentUser(ctx)` from `../helpers/permissions`.
@@ -1097,10 +1097,10 @@ Use `getCurrentUser(ctx)` from `../helpers/permissions`.
 **Pattern B — If looking up a user by known user ID:**
 Use `ctx.db.get(userId)` directly (Convex `_id` doesn't change).
 
-**Pattern C — If looking up by WorkOS ID specifically (e.g., webhook handlers):**
-These are WorkOS-specific and should be deleted or rewritten for Clerk.
+**Pattern C — If looking up by the auth system ID specifically (e.g., webhook handlers):**
+These are Convex Auth-specific and should be deleted or rewritten for Clerk.
 
-Files to update (grep for `by_workosUserId` and `workosUserId` in each, apply the right pattern):
+Files to update (grep for `by_clerkUserId` and `clerkUserId` in each, apply the right pattern):
 
 - `convex/authTracking/mutations.ts` — Pattern A (rewrite `getOrCreateCurrentUserForLogin`)
 - `convex/authTracking/internals.ts` — Pattern A/B
@@ -1123,13 +1123,13 @@ Files to update (grep for `by_workosUserId` and `workosUserId` in each, apply th
 - `convex/wordpressSync/phases/menus.ts` — Pattern B
 - `convex/helpers/auth.ts` — Update deprecated helpers
 
-**This is the largest single task.** The agent handling this should read each file, find the `workosUserId` usage, and apply the correct fix. Most are simple index swap or replacement with `getCurrentUser()`.
+**This is the largest single task.** The agent handling this should read each file, find the `clerkUserId` usage, and apply the correct fix. Most are simple index swap or replacement with `getCurrentUser()`.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add -A ConvexPress-Admin/packages/backend/convex/
-git commit -m "refactor(auth): remove all workosUserId references from backend functions"
+git commit -m "refactor(auth): remove all clerkUserId references from backend functions"
 ```
 
 ---
@@ -1147,7 +1147,7 @@ Create `ConvexPress-Admin/packages/backend/convex/auth/migrations.ts`:
 import { internalMutation } from "../_generated/server";
 
 /**
- * Backfill: Set authSource="local" on all existing users that have workosUserId.
+ * Backfill: Set authSource="local" on all existing users that have clerkUserId.
  * Run once after deploying the schema change.
  *
  * Call from Convex Dashboard: internal.auth.migrations.backfillAuthSource
@@ -1184,24 +1184,24 @@ git commit -m "feat(auth): migration to backfill authSource on existing users"
 
 ## Phase 2: Admin Frontend — Local Auth
 
-This phase replaces WorkOS on the admin frontend with the custom JWT auth system.
+This phase replaces Convex Auth on the admin frontend with the custom JWT auth system.
 
-### Task 14: Remove WorkOS Packages from Admin Frontend
+### Task 14: Remove Convex Auth Packages from Admin Frontend
 
 **Files:**
 - Modify: `ConvexPress-Admin/apps/web/package.json`
 
-- [ ] **Step 1: Remove WorkOS packages**
+- [ ] **Step 1: Remove Convex Auth packages**
 
 ```bash
-cd ConvexPress-Admin/apps/web && bun remove @workos-inc/authkit-react @convex-dev/workos
+cd ConvexPress-Admin/apps/web && bun remove @auth-inc/authkit-react @convex-dev/auth
 ```
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add ConvexPress-Admin/apps/web/package.json
-git commit -m "chore(admin): remove WorkOS packages"
+git commit -m "chore(admin): remove Convex Auth packages"
 ```
 
 ---
@@ -1474,15 +1474,15 @@ if (!rootElement.innerHTML) {
 
 - [ ] **Step 2: Update env types**
 
-In `ConvexPress-Admin/apps/web/src/env.d.ts` — remove `VITE_WORKOS_CLIENT_ID` and `VITE_WORKOS_REDIRECT_URI` type declarations, add `VITE_CONVEX_SITE_URL`.
+In `ConvexPress-Admin/apps/web/src/env.d.ts` — remove `VITE_AUTH_CLIENT_ID` and `VITE_AUTH_REDIRECT_URI` type declarations, add `VITE_CONVEX_SITE_URL`.
 
-Also update `ConvexPress-Admin/packages/env/src/web.ts` if it defines WorkOS env vars.
+Also update `ConvexPress-Admin/packages/env/src/web.ts` if it defines Convex Auth env vars.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add ConvexPress-Admin/apps/web/src/main.tsx ConvexPress-Admin/apps/web/src/env.d.ts
-git commit -m "feat(admin): replace WorkOS provider stack with local auth"
+git commit -m "feat(admin): replace Convex Auth provider stack with local auth"
 ```
 
 ---
@@ -1578,7 +1578,7 @@ function LoginForm({ onLogin }: { onLogin: (id: string, pw: string) => Promise<u
     <div className="flex h-svh items-center justify-center">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">SmithHarper Admin</h1>
+          <h1 className="text-2xl font-bold">ConvexPress Admin</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Sign in to continue
           </p>
@@ -1646,7 +1646,7 @@ export const Route = createFileRoute("/")({
 
 - [ ] **Step 3: Delete `routes/callback.tsx`**
 
-Delete the file — no more WorkOS callback.
+Delete the file — no more Convex Auth callback.
 
 - [ ] **Step 4: Commit**
 
@@ -1666,11 +1666,11 @@ git commit -m "feat(admin): rewrite auth pages for local JWT auth"
 
 - [ ] **Step 1: Update header.tsx**
 
-Replace `@workos-inc/authkit-react` imports with `useLocalAuthContext`. Replace `useAuth()` calls with `useLocalAuthContext()`. Replace `signOut()` with `logout()`.
+Replace `@auth-inc/authkit-react` imports with `useLocalAuthContext`. Replace `useAuth()` calls with `useLocalAuthContext()`. Replace `signOut()` with `logout()`.
 
 - [ ] **Step 2: Update UserMenu.tsx**
 
-Same pattern — replace WorkOS `useAuth()` with `useLocalAuthContext()`.
+Same pattern — replace Convex Auth `useAuth()` with `useLocalAuthContext()`.
 
 - [ ] **Step 3: Commit**
 
@@ -1681,7 +1681,7 @@ git commit -m "feat(admin): update header and user menu for local auth"
 
 ---
 
-### Task 19: Update Remaining Admin Frontend WorkOS References
+### Task 19: Update Remaining Admin Frontend Convex Auth References
 
 **Files:**
 - Modify: `ConvexPress-Admin/apps/web/src/lib/auth-context.tsx`
@@ -1697,20 +1697,20 @@ git commit -m "feat(admin): update header and user menu for local auth"
 
 - [ ] **Step 1: Update auth-context.tsx**
 
-The `AuthProvider` in `lib/auth-context.tsx` wraps the authenticated admin shell. It currently may reference WorkOS for user data. Update it to source user data from Convex queries only (which it likely already does via `api.users.getCurrentUser`). Remove any WorkOS imports.
+The `AuthProvider` in `lib/auth-context.tsx` wraps the authenticated admin shell. It currently may reference Convex Auth for user data. Update it to source user data from Convex queries only (which it likely already does via `api.users.getCurrentUser`). Remove any Convex Auth imports.
 
 - [ ] **Step 2: Update user-related components**
 
-For each file that references WorkOS:
-- Replace `workosUserId` field references with `authSource`/`clerkUserId` as appropriate
-- Remove any WorkOS-specific avatar URL handling (use `profilePictureUrl` or `avatarUrl`)
-- Remove WorkOS sign-in/sign-up URL generation
-- Update type definitions that include `workosUserId`
+For each file that references Convex Auth:
+- Replace `clerkUserId` field references with `authSource`/`clerkUserId` as appropriate
+- Remove any Convex Auth-specific avatar URL handling (use `profilePictureUrl` or `avatarUrl`)
+- Remove Convex Auth sign-in/sign-up URL generation
+- Update type definitions that include `clerkUserId`
 
-- [ ] **Step 3: Search for any remaining `workos` references in admin frontend**
+- [ ] **Step 3: Search for any remaining `auth` references in admin frontend**
 
 ```bash
-cd ConvexPress-Admin/apps/web && grep -ri "workos" src/ --include="*.ts" --include="*.tsx" -l
+cd ConvexPress-Admin/apps/web && grep -ri "auth" src/ --include="*.ts" --include="*.tsx" -l
 ```
 
 Fix any remaining files.
@@ -1719,7 +1719,7 @@ Fix any remaining files.
 
 ```bash
 git add -A ConvexPress-Admin/apps/web/src/
-git commit -m "refactor(admin): remove all remaining WorkOS references from frontend"
+git commit -m "refactor(admin): remove all remaining Convex Auth references from frontend"
 ```
 
 ---
@@ -1732,12 +1732,12 @@ git commit -m "refactor(admin): remove all remaining WorkOS references from fron
 
 - [ ] **Step 1: Update .env file**
 
-Remove WorkOS vars, add new ones:
+Remove Convex Auth vars, add new ones:
 
 ```
 # Remove these:
-# VITE_WORKOS_CLIENT_ID=...
-# VITE_WORKOS_REDIRECT_URI=...
+# VITE_AUTH_CLIENT_ID=...
+# VITE_AUTH_REDIRECT_URI=...
 
 # Add:
 VITE_CONVEX_SITE_URL=https://amiable-mongoose-989.convex.site
@@ -1745,7 +1745,7 @@ VITE_CONVEX_SITE_URL=https://amiable-mongoose-989.convex.site
 
 - [ ] **Step 2: Update env validation schema**
 
-In `ConvexPress-Admin/packages/env/src/web.ts`, update the Zod schema to remove WorkOS vars and add `VITE_CONVEX_SITE_URL`.
+In `ConvexPress-Admin/packages/env/src/web.ts`, update the Zod schema to remove Convex Auth vars and add `VITE_CONVEX_SITE_URL`.
 
 - [ ] **Step 3: Commit**
 
@@ -1763,17 +1763,17 @@ git commit -m "chore(admin): update env vars for local auth"
 **Files:**
 - Modify: `ConvexPress-Website/apps/web/package.json`
 
-- [ ] **Step 1: Remove WorkOS packages, add Clerk**
+- [ ] **Step 1: Remove Convex Auth packages, add Clerk**
 
 ```bash
-cd ConvexPress-Website/apps/web && bun remove @workos-inc/node @workos/authkit-tanstack-react-start && bun add @clerk/tanstack-react-start @clerk/clerk-react @convex-dev/react-clerk
+cd ConvexPress-Website/apps/web && bun remove @auth-inc/node @auth/authkit-tanstack-react-start && bun add @clerk/tanstack-react-start @clerk/clerk-react @convex-dev/react-clerk
 ```
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add ConvexPress-Website/apps/web/package.json
-git commit -m "chore(website): swap WorkOS packages for Clerk"
+git commit -m "chore(website): swap Convex Auth packages for Clerk"
 ```
 
 ---
@@ -1807,15 +1807,15 @@ Read the current `__root.tsx` to understand the exact structure and adapt accord
 
 - [ ] **Step 2: Update `start.ts` middleware**
 
-Remove `authkitMiddleware()`. Replace with Clerk middleware if needed for SSR, or remove the auth middleware entirely and handle auth in route loaders:
+Remove `authMiddleware()`. Replace with Clerk middleware if needed for SSR, or remove the auth middleware entirely and handle auth in route loaders:
 
 ```typescript
 import { createStart } from "@tanstack/react-start";
-// Remove: import { authkitMiddleware } from "@workos/authkit-tanstack-react-start";
+// Remove: import { authMiddleware } from "@auth/authkit-tanstack-react-start";
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [canonicalMiddleware],
-  // authkitMiddleware removed — Clerk handles auth client-side
+  // authMiddleware removed — Clerk handles auth client-side
 }));
 ```
 
@@ -1825,7 +1825,7 @@ Check `@clerk/tanstack-react-start` docs — if it provides server middleware, u
 
 ```bash
 git add ConvexPress-Website/apps/web/src/routes/__root.tsx ConvexPress-Website/apps/web/src/start.ts
-git commit -m "feat(website): replace WorkOS provider with Clerk + ConvexProviderWithClerk"
+git commit -m "feat(website): replace Convex Auth provider with Clerk + ConvexProviderWithClerk"
 ```
 
 ---
@@ -1843,7 +1843,7 @@ git commit -m "feat(website): replace WorkOS provider with Clerk + ConvexProvide
 
 - [ ] **Step 1: Rewrite login.tsx**
 
-Replace WorkOS `getAuth()` / `getSignInUrl()` with Clerk's `useSignIn()` hook. The custom `LoginForm` component uses:
+Replace Convex Auth `getAuth()` / `getSignInUrl()` with Clerk's `useSignIn()` hook. The custom `LoginForm` component uses:
 
 ```typescript
 import { useSignIn } from "@clerk/clerk-react";
@@ -1874,7 +1874,7 @@ Dynamic strategy detection for the custom UI:
 
 - [ ] **Step 2: Rewrite register.tsx**
 
-Replace WorkOS `getSignUpUrl()` with Clerk's `useSignUp()` hook:
+Replace Convex Auth `getSignUpUrl()` with Clerk's `useSignUp()` hook:
 
 ```typescript
 import { useSignUp } from "@clerk/clerk-react";
@@ -1928,11 +1928,11 @@ import { useSignIn } from "@clerk/clerk-react";
 
 - [ ] **Step 2: Rewrite LoginForm.tsx**
 
-Replace WorkOS form submission with Clerk `useSignIn().create()`. Keep existing form layout and validation.
+Replace Convex Auth form submission with Clerk `useSignIn().create()`. Keep existing form layout and validation.
 
 - [ ] **Step 3: Rewrite RegisterForm.tsx**
 
-Replace WorkOS form submission with Clerk `useSignUp().create()`. Keep existing form layout, password strength indicator, registration gate logic.
+Replace Convex Auth form submission with Clerk `useSignUp().create()`. Keep existing form layout, password strength indicator, registration gate logic.
 
 - [ ] **Step 4: Rewrite ForgotPasswordForm.tsx**
 
@@ -1940,7 +1940,7 @@ Use Clerk's password reset flow via `useSignIn()`.
 
 - [ ] **Step 5: Update LoginTracker.tsx**
 
-Adapt login tracking to work with Clerk auth state instead of WorkOS.
+Adapt login tracking to work with Clerk auth state instead of Convex Auth.
 
 - [ ] **Step 6: Commit**
 
@@ -1964,14 +1964,14 @@ git commit -m "feat(website): rewrite auth components with Clerk hooks and custo
 
 - [ ] **Step 1: Update layout components**
 
-Replace WorkOS auth hooks (`useAuth()` from `@workos/*`) with Clerk equivalents:
+Replace Convex Auth auth hooks (`useAuth()` from `@auth/*`) with Clerk equivalents:
 - `useUser()` from `@clerk/clerk-react` for user data
 - `useAuth()` from `@clerk/clerk-react` for auth state
 - `useClerk().signOut()` for logout
 
 - [ ] **Step 2: Update dashboard route guards**
 
-Replace WorkOS `getAuth()` in SSR loaders with Clerk's server-side auth check.
+Replace Convex Auth `getAuth()` in SSR loaders with Clerk's server-side auth check.
 
 - [ ] **Step 3: Commit**
 
@@ -2003,21 +2003,21 @@ git commit -m "feat(website): update layout and dashboard for Clerk auth"
 
 - [ ] **Step 1: Update auth utilities**
 
-`lib/auth/auth.ts` contains capability checking functions (`userCan`, `userCanAll`, etc.) that likely don't reference WorkOS directly. Verify and update if needed.
+`lib/auth/auth.ts` contains capability checking functions (`userCan`, `userCanAll`, etc.) that likely don't reference Convex Auth directly. Verify and update if needed.
 
-`lib/auth/types.ts` may have WorkOS-specific type definitions. Update to reflect Clerk user shape.
+`lib/auth/types.ts` may have Convex Auth-specific type definitions. Update to reflect Clerk user shape.
 
 - [ ] **Step 2: Update hooks**
 
-- `useCurrentUser.ts` — May reference WorkOS user shape. Update for Clerk.
+- `useCurrentUser.ts` — May reference Convex Auth user shape. Update for Clerk.
 - `useLoginTracker.ts` — Update auth source references.
-- `useAvatarUrl.ts` — May reference WorkOS avatar URL. Adapt for Clerk.
+- `useAvatarUrl.ts` — May reference Convex Auth avatar URL. Adapt for Clerk.
 
 - [ ] **Step 3: Update dashboard components**
 
-- `PasswordChangeSection.tsx` — May use WorkOS password change. Use Clerk's `user.updatePassword()` instead.
-- `DeleteAccountDialog.tsx` — May use WorkOS account deletion. Use Clerk's `user.delete()`.
-- Profile components — Remove WorkOS-specific fields.
+- `PasswordChangeSection.tsx` — May use Convex Auth password change. Use Clerk's `user.updatePassword()` instead.
+- `DeleteAccountDialog.tsx` — May use auth account deletion. Use Clerk's `user.delete()`.
+- Profile components — Remove Convex Auth-specific fields.
 
 - [ ] **Step 4: Commit**
 
@@ -2043,9 +2043,9 @@ VITE_ADMIN_APP_URL=http://localhost:4105
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_YOUR_KEY_HERE
 ```
 
-`.env.local` — remove all WorkOS vars:
+`.env.local` — remove all Convex Auth vars:
 ```
-# Remove: WORKOS_CLIENT_ID, WORKOS_API_KEY, WORKOS_COOKIE_PASSWORD, WORKOS_REDIRECT_URI
+# Remove: AUTH_CLIENT_ID, AUTH_API_KEY, AUTH_COOKIE_PASSWORD, AUTH_REDIRECT_URI
 VITE_CONVEX_URL=https://amiable-mongoose-989.convex.cloud
 CLERK_SECRET_KEY=sk_test_YOUR_KEY_HERE
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_YOUR_KEY_HERE
@@ -2455,21 +2455,21 @@ git commit -m "feat(auth): first admin user creation action for install wizard"
 
 ---
 
-### Task 31: Final Cleanup — Remove Remaining WorkOS References
+### Task 31: Final Cleanup — Remove Remaining Convex Auth References
 
-- [ ] **Step 1: Search entire codebase for any remaining WorkOS references**
+- [ ] **Step 1: Search entire codebase for any remaining Convex Auth references**
 
 ```bash
-grep -ri "workos" ConvexPress-Admin/ ConvexPress-Website/ --include="*.ts" --include="*.tsx" --include="*.json" -l | grep -v node_modules | grep -v ".env"
+grep -ri "auth" ConvexPress-Admin/ ConvexPress-Website/ --include="*.ts" --include="*.tsx" --include="*.json" -l | grep -v node_modules | grep -v ".env"
 ```
 
 Fix any remaining references.
 
-- [ ] **Step 2: Verify no WorkOS packages remain in any package.json**
+- [ ] **Step 2: Verify no Convex Auth packages remain in any package.json**
 
 ```bash
-grep -r "@workos" ConvexPress-Admin/apps/web/package.json ConvexPress-Admin/packages/backend/package.json ConvexPress-Website/apps/web/package.json
-grep -r "convex-dev/workos" ConvexPress-Admin/apps/web/package.json ConvexPress-Admin/packages/backend/package.json
+grep -r "@auth" ConvexPress-Admin/apps/web/package.json ConvexPress-Admin/packages/backend/package.json ConvexPress-Website/apps/web/package.json
+grep -r "convex-dev/auth" ConvexPress-Admin/apps/web/package.json ConvexPress-Admin/packages/backend/package.json
 ```
 
 - [ ] **Step 3: Run bun install to clean lockfiles**
@@ -2483,7 +2483,7 @@ cd ConvexPress-Website && bun install
 
 ```bash
 git add -A
-git commit -m "chore: remove all remaining WorkOS references and clean dependencies"
+git commit -m "chore: remove all remaining Convex Auth references and clean dependencies"
 ```
 
 ---
@@ -2505,7 +2505,7 @@ Copy the output (PEM-formatted private key).
 In the Convex Dashboard (https://dashboard.convex.dev), set:
 - `AUTH_PRIVATE_KEY` = the PEM private key from step 1
 - `AUTH_ISSUER_URL` = `https://amiable-mongoose-989.convex.site`
-- Remove: `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`
+- Remove: `AUTH_CLIENT_ID`, `AUTH_API_KEY`
 
 When Clerk is configured later:
 - `CLERK_JWT_ISSUER_DOMAIN` = Clerk Frontend API URL
@@ -2526,7 +2526,7 @@ In Convex Dashboard, run: `internal.auth.migrations.backfillAuthSource`
 In Convex Dashboard, run `auth.setup.createFirstAdmin` with:
 ```json
 {
-  "email": "admin@smithharper.com",
+  "email": "admin@convexpress.com",
   "username": "admin",
   "password": "your-secure-password",
   "displayName": "Administrator"
@@ -2539,8 +2539,8 @@ In Convex Dashboard, run `auth.setup.createFirstAdmin` with:
 
 | Phase | Tasks | What It Does |
 |-------|-------|-------------|
-| Phase 1 | Tasks 1-13 | Backend: schema, JWT system, auth endpoints, `getCurrentUser()` update, WorkOS removal from backend |
-| Phase 2 | Tasks 14-20 | Admin frontend: local auth hook, provider stack, login form, WorkOS removal |
+| Phase 1 | Tasks 1-13 | Backend: schema, JWT system, auth endpoints, `getCurrentUser()` update, Convex Auth removal from backend |
+| Phase 2 | Tasks 14-20 | Admin frontend: local auth hook, provider stack, login form, Convex Auth removal |
 | Phase 3 | Tasks 21-27 | Website frontend: Clerk packages, provider, auth pages with custom UI |
 | Phase 4 | Tasks 28-29 | Clerk webhooks + JIT provisioning |
 | Phase 5 | Tasks 30-32 | First admin setup, cleanup, deploy |

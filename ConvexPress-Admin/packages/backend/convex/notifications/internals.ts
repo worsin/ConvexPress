@@ -388,18 +388,18 @@ export const onEvent = internalMutation({
       // Try multiple lookup strategies for the actor
       let actorUser = await ctx.db
         .query("users")
-        .withIndex("by_workosUserId", (q) =>
-          q.eq("workosUserId", event.actorId!),
+        .withIndex("by_clerkUserId", (q) =>
+          q.eq("clerkUserId", event.actorId!),
         )
         .unique();
 
       if (!actorUser) {
-        actorUser = await ctx.db
-          .query("users")
-          .withIndex("by_clerkUserId", (q) =>
-            q.eq("clerkUserId", event.actorId!),
-          )
-          .unique();
+        // Try as a direct Convex document ID
+        try {
+          actorUser = await ctx.db.get(event.actorId! as any);
+        } catch {
+          // Invalid ID format
+        }
       }
 
       if (!actorUser) {
@@ -454,9 +454,7 @@ export const onEvent = internalMutation({
       } else if (config.recipientType === "employee") {
         // Specific user from event payload (post author, uploader, etc.)
         const userId =
-          (payload.authorWorkosId as string) ??
           (payload.authorId as string) ??
-          (payload.uploadedByWorkosId as string) ??
           (payload.userId as string);
 
         if (userId) {
@@ -465,9 +463,7 @@ export const onEvent = internalMutation({
       } else if (config.recipientType === "customer") {
         // Specific affected user from event payload
         const userId =
-          (payload.targetWorkosId as string) ??
           (payload.targetUserId as string) ??
-          (payload.commentAuthorWorkosId as string) ??
           (payload.userId as string);
 
         if (userId) {

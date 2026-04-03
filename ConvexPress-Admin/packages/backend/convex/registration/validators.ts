@@ -121,10 +121,10 @@ export const getByTokenArgs = {
 // ─── Internal Mutation Argument Validators ───────────────────────────────────
 
 /**
- * Args for the createUserFromWorkOS internal mutation.
+ * Args for the handleExternalAuthUserCreated internal mutation.
  */
-export const createUserFromWorkOSArgs = {
-  workosId: v.string(),
+export const createUserFromExternalAuthArgs = {
+  externalAuthId: v.string(),
   email: v.string(),
   username: v.optional(v.string()),
   firstName: v.optional(v.string()),

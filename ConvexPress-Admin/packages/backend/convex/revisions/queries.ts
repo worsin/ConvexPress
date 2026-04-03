@@ -9,7 +9,7 @@
  *   getLatest    - Most recent revision for a post
  *
  * Authorization:
- *   - All queries require authentication (WorkOS)
+ *   - All queries require authentication
  *   - Own posts: Requires revision.view capability
  *   - Others' posts: Requires revision.view + role level >= Editor (80)
  *   - Reads do not emit events
@@ -35,7 +35,7 @@ import {
 /**
  * Resolve author display name and avatar from a user identifier string.
  *
- * Revision `authorId` stores a user identifier (workosUserId, clerkUserId, or Convex _id).
+ * Revision `authorId` stores a user identifier (clerkUserId or Convex _id).
  * Uses lookupUserByIdentifier to try multiple lookup strategies.
  *
  * @param ctx - Query context

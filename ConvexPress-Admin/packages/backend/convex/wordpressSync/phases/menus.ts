@@ -315,7 +315,7 @@ export const menusCreate = internalMutation({
 
     // Get first user as creator
     const firstUser = await ctx.db.query("users").first();
-    const createdBy = firstUser ? (firstUser.workosUserId ?? firstUser.clerkUserId ?? firstUser._id) : "wp-import";
+    const createdBy = firstUser ? (firstUser.clerkUserId ?? firstUser._id) : "wp-import";
 
     // Create menu
     const menuId = await ctx.db.insert("menus", {

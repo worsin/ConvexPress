@@ -5,8 +5,8 @@
  * Used for rate limiting detection, admin alerts, and the
  * user-facing session security dashboard.
  *
- * WorkOS handles actual rate-limiting and account lockout internally,
- * but SmithHarper tracks attempts for:
+ * The auth system handles rate-limiting and account lockout,
+ * but ConvexPress tracks attempts for:
  *   - Admin visibility (failed login log in admin dashboard)
  *   - User-facing security page (login history + failed attempts)
  *   - Event Dispatcher wiring (auth.login_failed events)
@@ -21,9 +21,9 @@ export const authTrackingTables = {
    * Failed login attempts log.
    *
    * Records each failed authentication attempt with metadata.
-   * Since WorkOS handles auth externally, failed attempts are recorded
-   * when the client detects a WorkOS auth error and reports it back,
-   * OR when the headless API returns an authentication error.
+   * Failed attempts are recorded when the client detects an auth error
+   * and reports it back, OR when the headless API returns an
+   * authentication error.
    *
    * Retention: 90 days (compliance-relevant).
    */

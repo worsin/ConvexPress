@@ -1,6 +1,6 @@
 # ConvexPress Website
 
-Public-facing website for the ConvexPress platform. Built with TanStack Start (SSR), Convex, and WorkOS authentication.
+Public-facing website for the ConvexPress platform. Built with TanStack Start (SSR), Convex, and Clerk authentication.
 
 ## Part of a Two-Repo System
 
@@ -67,8 +67,6 @@ ConvexPress-Website/
 | `bun run dev:web` | Start only the web frontend |
 | `bun run build` | Build for production |
 | `bun run check-types` | TypeScript type checking |
-| `bun run auth:provision` | Provision WorkOS user |
-| `bun run auth:list` | List WorkOS users |
 
 ## Environment Variables
 
@@ -76,8 +74,8 @@ Create `apps/web/.env` with:
 
 ```env
 VITE_CONVEX_URL=https://your-deployment.convex.cloud
-WORKOS_API_KEY=sk_...
-WORKOS_CLIENT_ID=client_...
+AUTH_API_KEY=sk_...
+AUTH_CLIENT_ID=client_...
 ```
 
 Get `VITE_CONVEX_URL` from ConvexPress-Admin after running `bun run dev:setup`.
@@ -96,7 +94,7 @@ Or create a parent `package.json` for orchestration (see ConvexPress-Admin READM
 
 - **TanStack Start** - Full-stack React framework with SSR
 - **Convex** - Real-time backend (consuming Admin's deployment)
-- **WorkOS** - Authentication
+- **Clerk** - Authentication
 - **Tailwind CSS** - Utility-first styling
 - **Turborepo** - Monorepo build system
 - **Bun** - Package manager and runtime
@@ -106,7 +104,7 @@ Or create a parent `package.json` for orchestration (see ConvexPress-Admin READM
 This app is designed for cloud deployment with auto-deploy:
 
 1. Connect your cloud provider to this GitHub repo
-2. Set environment variables (`VITE_CONVEX_URL`, `WORKOS_API_KEY`, etc.)
+2. Set environment variables (`VITE_CONVEX_URL`, `AUTH_API_KEY`, etc.)
 3. Build command: `bun run build`
 4. Output directory: `.output`
 

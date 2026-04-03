@@ -80,7 +80,7 @@ export const exportAuditLog = action({
     // Verify the user has the export_audit_log capability via an internal query
     const canExport = await ctx.runQuery(
       internal.auditLogs.internals.checkExportPermission,
-      { workosUserId: identity.subject },
+      { userId: identity.subject },
     );
     if (!canExport) {
       throw new ConvexError({

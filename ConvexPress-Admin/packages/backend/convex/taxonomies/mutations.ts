@@ -14,7 +14,7 @@
  *   - unassign - Remove a term from a post (delete termRelationship)
  *   - merge - Merge source term into target term
  *
- * All mutations require WorkOS authentication and appropriate capabilities.
+ * All mutations require authentication and appropriate capabilities.
  */
 
 import { mutation } from "../_generated/server";

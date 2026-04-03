@@ -21,9 +21,9 @@ import { internalMutation, internalQuery } from "../_generated/server";
  * @throws FORBIDDEN if user lacks manage_options capability
  */
 export const checkAdminPermission = internalQuery({
-  args: { workosUserId: v.string() },
+  args: { userId: v.string() },
   handler: async (ctx, args) => {
-    const user = await lookupUserByIdentifier(ctx, args.workosUserId);
+    const user = await lookupUserByIdentifier(ctx, args.userId);
 
     if (!user) {
       throw new Error("User not found");

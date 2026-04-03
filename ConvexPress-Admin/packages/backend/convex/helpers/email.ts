@@ -105,9 +105,9 @@ const CATEGORY_TO_UNSUBSCRIBE: Record<string, string> = {
  * Default email settings fallbacks (when settings system hasn't been configured).
  */
 export const EMAIL_DEFAULTS = {
-  from_address: "noreply@smithharper.com",
-  from_name: "SmithHarper CMS",
-  reply_to: "support@smithharper.com",
+  from_address: "noreply@convexpress.com",
+  from_name: "ConvexPress",
+  reply_to: "support@convexpress.com",
   rate_limit: 50,
   daily_limit: 1000,
   batch_window: 15,
@@ -156,7 +156,7 @@ export function injectGlobalVariables(
 ): Record<string, string> {
   const now = new Date();
   return {
-    site_name: settings.siteName ?? "SmithHarper",
+    site_name: settings.siteName ?? "ConvexPress",
     site_url: settings.siteUrl ?? "",
     current_year: String(now.getFullYear()),
     unsubscribe_url: settings.unsubscribeUrl ?? EMAIL_DEFAULTS.unsubscribe_url,
@@ -234,7 +234,7 @@ export function isSecurityEmail(templateSlug: string): boolean {
  * Check if a user has unsubscribed from a specific email category.
  *
  * @param ctx - Query or mutation context
- * @param userId - WorkOS user ID to check
+ * @param userId - User identifier string to check
  * @param category - The template category (registration, content, etc.)
  * @returns true if the user has unsubscribed (email should NOT be sent)
  */
@@ -291,22 +291,13 @@ export async function resolveRecipients(
   if (recipientType === "custom" && options?.userIds) {
     // Resolve specific user IDs - try multiple lookup strategies
     for (const id of options.userIds) {
-      // Try by workosUserId first (legacy), then clerkUserId, then direct ID
+      // Try by clerkUserId first, then direct ID
       let user = await ctx.db
         .query("users")
-        .withIndex("by_workosUserId", (q) =>
-          q.eq("workosUserId", id),
+        .withIndex("by_clerkUserId", (q) =>
+          q.eq("clerkUserId", id),
         )
         .unique();
-
-      if (!user) {
-        user = await ctx.db
-          .query("users")
-          .withIndex("by_clerkUserId", (q) =>
-            q.eq("clerkUserId", id),
-          )
-          .unique();
-      }
 
       if (!user) {
         // Try as a direct Convex ID
@@ -479,7 +470,7 @@ export async function getEmailSettings(
     batchWindow: (emailValues.batchWindow as number) ?? EMAIL_DEFAULTS.batch_window,
     enabled: (emailValues.enabled as boolean) ?? EMAIL_DEFAULTS.enabled,
     unsubscribeUrl: (emailValues.unsubscribeUrl as string) ?? EMAIL_DEFAULTS.unsubscribe_url,
-    siteName: (generalValues.siteTitle as string) ?? "SmithHarper",
+    siteName: (generalValues.siteTitle as string) ?? "ConvexPress",
     siteUrl: (generalValues.siteUrl as string) ?? "",
     maxRetries: (emailValues.maxRetries as number) ?? 3,
     retryDelay: (emailValues.retryDelay as number) ?? 5,

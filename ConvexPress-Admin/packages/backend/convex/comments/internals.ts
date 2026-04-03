@@ -109,24 +109,17 @@ export const updatePostCommentCount = internalMutation({
  * Update the denormalized comment count on the users table.
  *
  * Counts all non-trash/non-spam comments by the given author.
- * The authorId is a user identifier string (workosUserId, clerkUserId, or Convex _id).
+ * The authorId is a user identifier string (clerkUserId or Convex _id).
  * Tries multiple lookup strategies to find the user.
  */
 export const updateUserCommentCount = internalMutation({
   args: { authorId: v.string() },
   handler: async (ctx, { authorId }) => {
-    // Find the user by multiple strategies: workosUserId, clerkUserId, or direct ID
+    // Find the user by multiple strategies: clerkUserId or direct ID
     let user = await ctx.db
       .query("users")
-      .withIndex("by_workosUserId", (q) => q.eq("workosUserId", authorId))
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", authorId))
       .unique();
-
-    if (!user) {
-      user = await ctx.db
-        .query("users")
-        .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", authorId))
-        .unique();
-    }
 
     if (!user) {
       try {

@@ -36,7 +36,7 @@ export const eventsTables = {
     /** JSON-serialized payload. Kept as string for schema stability. */
     payload: v.string(),
 
-    /** WorkOS user ID of the actor who triggered the event (if user-initiated) */
+    /** User identifier of the actor who triggered the event (if user-initiated) */
     actorId: v.optional(v.string()),
 
     /** IP address of the actor (if available, for audit logging) */

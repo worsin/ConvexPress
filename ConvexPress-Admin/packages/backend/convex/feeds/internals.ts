@@ -7,7 +7,7 @@
  *
  * Functions:
  *   - getSettingsForFeed      - Get feed settings (for use in actions)
- *   - getUserByWorkosId       - Look up a user by WorkOS user ID (for auth in actions)
+ *   - getUserByIdentifier     - Look up a user by identifier string (for auth in actions)
  *   - getUserRoleLevel        - Get a user's role level (for capability checks in actions)
  *
  * WordPress equivalent: Internal helper functions called by feed template files
@@ -70,27 +70,20 @@ export const getSettingsForFeed = internalQuery({
 // ─── getUserByIdentifier ────────────────────────────────────────────────────
 
 /**
- * Look up a user by their identifier (workosUserId, clerkUserId, or Convex _id).
+ * Look up a user by their identifier (clerkUserId or Convex _id).
  * Used by the fetchExternal action for authentication.
  */
-export const getUserByWorkosId = internalQuery({
-  args: { workosId: v.string() },
+export const getUserByIdentifier = internalQuery({
+  args: { userId: v.string() },
   handler: async (ctx, args) => {
-    // Try workosUserId first, then clerkUserId, then direct ID
-    const byWorkos = await ctx.db
-      .query("users")
-      .withIndex("by_workosUserId", (q) => q.eq("workosUserId", args.workosId))
-      .unique();
-    if (byWorkos) return byWorkos;
-
     const byClerk = await ctx.db
       .query("users")
-      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", args.workosId))
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", args.userId))
       .unique();
     if (byClerk) return byClerk;
 
     try {
-      return await ctx.db.get(args.workosId as any);
+      return await ctx.db.get(args.userId as any);
     } catch {
       return null;
     }

@@ -1,7 +1,7 @@
 /**
  * Event Dispatcher System - Core emitEvent Helper
  *
- * THE universal event emission function. Every system in SmithHarper CMS
+ * THE universal event emission function. Every system in ConvexPress
  * calls this to emit events. It is designed to be called from within
  * authenticated mutations (after the caller has already passed auth checks).
  *
@@ -40,7 +40,7 @@ import { matchesEventCode, getRetentionMs, isValidEventCode } from "../events/co
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface EmitEventOptions {
-  /** WorkOS user ID of the actor. Auto-resolved from ctx.auth if omitted. */
+  /** User identifier of the actor. Auto-resolved from ctx.auth if omitted. */
   actorId?: string;
 
   /** IP address of the actor (for audit logging). */

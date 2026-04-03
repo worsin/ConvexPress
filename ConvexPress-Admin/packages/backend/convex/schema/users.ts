@@ -37,7 +37,7 @@ export const usersTables = {
     slug: v.optional(v.string()), // URL-safe slug for author archive pages (e.g., "john-doe")
     bio: v.optional(v.string()), // Biography/description (max 500 chars)
     url: v.optional(v.string()), // Personal website URL
-    avatarUrl: v.optional(v.string()), // Custom-uploaded avatar (takes priority over WorkOS)
+    avatarUrl: v.optional(v.string()), // Custom-uploaded avatar (takes priority over OAuth provider)
     avatarMediaId: v.optional(v.id("media")), // Reference to media library item for avatar
     avatarStorageId: v.optional(v.string()), // Convex Storage ID for custom avatar (for deletion)
 

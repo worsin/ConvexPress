@@ -18,7 +18,7 @@
  *   - exportGroup       - Export a field group + definitions as JSON
  *   - importGroup       - Import a field group from JSON
  *
- * All mutations require WorkOS authentication and appropriate capabilities.
+ * All mutations require authentication and appropriate capabilities.
  */
 
 import { mutation } from "../_generated/server";

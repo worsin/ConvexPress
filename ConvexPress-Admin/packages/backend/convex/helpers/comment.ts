@@ -309,7 +309,6 @@ export function canEditComment(
  */
 export function resolveCommentAuthor(user: {
   _id: string;
-  workosUserId?: string;
   clerkUserId?: string;
   displayName?: string;
   firstName?: string;
@@ -657,7 +656,6 @@ export interface CreateCommentCoreParams {
   /** The authenticated user creating the comment */
   user: {
     _id: string;
-    workosUserId?: string;
     clerkUserId?: string;
     displayName?: string;
     firstName?: string;
@@ -756,7 +754,6 @@ export async function createCommentCore(
   // ── Denormalize author data ─────────────────────────────────────────
   const { authorId, authorName, authorAvatarUrl } = resolveCommentAuthor({
     _id: user._id,
-    workosUserId: user.workosUserId,
     clerkUserId: user.clerkUserId,
     displayName: user.displayName,
     firstName: user.firstName,

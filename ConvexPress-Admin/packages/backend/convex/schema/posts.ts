@@ -14,7 +14,7 @@
  * Key design decisions:
  *   - `type` discriminator distinguishes posts from pages in the same table
  *   - Slug uniqueness is scoped per type (a post and page can share a slug)
- *   - `authorId` references the Convex users table (not WorkOS user ID string)
+ *   - `authorId` references the Convex users table (not a string identifier)
  *   - Autosave fields live inline on the post (not in a separate revision)
  *   - Page-specific fields (parentId, menuOrder, pageTemplate, path, depth)
  *     are optional and only used when type === "page"
@@ -119,6 +119,45 @@ export const postTables = {
     autosaveContent: v.optional(v.string()), // Last autosaved content
     autosaveTitle: v.optional(v.string()), // Last autosaved title
     autosavedAt: v.optional(v.number()), // When autosave last ran
+
+    // ── Structured Content Fields ───────────────────────────────────────
+    // Provides named content sections for template-driven rendering.
+    // All fields are plain strings (not TipTap JSON) for easy AI generation and user editing.
+
+    /** Hero section — banner area at the top of the page/post */
+    hero: v.optional(v.object({
+      title: v.optional(v.string()),
+      subtitle: v.optional(v.string()),
+      content: v.optional(v.string()),
+      imageId: v.optional(v.id("media")),
+      videoUrl: v.optional(v.string()),
+      ctaText: v.optional(v.string()),
+      ctaUrl: v.optional(v.string()),
+    })),
+
+    /** Topics — up to 5 content sections (enforced in mutations, not schema) */
+    topics: v.optional(v.array(v.object({
+      title: v.optional(v.string()),
+      subtitle: v.optional(v.string()),
+      content: v.optional(v.string()),
+      imageId: v.optional(v.id("media")),
+      videoUrl: v.optional(v.string()),
+    }))),
+
+    /** Summary section — key takeaways or conclusion */
+    summary: v.optional(v.object({
+      title: v.optional(v.string()),
+      content: v.optional(v.string()),
+    })),
+
+    /** Sources — cited references, free-form text (one per line) */
+    sources: v.optional(v.string()),
+
+    /** Table of contents — auto-generated or manually curated */
+    tableOfContents: v.optional(v.string()),
+
+    /** AI generation prompt — describes what this page/post should be about */
+    pagePrompt: v.optional(v.string()),
 
     // ── Timestamps ───────────────────────────────────────────────────────
     createdAt: v.number(), // Creation timestamp (ms)

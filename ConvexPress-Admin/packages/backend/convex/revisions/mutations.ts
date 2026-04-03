@@ -84,8 +84,8 @@ export const restore = mutation({
     // Uses shared helper from helpers/revisions.ts to avoid permission drift
     await requireRevisionAccess(ctx, user, post, "post.update");
 
-    // ── Get the WorkOS user ID for this user ────────────────────────────
-    const authorWorkosId = getUserIdentifier(user);
+    // ── Get the user identifier for this user ────────────────────────────
+    const authorId = getUserIdentifier(user);
 
     // ── Step 1: Create a safety-net revision of the CURRENT state ───────
     const currentRevisionNumber = await getNextRevisionNumber(
@@ -107,7 +107,7 @@ export const restore = mutation({
       excerpt: post.excerpt,
       revisionNumber: currentRevisionNumber,
       type: "manual",
-      authorId: authorWorkosId,
+      authorId: authorId,
       changedFields,
       contentLength: (post.content ?? "").length,
       createdAt: Date.now(),
@@ -150,7 +150,7 @@ export const restore = mutation({
     await emitEvent(ctx, REVISION_EVENTS.RESTORED, SYSTEM.REVISION, {
       revisionId: args.revisionId,
       postId: revision.parentId,
-      restoredBy: authorWorkosId,
+      restoredBy: authorId,
       revisionNumber: revision.revisionNumber,
       previousRevisionNumber: currentRevisionNumber,
     });

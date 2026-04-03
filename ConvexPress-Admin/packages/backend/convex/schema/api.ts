@@ -4,7 +4,7 @@
  * Four tables supporting external API key authentication, outbound webhooks,
  * webhook delivery logging, and per-key rate limiting.
  *
- * This combines three WordPress capabilities into SmithHarper's API layer:
+ * This combines three WordPress capabilities into ConvexPress's API layer:
  *   - WP REST API (Convex HTTP actions at /api/v1/)
  *   - Application Passwords (API keys with scoping and rate limiting)
  *   - WooCommerce Webhooks (outbound HTTPS delivery with HMAC signing)
@@ -43,7 +43,7 @@ export const apiTables = {
     keyHash: v.string(),
 
     // --- Ownership ---
-    /** WorkOS user ID of the admin who created this key */
+    /** User identifier of the admin who created this key */
     userId: v.string(),
 
     // --- Authorization ---
@@ -96,7 +96,7 @@ export const apiTables = {
     // --- Revocation ---
     /** When the key was revoked */
     revokedAt: v.optional(v.number()),
-    /** WorkOS user ID of who revoked it */
+    /** User identifier of who revoked it */
     revokedBy: v.optional(v.string()),
     /** Optional reason for revocation */
     revokeReason: v.optional(v.string()),
@@ -151,7 +151,7 @@ export const apiTables = {
     deliveryTimeout: v.number(),
 
     // --- Ownership ---
-    /** WorkOS user ID of the admin who created this webhook */
+    /** User identifier of the admin who created this webhook */
     userId: v.string(),
 
     // --- Event Listener Link ---

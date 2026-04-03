@@ -19,7 +19,6 @@ import type { MutationCtx } from "../_generated/server";
 type UserDoc = {
   _id: Id<"users">;
   roleId?: Id<"roles">;
-  workosUserId?: string;
   clerkUserId?: string;
 };
 

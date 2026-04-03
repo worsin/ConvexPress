@@ -44,7 +44,7 @@ export const taxonomyTables = {
     // --- Timestamps ---
     createdAt: v.number(), // Creation timestamp (ms)
     updatedAt: v.number(), // Last modification timestamp (ms)
-    createdBy: v.optional(v.string()), // WorkOS user ID of creator
+    createdBy: v.optional(v.string()), // User identifier of creator
 
     // --- WordPress Import Fields ---
     wpTermId: v.optional(v.number()), // Original WordPress term ID
