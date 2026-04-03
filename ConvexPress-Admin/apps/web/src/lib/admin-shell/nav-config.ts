@@ -15,6 +15,8 @@ import {
   Brain,
   Mail,
   Puzzle,
+  BookOpen,
+  TicketCheck,
 } from "lucide-react";
 
 import type { AdminNavSection } from "./types";
@@ -86,6 +88,37 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         to: "/pages/new",
         isAddNew: true,
       },
+    ],
+  },
+  {
+    id: "kb",
+    label: "Knowledge Base",
+    to: "/kb",
+    icon: BookOpen,
+    capability: "edit_posts",
+    children: [
+      { id: "kb-all", label: "All Articles", to: "/kb", exact: true },
+      { id: "kb-new", label: "Add New", to: "/kb/new", isAddNew: true },
+      { id: "kb-categories", label: "Categories", to: "/kb/categories" },
+      { id: "kb-tags", label: "Tags", to: "/kb/tags" },
+      { id: "kb-collections", label: "Collections", to: "/kb/collections" },
+      { id: "kb-templates", label: "Templates", to: "/kb/templates" },
+      { id: "kb-workflows", label: "Workflows", to: "/kb/workflows", capability: "manage_options" },
+      { id: "kb-analytics", label: "Analytics", to: "/kb/analytics" },
+      { id: "kb-settings", label: "Settings", to: "/kb/settings", capability: "manage_options" },
+    ],
+  },
+  {
+    id: "tickets",
+    label: "Support Tickets",
+    to: "/tickets",
+    icon: TicketCheck,
+    capability: "edit_posts",
+    children: [
+      { id: "tickets-all", label: "All Tickets", to: "/tickets", exact: true },
+      { id: "tickets-canned", label: "Canned Responses", to: "/tickets/canned-responses", capability: "manage_options" },
+      { id: "tickets-analytics", label: "Analytics", to: "/tickets/analytics" },
+      { id: "tickets-settings", label: "Settings", to: "/tickets/settings", capability: "manage_options" },
     ],
   },
   {
