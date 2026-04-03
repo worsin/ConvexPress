@@ -35,11 +35,25 @@ type WidgetView =
   | "ticketList"
   | "ticketDetail";
 
+interface AIResult {
+  answer: string;
+  sourceArticles: Array<{
+    id: string;
+    title: string;
+    slug: string;
+    excerpt: string;
+    score: number;
+  }>;
+  confidence: string;
+  usedAi: boolean;
+}
+
 interface WidgetState {
   isOpen: boolean;
   currentView: WidgetView;
   searchQuery: string;
   selectedTicketId: string | null;
+  aiResult: AIResult | null;
   history: WidgetView[];
 }
 
@@ -48,7 +62,7 @@ type WidgetAction =
   | { type: "CLOSE" }
   | { type: "SEARCH"; query: string }
   | { type: "SHOW_RESULTS" }
-  | { type: "SHOW_AI_ANSWER" }
+  | { type: "SHOW_AI_ANSWER"; aiResult?: AIResult }
   | { type: "CREATE_TICKET" }
   | { type: "SHOW_TICKETS" }
   | { type: "SHOW_TICKET_DETAIL"; ticketId: string }
@@ -62,6 +76,7 @@ const initialState: WidgetState = {
   currentView: "home",
   searchQuery: "",
   selectedTicketId: null,
+  aiResult: null,
   history: [],
 };
 
@@ -100,6 +115,7 @@ function widgetReducer(state: WidgetState, action: WidgetAction): WidgetState {
       return {
         ...state,
         currentView: "aiAnswer",
+        aiResult: action.aiResult ?? state.aiResult,
         history: [...state.history, state.currentView],
       };
 
@@ -141,6 +157,7 @@ function widgetReducer(state: WidgetState, action: WidgetAction): WidgetState {
         currentView: "home",
         searchQuery: "",
         selectedTicketId: null,
+        aiResult: null,
         history: [],
       };
 
@@ -165,7 +182,7 @@ export function useWidgetState() {
     [],
   );
   const showAIAnswer = useCallback(
-    () => dispatch({ type: "SHOW_AI_ANSWER" }),
+    (aiResult?: AIResult) => dispatch({ type: "SHOW_AI_ANSWER", aiResult }),
     [],
   );
   const createTicket = useCallback(
