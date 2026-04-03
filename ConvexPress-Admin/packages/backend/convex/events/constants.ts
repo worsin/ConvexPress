@@ -40,6 +40,7 @@ export const SYSTEM = {
   FEED: "feed",
   SITEMAP: "sitemap",
   KB: "kb",
+  TICKET: "ticket",
 } as const;
 
 export type SystemSlug = (typeof SYSTEM)[keyof typeof SYSTEM];
@@ -248,6 +249,17 @@ export const KB_EVENTS = {
   FEEDBACK_SUBMITTED: "kb.feedback_submitted",
 } as const;
 
+/** Ticket System events (7) */
+export const TICKET_EVENTS = {
+  CREATED: "ticket.created",
+  REPLIED: "ticket.replied",
+  ASSIGNED: "ticket.assigned",
+  STATUS_CHANGED: "ticket.status_changed",
+  RESOLVED: "ticket.resolved",
+  CLOSED: "ticket.closed",
+  RATED: "ticket.rated",
+} as const;
+
 // ─── All Event Codes ───────────────────────────────────────────────────────
 
 /**
@@ -279,6 +291,7 @@ export const ALL_EVENT_CODES: string[] = [
   ...Object.values(AUDIT_EVENTS),
   ...Object.values(DASHBOARD_EVENTS),
   ...Object.values(KB_EVENTS),
+  ...Object.values(TICKET_EVENTS),
 ];
 
 /** Set for O(1) lookup of valid event codes. */
@@ -321,6 +334,7 @@ export const EVENT_CODES_BY_SYSTEM: Record<string, readonly string[]> = {
   [SYSTEM.EVENT]: Object.values(EVENT_EVENTS),
   [SYSTEM.AUDIT]: Object.values(AUDIT_EVENTS),
   [SYSTEM.KB]: Object.values(KB_EVENTS),
+  [SYSTEM.TICKET]: Object.values(TICKET_EVENTS),
 };
 
 // ─── Wildcard / Global Patterns ────────────────────────────────────────────
