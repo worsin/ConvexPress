@@ -21,7 +21,7 @@ mac:
   target:
     - target: dmg
       arch: [x64, arm64]
-  icon: resources/icon.icns
+  icon: resources/icon.png
   category: public.app-category.business
   hardenedRuntime: true
   gatekeeperAssess: false
@@ -48,7 +48,7 @@ win:
   target:
     - target: nsis
       arch: [x64]
-  icon: resources/icon.ico
+  icon: resources/icon.png
 
 nsis:
   oneClick: false

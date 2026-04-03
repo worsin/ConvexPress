@@ -54,7 +54,7 @@ class WindowManager {
     });
 
     if (!app.isPackaged) {
-      win.loadURL("http://localhost:5173");
+      win.loadURL("http://localhost:4105");
     } else {
       const indexPath = getRendererIndexPath();
       console.log(`[WindowManager] Renderer path: ${indexPath}`);
