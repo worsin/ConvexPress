@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 
 interface TicketDetailViewProps {
   ticketId: string;
-  onBack: () => void;
 }
 
 export function TicketDetailView({
@@ -49,14 +48,15 @@ export function TicketDetailView({
     }
   };
 
-  if (messages === undefined || messages === null) {
-    if (messages === null) {
-      return (
-        <div className="flex items-center justify-center p-8 text-center text-sm text-muted-foreground">
-          Ticket not found or you do not have permission to view it.
-        </div>
-      );
-    }
+  if (messages === null) {
+    return (
+      <div className="flex items-center justify-center p-8 text-center text-sm text-muted-foreground">
+        Ticket not found or you do not have permission to view it.
+      </div>
+    );
+  }
+
+  if (messages === undefined) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -151,6 +151,7 @@ export function TicketDetailView({
           value={replyContent}
           onChange={(e) => setReplyContent(e.target.value)}
           placeholder="Type a reply..."
+          aria-label="Reply message"
           className={cn(
             "flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm",
             "placeholder:text-muted-foreground",
@@ -161,6 +162,7 @@ export function TicketDetailView({
         <button
           type="submit"
           disabled={isSending || !replyContent.trim()}
+          aria-label="Send reply"
           className={cn(
             "flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground",
             "transition-colors hover:bg-primary/90",

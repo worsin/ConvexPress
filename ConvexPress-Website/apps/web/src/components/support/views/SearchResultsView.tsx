@@ -36,7 +36,7 @@ interface AIResult {
 interface SearchResultsViewProps {
   query: string;
   sessionId: string;
-  onSelectArticle: (articleSlug: string) => void;
+  onSelectArticle: (categorySlug: string, slug: string) => void;
   onAIAnswer: (result: AIResult) => void;
   onStillNeedHelp: () => void;
 }
@@ -148,7 +148,7 @@ export function SearchResultsView({
               <button
                 key={article.id}
                 type="button"
-                onClick={() => onSelectArticle(article.slug)}
+                onClick={() => onSelectArticle(article.categorySlug ?? "", article.slug)}
                 className={cn(
                   "flex items-start gap-3 rounded-lg border border-border p-3 text-left",
                   "transition-colors hover:bg-muted/50",

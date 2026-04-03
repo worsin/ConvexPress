@@ -6,6 +6,7 @@
  * Children are rendered in a scrollable content area.
  */
 
+import { useEffect } from "react";
 import { ArrowLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,15 @@ export function WidgetPanel({
   onClose,
   children,
 }: WidgetPanelProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, onClose]);
+
   return (
     <div
       className={cn(
@@ -42,6 +52,7 @@ export function WidgetPanel({
           : "pointer-events-none h-0 scale-95 opacity-0",
       )}
       role="dialog"
+      aria-modal="true"
       aria-label="Support widget"
       aria-hidden={!isOpen}
     >

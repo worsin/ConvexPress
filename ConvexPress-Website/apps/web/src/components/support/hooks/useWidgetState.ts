@@ -4,7 +4,7 @@
  * Controls which view the support widget displays and manages
  * navigation history for the back button.
  *
- * States: closed | home | search | searchResults | aiAnswer | ticketForm | ticketList | ticketDetail
+ * States: closed | home | searchResults | aiAnswer | ticketForm | ticketList | ticketDetail
  *
  * State machine transitions:
  *   closed -> home (open)
@@ -28,7 +28,6 @@ import { useReducer, useCallback } from "react";
 
 type WidgetView =
   | "home"
-  | "search"
   | "searchResults"
   | "aiAnswer"
   | "ticketForm"
@@ -61,7 +60,6 @@ type WidgetAction =
   | { type: "OPEN" }
   | { type: "CLOSE" }
   | { type: "SEARCH"; query: string }
-  | { type: "SHOW_RESULTS" }
   | { type: "SHOW_AI_ANSWER"; aiResult?: AIResult }
   | { type: "CREATE_TICKET" }
   | { type: "SHOW_TICKETS" }
@@ -101,13 +99,6 @@ function widgetReducer(state: WidgetState, action: WidgetAction): WidgetState {
         ...state,
         currentView: "searchResults",
         searchQuery: action.query,
-        history: [...state.history, state.currentView],
-      };
-
-    case "SHOW_RESULTS":
-      return {
-        ...state,
-        currentView: "searchResults",
         history: [...state.history, state.currentView],
       };
 
@@ -177,10 +168,6 @@ export function useWidgetState() {
     (query: string) => dispatch({ type: "SEARCH", query }),
     [],
   );
-  const showResults = useCallback(
-    () => dispatch({ type: "SHOW_RESULTS" }),
-    [],
-  );
   const showAIAnswer = useCallback(
     (aiResult?: AIResult) => dispatch({ type: "SHOW_AI_ANSWER", aiResult }),
     [],
@@ -206,7 +193,6 @@ export function useWidgetState() {
     open,
     close,
     search,
-    showResults,
     showAIAnswer,
     createTicket,
     showTickets,

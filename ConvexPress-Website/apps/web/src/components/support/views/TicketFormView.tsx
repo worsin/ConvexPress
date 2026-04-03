@@ -7,9 +7,9 @@
  */
 
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useConvexAuth } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -21,10 +21,12 @@ interface TicketFormViewProps {
 }
 
 export function TicketFormView({
+  sessionId,
   prefillQuery,
   onSuccess,
   onCancel,
 }: TicketFormViewProps) {
+  const { isAuthenticated } = useConvexAuth();
   const createTicket = useMutation(api.tickets.mutations.create);
 
   const [subject, setSubject] = useState(prefillQuery ?? "");
@@ -60,6 +62,7 @@ export function TicketFormView({
         source: "widget",
         aiAttempted: !!prefillQuery,
         aiQuery: prefillQuery,
+        sessionId,
       });
 
       toast.success("Ticket created successfully!");
@@ -71,6 +74,17 @@ export function TicketFormView({
       setIsSubmitting(false);
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center gap-3 p-8 text-center">
+        <Lock className="h-8 w-8 text-muted-foreground/50" />
+        <p className="text-sm text-muted-foreground">
+          Please sign in to create a ticket.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
