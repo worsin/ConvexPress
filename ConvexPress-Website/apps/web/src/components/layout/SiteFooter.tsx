@@ -4,7 +4,6 @@ import { useLayoutConfig } from "@/hooks/layout/useLayoutConfig";
 
 import { FooterBottom } from "./FooterBottom";
 import { FooterNav } from "./FooterNav";
-import { FooterWidgetAreas } from "./FooterWidgetAreas";
 
 interface SiteFooterProps {
   variant?: "full" | "minimal";
@@ -17,7 +16,7 @@ interface SiteFooterProps {
 export function SiteFooter({ variant = "full" }: SiteFooterProps) {
   const siteIdentity = useSiteIdentity();
   const layoutConfig = useLayoutConfig();
-  const siteTitle = siteIdentity?.title ?? "SmithHarper";
+  const siteTitle = siteIdentity?.title ?? "ConvexPress";
 
   if (variant === "minimal") {
     return (
@@ -42,11 +41,8 @@ export function SiteFooter({ variant = "full" }: SiteFooterProps) {
       )}
     >
       <div className="mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8 lg:py-12">
-        {/* Widget areas */}
-        <FooterWidgetAreas columns={layoutConfig.footerColumns} />
-
         {/* Footer navigation */}
-        <div className="mt-8 border-t border-border pt-6">
+        <div className="pt-0">
           <FooterNav />
         </div>
 
