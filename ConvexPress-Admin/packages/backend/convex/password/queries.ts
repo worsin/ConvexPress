@@ -187,3 +187,18 @@ export const getSiteUrl = internalQuery({
     return (values.siteUrl as string) ?? "";
   },
 });
+
+/**
+ * Look up a user by email address.
+ * Used by the completePasswordReset action to retrieve the Clerk user ID.
+ * Returns the full user document (including clerkUserId) or null.
+ */
+export const getUserByEmail = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
+      .unique();
+  },
+});

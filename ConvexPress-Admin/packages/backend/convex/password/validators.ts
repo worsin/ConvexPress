@@ -96,6 +96,19 @@ export const adminResetUserPasswordArgs = {
   targetUserId: v.id("users"),
 };
 
+/**
+ * Arguments for completePasswordReset (public action).
+ * Called from the reset-password page when the user submits a new password.
+ * The email + token identify and verify the request; newPassword is the replacement.
+ */
+export const completePasswordResetArgs = {
+  email: v.string(),
+  /** Raw token from the reset URL (will be hashed server-side for verification). */
+  token: v.string(),
+  /** The new password to set. */
+  newPassword: v.string(),
+};
+
 // ─── Query Args ─────────────────────────────────────────────────────────────
 
 /**
