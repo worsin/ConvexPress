@@ -208,9 +208,10 @@ export const searchMeilisearch = action({
       filter: ["status = published"],
     };
 
-    // Optionally filter by category
+    // Optionally filter by category — sanitize to prevent Meilisearch filter injection
     if (args.categorySlug) {
-      (searchBody.filter as string[]).push(`categorySlug = "${args.categorySlug}"`);
+      const safeCategorySlug = args.categorySlug.replace(/[\\"]/g, "");
+      (searchBody.filter as string[]).push(`categorySlug = "${safeCategorySlug}"`);
     }
 
     const response = await fetch(`${indexUrl(url)}/search`, {
