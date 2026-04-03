@@ -313,6 +313,13 @@ export const approveStep = mutation({
         // Publish the article
         const article = await ctx.db.get(articleWorkflow.articleId);
         if (article) {
+          // Don't publish if article has been archived or deleted in the meantime
+          if (article.status === "archived") {
+            throw new ConvexError({
+              code: "VALIDATION_ERROR",
+              message: "Cannot publish: article has been archived",
+            });
+          }
           await ctx.db.patch(articleWorkflow.articleId, {
             status: "published",
             publishedAt: now,
@@ -324,7 +331,10 @@ export const approveStep = mutation({
           if (article.categoryId) {
             const category = await ctx.db.get(article.categoryId);
             if (category) {
-              await ctx.db.patch(article.categoryId, { articleCount: category.articleCount + 1 });
+              await ctx.db.patch(article.categoryId, {
+                articleCount: category.articleCount + 1,
+                updatedAt: now,
+              });
             }
           }
         }

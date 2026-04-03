@@ -293,7 +293,7 @@ export const publish = mutation({
     const updates: Record<string, any> = {
       status: "published" as const,
       publishedAt: args.scheduledAt ?? now,
-      scheduledAt: args.scheduledAt,
+      scheduledAt: args.scheduledAt ?? undefined,
       updatedAt: now,
       meilisearchSynced: false,
       ragSynced: false,
@@ -305,6 +305,9 @@ export const publish = mutation({
       updates.publishedAt = undefined;
       // Schedule the publish via internal function
       // (actual scheduling handled by the internals cron)
+    } else {
+      // Immediate publish: clear scheduledAt so it doesn't linger
+      updates.scheduledAt = undefined;
     }
 
     await ctx.db.patch(args.articleId, updates);

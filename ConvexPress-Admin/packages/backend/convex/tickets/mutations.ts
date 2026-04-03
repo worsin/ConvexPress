@@ -733,7 +733,7 @@ export const rate = mutation({
 export const addTags = mutation({
   args: addTagsArgs,
   handler: async (ctx, args) => {
-    const user = await requireCan(ctx, "ticket.updateStatus");
+    const user = await requireCan(ctx, "ticket.respond");
 
     const ticket = await ctx.db.get(args.ticketId);
     if (!ticket) {
@@ -772,7 +772,7 @@ export const addTags = mutation({
 export const removeTags = mutation({
   args: removeTagsArgs,
   handler: async (ctx, args) => {
-    const user = await requireCan(ctx, "ticket.updateStatus");
+    const user = await requireCan(ctx, "ticket.respond");
 
     const ticket = await ctx.db.get(args.ticketId);
     if (!ticket) {
