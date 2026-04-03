@@ -73,9 +73,9 @@ export function SupportWidget() {
           <SearchResultsView
             query={state.searchQuery}
             sessionId={sessionId}
-            onSelectArticle={(articleSlug) => {
+            onSelectArticle={(categorySlug, slug) => {
               // Navigate to article in a new tab
-              window.open(`/help/${articleSlug}`, "_blank");
+              window.open(`/help/${categorySlug}/${slug}`, "_blank");
             }}
             onAIAnswer={(result) => state.showAIAnswer(result)}
             onStillNeedHelp={state.createTicket}
@@ -111,7 +111,6 @@ export function SupportWidget() {
         {state.currentView === "ticketDetail" && state.selectedTicketId && (
           <TicketDetailView
             ticketId={state.selectedTicketId}
-            onBack={state.goBack}
           />
         )}
       </WidgetPanel>

@@ -26,6 +26,7 @@ interface AIAnswerResult {
     id: string;
     title: string;
     slug: string;
+    categorySlug?: string;
     excerpt: string;
     score: number;
   }>;
@@ -155,7 +156,7 @@ export function AIAnswerView({
             {result.sourceArticles.map((article) => (
               <a
                 key={article.id}
-                href={`/help/${article.slug}`}
+                href={article.categorySlug ? `/help/${article.categorySlug}/${article.slug}` : `/help/${article.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(

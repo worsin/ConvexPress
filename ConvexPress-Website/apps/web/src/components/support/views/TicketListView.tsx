@@ -5,7 +5,7 @@
  * Includes a "New Ticket" button.
  */
 
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import {
   MessageSquare,
@@ -14,6 +14,7 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +58,30 @@ export function TicketListView({
   onSelectTicket,
   onNewTicket,
 }: TicketListViewProps) {
-  const tickets = useQuery(api.support.widget.getRecentTickets, { limit: 10 });
+  const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
+  const tickets = useQuery(
+    api.support.widget.getRecentTickets,
+    isAuthenticated ? { limit: 10 } : "skip",
+  );
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center gap-3 p-8 text-center">
+        <Lock className="h-8 w-8 text-muted-foreground/50" />
+        <p className="text-sm text-muted-foreground">
+          Please sign in to view your tickets.
+        </p>
+      </div>
+    );
+  }
 
   if (tickets === undefined) {
     return (

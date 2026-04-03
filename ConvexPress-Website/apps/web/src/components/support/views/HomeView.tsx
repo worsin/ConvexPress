@@ -8,6 +8,7 @@
  */
 
 import { useState } from "react";
+import { useConvexAuth } from "convex/react";
 import { Search, MessageSquare, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,7 @@ export function HomeView({
   onNewTicket,
 }: HomeViewProps) {
   const [query, setQuery] = useState("");
+  const { isAuthenticated } = useConvexAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,24 +65,26 @@ export function HomeView({
 
       {/* Quick Actions */}
       <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={onShowTickets}
-          className={cn(
-            "flex items-center gap-3 rounded-lg border border-border p-3 text-left",
-            "transition-colors hover:bg-muted/50",
-          )}
-        >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">My Tickets</p>
-            <p className="text-xs text-muted-foreground">
-              View your support requests
-            </p>
-          </div>
-        </button>
+        {isAuthenticated && (
+          <button
+            type="button"
+            onClick={onShowTickets}
+            className={cn(
+              "flex items-center gap-3 rounded-lg border border-border p-3 text-left",
+              "transition-colors hover:bg-muted/50",
+            )}
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">My Tickets</p>
+              <p className="text-xs text-muted-foreground">
+                View your support requests
+              </p>
+            </div>
+          </button>
+        )}
 
         <button
           type="button"
