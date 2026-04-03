@@ -1,56 +1,54 @@
-import { ipcMain, net } from "electron";
+import { ipcMain } from "electron";
 import { configStore } from "./config.js";
-import { windowManager } from "../window-manager.js";
 
 interface SetupConfig {
   mode: "server" | "client";
   convexUrl: string;
+  adminKey?: string;
+  siteName?: string;
   adminName?: string;
   adminEmail?: string;
   adminPassword?: string;
 }
 
 export function registerSetupHandlers(): void {
-  ipcMain.handle("setup:test-connection", async (_event, url: string) => {
-    const cleanUrl = url.replace(/\/$/, "");
-    try {
-      const response = await net.fetch(
-        `${cleanUrl}/.well-known/openid-configuration`,
-      );
-      return { ok: response.ok, status: response.status };
-    } catch (error) {
-      return { ok: false, error: String(error) };
-    }
-  });
+  // Channel: "setup:complete" -- called by the wizard via preload's
+  // convexpressSetup.saveConfig(). Saves config and marks setup as done.
+  ipcMain.handle(
+    "setup:complete",
+    (_event, config: SetupConfig): { success: boolean; error?: string } => {
+      try {
+        configStore.set("mode", config.mode);
+        configStore.set("convexUrl", config.convexUrl);
 
-  ipcMain.handle("setup:save-config", (_event, config: SetupConfig) => {
-    configStore.set("mode", config.mode);
-    configStore.set("convexUrl", config.convexUrl);
+        if (config.adminKey) {
+          configStore.set("adminKey", config.adminKey);
+        }
+        if (config.siteName) {
+          configStore.set("siteName", config.siteName);
+        }
 
-    if (config.adminName || config.adminEmail || config.adminPassword) {
-      configStore.set("pendingAdminCredentials", {
-        name: config.adminName,
-        email: config.adminEmail,
-        password: config.adminPassword,
-      });
-    }
+        if (config.adminName || config.adminEmail || config.adminPassword) {
+          configStore.set("pendingAdminCredentials", {
+            displayName: config.adminName,
+            email: config.adminEmail,
+            password: config.adminPassword,
+          });
+        }
 
-    configStore.set("setupComplete", true);
-    console.log(
-      `[Setup IPC] Config saved: mode=${config.mode}, url=${config.convexUrl}`,
-    );
-  });
-
-  ipcMain.handle("setup:launch-app", () => {
-    // Close the wizard and open the main window
-    console.log("[Setup IPC] Launching main app from setup wizard");
-    windowManager.destroyWizard();
-    windowManager.createMainWindow();
-  });
+        configStore.set("setupComplete", true);
+        console.log(
+          `[Setup IPC] Config saved: mode=${config.mode}, url=${config.convexUrl}`,
+        );
+        return { success: true };
+      } catch (error) {
+        console.error("[Setup IPC] Failed to save config:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
 }
 
 export function unregisterSetupHandlers(): void {
-  ipcMain.removeHandler("setup:test-connection");
-  ipcMain.removeHandler("setup:save-config");
-  ipcMain.removeHandler("setup:launch-app");
+  ipcMain.removeHandler("setup:complete");
 }
