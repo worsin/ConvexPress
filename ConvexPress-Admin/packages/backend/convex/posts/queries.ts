@@ -459,6 +459,98 @@ export const getPublished = query({
   },
 });
 
+// ─── Verify Post Password (Public) ──────────────────────────────────────────
+
+/**
+ * Verify a password-protected post's password and return the full content.
+ *
+ * PUBLIC query - no auth required. Validates the provided password against
+ * the post's stored password. If correct, returns the full post including
+ * content that was withheld by getPublished.
+ */
+export const verifyPostPassword = query({
+  args: {
+    slug: v.string(),
+    password: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const post = await ctx.db
+      .query("posts")
+      .withIndex("by_slug", (q) =>
+        q.eq("slug", args.slug).eq("type", "post"),
+      )
+      .first();
+
+    if (!post || post.status !== "publish") return null;
+    if (post.visibility !== "password") return null;
+
+    // Constant-time comparison to prevent timing attacks
+    const { timingSafeEquals } = await import("../helpers/timingSafe");
+    if (!post.password || !timingSafeEquals(post.password, args.password)) return null;
+
+    // Resolve featured image
+    let featuredImageUrl: string | undefined;
+    let featuredImageAlt: string | undefined;
+    if (post.featuredImageId) {
+      const media = await ctx.db.get("media", post.featuredImageId);
+      if (media) {
+        featuredImageUrl = (media as MediaDoc).url || (media as MediaDoc).storageUrl;
+        featuredImageAlt = (media as MediaDoc).altText;
+      }
+    }
+
+    const author = await ctx.db.get("users", post.authorId);
+    return {
+      ...post,
+      isPasswordProtected: true,
+      passwordVerified: true,
+      featuredImageUrl,
+      featuredImageAlt,
+      author: author
+        ? {
+            _id: author._id,
+            displayName: author.displayName ?? author.email,
+            bio: (author as AuthorDoc).bio,
+            avatarUrl: (author as AuthorDoc).avatarUrl ?? (author as AuthorDoc).profilePictureUrl,
+            slug: (author as AuthorDoc).slug,
+          }
+        : null,
+    };
+  },
+});
+
+// ─── Get By Numeric ID (Public) ─────────────────────────────────────────────
+
+/**
+ * Resolve a numeric post ID to its slug for permalink redirect.
+ *
+ * PUBLIC query - used by the numeric archive route (/archives/123).
+ * Returns only the slug so the frontend can redirect to the canonical URL.
+ * The numeric ID corresponds to the WordPress-era numeric_id field.
+ */
+export const getByNumericId = query({
+  args: {
+    numericId: v.number(),
+  },
+  handler: async (ctx, args) => {
+    // Look for a published post with this numeric ID
+    const post = await ctx.db
+      .query("posts")
+      .withIndex("by_type_status", (q) =>
+        q.eq("type", "post").eq("status", "publish"),
+      )
+      .filter((q) => q.eq(q.field("numericId"), args.numericId))
+      .first();
+
+    if (!post) return null;
+
+    return {
+      slug: post.slug,
+      title: post.title,
+    };
+  },
+});
+
 // ─── List Published (Public) ────────────────────────────────────────────────
 
 /**

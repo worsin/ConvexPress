@@ -3,7 +3,7 @@ export default {
     {
       // Admin: custom JWT provider (explicit JWKS URL, not OIDC discovery)
       type: "customJwt" as const,
-      issuer: "smithharper-admin",
+      issuer: "https://convexpress-admin.local",
       algorithm: "ES256" as const,
       jwks: `${process.env.AUTH_ISSUER_URL}/.well-known/jwks.json`,
     },

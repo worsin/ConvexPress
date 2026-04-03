@@ -2,7 +2,7 @@
  * Routing System - URL Generation Helpers
  *
  * Pure functions for generating URLs from content data and permalink settings.
- * These functions are the SmithHarper equivalents of WordPress's:
+ * These functions are the ConvexPress equivalents of WordPress's:
  *   - get_permalink()      -> generatePostUrl()
  *   - get_page_link()      -> generatePageUrl()
  *   - get_category_link()  -> generateCategoryUrl()

@@ -22,7 +22,7 @@
  * in the eventListeners table. These subscribers need to be registered
  * as listener records in that table (via seed data or admin UI).
  *
- * For SmithHarper, event listeners are registered as entries in the
+ * For ConvexPress, event listeners are registered as entries in the
  * eventListeners table. Each listener has:
  *   - eventCode: The event pattern to match (e.g., "post.published")
  *   - handlerRef: Reference to the internal function to call

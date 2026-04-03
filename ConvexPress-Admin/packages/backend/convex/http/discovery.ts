@@ -13,10 +13,10 @@ import { jsonResponse } from "./helpers";
 
 export const discoveryHandler = httpAction(async () => {
   return jsonResponse({
-    name: "SmithHarper CMS API",
+    name: "ConvexPress API",
     version: "1.0",
     description:
-      "RESTful API for SmithHarper CMS. Authenticate with a Bearer token (API key).",
+      "RESTful API for ConvexPress. Authenticate with a Bearer token (API key).",
     authentication: {
       type: "Bearer",
       header: "Authorization",

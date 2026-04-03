@@ -181,10 +181,10 @@ export function inferACFFieldType(
   return "unknown";
 }
 
-// ─── Conversion to SmithHarper Format ──────────────────────────────────────
+// ─── Conversion to ConvexPress Format ──────────────────────────────────────
 
 /**
- * Convert ACF data to SmithHarper custom field format for storage.
+ * Convert ACF data to ConvexPress custom field format for storage.
  * Returns an array of key-value pairs suitable for postMeta storage.
  */
 export function acfToPostMeta(

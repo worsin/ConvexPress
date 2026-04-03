@@ -15,7 +15,7 @@ const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers":
-    "Authorization, Content-Type, X-SmithHarper-Event",
+    "Authorization, Content-Type, X-ConvexPress-Event",
   "Access-Control-Max-Age": "86400",
 };
 

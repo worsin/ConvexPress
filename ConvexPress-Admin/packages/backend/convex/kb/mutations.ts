@@ -193,7 +193,33 @@ export const update = mutation({
       updates.ragSynced = false;
     }
 
-    if (args.categoryId !== undefined) updates.categoryId = args.categoryId;
+    if (args.categoryId !== undefined) {
+      updates.categoryId = args.categoryId;
+      // Update category article counts if category changed and article is published
+      if (article.status === "published" && args.categoryId !== article.categoryId) {
+        const now = Date.now();
+        // Decrement old category count
+        if (article.categoryId) {
+          const oldCategory = await ctx.db.get(article.categoryId);
+          if (oldCategory && oldCategory.articleCount > 0) {
+            await ctx.db.patch(article.categoryId, {
+              articleCount: oldCategory.articleCount - 1,
+              updatedAt: now,
+            });
+          }
+        }
+        // Increment new category count
+        if (args.categoryId) {
+          const newCategory = await ctx.db.get(args.categoryId);
+          if (newCategory) {
+            await ctx.db.patch(args.categoryId, {
+              articleCount: newCategory.articleCount + 1,
+              updatedAt: now,
+            });
+          }
+        }
+      }
+    }
     if (args.parentArticleId !== undefined) updates.parentArticleId = args.parentArticleId;
     if (args.metaTitle !== undefined) updates.metaTitle = args.metaTitle;
     if (args.metaDescription !== undefined) updates.metaDescription = args.metaDescription;
@@ -263,14 +289,16 @@ export const publish = mutation({
 
     await ctx.db.patch(args.articleId, updates);
 
-    // Update category article count
-    if (article.categoryId) {
-      const category = await ctx.db.get(article.categoryId);
-      if (category) {
-        await ctx.db.patch(article.categoryId, {
-          articleCount: category.articleCount + 1,
-          updatedAt: now,
-        });
+    // Update category article count only when publishing immediately (not scheduling for future)
+    if (!args.scheduledAt || args.scheduledAt <= now) {
+      if (article.categoryId) {
+        const category = await ctx.db.get(article.categoryId);
+        if (category) {
+          await ctx.db.patch(article.categoryId, {
+            articleCount: category.articleCount + 1,
+            updatedAt: now,
+          });
+        }
       }
     }
 

@@ -35,6 +35,7 @@ import { ConvexError } from "convex/values";
 import { mutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
+import { sanitizeTipTapContent } from "../helpers/sanitize";
 import { requireCan, getCurrentUser , getUserIdentifier } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { POST_EVENTS, SYSTEM } from "../events/constants";
@@ -62,6 +63,7 @@ import {
   MAX_TITLE_LENGTH,
   MAX_EXCERPT_LENGTH,
   MAX_BULK_SIZE,
+  MAX_TOPICS,
   TRASH_PURGE_DAYS_MS,
 } from "./validators";
 
@@ -140,11 +142,19 @@ export const create = mutation({
 
     // ── Insert post ─────────────────────────────────────────────────────
     const now = Date.now();
+    // ── Validate structured content ────────────────────────────────────
+    if (args.topics && args.topics.length > MAX_TOPICS) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `Maximum ${MAX_TOPICS} topics allowed`,
+      });
+    }
+
     const postId = await ctx.db.insert("posts", {
       type: "post",
       title,
       slug,
-      content: args.content,
+      content: sanitizeTipTapContent(args.content),
       excerpt: args.excerpt,
       status,
       visibility,
@@ -156,6 +166,13 @@ export const create = mutation({
       isSticky: args.isSticky ?? false,
       publishedAt: status === "publish" ? now : undefined,
       scheduledAt: status === "future" ? scheduledAt : undefined,
+      // Structured content fields
+      hero: args.hero,
+      topics: args.topics,
+      summary: args.summary,
+      sources: args.sources,
+      tableOfContents: args.tableOfContents,
+      pagePrompt: args.pagePrompt,
       createdAt: now,
       updatedAt: now,
     });
@@ -289,7 +306,7 @@ export const update = mutation({
 
     // Content
     if (args.content !== undefined && args.content !== post.content) {
-      patch.content = args.content;
+      patch.content = sanitizeTipTapContent(args.content);
       changes.push({ field: "content", oldValue: "[content]", newValue: "[content]" });
     }
 
@@ -429,6 +446,37 @@ export const update = mutation({
     // Menu order
     if (args.menuOrder !== undefined && args.menuOrder !== post.menuOrder) {
       patch.menuOrder = args.menuOrder;
+    }
+
+    // ── Structured content fields ──────────────────────────────────────
+    if (args.hero !== undefined) {
+      patch.hero = args.hero;
+      changes.push({ field: "hero", oldValue: "[hero]", newValue: "[hero]" });
+    }
+    if (args.topics !== undefined) {
+      if (args.topics && args.topics.length > MAX_TOPICS) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: `Maximum ${MAX_TOPICS} topics allowed`,
+        });
+      }
+      patch.topics = args.topics;
+      changes.push({ field: "topics", oldValue: "[topics]", newValue: "[topics]" });
+    }
+    if (args.summary !== undefined) {
+      patch.summary = args.summary;
+      changes.push({ field: "summary", oldValue: "[summary]", newValue: "[summary]" });
+    }
+    if (args.sources !== undefined) {
+      patch.sources = args.sources;
+      changes.push({ field: "sources", oldValue: "[sources]", newValue: "[sources]" });
+    }
+    if (args.tableOfContents !== undefined) {
+      patch.tableOfContents = args.tableOfContents;
+      changes.push({ field: "tableOfContents", oldValue: "[toc]", newValue: "[toc]" });
+    }
+    if (args.pagePrompt !== undefined) {
+      patch.pagePrompt = args.pagePrompt;
     }
 
     // Clear autosave fields on manual save

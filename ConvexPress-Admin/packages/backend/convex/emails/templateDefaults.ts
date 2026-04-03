@@ -23,7 +23,7 @@ function wrapHtml(content: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmithHarper</title>
+  <title>ConvexPress</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;">
@@ -105,7 +105,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
       { name: "recipient_name", description: "User's display name", required: false, defaultValue: "there" },
       { name: "user_name", description: "Username", required: false },
       { name: "user_email", description: "User's email address", required: false },
-      { name: "site_name", description: "Site name", required: false, defaultValue: "SmithHarper" },
+      { name: "site_name", description: "Site name", required: false, defaultValue: "ConvexPress" },
       { name: "site_url", description: "Site URL", required: false },
     ],
     priority: "immediate",
@@ -541,7 +541,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     `),
     availableVariables: [
       { name: "reason", description: "Reason for deactivation", required: false, defaultValue: "No reason provided" },
-      { name: "support_email", description: "Support email address", required: false, defaultValue: "support@smithharper.com" },
+      { name: "support_email", description: "Support email address", required: false, defaultValue: "support@convexpress.com" },
     ],
     priority: "immediate",
     recipientType: "customer",

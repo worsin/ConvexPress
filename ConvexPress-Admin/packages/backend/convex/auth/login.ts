@@ -125,7 +125,7 @@ export const loginHandler = httpAction(async (ctx, request) => {
   const isProduction =
     process.env.AUTH_ISSUER_URL?.startsWith("https://") ?? false;
   const cookieFlags = [
-    `smithharper_refresh=${rawRefreshToken}`,
+    `convexpress_refresh=${rawRefreshToken}`,
     "HttpOnly",
     "Path=/auth/refresh",
     `Max-Age=${7 * 24 * 60 * 60}`,

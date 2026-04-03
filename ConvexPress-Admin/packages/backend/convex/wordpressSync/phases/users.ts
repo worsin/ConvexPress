@@ -4,7 +4,7 @@
  * Imports users from WordPress. Users are imported first because
  * posts, pages, and comments reference authors.
  *
- * WordPress users map to SmithHarper users with:
+ * WordPress users map to ConvexPress users with:
  *   - wpUserId preserved for reference
  *   - Email as unique identifier
  *   - Basic profile info (name, avatar)
@@ -173,7 +173,7 @@ export const usersCreate = internalMutation({
       .withIndex("by_slug", (q) => q.eq("slug", "subscriber"))
       .first();
 
-    // Map WordPress roles to SmithHarper roles
+    // Map WordPress roles to ConvexPress roles
     let roleId = subscriberRole?._id;
     if (wpUser.roles && wpUser.roles.length > 0) {
       const wpRole = wpUser.roles[0];

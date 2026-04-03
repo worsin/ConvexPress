@@ -25,7 +25,7 @@ export const severityValidator = v.union(
 
 /**
  * Validator for audit object type categories.
- * Covers all 13 object types in SmithHarper CMS.
+ * Covers all 13 object types in ConvexPress.
  */
 export const objectTypeValidator = v.union(
   v.literal("post"),

@@ -290,7 +290,7 @@ export async function fetchWPEndpoint<T>(
       headers: {
         Authorization: `Basic ${credentials}`,
         Accept: "application/json",
-        "User-Agent": "SmithHarper-CMS/1.0",
+        "User-Agent": "ConvexPress-CMS/1.0",
       },
       signal: controller.signal,
     });

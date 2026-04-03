@@ -12,8 +12,8 @@ import { importPKCS8, exportJWK, SignJWT } from "jose";
 import bcrypt from "bcryptjs";
 
 const ALG = "ES256";
-const ISSUER = "smithharper-admin";
-const AUDIENCE = "smithharper-admin";
+const ISSUER = "https://convexpress-admin.local";
+const AUDIENCE = "convexpress-admin";
 const ACCESS_TOKEN_EXPIRY = "15m";
 const REFRESH_TOKEN_BYTES = 32;
 const BCRYPT_COST = 12;
@@ -55,7 +55,7 @@ export async function getJWKS(): Promise<{ keys: object[] }> {
         ...publicOnly,
         alg: ALG,
         use: "sig",
-        kid: "smithharper-admin-1",
+        kid: "convexpress-admin-1",
       },
     ],
   };

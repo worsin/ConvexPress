@@ -135,7 +135,7 @@ async function downloadAndUpload(
     // Download the file
     const response = await fetch(wpMedia.source_url, {
       headers: {
-        "User-Agent": "SmithHarper-CMS/1.0",
+        "User-Agent": "ConvexPress-CMS/1.0",
       },
     });
 

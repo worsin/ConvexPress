@@ -34,6 +34,7 @@ import type { MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { requireCan , getUserIdentifier } from "../helpers/permissions";
+import { sanitizeTipTapContent } from "../helpers/sanitize";
 import { emitEvent } from "../helpers/events";
 import { PAGE_EVENTS, SYSTEM } from "../events/constants";
 import {
@@ -132,7 +133,7 @@ export const create = mutation({
       type: "page" as const,
       title,
       slug,
-      content: args.content ?? "",
+      content: sanitizeTipTapContent(args.content) || "",
       excerpt: args.excerpt,
       status,
       visibility,
@@ -147,6 +148,13 @@ export const create = mutation({
       depth,
       publishedAt: status === "publish" ? (args.publishedAt ?? now) : undefined,
       scheduledAt: status === "future" ? args.scheduledAt : undefined,
+      // Structured content fields
+      hero: args.hero,
+      topics: args.topics,
+      summary: args.summary,
+      sources: args.sources,
+      tableOfContents: args.tableOfContents,
+      pagePrompt: args.pagePrompt,
       createdAt: now,
       updatedAt: now,
     };
@@ -213,7 +221,7 @@ export const update = mutation({
     }
 
     // Ownership check note: In WordPress, edit_pages (own) and edit_others_pages
-    // (others) are distinct capabilities. In SmithHarper, page management is
+    // (others) are distinct capabilities. In ConvexPress, page management is
     // restricted to Administrator and Editor roles only (both have page.update),
     // so the requireCan("page.update") check above is sufficient for all users
     // who can reach this mutation. No additional non-owner check is needed.
@@ -258,7 +266,7 @@ export const update = mutation({
     }
 
     if (args.content !== undefined && args.content !== page.content) {
-      patch.content = args.content;
+      patch.content = sanitizeTipTapContent(args.content);
       changes.push("content");
     }
 
@@ -319,6 +327,37 @@ export const update = mutation({
     if (args.scheduledAt !== undefined && args.scheduledAt !== page.scheduledAt) {
       patch.scheduledAt = args.scheduledAt;
       changes.push("scheduledAt");
+    }
+
+    // ── Structured content fields ──────────────────────────────────────
+    if (args.hero !== undefined) {
+      patch.hero = args.hero;
+      changes.push("hero");
+    }
+    if (args.topics !== undefined) {
+      if (args.topics && args.topics.length > 5) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: "Maximum 5 topics allowed",
+        });
+      }
+      patch.topics = args.topics;
+      changes.push("topics");
+    }
+    if (args.summary !== undefined) {
+      patch.summary = args.summary;
+      changes.push("summary");
+    }
+    if (args.sources !== undefined) {
+      patch.sources = args.sources;
+      changes.push("sources");
+    }
+    if (args.tableOfContents !== undefined) {
+      patch.tableOfContents = args.tableOfContents;
+      changes.push("tableOfContents");
+    }
+    if (args.pagePrompt !== undefined) {
+      patch.pagePrompt = args.pagePrompt;
     }
 
     // ── Schedule auto-publish for future-dated pages ──────────────────────

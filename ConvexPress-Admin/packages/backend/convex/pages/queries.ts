@@ -929,8 +929,9 @@ export const verifyPassword = query({
       return null;
     }
 
-    // Compare passwords (WordPress stores page passwords as plain text)
-    if (page.password !== args.password) {
+    // Constant-time comparison to prevent timing attacks
+    const { timingSafeEquals } = await import("../helpers/timingSafe");
+    if (!page.password || !timingSafeEquals(page.password, args.password)) {
       return null;
     }
 

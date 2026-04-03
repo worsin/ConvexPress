@@ -330,7 +330,7 @@ describe("buildRssChannel", () => {
 
   test("includes generator", () => {
     const xml = buildRssChannel(config);
-    expect(xml).toContain("<generator>SmithHarper CMS</generator>");
+    expect(xml).toContain("<generator>ConvexPress</generator>");
   });
 
   test("produces valid structure when items are empty", () => {
@@ -444,7 +444,7 @@ describe("buildAtomFeed", () => {
 
   test("includes generator", () => {
     const xml = buildAtomFeed(config);
-    expect(xml).toContain("SmithHarper CMS</generator>");
+    expect(xml).toContain("ConvexPress</generator>");
   });
 });
 

@@ -17,8 +17,8 @@
  *     (Anthropic does not offer a public embeddings endpoint as of 2025)
  */
 
-import { action, mutation } from "../_generated/server";
-import { internal, api } from "../_generated/api";
+import { action, internalMutation } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -220,7 +220,7 @@ export const ingestArticle = action({
     }
 
     // Remove existing chunks for this article before reinserting
-    await ctx.runMutation(api.kb.rag.removeArticleChunks, {
+    await ctx.runMutation(internal.kb.rag.removeArticleChunks, {
       articleId: args.articleId,
     });
 
@@ -266,7 +266,7 @@ export const ingestArticle = action({
  * This is a standard mutation (no embedding API calls). It is called by
  * ingestArticle before re-ingestion and by the article remove mutation.
  */
-export const removeArticleChunks = mutation({
+export const removeArticleChunks = internalMutation({
   args: { articleId: v.id("kb_articles") },
   handler: async (ctx, args) => {
     const chunks = await ctx.db
