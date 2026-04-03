@@ -32,9 +32,9 @@ export interface AdminGateProps {
   mode?: "server" | "client";
   pendingCredentials?: {
     email: string;
-    username: string;
     password: string;
     displayName?: string;
+    username?: string;
   };
 }
 
@@ -124,10 +124,14 @@ function AutoSignup({
 
     async function doSignup() {
       try {
+        // Derive username from email if the wizard didn't collect one
+        const username =
+          credentials.username || credentials.email.split("@")[0];
+
         // 1. Create the first admin account
         await createFirstAdmin({
           email: credentials.email,
-          username: credentials.username,
+          username,
           password: credentials.password,
           displayName: credentials.displayName,
         });
