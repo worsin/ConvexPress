@@ -77,7 +77,7 @@ export function SupportWidget() {
               // Navigate to article in a new tab
               window.open(`/help/${articleSlug}`, "_blank");
             }}
-            onAIAnswer={state.showAIAnswer}
+            onAIAnswer={(result) => state.showAIAnswer(result)}
             onStillNeedHelp={state.createTicket}
           />
         )}
@@ -88,6 +88,7 @@ export function SupportWidget() {
             sessionId={sessionId}
             onHelpful={() => state.goHome()}
             onNotHelpful={state.createTicket}
+            prefetchedResult={state.aiResult ?? undefined}
           />
         )}
 

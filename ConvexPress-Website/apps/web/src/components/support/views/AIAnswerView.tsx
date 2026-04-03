@@ -6,7 +6,7 @@
  * If not helpful, guides the user to create a ticket.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAction, useMutation } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import {
@@ -20,11 +20,25 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface AIAnswerResult {
+  answer: string;
+  sourceArticles: Array<{
+    id: string;
+    title: string;
+    slug: string;
+    excerpt: string;
+    score: number;
+  }>;
+  confidence: string;
+  usedAi: boolean;
+}
+
 interface AIAnswerViewProps {
   query: string;
   sessionId: string;
   onHelpful: () => void;
   onNotHelpful: () => void;
+  prefetchedResult?: AIAnswerResult;
 }
 
 export function AIAnswerView({
@@ -32,32 +46,30 @@ export function AIAnswerView({
   sessionId,
   onHelpful,
   onNotHelpful,
+  prefetchedResult,
 }: AIAnswerViewProps) {
   const generateAnswer = useAction(api.support.deflection.generateAnswer);
+  const generateAnswerRef = useRef(generateAnswer);
+  generateAnswerRef.current = generateAnswer;
+
   const logInteraction = useMutation(api.support.deflection.logInteraction);
 
-  const [result, setResult] = useState<{
-    answer: string;
-    sourceArticles: Array<{
-      id: string;
-      title: string;
-      slug: string;
-      excerpt: string;
-      score: number;
-    }>;
-    confidence: string;
-    usedAi: boolean;
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [result, setResult] = useState<AIAnswerResult | null>(
+    prefetchedResult ?? null,
+  );
+  const [isLoading, setIsLoading] = useState(!prefetchedResult);
   const [feedbackGiven, setFeedbackGiven] = useState(false);
 
   useEffect(() => {
+    // If we already have a result from the search view, skip the fetch
+    if (prefetchedResult) return;
+
     let cancelled = false;
 
     async function fetchAnswer() {
       setIsLoading(true);
       try {
-        const res = await generateAnswer({ query, sessionId });
+        const res = await generateAnswerRef.current({ query, sessionId });
         if (!cancelled) setResult(res);
       } catch (err) {
         console.error("[AIAnswer] Failed:", err);
@@ -70,7 +82,7 @@ export function AIAnswerView({
     return () => {
       cancelled = true;
     };
-  }, [query, sessionId, generateAnswer]);
+  }, [query, sessionId, prefetchedResult]);
 
   const handleFeedback = async (helpful: boolean) => {
     setFeedbackGiven(true);

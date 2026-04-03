@@ -5,7 +5,7 @@
  * Includes an AI-generated answer (if available) and a "Still need help?" CTA.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAction } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import {
@@ -17,11 +17,27 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface AIResult {
+  answer: string;
+  sourceArticles: Array<{
+    id: string;
+    title: string;
+    slug: string;
+    excerpt: string;
+    categorySlug?: string;
+    score: number;
+    source: string;
+  }>;
+  confidence: string;
+  usedAi: boolean;
+  error?: string;
+}
+
 interface SearchResultsViewProps {
   query: string;
   sessionId: string;
   onSelectArticle: (articleSlug: string) => void;
-  onAIAnswer: () => void;
+  onAIAnswer: (result: AIResult) => void;
   onStillNeedHelp: () => void;
 }
 
@@ -33,21 +49,10 @@ export function SearchResultsView({
   onStillNeedHelp,
 }: SearchResultsViewProps) {
   const generateAnswer = useAction(api.support.deflection.generateAnswer);
-  const [result, setResult] = useState<{
-    answer: string;
-    sourceArticles: Array<{
-      id: string;
-      title: string;
-      slug: string;
-      excerpt: string;
-      categorySlug?: string;
-      score: number;
-      source: string;
-    }>;
-    confidence: string;
-    usedAi: boolean;
-    error?: string;
-  } | null>(null);
+  const generateAnswerRef = useRef(generateAnswer);
+  generateAnswerRef.current = generateAnswer;
+
+  const [result, setResult] = useState<AIResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +63,7 @@ export function SearchResultsView({
       setIsLoading(true);
       setError(null);
       try {
-        const res = await generateAnswer({ query, sessionId });
+        const res = await generateAnswerRef.current({ query, sessionId });
         if (!cancelled) {
           setResult(res);
         }
@@ -78,7 +83,7 @@ export function SearchResultsView({
     return () => {
       cancelled = true;
     };
-  }, [query, sessionId, generateAnswer]);
+  }, [query, sessionId]);
 
   if (isLoading) {
     return (
@@ -120,7 +125,7 @@ export function SearchResultsView({
             </div>
             <button
               type="button"
-              onClick={onAIAnswer}
+              onClick={() => result && onAIAnswer(result)}
               className="text-xs text-primary hover:underline"
             >
               View full answer
