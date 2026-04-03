@@ -24,9 +24,6 @@ import {
   getRecentArticlesArgs,
   getFeaturedArticlesArgs,
   getVersionsArgs,
-  DEFAULT_KB_PER_PAGE_ADMIN,
-  DEFAULT_KB_PER_PAGE_WEBSITE,
-  MAX_KB_PER_PAGE,
 } from "./validators";
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
@@ -39,56 +36,76 @@ export const list = query({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const page = Math.max(1, args.page ?? 1);
-    const perPage = Math.min(MAX_KB_PER_PAGE, Math.max(1, args.perPage ?? DEFAULT_KB_PER_PAGE_ADMIN));
-
-    let articlesQuery;
-
+    // Search index queries cannot use .paginate(); fall back to collect+slice for
+    // the search case. All other paths use Convex-native pagination.
     if (args.search) {
-      // Use search index
-      articlesQuery = ctx.db
+      const results = await ctx.db
         .query("kb_articles")
         .withSearchIndex("search_articles", (q) => {
           let sq = q.search("contentPlainText", args.search!);
           if (args.status) sq = sq.eq("status", args.status);
           if (args.categoryId) sq = sq.eq("categoryId", args.categoryId);
           return sq;
-        });
-    } else if (args.status) {
-      articlesQuery = ctx.db
+        })
+        .collect();
+
+      const filtered = args.authorId
+        ? results.filter((a) => a.authorId === args.authorId)
+        : results;
+
+      const enriched = await Promise.all(
+        filtered.map(async (article) => {
+          const author = await ctx.db.get(article.authorId);
+          return {
+            ...article,
+            author: author
+              ? {
+                  _id: author._id,
+                  displayName: (author as any).displayName ?? author.email,
+                  avatarUrl: (author as any).avatarUrl,
+                }
+              : null,
+          };
+        }),
+      );
+
+      // Wrap in PaginationResult shape so the client interface is consistent.
+      return {
+        page: enriched,
+        isDone: true,
+        continueCursor: "",
+      };
+    }
+
+    let baseQuery;
+    if (args.status) {
+      baseQuery = ctx.db
         .query("kb_articles")
         .withIndex("by_status_updated", (q) => q.eq("status", args.status!))
         .order("desc");
     } else if (args.categoryId) {
-      articlesQuery = ctx.db
+      baseQuery = ctx.db
         .query("kb_articles")
         .withIndex("by_category", (q) => q.eq("categoryId", args.categoryId!));
     } else if (args.authorId) {
-      articlesQuery = ctx.db
+      baseQuery = ctx.db
         .query("kb_articles")
         .withIndex("by_author", (q) => q.eq("authorId", args.authorId!));
     } else {
-      articlesQuery = ctx.db.query("kb_articles").order("desc");
+      baseQuery = ctx.db.query("kb_articles").order("desc");
     }
 
-    const allArticles = await articlesQuery.collect();
+    const paginationResult = await baseQuery.paginate(args.paginationOpts);
 
-    // Apply remaining filters that couldn't be handled by the index
-    let filtered = allArticles;
-    if (args.authorId && !args.status && !args.search) {
-      // Already filtered by index
-    } else if (args.authorId) {
-      filtered = filtered.filter((a) => a.authorId === args.authorId);
-    }
+    // Apply in-memory author filter only when another index was chosen as primary.
+    const pageItems = args.authorId && !args.status && !args.categoryId
+      ? paginationResult.page
+      : args.authorId
+        ? paginationResult.page.filter((a) => a.authorId === args.authorId)
+        : paginationResult.page;
 
-    const total = filtered.length;
-    const totalPages = Math.ceil(total / perPage);
-    const start = (page - 1) * perPage;
-    const items = filtered.slice(start, start + perPage);
-
-    // Enrich with author info
-    const enriched = await Promise.all(
-      items.map(async (article) => {
+    const enrichedPage = await Promise.all(
+      pageItems.map(async (article) => {
         const author = await ctx.db.get(article.authorId);
         return {
           ...article,
@@ -104,11 +121,8 @@ export const list = query({
     );
 
     return {
-      items: enriched,
-      total,
-      page,
-      perPage,
-      totalPages,
+      ...paginationResult,
+      page: enrichedPage,
     };
   },
 });
@@ -216,32 +230,30 @@ export const getBySlug = query({
 export const listPublished = query({
   args: listPublishedArticlesArgs,
   handler: async (ctx, args) => {
-    const page = Math.max(1, args.page ?? 1);
-    const perPage = Math.min(MAX_KB_PER_PAGE, Math.max(1, args.perPage ?? DEFAULT_KB_PER_PAGE_WEBSITE));
-
-    let articlesQuery;
+    // When filtering by category we use the by_category index; status is then
+    // checked as an in-memory filter on each page after pagination.
+    // Without a category we use by_status to only load published records.
+    let baseQuery;
     if (args.categoryId) {
-      articlesQuery = ctx.db
+      baseQuery = ctx.db
         .query("kb_articles")
         .withIndex("by_category", (q) => q.eq("categoryId", args.categoryId!));
     } else {
-      articlesQuery = ctx.db
+      baseQuery = ctx.db
         .query("kb_articles")
-        .withIndex("by_status", (q) => q.eq("status", "published"));
+        .withIndex("by_status", (q) => q.eq("status", "published"))
+        .order("desc");
     }
 
-    const allArticles = await articlesQuery.collect();
-    const published = allArticles
-      .filter((a) => a.status === "published")
-      .sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0));
+    const paginationResult = await baseQuery.paginate(args.paginationOpts);
 
-    const total = published.length;
-    const totalPages = Math.ceil(total / perPage);
-    const start = (page - 1) * perPage;
-    const items = published.slice(start, start + perPage);
+    // Filter out non-published when coming from the category index.
+    const pageItems = args.categoryId
+      ? paginationResult.page.filter((a) => a.status === "published")
+      : paginationResult.page;
 
-    const enriched = await Promise.all(
-      items.map(async (article) => {
+    const enrichedPage = await Promise.all(
+      pageItems.map(async (article) => {
         const author = await ctx.db.get(article.authorId);
         const category = article.categoryId ? await ctx.db.get(article.categoryId) : null;
         return {
@@ -259,11 +271,8 @@ export const listPublished = query({
     );
 
     return {
-      items: enriched,
-      total,
-      page,
-      perPage,
-      totalPages,
+      ...paginationResult,
+      page: enrichedPage,
     };
   },
 });
@@ -275,13 +284,15 @@ export const getPopular = query({
   handler: async (ctx, args) => {
     const limit = args.limit ?? 10;
 
+    // by_status index ensures only published records are loaded.
+    // viewCount is not the index order, so we sort in memory with a safety
+    // bound of limit*3 to avoid unbounded .collect() on large tables.
     const articles = await ctx.db
       .query("kb_articles")
       .withIndex("by_status", (q) => q.eq("status", "published"))
-      .collect();
+      .take(limit * 3);
 
     return articles
-      .filter((a) => a.status === "published")
       .sort((a, b) => b.viewCount - a.viewCount)
       .slice(0, limit)
       .map((a) => ({
@@ -302,13 +313,14 @@ export const getRecent = query({
   handler: async (ctx, args) => {
     const limit = args.limit ?? 10;
 
+    // by_status index ensures only published records are loaded.
+    // publishedAt is not the index order, so sort in memory with a safety bound.
     const articles = await ctx.db
       .query("kb_articles")
       .withIndex("by_status", (q) => q.eq("status", "published"))
-      .collect();
+      .take(limit * 3);
 
     return articles
-      .filter((a) => a.status === "published")
       .sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0))
       .slice(0, limit)
       .map((a) => ({
@@ -329,10 +341,13 @@ export const getFeatured = query({
   handler: async (ctx, args) => {
     const limit = args.limit ?? 6;
 
+    // by_featured index scopes to isFeatured=true records only.
+    // Published status filter applied in memory; featured sets are small so
+    // take(limit * 3) is a safe, tight upper bound.
     const articles = await ctx.db
       .query("kb_articles")
       .withIndex("by_featured", (q) => q.eq("isFeatured", true))
-      .collect();
+      .take(limit * 3);
 
     return articles
       .filter((a) => a.status === "published")
