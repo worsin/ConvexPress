@@ -349,6 +349,11 @@ export const unpublish = mutation({
       }
     }
 
+    await emitEvent(ctx, KB_EVENTS.ARTICLE_UNPUBLISHED, SYSTEM.KB, {
+      articleId: args.articleId,
+      title: article.title,
+    });
+
     return args.articleId;
   },
 });
@@ -498,6 +503,15 @@ export const remove = mutation({
       .collect();
     for (const rc of ragChunks) await ctx.db.delete(rc._id);
 
+    // Clean up article workflows
+    const articleWorkflows = await ctx.db
+      .query("kb_articleWorkflows")
+      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .collect();
+    for (const aw of articleWorkflows) {
+      await ctx.db.delete(aw._id);
+    }
+
     // Decrement category article count if was published
     if (article.status === "published" && article.categoryId) {
       const category = await ctx.db.get(article.categoryId);
@@ -510,6 +524,8 @@ export const remove = mutation({
     }
 
     await ctx.db.delete(args.articleId);
+
+    await emitEvent(ctx, KB_EVENTS.ARTICLE_DELETED, SYSTEM.KB, { articleId: args.articleId });
 
     return args.articleId;
   },
