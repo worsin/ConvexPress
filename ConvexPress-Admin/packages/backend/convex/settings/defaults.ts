@@ -24,7 +24,9 @@ export type SettingsSection =
   | "discussion"
   | "permalinks"
   | "privacy"
-  | "email";
+  | "email"
+  | "ai"
+  | "search";
 
 /**
  * Ordered array of all valid section names.
@@ -37,6 +39,8 @@ export const SECTION_NAMES: SettingsSection[] = [
   "permalinks",
   "privacy",
   "email",
+  "ai",
+  "search",
 ];
 
 /**
@@ -142,6 +146,17 @@ export interface PrivacySettings {
   showPrivacyPolicyLink: boolean;
 }
 
+export interface AISettings {
+  /** AI provider: "openrouter" or "anthropic" */
+  provider: "openrouter" | "anthropic";
+  /** API key for the selected provider */
+  apiKey: string;
+  /** Default model identifier */
+  defaultModel: string;
+  /** Tavily API key for research features */
+  tavilyApiKey: string;
+}
+
 export interface EmailSettings {
   /** Whether the email system is enabled */
   enabled: boolean;
@@ -177,11 +192,18 @@ export interface EmailSettings {
   includeUnsubscribeLink: boolean;
 }
 
+export interface SearchSettings {
+  /** Meilisearch host URL (e.g., http://localhost:7700 or cloud URL) */
+  meilisearchHost: string;
+  /** Meilisearch API key for authentication */
+  meilisearchApiKey: string;
+}
+
 // ─── Default Values ──────────────────────────────────────────────────────────
 
 export const GENERAL_DEFAULTS: GeneralSettings = {
   siteTitle: "My Site",
-  tagline: "Just another SmithHarper site",
+  tagline: "Just another ConvexPress site",
   siteUrl: "",
   homeUrl: "",
   adminEmail: "",
@@ -251,11 +273,18 @@ export const PRIVACY_DEFAULTS: PrivacySettings = {
   showPrivacyPolicyLink: true,
 };
 
+export const AI_DEFAULTS: AISettings = {
+  provider: "openrouter",
+  apiKey: "",
+  defaultModel: "anthropic/claude-sonnet-4-20250514",
+  tavilyApiKey: "",
+};
+
 export const EMAIL_DEFAULTS: EmailSettings = {
   enabled: true,
-  fromAddress: "noreply@smithharper.com",
-  fromName: "SmithHarper CMS",
-  replyTo: "support@smithharper.com",
+  fromAddress: "noreply@convexpress.com",
+  fromName: "ConvexPress",
+  replyTo: "support@convexpress.com",
   rateLimit: 50,
   dailyLimit: 1000,
   batchWindow: 15,
@@ -270,6 +299,11 @@ export const EMAIL_DEFAULTS: EmailSettings = {
   includeUnsubscribeLink: true,
 };
 
+export const SEARCH_DEFAULTS: SearchSettings = {
+  meilisearchHost: "",
+  meilisearchApiKey: "",
+};
+
 // ─── Defaults Map ────────────────────────────────────────────────────────────
 
 const DEFAULTS_MAP: Record<SettingsSection, object> = {
@@ -280,6 +314,8 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   permalinks: PERMALINK_DEFAULTS,
   privacy: PRIVACY_DEFAULTS,
   email: EMAIL_DEFAULTS,
+  ai: AI_DEFAULTS,
+  search: SEARCH_DEFAULTS,
 };
 
 /**

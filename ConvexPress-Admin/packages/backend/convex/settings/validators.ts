@@ -24,6 +24,8 @@ export const sectionValidator = v.union(
   v.literal("permalinks"),
   v.literal("privacy"),
   v.literal("email"),
+  v.literal("ai"),
+  v.literal("search"),
 );
 
 // ─── Per-Section Value Validators ────────────────────────────────────────────
@@ -166,6 +168,26 @@ export const emailValuesValidator = v.object({
   digestDay: v.number(),
   digestHour: v.number(),
   includeUnsubscribeLink: v.boolean(),
+});
+
+/**
+ * AI settings value shape validator.
+ * Controls AI provider configuration: provider selection, API keys, model.
+ */
+export const aiValuesValidator = v.object({
+  provider: v.union(v.literal("openrouter"), v.literal("anthropic")),
+  apiKey: v.string(),
+  defaultModel: v.string(),
+  tavilyApiKey: v.string(),
+});
+
+/**
+ * Search settings value shape validator.
+ * Controls Meilisearch connection: host URL and API key.
+ */
+export const searchValuesValidator = v.object({
+  meilisearchHost: v.string(),
+  meilisearchApiKey: v.string(),
 });
 
 // ─── Argument Validators ─────────────────────────────────────────────────────

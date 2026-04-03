@@ -44,6 +44,7 @@ const SECTION_CAPABILITY_MAP: Record<
   | "settings.update_permalinks"
   | "settings.update_privacy"
   | "settings.update_email"
+  | "manage_options"
 > = {
   general: "settings.update_general",
   reading: "settings.update_reading",
@@ -52,6 +53,8 @@ const SECTION_CAPABILITY_MAP: Record<
   permalinks: "settings.update_permalinks",
   privacy: "settings.update_privacy",
   email: "settings.update_email",
+  ai: "manage_options",
+  search: "manage_options",
 };
 
 // ─── updateSection ───────────────────────────────────────────────────────────

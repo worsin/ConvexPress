@@ -12,6 +12,9 @@ import {
   Search,
   RefreshCcw,
   BarChart3,
+  Brain,
+  Mail,
+  Puzzle,
 } from "lucide-react";
 
 import type { AdminNavSection } from "./types";
@@ -245,12 +248,14 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         id: "settings-email",
         label: "Email",
         to: "/settings/email",
+        icon: Mail,
         capability: "settings.update_email",
       },
       {
         id: "settings-search",
         label: "Search",
         to: "/settings/search",
+        icon: Search,
         capability: "search.query",
       },
       {
@@ -258,6 +263,20 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         label: "Analytics",
         to: "/settings/analytics",
         icon: BarChart3,
+        capability: "manage_options",
+      },
+      {
+        id: "settings-ai",
+        label: "AI Providers",
+        to: "/settings/ai",
+        icon: Brain,
+        capability: "manage_options",
+      },
+      {
+        id: "settings-integrations",
+        label: "Integrations",
+        to: "/settings/integrations",
+        icon: Puzzle,
         capability: "manage_options",
       },
     ],
