@@ -35,8 +35,16 @@ export function useUnsavedChangesWarning(
   }, [shouldBlock]);
 
   // TanStack Router navigation blocker (for SPA navigation)
+  // When shouldBlock is true, show a confirmation dialog. Returning true
+  // from shouldBlockFn means "yes, block navigation", so we invert the
+  // result of window.confirm (confirm = proceed = don't block).
   useBlocker({
-    shouldBlockFn: () => shouldBlock,
+    shouldBlockFn: () => {
+      if (!shouldBlock) return false;
+      return !window.confirm(
+        "You have unsaved changes. Are you sure you want to leave this page?",
+      );
+    },
     withResolver: false,
   });
 }
