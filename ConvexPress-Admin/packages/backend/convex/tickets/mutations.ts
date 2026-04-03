@@ -155,10 +155,10 @@ export const create = mutation({
     let defaultPriority: "low" | "medium" | "high" = "medium";
     const prioritySetting = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "general"))
+      .withIndex("by_section", (q) => q.eq("section", "ticket.general"))
       .unique();
-    if (prioritySetting?.values?.ticketDefaultPriority) {
-      defaultPriority = prioritySetting.values.ticketDefaultPriority;
+    if (prioritySetting?.values?.defaultPriority) {
+      defaultPriority = prioritySetting.values.defaultPriority;
     }
 
     // ── Insert ticket ───────────────────────────────────────────────────

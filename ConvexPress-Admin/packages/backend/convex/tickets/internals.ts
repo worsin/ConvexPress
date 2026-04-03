@@ -33,10 +33,10 @@ export const autoCloseResolved = internalMutation({
     // Read auto-close setting
     const setting = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "general"))
+      .withIndex("by_section", (q) => q.eq("section", "ticket.general"))
       .unique();
 
-    const autoCloseAfterDays = setting?.values?.ticketAutoCloseAfterDays ?? 14;
+    const autoCloseAfterDays = setting?.values?.autoCloseAfterDays ?? 14;
 
     if (autoCloseAfterDays === 0) {
       return { closed: 0, message: "Auto-close is disabled" };

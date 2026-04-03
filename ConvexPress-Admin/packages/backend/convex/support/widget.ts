@@ -44,6 +44,8 @@ export const getConfig = query({
       showTicketHistory: true,
       aiEnabled: false,
       escalationButtonLabel: "Contact Support",
+      position: "bottomRight",
+      greeting: "Hi! How can we help?",
     };
 
     const doc = await ctx.db
