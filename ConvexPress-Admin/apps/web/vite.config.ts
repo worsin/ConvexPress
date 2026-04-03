@@ -8,6 +8,8 @@ import { defineConfig } from "vite";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  // Use relative paths for Electron (file:// protocol requires "./" base)
+  base: process.env.ELECTRON_BUILD === "true" ? "./" : "/",
   plugins: [
     tailwindcss(),
     tanstackRouter({}),
@@ -21,7 +23,7 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@backend": path.resolve(__dirname, "../../packages/backend"),
-      "@smith-harper/backend": path.resolve(__dirname, "../../packages/backend"),
+      "@convexpress/backend": path.resolve(__dirname, "../../packages/backend"),
     },
   },
   server: {
