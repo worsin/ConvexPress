@@ -23,8 +23,6 @@ import { ConvexError } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 import { requireCan, currentUserCan } from "../helpers/permissions";
-import { emitEvent } from "../helpers/events";
-import { SYSTEM } from "../events/constants";
 import {
   createCannedResponseArgs,
   updateCannedResponseArgs,
@@ -223,13 +221,6 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    await emitEvent(ctx, "ticket.canned_response_created", SYSTEM.TICKET, {
-      cannedResponseId: id,
-      title: args.title.trim(),
-      shortcut: args.shortcut.trim(),
-      createdBy: user._id,
-    });
-
     return { id };
   },
 });
@@ -301,11 +292,6 @@ export const update = mutation({
 
     await ctx.db.patch(args.id, updates);
 
-    await emitEvent(ctx, "ticket.canned_response_updated", SYSTEM.TICKET, {
-      cannedResponseId: args.id,
-      updatedBy: user._id,
-    });
-
     return { id: args.id };
   },
 });
@@ -329,13 +315,6 @@ export const remove = mutation({
     }
 
     await ctx.db.delete(args.id);
-
-    await emitEvent(ctx, "ticket.canned_response_deleted", SYSTEM.TICKET, {
-      cannedResponseId: args.id,
-      title: existing.title,
-      shortcut: existing.shortcut,
-      deletedBy: user._id,
-    });
   },
 });
 

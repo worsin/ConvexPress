@@ -76,15 +76,15 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 function StatusBadge({ status }: { status: string }) {
   const colorMap: Record<string, string> = {
-    open: "bg-blue-500/15 text-blue-700",
-    awaitingResponse: "bg-amber-500/15 text-amber-700",
-    inProgress: "bg-purple-500/15 text-purple-700",
-    resolved: "bg-green-500/15 text-green-700",
-    closed: "bg-black/10 text-black/60",
+    open: "bg-primary/15 text-primary",
+    awaitingResponse: "bg-muted text-muted-foreground",
+    inProgress: "bg-accent/15 text-accent-foreground",
+    resolved: "bg-success/15 text-success",
+    closed: "bg-foreground/10 text-foreground/60",
   };
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colorMap[status] ?? "bg-black/10 text-black/60"}`}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colorMap[status] ?? "bg-foreground/10 text-foreground/60"}`}
     >
       {STATUS_LABELS[status] ?? status}
     </span>
@@ -93,14 +93,14 @@ function StatusBadge({ status }: { status: string }) {
 
 function PriorityBadge({ priority }: { priority: string }) {
   const colorMap: Record<string, string> = {
-    low: "bg-black/5 text-black/50",
-    medium: "bg-blue-500/15 text-blue-700",
-    high: "bg-orange-500/15 text-orange-700",
-    urgent: "bg-red-500/15 text-red-700",
+    low: "bg-muted text-muted-foreground",
+    medium: "bg-primary/15 text-primary",
+    high: "bg-warning/15 text-warning",
+    urgent: "bg-destructive/15 text-destructive",
   };
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colorMap[priority] ?? "bg-black/5 text-black/50"}`}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colorMap[priority] ?? "bg-muted text-muted-foreground"}`}
     >
       {PRIORITY_LABELS[priority] ?? priority}
     </span>
@@ -174,7 +174,7 @@ function TicketListTable() {
       </div>
 
       {/* Status Tabs */}
-      <div className="flex gap-1 border-b border-black/10">
+      <div className="flex gap-1 border-b border-border">
         {[
           { key: undefined, label: "All", count: totalAll },
           { key: "open", label: "Open", count: (stats?.counts as any)?.open },
@@ -208,13 +208,13 @@ function TicketListTable() {
             }
             className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
               search.status === tab.key
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-black/60 hover:text-black/80"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.label}
             {tab.count !== undefined && (
-              <span className="ml-1 text-xs text-black/40">({tab.count})</span>
+              <span className="ml-1 text-xs text-foreground/40">({tab.count})</span>
             )}
           </button>
         ))}
@@ -236,7 +236,7 @@ function TicketListTable() {
               },
             });
           }}
-          className="flex-1 min-w-[12rem] max-w-xs px-3 py-1.5 text-sm border border-black/15 rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+          className="flex-1 min-w-[12rem] max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
 
         <select

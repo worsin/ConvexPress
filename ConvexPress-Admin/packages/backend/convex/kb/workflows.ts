@@ -312,6 +312,13 @@ export const approveStep = mutation({
             meilisearchSynced: false,
             ragSynced: false,
           });
+          // Increment category article count
+          if (article.categoryId) {
+            const category = await ctx.db.get(article.categoryId);
+            if (category) {
+              await ctx.db.patch(article.categoryId, { articleCount: category.articleCount + 1 });
+            }
+          }
         }
       } else {
         // Move to next step
