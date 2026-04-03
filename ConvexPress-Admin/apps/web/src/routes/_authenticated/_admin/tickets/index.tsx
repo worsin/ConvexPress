@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "@backend/convex/_generated/api";
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { MessageSquare } from "lucide-react";
 
@@ -136,14 +137,14 @@ function TicketListTable() {
   const [searchInput, setSearchInput] = useState(search.search ?? "");
 
   const result = useQuery(api.tickets.queries.getQueue, {
-    status: search.status as any,
-    priority: search.priority as any,
-    category: search.category as any,
-    assignedTo: search.assignedTo as any,
+    status: search.status,
+    priority: search.priority,
+    category: search.category,
+    assignedTo: search.assignedTo as Id<"users"> | undefined,
     unassigned: search.unassigned,
     search: search.search,
-    orderBy: search.orderBy as any,
-    orderDir: search.orderDir as any,
+    orderBy: search.orderBy,
+    orderDir: search.orderDir,
     page: search.page,
     perPage: search.perPage,
   });
@@ -167,11 +168,10 @@ function TicketListTable() {
     );
   }
 
-  const totalAll = stats
-    ? Object.values(stats.counts as Record<string, number>).reduce(
-        (a, b) => a + b,
-        0,
-      )
+  type TicketCounts = { open: number; awaitingResponse: number; inProgress: number; resolved: number; closed: number };
+  const counts = stats?.counts as TicketCounts | undefined;
+  const totalAll = counts
+    ? Object.values(counts).reduce((a, b) => a + b, 0)
     : undefined;
 
   return (
@@ -185,33 +185,17 @@ function TicketListTable() {
       <div className="flex gap-1 border-b border-border">
         {[
           { key: undefined, label: "All", count: totalAll },
-          { key: "open", label: "Open", count: (stats?.counts as any)?.open },
-          {
-            key: "awaitingResponse",
-            label: "Awaiting",
-            count: (stats?.counts as any)?.awaitingResponse,
-          },
-          {
-            key: "inProgress",
-            label: "In Progress",
-            count: (stats?.counts as any)?.inProgress,
-          },
-          {
-            key: "resolved",
-            label: "Resolved",
-            count: (stats?.counts as any)?.resolved,
-          },
-          {
-            key: "closed",
-            label: "Closed",
-            count: (stats?.counts as any)?.closed,
-          },
+          { key: "open", label: "Open", count: counts?.open },
+          { key: "awaitingResponse", label: "Awaiting", count: counts?.awaitingResponse },
+          { key: "inProgress", label: "In Progress", count: counts?.inProgress },
+          { key: "resolved", label: "Resolved", count: counts?.resolved },
+          { key: "closed", label: "Closed", count: counts?.closed },
         ].map((tab) => (
           <button
             key={tab.key ?? "all"}
             onClick={() =>
               void navigate({
-                search: { ...search, status: tab.key as any, page: 1 },
+                search: { ...search, status: tab.key as typeof search.status, page: 1 },
               })
             }
             className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
@@ -253,7 +237,7 @@ function TicketListTable() {
             void navigate({
               search: {
                 ...search,
-                priority: (e.target.value || undefined) as any,
+                priority: (e.target.value || undefined) as typeof search.priority,
                 page: 1,
               },
             })
@@ -273,7 +257,7 @@ function TicketListTable() {
             void navigate({
               search: {
                 ...search,
-                category: (e.target.value || undefined) as any,
+                category: (e.target.value || undefined) as typeof search.category,
                 page: 1,
               },
             })
@@ -318,12 +302,12 @@ function TicketListTable() {
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-border/50">
-            {result.tickets.map((ticket: any) => (
+            {result.tickets.map((ticket) => (
               <tr
                 key={ticket._id}
                 onClick={() =>
                   void navigate({
-                    to: "/_authenticated/_admin/tickets/$ticketId",
+                    to: "/tickets/$ticketId",
                     params: { ticketId: ticket._id },
                   })
                 }

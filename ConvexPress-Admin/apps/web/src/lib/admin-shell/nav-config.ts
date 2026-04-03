@@ -95,7 +95,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     label: "Knowledge Base",
     to: "/kb",
     icon: BookOpen,
-    capability: "edit_posts",
+    capability: "kb.view",
     children: [
       { id: "kb-all", label: "All Articles", to: "/kb", exact: true },
       { id: "kb-new", label: "Add New", to: "/kb/new", isAddNew: true },
@@ -113,7 +113,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     label: "Support Tickets",
     to: "/tickets",
     icon: TicketCheck,
-    capability: "edit_posts",
+    capability: "ticket.view",
     children: [
       { id: "tickets-all", label: "All Tickets", to: "/tickets", exact: true },
       { id: "tickets-canned", label: "Canned Responses", to: "/tickets/canned-responses", capability: "manage_options" },

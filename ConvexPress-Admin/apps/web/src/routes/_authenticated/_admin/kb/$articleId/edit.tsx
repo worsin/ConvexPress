@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
 import { Save, Globe, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
@@ -27,8 +28,27 @@ function EditKBArticlePage() {
   );
 }
 
+// Local type matching the shape returned by api.kb.queries.getById
+type KBArticle = {
+  _id: Id<"kb_articles">;
+  title: string;
+  content?: string;
+  excerpt?: string;
+  slug: string;
+  status: "draft" | "review" | "published" | "archived";
+  categoryId?: Id<"kb_categories">;
+  metaTitle?: string;
+  metaDescription?: string;
+  keywords?: string[];
+  readingTimeMinutes?: number;
+  viewCount: number;
+  version: number;
+  publishedAt?: number;
+  updatedAt: number;
+};
+
 function ArticleEditor({ articleId }: { articleId: string }) {
-  const article = useQuery(api.kb.queries.getById, { articleId: articleId as any });
+  const article = useQuery(api.kb.queries.getById, { articleId: articleId as Id<"kb_articles"> });
   const categories = useQuery(api.kb.categories.list) ?? [];
   const updateArticle = useMutation(api.kb.mutations.update);
   const publishArticle = useMutation(api.kb.mutations.publish);
@@ -48,7 +68,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
-  const art = article as any;
+  const art = article as KBArticle | null | undefined;
 
   // Populate form when article loads
   useEffect(() => {
@@ -62,6 +82,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
     setMetaDescription(art.metaDescription ?? "");
     setKeywords((art.keywords ?? []).join(", "));
     setIsDirty(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [art?._id]);
 
   function markDirty() {
@@ -76,19 +97,19 @@ function ArticleEditor({ articleId }: { articleId: string }) {
         .map((k) => k.trim())
         .filter(Boolean);
       await updateArticle({
-        articleId: articleId as any,
+        articleId: articleId as Id<"kb_articles">,
         title: title.trim(),
         content: content || undefined,
         excerpt: excerpt || undefined,
-        categoryId: (categoryId as any) || undefined,
+        categoryId: (categoryId as Id<"kb_categories">) || undefined,
         metaTitle: metaTitle || undefined,
         metaDescription: metaDescription || undefined,
         keywords: kwArray.length > 0 ? kwArray : undefined,
       });
       toast.success("Article saved");
       setIsDirty(false);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to save article");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to save article");
     } finally {
       setIsSaving(false);
     }
@@ -100,20 +121,20 @@ function ArticleEditor({ articleId }: { articleId: string }) {
       // Save first
       const kwArray = keywords.split(",").map((k) => k.trim()).filter(Boolean);
       await updateArticle({
-        articleId: articleId as any,
+        articleId: articleId as Id<"kb_articles">,
         title: title.trim(),
         content: content || undefined,
         excerpt: excerpt || undefined,
-        categoryId: (categoryId as any) || undefined,
+        categoryId: (categoryId as Id<"kb_categories">) || undefined,
         metaTitle: metaTitle || undefined,
         metaDescription: metaDescription || undefined,
         keywords: kwArray.length > 0 ? kwArray : undefined,
       });
-      await publishArticle({ articleId: articleId as any });
+      await publishArticle({ articleId: articleId as Id<"kb_articles"> });
       toast.success("Article published");
       setIsDirty(false);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to publish article");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to publish article");
     } finally {
       setIsPublishing(false);
     }
@@ -122,10 +143,10 @@ function ArticleEditor({ articleId }: { articleId: string }) {
   async function handleUnpublish() {
     setIsPublishing(true);
     try {
-      await unpublishArticle({ articleId: articleId as any });
+      await unpublishArticle({ articleId: articleId as Id<"kb_articles"> });
       toast.success("Article reverted to draft");
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to unpublish article");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to unpublish article");
     } finally {
       setIsPublishing(false);
     }
@@ -150,7 +171,8 @@ function ArticleEditor({ articleId }: { articleId: string }) {
     );
   }
 
-  const isPublished = art?.status === "published";
+  // At this point article is guaranteed non-null/undefined
+  const isPublished = art!.status === "published";
 
   return (
     <div className="space-y-5">
@@ -159,6 +181,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
         <div className="flex items-center gap-3">
           <Link
             to="/admin/kb"
+            aria-label="Back to articles"
             className="text-foreground/50 hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -230,10 +253,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
 
           {/* Content */}
           <div>
-            <label className="block text-xs font-medium text-foreground/60 mb-1">
-              Content
-              <span className="ml-1.5 font-normal text-foreground/40">(TipTap editor coming soon)</span>
-            </label>
+            <label className="block text-xs font-medium text-foreground/60 mb-1">Content</label>
             <textarea
               value={content}
               onChange={(e) => { setContent(e.target.value); markDirty(); }}

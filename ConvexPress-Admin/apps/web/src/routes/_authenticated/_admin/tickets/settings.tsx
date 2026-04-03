@@ -72,11 +72,21 @@ function TicketSettingsForm() {
         },
       });
       toast.success("Settings saved");
-    } catch (error: any) {
-      toast.error(error?.data?.message ?? "Failed to save settings");
+    } catch (error: unknown) {
+      toast.error((error as { data?: { message?: string } })?.data?.message ?? "Failed to save settings");
     } finally {
       setIsSaving(false);
     }
+  }
+
+  if (settings === undefined) {
+    return (
+      <div className="max-w-2xl space-y-6 animate-pulse">
+        <div className="h-8 w-44 bg-muted rounded" />
+        <div className="h-32 bg-muted rounded-lg" />
+        <div className="h-32 bg-muted rounded-lg" />
+      </div>
+    );
   }
 
   return (
@@ -188,7 +198,7 @@ function TicketSettingsForm() {
       {/* Save */}
       <button
         onClick={() => void handleSave()}
-        disabled={isSaving || settings === undefined}
+        disabled={isSaving}
         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
       >
         <Save className="h-4 w-4" />

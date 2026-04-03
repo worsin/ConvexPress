@@ -14,6 +14,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, X, Check, BookOpen } from "lucide-react";
@@ -71,7 +72,8 @@ function KBCollectionsPage() {
 }
 
 function KBCollectionsContent() {
-  const collections = useQuery(api.kb.collections.list) ?? [];
+  const collectionsResult = useQuery(api.kb.collections.list);
+  const collections = collectionsResult ?? [];
   const createCollection = useMutation(api.kb.collections.create);
   const updateCollection = useMutation(api.kb.collections.update);
   const removeCollection = useMutation(api.kb.collections.remove);
@@ -98,8 +100,8 @@ function KBCollectionsContent() {
       toast.success("Collection created");
       setNewCol(EMPTY_NEW);
       setShowCreate(false);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to create collection");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to create collection");
     } finally {
       setIsSaving(false);
     }
@@ -110,7 +112,7 @@ function KBCollectionsContent() {
     setIsSaving(true);
     try {
       await updateCollection({
-        collectionId: editing.id as any,
+        collectionId: editing.id as Id<"kb_collections">,
         name: editing.name.trim(),
         description: editing.description || undefined,
         type: editing.type,
@@ -118,8 +120,8 @@ function KBCollectionsContent() {
       });
       toast.success("Collection updated");
       setEditing(null);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to update collection");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to update collection");
     } finally {
       setIsSaving(false);
     }
@@ -127,12 +129,21 @@ function KBCollectionsContent() {
 
   async function handleDelete(collectionId: string) {
     try {
-      await removeCollection({ collectionId: collectionId as any });
+      await removeCollection({ collectionId: collectionId as Id<"kb_collections"> });
       toast.success("Collection deleted");
       setConfirmDelete(null);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to delete collection");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to delete collection");
     }
+  }
+
+  if (collectionsResult === undefined) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-40 bg-muted rounded animate-pulse" />
+        <div className="h-48 bg-muted rounded-lg animate-pulse" />
+      </div>
+    );
   }
 
   return (
@@ -244,7 +255,7 @@ function KBCollectionsContent() {
                 </td>
               </tr>
             ) : (
-              collections.map((col: any) => (
+              collections.map((col) => (
                 <tr key={col._id} className="hover:bg-muted/30 transition-colors">
                   {editing?.id === col._id ? (
                     <>
@@ -288,12 +299,14 @@ function KBCollectionsContent() {
                           <button
                             onClick={() => void handleUpdate()}
                             disabled={isSaving}
+                            aria-label="Save changes"
                             className="p-1 rounded hover:bg-primary/10 text-primary transition-colors disabled:opacity-50"
                           >
                             <Check className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => setEditing(null)}
+                            aria-label="Cancel editing"
                             className="p-1 rounded hover:bg-muted transition-colors"
                           >
                             <X className="h-4 w-4" />
@@ -363,12 +376,14 @@ function KBCollectionsContent() {
                                   isPublic: col.isPublic ?? true,
                                 })
                               }
+                              aria-label={`Edit ${col.name}`}
                               className="p-1 rounded hover:bg-muted transition-colors text-foreground/60 hover:text-foreground"
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => setConfirmDelete(col._id)}
+                              aria-label={`Delete ${col.name}`}
                               className="p-1 rounded hover:bg-destructive/10 text-foreground/60 hover:text-destructive transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />

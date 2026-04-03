@@ -9,6 +9,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, X, Check, FileText } from "lucide-react";
@@ -46,7 +47,8 @@ function KBTemplatesPage() {
 }
 
 function KBTemplatesContent() {
-  const templates = useQuery(api.kb.templates.list) ?? [];
+  const templatesResult = useQuery(api.kb.templates.list);
+  const templates = templatesResult ?? [];
   const createTemplate = useMutation(api.kb.templates.create);
   const updateTemplate = useMutation(api.kb.templates.update);
   const removeTemplate = useMutation(api.kb.templates.remove);
@@ -86,8 +88,8 @@ function KBTemplatesContent() {
       toast.success("Template created");
       setForm(EMPTY_FORM);
       setShowCreate(false);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to create template");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to create template");
     } finally {
       setIsSaving(false);
     }
@@ -98,7 +100,7 @@ function KBTemplatesContent() {
     setIsSaving(true);
     try {
       await updateTemplate({
-        templateId: editingId as any,
+        templateId: editingId as Id<"kb_templates">,
         name: form.name.trim(),
         description: form.description || undefined,
         content: form.content || undefined,
@@ -108,8 +110,8 @@ function KBTemplatesContent() {
       toast.success("Template updated");
       setEditingId(null);
       setForm(EMPTY_FORM);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to update template");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to update template");
     } finally {
       setIsSaving(false);
     }
@@ -117,15 +119,24 @@ function KBTemplatesContent() {
 
   async function handleDelete(templateId: string) {
     try {
-      await removeTemplate({ templateId: templateId as any });
+      await removeTemplate({ templateId: templateId as Id<"kb_templates"> });
       toast.success("Template deleted");
       setConfirmDelete(null);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to delete template");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to delete template");
     }
   }
 
   const isFormOpen = showCreate || !!editingId;
+
+  if (templatesResult === undefined) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-40 bg-muted rounded animate-pulse" />
+        <div className="h-56 bg-muted rounded-lg animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -298,12 +309,14 @@ function KBTemplatesContent() {
                       <div className="flex justify-end gap-1">
                         <button
                           onClick={() => startEdit(t)}
+                          aria-label={`Edit ${t.name}`}
                           className="p-1 rounded hover:bg-muted transition-colors text-foreground/60 hover:text-foreground"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setConfirmDelete(t._id)}
+                          aria-label={`Delete ${t.name}`}
                           className="p-1 rounded hover:bg-destructive/10 text-foreground/60 hover:text-destructive transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />

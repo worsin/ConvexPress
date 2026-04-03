@@ -9,6 +9,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, X, Check, Tag } from "lucide-react";
@@ -36,7 +37,8 @@ function KBTagsPage() {
 }
 
 function KBTagsContent() {
-  const tags = useQuery(api.kb.tags.list) ?? [];
+  const tagsResult = useQuery(api.kb.tags.list);
+  const tags = tagsResult ?? [];
   const createTag = useMutation(api.kb.tags.create);
   const updateTag = useMutation(api.kb.tags.update);
   const removeTag = useMutation(api.kb.tags.remove);
@@ -62,8 +64,8 @@ function KBTagsContent() {
       toast.success("Tag created");
       setNewTag(EMPTY_NEW);
       setShowCreate(false);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to create tag");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to create tag");
     } finally {
       setIsSaving(false);
     }
@@ -74,15 +76,15 @@ function KBTagsContent() {
     setIsSaving(true);
     try {
       await updateTag({
-        tagId: editing.id as any,
+        tagId: editing.id as Id<"kb_tags">,
         name: editing.name.trim(),
         description: editing.description || undefined,
         color: editing.color || undefined,
       });
       toast.success("Tag updated");
       setEditing(null);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to update tag");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to update tag");
     } finally {
       setIsSaving(false);
     }
@@ -90,12 +92,21 @@ function KBTagsContent() {
 
   async function handleDelete(tagId: string) {
     try {
-      await removeTag({ tagId: tagId as any });
+      await removeTag({ tagId: tagId as Id<"kb_tags"> });
       toast.success("Tag deleted");
       setConfirmDelete(null);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to delete tag");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to delete tag");
     }
+  }
+
+  if (tagsResult === undefined) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-32 bg-muted rounded animate-pulse" />
+        <div className="h-48 bg-muted rounded-lg animate-pulse" />
+      </div>
+    );
   }
 
   return (
@@ -229,12 +240,14 @@ function KBTagsContent() {
                           <button
                             onClick={() => void handleUpdate()}
                             disabled={isSaving}
+                            aria-label="Save changes"
                             className="p-1 rounded hover:bg-primary/10 text-primary transition-colors disabled:opacity-50"
                           >
                             <Check className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => setEditing(null)}
+                            aria-label="Cancel editing"
                             className="p-1 rounded hover:bg-muted transition-colors"
                           >
                             <X className="h-4 w-4" />
@@ -280,12 +293,14 @@ function KBTagsContent() {
                           <div className="flex justify-end gap-1">
                             <button
                               onClick={() => setEditing({ id: tag._id, name: tag.name, description: tag.description ?? "", color: tag.color ?? "" })}
+                              aria-label={`Edit ${tag.name}`}
                               className="p-1 rounded hover:bg-muted transition-colors text-foreground/60 hover:text-foreground"
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => setConfirmDelete(tag._id)}
+                              aria-label={`Delete ${tag.name}`}
                               className="p-1 rounded hover:bg-destructive/10 text-foreground/60 hover:text-destructive transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />

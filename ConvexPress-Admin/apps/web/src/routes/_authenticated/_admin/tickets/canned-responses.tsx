@@ -120,8 +120,8 @@ function CannedResponsesManager() {
         toast.success("Canned response updated");
       }
       cancelEdit();
-    } catch (error: any) {
-      toast.error(error?.data?.message ?? "Failed to save canned response");
+    } catch (error: unknown) {
+      toast.error((error as { data?: { message?: string } })?.data?.message ?? "Failed to save canned response");
     }
   }
 
@@ -130,8 +130,8 @@ function CannedResponsesManager() {
       await removeResponse({ id });
       toast.success("Canned response deleted");
       setDeleteConfirmId(null);
-    } catch (error: any) {
-      toast.error(error?.data?.message ?? "Failed to delete canned response");
+    } catch (error: unknown) {
+      toast.error((error as { data?: { message?: string } })?.data?.message ?? "Failed to delete canned response");
     }
   }
 

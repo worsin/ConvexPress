@@ -60,9 +60,12 @@ function KBSettingsForm() {
   // Sync state from loaded settings
   useEffect(() => {
     if (!settings) return;
-    const g = settings.general as any;
-    const f = settings.features as any;
-    const s = settings.search as any;
+    type G = { siteName?: string; siteDescription?: string; homepageLayout?: "categories" | "search" | "featured"; articlesPerPage?: number };
+    type F = { commentsEnabled?: boolean; bookmarksEnabled?: boolean; progressTrackingEnabled?: boolean; ratingsEnabled?: boolean; relatedArticlesEnabled?: boolean };
+    type S = { meilisearchEnabled?: boolean; meilisearchUrl?: string; meilisearchApiKey?: string; ragEnabled?: boolean; ragProvider?: "openai" | "anthropic"; ragApiKey?: string; ragModel?: string };
+    const g = settings.general as unknown as G;
+    const f = settings.features as unknown as F;
+    const s = settings.search as unknown as S;
     if (g) {
       setSiteName(g.siteName ?? "");
       setSiteDescription(g.siteDescription ?? "");
@@ -115,8 +118,8 @@ function KBSettingsForm() {
         },
       });
       toast.success("KB settings saved");
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to save settings");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to save settings");
     } finally {
       setIsSaving(false);
     }
@@ -160,7 +163,7 @@ function KBSettingsForm() {
           <label className="block text-sm font-medium text-foreground/70 mb-1">Homepage Layout</label>
           <select
             value={homepageLayout}
-            onChange={(e) => setHomepageLayout(e.target.value as any)}
+            onChange={(e) => setHomepageLayout(e.target.value as "categories" | "search" | "featured")}
             className="w-full max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card"
           >
             <option value="categories">Categories</option>
@@ -261,7 +264,7 @@ function KBSettingsForm() {
                 <label className="block text-xs font-medium text-foreground/70 mb-1">Provider</label>
                 <select
                   value={ragProvider}
-                  onChange={(e) => setRagProvider(e.target.value as any)}
+                  onChange={(e) => setRagProvider(e.target.value as "openai" | "anthropic")}
                   className="w-full max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card"
                 >
                   <option value="openai">OpenAI</option>

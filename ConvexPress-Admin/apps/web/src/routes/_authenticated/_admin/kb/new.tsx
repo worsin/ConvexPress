@@ -10,6 +10,7 @@ import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
 import { PenLine, ArrowRight } from "lucide-react";
@@ -47,16 +48,16 @@ function NewKBArticleForm() {
     try {
       const articleId = await createArticle({
         title: title.trim(),
-        templateId: (templateId as any) || undefined,
-        categoryId: (categoryId as any) || undefined,
+        templateId: (templateId as Id<"kb_templates">) || undefined,
+        categoryId: (categoryId as Id<"kb_categories">) || undefined,
       });
       toast.success("Article created");
       void navigate({
-        to: "/admin/kb/$articleId/edit",
+        to: "/kb/$articleId/edit",
         params: { articleId: articleId as unknown as string },
       });
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to create article");
+    } catch (err: unknown) {
+      toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to create article");
       setIsCreating(false);
     }
   }
