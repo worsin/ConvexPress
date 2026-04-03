@@ -44,6 +44,10 @@ class WindowManager {
       trafficLightPosition: { x: 12, y: 12 },
       icon: getIconPath(),
       show: false,
+      // Hardcoded dark background prevents a white flash before CSS loads
+      // in dark theme. Electron shows this color immediately while the
+      // renderer process initialises, so it must match the app's dark
+      // background to avoid a jarring flash.
       backgroundColor: "#0a0a0a",
       webPreferences: {
         preload: getPreloadPath(),
@@ -121,6 +125,8 @@ class WindowManager {
       center: true,
       icon: getIconPath(),
       show: false,
+      // Hardcoded dark background prevents a white flash before CSS loads
+      // in dark theme. See createMainWindow for the same rationale.
       backgroundColor: "#0a0a0a",
       webPreferences: {
         preload: getPreloadPath(),
