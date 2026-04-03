@@ -36,14 +36,14 @@ export function KBArticleListTable() {
         <h1 className="text-2xl font-semibold">Knowledge Base Articles</h1>
         <button
           onClick={() => navigate({ to: "/kb/new" })}
-          className="rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)]"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           Add New Article
         </button>
       </div>
 
       {/* Status tabs */}
-      <div className="flex gap-2 border-b border-[var(--color-border)]">
+      <div className="flex gap-2 border-b border-border">
         {(["all", "draft", "review", "published", "archived"] as const).map((tab) => (
           <button
             key={tab}
@@ -53,9 +53,13 @@ export function KBArticleListTable() {
               })
             }
             className={`px-3 py-2 text-sm font-medium ${
-              (search.status ?? "all") === (tab === "all" ? undefined : tab)
-                ? "border-b-2 border-[var(--color-primary)] text-[var(--color-primary)]"
-                : "text-[var(--color-muted-foreground)]"
+              tab === "all"
+                ? !search.status
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-muted-foreground"
+                : search.status === tab
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-muted-foreground"
             }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -64,17 +68,17 @@ export function KBArticleListTable() {
       </div>
 
       {/* Article list -- placeholder for full list table implementation */}
-      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)]">
+      <div className="rounded-lg border border-border bg-card">
         {!articles ? (
-          <div className="p-8 text-center text-[var(--color-muted-foreground)]">Loading...</div>
+          <div className="p-8 text-center text-muted-foreground">Loading...</div>
         ) : articles.items.length === 0 ? (
-          <div className="p-8 text-center text-[var(--color-muted-foreground)]">
+          <div className="p-8 text-center text-muted-foreground">
             No articles found.
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[var(--color-border)]">
+              <tr className="border-b border-border">
                 <th className="px-4 py-3 text-left font-medium">Title</th>
                 <th className="px-4 py-3 text-left font-medium">Author</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
@@ -86,28 +90,28 @@ export function KBArticleListTable() {
               {articles.items.map((article: any) => (
                 <tr
                   key={article._id}
-                  className="border-b border-[var(--color-border)] hover:bg-[var(--color-muted)]/50 cursor-pointer"
+                  className="border-b border-border hover:bg-muted/50 cursor-pointer"
                   onClick={() => navigate({ to: "/kb/$articleId/edit", params: { articleId: article._id } })}
                 >
                   <td className="px-4 py-3 font-medium">{article.title}</td>
-                  <td className="px-4 py-3 text-[var(--color-muted-foreground)]">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {article.author?.displayName ?? "Unknown"}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                       article.status === "published"
-                        ? "bg-green-500/10 text-green-600"
+                        ? "bg-success/10 text-success"
                         : article.status === "draft"
-                          ? "bg-yellow-500/10 text-yellow-600"
+                          ? "bg-warning/10 text-warning"
                           : article.status === "review"
-                            ? "bg-blue-500/10 text-blue-600"
-                            : "bg-black/5 text-[var(--color-muted-foreground)]"
+                            ? "bg-primary/10 text-primary"
+                            : "bg-foreground/5 text-muted-foreground"
                     }`}>
                       {article.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-[var(--color-muted-foreground)]">{article.viewCount}</td>
-                  <td className="px-4 py-3 text-[var(--color-muted-foreground)]">
+                  <td className="px-4 py-3 text-muted-foreground">{article.viewCount}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
                     {new Date(article.updatedAt).toLocaleDateString()}
                   </td>
                 </tr>

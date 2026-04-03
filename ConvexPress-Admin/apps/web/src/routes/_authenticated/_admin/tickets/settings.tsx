@@ -8,7 +8,7 @@
 import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "@convexpress-admin/backend/generated/api";
+import { api } from "@backend/convex/_generated/api";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
