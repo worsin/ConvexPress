@@ -5,7 +5,7 @@
  * plus 10 meta-capabilities that resolve based on context (ownership, etc.).
  *
  * This is the single source of truth for capability strings used throughout
- * the SmithHarper CMS authorization layer.
+ * the ConvexPress authorization layer.
  */
 
 // ─── Post Capabilities (13) ─────────────────────────────────────────────────
@@ -238,6 +238,17 @@ type RoutingCapability =
   | "routing.update_redirect"
   | "routing.delete_redirect";
 
+// ─── Analytics Capabilities (2) ─────────────────────────────────────────────
+
+type AnalyticsCapability =
+  | "analytics.view"
+  | "analytics.manage";
+
+// ─── Settings Management Capability (1) ─────────────────────────────────────
+// WordPress-standard "manage_options" used by admin-only settings operations.
+
+type SettingsManageCapability = "manage_options";
+
 // ─── Meta Capabilities (10) ─────────────────────────────────────────────────
 // These resolve dynamically based on context (resource ownership, etc.)
 
@@ -283,7 +294,9 @@ export type Capability =
   | AuditCapability
   | APICapability
   | EventCapability
-  | RoutingCapability;
+  | RoutingCapability
+  | AnalyticsCapability
+  | SettingsManageCapability;
 
 /**
  * Any capability string that can be passed to permission checks.
@@ -461,6 +474,11 @@ export const ALL_CAPABILITIES: Capability[] = [
   "routing.create_redirect",
   "routing.update_redirect",
   "routing.delete_redirect",
+  // Analytics (2)
+  "analytics.view",
+  "analytics.manage",
+  // Settings Management (1)
+  "manage_options",
 ] as const;
 
 /**
@@ -694,4 +712,6 @@ export const CAPABILITY_DOMAINS: Record<string, Capability[]> = {
     "routing.update_redirect",
     "routing.delete_redirect",
   ],
+  Analytics: ["analytics.view", "analytics.manage"],
+  "Settings Management": ["manage_options"],
 };

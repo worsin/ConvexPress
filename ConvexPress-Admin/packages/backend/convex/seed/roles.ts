@@ -58,9 +58,7 @@ const ALL_ADMIN_PAGES: string[] = [
   "/admin/settings/permalinks",
   "/admin/settings/privacy",
   "/admin/settings/email",
-  "/admin/widgets",
   "/admin/menus",
-  "/admin/themes",
   "/admin/seo",
   "/admin/api",
   "/admin/audit-log",
@@ -226,6 +224,8 @@ const EDITOR_CAPABILITIES: Capability[] = [
   "notification.mark_all_read",
   "notification.delete",
   "notification.update_preferences",
+  // Analytics (1)
+  "analytics.view",
 ];
 
 /**
