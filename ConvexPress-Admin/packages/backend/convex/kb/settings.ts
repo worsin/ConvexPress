@@ -38,7 +38,7 @@ import { computeChanges } from "../settings/helpers";
  *   - search: { meilisearchEnabled, meilisearchUrl, meilisearchApiKey,
  *               ragEnabled, ragProvider, ragApiKey, ragModel }
  *
- * @auth Any authenticated user (read access)
+ * @auth manage_options (Administrator only)
  */
 export const getKbSettings = query({
   args: {},
@@ -62,10 +62,26 @@ export const getKbSettings = query({
         : { ...defaults };
     }
 
+    const search = result["kb.search"] as Record<string, unknown>;
+
+    // Mask API keys before returning to the client
+    if (search.meilisearchApiKey && typeof search.meilisearchApiKey === "string") {
+      const key = search.meilisearchApiKey;
+      search.meilisearchApiKey = key.length > 8
+        ? key.slice(0, 4) + "•".repeat(Math.min(key.length - 8, 20)) + key.slice(-4)
+        : "••••••••";
+    }
+    if (search.ragApiKey && typeof search.ragApiKey === "string") {
+      const key = search.ragApiKey;
+      search.ragApiKey = key.length > 8
+        ? key.slice(0, 4) + "•".repeat(Math.min(key.length - 8, 20)) + key.slice(-4)
+        : "••••••••";
+    }
+
     return {
       general: result["kb.general"] as typeof KB_GENERAL_DEFAULTS,
       features: result["kb.features"] as typeof KB_FEATURES_DEFAULTS,
-      search: result["kb.search"] as typeof KB_SEARCH_DEFAULTS,
+      search: search as typeof KB_SEARCH_DEFAULTS,
     };
   },
 });

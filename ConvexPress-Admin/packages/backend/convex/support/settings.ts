@@ -85,15 +85,31 @@ export const getSupportSettings = query({
         .unique(),
     ]);
 
+    const ai = {
+      ...SUPPORT_AI_DEFAULTS,
+      ...(aiDoc ? (aiDoc.values as Record<string, unknown>) : {}),
+    } as Record<string, unknown>;
+
+    // Mask API keys before returning to the client
+    if (ai.aiApiKey && typeof ai.aiApiKey === "string") {
+      const key = ai.aiApiKey;
+      ai.aiApiKey = key.length > 8
+        ? key.slice(0, 4) + "•".repeat(Math.min(key.length - 8, 20)) + key.slice(-4)
+        : "••••••••";
+    }
+    if (ai.meilisearchApiKey && typeof ai.meilisearchApiKey === "string") {
+      const key = ai.meilisearchApiKey;
+      ai.meilisearchApiKey = key.length > 8
+        ? key.slice(0, 4) + "•".repeat(Math.min(key.length - 8, 20)) + key.slice(-4)
+        : "••••••••";
+    }
+
     return {
       widget: {
         ...SUPPORT_WIDGET_DEFAULTS,
         ...(widgetDoc ? (widgetDoc.values as Record<string, unknown>) : {}),
       } as typeof SUPPORT_WIDGET_DEFAULTS,
-      ai: {
-        ...SUPPORT_AI_DEFAULTS,
-        ...(aiDoc ? (aiDoc.values as Record<string, unknown>) : {}),
-      } as typeof SUPPORT_AI_DEFAULTS,
+      ai: ai as typeof SUPPORT_AI_DEFAULTS,
     };
   },
 });
