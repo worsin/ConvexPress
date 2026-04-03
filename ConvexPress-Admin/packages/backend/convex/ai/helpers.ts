@@ -7,6 +7,29 @@
 
 import { internalMutation, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
+import { getSettingsDoc, mergeWithDefaults } from "../settings/helpers";
+import type { AISettings } from "../settings/defaults";
+
+// ─── AI Settings Query ──────────────────────────────────────────────────────
+
+/**
+ * Internal query to fetch AI settings from the settings table.
+ * Used by Node.js actions in internals.ts via ctx.runQuery.
+ *
+ * Returns merged AI settings (defaults + stored overrides).
+ * Actions should fall back to env vars if settings values are empty.
+ */
+export const getAiSettings = internalQuery({
+  args: {},
+  handler: async (ctx): Promise<AISettings> => {
+    const doc = await getSettingsDoc(ctx, "ai");
+    const merged = mergeWithDefaults(
+      "ai",
+      doc?.values as Record<string, unknown> | null,
+    );
+    return merged as unknown as AISettings;
+  },
+});
 
 /**
  * Fetch post data needed for AI generation.
