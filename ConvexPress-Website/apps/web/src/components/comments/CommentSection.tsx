@@ -24,7 +24,7 @@ interface CommentSectionProps {
  * Full comment section wrapper. Fetches comments via Convex,
  * renders threaded display, and provides the comment form.
  *
- * All commenters must be authenticated in SmithHarper.
+ * All commenters must be authenticated in ConvexPress.
  */
 export function CommentSection({
   postId,

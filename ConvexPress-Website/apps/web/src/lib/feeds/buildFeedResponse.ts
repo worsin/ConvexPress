@@ -127,7 +127,7 @@ function buildRssChannel(
     <atom:link href="${escapeXml(feedUrl)}" rel="self" type="application/rss+xml" />
     <sy:updatePeriod>hourly</sy:updatePeriod>
     <sy:updateFrequency>1</sy:updateFrequency>
-    <generator>SmithHarper CMS</generator>
+    <generator>ConvexPress</generator>
 ${items}
   </channel>
 </rss>`;
@@ -191,7 +191,7 @@ function buildAtomFeed(
     <link href="${escapeXml(feedUrl)}" rel="self" type="application/atom+xml" />
     <id>${escapeXml(id)}</id>
     <updated>${toIso8601(updated)}</updated>
-    <generator uri="https://smithharper.dev" version="1.0">SmithHarper CMS</generator>
+    <generator uri="https://convexpress.dev" version="1.0">ConvexPress</generator>
 ${entries}
 </feed>`;
 }

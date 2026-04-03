@@ -5,7 +5,7 @@
  * for the website frontend SSR rendering.
  *
  * Handles all standard TipTap nodes (paragraph, heading, list, table, etc.)
- * as well as all custom SmithHarper block extensions:
+ * as well as all custom ConvexPress block extensions:
  *   - callout (info/warning/error/success)
  *   - embed (YouTube/Vimeo/Twitter/generic)
  *   - button (CTA with variant/alignment)
@@ -16,7 +16,7 @@
  *
  * Security: All user-supplied text is HTML-escaped. URLs are validated.
  */
-import { parseTipTapDocument, type TipTapNode as ValidatedTipTapNode } from "@/lib/schemas/content";
+import { parseTipTapDocument } from "@/lib/schemas/content";
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -272,7 +272,8 @@ function renderImage(
   node: TipTapNode,
   opts: Required<RenderOptions>,
 ): string {
-  const src = node.attrs?.src;
+  const rawSrc = node.attrs?.src;
+  const src = rawSrc ? sanitizeUrl(rawSrc) : "";
   if (!src) return "";
   const attrs: string[] = [
     `src="${escapeAttr(src)}"`,
@@ -349,9 +350,9 @@ function renderEmbed(
   node: TipTapNode,
   opts: Required<RenderOptions>,
 ): string {
-  const url = node.attrs?.url || "";
+  const url = sanitizeUrl(node.attrs?.url || "");
   const provider = node.attrs?.provider || "generic";
-  const embedUrl = node.attrs?.embedUrl || url;
+  const embedUrl = sanitizeUrl(node.attrs?.embedUrl || url) || url;
   if (!url && !embedUrl) {
     return `<div class="embed-block embed-block--empty">Embedded content unavailable</div>`;
   }
@@ -373,7 +374,7 @@ function renderButton(
   _opts: Required<RenderOptions>,
 ): string {
   const text = node.attrs?.text || "Click Here";
-  const url = node.attrs?.url || "#";
+  const url = sanitizeUrl(node.attrs?.url || "") || "#";
   const variant = node.attrs?.variant || "primary";
   const alignment = node.attrs?.alignment || "left";
   return `<div class="button-block" style="text-align: ${escapeAttr(alignment)};"><a href="${escapeAttr(url)}" class="button-block__link button-block__link--${escapeAttr(variant)}" target="_blank" rel="noopener noreferrer">${escapeHtml(text)}</a></div>`;
@@ -467,7 +468,8 @@ function applyMark(html: string, mark: TipTapMark): string {
       return `<mark>${html}</mark>`;
     }
     case "link": {
-      const href = mark.attrs?.href || "#";
+      const rawHref = mark.attrs?.href || "#";
+      const href = sanitizeUrl(rawHref) || "#";
       const target = mark.attrs?.target || "_blank";
       const rel = target === "_blank" ? ' rel="noopener noreferrer"' : "";
       return `<a href="${escapeAttr(href)}" target="${escapeAttr(target)}"${rel}>${html}</a>`;
@@ -526,6 +528,35 @@ function escapeAttr(value: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
+/**
+ * Validate and sanitize a URL for use in href/src attributes.
+ * Blocks javascript:, data:, vbscript:, and blob: protocols.
+ */
+function sanitizeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  // Block dangerous protocols
+  if (/^(javascript|data|vbscript|blob):/i.test(trimmed)) {
+    return "";
+  }
+  // Allow relative URLs, fragments, and safe protocols
+  if (trimmed.startsWith("/") || trimmed.startsWith("#") || trimmed.startsWith("//")) {
+    return trimmed;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (["http:", "https:", "mailto:", "tel:"].includes(parsed.protocol)) {
+      return trimmed;
+    }
+    return "";
+  } catch {
+    // Not a valid absolute URL — allow if it looks like a relative path
+    if (/^[a-zA-Z0-9]/.test(trimmed) && !trimmed.includes(":")) {
+      return trimmed;
+    }
+    return "";
+  }
+}
 // ---------------------------------------------------------------------------
 // Utility Helpers
 // ---------------------------------------------------------------------------
@@ -560,7 +591,7 @@ export function extractTableOfContents(
   if (!validatedDoc || !validatedDoc.content) return [];
   const doc = validatedDoc as unknown as TipTapNode;
   const entries: TocEntry[] = [];
-  for (const node of doc.content) {
+  for (const node of doc.content ?? []) {
     if (node.type === "heading") {
       const level = node.attrs?.level || 2;
       const text = extractText(node);

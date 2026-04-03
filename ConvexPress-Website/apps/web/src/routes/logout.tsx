@@ -12,7 +12,7 @@ export const Route = createFileRoute("/logout")({
         content: "noindex",
       },
       {
-        title: "Signing Out - SmithHarper",
+        title: "Signing Out - ConvexPress",
       },
     ],
   }),

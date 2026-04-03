@@ -15,7 +15,7 @@ interface DefaultHeaderProps {
 }
 
 export function DefaultHeader({
-  siteName = "SmithHarper",
+  siteName = "ConvexPress",
   tagline,
   logo,
   navigation,

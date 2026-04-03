@@ -2,7 +2,6 @@
  * Default Sidebar Template Part
  *
  * Standard sidebar with widget area placeholder.
- * Widget System will populate the actual content.
  */
 
 import type { ReactNode } from "react";

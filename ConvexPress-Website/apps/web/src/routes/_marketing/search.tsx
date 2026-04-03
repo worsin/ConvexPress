@@ -54,7 +54,7 @@ export const Route = createFileRoute("/_marketing/search")({
     return {
       meta: [
         {
-          title: query ? `Search: ${query} - SmithHarper` : "Search - SmithHarper",
+          title: query ? `Search: ${query} - ConvexPress` : "Search - ConvexPress",
         },
       ],
     };

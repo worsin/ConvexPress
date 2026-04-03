@@ -20,8 +20,6 @@ const loginSearchSchema = z.object({
   returnTo: z.string().optional(),
 });
 
-type LoginSearch = z.infer<typeof loginSearchSchema>;
-
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
@@ -30,7 +28,7 @@ export const Route = createFileRoute("/login")({
         content: "noindex",
       },
       {
-        title: "Sign In - SmithHarper",
+        title: "Sign In - ConvexPress",
       },
     ],
   }),

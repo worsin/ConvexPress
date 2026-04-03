@@ -12,7 +12,7 @@ export const Route = createFileRoute("/verify-email")({
         content: "noindex",
       },
       {
-        title: "Verify Email - SmithHarper",
+        title: "Verify Email - ConvexPress",
       },
     ],
   }),

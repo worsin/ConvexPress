@@ -25,7 +25,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
 
 import { parseTipTapDocument } from "@/lib/schemas/content";
-import type { PageDetail } from "@/lib/blog/types";
+import type { PageDetail, BlockContent } from "@/lib/blog/types";
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { PageRenderer } from "@/components/pages/PageRenderer";
 import { PagePasswordForm } from "@/components/pages/PagePasswordForm";
@@ -44,7 +44,7 @@ export const Route = createFileRoute("/_marketing/page/$")({
       .replace(/\b\w/g, (c) => c.toUpperCase());
 
     return {
-      meta: [{ title: `${displayTitle} - SmithHarper` }],
+      meta: [{ title: `${displayTitle} - ConvexPress` }],
     };
   },
 });
@@ -185,8 +185,12 @@ function SinglePage() {
 
 
   // Parse content from JSON string to BlockDocument object using Zod validation
-  const parsedContent = resolvedPage.content
+  const rawParsed = resolvedPage.content
     ? parseTipTapDocument(resolvedPage.content)
+    : null;
+  // Coerce TipTapDocument (optional content) to BlockDocument (required content)
+  const parsedContent = rawParsed
+    ? { type: rawParsed.type as "doc", content: (rawParsed.content ?? []) as BlockContent[] }
     : null;
 
 

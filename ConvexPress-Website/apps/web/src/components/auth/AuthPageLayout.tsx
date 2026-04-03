@@ -29,10 +29,10 @@ export function AuthPageLayout({
   maxWidth = "sm",
 }: AuthPageLayoutProps) {
   // Fetch site settings for dynamic branding.
-  // Falls back to "SmithHarper" while loading or if settings are not configured.
+  // Falls back to "ConvexPress" while loading or if settings are not configured.
   const publicSettings = useQuery(api.settings.queries.getPublic);
   const siteTitle =
-    (publicSettings?.siteTitle as string | undefined) || "SmithHarper";
+    (publicSettings?.siteTitle as string | undefined) || "ConvexPress";
   const siteLogo =
     (publicSettings?.siteLogo as string | undefined) || undefined;
 

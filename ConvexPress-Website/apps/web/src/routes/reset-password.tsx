@@ -21,7 +21,7 @@ export const Route = createFileRoute("/reset-password")({
         content: "noindex, nofollow",
       },
       {
-        title: "Reset Password - SmithHarper",
+        title: "Reset Password - ConvexPress",
       },
     ],
   }),

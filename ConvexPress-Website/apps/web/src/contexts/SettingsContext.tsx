@@ -5,7 +5,7 @@
  * website components via the useSettings() hook.
  *
  * Consumes the public settings query from the admin-owned Convex database.
- * This is the SmithHarper equivalent of WordPress's get_option() for
+ * This is the ConvexPress equivalent of WordPress's get_option() for
  * frontend rendering.
  *
  * Usage:

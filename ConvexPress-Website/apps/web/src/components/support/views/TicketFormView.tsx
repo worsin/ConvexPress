@@ -25,7 +25,7 @@ export function TicketFormView({
   onSuccess,
   onCancel,
 }: TicketFormViewProps) {
-  const createTicket = useMutation(api.tickets.tickets.create);
+  const createTicket = useMutation(api.tickets.mutations.create);
 
   const [subject, setSubject] = useState(prefillQuery ?? "");
   const [description, setDescription] = useState(
@@ -53,7 +53,7 @@ export function TicketFormView({
 
     setIsSubmitting(true);
     try {
-      const ticketId = await createTicket({
+      const result = await createTicket({
         subject: trimmedSubject,
         description: trimmedDescription,
         category: category as any,
@@ -63,7 +63,7 @@ export function TicketFormView({
       });
 
       toast.success("Ticket created successfully!");
-      onSuccess(ticketId as string);
+      onSuccess(result.ticketId as string);
     } catch (err) {
       console.error("[TicketForm] Create failed:", err);
       toast.error("Failed to create ticket. Please try again.");

@@ -2,9 +2,9 @@
  * Template Registry
  *
  * Static import map that maps componentKey strings from the Convex database
- * to actual React components. When the Theme System resolves a template
- * for a content context, it returns a componentKey string. This registry
- * converts that key to a renderable component.
+ * to actual React components. When a template is resolved for a content
+ * context, a componentKey string is returned. This registry converts that
+ * key to a renderable component.
  *
  * Usage:
  *   const Component = templateRegistry[componentKey];

@@ -4,6 +4,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useAuth } from "@clerk/clerk-react";
 import { api } from "@convexpress-website/backend/generated/api";
+
+import { slugParamsSchema } from "@/lib/schemas/routeParams";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import type { AuthorData, PostDetail, PostCategory, PostTag, PostCard as PostCardType, BlockDocument } from "@/lib/blog/types";
 import { estimateReadingTime } from "@/lib/blog/renderContent";
@@ -25,6 +27,7 @@ import {
 } from "@/lib/seo/resolve";
 import type { PostSeoData, SeoSettings } from "@/lib/seo/resolve";
 export const Route = createFileRoute("/_marketing/blog/$slug")({
+  params: { parse: (raw) => slugParamsSchema.parse(raw) },
   component: SinglePost,
   loader: async ({ context: { queryClient }, params: { slug } }) => {
     // Pre-fetch the post data on the server for SSR
@@ -34,7 +37,7 @@ export const Route = createFileRoute("/_marketing/blog/$slug")({
   },
   head: ({ params }) => ({
     meta: [
-      { title: `${params.slug} - SmithHarper` },
+      { title: `${params.slug} - ConvexPress` },
     ],
     links: [
       {
@@ -57,6 +60,9 @@ function SinglePost() {
   const { isSignedIn, userId } = useAuth();
   // SSR-safe origin: start empty to avoid hydration mismatch
   const [siteUrl, setSiteUrl] = useState("");
+  const [submittedPassword, setSubmittedPassword] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | undefined>(undefined);
+  const [isVerifying, setIsVerifying] = useState(false);
   useEffect(() => {
     setSiteUrl(window.location.origin);
   }, []);
@@ -79,6 +85,26 @@ function SinglePost() {
   );
   // Fetch global SEO settings (for title templates, social defaults, schema config)
   const seoSettings = useQuery(api.seo.queries.getSettings, {});
+  // Password verification for protected posts
+  const verifiedPost = useQuery(
+    api.posts.queries.verifyPostPassword,
+    rawPost?.isPasswordProtected && submittedPassword
+      ? { slug, password: submittedPassword }
+      : "skip",
+  );
+
+  // Handle password verification result
+  useEffect(() => {
+    if (rawPost?.isPasswordProtected && submittedPassword && verifiedPost !== undefined) {
+      if (verifiedPost === null && isVerifying) {
+        setIsVerifying(false);
+        setPasswordError("Incorrect password. Please try again.");
+      } else if (verifiedPost !== null && isVerifying) {
+        setIsVerifying(false);
+      }
+    }
+  }, [rawPost?.isPasswordProtected, submittedPassword, verifiedPost, isVerifying]);
+
   // Fetch related posts (only when post is loaded)
   const relatedPostsRaw = useQuery(
     api.posts.queries.getRelatedPosts,
@@ -109,24 +135,27 @@ function SinglePost() {
   if (rawPost === null) {
     return <NotFoundPage />;
   }
-  // Password-protected post (content withheld)
-  // Backend password verification is not yet implemented. The PasswordGate
-  // component provides the UI shell ready for when the backend adds support.
-  if (rawPost.isPasswordProtected) {
+  // Password-protected post: show gate until password verified
+  if (rawPost.isPasswordProtected && !verifiedPost) {
     return (
       <PasswordGate
         title={rawPost.title}
-        onSubmit={() => {
-          // TODO: When backend supports password verification, pass the
-          // password to a Convex mutation/query to unlock the content.
+        onSubmit={(password: string) => {
+          setPasswordError(undefined);
+          setIsVerifying(true);
+          setSubmittedPassword(password);
         }}
+        error={passwordError}
+        isVerifying={isVerifying}
       />
     );
   }
-  // Parse block content
+  // Use verified post content when password-protected, otherwise use rawPost
+  const resolvedPostData = verifiedPost ?? rawPost;
+
   // Parse block content using Zod validation
-  const blockContent = rawPost.content
-    ? parseTipTapDocument(rawPost.content) as BlockDocument | null
+  const blockContent = resolvedPostData.content
+    ? parseTipTapDocument(resolvedPostData.content) as BlockDocument | null
     : null;
   // Map taxonomies to typed arrays
   const categories: PostCategory[] = (taxonomies?.categories ?? []).map((cat: (typeof taxonomies.categories)[number]) => ({

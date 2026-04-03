@@ -109,17 +109,21 @@ export function formatContentForFeed(content: string, siteUrl: string): string {
   // Strip on* event handlers
   html = html.replace(/\s+on\w+=["'][^"']*["']/gi, "");
 
-  // Strip <iframe> elements (convert to links)
+  // Strip <iframe> elements (convert to links only for safe protocols)
   html = html.replace(
     /<iframe\b[^>]*src=["']([^"']*)["'][^>]*(?:title=["']([^"']*)["'])?[^>]*>[\s\S]*?<\/iframe>/gi,
     (_, src, title) => {
+      if (!/^https?:\/\//i.test(src)) return "";
       const linkText = title || src || "Embedded content";
       return `<p><a href="${escapeXml(src)}">${escapeXml(linkText)}</a></p>`;
     },
   );
   html = html.replace(
     /<iframe\b[^>]*src=["']([^"']*)["'][^>]*\/>/gi,
-    (_, src) => `<p><a href="${escapeXml(src)}">${escapeXml(src)}</a></p>`,
+    (_, src) => {
+      if (!/^https?:\/\//i.test(src)) return "";
+      return `<p><a href="${escapeXml(src)}">${escapeXml(src)}</a></p>`;
+    },
   );
   html = html.replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, "");
   html = html.replace(/<iframe\b[^>]*\/>/gi, "");

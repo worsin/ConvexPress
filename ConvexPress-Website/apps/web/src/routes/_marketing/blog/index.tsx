@@ -33,10 +33,10 @@ export const Route = createFileRoute("/_marketing/blog/")({
   },
   head: () => ({
     meta: [
-      { title: "Blog - SmithHarper" },
+      { title: "Blog - ConvexPress" },
       {
         name: "description",
-        content: "Read the latest articles, tutorials, and insights from SmithHarper.",
+        content: "Read the latest articles, tutorials, and insights from ConvexPress.",
       },
     ],
   }),

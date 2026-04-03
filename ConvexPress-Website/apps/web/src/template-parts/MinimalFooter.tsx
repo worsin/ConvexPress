@@ -15,7 +15,7 @@ interface MinimalFooterProps {
 }
 
 export function MinimalFooter({
-  siteName = "SmithHarper",
+  siteName = "ConvexPress",
   copyrightText,
 }: MinimalFooterProps) {
   // Use client-only year to avoid SSR hydration mismatch

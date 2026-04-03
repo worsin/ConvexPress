@@ -20,7 +20,7 @@ interface CommentFormProps {
 
 /**
  * Comment form for authenticated users.
- * SmithHarper requires authentication for all comments (no guest fields).
+ * ConvexPress requires authentication for all comments (no guest fields).
  * Calls the `comments.mutations.create` Convex mutation.
  */
 export function CommentForm({

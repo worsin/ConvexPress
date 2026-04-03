@@ -14,7 +14,7 @@ interface MinimalHeaderProps {
 }
 
 export function MinimalHeader({
-  siteName = "SmithHarper",
+  siteName = "ConvexPress",
   logo,
   navigation,
 }: MinimalHeaderProps) {

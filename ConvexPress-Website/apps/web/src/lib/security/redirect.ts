@@ -1,10 +1,13 @@
-const DEFAULT_ALLOWED_REDIRECT_HOSTS = [
-  "smithharper.com",
-  "www.smithharper.com",
-  "admin.smithharper.com",
-  "localhost",
-  "127.0.0.1",
+const PRODUCTION_HOSTS = [
+  "convexpress.com",
+  "www.convexpress.com",
+  "admin.convexpress.com",
 ];
+
+// Only allow localhost in development
+const DEV_HOSTS = import.meta.env.DEV ? ["localhost", "127.0.0.1"] : [];
+
+const DEFAULT_ALLOWED_REDIRECT_HOSTS = [...PRODUCTION_HOSTS, ...DEV_HOSTS];
 
 const SAFE_PROTOCOLS = new Set(["http:", "https:"]);
 
@@ -67,7 +70,7 @@ export function sanitizeRedirectUrl(
   try {
     const url = new URL(
       trimmed,
-      options.baseOrigin || "https://smithharper.com",
+      options.baseOrigin || "https://convexpress.com",
     );
 
     if (!SAFE_PROTOCOLS.has(url.protocol)) {

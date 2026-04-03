@@ -43,8 +43,8 @@ export function SearchResultsView({
       score: number;
       source: string;
     }>;
-    confidence: number;
-    aiGenerated: boolean;
+    confidence: string;
+    usedAi: boolean;
     error?: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -105,7 +105,7 @@ export function SearchResultsView({
   }
 
   const hasArticles = result && result.sourceArticles.length > 0;
-  const hasAIAnswer = result?.aiGenerated && result.answer;
+  const hasAIAnswer = result?.usedAi && result.answer;
 
   return (
     <div className="flex flex-col gap-4 p-4">

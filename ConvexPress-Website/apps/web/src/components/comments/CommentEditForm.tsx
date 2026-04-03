@@ -71,7 +71,7 @@ export function CommentEditForm({
         maxLength={MAX_CONTENT_LENGTH}
         className={cn(
           "w-full resize-none rounded-none border border-input bg-background px-3 py-2 text-xs",
-          "focus:outline-none focus:ring-1 focus:ring-ring",
+          "focus:outline-hidden focus:ring-1 focus:ring-ring",
           "disabled:cursor-not-allowed disabled:opacity-50",
         )}
         aria-label="Edit comment"

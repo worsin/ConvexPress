@@ -45,7 +45,7 @@ export const Route = createFileRoute("/_marketing/category/$slug")({
   },
   head: ({ params }) => ({
     meta: [
-      { title: `Category: ${params.slug} - SmithHarper` },
+      { title: `Category: ${params.slug} - ConvexPress` },
     ],
     links: [
       {

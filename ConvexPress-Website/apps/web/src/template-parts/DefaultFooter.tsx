@@ -15,7 +15,7 @@ interface DefaultFooterProps {
 }
 
 export function DefaultFooter({
-  siteName = "SmithHarper",
+  siteName = "ConvexPress",
   copyrightText,
   showPoweredBy = true,
 }: DefaultFooterProps) {
@@ -38,7 +38,7 @@ export function DefaultFooter({
           <p className="text-sm text-muted-foreground">{copyright}</p>
           {showPoweredBy && (
             <p className="text-xs text-muted-foreground/60">
-              Powered by SmithHarper CMS
+              Powered by ConvexPress
             </p>
           )}
         </div>

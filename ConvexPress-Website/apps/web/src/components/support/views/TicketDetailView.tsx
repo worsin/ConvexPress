@@ -20,10 +20,10 @@ interface TicketDetailViewProps {
 export function TicketDetailView({
   ticketId,
 }: TicketDetailViewProps) {
-  const messages = useQuery(api.tickets.messages.listByTicket, {
+  const messages = useQuery(api.tickets.messages.getByTicket, {
     ticketId: ticketId as any,
   });
-  const replyToTicket = useMutation(api.tickets.messages.create);
+  const replyToTicket = useMutation(api.tickets.mutations.reply);
 
   const [replyContent, setReplyContent] = useState("");
   const [isSending, setIsSending] = useState(false);
