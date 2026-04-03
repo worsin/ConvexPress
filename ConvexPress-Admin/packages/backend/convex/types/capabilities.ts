@@ -298,7 +298,7 @@ export type MetaCapability =
 // ─── Combined Capability Type ───────────────────────────────────────────────
 
 /**
- * Union type of all 138 concrete capabilities across 23 domains.
+ * Union type of all 161 concrete capabilities across 25 domains.
  * Use this type for capability arrays on roles and for permission checks.
  */
 export type Capability =
@@ -327,6 +327,8 @@ export type Capability =
   | EventCapability
   | RoutingCapability
   | AnalyticsCapability
+  | KBCapability
+  | TicketCapability
   | SettingsManageCapability;
 
 /**
@@ -508,6 +510,31 @@ export const ALL_CAPABILITIES: Capability[] = [
   // Analytics (2)
   "analytics.view",
   "analytics.manage",
+  // KB (13)
+  "kb.view",
+  "kb.create",
+  "kb.edit",
+  "kb.editOwn",
+  "kb.delete",
+  "kb.publish",
+  "kb.manageCategories",
+  "kb.manageTags",
+  "kb.manageCollections",
+  "kb.manageWorkflows",
+  "kb.manageTemplates",
+  "kb.moderateComments",
+  "kb.viewAnalytics",
+  // Tickets (10)
+  "ticket.view",
+  "ticket.viewAll",
+  "ticket.respond",
+  "ticket.assign",
+  "ticket.updateStatus",
+  "ticket.updatePriority",
+  "ticket.close",
+  "ticket.manageCannedResponses",
+  "ticket.viewAnalytics",
+  "ticket.viewInternalNotes",
   // Settings Management (1)
   "manage_options",
 ] as const;
@@ -744,5 +771,32 @@ export const CAPABILITY_DOMAINS: Record<string, Capability[]> = {
     "routing.delete_redirect",
   ],
   Analytics: ["analytics.view", "analytics.manage"],
+  "Knowledge Base": [
+    "kb.view",
+    "kb.create",
+    "kb.edit",
+    "kb.editOwn",
+    "kb.delete",
+    "kb.publish",
+    "kb.manageCategories",
+    "kb.manageTags",
+    "kb.manageCollections",
+    "kb.manageWorkflows",
+    "kb.manageTemplates",
+    "kb.moderateComments",
+    "kb.viewAnalytics",
+  ],
+  Tickets: [
+    "ticket.view",
+    "ticket.viewAll",
+    "ticket.respond",
+    "ticket.assign",
+    "ticket.updateStatus",
+    "ticket.updatePriority",
+    "ticket.close",
+    "ticket.manageCannedResponses",
+    "ticket.viewAnalytics",
+    "ticket.viewInternalNotes",
+  ],
   "Settings Management": ["manage_options"],
 };
