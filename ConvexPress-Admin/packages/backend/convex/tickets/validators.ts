@@ -8,6 +8,7 @@
  * ready to spread into a Convex function's `args` field.
  */
 
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import {
   ticketCategoryValidator,
@@ -282,11 +283,10 @@ export const getRateLimitStatusArgs = {
 
 // ─── Query Args ────────────────────────────────────────────────────────────
 
-/** Arguments for getting a user's own tickets. */
+/** Arguments for getting a user's own tickets (Convex-native paginated). */
 export const getMyTicketsArgs = {
+  paginationOpts: paginationOptsValidator,
   status: v.optional(ticketStatusValidator),
-  page: v.optional(v.number()),
-  perPage: v.optional(v.number()),
 };
 
 /** Arguments for getting a ticket by ticket number. */
@@ -305,8 +305,9 @@ export const getTicketWithRepliesArgs = {
   includeInternal: v.optional(v.boolean()),
 };
 
-/** Arguments for the admin ticket queue with filters. */
+/** Arguments for the admin ticket queue with filters (Convex-native paginated). */
 export const getQueueArgs = {
+  paginationOpts: paginationOptsValidator,
   status: v.optional(ticketStatusValidator),
   priority: v.optional(ticketPriorityValidator),
   category: v.optional(ticketCategoryValidator),
@@ -322,8 +323,6 @@ export const getQueueArgs = {
     ),
   ),
   orderDir: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
-  page: v.optional(v.number()),
-  perPage: v.optional(v.number()),
 };
 
 /** Arguments for getting messages by ticket. */

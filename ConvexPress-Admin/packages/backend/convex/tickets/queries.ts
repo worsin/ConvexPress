@@ -22,7 +22,6 @@ import { query } from "../_generated/server";
 import {
   getCurrentUser,
   currentUserCan,
-  requireAuth,
 } from "../helpers/permissions";
 import {
   getMyTicketsArgs,
@@ -32,8 +31,6 @@ import {
   getQueueArgs,
   getRecentArgs,
   getAwaitingFirstResponseArgs,
-  DEFAULT_PER_PAGE,
-  MAX_PER_PAGE,
 } from "./validators";
 
 // ─── getMyTickets ───────────────────────────────────────────────────────────
@@ -53,37 +50,22 @@ export const getMyTickets = query({
       });
     }
 
-    const page = Math.max(1, args.page ?? 1);
-    const perPage = Math.min(MAX_PER_PAGE, Math.max(1, args.perPage ?? DEFAULT_PER_PAGE));
+    // Use Convex-native pagination via by_user index.
+    // Status is filtered in-memory after pagination since there is no compound
+    // by_user_status index. The page boundary is applied by Convex automatically.
+    const result = await ctx.db
+      .query("ticket_tickets")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .paginate(args.paginationOpts);
 
-    // Query user's tickets
-    let tickets;
-    if (args.status) {
-      // Get all for this user, then filter by status
-      // (no compound index on userId + status, so filter in-memory)
-      const allUserTickets = await ctx.db
-        .query("ticket_tickets")
-        .withIndex("by_user", (q) => q.eq("userId", user._id))
-        .collect();
-      tickets = allUserTickets.filter((t) => t.status === args.status);
-    } else {
-      tickets = await ctx.db
-        .query("ticket_tickets")
-        .withIndex("by_user", (q) => q.eq("userId", user._id))
-        .collect();
-    }
-
-    // Sort by createdAt descending (most recent first)
-    tickets.sort((a, b) => b.createdAt - a.createdAt);
-
-    // Paginate
-    const total = tickets.length;
-    const totalPages = Math.ceil(total / perPage);
-    const offset = (page - 1) * perPage;
-    const pageTickets = tickets.slice(offset, offset + perPage);
+    const tickets = args.status
+      ? result.page.filter((t) => t.status === args.status)
+      : result.page;
 
     return {
-      tickets: pageTickets.map((t) => ({
+      ...result,
+      page: tickets.map((t) => ({
         _id: t._id,
         ticketNumber: t.ticketNumber,
         subject: t.subject,
@@ -95,10 +77,6 @@ export const getMyTickets = query({
         createdAt: t.createdAt,
         rating: t.rating,
       })),
-      total,
-      page,
-      perPage,
-      totalPages,
     };
   },
 });
@@ -250,71 +228,79 @@ export const getQueue = query({
     const canViewAll = await currentUserCan(ctx, "ticket.viewAll");
     if (!canViewAll) return null;
 
-    const page = Math.max(1, args.page ?? 1);
-    const perPage = Math.min(MAX_PER_PAGE, Math.max(1, args.perPage ?? DEFAULT_PER_PAGE));
     const orderDir = args.orderDir ?? "desc";
 
-    // ── Fetch tickets using the best available index ────────────────────
-    let tickets;
+    // ── Fetch a page of tickets using the best available index ──────────
+    //
+    // When secondary filters (unassigned, search, orderBy) are in play,
+    // Convex pagination cannot guarantee a full page after in-memory
+    // filtering. The caller should be aware that result.page.length may
+    // be less than numItems when such filters are active.
+
+    let result;
 
     if (args.status && args.priority) {
-      tickets = await ctx.db
+      result = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_status_priority", (q) =>
           q.eq("status", args.status!).eq("priority", args.priority!),
         )
-        .collect();
+        .order(orderDir === "desc" ? "desc" : "asc")
+        .paginate(args.paginationOpts);
     } else if (args.assignedTo && args.status) {
-      tickets = await ctx.db
+      result = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_assigned_status", (q) =>
           q.eq("assignedTo", args.assignedTo!).eq("status", args.status!),
         )
-        .collect();
+        .order(orderDir === "desc" ? "desc" : "asc")
+        .paginate(args.paginationOpts);
     } else if (args.status) {
-      tickets = await ctx.db
+      result = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_status", (q) => q.eq("status", args.status!))
-        .collect();
+        .order(orderDir === "desc" ? "desc" : "asc")
+        .paginate(args.paginationOpts);
     } else if (args.priority) {
-      tickets = await ctx.db
+      result = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_priority", (q) => q.eq("priority", args.priority!))
-        .collect();
+        .order(orderDir === "desc" ? "desc" : "asc")
+        .paginate(args.paginationOpts);
     } else if (args.assignedTo) {
-      tickets = await ctx.db
+      result = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_assigned", (q) => q.eq("assignedTo", args.assignedTo!))
-        .collect();
+        .order(orderDir === "desc" ? "desc" : "asc")
+        .paginate(args.paginationOpts);
     } else if (args.category) {
-      tickets = await ctx.db
+      result = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_category", (q) => q.eq("category", args.category!))
-        .collect();
+        .order(orderDir === "desc" ? "desc" : "asc")
+        .paginate(args.paginationOpts);
     } else {
-      // All tickets, bounded
-      tickets = await ctx.db
+      result = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_created")
         .order("desc")
-        .take(5000);
+        .paginate(args.paginationOpts);
     }
 
-    // ── In-memory filters ───────────────────────────────────────────────
+    // ── In-memory filters on the current page ───────────────────────────
 
-    // Filter unassigned
+    let tickets = result.page;
+
     if (args.unassigned) {
       tickets = tickets.filter((t) => !t.assignedTo);
     }
 
-    // Filter by category (if not already filtered by index)
-    if (args.category && !(args.status || args.priority || args.assignedTo)) {
-      // Already filtered by index above
-    } else if (args.category) {
+    // Filter by category when it wasn't used as the primary index
+    if (args.category && (args.status || args.priority || args.assignedTo)) {
       tickets = tickets.filter((t) => t.category === args.category);
     }
 
-    // Text search on subject
+    // Text search on subject / ticket number / user name
     if (args.search) {
       const searchLower = args.search.toLowerCase();
       tickets = tickets.filter(
@@ -325,34 +311,27 @@ export const getQueue = query({
       );
     }
 
-    // ── Sort ────────────────────────────────────────────────────────────
+    // ── Secondary sort (only when orderBy differs from index order) ─────
     const orderBy = args.orderBy ?? "createdAt";
-    const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-
-    tickets.sort((a, b) => {
-      let cmp = 0;
-      if (orderBy === "priority") {
-        cmp = priorityOrder[a.priority] - priorityOrder[b.priority];
-      } else if (orderBy === "lastMessageAt") {
-        cmp = (a.lastMessageAt ?? 0) - (b.lastMessageAt ?? 0);
-      } else if (orderBy === "updatedAt") {
-        cmp = a.updatedAt - b.updatedAt;
-      } else {
-        cmp = a.createdAt - b.createdAt;
-      }
-      return orderDir === "desc" ? -cmp : cmp;
-    });
-
-    // ── Paginate ────────────────────────────────────────────────────────
-    const total = tickets.length;
-    const totalPages = Math.ceil(total / perPage);
-    const offset = (page - 1) * perPage;
-    const pageTickets = tickets.slice(offset, offset + perPage);
+    if (orderBy !== "createdAt") {
+      const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+      tickets.sort((a, b) => {
+        let cmp = 0;
+        if (orderBy === "priority") {
+          cmp = priorityOrder[a.priority] - priorityOrder[b.priority];
+        } else if (orderBy === "lastMessageAt") {
+          cmp = (a.lastMessageAt ?? 0) - (b.lastMessageAt ?? 0);
+        } else if (orderBy === "updatedAt") {
+          cmp = a.updatedAt - b.updatedAt;
+        }
+        return orderDir === "desc" ? -cmp : cmp;
+      });
+    }
 
     // ── Resolve assignee names ──────────────────────────────────────────
     const assigneeIds = [
       ...new Set(
-        pageTickets
+        tickets
           .map((t) => t.assignedTo)
           .filter((id): id is NonNullable<typeof id> => id != null),
       ),
@@ -371,7 +350,8 @@ export const getQueue = query({
     }
 
     return {
-      tickets: pageTickets.map((t) => ({
+      ...result,
+      page: tickets.map((t) => ({
         _id: t._id,
         ticketNumber: t.ticketNumber,
         subject: t.subject,
@@ -392,10 +372,6 @@ export const getQueue = query({
         tags: t.tags,
         rating: t.rating,
       })),
-      total,
-      page,
-      perPage,
-      totalPages,
     };
   },
 });
@@ -430,17 +406,18 @@ export const getStats = query({
       counts[status] = tickets.length;
     }
 
-    // Count by priority (open tickets only)
+    // Count by priority (open tickets only).
+    // Bound with .take() to avoid full table scans on large deployments.
     const priorities = ["low", "medium", "high", "urgent"] as const;
     const priorityCounts: Record<string, number> = {};
     const openTickets = await ctx.db
       .query("ticket_tickets")
       .withIndex("by_status", (q) => q.eq("status", "open"))
-      .collect();
+      .take(5000);
     const inProgressTickets = await ctx.db
       .query("ticket_tickets")
       .withIndex("by_status", (q) => q.eq("status", "inProgress"))
-      .collect();
+      .take(5000);
     const activeTickets = [...openTickets, ...inProgressTickets];
 
     for (const priority of priorities) {
@@ -449,16 +426,19 @@ export const getStats = query({
       ).length;
     }
 
-    // Average first response time (last 30 days, resolved/closed tickets)
+    // Average first response time (last 30 days, resolved/closed tickets).
+    // Use .take() to bound the scan; 2000 tickets per status is a generous
+    // ceiling that avoids a full table scan while keeping metrics accurate
+    // for all but extremely high-volume deployments.
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const resolvedTickets = await ctx.db
       .query("ticket_tickets")
       .withIndex("by_status", (q) => q.eq("status", "resolved"))
-      .collect();
+      .take(2000);
     const closedTickets = await ctx.db
       .query("ticket_tickets")
       .withIndex("by_status", (q) => q.eq("status", "closed"))
-      .collect();
+      .take(2000);
 
     const recentCompleted = [...resolvedTickets, ...closedTickets].filter(
       (t) => t.createdAt >= thirtyDaysAgo && t.firstResponseAt,
@@ -553,15 +533,17 @@ export const getAwaitingFirstResponse = query({
 
     const limit = args.limit ?? 20;
 
-    // Get open and inProgress tickets without a first response
+    // Get open and inProgress tickets without a first response.
+    // Use .take(100) per status as a safety bound — SLA dashboards are only
+    // interested in the oldest N tickets, not an exhaustive list.
     const openTickets = await ctx.db
       .query("ticket_tickets")
       .withIndex("by_status", (q) => q.eq("status", "open"))
-      .collect();
+      .take(100);
     const inProgressTickets = await ctx.db
       .query("ticket_tickets")
       .withIndex("by_status", (q) => q.eq("status", "inProgress"))
-      .collect();
+      .take(100);
 
     const awaitingResponse = [...openTickets, ...inProgressTickets]
       .filter((t) => !t.firstResponseAt)
