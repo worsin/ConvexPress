@@ -27,7 +27,7 @@ type UserProfileFields = {
   displayName?: string;
   username?: string;
   avatarUrl?: string;
-  profilePictureUrl?: string; // WorkOS/OAuth avatar
+  profilePictureUrl?: string; // OAuth provider avatar
 };
 
 // ─── Avatar Helpers ─────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ type UserProfileFields = {
 /**
  * Resolve the effective avatar URL following the priority chain:
  *   1. Custom upload (avatarUrl) -- highest priority
- *   2. WorkOS/OAuth provider (profilePictureUrl)
+ *   2. OAuth provider (profilePictureUrl)
  *   3. null (client should render initials)
  */
 export function resolveAvatarUrl(

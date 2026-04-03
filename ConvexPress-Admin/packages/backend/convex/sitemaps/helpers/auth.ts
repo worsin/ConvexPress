@@ -8,7 +8,7 @@
  * Usage:
  *   // In an action:
  *   await ctx.runQuery(internal.sitemaps.helpers.auth.checkCapability, {
- *     workosUserId: identity.subject,
+ *     userId: identity.subject,
  *     capability: "seo.generate_sitemap",
  *   });
  */
@@ -27,12 +27,12 @@ import { lookupUserByIdentifier } from "../../helpers/permissions";
  */
 export const checkCapability = internalQuery({
   args: {
-    workosUserId: v.string(),
+    userId: v.string(),
     capability: v.string(),
   },
   handler: async (ctx, args) => {
-    // Find user by identifier (workosUserId, clerkUserId, or Convex _id)
-    const user = await lookupUserByIdentifier(ctx, args.workosUserId);
+    // Find user by identifier (clerkUserId or Convex _id)
+    const user = await lookupUserByIdentifier(ctx, args.userId);
 
     if (!user) {
       throw new ConvexError({

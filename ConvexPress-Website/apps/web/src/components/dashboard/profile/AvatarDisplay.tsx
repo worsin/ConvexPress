@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 interface AvatarDisplayProps {
   avatarUrl: string | null;
-  workosAvatarUrl: string | null;
+  oauthAvatarUrl: string | null;
   displayName: string;
   size?: "xs" | "sm" | "md" | "lg";
   className?: string;
@@ -28,16 +28,16 @@ function getInitials(name: string): string {
 
 /**
  * Read-only avatar display component.
- * Resolves: avatarUrl > workosAvatarUrl (OAuth provider avatar) > initials fallback.
+ * Resolves: avatarUrl > oauthAvatarUrl (OAuth provider avatar) > initials fallback.
  */
 export function AvatarDisplay({
   avatarUrl,
-  workosAvatarUrl,
+  oauthAvatarUrl,
   displayName,
   size = "md",
   className,
 }: AvatarDisplayProps) {
-  const resolvedUrl = avatarUrl ?? workosAvatarUrl ?? null;
+  const resolvedUrl = avatarUrl ?? oauthAvatarUrl ?? null;
   const sizeClass = SIZE_CLASSES[size];
 
   return (

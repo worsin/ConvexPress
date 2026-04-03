@@ -34,12 +34,12 @@ import {
  * Look up the current user for login tracking.
  *
  * Simplified for dual-auth: uses getCurrentUser() from the permissions helper
- * which handles admin local JWT, Clerk, and legacy WorkOS lookups.
+ * which handles admin local JWT and Clerk lookups.
  * Users are pre-created (admin) or provisioned via Clerk webhooks (website).
  * This function no longer provisions users on login.
  */
 async function getOrCreateCurrentUserForLogin(ctx: MutationCtx) {
-  // getCurrentUser handles dual-auth lookup (admin JWT, Clerk, legacy WorkOS)
+  // getCurrentUser handles dual-auth lookup (admin JWT, Clerk)
   const user = await getCurrentUser(ctx);
   return user;
 }

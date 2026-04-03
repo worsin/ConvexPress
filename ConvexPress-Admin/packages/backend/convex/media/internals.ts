@@ -866,7 +866,7 @@ export const checkEditCapability = internalMutation({
     await checkMediaCapability(ctx, user, media, "edit");
 
     const { getUserIdentifier } = await import("../helpers/permissions");
-    return { workosUserId: getUserIdentifier(user), userId: user._id };
+    return { userIdentifier: getUserIdentifier(user), userId: user._id };
   },
 });
 

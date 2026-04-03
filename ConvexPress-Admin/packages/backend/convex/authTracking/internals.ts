@@ -41,7 +41,6 @@ export const getAdminAndTargetUser = internalQuery({
       target: target
         ? {
             _id: target._id,
-            workosUserId: target.workosUserId,
             clerkUserId: target.clerkUserId,
             email: target.email,
             status: target.status,

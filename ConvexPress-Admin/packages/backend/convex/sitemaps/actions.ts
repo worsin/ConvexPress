@@ -37,7 +37,7 @@ import type { ContentSitemapType } from "./validators";
  *
  * @param force - If true, regenerates all sitemaps regardless of content hash
  * @param types - Optional array of content types to regenerate
- * @param triggeredByUserId - The WorkOS user ID of the triggering user
+ * @param triggeredByUserId - The user identifier of the triggering user
  */
 export const _generateInternal = internalAction({
   args: generateArgs,
@@ -70,7 +70,7 @@ export const _generateInternal = internalAction({
 export const generate = action({
   args: generateArgs,
   handler: async (ctx, args) => {
-    // 1. Authenticate user via WorkOS identity
+    // 1. Authenticate user
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
@@ -84,7 +84,7 @@ export const generate = action({
     await ctx.runQuery(
       internal.sitemaps.helpers.auth.checkCapability,
       {
-        workosUserId: userId,
+        userId,
         capability: "seo.generate_sitemap",
       },
     );

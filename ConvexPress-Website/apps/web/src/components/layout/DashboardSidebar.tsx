@@ -42,7 +42,7 @@ export function DashboardSidebar() {
           <div className="flex items-center gap-3">
             <AvatarDisplay
               avatarUrl={user.avatarUrl}
-              workosAvatarUrl={user.workosAvatarUrl}
+              oauthAvatarUrl={user.oauthAvatarUrl}
               displayName={user.displayName}
               size="sm"
             />

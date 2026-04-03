@@ -1,18 +1,18 @@
 /**
- * Dashboard types for the SmithHarper website user dashboard.
+ * Dashboard types for the ConvexPress website user dashboard.
  * These types mirror the Convex schema shapes for UI consumption.
  */
 
 /** User profile data from getCurrentUser query */
 export interface UserProfile {
   _id: string;
-  /** External auth provider user ID (legacy name from WorkOS migration, now stores Clerk user ID) */
-  workosId: string;
+  /** External auth provider user ID (Clerk user ID) */
+  externalAuthId: string;
   email: string;
   firstName: string | null;
   lastName: string | null;
-  /** OAuth provider avatar URL (legacy name from WorkOS migration) */
-  workosAvatarUrl: string | null;
+  /** OAuth provider avatar URL */
+  oauthAvatarUrl: string | null;
   nickname: string | null;
   displayName: string;
   slug: string;

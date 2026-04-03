@@ -142,7 +142,7 @@ export const createEntry = internalMutation({
     let actorRole: string | undefined;
 
     if (event.actorId) {
-      // Look up user by WorkOS user ID
+      // Look up user by identifier
       const user = await lookupUserByIdentifier(ctx, event.actorId!);
 
       if (user) {
@@ -361,11 +361,11 @@ export const emitExportEvent = internalMutation({
  */
 export const checkExportPermission = internalQuery({
   args: {
-    workosUserId: v.string(),
+    userId: v.string(),
   },
   handler: async (ctx, args): Promise<boolean> => {
-    // Look up user by WorkOS user ID
-    const user = await lookupUserByIdentifier(ctx, args.workosUserId);
+    // Look up user by identifier
+    const user = await lookupUserByIdentifier(ctx, args.userId);
 
     if (!user) return false;
 

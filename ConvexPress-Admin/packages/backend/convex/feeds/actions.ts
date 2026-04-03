@@ -258,8 +258,8 @@ export const fetchExternal = action({
 
     // Look up the caller
     const caller = await ctx.runQuery(
-      internal.feeds.internals.getUserByWorkosId,
-      { workosId: identity.subject },
+      internal.feeds.internals.getUserByIdentifier,
+      { userId: identity.subject },
     );
     if (!caller) {
       throw new ConvexError({
@@ -309,7 +309,7 @@ export const fetchExternal = action({
       const response = await fetch(args.url, {
         headers: {
           Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
-          "User-Agent": "SmithHarper CMS Feed Fetcher/1.0",
+          "User-Agent": "ConvexPress Feed Fetcher/1.0",
         },
       });
 

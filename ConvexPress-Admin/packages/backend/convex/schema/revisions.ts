@@ -5,14 +5,14 @@
  *   - `revisions` - Immutable snapshots of post content at points in time
  *
  * WordPress equivalent: Rows in `wp_posts` with `post_type = 'revision'`.
- * SmithHarper uses a dedicated table for type safety, query performance,
+ * ConvexPress uses a dedicated table for type safety, query performance,
  * and storage efficiency.
  *
  * Key design decisions:
  *   - Full snapshots (title + content + excerpt), not diffs, for fast restore
  *   - `parentId` references the `posts` table (both posts and pages live there)
  *   - `parentType` discriminator tracks whether parent is "post" or "page"
- *   - `authorId` is a WorkOS user ID string (not Convex user ID)
+ *   - `authorId` is a user identifier string (not Convex user ID)
  *   - Revision numbers are sequential per parent, never reused after pruning
  *   - Two types: "manual" (explicit save) and "autosave" (periodic 5-min snapshot)
  *   - Autosave revisions are one-per-user-per-post, updated in place
@@ -65,7 +65,7 @@ export const revisionTables = {
     // ── Revision Metadata ───────────────────────────────────────────────
     revisionNumber: v.number(),               // Sequential number: 1, 2, 3, ...
     type: revisionTypeValidator,              // "manual" or "autosave"
-    authorId: v.string(),                     // WorkOS user ID of who triggered this revision
+    authorId: v.string(),                     // User identifier of who triggered this revision
 
     // ── Change Summary ──────────────────────────────────────────────────
     changedFields: v.array(v.string()),       // Which fields changed: ["title", "content", "excerpt"]

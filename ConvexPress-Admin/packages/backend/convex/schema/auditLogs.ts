@@ -51,7 +51,7 @@ export const auditLogTables = {
     system: v.string(),
 
     // --- Actor Context (snapshot at action time) ---
-    /** WorkOS user ID or "system" for system-generated events */
+    /** User identifier or "system" for system-generated events */
     actorId: v.optional(v.string()),
 
     /** Display name at time of action (immutable snapshot) */

@@ -68,7 +68,7 @@ import {
  * Create a new API key with scoped permissions and rate limits.
  *
  * Flow:
- *   1. Authenticate user via WorkOS identity
+ *   1. Authenticate user
  *   2. Check capability: api.create_key (Administrator only)
  *   3. Validate name, scopes, rate limits
  *   4. Generate cryptographically secure API key (shk_ + 44 hex chars)
@@ -149,7 +149,7 @@ export const createKey = mutation({
     // 6. Hash the key for storage
     const keyHash = await sha256Hash(plaintextKey);
 
-    // 7. Get the WorkOS user ID from identity
+    // 7. Get user identity
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
@@ -368,7 +368,7 @@ export const createWebhook = mutation({
     }
     const encryptedSecret = await encryptSecret(plaintextSecret, encryptionKey);
 
-    // 8. Get the WorkOS user ID
+    // 8. Get user identity
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({

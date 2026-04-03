@@ -20,8 +20,6 @@
     "check-types": "turbo check-types",
     "dev:native": "turbo -F native dev",
     "dev:web": "turbo -F web dev",
-    "auth:provision": "node apps/web/scripts/provision-workos-user.mjs",
-    "auth:list": "node apps/web/scripts/list-workos-users.mjs",
     "dev:server": "node -e \"console.error('Disabled: ConvexPress-Website is Convex consumer-only. Run Convex from ConvexPress-Admin.'); process.exit(1)\"",
     "dev:setup": "node -e \"console.error('Disabled: ConvexPress-Website is Convex consumer-only. Configure/deploy Convex in ConvexPress-Admin.'); process.exit(1)\""
   },

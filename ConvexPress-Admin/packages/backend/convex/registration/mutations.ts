@@ -371,11 +371,11 @@ export const bulkInvite = mutation({
 /**
  * Mark an invitation as accepted and link it to the created user.
  *
- * Called after a user has completed WorkOS signup and their Convex
+ * Called after a user has completed signup and their Convex
  * user record has been created. Links the invitation to the user
  * for audit trail purposes.
  *
- * Note: In the normal flow, `createUserFromWorkOS` (internal mutation)
+ * Note: In the normal flow, `handleExternalAuthUserCreated` (internal mutation)
  * handles invitation matching automatically. This public mutation is
  * available as a fallback for manual linking.
  *

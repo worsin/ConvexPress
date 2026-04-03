@@ -1,7 +1,7 @@
 /**
  * Role & Capability System - Core Permission Helpers
  *
- * THE most critical authorization layer in SmithHarper CMS.
+ * THE most critical authorization layer in ConvexPress.
  * Every protected mutation and query should use these helpers.
  *
  * Architecture:
@@ -11,9 +11,8 @@
  *   4. Permission checks verify the user's role includes the required capability
  *
  * Dual-auth support:
- *   - Admin users authenticate locally (JWT issued by SmithHarper, subject = Convex _id)
+ *   - Admin users authenticate locally (JWT issued by ConvexPress, subject = Convex _id)
  *   - Website users authenticate via Clerk (subject = Clerk user ID)
- *   - Legacy WorkOS users fall back to by_workosUserId index during migration
  *
  * Migration support:
  *   - Users may still have legacy `internalRole` string field instead of `roleId`
@@ -43,7 +42,7 @@ import {
 import type { AnyCapability, Capability } from "../types/capabilities";
 import { LEGACY_ROLE_MAP } from "../seed/roles";
 
-const ADMIN_ISSUER = "smithharper-admin";
+const ADMIN_ISSUER = "https://convexpress-admin.local";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -52,7 +51,6 @@ type UserDoc = {
   _id: Id<"users">;
   _creationTime: number;
   // Auth fields
-  workosUserId?: string;
   authSource?: "local" | "clerk";
   passwordHash?: string;
   clerkUserId?: string;
@@ -62,7 +60,7 @@ type UserDoc = {
   lastName?: string;
   phone?: string;
   profilePictureUrl?: string;
-  // SmithHarper-managed profile fields
+  // ConvexPress-managed profile fields
   username?: string;
   nickname?: string;
   displayName?: string;
@@ -147,7 +145,6 @@ type RoleDoc = {
 /**
  * Get the current authenticated user from the database.
  * Supports dual-auth: local admin JWT (subject = Convex _id) and Clerk (subject = Clerk user ID).
- * Falls back to by_workosUserId for legacy WorkOS users during migration grace period.
  *
  * @returns User document or null if not authenticated / not found.
  */
@@ -173,17 +170,6 @@ export async function getCurrentUser(
       q.eq("clerkUserId", identity.subject),
     )
     .unique();
-
-  // Fallback: check workosUserId for migration grace period
-  if (!user) {
-    const legacyUser = await ctx.db
-      .query("users")
-      .withIndex("by_workosUserId", (q) =>
-        q.eq("workosUserId", identity.subject),
-      )
-      .first();
-    return legacyUser as UserDoc | null;
-  }
 
   return user as UserDoc | null;
 }
@@ -338,11 +324,11 @@ export async function requireCan(
   const role = await resolveUserRole(ctx, user);
   const capabilities = role?.capabilities ?? [];
   if (!capabilities.includes(capability)) {
+    // Log details server-side for debugging; return generic message to client
+    console.warn(`Access denied: user=${user._id} capability=${capability} role=${role?.slug ?? "none"}`);
     throw new ConvexError({
       code: "FORBIDDEN",
-      message: `Missing capability: ${capability}`,
-      capability,
-      role: role?.slug ?? "none",
+      message: "Insufficient permissions",
     });
   }
 
@@ -602,43 +588,36 @@ export { resolveUserRole };
 /**
  * Get the best available string identifier for a user.
  *
- * During the auth migration, users may have a workosUserId (legacy),
- * a clerkUserId (website auth), or only their Convex _id (local admin auth).
- * Many subsystems (comments, notifications, audit logs, etc.) store a string
- * identifier for the acting user. This helper returns the best available one.
+ * Users may have a clerkUserId (website auth) or only their Convex _id
+ * (local admin auth). Many subsystems (comments, notifications, audit logs,
+ * etc.) store a string identifier for the acting user. This helper returns
+ * the best available one.
  *
- * Priority: workosUserId > clerkUserId > _id (as string)
+ * Priority: clerkUserId > _id (as string)
  *
  * @param user - A user document (or partial with the relevant fields)
  * @returns A string identifier for the user
  */
 export function getUserIdentifier(
-  user: Pick<UserDoc, "_id"> & { workosUserId?: string; clerkUserId?: string },
+  user: Pick<UserDoc, "_id"> & { clerkUserId?: string },
 ): string {
-  return user.workosUserId ?? user.clerkUserId ?? user._id;
+  return user.clerkUserId ?? user._id;
 }
 
 /**
- * Look up a user by any identifier string (workosUserId, clerkUserId, or Convex _id).
+ * Look up a user by any identifier string (clerkUserId or Convex _id).
  *
- * During the auth migration, events and other records may store user identifiers
- * from different auth sources. This helper tries all lookup strategies.
+ * Events and other records may store user identifiers from different auth
+ * sources. This helper tries all lookup strategies.
  *
  * @param ctx - Query or mutation context
- * @param identifier - A string that could be a workosUserId, clerkUserId, or Convex _id
+ * @param identifier - A string that could be a clerkUserId or Convex _id
  * @returns User document or null
  */
 export async function lookupUserByIdentifier(
   ctx: QueryCtx | MutationCtx,
   identifier: string,
 ): Promise<UserDoc | null> {
-  // Try workosUserId first (most common for existing data)
-  const byWorkos = await ctx.db
-    .query("users")
-    .withIndex("by_workosUserId", (q) => q.eq("workosUserId", identifier))
-    .unique();
-  if (byWorkos) return byWorkos as UserDoc;
-
   // Try clerkUserId
   const byClerk = await ctx.db
     .query("users")

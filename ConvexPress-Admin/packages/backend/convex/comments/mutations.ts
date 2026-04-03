@@ -139,7 +139,6 @@ export const create = mutation({
       content: args.content,
       user: {
         _id: user._id,
-        workosUserId: user.workosUserId,
         clerkUserId: user.clerkUserId,
         displayName: user.displayName,
         firstName: user.firstName,
@@ -703,7 +702,6 @@ export const reply = mutation({
       content: args.content,
       user: {
         _id: user._id,
-        workosUserId: user.workosUserId,
         clerkUserId: user.clerkUserId,
         displayName: user.displayName,
         firstName: user.firstName,

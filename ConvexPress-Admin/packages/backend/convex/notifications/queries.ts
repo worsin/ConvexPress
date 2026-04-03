@@ -69,7 +69,7 @@ export const list = query({
       return { notifications: [], nextCursor: undefined, hasMore: false };
     }
 
-    const workosUserId = getUserIdentifier(user);
+    const userIdentifier = getUserIdentifier(user);
     const limit = Math.min(args.limit ?? 20, 100);
     const fetchLimit = limit + 1; // Fetch one extra to detect hasMore
 
@@ -82,7 +82,7 @@ export const list = query({
       notifications = await ctx.db
         .query("siteNotifications")
         .withIndex("by_user_unread", (q) =>
-          q.eq("userId", workosUserId).eq("readAt", undefined),
+          q.eq("userId", userIdentifier).eq("readAt", undefined),
         )
         .order("desc")
         .take(fetchLimit * 2); // Only 2x for dismissed filtering
@@ -91,7 +91,7 @@ export const list = query({
       notifications = await ctx.db
         .query("siteNotifications")
         .withIndex("by_user_type", (q) =>
-          q.eq("userId", workosUserId).eq("type", args.type!),
+          q.eq("userId", userIdentifier).eq("type", args.type!),
         )
         .order("desc")
         .take(fetchLimit * 3);
@@ -99,7 +99,7 @@ export const list = query({
       // Default: chronological by createdAt
       notifications = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user", (q) => q.eq("userId", workosUserId))
+        .withIndex("by_user", (q) => q.eq("userId", userIdentifier))
         .order("desc")
         .take(fetchLimit * 3);
     }

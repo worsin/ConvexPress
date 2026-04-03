@@ -39,7 +39,7 @@ import { matchesEventCode } from "./constants";
  *   - code: exact event code
  *   - system: originating system
  *   - status: processing status
- *   - actorId: WorkOS user ID
+ *   - actorId: user identifier
  *   - correlationId: correlation chain
  *   - dateFrom: events emitted at or after this timestamp (inclusive)
  *   - dateTo: events emitted at or before this timestamp (inclusive)

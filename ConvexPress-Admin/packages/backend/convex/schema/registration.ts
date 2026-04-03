@@ -7,15 +7,15 @@ import { v } from "convex/values";
  * One table:
  *   - invitations: Admin-created invitation records for user onboarding
  *
- * The Registration System bridges WorkOS authentication identity with
+ * The Registration System bridges external authentication identity with
  * Convex application user records. It handles:
  *   - Self-registration (when enabled via settings)
  *   - Invitation-based registration (admin creates, user accepts)
- *   - OAuth registration (via WorkOS providers)
+ *   - OAuth registration (via Clerk providers)
  *
  * The `users` table is owned by the User Profile System.
  * This system creates user records in that table via the
- * `createUserFromWorkOS` internal mutation (called by webhook handler).
+ * `handleExternalAuthUserCreated` internal mutation (called by webhook handler).
  *
  * Invitation lifecycle: pending -> accepted | expired | revoked
  */

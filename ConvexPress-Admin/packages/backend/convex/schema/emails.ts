@@ -11,7 +11,7 @@
  *
  *   - emailUnsubscribes: Per-user, per-category email opt-out preferences.
  *
- * SmithHarper replaces WordPress's fire-and-forget `wp_mail()` with a
+ * ConvexPress replaces WordPress's fire-and-forget `wp_mail()` with a
  * persistent queue backed by Convex. Every email is stored, tracked,
  * and retryable. Delivery status is visible in the admin panel.
  *
@@ -129,7 +129,7 @@ export const emailTables = {
     to: v.string(),
     /** Recipient display name */
     toName: v.optional(v.string()),
-    /** WorkOS user ID (if known) */
+    /** User identifier (if known) */
     toUserId: v.optional(v.string()),
 
     // --- Sender ---
@@ -208,7 +208,7 @@ export const emailTables = {
 
   // ─── Email Unsubscribes ──────────────────────────────────────────────────
   emailUnsubscribes: defineTable({
-    /** WorkOS user ID */
+    /** User identifier */
     userId: v.string(),
     /** Email category to unsubscribe from */
     category: v.string(),

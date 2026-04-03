@@ -8,15 +8,12 @@
  *   - updatePostCount - Recalculate a user's published post count
  *   - updateCommentCount - Recalculate a user's comment count
  *   - generateSlugForUser - Generate a unique slug for a user
- *   - syncFromWorkOS - Sync user fields from WorkOS webhook data
  *   - ensureSlug - Generate slugs for users who don't have one (migration)
  *   - updateLastLogin - Update lastLoginAt timestamp
- *   - revokeWorkosSession - Revoke all WorkOS sessions for a user (on deactivation)
- *   - deleteWorkosUser - Delete a user's WorkOS account (on deletion)
  */
 
-import { lookupUserByIdentifier, getUserIdentifier } from "../helpers/permissions";
-import { internalMutation, internalQuery, internalAction } from "../_generated/server";
+import { getUserIdentifier } from "../helpers/permissions";
+import { internalMutation, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
 import {
   generateSlug,
@@ -187,97 +184,6 @@ export const ensureSlug = internalMutation({
   },
 });
 
-// ─── WorkOS Sync ────────────────────────────────────────────────────────────
-
-/**
- * Sync user record with data from WorkOS webhook.
- *
- * Called by the Auth System's webhook handler when WorkOS sends
- * a user.created or user.updated event. Only patches WorkOS-owned
- * fields -- never overwrites SmithHarper-managed fields.
- *
- * For user.created: Also generates displayName, slug, and assigns default role.
- * For user.updated: Only patches identity fields (email, firstName, lastName, avatar).
- */
-export const syncFromWorkOS = internalMutation({
-  args: {
-    workosUserId: v.string(),
-    email: v.string(),
-    firstName: v.optional(v.string()),
-    lastName: v.optional(v.string()),
-    profilePictureUrl: v.optional(v.string()),
-    emailVerified: v.optional(v.boolean()),
-    isNewUser: v.boolean(), // true for user.created, false for user.updated
-  },
-  handler: async (ctx, args) => {
-    // Check if user already exists
-    const existingUser = await lookupUserByIdentifier(ctx, args.workosUserId);
-
-    const now = Date.now();
-
-    if (existingUser) {
-      // Update existing user -- only WorkOS-owned fields
-      const patch: Record<string, any> = {
-        email: args.email,
-        updatedAt: now,
-      };
-
-      if (args.firstName !== undefined) {
-        patch.firstName = args.firstName;
-      }
-      if (args.lastName !== undefined) {
-        patch.lastName = args.lastName;
-      }
-      if (args.profilePictureUrl !== undefined) {
-        patch.profilePictureUrl = args.profilePictureUrl;
-      }
-      if (args.emailVerified !== undefined) {
-        patch.emailVerified = args.emailVerified;
-      }
-
-      await ctx.db.patch("users", existingUser._id, patch);
-      return existingUser._id;
-    }
-
-    // Create new user (idempotent -- if webhook retries, the user.created
-    // handler will land here after the check above returns null on first run)
-    const displayName = generateDisplayName(
-      args.firstName,
-      args.lastName,
-      args.email,
-    );
-    const baseSlug = generateSlug(displayName);
-    const uniqueSlug = await ensureUniqueSlug(ctx, baseSlug);
-
-    // Look up default role
-    let roleId;
-    const defaultRole = await ctx.db
-      .query("roles")
-      .withIndex("by_isDefault", (q) => q.eq("isDefault", true))
-      .first();
-    if (defaultRole) {
-      roleId = defaultRole._id;
-    }
-
-    const userId = await ctx.db.insert("users", {
-      workosUserId: args.workosUserId,
-      email: args.email,
-      emailVerified: args.emailVerified ?? false,
-      firstName: args.firstName,
-      lastName: args.lastName,
-      profilePictureUrl: args.profilePictureUrl,
-      displayName,
-      slug: uniqueSlug,
-      roleId,
-      status: "active",
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    return userId;
-  },
-});
-
 // ─── Login Tracking ─────────────────────────────────────────────────────────
 
 /**
@@ -300,21 +206,6 @@ export const updateLastLogin = internalMutation({
 });
 
 // ─── Lookup Helpers ─────────────────────────────────────────────────────────
-
-/**
- * Get a user by WorkOS user ID.
- *
- * Used by other internal systems that have a WorkOS identity
- * but need the Convex user document.
- */
-export const getByWorkosId = internalQuery({
-  args: {
-    workosUserId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    return await lookupUserByIdentifier(ctx, args.workosUserId);
-  },
-});
 
 /**
  * Get a user by email.
@@ -388,136 +279,6 @@ export const recalculateAllCounts = internalMutation({
     }
 
     return { updated };
-  },
-});
-
-// ─── WorkOS Integration Actions ──────────────────────────────────────────────
-
-/**
- * Revoke all WorkOS sessions for a user.
- *
- * Called when an admin deactivates a user. This ensures the deactivated
- * user is immediately logged out of all sessions rather than waiting
- * for session expiry.
- *
- * This is an internalAction (not internalMutation) because it makes
- * external HTTP calls to the WorkOS API.
- *
- * Scheduled from: deactivateUser mutation via ctx.scheduler.runAfter(0, ...)
- *
- * @param workosUserId - The WorkOS user ID (e.g., "user_2abc123")
- */
-export const revokeWorkosSession = internalAction({
-  args: {
-    workosUserId: v.string(),
-  },
-  handler: async (_ctx, args) => {
-    const apiKey = process.env.WORKOS_API_KEY;
-    if (!apiKey) {
-      console.error(
-        "[User Profile] WORKOS_API_KEY not set -- cannot revoke sessions for user:",
-        args.workosUserId,
-      );
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        "https://api.workos.com/user_management/sessions/revoke",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            user_id: args.workosUserId,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(
-          `[User Profile] Failed to revoke WorkOS sessions for user ${args.workosUserId}: ${response.status} ${errorText}`,
-        );
-      } else {
-        console.log(
-          `[User Profile] Successfully revoked WorkOS sessions for user: ${args.workosUserId}`,
-        );
-      }
-    } catch (error: unknown) {
-      console.error(
-        `[User Profile] Error revoking WorkOS sessions for user ${args.workosUserId}:`,
-        error,
-      );
-    }
-  },
-});
-
-/**
- * Delete a user's WorkOS account.
- *
- * Called when an admin permanently deletes a user. This removes the
- * orphaned WorkOS user record so it doesn't accumulate in WorkOS.
- *
- * This is an internalAction (not internalMutation) because it makes
- * external HTTP calls to the WorkOS API.
- *
- * Scheduled from: deleteUser and bulkDeleteUsers mutations via ctx.scheduler.runAfter(0, ...)
- *
- * @param workosUserId - The WorkOS user ID (e.g., "user_2abc123")
- */
-export const deleteWorkosUser = internalAction({
-  args: {
-    workosUserId: v.string(),
-  },
-  handler: async (_ctx, args) => {
-    const apiKey = process.env.WORKOS_API_KEY;
-    if (!apiKey) {
-      console.error(
-        "[User Profile] WORKOS_API_KEY not set -- cannot delete WorkOS user:",
-        args.workosUserId,
-      );
-      return;
-    }
-
-    // Skip deletion for manually-created users (they don't have real WorkOS accounts)
-    if (args.workosUserId.startsWith("manual_")) {
-      console.log(
-        `[User Profile] Skipping WorkOS deletion for manually-created user: ${args.workosUserId}`,
-      );
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `https://api.workos.com/user_management/users/${args.workosUserId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-          },
-        },
-      );
-
-      if (!response.ok && response.status !== 404) {
-        // 404 means user was already deleted in WorkOS -- that's fine
-        const errorText = await response.text();
-        console.error(
-          `[User Profile] Failed to delete WorkOS user ${args.workosUserId}: ${response.status} ${errorText}`,
-        );
-      } else {
-        console.log(
-          `[User Profile] Successfully deleted WorkOS user: ${args.workosUserId}`,
-        );
-      }
-    } catch (error: unknown) {
-      console.error(
-        `[User Profile] Error deleting WorkOS user ${args.workosUserId}:`,
-        error,
-      );
-    }
   },
 });
 

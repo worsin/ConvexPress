@@ -1,8 +1,8 @@
-# Auth Migration: WorkOS → Custom Local Auth (Admin) + Clerk (Website)
+# Auth Migration: Convex Auth → Custom Local Auth (Admin) + Clerk (Website)
 
 **Date:** 2026-03-20
 **Status:** Draft
-**Scope:** Remove WorkOS from both apps. Replace with custom JWT auth for admin, Clerk for website.
+**Scope:** Remove Convex Auth from both apps. Replace with custom JWT auth for admin, Clerk for website.
 
 ---
 
@@ -19,7 +19,7 @@ Two auth systems, one database, one `users` table.
 
 **Convex `auth.config.ts`** supports two JWT providers simultaneously: a custom local issuer for admin auth and Clerk's issuer for website auth.
 
-**WorkOS is fully removed** — all packages, env vars, webhook handlers, and references deleted.
+**Convex Auth is fully removed** — all packages, env vars, webhook handlers, and references deleted.
 
 ---
 
@@ -38,8 +38,8 @@ Two auth systems, one database, one `users` table.
    - `sub`: Convex user `_id` (enables direct `ctx.db.get()` lookup — O(1), no index needed)
    - `email`: user's email
    - `name`: user's display name
-   - `iss`: `"smithharper-admin"` (hardcoded constant, used to distinguish from Clerk in `getCurrentUser()`)
-   - `aud`: `"smithharper-admin"` (must match `applicationID` in `auth.config.ts`)
+   - `iss`: `"convexpress-admin"` (hardcoded constant, used to distinguish from Clerk in `getCurrentUser()`)
+   - `aud`: `"convexpress-admin"` (must match `applicationID` in `auth.config.ts`)
    - `iat`: issued-at timestamp
    - `exp`: expiration (15 minutes for access token)
    - JWT signed with `AUTH_PRIVATE_KEY` (ES256/ECDSA P-256 — shorter signatures than RSA, equally secure)
@@ -136,7 +136,7 @@ No prebuilt Clerk components (`<SignIn />`, `<SignUp />`). Instead:
 - `useSignUp()` hook drives our custom `RegisterForm` component
 - OAuth buttons use `signIn.authenticateWithRedirect({ strategy: "oauth_google" })` etc.
 - All forms use Base UI components and our existing design system
-- Clerk branding is invisible — users see SmithHarper branding only
+- Clerk branding is invisible — users see ConvexPress branding only
 
 ### 3.3 Dynamic Auth Options
 
@@ -159,7 +159,7 @@ Clerk sends webhooks to `https://<deployment>.convex.site/webhooks/clerk` for:
 - `user.updated` → Sync profile fields (email, name, avatar)
 - `user.deleted` → Remove or deactivate user
 
-Webhook verification via `svix` package (same pattern WorkOS used, Clerk uses Svix too).
+Webhook verification via `svix` package (same pattern Convex Auth used, Clerk uses Svix too).
 
 ### 3.6 Just-In-Time User Provisioning
 
@@ -187,8 +187,8 @@ Clerk API keys stored as Convex environment variables:
 ### 4.1 Users Table Modifications
 
 **Remove:**
-- `workosUserId` field (kept as optional during grace period, then removed)
-- `by_workosUserId` index (removed immediately — no code will use it)
+- `clerkUserId` field (kept as optional during grace period, then removed)
+- `by_clerkUserId` index (removed immediately — no code will use it)
 
 **Add:**
 - `authSource: v.union(v.literal("local"), v.literal("clerk"))` — required
@@ -199,7 +199,7 @@ Clerk API keys stored as Convex environment variables:
 
 **Keep unchanged:**
 - All profile fields, role fields, preferences, social links, timestamps, WordPress import fields
-- All existing indexes except `by_workosUserId`
+- All existing indexes except `by_clerkUserId`
 
 ### 4.2 New Table: `refreshTokens`
 
@@ -231,7 +231,7 @@ export default {
       // Admin: custom JWT provider
       // domain must match the issuer URL where JWKS is served
       domain: process.env.AUTH_ISSUER_URL,  // e.g., https://<deployment>.convex.site
-      applicationID: "smithharper-admin",
+      applicationID: "convexpress-admin",
     },
     {
       // Website: Clerk provider
@@ -244,13 +244,13 @@ export default {
 
 Note: `process.env` IS available in `auth.config.ts` (it runs at deploy time, not in query/mutation context).
 
-### 5.2 `convex.config.ts` — Remove WorkOS Component
+### 5.2 `convex.config.ts` — Remove Convex Auth Component
 
 ```typescript
 // BEFORE:
-import workOSAuthKit from "@convex-dev/workos-authkit/convex.config";
+import convexAuth from "@convex-dev/auth-authkit/convex.config";
 const app = defineApp();
-app.use(workOSAuthKit);
+app.use(convexAuth);
 
 // AFTER:
 import { defineApp } from "convex/server";
@@ -260,22 +260,22 @@ export default app;
 
 ### 5.3 `helpers/permissions.ts` — User Lookup Change
 
-The critical change: `getCurrentUser()` currently looks up users by `workosUserId` via `identity.subject`. With dual auth:
+The critical change: `getCurrentUser()` currently looks up users by `clerkUserId` via `identity.subject`. With dual auth:
 
 - **Admin JWT:** `identity.subject` = Convex user `_id` (we control what goes in the JWT)
 - **Clerk JWT:** `identity.subject` = Clerk user ID (e.g., `user_2abc...`)
 
-**Important:** `process.env` is NOT available in Convex query/mutation handlers. We use `identity.tokenIdentifier` (which is `issuer|subject`) to distinguish auth sources. The admin issuer string `"smithharper-admin"` is a hardcoded constant.
+**Important:** `process.env` is NOT available in Convex query/mutation handlers. We use `identity.tokenIdentifier` (which is `issuer|subject`) to distinguish auth sources. The admin issuer string `"convexpress-admin"` is a hardcoded constant.
 
 ```typescript
-const ADMIN_ISSUER = "smithharper-admin";
+const ADMIN_ISSUER = "convexpress-admin";
 
 export async function getCurrentUser(ctx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return null;
 
   // tokenIdentifier format: "issuer|subject"
-  // For admin JWTs: "smithharper-admin|<convex-user-id>"
+  // For admin JWTs: "convexpress-admin|<convex-user-id>"
   // For Clerk JWTs: "https://clerk.xxx.dev|<clerk-user-id>"
   const isAdminAuth = identity.tokenIdentifier.startsWith(ADMIN_ISSUER + "|");
 
@@ -296,17 +296,17 @@ export async function getCurrentUser(ctx) {
 
 **All other permission helpers (`requireCan`, `currentUserCan`, `requireAuth`, etc.) remain unchanged** — they all call `getCurrentUser()` internally.
 
-### 5.4 Files with Direct `by_workosUserId` Usage (21 files)
+### 5.4 Files with Direct `by_clerkUserId` Usage (21 files)
 
-Beyond `getCurrentUser()`, 21 backend files directly query `by_workosUserId`. These need individual attention:
+Beyond `getCurrentUser()`, 21 backend files directly query `by_clerkUserId`. These need individual attention:
 
-**Delete entirely (WorkOS-specific, replaced by new auth system):**
-- `convex/auth.ts` — WorkOS webhook handlers → replaced by `convex/auth/clerkWebhook.ts`
+**Delete entirely (Convex Auth-specific, replaced by new auth system):**
+- `convex/auth.ts` — auth webhook handlers → replaced by `convex/auth/clerkWebhook.ts`
 
 **Refactor to use `getCurrentUser()` or the new dual-lookup pattern:**
 - `convex/users.ts` — `checkAdminAccess` and `bootstrapAdmin` (use `getCurrentUser()`)
 - `convex/authTracking/mutations.ts` — `getOrCreateCurrentUserForLogin` (rewrite for dual auth)
-- `convex/registration/internals.ts` — `handleWorkOSUserCreated` (rewrite for Clerk webhooks)
+- `convex/registration/internals.ts` — `handleConvex AuthUserCreated` (rewrite for Clerk webhooks)
 - `convex/profiles/queries.ts` — user lookup (use `getCurrentUser()`)
 - `convex/profiles/internals.ts` — user lookup (use `getCurrentUser()`)
 - `convex/password/queries.ts` — user lookup (use `getCurrentUser()`)
@@ -321,14 +321,14 @@ Beyond `getCurrentUser()`, 21 backend files directly query `by_workosUserId`. Th
 - `convex/auditLogs/internals.ts` — user lookup
 - `convex/api/internals.ts` — user lookup
 - `convex/airtableSync/_internal.ts` — user lookup
-- `convex/wordpressSync/phases/users.ts` — WorkOS user creation (rewrite for local auth)
+- `convex/wordpressSync/phases/users.ts` — Convex Auth user creation (rewrite for local auth)
 - `convex/wordpressSync/phases/menus.ts` — user lookup
 
-**Pattern for most refactors:** Replace `.withIndex("by_workosUserId", ...)` with either `getCurrentUser(ctx)` (if in an authenticated context) or a lookup by `userId` (Convex `_id`) where the user ID is already known.
+**Pattern for most refactors:** Replace `.withIndex("by_clerkUserId", ...)` with either `getCurrentUser(ctx)` (if in an authenticated context) or a lookup by `userId` (Convex `_id`) where the user ID is already known.
 
-### 5.5 `auth.ts` — Replace WorkOS Webhooks with Clerk Webhooks
+### 5.5 `auth.ts` — Replace Convex Auth Webhooks with Clerk Webhooks
 
-Delete the entire WorkOS `authKit` event handler. Replace with a Clerk webhook handler registered in `http.ts`.
+Delete the entire Convex Auth `authKit` event handler. Replace with a Clerk webhook handler registered in `http.ts`.
 
 ### 5.6 `http.ts` — New Routes
 
@@ -341,7 +341,7 @@ Delete the entire WorkOS `authKit` event handler. Replace with a Clerk webhook h
 - `POST /webhooks/clerk` — Clerk user webhook receiver
 
 **Remove:**
-- `authKit.registerRoutes(http)` — WorkOS routes
+- `authKit.registerRoutes(http)` — Convex Auth routes
 
 **CORS:** The admin SPA runs on a different origin (e.g., `localhost:4105`) than the Convex `.site` domain. All `/auth/*` endpoints must include `Access-Control-Allow-Origin`, `Access-Control-Allow-Credentials: true`, and appropriate headers. Use the existing `corsPreflightResponse()` helper.
 
@@ -359,8 +359,8 @@ Delete the entire WorkOS `authKit` event handler. Replace with a Clerk webhook h
 ### 5.8 Environment Variables
 
 **Remove from Convex Dashboard:**
-- `WORKOS_CLIENT_ID`
-- `WORKOS_API_KEY`
+- `AUTH_CLIENT_ID`
+- `AUTH_API_KEY`
 
 **Add to Convex Dashboard:**
 - `AUTH_PRIVATE_KEY` — ES256 (ECDSA P-256) private key for signing admin JWTs
@@ -377,7 +377,7 @@ The `jose` library is pure JavaScript with no native dependencies. It should wor
 
 ### 5.10 `authTracking/mutations.ts` — Provisioning Rewrite
 
-The `getOrCreateCurrentUserForLogin()` function (60+ lines) currently reads WorkOS identity claims, derives legacy role fields, and provisions users. This is rewritten:
+The `getOrCreateCurrentUserForLogin()` function (60+ lines) currently reads auth identity claims, derives legacy role fields, and provisions users. This is rewritten:
 
 **For admin auth:** No provisioning needed on login — admin users are pre-created (via wizard or seed script). The login endpoint just validates credentials.
 
@@ -390,8 +390,8 @@ The `getOrCreateCurrentUserForLogin()` function (60+ lines) currently reads Work
 ### 6.1 Package Changes
 
 **Remove:**
-- `@workos-inc/authkit-react`
-- `@convex-dev/workos`
+- `@auth-inc/authkit-react`
+- `@convex-dev/auth`
 
 **Add:**
 - No new auth packages needed. JWT handling is vanilla JS. The `ConvexProviderWithAuth` component is already in the `convex/react` package.
@@ -418,7 +418,7 @@ function useLocalAuth() {
 
 ### 6.3 `_authenticated.tsx` — Simplified
 
-Replace WorkOS `useAuth()` with `useConvexAuth()` (from `convex/react`):
+Replace Convex Auth `useAuth()` with `useConvexAuth()` (from `convex/react`):
 - `useConvexAuth()` returns `{ isLoading, isAuthenticated }` based on whether the token provider has a valid token
 - If not authenticated: show login form
 - If authenticated: proceed to `checkAdminAccess` query (rewritten to use `getCurrentUser()`)
@@ -433,21 +433,21 @@ New login form at the root route (`/`) or `/login`:
 
 ### 6.5 Files to Delete
 
-- `routes/callback.tsx` — WorkOS callback route (no longer needed)
+- `routes/callback.tsx` — Convex Auth callback route (no longer needed)
 
 ### 6.6 Files to Modify
 
 - `main.tsx` — provider stack
-- `_authenticated.tsx` — auth guard (replace WorkOS `useAuth` with `useConvexAuth`)
+- `_authenticated.tsx` — auth guard (replace Convex Auth `useAuth` with `useConvexAuth`)
 - `routes/index.tsx` — login UI
-- `components/header.tsx` — user menu (remove WorkOS sign-out, use custom logout)
+- `components/header.tsx` — user menu (remove Convex Auth sign-out, use custom logout)
 - `components/layout/UserMenu.tsx` — same
 - `lib/auth-context.tsx` — update to use Convex identity (the `AuthProvider` that resolves user + role stays, just the data source changes)
-- `env.d.ts` — remove WorkOS env types, add new ones
-- `components/registration/InviteUserForm.tsx` — remove WorkOS references
+- `env.d.ts` — remove Convex Auth env types, add new ones
+- `components/registration/InviteUserForm.tsx` — remove Convex Auth references
 - `components/password/ResetPasswordButton.tsx` — adjust for local auth
-- `components/users/user-form.tsx` — remove WorkOS fields
-- `components/users/avatar.tsx` — remove WorkOS avatar URL references
+- `components/users/user-form.tsx` — remove Convex Auth fields
+- `components/users/avatar.tsx` — remove Convex Auth avatar URL references
 
 ---
 
@@ -456,8 +456,8 @@ New login form at the root route (`/`) or `/login`:
 ### 7.1 Package Changes
 
 **Remove:**
-- `@workos-inc/node`
-- `@workos/authkit-tanstack-react-start`
+- `@auth-inc/node`
+- `@auth/authkit-tanstack-react-start`
 
 **Add:**
 - `@clerk/tanstack-react-start`
@@ -465,14 +465,14 @@ New login form at the root route (`/`) or `/login`:
 
 ### 7.2 `start.ts` — Replace Middleware
 
-Replace `authkitMiddleware()` with Clerk's TanStack Start middleware (or handle auth via Clerk's `getAuth()` in route loaders).
+Replace `authMiddleware()` with Clerk's TanStack Start middleware (or handle auth via Clerk's `getAuth()` in route loaders).
 
 ### 7.3 Auth Routes — Custom UI with Clerk Hooks
 
 - `login.tsx` — Use `useSignIn()` hook with custom form. Detect available strategies (`supportedFirstFactors`) to dynamically show email/phone/OAuth options.
 - `register.tsx` — Use `useSignUp()` hook with custom form. Same dynamic field detection.
 - `forgot-password.tsx` — Use Clerk's password reset flow via hooks.
-- `api/auth/callback.tsx` — Replace WorkOS callback with Clerk's OAuth callback handling.
+- `api/auth/callback.tsx` — Replace Convex Auth callback with Clerk's OAuth callback handling.
 
 ### 7.4 Auth Components to Rewrite
 
@@ -483,13 +483,13 @@ Replace `authkitMiddleware()` with Clerk's TanStack Start middleware (or handle 
 
 ### 7.5 SSR Auth Helpers
 
-Replace `getAuth()` and `getSignInUrl()` from WorkOS with Clerk equivalents:
+Replace `getAuth()` and `getSignInUrl()` from the auth system with Clerk equivalents:
 - `getAuth()` from `@clerk/tanstack-react-start/server`
 - Session handling via Clerk's server-side utilities
 
-### 7.6 Website Files Referencing WorkOS (35 files)
+### 7.6 Website Files Referencing Convex Auth (35 files)
 
-All files in the website app that import from `@workos-inc/*` or `@workos/*`:
+All files in the website app that import from `@auth-inc/*` or `@auth/*`:
 - `start.ts` — middleware
 - `routes/__root.tsx` — auth context
 - `routes/login.tsx`, `register.tsx`, `forgot-password.tsx`, `reset-password.tsx`, `verify-email.tsx`, `logout.tsx` — auth pages
@@ -507,11 +507,11 @@ All files in the website app that import from `@workos-inc/*` or `@workos/*`:
 
 ### 8.1 Existing Users
 
-Current users have `workosUserId` but no `passwordHash` or `clerkUserId`. Migration strategy:
+Current users have `clerkUserId` but no `passwordHash` or `clerkUserId`. Migration strategy:
 
-1. **Admin users:** Must set a new password during first login after migration (password reset flow or setup prompt). Their `workosUserId` is cleared and `authSource` set to `"local"`.
+1. **Admin users:** Must set a new password during first login after migration (password reset flow or setup prompt). Their `clerkUserId` is cleared and `authSource` set to `"local"`.
 2. **Website users:** If Clerk is configured, existing users need to re-register via Clerk (or admin imports them via Clerk's Backend API). Their records get `clerkUserId` populated and `authSource` set to `"clerk"`.
-3. **Grace period:** Keep `workosUserId` field as optional during migration. Remove it in a later cleanup phase.
+3. **Grace period:** Keep `clerkUserId` field as optional during migration. Remove it in a later cleanup phase.
 
 ### 8.2 Data Preservation
 
@@ -520,9 +520,9 @@ All content (posts, pages, comments, media, settings, roles, etc.) is untouched.
 ### 8.3 Rollback Plan
 
 If the migration fails partway:
-- The `workosUserId` field is preserved during the grace period, so re-adding WorkOS config would restore the old auth flow
+- The `clerkUserId` field is preserved during the grace period, so re-adding Convex Auth config would restore the old auth flow
 - No content data is modified, so there is nothing to reverse on the content side
-- The rollback would require: re-adding WorkOS packages, restoring `auth.config.ts`, and restoring the `by_workosUserId` index
+- The rollback would require: re-adding Convex Auth packages, restoring `auth.config.ts`, and restoring the `by_clerkUserId` index
 - To minimize risk, the migration is done in phases (see implementation plan) with each phase independently deployable
 
 ---
@@ -530,15 +530,15 @@ If the migration fails partway:
 ## 9. Packages to Remove (Full List)
 
 ### Admin App (`ConvexPress-Admin/apps/web/`)
-- `@workos-inc/authkit-react`
-- `@convex-dev/workos`
+- `@auth-inc/authkit-react`
+- `@convex-dev/auth`
 
 ### Admin Backend (`ConvexPress-Admin/packages/backend/`)
-- `@convex-dev/workos-authkit` (Convex component)
+- `@convex-dev/auth-authkit` (Convex component)
 
 ### Website App (`ConvexPress-Website/apps/web/`)
-- `@workos-inc/node`
-- `@workos/authkit-tanstack-react-start`
+- `@auth-inc/node`
+- `@auth/authkit-tanstack-react-start`
 
 ### New Dependencies
 
@@ -555,26 +555,26 @@ If the migration fails partway:
 ## 10. Environment Variable Changes
 
 ### Admin App `.env` — Remove
-- `VITE_WORKOS_CLIENT_ID`
-- `VITE_WORKOS_REDIRECT_URI`
+- `VITE_AUTH_CLIENT_ID`
+- `VITE_AUTH_REDIRECT_URI`
 
 ### Admin App `.env` — Add
 - `VITE_CONVEX_URL` (keep)
 - `VITE_CONVEX_SITE_URL` — Convex `.site` URL for auth HTTP actions
 
 ### Website App `.env.local` — Remove
-- `WORKOS_CLIENT_ID`
-- `WORKOS_API_KEY`
-- `WORKOS_COOKIE_PASSWORD`
-- `WORKOS_REDIRECT_URI`
+- `AUTH_CLIENT_ID`
+- `AUTH_API_KEY`
+- `AUTH_COOKIE_PASSWORD`
+- `AUTH_REDIRECT_URI`
 
 ### Website App `.env.local` — Add
 - `VITE_CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
 
 ### Convex Dashboard — Remove
-- `WORKOS_CLIENT_ID`
-- `WORKOS_API_KEY`
+- `AUTH_CLIENT_ID`
+- `AUTH_API_KEY`
 
 ### Convex Dashboard — Add
 - `AUTH_PRIVATE_KEY` — ES256 (ECDSA P-256) private key

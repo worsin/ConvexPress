@@ -2,17 +2,17 @@
  * Registration System - Internal Functions
  *
  * Functions that are NOT callable from the client. Used for:
- *   - WorkOS webhook handling (user creation from webhook)
+ *   - External auth webhook handling (user creation from webhook)
  *   - Invitation expiration (cron job)
  *   - Invitation cleanup (old expired records)
  *
  * Internal functions:
- *   - handleWorkOSUserCreated: Creates Convex user record when WorkOS fires user.created
+ *   - handleExternalAuthUserCreated: Creates Convex user record from external auth webhook
  *   - expireOldInvitations: Cron handler to expire invitations past their expiresAt
  *   - cleanupExpiredInvitations: Delete expired invitations older than 90 days
  *
  * These are called by:
- *   - The WorkOS webhook HTTP endpoint (convex/http.ts)
+ *   - The auth webhook HTTP endpoint (convex/http.ts)
  *   - The cron scheduler (convex/crons.ts)
  */
 
@@ -36,7 +36,7 @@ import {
 import { emitEvent } from "../helpers/events";
 import { SYSTEM, REGISTRATION_EVENTS } from "../events/constants";
 import {
-  createUserFromWorkOSArgs,
+  createUserFromExternalAuthArgs,
   expireOldInvitationsArgs,
   cleanupExpiredInvitationsArgs,
 } from "./validators";
@@ -46,8 +46,8 @@ import {
 /**
  * Create a Convex user record from an external auth webhook event.
  *
- * This is the bridge between external authentication identity (WorkOS, Clerk)
- * and the SmithHarper CMS application user record. It handles:
+ * This is the bridge between external authentication identity (Clerk)
+ * and the ConvexPress application user record. It handles:
  *
  *   1. Idempotency (webhook retries won't create duplicate users)
  *   2. Invitation matching (assigns invited role if invitation exists)
@@ -62,26 +62,26 @@ import {
  *
  * @returns The Convex user ID of the created (or existing) user
  */
-export const handleWorkOSUserCreated = internalMutation({
-  args: createUserFromWorkOSArgs,
+export const handleExternalAuthUserCreated = internalMutation({
+  args: createUserFromExternalAuthArgs,
   handler: async (ctx, args) => {
     const now = Date.now();
 
     // ─── 1. Idempotency Guard ──────────────────────────────────────────
     // Webhooks may retry. Never create duplicate user records.
-    // Check by external ID first (workosUserId or clerkUserId), then by email.
-    const existingByWorkos = await ctx.db
+    // Check by clerkUserId first, then by email.
+    const existingByClerk = await ctx.db
       .query("users")
-      .withIndex("by_workosUserId", (q) =>
-        q.eq("workosUserId", args.workosId),
+      .withIndex("by_clerkUserId", (q) =>
+        q.eq("clerkUserId", args.externalAuthId),
       )
       .unique();
 
-    if (existingByWorkos) {
-      return existingByWorkos._id;
+    if (existingByClerk) {
+      return existingByClerk._id;
     }
 
-    // Also check by email to prevent duplicate accounts across auth sources
+    // Also check by email to prevent duplicate accounts
     const existingByEmail = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase().trim()))
@@ -162,15 +162,15 @@ export const handleWorkOSUserCreated = internalMutation({
 
     // ─── 6. Create User Record ─────────────────────────────────────────
     const userId = await ctx.db.insert("users", {
-      // WorkOS-synced fields
-      workosUserId: args.workosId,
+      // External auth fields
+      clerkUserId: args.externalAuthId,
       email,
       emailVerified: args.emailVerified,
       firstName: args.firstName,
       lastName: args.lastName,
       profilePictureUrl: args.avatarUrl,
 
-      // SmithHarper-managed fields
+      // ConvexPress-managed fields
       username,
       displayName,
       slug,

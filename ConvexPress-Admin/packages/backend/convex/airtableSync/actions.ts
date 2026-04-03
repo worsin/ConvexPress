@@ -33,7 +33,7 @@ async function requireAdmin(ctx: { auth: { getUserIdentity: () => Promise<{ toke
 
   await ctx.runQuery(
     internal.airtableSync._internal.checkAdminPermission,
-    { workosUserId: identity.subject },
+    { userId: identity.subject },
   );
 
   return identity;

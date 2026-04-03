@@ -10,7 +10,6 @@ type UserStatus = "pending" | "active" | "deactivated";
 /** Backend user profile response shape from profiles.queries.getProfile */
 interface BackendUserProfile {
   _id: string;
-  workosUserId?: string;
   clerkUserId?: string;
   email: string;
   firstName?: string | null;
@@ -54,7 +53,7 @@ export function useCurrentUser(): {
 
   // Map Convex result to the UserProfile shape expected by dashboard components.
   // The backend returns the full user document with some fields named differently
-  // from the frontend type (e.g., url vs websiteUrl, profilePictureUrl vs workosAvatarUrl).
+  // from the frontend type (e.g., url vs websiteUrl, profilePictureUrl vs oauthAvatarUrl).
   const user = useMemo<UserProfile | null | undefined>(() => {
     // undefined = still loading
     if (result === undefined) return undefined;
@@ -65,11 +64,11 @@ export function useCurrentUser(): {
     const r = result as BackendUserProfile;
     return {
       _id: r._id,
-      workosId: r.clerkUserId ?? r.workosUserId ?? "",
+      externalAuthId: r.clerkUserId ?? "",
       email: r.email,
       firstName: r.firstName ?? null,
       lastName: r.lastName ?? null,
-      workosAvatarUrl: r.profilePictureUrl ?? null,
+      oauthAvatarUrl: r.profilePictureUrl ?? null,
       nickname: r.nickname ?? null,
       displayName: r.displayName ?? r.email,
       slug: r.slug ?? "",

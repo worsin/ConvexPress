@@ -145,7 +145,7 @@ export const reindex = action({
     if (!args.contentId) {
       const canReindex = await ctx.runQuery(
         internal.search.internals.checkReindexPermission,
-        { workosUserId: identity.subject },
+        { userId: identity.subject },
       );
       if (!canReindex) {
         throw new ConvexError({

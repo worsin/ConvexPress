@@ -68,7 +68,7 @@ export const searchTables = {
     excerpt: v.string(), // Short excerpt or first 200 chars of stripped content.
 
     // ── Metadata for Filtering ────────────────────────────────────────────
-    authorId: v.string(), // WorkOS user ID of content creator
+    authorId: v.string(), // User identifier of content creator
     authorName: v.string(), // Denormalized author display name
     status: v.string(), // "publish", "draft", "pending", "private", "trash", etc.
 
@@ -132,7 +132,7 @@ export const searchTables = {
     resultCount: v.number(), // Number of results returned. Non-negative.
 
     // ── Context ───────────────────────────────────────────────────────────
-    userId: v.optional(v.string()), // WorkOS user ID (undefined for public)
+    userId: v.optional(v.string()), // User identifier (undefined for public)
     source: searchSourceValidator, // "website" | "admin" | "api"
 
     // ── Filters Applied ───────────────────────────────────────────────────
@@ -174,7 +174,7 @@ export const searchTables = {
     term: v.string(), // Primary term. Max 100 chars, lowercased.
     synonyms: v.array(v.string()), // Equivalent terms. Each max 100 chars. Min 1, max 20.
     isActive: v.boolean(), // Whether this synonym group is active. Default true.
-    createdBy: v.string(), // WorkOS user ID of admin who created
+    createdBy: v.string(), // User identifier of admin who created
     createdAt: v.number(), // Immutable.
     updatedAt: v.number(), // Updated on every mutation.
   })

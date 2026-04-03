@@ -76,7 +76,7 @@ export async function getRevisionSettings(
  * Ownership check compares the post's `authorId` (Convex user ID)
  * with the current user's `_id` (Convex user ID). Both are `Id<"users">`.
  *
- * NOTE: This is different from revision.authorId which is a WorkOS user ID string.
+ * NOTE: This is different from revision.authorId which is a user identifier string.
  * The ownership check here is about the POST owner, not the revision author.
  *
  * Own posts: requires the specified capability.

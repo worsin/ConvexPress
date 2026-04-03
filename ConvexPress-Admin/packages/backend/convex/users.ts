@@ -42,7 +42,7 @@ export const hasAnyAdmin = query({
  *   2. New system: An active role with type "internal" (Admin/Editor roles)
  *
  * Supports dual-auth: local admin JWT and Clerk. Uses getCurrentUser() which
- * handles both auth sources and the WorkOS migration grace period.
+ * handles both auth sources.
  *
  * TODO: Once all users are migrated to the new role system, remove the
  * `isInternal` check and rely solely on the role-based check.
@@ -134,7 +134,7 @@ export const bootstrapAdmin = mutation({
       const now = Date.now();
       const userId = await ctx.db.insert("users", {
         // Store the identity subject in the appropriate field based on auth source
-        ...(identity.tokenIdentifier?.startsWith("smithharper-admin|")
+        ...(identity.tokenIdentifier?.startsWith("convexpress-admin|")
           ? { authSource: "local" as const }
           : { clerkUserId: identity.subject }),
         email: identity.email || "",

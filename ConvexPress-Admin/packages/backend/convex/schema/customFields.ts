@@ -78,7 +78,7 @@ export const customFieldTables = {
     menuOrder: v.number(), // Sort order (lower = higher priority)
 
     // --- Metadata ---
-    createdBy: v.string(), // WorkOS user ID of creator
+    createdBy: v.string(), // User identifier of creator
     createdAt: v.number(), // Creation timestamp (ms)
     updatedAt: v.number(), // Last modification timestamp (ms)
   })
@@ -156,7 +156,7 @@ export const customFieldTables = {
     value: v.string(), // JSON-encoded value (type depends on field type)
 
     // --- Metadata ---
-    updatedBy: v.string(), // WorkOS user ID of last editor
+    updatedBy: v.string(), // User identifier of last editor
     updatedAt: v.number(), // Last modification timestamp
   })
     .index("by_entity", ["entityType", "entityId"]) // All values for an entity

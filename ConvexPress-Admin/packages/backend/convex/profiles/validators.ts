@@ -106,7 +106,7 @@ export const listUsersArgs = {
 export const getUserArgs = {
   userId: v.optional(v.id("users")),
   slug: v.optional(v.string()),
-  workosUserId: v.optional(v.string()),
+  externalAuthId: v.optional(v.string()),
 };
 
 /** Args for deleting a user. */

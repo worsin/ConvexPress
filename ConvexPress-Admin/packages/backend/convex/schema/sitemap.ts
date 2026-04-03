@@ -6,7 +6,7 @@
  *   - `sitemapGenerationLog` - Audit trail for sitemap generation events
  *   - `sitemapPingLog` - Tracks search engine ping requests and outcomes
  *
- * Unlike WordPress's dynamic per-request sitemap rendering, SmithHarper
+ * Unlike WordPress's dynamic per-request sitemap rendering, ConvexPress
  * pre-generates XML and caches it in Convex for instant O(1) serving.
  * The system automatically marks sitemaps as stale when content changes
  * and debounces regeneration to handle bulk operations efficiently.
@@ -108,7 +108,7 @@ export const sitemapTables = {
   sitemapGenerationLog: defineTable({
     // ── Trigger Info ──────────────────────────────────────────────────────
     triggeredBy: sitemapTriggerValidator,              // What caused the generation
-    triggeredByUserId: v.optional(v.string()),         // WorkOS user ID (manual triggers)
+    triggeredByUserId: v.optional(v.string()),         // User identifier (manual triggers)
     triggeredByEvent: v.optional(v.string()),          // Event code (e.g., "post.published")
     triggeredByContentId: v.optional(v.string()),      // ID of content that changed
 

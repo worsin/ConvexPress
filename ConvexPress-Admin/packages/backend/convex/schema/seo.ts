@@ -50,7 +50,7 @@ export const seoTables = {
 
     // ── Audit Trail ────────────────────────────────────────────────────────
     updatedAt: v.number(), // Last modification timestamp (ms since epoch)
-    updatedBy: v.string(), // WorkOS user ID of last updater
+    updatedBy: v.string(), // User identifier of last updater
   })
     // ── Indexes ──────────────────────────────────────────────────────────
     .index("by_key", ["key"]), // Unique lookup by key name

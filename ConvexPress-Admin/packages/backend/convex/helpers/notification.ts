@@ -3,7 +3,7 @@
  *
  * Cross-system helpers for working with notifications:
  *
- *   - resolveNotificationRecipients: Resolve recipient type to user WorkOS IDs
+ *   - resolveNotificationRecipients: Resolve recipient type to user IDs
  *   - shouldDeliver: Check user preferences before creating a notification
  *   - buildNotificationFromEvent: Map event data to notification fields
  *   - interpolateTemplate: Replace {variable} placeholders in templates
@@ -25,7 +25,7 @@ import { getUserIdentifier } from "./permissions";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface NotificationRecipient {
-  /** User identifier string (workosUserId, clerkUserId, or Convex _id) */
+  /** User identifier string (clerkUserId or Convex _id) */
   userId: string;
   displayName?: string;
 }
@@ -44,12 +44,12 @@ export interface NotificationBuildResult {
 // ─── resolveNotificationRecipients ───────────────────────────────────────────
 
 /**
- * Resolve a recipient type to a list of WorkOS user IDs.
+ * Resolve a recipient type to a list of user identifier strings.
  *
  * @param ctx - Query or mutation context
  * @param recipientType - "admin", "employee", or "customer"
  * @param payload - Event payload containing user references
- * @returns Array of WorkOS user IDs
+ * @returns Array of user identifier strings
  */
 export async function resolveNotificationRecipients(
   ctx: QueryCtx | MutationCtx,
@@ -78,9 +78,7 @@ export async function resolveNotificationRecipients(
   if (recipientType === "employee") {
     // Specific user from payload (post author, uploader, etc.)
     const userId =
-      (payload.authorWorkosId as string) ??
       (payload.authorId as string) ??
-      (payload.uploadedByWorkosId as string) ??
       (payload.userId as string);
 
     return userId ? [userId] : [];
@@ -89,9 +87,7 @@ export async function resolveNotificationRecipients(
   if (recipientType === "customer") {
     // Specific affected user from payload
     const userId =
-      (payload.targetWorkosId as string) ??
       (payload.targetUserId as string) ??
-      (payload.commentAuthorWorkosId as string) ??
       (payload.userId as string);
 
     return userId ? [userId] : [];
@@ -106,7 +102,7 @@ export async function resolveNotificationRecipients(
  * Check if a notification should be delivered to a user based on their preferences.
  *
  * @param ctx - Query or mutation context
- * @param userId - WorkOS user ID of the recipient
+ * @param userId - User identifier string of the recipient
  * @param notificationKey - The notification type key
  * @returns Object with siteEnabled and toastEnabled booleans
  */

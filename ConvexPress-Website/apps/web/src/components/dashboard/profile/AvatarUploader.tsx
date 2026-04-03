@@ -153,7 +153,7 @@ export function AvatarUploader({
     <div data-slot="avatar-uploader" className="flex flex-col items-center gap-3">
       <AvatarDisplay
         avatarUrl={user.avatarUrl}
-        workosAvatarUrl={user.workosAvatarUrl}
+        oauthAvatarUrl={user.oauthAvatarUrl}
         displayName={user.displayName}
         size={size}
       />
