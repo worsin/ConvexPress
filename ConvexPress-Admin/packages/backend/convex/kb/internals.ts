@@ -4,9 +4,9 @@
  * Non-client-callable functions for scheduled operations:
  *   publishScheduled      - Auto-publish a single scheduled article (by ID)
  *   publishScheduledBatch - Cron entry: scan & publish all due scheduled articles
- *   syncToMeilisearch     - Sync article to Meilisearch (placeholder)
- *   syncToRag             - Sync article to RAG (placeholder)
  *   cleanupPageViews      - Purge old page views (90-day retention)
+ *
+ * Real sync entry points live in meilisearch.ts (syncArticle) and rag.ts (ingestArticle).
  */
 
 import { internalMutation, internalQuery } from "../_generated/server";
@@ -107,40 +107,6 @@ export const publishScheduledBatch = internalMutation({
     }
 
     return { published: due.length };
-  },
-});
-
-// ─── Sync to Meilisearch (placeholder) ──────────────────────────────────────
-
-export const syncToMeilisearch = internalMutation({
-  args: { articleId: v.id("kb_articles") },
-  handler: async (ctx, { articleId }) => {
-    const article = await ctx.db.get(articleId);
-    if (!article) return;
-
-    // Placeholder: actual Meilisearch sync will be implemented in Task 34
-    // For now, just mark as synced
-    await ctx.db.patch(articleId, {
-      meilisearchSynced: true,
-      meilisearchSyncedAt: Date.now(),
-    });
-  },
-});
-
-// ─── Sync to RAG (placeholder) ──────────────────────────────────────────────
-
-export const syncToRag = internalMutation({
-  args: { articleId: v.id("kb_articles") },
-  handler: async (ctx, { articleId }) => {
-    const article = await ctx.db.get(articleId);
-    if (!article) return;
-
-    // Placeholder: actual RAG sync will be implemented in Task 35
-    // For now, just mark as synced
-    await ctx.db.patch(articleId, {
-      ragSynced: true,
-      ragSyncedAt: Date.now(),
-    });
   },
 });
 
