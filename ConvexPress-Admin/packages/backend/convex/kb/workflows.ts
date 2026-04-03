@@ -287,6 +287,14 @@ export const approveStep = mutation({
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Invalid workflow step" });
     }
 
+    // Prevent the same user from approving the same step twice
+    if (articleWorkflow.approvals.includes(user._id)) {
+      throw new ConvexError({
+        code: "ALREADY_APPROVED",
+        message: "You have already approved this step",
+      });
+    }
+
     const newApprovals = [...articleWorkflow.approvals, user._id];
     const now = Date.now();
 

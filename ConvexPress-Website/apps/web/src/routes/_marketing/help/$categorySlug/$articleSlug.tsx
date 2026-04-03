@@ -2,6 +2,8 @@ import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
+import { useMutation, useQuery } from "convex/react";
+import { useEffect, useRef } from "react";
 import type React from "react";
 
 export const Route = createFileRoute(
@@ -104,6 +106,51 @@ function ArticleReader() {
     convexQuery(api.kb.queries.getBySlug, { slug: articleSlug }),
   );
 
+  // Stable session ID for this browser session
+  const sessionIdRef = useRef<string>(
+    typeof sessionStorage !== "undefined"
+      ? (sessionStorage.getItem("kb_session_id") ??
+         (() => {
+           const id = crypto.randomUUID();
+           sessionStorage.setItem("kb_session_id", id);
+           return id;
+         })())
+      : crypto.randomUUID(),
+  );
+
+  const trackView = useMutation(api.kb.analytics.trackPageView);
+  const submitFeedback = useMutation(api.kb.feedback.submitHelpful);
+
+  const art = article as any;
+
+  // Track page view on mount
+  useEffect(() => {
+    if (!art?._id) return;
+    void trackView({
+      articleId: art._id,
+      sessionId: sessionIdRef.current,
+      referrer: typeof document !== "undefined" ? document.referrer : undefined,
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+    });
+  }, [art?._id]);
+
+  // Get existing feedback to show which button is already selected
+  const userFeedback = useQuery(
+    art?._id ? api.kb.feedback.getUserFeedback : ("skip" as any),
+    art?._id
+      ? { articleId: art._id, sessionId: sessionIdRef.current }
+      : ("skip" as any),
+  ) as any;
+
+  async function handleFeedback(isHelpful: boolean) {
+    if (!art?._id) return;
+    await submitFeedback({
+      articleId: art._id,
+      sessionId: sessionIdRef.current,
+      isHelpful,
+    });
+  }
+
   if (!article) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 text-center">
@@ -118,7 +165,8 @@ function ArticleReader() {
     );
   }
 
-  const art = article as any;
+  const alreadyVotedHelpful = userFeedback?.isHelpful === true;
+  const alreadyVotedNotHelpful = userFeedback?.isHelpful === false;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
@@ -170,17 +218,34 @@ function ArticleReader() {
         <div className="mt-3 flex justify-center gap-3">
           <button
             type="button"
-            className="rounded-lg border border-border bg-background px-5 py-2 text-sm transition hover:border-primary hover:text-primary"
+            onClick={() => void handleFeedback(true)}
+            className={[
+              "rounded-lg border px-5 py-2 text-sm transition",
+              alreadyVotedHelpful
+                ? "border-primary bg-primary/10 text-primary font-medium"
+                : "border-border bg-background hover:border-primary hover:text-primary",
+            ].join(" ")}
           >
             Yes
           </button>
           <button
             type="button"
-            className="rounded-lg border border-border bg-background px-5 py-2 text-sm transition hover:border-primary hover:text-primary"
+            onClick={() => void handleFeedback(false)}
+            className={[
+              "rounded-lg border px-5 py-2 text-sm transition",
+              alreadyVotedNotHelpful
+                ? "border-destructive bg-destructive/10 text-destructive font-medium"
+                : "border-border bg-background hover:border-destructive hover:text-destructive",
+            ].join(" ")}
           >
             No
           </button>
         </div>
+        {userFeedback && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Thanks for your feedback!
+          </p>
+        )}
       </div>
 
       {/* Related articles */}

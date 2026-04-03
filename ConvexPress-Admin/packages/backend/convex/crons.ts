@@ -230,4 +230,53 @@ crons.hourly(
   internal.ga4.internals.deleteExpiredEntries,
 );
 
+// ─── Knowledge Base System ───────────────────────────────────────────────────
+// Every 5 minutes: scan and publish KB articles whose scheduledAt has passed.
+// Uses publishScheduledBatch (no-args) which scans all due draft articles.
+// Added by: KB System (round 3 audit fix)
+crons.interval(
+  "kb:publishScheduled",
+  { minutes: 5 },
+  internal.kb.internals.publishScheduledBatch,
+  {},
+);
+
+// Daily cleanup of old page view records (90-day retention, batch 500).
+// Added by: KB System (round 3 audit fix)
+crons.daily(
+  "kb:cleanupPageViews",
+  { hourUTC: 4, minuteUTC: 0 },
+  internal.kb.internals.cleanupPageViews,
+  {},
+);
+
+// ─── Ticket System ───────────────────────────────────────────────────────────
+// Daily: auto-close tickets that have been resolved for > autoCloseAfterDays.
+// Added by: Ticket System (round 3 audit fix)
+crons.daily(
+  "tickets:autoCloseResolved",
+  { hourUTC: 2, minuteUTC: 0 },
+  internal.tickets.internals.autoCloseResolved,
+  {},
+);
+
+// Daily: trigger session and rate-limit cleanup for the ticket system.
+// Added by: Ticket System (round 3 audit fix)
+crons.daily(
+  "tickets:cleanupAll",
+  { hourUTC: 3, minuteUTC: 0 },
+  internal.tickets.internals.cleanupAll,
+  {},
+);
+
+// ─── Support Bridge System ───────────────────────────────────────────────────
+// Daily purge of deflection logs older than 90 days (batch 500, reschedules).
+// Added by: Support Bridge System (round 3 audit fix)
+crons.daily(
+  "support:cleanupOldLogs",
+  { hourUTC: 3, minuteUTC: 30 },
+  internal.support.internals.cleanupOldLogs,
+  {},
+);
+
 export default crons;
