@@ -165,38 +165,51 @@ export const analyticsTrackHandler = httpAction(async (ctx, request) => {
     return jsonResponse({ accepted: 0 });
   }
 
-  // Validate and normalize each event
-  const normalizedEvents: Array<Record<string, unknown>> = [];
+  // Validate events and collect unique paths for batch resolution
+  const validEvents: Array<{ raw: RawTrackingEvent; cleanPath: string; parsed: ParsedUA; referrerDomain: string | undefined }> = [];
 
   for (const raw of rawEvents) {
     if (!validateEvent(raw)) continue; // Silently skip invalid events
 
-    const { deviceType, browser, os } = parseUserAgent(raw.userAgent);
+    const parsed = parseUserAgent(raw.userAgent);
     const referrerDomain = extractReferrerDomain(raw.referrer);
     const cleanPath = sanitizePath(raw.path);
+    validEvents.push({ raw, cleanPath, parsed, referrerDomain });
+  }
 
-    // Resolve postId from path (look up published posts by slug)
-    let postId: string | undefined;
-    const slug = cleanPath.startsWith("/blog/")
-      ? cleanPath.slice(6)
-      : cleanPath.startsWith("/")
-        ? cleanPath.slice(1)
-        : cleanPath;
+  // Batch-resolve postIds: collect unique paths, resolve once each, then map back
+  const uniquePaths = [...new Set(validEvents.map((e) => e.cleanPath))];
+  const pathToPostId = new Map<string, string>();
 
-    if (slug) {
-      const post = await ctx.runQuery(internal.analytics.internals.resolvePostFromPath, {
-        path: cleanPath,
-      });
-      if (post) {
-        postId = post;
+  await Promise.all(
+    uniquePaths.map(async (cleanPath) => {
+      const slug = cleanPath.startsWith("/blog/")
+        ? cleanPath.slice(6)
+        : cleanPath.startsWith("/")
+          ? cleanPath.slice(1)
+          : cleanPath;
+
+      if (!slug) return;
+
+      const postId = await ctx.runQuery(
+        internal.analytics.internals.resolvePostFromPath,
+        { path: cleanPath },
+      );
+      if (postId) {
+        pathToPostId.set(cleanPath, postId);
       }
-    }
+    }),
+  );
 
+  // Build normalized events using the pre-resolved postId map
+  const normalizedEvents: Array<Record<string, unknown>> = [];
+
+  for (const { raw, cleanPath, parsed, referrerDomain } of validEvents) {
     normalizedEvents.push({
       eventType: raw.eventType,
       timestamp: raw.timestamp,
       path: cleanPath,
-      postId,
+      postId: pathToPostId.get(cleanPath),
       visitorId: raw.visitorId,
       sessionId: raw.sessionId,
       referrer: raw.referrer,
@@ -204,9 +217,9 @@ export const analyticsTrackHandler = httpAction(async (ctx, request) => {
       utmSource: raw.utmSource,
       utmMedium: raw.utmMedium,
       utmCampaign: raw.utmCampaign,
-      deviceType,
-      browser,
-      os,
+      deviceType: parsed.deviceType,
+      browser: parsed.browser,
+      os: parsed.os,
       country: undefined, // Geo resolution deferred for v1
       region: undefined,
       payload: raw.payload,

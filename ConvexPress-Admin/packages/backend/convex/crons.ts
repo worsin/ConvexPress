@@ -104,6 +104,8 @@ crons.daily(
 // Regenerate stale sitemaps every 6 hours as a safety net.
 // Event-driven regeneration handles most updates, but this cron catches
 // any sitemaps that were marked stale but missed the debounce window.
+// NOTE: Uses internalAction (not internalMutation) because sitemap
+// regeneration may need to make HTTP calls (e.g., pinging search engines).
 // Added by: Sitemap System Expert (Phase 5)
 crons.interval(
   "sitemap-regenerate-stale",
