@@ -3,11 +3,11 @@ import { v } from "convex/values";
 
 /**
  * Core users table - owned by User Profile System
- * WorkOS AuthKit integration creates/updates users via webhooks
+ * Convex Auth manages admin authentication; Clerk manages website authentication.
  *
  * Fields are organized into groups:
- *   - WorkOS-synced fields (read-only in SmithHarper, updated via webhooks)
- *   - SmithHarper-managed profile fields (editable by user/admin)
+ *   - Auth identity fields (Convex Auth local accounts, Clerk website accounts)
+ *   - ConvexPress-managed profile fields (editable by user/admin)
  *   - Social links
  *   - Role (managed by Role & Capability System)
  *   - Account status
@@ -18,8 +18,8 @@ import { v } from "convex/values";
  */
 export const usersTables = {
   users: defineTable({
-    // === WorkOS-Synced Fields (read-only in SmithHarper, updated via webhooks) ===
-    workosUserId: v.optional(v.string()),
+    // === Auth Identity Fields ===
+    workosUserId: v.optional(v.string()), // Legacy field (preserved for backward compatibility)
     authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"))),
     passwordHash: v.optional(v.string()),
     clerkUserId: v.optional(v.string()),
@@ -28,9 +28,9 @@ export const usersTables = {
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
     phone: v.optional(v.string()),
-    profilePictureUrl: v.optional(v.string()), // WorkOS/OAuth avatar URL
+    profilePictureUrl: v.optional(v.string()), // OAuth avatar URL
 
-    // === SmithHarper-Managed Profile Fields ===
+    // === ConvexPress-Managed Profile Fields ===
     username: v.optional(v.string()),
     nickname: v.optional(v.string()), // User-chosen nickname for display name options
     displayName: v.optional(v.string()),
@@ -109,6 +109,8 @@ export const usersTables = {
     lastPasswordChangedAt: v.optional(v.number()), // Unix timestamp (ms) of last password change
     passwordResetRequestedAt: v.optional(v.number()), // Unix timestamp (ms) of last reset request
     passwordResetCount: v.optional(v.number()), // Total lifetime password resets (integer)
+    passwordResetToken: v.optional(v.string()), // SHA-256 hash of the reset token (never stored plaintext)
+    passwordResetTokenExpiresAt: v.optional(v.number()), // Unix timestamp (ms) when the reset token expires
 
     // === Internal/External classification (legacy - preserved for backward compatibility) ===
     internalRole: v.optional(v.string()),

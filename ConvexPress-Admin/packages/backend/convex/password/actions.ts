@@ -1,8 +1,9 @@
 /**
  * Password Management System - Public Actions
  *
- * Actions are used for operations that require external API calls (WorkOS).
- * Unlike mutations, actions can make HTTP requests but cannot directly
+ * Actions are used for operations that require side effects (token generation,
+ * email sending via the Resend-based email queue).
+ * Unlike mutations, actions can run non-deterministic code but cannot directly
  * read/write the database -- they use ctx.runMutation/ctx.runQuery.
  *
  * Functions:
@@ -10,7 +11,7 @@
  *   adminResetUserPassword - Admin triggers a password reset for another user
  *
  * WordPress equivalent: No direct equivalent.
- * WordPress admins can set passwords directly; SmithHarper only allows
+ * WordPress admins can set passwords directly; ConvexPress only allows
  * triggering a reset email (more secure by design).
  */
 
@@ -19,19 +20,45 @@ import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { adminResetUserPasswordArgs } from "./validators";
 
+/** Token expiry: 24 hours */
+const RESET_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Generate a cryptographically secure random token string.
+ * Uses the Web Crypto API available in Convex runtime.
+ */
+function generateResetToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Hash a token using SHA-256.
+ * We store the hash in the database, not the plaintext token.
+ * The plaintext token is sent to the user via email.
+ */
+async function hashToken(token: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(token);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = new Uint8Array(hashBuffer);
+  return Array.from(hashArray, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 // ─── requestPasswordReset ───────────────────────────────────────────────────
 
 /**
  * Public action for the forgot-password flow.
  *
  * Called from the website's ForgotPasswordForm. This action:
- *   1. Calls the WorkOS User Management API to send a password reset email
- *   2. Records the reset request in SmithHarper via internal mutation (for audit)
+ *   1. Generates a secure reset token
+ *   2. Stores the hashed token on the user record via internal mutation
+ *   3. Queues a password reset email via the Resend-based email system
  *
  * Email enumeration prevention:
  *   - ALWAYS returns successfully, regardless of whether the email exists
- *   - If WorkOS returns an error (e.g., email not found), we silently ignore it
- *   - The recordResetRequest mutation also silently does nothing for unknown emails
+ *   - If the email doesn't exist, we silently do nothing
  *   - The caller (UI) always shows "Check your inbox" message
  *
  * Auth: None required (public -- this is the forgot-password flow)
@@ -50,52 +77,7 @@ export const requestPasswordReset = action({
       return;
     }
 
-    // 1. Call WorkOS API to send password reset email
-    // We silently ignore failures to prevent email enumeration
-    const workosApiKey = process.env.WORKOS_API_KEY;
-    let resetUrl: string | undefined;
-
-    if (!workosApiKey) {
-      // CRITICAL: Log a warning so operators know the integration is broken.
-      // The system will still record the request internally for audit, but
-      // NO password reset email will be sent via WorkOS.
-      console.error(
-        "WORKOS_API_KEY is not configured -- password reset emails will not be sent. " +
-        "Set the WORKOS_API_KEY environment variable in the Convex deployment.",
-      );
-    }
-    if (workosApiKey) {
-      try {
-        const response = await fetch(
-          "https://api.workos.com/user_management/password_reset/create",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${workosApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email }),
-          },
-        );
-        // Try to extract the reset URL from the WorkOS response
-        // WorkOS may return a link field in the response body
-        if (response.ok) {
-          try {
-            const responseData = await response.json() as Record<string, unknown>;
-            if (typeof responseData.link === "string") {
-              resetUrl = responseData.link;
-            }
-          } catch {
-            // JSON parse failure -- ignore, resetUrl stays undefined
-          }
-        }
-        // If the email doesn't exist in WorkOS, we silently do nothing.
-      } catch {
-        // Network error -- silently ignore (email enumeration prevention)
-      }
-    }
-
-    // 2. Check if this user registered via OAuth (for UX hint)
+    // 1. Check if this user registered via OAuth (for UX hint)
     // This does NOT confirm/deny email existence to the client.
     // The hint is advisory: "you might want to try OAuth login instead."
     const registrationMethod = await ctx.runQuery(
@@ -105,11 +87,24 @@ export const requestPasswordReset = action({
 
     const isOAuth = registrationMethod === "oauth";
 
-    // 3. Record the reset request in SmithHarper for audit trail
-    // This mutation also silently does nothing if the email doesn't exist.
-    // Pass the resetUrl from WorkOS so the email template can include it.
+    // 2. Generate a secure reset token
+    const token = generateResetToken();
+    const tokenHash = await hashToken(token);
+    const expiresAt = Date.now() + RESET_TOKEN_EXPIRY_MS;
+
+    // 3. Get site URL for building the reset link
+    const siteUrl = await ctx.runQuery(
+      internal.password.queries.getSiteUrl,
+    );
+
+    const resetUrl = `${siteUrl}/reset-password?token=${token}`;
+
+    // 4. Store hashed token and queue the reset email via internal mutation.
+    // This mutation silently does nothing if the email doesn't exist (enum prevention).
     await ctx.runMutation(internal.password.mutations.recordResetRequest, {
       email,
+      tokenHash,
+      tokenExpiresAt: expiresAt,
       resetUrl,
     });
 
@@ -128,15 +123,15 @@ export const requestPasswordReset = action({
  * Flow:
  *   1. Verify caller is an Administrator (role level 100)
  *   2. Look up the target user
- *   3. Call WorkOS API to send a password reset email
- *   4. Record the admin reset in SmithHarper via internal mutation
+ *   3. Generate a reset token and store the hash
+ *   4. Queue a password reset email via the Resend-based email system
+ *   5. Record the admin reset in ConvexPress via internal mutation
  *
  * The admin can NEVER see or set another user's password.
- * They can only trigger WorkOS to send the reset email.
+ * They can only trigger a reset email to be sent to the user.
  *
  * @throws ConvexError "User not found." if target user doesn't exist
- * @throws ConvexError "Failed to initiate password reset via WorkOS." on API failure
- * @throws Auth error if caller is not Administrator
+ * @throws ConvexError Auth error if caller is not Administrator
  */
 export const adminResetUserPassword = action({
   args: adminResetUserPasswordArgs,
@@ -150,9 +145,9 @@ export const adminResetUserPassword = action({
       });
     }
 
-    // Look up the caller to verify admin status
-    const caller = await ctx.runQuery(internal.password.queries.getUserByWorkosId, {
-      workosId: identity.subject,
+    // Look up the caller using their auth identity subject
+    const caller = await ctx.runQuery(internal.password.queries.getUserBySubject, {
+      subject: identity.subject,
     });
 
     if (!caller) {
@@ -187,53 +182,27 @@ export const adminResetUserPassword = action({
       });
     }
 
-    // 3. Call WorkOS API to send password reset email
-    const workosApiKey = process.env.WORKOS_API_KEY;
-    if (!workosApiKey) {
-      throw new ConvexError({
-        code: "INTERNAL_ERROR",
-        message: "WorkOS API key is not configured",
-      });
-    }
+    // 3. Generate a reset token
+    const token = generateResetToken();
+    const tokenHash = await hashToken(token);
+    const expiresAt = Date.now() + RESET_TOKEN_EXPIRY_MS;
 
-    try {
-      // Use WorkOS User Management API to send a password reset email
-      // POST /user_management/password_reset/create
-      const response = await fetch(
-        "https://api.workos.com/user_management/password_reset/create",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${workosApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: targetUser.email,
-          }),
-        },
-      );
+    // 4. Get site URL for building the reset link
+    const siteUrl = await ctx.runQuery(
+      internal.password.queries.getSiteUrl,
+    );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(
-          `WorkOS password reset API error (${response.status}): ${errorText}`,
-        );
-        throw new ConvexError({
-          code: "EXTERNAL_SERVICE_ERROR",
-          message: "Failed to initiate password reset via WorkOS.",
-        });
-      }
-    } catch (error: unknown) {
-      if (error instanceof ConvexError) throw error;
+    const resetUrl = `${siteUrl}/reset-password?token=${token}`;
 
-      console.error("WorkOS password reset network error:", error);
-      throw new ConvexError({
-        code: "EXTERNAL_SERVICE_ERROR",
-        message: "Failed to initiate password reset via WorkOS.",
-      });
-    }
+    // 5. Store hashed token and queue the reset email
+    await ctx.runMutation(internal.password.mutations.storeResetToken, {
+      userId: targetUser._id,
+      tokenHash,
+      tokenExpiresAt: expiresAt,
+      resetUrl,
+    });
 
-    // 4. Record the admin-initiated reset in SmithHarper
+    // 6. Record the admin-initiated reset in ConvexPress
     await ctx.runMutation(internal.password.mutations.recordAdminReset, {
       targetUserId: args.targetUserId,
       adminId: caller._id,
