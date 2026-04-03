@@ -137,9 +137,18 @@ export const getCount = query({
       .collect();
 
     const publicCount = messages.filter((m) => !m.isInternal).length;
-    const internalCount = messages.filter((m) => m.isInternal).length;
 
-    return { publicCount, internalCount, totalCount: messages.length };
+    // Only expose internal message count to staff with viewInternalNotes capability
+    const canViewInternal = await currentUserCan(ctx, "ticket.viewInternalNotes");
+    const internalCount = canViewInternal
+      ? messages.filter((m) => m.isInternal).length
+      : undefined;
+
+    return {
+      publicCount,
+      internalCount,
+      totalCount: canViewInternal ? messages.length : publicCount,
+    };
   },
 });
 

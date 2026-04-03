@@ -13,6 +13,7 @@
 import { query } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
 import { getConfigArgs, getRecentTicketsArgs } from "./validators";
+import { SUPPORT_WIDGET_DEFAULTS } from "./settings";
 
 // ─── getConfig ────────────────────────────────────────────────────────────────
 
@@ -35,15 +36,8 @@ import { getConfigArgs, getRecentTicketsArgs } from "./validators";
 export const getConfig = query({
   args: getConfigArgs,
   handler: async (ctx) => {
-    const SUPPORT_WIDGET_DEFAULTS = {
-      enabled: true,
-      widgetTitle: "Support",
-      widgetSubtitle: "How can we help you today?",
-      widgetColor: "#3b82f6",
-      showKbSearch: true,
-      showTicketHistory: true,
-      aiEnabled: false,
-      escalationButtonLabel: "Contact Support",
+    // Additional widget-display-only defaults (not persisted in settings)
+    const WIDGET_DISPLAY_DEFAULTS = {
       position: "bottomRight",
       greeting: "Hi! How can we help?",
     };
@@ -57,6 +51,7 @@ export const getConfig = query({
 
     return {
       ...SUPPORT_WIDGET_DEFAULTS,
+      ...WIDGET_DISPLAY_DEFAULTS,
       ...stored,
     };
   },

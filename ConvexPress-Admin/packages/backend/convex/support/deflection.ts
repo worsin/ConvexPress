@@ -60,6 +60,7 @@ export const generateAnswer = action({
     sourceArticles: SourceArticle[];
     confidence: "high" | "medium" | "low" | "none";
     usedAi: boolean;
+    responseLatencyMs: number;
   }> => {
     const startTime = Date.now();
 
@@ -111,7 +112,7 @@ export const generateAnswer = action({
     if (supportAiSettings?.ragEnabled) {
       try {
         const ragResults: SourceArticle[] = await ctx.runQuery(
-          internal.support.internals.searchKbRag,
+          internal.support.internals.searchKbKeywordFallback,
           { query },
         );
         for (const article of ragResults) {
@@ -139,6 +140,7 @@ export const generateAnswer = action({
         sourceArticles: [],
         confidence: "none",
         usedAi: false,
+        responseLatencyMs: Date.now() - startTime,
       };
     }
 
@@ -158,6 +160,7 @@ export const generateAnswer = action({
           sourceArticles,
           confidence: aiResult.confidence,
           usedAi: true,
+          responseLatencyMs: Date.now() - startTime,
         };
       } catch {
         // AI failure — fall through to graceful degradation
@@ -175,6 +178,7 @@ export const generateAnswer = action({
       sourceArticles,
       confidence,
       usedAi: false,
+      responseLatencyMs: Date.now() - startTime,
     };
   },
 });
@@ -312,7 +316,7 @@ async function generateAiAnswer(
   const userPrompt = `KB Articles:\n${articleContext}\n\nUser Question: ${query}`;
 
   if (provider === "anthropic") {
-    const defaultModel = model ?? "claude-haiku-20240307";
+    const defaultModel = model ?? "claude-haiku-4-5-20251001";
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {

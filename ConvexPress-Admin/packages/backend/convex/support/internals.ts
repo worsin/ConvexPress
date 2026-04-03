@@ -6,7 +6,9 @@
  *   logDeflection           - Write a deflection log entry (called by action)
  *   cleanupOldLogs          - Purge deflection logs older than 90 days
  *   searchKbConvex          - Full-text search KB articles (called by generateAnswer action)
- *   searchKbRag             - RAG vector search KB articles (called by generateAnswer action)
+ *   searchKbKeywordFallback - Keyword fallback search for KB articles (called by generateAnswer action)
+ *                            NOTE: This is NOT real RAG/vector search. It's a keyword-matching
+ *                            fallback used when no embedding provider is configured.
  *   getSupportAiSettings    - Load support.ai settings (called by generateAnswer action)
  */
 
@@ -106,19 +108,21 @@ export const searchKbConvex = internalQuery({
   },
 });
 
-// ─── searchKbRag ──────────────────────────────────────────────────────────────
+// ─── searchKbKeywordFallback ──────────────────────────────────────────────────
 
 /**
- * RAG vector search KB articles using kb_ragChunks.
+ * Keyword-matching fallback search over KB RAG chunks.
  *
- * Performs a simple text scan of chunk content when no embedding provider
- * is configured. A full vector embedding search would require an action
- * to call an embedding API first — this is a placeholder that falls back
- * to keyword matching on chunk content.
+ * NOTE: This is NOT real RAG / vector search. It performs a client-side keyword
+ * scan over kb_ragChunks because no embedding provider is configured. A true
+ * RAG implementation would require an action to call an embedding API and use
+ * a vector index. This function exists as a graceful fallback when ragEnabled
+ * is true but no embeddings have been generated yet.
  *
- * Called by the generateAnswer action in deflection.ts.
+ * Called by the generateAnswer action in deflection.ts when support.ai.ragEnabled
+ * is true.
  */
-export const searchKbRag = internalQuery({
+export const searchKbKeywordFallback = internalQuery({
   args: { query: v.string() },
   handler: async (ctx, { query }) => {
     // Collect a sample of chunks and do client-side keyword matching

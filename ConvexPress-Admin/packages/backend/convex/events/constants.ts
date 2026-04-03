@@ -46,7 +46,7 @@ export const SYSTEM = {
 
 export type SystemSlug = (typeof SYSTEM)[keyof typeof SYSTEM];
 
-// ─── Event Codes (105 total) ───────────────────────────────────────────────
+// ─── Event Codes (115 total) ───────────────────────────────────────────────
 
 /** Post System events (10) */
 export const POST_EVENTS = {
@@ -273,7 +273,7 @@ export const SUPPORT_EVENTS = {
 // ─── All Event Codes ───────────────────────────────────────────────────────
 
 /**
- * Flat array of all 111 event code strings (105 original + 6 dashboard).
+ * Flat array of all 115 event code strings.
  * Used for validation and admin UI display.
  */
 export const ALL_EVENT_CODES: string[] = [

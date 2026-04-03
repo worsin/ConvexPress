@@ -2,13 +2,13 @@
  * Knowledge Base System - Search Functions
  *
  * Convex-native full-text search:
- *   search    - Search published articles via Convex searchIndex
- *   logSearch - Log a search query for analytics (called after search)
+ *   search - Search published articles via Convex searchIndex
+ *
+ * For search analytics logging, use trackSearch in kb/analytics.ts.
  */
 
-import { query, mutation } from "../_generated/server";
-import { getCurrentUser } from "../helpers/permissions";
-import { searchArticlesArgs, trackSearchArgs } from "./validators";
+import { query } from "../_generated/server";
+import { searchArticlesArgs } from "./validators";
 
 // ─── Search ─────────────────────────────────────────────────────────────────
 
@@ -53,20 +53,3 @@ export const search = query({
   },
 });
 
-// ─── Log Search ─────────────────────────────────────────────────────────────
-
-export const logSearch = mutation({
-  args: trackSearchArgs,
-  handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-
-    return ctx.db.insert("kb_searchQueries", {
-      query: args.query,
-      resultCount: args.resultCount,
-      userId: user?._id,
-      clickedArticleId: args.clickedArticleId,
-      source: args.source,
-      createdAt: Date.now(),
-    });
-  },
-});

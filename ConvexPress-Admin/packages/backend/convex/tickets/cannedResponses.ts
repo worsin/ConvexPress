@@ -131,7 +131,7 @@ export const search = query({
 /**
  * Apply a canned response template to a ticket, substituting {{variables}}.
  * Returns the processed content string (does NOT insert a message).
- * Increments the usage count.
+ * Usage tracking is handled separately by incrementUsage (called on actual send).
  */
 export const applyTemplate = mutation({
   args: applyTemplateArgs,
@@ -156,11 +156,6 @@ export const applyTemplate = mutation({
     content = content.replace(/\{\{userName\}\}/g, ticket.userNameSnapshot);
     content = content.replace(/\{\{ticketNumber\}\}/g, ticket.ticketNumber);
     content = content.replace(/\{\{category\}\}/g, ticket.category);
-
-    // Increment usage count
-    await ctx.db.patch(args.id, {
-      usageCount: template.usageCount + 1,
-    });
 
     return { content };
   },
