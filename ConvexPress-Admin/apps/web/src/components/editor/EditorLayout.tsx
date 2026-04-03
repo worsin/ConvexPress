@@ -6,7 +6,7 @@
  * Uses auth context for role-aware rendering.
  */
 
-import { Component, useCallback, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
+import { Component, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 import { Sparkles } from "lucide-react";
 import { useAiGeneration } from "@/hooks/useAiGeneration";
 import { DndContext, closestCenter } from "@dnd-kit/core";
@@ -113,6 +113,12 @@ function EditorLayoutInner({
     return map;
   }, [postMetaRecords]);
 
+  // Live post data from Convex (reactive - updates automatically after AI generation)
+  const livePost = useQuery(
+    api.posts.queries.get,
+    postId ? { postId: postId as Id<"posts"> } : "skip",
+  );
+
   // Editor form state
   const {
     form,
@@ -215,13 +221,62 @@ function EditorLayoutInner({
     setStructuredCollapse((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  // AI content generation
+  // AI content generation - refresh form fields from live Convex data after generation.
+  // We use a "pending refresh" flag: when AI completes, we set it to true, then
+  // an effect watches livePost changes and syncs form state once the data arrives.
+  const [aiRefreshPending, setAiRefreshPending] = useState(false);
+
+  const handleAiComplete = useCallback(() => {
+    // Signal that we need to sync form state once livePost updates reactively
+    setAiRefreshPending(true);
+  }, []);
+
+  // When livePost updates after AI generation, sync structured fields into the form
+  useEffect(() => {
+    if (!aiRefreshPending || !livePost) return;
+    setAiRefreshPending(false);
+
+    const hero = livePost.hero
+      ? {
+          title: livePost.hero.title ?? "",
+          subtitle: livePost.hero.subtitle ?? "",
+          content: livePost.hero.content ?? "",
+          imageId: livePost.hero.imageId ?? null,
+          videoUrl: livePost.hero.videoUrl ?? "",
+          ctaText: livePost.hero.ctaText ?? "",
+          ctaUrl: livePost.hero.ctaUrl ?? "",
+        }
+      : { title: "", subtitle: "", content: "", imageId: null, videoUrl: "", ctaText: "", ctaUrl: "" };
+    form.setFieldValue("hero", hero);
+
+    const topics = (livePost.topics ?? []).map((t: any) => ({
+      title: t.title ?? "",
+      subtitle: t.subtitle ?? "",
+      content: t.content ?? "",
+      imageId: t.imageId ?? null,
+      videoUrl: t.videoUrl ?? "",
+    }));
+    form.setFieldValue("topics", topics);
+
+    const summary = livePost.summary
+      ? { title: livePost.summary.title ?? "", content: livePost.summary.content ?? "" }
+      : { title: "", content: "" };
+    form.setFieldValue("summary", summary);
+
+    form.setFieldValue("sources", livePost.sources ?? "");
+    form.setFieldValue("tableOfContents", livePost.tableOfContents ?? "");
+    // Also refresh TipTap content if AI updated it
+    if (livePost.content !== undefined) {
+      form.setFieldValue("content", livePost.content ?? "");
+    }
+  }, [aiRefreshPending, livePost, form]);
+
   const {
     isGenerating,
     currentSection: aiCurrentSection,
     handleGenerateAll,
     handleRegenerateSection,
-  } = useAiGeneration(postId);
+  } = useAiGeneration(postId, handleAiComplete);
 
   const handleRegenerate = useCallback((section: string, index?: number) => {
     const sectionMap: Record<string, "hero" | "topic" | "summary" | "sources" | "tableOfContents"> = {
