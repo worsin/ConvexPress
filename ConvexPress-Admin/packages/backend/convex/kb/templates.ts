@@ -1,0 +1,164 @@
+/**
+ * Knowledge Base System - Template Functions
+ *
+ * CRUD for reusable article templates:
+ *   list    - All templates for admin (auth required)
+ *   getById - Single template by ID (auth required)
+ *   create  - Create a new template
+ *   update  - Update an existing template
+ *   remove  - Delete a template
+ */
+
+import { ConvexError } from "convex/values";
+import { mutation, query } from "../_generated/server";
+import { requireCan, getCurrentUser } from "../helpers/permissions";
+import { generateTemplateSlug } from "./helpers/utils";
+import {
+  createTemplateArgs,
+  updateTemplateArgs,
+  removeTemplateArgs,
+  getTemplateByIdArgs,
+} from "./validators";
+
+// ─── List (Admin) ───────────────────────────────────────────────────────────
+
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
+    }
+
+    return ctx.db
+      .query("kb_templates")
+      .withIndex("by_active", (q) => q.eq("isActive", true))
+      .collect();
+  },
+});
+
+// ─── Get By ID (Admin) ─────────────────────────────────────────────────────
+
+export const getById = query({
+  args: getTemplateByIdArgs,
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
+    }
+
+    return ctx.db.get(args.templateId);
+  },
+});
+
+// ─── Create ─────────────────────────────────────────────────────────────────
+
+export const create = mutation({
+  args: createTemplateArgs,
+  handler: async (ctx, args) => {
+    const user = await requireCan(ctx, "kb.manageTemplates");
+
+    const name = args.name.trim();
+    if (!name) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Template name is required" });
+    }
+
+    const slug = await generateTemplateSlug(ctx, name);
+    const now = Date.now();
+
+    const templateId = await ctx.db.insert("kb_templates", {
+      name,
+      slug,
+      description: args.description,
+      content: args.content,
+      category: args.category,
+      isDefault: args.isDefault ?? false,
+      isActive: true,
+      usageCount: 0,
+      createdBy: user._id,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // If setting as default, unset other defaults in same category
+    if (args.isDefault) {
+      const others = await ctx.db
+        .query("kb_templates")
+        .withIndex("by_category", (q) => q.eq("category", args.category))
+        .collect();
+      for (const other of others) {
+        if (other._id !== templateId && other.isDefault) {
+          await ctx.db.patch(other._id, { isDefault: false, updatedAt: now });
+        }
+      }
+    }
+
+    return templateId;
+  },
+});
+
+// ─── Update ─────────────────────────────────────────────────────────────────
+
+export const update = mutation({
+  args: updateTemplateArgs,
+  handler: async (ctx, args) => {
+    const user = await requireCan(ctx, "kb.manageTemplates");
+
+    const template = await ctx.db.get(args.templateId);
+    if (!template) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Template not found" });
+    }
+
+    const updates: Record<string, any> = { updatedAt: Date.now() };
+
+    if (args.name !== undefined) {
+      const name = args.name.trim();
+      if (!name) {
+        throw new ConvexError({ code: "VALIDATION_ERROR", message: "Template name is required" });
+      }
+      updates.name = name;
+      updates.slug = await generateTemplateSlug(ctx, name, args.templateId);
+    }
+
+    if (args.description !== undefined) updates.description = args.description;
+    if (args.content !== undefined) updates.content = args.content;
+    if (args.category !== undefined) updates.category = args.category;
+    if (args.isActive !== undefined) updates.isActive = args.isActive;
+
+    if (args.isDefault !== undefined) {
+      updates.isDefault = args.isDefault;
+      if (args.isDefault) {
+        const category = args.category ?? template.category;
+        const others = await ctx.db
+          .query("kb_templates")
+          .withIndex("by_category", (q) => q.eq("category", category))
+          .collect();
+        for (const other of others) {
+          if (other._id !== args.templateId && other.isDefault) {
+            await ctx.db.patch(other._id, { isDefault: false, updatedAt: Date.now() });
+          }
+        }
+      }
+    }
+
+    await ctx.db.patch(args.templateId, updates);
+    return args.templateId;
+  },
+});
+
+// ─── Remove ─────────────────────────────────────────────────────────────────
+
+export const remove = mutation({
+  args: removeTemplateArgs,
+  handler: async (ctx, args) => {
+    const user = await requireCan(ctx, "kb.manageTemplates");
+
+    const template = await ctx.db.get(args.templateId);
+    if (!template) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Template not found" });
+    }
+
+    await ctx.db.delete(args.templateId);
+    return args.templateId;
+  },
+});
