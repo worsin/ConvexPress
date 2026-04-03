@@ -1,5 +1,5 @@
-# ConvexPress Desktop - electron-builder.yml (implementation pending)
-# electron-builder configuration for packaging
+# ConvexPress Desktop - electron-builder configuration
+# Packages the Vite SPA + Electron shell into distributable installers.
 
 appId: com.convexpress.admin
 productName: ConvexPress
@@ -15,6 +15,8 @@ extraResources:
   - from: resources/iconTemplate@2x.png
     to: iconTemplate@2x.png
 
+# ---- macOS -------------------------------------------------------------------
+
 mac:
   target:
     - target: dmg
@@ -25,19 +27,6 @@ mac:
   gatekeeperAssess: false
   entitlements: resources/entitlements.mac.plist
   entitlementsInherit: resources/entitlements.mac.plist
-
-win:
-  target:
-    - target: nsis
-      arch: [x64]
-  icon: resources/icon.png
-
-linux:
-  target:
-    - target: AppImage
-      arch: [x64]
-  icon: resources/icon.png
-  category: Office
 
 afterSign: scripts/notarize.cjs
 
@@ -52,3 +41,32 @@ dmg:
       y: 190
       type: link
       path: /Applications
+
+# ---- Windows -----------------------------------------------------------------
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: resources/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+
+# ---- Linux -------------------------------------------------------------------
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+  icon: resources/icon.png
+  category: Office
+
+# ---- Publishing --------------------------------------------------------------
+
+publish:
+  provider: github
+  owner: ConvexPress
+  repo: ConvexPress-Admin
