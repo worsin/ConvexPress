@@ -7,9 +7,20 @@ interface AuthState {
   user: { id: string; email: string; displayName: string } | null;
 }
 
-const CONVEX_SITE_URL = import.meta.env.VITE_CONVEX_SITE_URL;
+/**
+ * Module-level site URL. Defaults to the Vite env var but can be
+ * overridden at bootstrap time for Electron, where env vars aren't
+ * available and the URL comes from electron-store instead.
+ */
+let _siteUrl: string = import.meta.env.VITE_CONVEX_SITE_URL ?? "";
+
+/** Set the Convex site URL used by useLocalAuth. Call before rendering. */
+export function setConvexSiteUrl(url: string) {
+  _siteUrl = url;
+}
 
 export function useLocalAuth() {
+  const CONVEX_SITE_URL = _siteUrl;
   const [state, setState] = useState<AuthState>({
     accessToken: null,
     expiresAt: null,
