@@ -160,6 +160,10 @@ export interface AISettings {
 export interface EmailSettings {
   /** Whether the email system is enabled */
   enabled: boolean;
+  /** Resend API key for sending emails */
+  resendApiKey: string;
+  /** Resend webhook signing secret */
+  webhookSecret: string;
   /** Sender email address */
   fromAddress: string;
   /** Sender display name */
@@ -282,6 +286,8 @@ export const AI_DEFAULTS: AISettings = {
 
 export const EMAIL_DEFAULTS: EmailSettings = {
   enabled: true,
+  resendApiKey: "",
+  webhookSecret: "",
   fromAddress: "noreply@convexpress.com",
   fromName: "ConvexPress",
   replyTo: "support@convexpress.com",
