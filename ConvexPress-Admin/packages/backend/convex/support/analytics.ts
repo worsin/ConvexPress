@@ -37,15 +37,14 @@ export const getDeflectionStats = query({
     const canView = await currentUserCan(ctx, "ticket.viewAll");
     if (!canView) return null;
 
-    // Load all logs in the date range
-    let logs = await ctx.db.query("support_deflectionLogs").collect();
-
-    if (args.startDate !== undefined) {
-      logs = logs.filter((l) => l.createdAt >= args.startDate!);
-    }
-    if (args.endDate !== undefined) {
-      logs = logs.filter((l) => l.createdAt <= args.endDate!);
-    }
+    // Load logs in the date range using index to avoid full table scan
+    const now = Date.now();
+    const startDate = args.startDate ?? 0;
+    const endDate = args.endDate ?? now;
+    const logs = await ctx.db
+      .query("support_deflectionLogs")
+      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
+      .collect();
 
     if (logs.length === 0) {
       return {
@@ -105,15 +104,14 @@ export const getTopDeflectingArticles = query({
 
     const limit = Math.min(args.limit ?? 10, 50);
 
-    // Load logs — filter by date if provided
-    let logs = await ctx.db.query("support_deflectionLogs").collect();
-
-    if (args.startDate !== undefined) {
-      logs = logs.filter((l) => l.createdAt >= args.startDate!);
-    }
-    if (args.endDate !== undefined) {
-      logs = logs.filter((l) => l.createdAt <= args.endDate!);
-    }
+    // Load logs in the date range using index to avoid full table scan
+    const now = Date.now();
+    const startDate = args.startDate ?? 0;
+    const endDate = args.endDate ?? now;
+    const logs = await ctx.db
+      .query("support_deflectionLogs")
+      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
+      .collect();
 
     // Count per-article helpful and total citations
     const articleCounts = new Map<string, { helpful: number; total: number }>();
@@ -169,15 +167,14 @@ export const getCommonUnanswered = query({
 
     const limit = Math.min(args.limit ?? 20, 100);
 
-    // Load logs with no matching articles
-    let logs = await ctx.db.query("support_deflectionLogs").collect();
-
-    if (args.startDate !== undefined) {
-      logs = logs.filter((l) => l.createdAt >= args.startDate!);
-    }
-    if (args.endDate !== undefined) {
-      logs = logs.filter((l) => l.createdAt <= args.endDate!);
-    }
+    // Load logs in the date range using index to avoid full table scan
+    const now = Date.now();
+    const startDate = args.startDate ?? 0;
+    const endDate = args.endDate ?? now;
+    const logs = await ctx.db
+      .query("support_deflectionLogs")
+      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
+      .collect();
 
     // Filter to unanswered (no articles found)
     const unanswered = logs.filter((l) => l.kbArticleIds.length === 0);

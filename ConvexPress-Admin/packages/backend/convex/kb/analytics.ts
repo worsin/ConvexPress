@@ -138,42 +138,43 @@ export const getDashboardStats = query({
     const startDate = args.startDate ?? now - 30 * 24 * 60 * 60 * 1000; // Default 30 days
     const endDate = args.endDate ?? now;
 
-    // Article counts by status
-    const allArticles = await ctx.db.query("kb_articles").collect();
+    // Article counts by status — use per-status index scans instead of full table load
+    const [draftArticles, reviewArticles, publishedArticles, archivedArticles] = await Promise.all([
+      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "draft")).collect(),
+      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "review")).collect(),
+      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "published")).collect(),
+      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "archived")).collect(),
+    ]);
     const statusCounts = {
-      draft: 0,
-      review: 0,
-      published: 0,
-      archived: 0,
+      draft: draftArticles.length,
+      review: reviewArticles.length,
+      published: publishedArticles.length,
+      archived: archivedArticles.length,
     };
-    for (const article of allArticles) {
-      statusCounts[article.status]++;
-    }
+    const totalArticles = draftArticles.length + reviewArticles.length + publishedArticles.length + archivedArticles.length;
 
-    // Page views in range
-    const views = await ctx.db
+    // Page views in range — use date index to avoid full table scan
+    const viewsInRange = await ctx.db
       .query("kb_pageViews")
-      .withIndex("by_date")
+      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
       .collect();
-    const viewsInRange = views.filter((v) => v.createdAt >= startDate && v.createdAt <= endDate);
     const totalViews = viewsInRange.length;
     const uniqueSessions = new Set(viewsInRange.map((v) => v.sessionId)).size;
 
-    // Search queries in range
-    const searches = await ctx.db
+    // Search queries in range — use date index to avoid full table scan
+    const searchesInRange = await ctx.db
       .query("kb_searchQueries")
-      .withIndex("by_date")
+      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
       .collect();
-    const searchesInRange = searches.filter((s) => s.createdAt >= startDate && s.createdAt <= endDate);
 
-    // Feedback stats
-    const feedback = await ctx.db.query("kb_articleFeedback").collect();
+    // Feedback stats — no date-range index on feedback; use a safety-bounded collect
+    const feedback = await ctx.db.query("kb_articleFeedback").take(50000);
     const helpful = feedback.filter((f) => f.isHelpful).length;
     const total = feedback.length;
 
     return {
       articles: statusCounts,
-      totalArticles: allArticles.length,
+      totalArticles,
       views: {
         total: totalViews,
         uniqueSessions,
@@ -202,7 +203,7 @@ export const getArticleStats = query({
     const views = await ctx.db
       .query("kb_pageViews")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
+      .take(10000);
 
     const durations = views.filter((v) => v.duration).map((v) => v.duration!);
     const avgDuration = durations.length > 0
@@ -243,12 +244,10 @@ export const getSearchAnalytics = query({
     const endDate = args.endDate ?? now;
     const limit = args.limit ?? 20;
 
-    const searches = await ctx.db
+    const inRange = await ctx.db
       .query("kb_searchQueries")
-      .withIndex("by_date")
+      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
       .collect();
-
-    const inRange = searches.filter((s) => s.createdAt >= startDate && s.createdAt <= endDate);
 
     // Group by query
     const queryCounts: Record<string, { count: number; avgResults: number; clicked: number }> = {};
