@@ -23,6 +23,7 @@
 
 import { httpAction } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { resolveServiceKey } from "../helpers/serviceKeys";
 
 export const resendWebhookHandler = httpAction(async (ctx, request) => {
   // 1. Parse the request body
@@ -40,7 +41,13 @@ export const resendWebhookHandler = httpAction(async (ctx, request) => {
   }
 
   // 2. Verify Svix webhook signature (if secret is configured)
-  const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+  // Read from settings table first, fall back to env var
+  const emailSettings = await ctx.runQuery(
+    internal.settings.internals.getInternal,
+    { section: "email" },
+  ) as Record<string, unknown> | null;
+
+  const webhookSecret = resolveServiceKey(emailSettings, "webhookSecret", "RESEND_WEBHOOK_SECRET");
   if (webhookSecret) {
     const svixId = request.headers.get("svix-id");
     const svixTimestamp = request.headers.get("svix-timestamp");
