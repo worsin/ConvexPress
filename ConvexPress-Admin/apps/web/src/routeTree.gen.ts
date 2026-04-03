@@ -22,6 +22,7 @@ import { Route as AuthenticatedAdminAppearanceRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminWebhooksIndexRouteImport } from './routes/_authenticated/_admin/webhooks/index'
 import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_authenticated/_admin/users/index'
 import { Route as AuthenticatedAdminToolsIndexRouteImport } from './routes/_authenticated/_admin/tools/index'
+import { Route as AuthenticatedAdminTicketsIndexRouteImport } from './routes/_authenticated/_admin/tickets/index'
 import { Route as AuthenticatedAdminSettingsIndexRouteImport } from './routes/_authenticated/_admin/settings/index'
 import { Route as AuthenticatedAdminSeoIndexRouteImport } from './routes/_authenticated/_admin/seo/index'
 import { Route as AuthenticatedAdminRolesIndexRouteImport } from './routes/_authenticated/_admin/roles/index'
@@ -29,6 +30,7 @@ import { Route as AuthenticatedAdminPostsIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminPagesIndexRouteImport } from './routes/_authenticated/_admin/pages/index'
 import { Route as AuthenticatedAdminMenusIndexRouteImport } from './routes/_authenticated/_admin/menus/index'
 import { Route as AuthenticatedAdminMediaIndexRouteImport } from './routes/_authenticated/_admin/media/index'
+import { Route as AuthenticatedAdminKbIndexRouteImport } from './routes/_authenticated/_admin/kb/index'
 import { Route as AuthenticatedAdminCustomFieldsIndexRouteImport } from './routes/_authenticated/_admin/custom-fields/index'
 import { Route as AuthenticatedAdminCommentsIndexRouteImport } from './routes/_authenticated/_admin/comments/index'
 import { Route as AuthenticatedAdminAppearanceIndexRouteImport } from './routes/_authenticated/_admin/appearance/index'
@@ -42,6 +44,11 @@ import { Route as AuthenticatedAdminToolsEmailNotificationsRouteImport } from '.
 import { Route as AuthenticatedAdminToolsCapabilitiesRouteImport } from './routes/_authenticated/_admin/tools/capabilities'
 import { Route as AuthenticatedAdminToolsActivityRouteImport } from './routes/_authenticated/_admin/tools/activity'
 import { Route as AuthenticatedAdminTools404LogRouteImport } from './routes/_authenticated/_admin/tools/404-log'
+import { Route as AuthenticatedAdminTicketsSettingsRouteImport } from './routes/_authenticated/_admin/tickets/settings'
+import { Route as AuthenticatedAdminTicketsCannedResponsesRouteImport } from './routes/_authenticated/_admin/tickets/canned-responses'
+import { Route as AuthenticatedAdminTicketsAnalyticsRouteImport } from './routes/_authenticated/_admin/tickets/analytics'
+import { Route as AuthenticatedAdminTicketsTicketIdRouteImport } from './routes/_authenticated/_admin/tickets/$ticketId'
+import { Route as AuthenticatedAdminSupportAnalyticsRouteImport } from './routes/_authenticated/_admin/support/analytics'
 import { Route as AuthenticatedAdminSettingsWritingRouteImport } from './routes/_authenticated/_admin/settings/writing'
 import { Route as AuthenticatedAdminSettingsToolsRouteImport } from './routes/_authenticated/_admin/settings/tools'
 import { Route as AuthenticatedAdminSettingsSearchRouteImport } from './routes/_authenticated/_admin/settings/search'
@@ -49,18 +56,33 @@ import { Route as AuthenticatedAdminSettingsReadingRouteImport } from './routes/
 import { Route as AuthenticatedAdminSettingsPrivacyRouteImport } from './routes/_authenticated/_admin/settings/privacy'
 import { Route as AuthenticatedAdminSettingsPermalinksRouteImport } from './routes/_authenticated/_admin/settings/permalinks'
 import { Route as AuthenticatedAdminSettingsNotificationsRouteImport } from './routes/_authenticated/_admin/settings/notifications'
+import { Route as AuthenticatedAdminSettingsMediaRouteImport } from './routes/_authenticated/_admin/settings/media'
+import { Route as AuthenticatedAdminSettingsIntegrationsRouteImport } from './routes/_authenticated/_admin/settings/integrations'
 import { Route as AuthenticatedAdminSettingsGeneralRouteImport } from './routes/_authenticated/_admin/settings/general'
 import { Route as AuthenticatedAdminSettingsEmailRouteImport } from './routes/_authenticated/_admin/settings/email'
 import { Route as AuthenticatedAdminSettingsDiscussionRouteImport } from './routes/_authenticated/_admin/settings/discussion'
+import { Route as AuthenticatedAdminSettingsAnalyticsRouteImport } from './routes/_authenticated/_admin/settings/analytics'
+import { Route as AuthenticatedAdminSettingsAiRouteImport } from './routes/_authenticated/_admin/settings/ai'
 import { Route as AuthenticatedAdminSeoSitemapRouteImport } from './routes/_authenticated/_admin/seo/sitemap'
 import { Route as AuthenticatedAdminSeoSettingsRouteImport } from './routes/_authenticated/_admin/seo/settings'
 import { Route as AuthenticatedAdminRolesNewRouteImport } from './routes/_authenticated/_admin/roles/new'
 import { Route as AuthenticatedAdminPostsTagsRouteImport } from './routes/_authenticated/_admin/posts/tags'
 import { Route as AuthenticatedAdminPostsNewRouteImport } from './routes/_authenticated/_admin/posts/new'
 import { Route as AuthenticatedAdminPostsCategoriesRouteImport } from './routes/_authenticated/_admin/posts/categories'
+import { Route as AuthenticatedAdminPostsPostIdRouteImport } from './routes/_authenticated/_admin/posts/$postId'
 import { Route as AuthenticatedAdminPagesNewRouteImport } from './routes/_authenticated/_admin/pages/new'
+import { Route as AuthenticatedAdminPagesPageIdRouteImport } from './routes/_authenticated/_admin/pages/$pageId'
 import { Route as AuthenticatedAdminMenusLocationsRouteImport } from './routes/_authenticated/_admin/menus/locations'
 import { Route as AuthenticatedAdminMediaUploadRouteImport } from './routes/_authenticated/_admin/media/upload'
+import { Route as AuthenticatedAdminKbWorkflowsRouteImport } from './routes/_authenticated/_admin/kb/workflows'
+import { Route as AuthenticatedAdminKbTemplatesRouteImport } from './routes/_authenticated/_admin/kb/templates'
+import { Route as AuthenticatedAdminKbTagsRouteImport } from './routes/_authenticated/_admin/kb/tags'
+import { Route as AuthenticatedAdminKbSettingsRouteImport } from './routes/_authenticated/_admin/kb/settings'
+import { Route as AuthenticatedAdminKbNewRouteImport } from './routes/_authenticated/_admin/kb/new'
+import { Route as AuthenticatedAdminKbCollectionsRouteImport } from './routes/_authenticated/_admin/kb/collections'
+import { Route as AuthenticatedAdminKbCategoriesRouteImport } from './routes/_authenticated/_admin/kb/categories'
+import { Route as AuthenticatedAdminKbAnalyticsRouteImport } from './routes/_authenticated/_admin/kb/analytics'
+import { Route as AuthenticatedAdminKbArticleIdRouteImport } from './routes/_authenticated/_admin/kb/$articleId'
 import { Route as AuthenticatedAdminCustomFieldsNewRouteImport } from './routes/_authenticated/_admin/custom-fields/new'
 import { Route as AuthenticatedAdminCommentsPendingRouteImport } from './routes/_authenticated/_admin/comments/pending'
 import { Route as AuthenticatedAdminAppearanceColorsRouteImport } from './routes/_authenticated/_admin/appearance/colors'
@@ -71,12 +93,19 @@ import { Route as AuthenticatedAdminUsersUserIdEditRouteImport } from './routes/
 import { Route as AuthenticatedAdminToolsRedirectsNewRouteImport } from './routes/_authenticated/_admin/tools/redirects/new'
 import { Route as AuthenticatedAdminToolsAuditLogEntryIdRouteImport } from './routes/_authenticated/_admin/tools/audit-log/$entryId'
 import { Route as AuthenticatedAdminRolesRoleIdEditRouteImport } from './routes/_authenticated/_admin/roles/$roleId/edit'
+import { Route as AuthenticatedAdminPostsPostIdTrafficRouteImport } from './routes/_authenticated/_admin/posts/$postId/traffic'
+import { Route as AuthenticatedAdminPostsPostIdSeoRouteImport } from './routes/_authenticated/_admin/posts/$postId/seo'
 import { Route as AuthenticatedAdminPostsPostIdRevisionsRouteImport } from './routes/_authenticated/_admin/posts/$postId/revisions'
+import { Route as AuthenticatedAdminPostsPostIdEngagementRouteImport } from './routes/_authenticated/_admin/posts/$postId/engagement'
 import { Route as AuthenticatedAdminPostsPostIdEditRouteImport } from './routes/_authenticated/_admin/posts/$postId/edit'
+import { Route as AuthenticatedAdminPagesPageIdTrafficRouteImport } from './routes/_authenticated/_admin/pages/$pageId/traffic'
+import { Route as AuthenticatedAdminPagesPageIdSeoRouteImport } from './routes/_authenticated/_admin/pages/$pageId/seo'
 import { Route as AuthenticatedAdminPagesPageIdRevisionsRouteImport } from './routes/_authenticated/_admin/pages/$pageId/revisions'
+import { Route as AuthenticatedAdminPagesPageIdEngagementRouteImport } from './routes/_authenticated/_admin/pages/$pageId/engagement'
 import { Route as AuthenticatedAdminPagesPageIdEditRouteImport } from './routes/_authenticated/_admin/pages/$pageId/edit'
 import { Route as AuthenticatedAdminMenusMenuIdEditRouteImport } from './routes/_authenticated/_admin/menus/$menuId/edit'
 import { Route as AuthenticatedAdminMediaMediaIdEditRouteImport } from './routes/_authenticated/_admin/media/$mediaId/edit'
+import { Route as AuthenticatedAdminKbArticleIdEditRouteImport } from './routes/_authenticated/_admin/kb/$articleId/edit'
 import { Route as AuthenticatedAdminCustomFieldsGroupIdEditRouteImport } from './routes/_authenticated/_admin/custom-fields/$groupId/edit'
 import { Route as AuthenticatedAdminCommentsCommentIdEditRouteImport } from './routes/_authenticated/_admin/comments/$commentId/edit'
 import { Route as AuthenticatedAdminToolsWordpressSyncSiteIdIndexRouteImport } from './routes/_authenticated/_admin/tools/wordpress-sync/$siteId/index'
@@ -159,6 +188,12 @@ const AuthenticatedAdminToolsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminToolsRoute,
   } as any)
+const AuthenticatedAdminTicketsIndexRoute =
+  AuthenticatedAdminTicketsIndexRouteImport.update({
+    id: '/tickets/',
+    path: '/tickets/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminSettingsIndexRoute =
   AuthenticatedAdminSettingsIndexRouteImport.update({
     id: '/',
@@ -199,6 +234,12 @@ const AuthenticatedAdminMediaIndexRoute =
   AuthenticatedAdminMediaIndexRouteImport.update({
     id: '/media/',
     path: '/media/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminKbIndexRoute =
+  AuthenticatedAdminKbIndexRouteImport.update({
+    id: '/kb/',
+    path: '/kb/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminCustomFieldsIndexRoute =
@@ -279,6 +320,36 @@ const AuthenticatedAdminTools404LogRoute =
     path: '/404-log',
     getParentRoute: () => AuthenticatedAdminToolsRoute,
   } as any)
+const AuthenticatedAdminTicketsSettingsRoute =
+  AuthenticatedAdminTicketsSettingsRouteImport.update({
+    id: '/tickets/settings',
+    path: '/tickets/settings',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminTicketsCannedResponsesRoute =
+  AuthenticatedAdminTicketsCannedResponsesRouteImport.update({
+    id: '/tickets/canned-responses',
+    path: '/tickets/canned-responses',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminTicketsAnalyticsRoute =
+  AuthenticatedAdminTicketsAnalyticsRouteImport.update({
+    id: '/tickets/analytics',
+    path: '/tickets/analytics',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminTicketsTicketIdRoute =
+  AuthenticatedAdminTicketsTicketIdRouteImport.update({
+    id: '/tickets/$ticketId',
+    path: '/tickets/$ticketId',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminSupportAnalyticsRoute =
+  AuthenticatedAdminSupportAnalyticsRouteImport.update({
+    id: '/support/analytics',
+    path: '/support/analytics',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminSettingsWritingRoute =
   AuthenticatedAdminSettingsWritingRouteImport.update({
     id: '/writing',
@@ -321,6 +392,18 @@ const AuthenticatedAdminSettingsNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedAdminSettingsRoute,
   } as any)
+const AuthenticatedAdminSettingsMediaRoute =
+  AuthenticatedAdminSettingsMediaRouteImport.update({
+    id: '/media',
+    path: '/media',
+    getParentRoute: () => AuthenticatedAdminSettingsRoute,
+  } as any)
+const AuthenticatedAdminSettingsIntegrationsRoute =
+  AuthenticatedAdminSettingsIntegrationsRouteImport.update({
+    id: '/integrations',
+    path: '/integrations',
+    getParentRoute: () => AuthenticatedAdminSettingsRoute,
+  } as any)
 const AuthenticatedAdminSettingsGeneralRoute =
   AuthenticatedAdminSettingsGeneralRouteImport.update({
     id: '/general',
@@ -337,6 +420,18 @@ const AuthenticatedAdminSettingsDiscussionRoute =
   AuthenticatedAdminSettingsDiscussionRouteImport.update({
     id: '/discussion',
     path: '/discussion',
+    getParentRoute: () => AuthenticatedAdminSettingsRoute,
+  } as any)
+const AuthenticatedAdminSettingsAnalyticsRoute =
+  AuthenticatedAdminSettingsAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedAdminSettingsRoute,
+  } as any)
+const AuthenticatedAdminSettingsAiRoute =
+  AuthenticatedAdminSettingsAiRouteImport.update({
+    id: '/ai',
+    path: '/ai',
     getParentRoute: () => AuthenticatedAdminSettingsRoute,
   } as any)
 const AuthenticatedAdminSeoSitemapRoute =
@@ -379,6 +474,12 @@ const AuthenticatedAdminPostsCategoriesRoute =
     path: '/posts/categories',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminPostsPostIdRoute =
+  AuthenticatedAdminPostsPostIdRouteImport.update({
+    id: '/posts/$postId',
+    path: '/posts/$postId',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminPagesNewRoute =
   AuthenticatedAdminPagesNewRouteImport.update({
     id: '/pages/new',
@@ -389,6 +490,12 @@ const AuthenticatedAdminPagesNewRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedAdminPagesPageIdRoute =
+  AuthenticatedAdminPagesPageIdRouteImport.update({
+    id: '/pages/$pageId',
+    path: '/pages/$pageId',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminMenusLocationsRoute =
   AuthenticatedAdminMenusLocationsRouteImport.update({
     id: '/menus/locations',
@@ -399,6 +506,59 @@ const AuthenticatedAdminMediaUploadRoute =
   AuthenticatedAdminMediaUploadRouteImport.update({
     id: '/media/upload',
     path: '/media/upload',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminKbWorkflowsRoute =
+  AuthenticatedAdminKbWorkflowsRouteImport.update({
+    id: '/kb/workflows',
+    path: '/kb/workflows',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminKbTemplatesRoute =
+  AuthenticatedAdminKbTemplatesRouteImport.update({
+    id: '/kb/templates',
+    path: '/kb/templates',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminKbTagsRoute =
+  AuthenticatedAdminKbTagsRouteImport.update({
+    id: '/kb/tags',
+    path: '/kb/tags',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminKbSettingsRoute =
+  AuthenticatedAdminKbSettingsRouteImport.update({
+    id: '/kb/settings',
+    path: '/kb/settings',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminKbNewRoute = AuthenticatedAdminKbNewRouteImport.update({
+  id: '/kb/new',
+  path: '/kb/new',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminKbCollectionsRoute =
+  AuthenticatedAdminKbCollectionsRouteImport.update({
+    id: '/kb/collections',
+    path: '/kb/collections',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminKbCategoriesRoute =
+  AuthenticatedAdminKbCategoriesRouteImport.update({
+    id: '/kb/categories',
+    path: '/kb/categories',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminKbAnalyticsRoute =
+  AuthenticatedAdminKbAnalyticsRouteImport.update({
+    id: '/kb/analytics',
+    path: '/kb/analytics',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminKbArticleIdRoute =
+  AuthenticatedAdminKbArticleIdRouteImport.update({
+    id: '/kb/$articleId',
+    path: '/kb/$articleId',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminCustomFieldsNewRoute =
@@ -461,33 +621,93 @@ const AuthenticatedAdminRolesRoleIdEditRoute =
     path: '/roles/$roleId/edit',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminPostsPostIdTrafficRoute =
+  AuthenticatedAdminPostsPostIdTrafficRouteImport.update({
+    id: '/traffic',
+    path: '/traffic',
+    getParentRoute: () => AuthenticatedAdminPostsPostIdRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/_admin/posts/$postId/traffic.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedAdminPostsPostIdSeoRoute =
+  AuthenticatedAdminPostsPostIdSeoRouteImport.update({
+    id: '/seo',
+    path: '/seo',
+    getParentRoute: () => AuthenticatedAdminPostsPostIdRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/_admin/posts/$postId/seo.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedAdminPostsPostIdRevisionsRoute =
   AuthenticatedAdminPostsPostIdRevisionsRouteImport.update({
-    id: '/posts/$postId/revisions',
-    path: '/posts/$postId/revisions',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/revisions',
+    path: '/revisions',
+    getParentRoute: () => AuthenticatedAdminPostsPostIdRoute,
   } as any)
+const AuthenticatedAdminPostsPostIdEngagementRoute =
+  AuthenticatedAdminPostsPostIdEngagementRouteImport.update({
+    id: '/engagement',
+    path: '/engagement',
+    getParentRoute: () => AuthenticatedAdminPostsPostIdRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/_admin/posts/$postId/engagement.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedAdminPostsPostIdEditRoute =
   AuthenticatedAdminPostsPostIdEditRouteImport.update({
-    id: '/posts/$postId/edit',
-    path: '/posts/$postId/edit',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedAdminPostsPostIdRoute,
   } as any).lazy(() =>
     import('./routes/_authenticated/_admin/posts/$postId/edit.lazy').then(
       (d) => d.Route,
     ),
   )
+const AuthenticatedAdminPagesPageIdTrafficRoute =
+  AuthenticatedAdminPagesPageIdTrafficRouteImport.update({
+    id: '/traffic',
+    path: '/traffic',
+    getParentRoute: () => AuthenticatedAdminPagesPageIdRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/_admin/pages/$pageId/traffic.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+const AuthenticatedAdminPagesPageIdSeoRoute =
+  AuthenticatedAdminPagesPageIdSeoRouteImport.update({
+    id: '/seo',
+    path: '/seo',
+    getParentRoute: () => AuthenticatedAdminPagesPageIdRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/_admin/pages/$pageId/seo.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedAdminPagesPageIdRevisionsRoute =
   AuthenticatedAdminPagesPageIdRevisionsRouteImport.update({
-    id: '/pages/$pageId/revisions',
-    path: '/pages/$pageId/revisions',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/revisions',
+    path: '/revisions',
+    getParentRoute: () => AuthenticatedAdminPagesPageIdRoute,
   } as any)
+const AuthenticatedAdminPagesPageIdEngagementRoute =
+  AuthenticatedAdminPagesPageIdEngagementRouteImport.update({
+    id: '/engagement',
+    path: '/engagement',
+    getParentRoute: () => AuthenticatedAdminPagesPageIdRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/_admin/pages/$pageId/engagement.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedAdminPagesPageIdEditRoute =
   AuthenticatedAdminPagesPageIdEditRouteImport.update({
-    id: '/pages/$pageId/edit',
-    path: '/pages/$pageId/edit',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedAdminPagesPageIdRoute,
   } as any).lazy(() =>
     import('./routes/_authenticated/_admin/pages/$pageId/edit.lazy').then(
       (d) => d.Route,
@@ -508,6 +728,12 @@ const AuthenticatedAdminMediaMediaIdEditRoute =
     id: '/media/$mediaId/edit',
     path: '/media/$mediaId/edit',
     getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminKbArticleIdEditRoute =
+  AuthenticatedAdminKbArticleIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedAdminKbArticleIdRoute,
   } as any)
 const AuthenticatedAdminCustomFieldsGroupIdEditRoute =
   AuthenticatedAdminCustomFieldsGroupIdEditRouteImport.update({
@@ -562,18 +788,33 @@ export interface FileRoutesByFullPath {
   '/appearance/colors': typeof AuthenticatedAdminAppearanceColorsRoute
   '/comments/pending': typeof AuthenticatedAdminCommentsPendingRoute
   '/custom-fields/new': typeof AuthenticatedAdminCustomFieldsNewRoute
+  '/kb/$articleId': typeof AuthenticatedAdminKbArticleIdRouteWithChildren
+  '/kb/analytics': typeof AuthenticatedAdminKbAnalyticsRoute
+  '/kb/categories': typeof AuthenticatedAdminKbCategoriesRoute
+  '/kb/collections': typeof AuthenticatedAdminKbCollectionsRoute
+  '/kb/new': typeof AuthenticatedAdminKbNewRoute
+  '/kb/settings': typeof AuthenticatedAdminKbSettingsRoute
+  '/kb/tags': typeof AuthenticatedAdminKbTagsRoute
+  '/kb/templates': typeof AuthenticatedAdminKbTemplatesRoute
+  '/kb/workflows': typeof AuthenticatedAdminKbWorkflowsRoute
   '/media/upload': typeof AuthenticatedAdminMediaUploadRoute
   '/menus/locations': typeof AuthenticatedAdminMenusLocationsRoute
+  '/pages/$pageId': typeof AuthenticatedAdminPagesPageIdRouteWithChildren
   '/pages/new': typeof AuthenticatedAdminPagesNewRoute
+  '/posts/$postId': typeof AuthenticatedAdminPostsPostIdRouteWithChildren
   '/posts/categories': typeof AuthenticatedAdminPostsCategoriesRoute
   '/posts/new': typeof AuthenticatedAdminPostsNewRoute
   '/posts/tags': typeof AuthenticatedAdminPostsTagsRoute
   '/roles/new': typeof AuthenticatedAdminRolesNewRoute
   '/seo/settings': typeof AuthenticatedAdminSeoSettingsRoute
   '/seo/sitemap': typeof AuthenticatedAdminSeoSitemapRoute
+  '/settings/ai': typeof AuthenticatedAdminSettingsAiRoute
+  '/settings/analytics': typeof AuthenticatedAdminSettingsAnalyticsRoute
   '/settings/discussion': typeof AuthenticatedAdminSettingsDiscussionRoute
   '/settings/email': typeof AuthenticatedAdminSettingsEmailRoute
   '/settings/general': typeof AuthenticatedAdminSettingsGeneralRoute
+  '/settings/integrations': typeof AuthenticatedAdminSettingsIntegrationsRoute
+  '/settings/media': typeof AuthenticatedAdminSettingsMediaRoute
   '/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/settings/permalinks': typeof AuthenticatedAdminSettingsPermalinksRoute
   '/settings/privacy': typeof AuthenticatedAdminSettingsPrivacyRoute
@@ -581,6 +822,11 @@ export interface FileRoutesByFullPath {
   '/settings/search': typeof AuthenticatedAdminSettingsSearchRoute
   '/settings/tools': typeof AuthenticatedAdminSettingsToolsRoute
   '/settings/writing': typeof AuthenticatedAdminSettingsWritingRoute
+  '/support/analytics': typeof AuthenticatedAdminSupportAnalyticsRoute
+  '/tickets/$ticketId': typeof AuthenticatedAdminTicketsTicketIdRoute
+  '/tickets/analytics': typeof AuthenticatedAdminTicketsAnalyticsRoute
+  '/tickets/canned-responses': typeof AuthenticatedAdminTicketsCannedResponsesRoute
+  '/tickets/settings': typeof AuthenticatedAdminTicketsSettingsRoute
   '/tools/404-log': typeof AuthenticatedAdminTools404LogRoute
   '/tools/activity': typeof AuthenticatedAdminToolsActivityRoute
   '/tools/capabilities': typeof AuthenticatedAdminToolsCapabilitiesRoute
@@ -594,6 +840,7 @@ export interface FileRoutesByFullPath {
   '/appearance/': typeof AuthenticatedAdminAppearanceIndexRoute
   '/comments/': typeof AuthenticatedAdminCommentsIndexRoute
   '/custom-fields/': typeof AuthenticatedAdminCustomFieldsIndexRoute
+  '/kb/': typeof AuthenticatedAdminKbIndexRoute
   '/media/': typeof AuthenticatedAdminMediaIndexRoute
   '/menus/': typeof AuthenticatedAdminMenusIndexRoute
   '/pages/': typeof AuthenticatedAdminPagesIndexRoute
@@ -601,17 +848,25 @@ export interface FileRoutesByFullPath {
   '/roles/': typeof AuthenticatedAdminRolesIndexRoute
   '/seo/': typeof AuthenticatedAdminSeoIndexRoute
   '/settings/': typeof AuthenticatedAdminSettingsIndexRoute
+  '/tickets/': typeof AuthenticatedAdminTicketsIndexRoute
   '/tools/': typeof AuthenticatedAdminToolsIndexRoute
   '/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/webhooks/': typeof AuthenticatedAdminWebhooksIndexRoute
   '/comments/$commentId/edit': typeof AuthenticatedAdminCommentsCommentIdEditRoute
   '/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
+  '/kb/$articleId/edit': typeof AuthenticatedAdminKbArticleIdEditRoute
   '/media/$mediaId/edit': typeof AuthenticatedAdminMediaMediaIdEditRoute
   '/menus/$menuId/edit': typeof AuthenticatedAdminMenusMenuIdEditRoute
   '/pages/$pageId/edit': typeof AuthenticatedAdminPagesPageIdEditRoute
+  '/pages/$pageId/engagement': typeof AuthenticatedAdminPagesPageIdEngagementRoute
   '/pages/$pageId/revisions': typeof AuthenticatedAdminPagesPageIdRevisionsRoute
+  '/pages/$pageId/seo': typeof AuthenticatedAdminPagesPageIdSeoRoute
+  '/pages/$pageId/traffic': typeof AuthenticatedAdminPagesPageIdTrafficRoute
   '/posts/$postId/edit': typeof AuthenticatedAdminPostsPostIdEditRoute
+  '/posts/$postId/engagement': typeof AuthenticatedAdminPostsPostIdEngagementRoute
   '/posts/$postId/revisions': typeof AuthenticatedAdminPostsPostIdRevisionsRoute
+  '/posts/$postId/seo': typeof AuthenticatedAdminPostsPostIdSeoRoute
+  '/posts/$postId/traffic': typeof AuthenticatedAdminPostsPostIdTrafficRoute
   '/roles/$roleId/edit': typeof AuthenticatedAdminRolesRoleIdEditRoute
   '/tools/audit-log/$entryId': typeof AuthenticatedAdminToolsAuditLogEntryIdRoute
   '/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
@@ -631,18 +886,33 @@ export interface FileRoutesByTo {
   '/appearance/colors': typeof AuthenticatedAdminAppearanceColorsRoute
   '/comments/pending': typeof AuthenticatedAdminCommentsPendingRoute
   '/custom-fields/new': typeof AuthenticatedAdminCustomFieldsNewRoute
+  '/kb/$articleId': typeof AuthenticatedAdminKbArticleIdRouteWithChildren
+  '/kb/analytics': typeof AuthenticatedAdminKbAnalyticsRoute
+  '/kb/categories': typeof AuthenticatedAdminKbCategoriesRoute
+  '/kb/collections': typeof AuthenticatedAdminKbCollectionsRoute
+  '/kb/new': typeof AuthenticatedAdminKbNewRoute
+  '/kb/settings': typeof AuthenticatedAdminKbSettingsRoute
+  '/kb/tags': typeof AuthenticatedAdminKbTagsRoute
+  '/kb/templates': typeof AuthenticatedAdminKbTemplatesRoute
+  '/kb/workflows': typeof AuthenticatedAdminKbWorkflowsRoute
   '/media/upload': typeof AuthenticatedAdminMediaUploadRoute
   '/menus/locations': typeof AuthenticatedAdminMenusLocationsRoute
+  '/pages/$pageId': typeof AuthenticatedAdminPagesPageIdRouteWithChildren
   '/pages/new': typeof AuthenticatedAdminPagesNewRoute
+  '/posts/$postId': typeof AuthenticatedAdminPostsPostIdRouteWithChildren
   '/posts/categories': typeof AuthenticatedAdminPostsCategoriesRoute
   '/posts/new': typeof AuthenticatedAdminPostsNewRoute
   '/posts/tags': typeof AuthenticatedAdminPostsTagsRoute
   '/roles/new': typeof AuthenticatedAdminRolesNewRoute
   '/seo/settings': typeof AuthenticatedAdminSeoSettingsRoute
   '/seo/sitemap': typeof AuthenticatedAdminSeoSitemapRoute
+  '/settings/ai': typeof AuthenticatedAdminSettingsAiRoute
+  '/settings/analytics': typeof AuthenticatedAdminSettingsAnalyticsRoute
   '/settings/discussion': typeof AuthenticatedAdminSettingsDiscussionRoute
   '/settings/email': typeof AuthenticatedAdminSettingsEmailRoute
   '/settings/general': typeof AuthenticatedAdminSettingsGeneralRoute
+  '/settings/integrations': typeof AuthenticatedAdminSettingsIntegrationsRoute
+  '/settings/media': typeof AuthenticatedAdminSettingsMediaRoute
   '/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/settings/permalinks': typeof AuthenticatedAdminSettingsPermalinksRoute
   '/settings/privacy': typeof AuthenticatedAdminSettingsPrivacyRoute
@@ -650,6 +920,11 @@ export interface FileRoutesByTo {
   '/settings/search': typeof AuthenticatedAdminSettingsSearchRoute
   '/settings/tools': typeof AuthenticatedAdminSettingsToolsRoute
   '/settings/writing': typeof AuthenticatedAdminSettingsWritingRoute
+  '/support/analytics': typeof AuthenticatedAdminSupportAnalyticsRoute
+  '/tickets/$ticketId': typeof AuthenticatedAdminTicketsTicketIdRoute
+  '/tickets/analytics': typeof AuthenticatedAdminTicketsAnalyticsRoute
+  '/tickets/canned-responses': typeof AuthenticatedAdminTicketsCannedResponsesRoute
+  '/tickets/settings': typeof AuthenticatedAdminTicketsSettingsRoute
   '/tools/404-log': typeof AuthenticatedAdminTools404LogRoute
   '/tools/activity': typeof AuthenticatedAdminToolsActivityRoute
   '/tools/capabilities': typeof AuthenticatedAdminToolsCapabilitiesRoute
@@ -663,6 +938,7 @@ export interface FileRoutesByTo {
   '/appearance': typeof AuthenticatedAdminAppearanceIndexRoute
   '/comments': typeof AuthenticatedAdminCommentsIndexRoute
   '/custom-fields': typeof AuthenticatedAdminCustomFieldsIndexRoute
+  '/kb': typeof AuthenticatedAdminKbIndexRoute
   '/media': typeof AuthenticatedAdminMediaIndexRoute
   '/menus': typeof AuthenticatedAdminMenusIndexRoute
   '/pages': typeof AuthenticatedAdminPagesIndexRoute
@@ -670,17 +946,25 @@ export interface FileRoutesByTo {
   '/roles': typeof AuthenticatedAdminRolesIndexRoute
   '/seo': typeof AuthenticatedAdminSeoIndexRoute
   '/settings': typeof AuthenticatedAdminSettingsIndexRoute
+  '/tickets': typeof AuthenticatedAdminTicketsIndexRoute
   '/tools': typeof AuthenticatedAdminToolsIndexRoute
   '/users': typeof AuthenticatedAdminUsersIndexRoute
   '/webhooks': typeof AuthenticatedAdminWebhooksIndexRoute
   '/comments/$commentId/edit': typeof AuthenticatedAdminCommentsCommentIdEditRoute
   '/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
+  '/kb/$articleId/edit': typeof AuthenticatedAdminKbArticleIdEditRoute
   '/media/$mediaId/edit': typeof AuthenticatedAdminMediaMediaIdEditRoute
   '/menus/$menuId/edit': typeof AuthenticatedAdminMenusMenuIdEditRoute
   '/pages/$pageId/edit': typeof AuthenticatedAdminPagesPageIdEditRoute
+  '/pages/$pageId/engagement': typeof AuthenticatedAdminPagesPageIdEngagementRoute
   '/pages/$pageId/revisions': typeof AuthenticatedAdminPagesPageIdRevisionsRoute
+  '/pages/$pageId/seo': typeof AuthenticatedAdminPagesPageIdSeoRoute
+  '/pages/$pageId/traffic': typeof AuthenticatedAdminPagesPageIdTrafficRoute
   '/posts/$postId/edit': typeof AuthenticatedAdminPostsPostIdEditRoute
+  '/posts/$postId/engagement': typeof AuthenticatedAdminPostsPostIdEngagementRoute
   '/posts/$postId/revisions': typeof AuthenticatedAdminPostsPostIdRevisionsRoute
+  '/posts/$postId/seo': typeof AuthenticatedAdminPostsPostIdSeoRoute
+  '/posts/$postId/traffic': typeof AuthenticatedAdminPostsPostIdTrafficRoute
   '/roles/$roleId/edit': typeof AuthenticatedAdminRolesRoleIdEditRoute
   '/tools/audit-log/$entryId': typeof AuthenticatedAdminToolsAuditLogEntryIdRoute
   '/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
@@ -708,18 +992,33 @@ export interface FileRoutesById {
   '/_authenticated/_admin/appearance/colors': typeof AuthenticatedAdminAppearanceColorsRoute
   '/_authenticated/_admin/comments/pending': typeof AuthenticatedAdminCommentsPendingRoute
   '/_authenticated/_admin/custom-fields/new': typeof AuthenticatedAdminCustomFieldsNewRoute
+  '/_authenticated/_admin/kb/$articleId': typeof AuthenticatedAdminKbArticleIdRouteWithChildren
+  '/_authenticated/_admin/kb/analytics': typeof AuthenticatedAdminKbAnalyticsRoute
+  '/_authenticated/_admin/kb/categories': typeof AuthenticatedAdminKbCategoriesRoute
+  '/_authenticated/_admin/kb/collections': typeof AuthenticatedAdminKbCollectionsRoute
+  '/_authenticated/_admin/kb/new': typeof AuthenticatedAdminKbNewRoute
+  '/_authenticated/_admin/kb/settings': typeof AuthenticatedAdminKbSettingsRoute
+  '/_authenticated/_admin/kb/tags': typeof AuthenticatedAdminKbTagsRoute
+  '/_authenticated/_admin/kb/templates': typeof AuthenticatedAdminKbTemplatesRoute
+  '/_authenticated/_admin/kb/workflows': typeof AuthenticatedAdminKbWorkflowsRoute
   '/_authenticated/_admin/media/upload': typeof AuthenticatedAdminMediaUploadRoute
   '/_authenticated/_admin/menus/locations': typeof AuthenticatedAdminMenusLocationsRoute
+  '/_authenticated/_admin/pages/$pageId': typeof AuthenticatedAdminPagesPageIdRouteWithChildren
   '/_authenticated/_admin/pages/new': typeof AuthenticatedAdminPagesNewRoute
+  '/_authenticated/_admin/posts/$postId': typeof AuthenticatedAdminPostsPostIdRouteWithChildren
   '/_authenticated/_admin/posts/categories': typeof AuthenticatedAdminPostsCategoriesRoute
   '/_authenticated/_admin/posts/new': typeof AuthenticatedAdminPostsNewRoute
   '/_authenticated/_admin/posts/tags': typeof AuthenticatedAdminPostsTagsRoute
   '/_authenticated/_admin/roles/new': typeof AuthenticatedAdminRolesNewRoute
   '/_authenticated/_admin/seo/settings': typeof AuthenticatedAdminSeoSettingsRoute
   '/_authenticated/_admin/seo/sitemap': typeof AuthenticatedAdminSeoSitemapRoute
+  '/_authenticated/_admin/settings/ai': typeof AuthenticatedAdminSettingsAiRoute
+  '/_authenticated/_admin/settings/analytics': typeof AuthenticatedAdminSettingsAnalyticsRoute
   '/_authenticated/_admin/settings/discussion': typeof AuthenticatedAdminSettingsDiscussionRoute
   '/_authenticated/_admin/settings/email': typeof AuthenticatedAdminSettingsEmailRoute
   '/_authenticated/_admin/settings/general': typeof AuthenticatedAdminSettingsGeneralRoute
+  '/_authenticated/_admin/settings/integrations': typeof AuthenticatedAdminSettingsIntegrationsRoute
+  '/_authenticated/_admin/settings/media': typeof AuthenticatedAdminSettingsMediaRoute
   '/_authenticated/_admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/_authenticated/_admin/settings/permalinks': typeof AuthenticatedAdminSettingsPermalinksRoute
   '/_authenticated/_admin/settings/privacy': typeof AuthenticatedAdminSettingsPrivacyRoute
@@ -727,6 +1026,11 @@ export interface FileRoutesById {
   '/_authenticated/_admin/settings/search': typeof AuthenticatedAdminSettingsSearchRoute
   '/_authenticated/_admin/settings/tools': typeof AuthenticatedAdminSettingsToolsRoute
   '/_authenticated/_admin/settings/writing': typeof AuthenticatedAdminSettingsWritingRoute
+  '/_authenticated/_admin/support/analytics': typeof AuthenticatedAdminSupportAnalyticsRoute
+  '/_authenticated/_admin/tickets/$ticketId': typeof AuthenticatedAdminTicketsTicketIdRoute
+  '/_authenticated/_admin/tickets/analytics': typeof AuthenticatedAdminTicketsAnalyticsRoute
+  '/_authenticated/_admin/tickets/canned-responses': typeof AuthenticatedAdminTicketsCannedResponsesRoute
+  '/_authenticated/_admin/tickets/settings': typeof AuthenticatedAdminTicketsSettingsRoute
   '/_authenticated/_admin/tools/404-log': typeof AuthenticatedAdminTools404LogRoute
   '/_authenticated/_admin/tools/activity': typeof AuthenticatedAdminToolsActivityRoute
   '/_authenticated/_admin/tools/capabilities': typeof AuthenticatedAdminToolsCapabilitiesRoute
@@ -740,6 +1044,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/appearance/': typeof AuthenticatedAdminAppearanceIndexRoute
   '/_authenticated/_admin/comments/': typeof AuthenticatedAdminCommentsIndexRoute
   '/_authenticated/_admin/custom-fields/': typeof AuthenticatedAdminCustomFieldsIndexRoute
+  '/_authenticated/_admin/kb/': typeof AuthenticatedAdminKbIndexRoute
   '/_authenticated/_admin/media/': typeof AuthenticatedAdminMediaIndexRoute
   '/_authenticated/_admin/menus/': typeof AuthenticatedAdminMenusIndexRoute
   '/_authenticated/_admin/pages/': typeof AuthenticatedAdminPagesIndexRoute
@@ -747,17 +1052,25 @@ export interface FileRoutesById {
   '/_authenticated/_admin/roles/': typeof AuthenticatedAdminRolesIndexRoute
   '/_authenticated/_admin/seo/': typeof AuthenticatedAdminSeoIndexRoute
   '/_authenticated/_admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
+  '/_authenticated/_admin/tickets/': typeof AuthenticatedAdminTicketsIndexRoute
   '/_authenticated/_admin/tools/': typeof AuthenticatedAdminToolsIndexRoute
   '/_authenticated/_admin/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/_authenticated/_admin/webhooks/': typeof AuthenticatedAdminWebhooksIndexRoute
   '/_authenticated/_admin/comments/$commentId/edit': typeof AuthenticatedAdminCommentsCommentIdEditRoute
   '/_authenticated/_admin/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
+  '/_authenticated/_admin/kb/$articleId/edit': typeof AuthenticatedAdminKbArticleIdEditRoute
   '/_authenticated/_admin/media/$mediaId/edit': typeof AuthenticatedAdminMediaMediaIdEditRoute
   '/_authenticated/_admin/menus/$menuId/edit': typeof AuthenticatedAdminMenusMenuIdEditRoute
   '/_authenticated/_admin/pages/$pageId/edit': typeof AuthenticatedAdminPagesPageIdEditRoute
+  '/_authenticated/_admin/pages/$pageId/engagement': typeof AuthenticatedAdminPagesPageIdEngagementRoute
   '/_authenticated/_admin/pages/$pageId/revisions': typeof AuthenticatedAdminPagesPageIdRevisionsRoute
+  '/_authenticated/_admin/pages/$pageId/seo': typeof AuthenticatedAdminPagesPageIdSeoRoute
+  '/_authenticated/_admin/pages/$pageId/traffic': typeof AuthenticatedAdminPagesPageIdTrafficRoute
   '/_authenticated/_admin/posts/$postId/edit': typeof AuthenticatedAdminPostsPostIdEditRoute
+  '/_authenticated/_admin/posts/$postId/engagement': typeof AuthenticatedAdminPostsPostIdEngagementRoute
   '/_authenticated/_admin/posts/$postId/revisions': typeof AuthenticatedAdminPostsPostIdRevisionsRoute
+  '/_authenticated/_admin/posts/$postId/seo': typeof AuthenticatedAdminPostsPostIdSeoRoute
+  '/_authenticated/_admin/posts/$postId/traffic': typeof AuthenticatedAdminPostsPostIdTrafficRoute
   '/_authenticated/_admin/roles/$roleId/edit': typeof AuthenticatedAdminRolesRoleIdEditRoute
   '/_authenticated/_admin/tools/audit-log/$entryId': typeof AuthenticatedAdminToolsAuditLogEntryIdRoute
   '/_authenticated/_admin/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
@@ -784,18 +1097,33 @@ export interface FileRouteTypes {
     | '/appearance/colors'
     | '/comments/pending'
     | '/custom-fields/new'
+    | '/kb/$articleId'
+    | '/kb/analytics'
+    | '/kb/categories'
+    | '/kb/collections'
+    | '/kb/new'
+    | '/kb/settings'
+    | '/kb/tags'
+    | '/kb/templates'
+    | '/kb/workflows'
     | '/media/upload'
     | '/menus/locations'
+    | '/pages/$pageId'
     | '/pages/new'
+    | '/posts/$postId'
     | '/posts/categories'
     | '/posts/new'
     | '/posts/tags'
     | '/roles/new'
     | '/seo/settings'
     | '/seo/sitemap'
+    | '/settings/ai'
+    | '/settings/analytics'
     | '/settings/discussion'
     | '/settings/email'
     | '/settings/general'
+    | '/settings/integrations'
+    | '/settings/media'
     | '/settings/notifications'
     | '/settings/permalinks'
     | '/settings/privacy'
@@ -803,6 +1131,11 @@ export interface FileRouteTypes {
     | '/settings/search'
     | '/settings/tools'
     | '/settings/writing'
+    | '/support/analytics'
+    | '/tickets/$ticketId'
+    | '/tickets/analytics'
+    | '/tickets/canned-responses'
+    | '/tickets/settings'
     | '/tools/404-log'
     | '/tools/activity'
     | '/tools/capabilities'
@@ -816,6 +1149,7 @@ export interface FileRouteTypes {
     | '/appearance/'
     | '/comments/'
     | '/custom-fields/'
+    | '/kb/'
     | '/media/'
     | '/menus/'
     | '/pages/'
@@ -823,17 +1157,25 @@ export interface FileRouteTypes {
     | '/roles/'
     | '/seo/'
     | '/settings/'
+    | '/tickets/'
     | '/tools/'
     | '/users/'
     | '/webhooks/'
     | '/comments/$commentId/edit'
     | '/custom-fields/$groupId/edit'
+    | '/kb/$articleId/edit'
     | '/media/$mediaId/edit'
     | '/menus/$menuId/edit'
     | '/pages/$pageId/edit'
+    | '/pages/$pageId/engagement'
     | '/pages/$pageId/revisions'
+    | '/pages/$pageId/seo'
+    | '/pages/$pageId/traffic'
     | '/posts/$postId/edit'
+    | '/posts/$postId/engagement'
     | '/posts/$postId/revisions'
+    | '/posts/$postId/seo'
+    | '/posts/$postId/traffic'
     | '/roles/$roleId/edit'
     | '/tools/audit-log/$entryId'
     | '/tools/redirects/new'
@@ -853,18 +1195,33 @@ export interface FileRouteTypes {
     | '/appearance/colors'
     | '/comments/pending'
     | '/custom-fields/new'
+    | '/kb/$articleId'
+    | '/kb/analytics'
+    | '/kb/categories'
+    | '/kb/collections'
+    | '/kb/new'
+    | '/kb/settings'
+    | '/kb/tags'
+    | '/kb/templates'
+    | '/kb/workflows'
     | '/media/upload'
     | '/menus/locations'
+    | '/pages/$pageId'
     | '/pages/new'
+    | '/posts/$postId'
     | '/posts/categories'
     | '/posts/new'
     | '/posts/tags'
     | '/roles/new'
     | '/seo/settings'
     | '/seo/sitemap'
+    | '/settings/ai'
+    | '/settings/analytics'
     | '/settings/discussion'
     | '/settings/email'
     | '/settings/general'
+    | '/settings/integrations'
+    | '/settings/media'
     | '/settings/notifications'
     | '/settings/permalinks'
     | '/settings/privacy'
@@ -872,6 +1229,11 @@ export interface FileRouteTypes {
     | '/settings/search'
     | '/settings/tools'
     | '/settings/writing'
+    | '/support/analytics'
+    | '/tickets/$ticketId'
+    | '/tickets/analytics'
+    | '/tickets/canned-responses'
+    | '/tickets/settings'
     | '/tools/404-log'
     | '/tools/activity'
     | '/tools/capabilities'
@@ -885,6 +1247,7 @@ export interface FileRouteTypes {
     | '/appearance'
     | '/comments'
     | '/custom-fields'
+    | '/kb'
     | '/media'
     | '/menus'
     | '/pages'
@@ -892,17 +1255,25 @@ export interface FileRouteTypes {
     | '/roles'
     | '/seo'
     | '/settings'
+    | '/tickets'
     | '/tools'
     | '/users'
     | '/webhooks'
     | '/comments/$commentId/edit'
     | '/custom-fields/$groupId/edit'
+    | '/kb/$articleId/edit'
     | '/media/$mediaId/edit'
     | '/menus/$menuId/edit'
     | '/pages/$pageId/edit'
+    | '/pages/$pageId/engagement'
     | '/pages/$pageId/revisions'
+    | '/pages/$pageId/seo'
+    | '/pages/$pageId/traffic'
     | '/posts/$postId/edit'
+    | '/posts/$postId/engagement'
     | '/posts/$postId/revisions'
+    | '/posts/$postId/seo'
+    | '/posts/$postId/traffic'
     | '/roles/$roleId/edit'
     | '/tools/audit-log/$entryId'
     | '/tools/redirects/new'
@@ -929,18 +1300,33 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/appearance/colors'
     | '/_authenticated/_admin/comments/pending'
     | '/_authenticated/_admin/custom-fields/new'
+    | '/_authenticated/_admin/kb/$articleId'
+    | '/_authenticated/_admin/kb/analytics'
+    | '/_authenticated/_admin/kb/categories'
+    | '/_authenticated/_admin/kb/collections'
+    | '/_authenticated/_admin/kb/new'
+    | '/_authenticated/_admin/kb/settings'
+    | '/_authenticated/_admin/kb/tags'
+    | '/_authenticated/_admin/kb/templates'
+    | '/_authenticated/_admin/kb/workflows'
     | '/_authenticated/_admin/media/upload'
     | '/_authenticated/_admin/menus/locations'
+    | '/_authenticated/_admin/pages/$pageId'
     | '/_authenticated/_admin/pages/new'
+    | '/_authenticated/_admin/posts/$postId'
     | '/_authenticated/_admin/posts/categories'
     | '/_authenticated/_admin/posts/new'
     | '/_authenticated/_admin/posts/tags'
     | '/_authenticated/_admin/roles/new'
     | '/_authenticated/_admin/seo/settings'
     | '/_authenticated/_admin/seo/sitemap'
+    | '/_authenticated/_admin/settings/ai'
+    | '/_authenticated/_admin/settings/analytics'
     | '/_authenticated/_admin/settings/discussion'
     | '/_authenticated/_admin/settings/email'
     | '/_authenticated/_admin/settings/general'
+    | '/_authenticated/_admin/settings/integrations'
+    | '/_authenticated/_admin/settings/media'
     | '/_authenticated/_admin/settings/notifications'
     | '/_authenticated/_admin/settings/permalinks'
     | '/_authenticated/_admin/settings/privacy'
@@ -948,6 +1334,11 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/settings/search'
     | '/_authenticated/_admin/settings/tools'
     | '/_authenticated/_admin/settings/writing'
+    | '/_authenticated/_admin/support/analytics'
+    | '/_authenticated/_admin/tickets/$ticketId'
+    | '/_authenticated/_admin/tickets/analytics'
+    | '/_authenticated/_admin/tickets/canned-responses'
+    | '/_authenticated/_admin/tickets/settings'
     | '/_authenticated/_admin/tools/404-log'
     | '/_authenticated/_admin/tools/activity'
     | '/_authenticated/_admin/tools/capabilities'
@@ -961,6 +1352,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/appearance/'
     | '/_authenticated/_admin/comments/'
     | '/_authenticated/_admin/custom-fields/'
+    | '/_authenticated/_admin/kb/'
     | '/_authenticated/_admin/media/'
     | '/_authenticated/_admin/menus/'
     | '/_authenticated/_admin/pages/'
@@ -968,17 +1360,25 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/roles/'
     | '/_authenticated/_admin/seo/'
     | '/_authenticated/_admin/settings/'
+    | '/_authenticated/_admin/tickets/'
     | '/_authenticated/_admin/tools/'
     | '/_authenticated/_admin/users/'
     | '/_authenticated/_admin/webhooks/'
     | '/_authenticated/_admin/comments/$commentId/edit'
     | '/_authenticated/_admin/custom-fields/$groupId/edit'
+    | '/_authenticated/_admin/kb/$articleId/edit'
     | '/_authenticated/_admin/media/$mediaId/edit'
     | '/_authenticated/_admin/menus/$menuId/edit'
     | '/_authenticated/_admin/pages/$pageId/edit'
+    | '/_authenticated/_admin/pages/$pageId/engagement'
     | '/_authenticated/_admin/pages/$pageId/revisions'
+    | '/_authenticated/_admin/pages/$pageId/seo'
+    | '/_authenticated/_admin/pages/$pageId/traffic'
     | '/_authenticated/_admin/posts/$postId/edit'
+    | '/_authenticated/_admin/posts/$postId/engagement'
     | '/_authenticated/_admin/posts/$postId/revisions'
+    | '/_authenticated/_admin/posts/$postId/seo'
+    | '/_authenticated/_admin/posts/$postId/traffic'
     | '/_authenticated/_admin/roles/$roleId/edit'
     | '/_authenticated/_admin/tools/audit-log/$entryId'
     | '/_authenticated/_admin/tools/redirects/new'
@@ -1090,6 +1490,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminToolsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminToolsRoute
     }
+    '/_authenticated/_admin/tickets/': {
+      id: '/_authenticated/_admin/tickets/'
+      path: '/tickets'
+      fullPath: '/tickets/'
+      preLoaderRoute: typeof AuthenticatedAdminTicketsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/_admin/settings/': {
       id: '/_authenticated/_admin/settings/'
       path: '/'
@@ -1137,6 +1544,13 @@ declare module '@tanstack/react-router' {
       path: '/media'
       fullPath: '/media/'
       preLoaderRoute: typeof AuthenticatedAdminMediaIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/kb/': {
+      id: '/_authenticated/_admin/kb/'
+      path: '/kb'
+      fullPath: '/kb/'
+      preLoaderRoute: typeof AuthenticatedAdminKbIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/custom-fields/': {
@@ -1230,6 +1644,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminTools404LogRouteImport
       parentRoute: typeof AuthenticatedAdminToolsRoute
     }
+    '/_authenticated/_admin/tickets/settings': {
+      id: '/_authenticated/_admin/tickets/settings'
+      path: '/tickets/settings'
+      fullPath: '/tickets/settings'
+      preLoaderRoute: typeof AuthenticatedAdminTicketsSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/tickets/canned-responses': {
+      id: '/_authenticated/_admin/tickets/canned-responses'
+      path: '/tickets/canned-responses'
+      fullPath: '/tickets/canned-responses'
+      preLoaderRoute: typeof AuthenticatedAdminTicketsCannedResponsesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/tickets/analytics': {
+      id: '/_authenticated/_admin/tickets/analytics'
+      path: '/tickets/analytics'
+      fullPath: '/tickets/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminTicketsAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/tickets/$ticketId': {
+      id: '/_authenticated/_admin/tickets/$ticketId'
+      path: '/tickets/$ticketId'
+      fullPath: '/tickets/$ticketId'
+      preLoaderRoute: typeof AuthenticatedAdminTicketsTicketIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/support/analytics': {
+      id: '/_authenticated/_admin/support/analytics'
+      path: '/support/analytics'
+      fullPath: '/support/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminSupportAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/_admin/settings/writing': {
       id: '/_authenticated/_admin/settings/writing'
       path: '/writing'
@@ -1279,6 +1728,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsNotificationsRouteImport
       parentRoute: typeof AuthenticatedAdminSettingsRoute
     }
+    '/_authenticated/_admin/settings/media': {
+      id: '/_authenticated/_admin/settings/media'
+      path: '/media'
+      fullPath: '/settings/media'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsMediaRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsRoute
+    }
+    '/_authenticated/_admin/settings/integrations': {
+      id: '/_authenticated/_admin/settings/integrations'
+      path: '/integrations'
+      fullPath: '/settings/integrations'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsIntegrationsRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsRoute
+    }
     '/_authenticated/_admin/settings/general': {
       id: '/_authenticated/_admin/settings/general'
       path: '/general'
@@ -1298,6 +1761,20 @@ declare module '@tanstack/react-router' {
       path: '/discussion'
       fullPath: '/settings/discussion'
       preLoaderRoute: typeof AuthenticatedAdminSettingsDiscussionRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsRoute
+    }
+    '/_authenticated/_admin/settings/analytics': {
+      id: '/_authenticated/_admin/settings/analytics'
+      path: '/analytics'
+      fullPath: '/settings/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsRoute
+    }
+    '/_authenticated/_admin/settings/ai': {
+      id: '/_authenticated/_admin/settings/ai'
+      path: '/ai'
+      fullPath: '/settings/ai'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsAiRouteImport
       parentRoute: typeof AuthenticatedAdminSettingsRoute
     }
     '/_authenticated/_admin/seo/sitemap': {
@@ -1342,11 +1819,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPostsCategoriesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/posts/$postId': {
+      id: '/_authenticated/_admin/posts/$postId'
+      path: '/posts/$postId'
+      fullPath: '/posts/$postId'
+      preLoaderRoute: typeof AuthenticatedAdminPostsPostIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/_admin/pages/new': {
       id: '/_authenticated/_admin/pages/new'
       path: '/pages/new'
       fullPath: '/pages/new'
       preLoaderRoute: typeof AuthenticatedAdminPagesNewRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/pages/$pageId': {
+      id: '/_authenticated/_admin/pages/$pageId'
+      path: '/pages/$pageId'
+      fullPath: '/pages/$pageId'
+      preLoaderRoute: typeof AuthenticatedAdminPagesPageIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/menus/locations': {
@@ -1361,6 +1852,69 @@ declare module '@tanstack/react-router' {
       path: '/media/upload'
       fullPath: '/media/upload'
       preLoaderRoute: typeof AuthenticatedAdminMediaUploadRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/kb/workflows': {
+      id: '/_authenticated/_admin/kb/workflows'
+      path: '/kb/workflows'
+      fullPath: '/kb/workflows'
+      preLoaderRoute: typeof AuthenticatedAdminKbWorkflowsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/kb/templates': {
+      id: '/_authenticated/_admin/kb/templates'
+      path: '/kb/templates'
+      fullPath: '/kb/templates'
+      preLoaderRoute: typeof AuthenticatedAdminKbTemplatesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/kb/tags': {
+      id: '/_authenticated/_admin/kb/tags'
+      path: '/kb/tags'
+      fullPath: '/kb/tags'
+      preLoaderRoute: typeof AuthenticatedAdminKbTagsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/kb/settings': {
+      id: '/_authenticated/_admin/kb/settings'
+      path: '/kb/settings'
+      fullPath: '/kb/settings'
+      preLoaderRoute: typeof AuthenticatedAdminKbSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/kb/new': {
+      id: '/_authenticated/_admin/kb/new'
+      path: '/kb/new'
+      fullPath: '/kb/new'
+      preLoaderRoute: typeof AuthenticatedAdminKbNewRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/kb/collections': {
+      id: '/_authenticated/_admin/kb/collections'
+      path: '/kb/collections'
+      fullPath: '/kb/collections'
+      preLoaderRoute: typeof AuthenticatedAdminKbCollectionsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/kb/categories': {
+      id: '/_authenticated/_admin/kb/categories'
+      path: '/kb/categories'
+      fullPath: '/kb/categories'
+      preLoaderRoute: typeof AuthenticatedAdminKbCategoriesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/kb/analytics': {
+      id: '/_authenticated/_admin/kb/analytics'
+      path: '/kb/analytics'
+      fullPath: '/kb/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminKbAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/kb/$articleId': {
+      id: '/_authenticated/_admin/kb/$articleId'
+      path: '/kb/$articleId'
+      fullPath: '/kb/$articleId'
+      preLoaderRoute: typeof AuthenticatedAdminKbArticleIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/custom-fields/new': {
@@ -1433,33 +1987,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRolesRoleIdEditRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/posts/$postId/traffic': {
+      id: '/_authenticated/_admin/posts/$postId/traffic'
+      path: '/traffic'
+      fullPath: '/posts/$postId/traffic'
+      preLoaderRoute: typeof AuthenticatedAdminPostsPostIdTrafficRouteImport
+      parentRoute: typeof AuthenticatedAdminPostsPostIdRoute
+    }
+    '/_authenticated/_admin/posts/$postId/seo': {
+      id: '/_authenticated/_admin/posts/$postId/seo'
+      path: '/seo'
+      fullPath: '/posts/$postId/seo'
+      preLoaderRoute: typeof AuthenticatedAdminPostsPostIdSeoRouteImport
+      parentRoute: typeof AuthenticatedAdminPostsPostIdRoute
+    }
     '/_authenticated/_admin/posts/$postId/revisions': {
       id: '/_authenticated/_admin/posts/$postId/revisions'
-      path: '/posts/$postId/revisions'
+      path: '/revisions'
       fullPath: '/posts/$postId/revisions'
       preLoaderRoute: typeof AuthenticatedAdminPostsPostIdRevisionsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminPostsPostIdRoute
+    }
+    '/_authenticated/_admin/posts/$postId/engagement': {
+      id: '/_authenticated/_admin/posts/$postId/engagement'
+      path: '/engagement'
+      fullPath: '/posts/$postId/engagement'
+      preLoaderRoute: typeof AuthenticatedAdminPostsPostIdEngagementRouteImport
+      parentRoute: typeof AuthenticatedAdminPostsPostIdRoute
     }
     '/_authenticated/_admin/posts/$postId/edit': {
       id: '/_authenticated/_admin/posts/$postId/edit'
-      path: '/posts/$postId/edit'
+      path: '/edit'
       fullPath: '/posts/$postId/edit'
       preLoaderRoute: typeof AuthenticatedAdminPostsPostIdEditRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminPostsPostIdRoute
+    }
+    '/_authenticated/_admin/pages/$pageId/traffic': {
+      id: '/_authenticated/_admin/pages/$pageId/traffic'
+      path: '/traffic'
+      fullPath: '/pages/$pageId/traffic'
+      preLoaderRoute: typeof AuthenticatedAdminPagesPageIdTrafficRouteImport
+      parentRoute: typeof AuthenticatedAdminPagesPageIdRoute
+    }
+    '/_authenticated/_admin/pages/$pageId/seo': {
+      id: '/_authenticated/_admin/pages/$pageId/seo'
+      path: '/seo'
+      fullPath: '/pages/$pageId/seo'
+      preLoaderRoute: typeof AuthenticatedAdminPagesPageIdSeoRouteImport
+      parentRoute: typeof AuthenticatedAdminPagesPageIdRoute
     }
     '/_authenticated/_admin/pages/$pageId/revisions': {
       id: '/_authenticated/_admin/pages/$pageId/revisions'
-      path: '/pages/$pageId/revisions'
+      path: '/revisions'
       fullPath: '/pages/$pageId/revisions'
       preLoaderRoute: typeof AuthenticatedAdminPagesPageIdRevisionsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminPagesPageIdRoute
+    }
+    '/_authenticated/_admin/pages/$pageId/engagement': {
+      id: '/_authenticated/_admin/pages/$pageId/engagement'
+      path: '/engagement'
+      fullPath: '/pages/$pageId/engagement'
+      preLoaderRoute: typeof AuthenticatedAdminPagesPageIdEngagementRouteImport
+      parentRoute: typeof AuthenticatedAdminPagesPageIdRoute
     }
     '/_authenticated/_admin/pages/$pageId/edit': {
       id: '/_authenticated/_admin/pages/$pageId/edit'
-      path: '/pages/$pageId/edit'
+      path: '/edit'
       fullPath: '/pages/$pageId/edit'
       preLoaderRoute: typeof AuthenticatedAdminPagesPageIdEditRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminPagesPageIdRoute
     }
     '/_authenticated/_admin/menus/$menuId/edit': {
       id: '/_authenticated/_admin/menus/$menuId/edit'
@@ -1474,6 +2070,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/media/$mediaId/edit'
       preLoaderRoute: typeof AuthenticatedAdminMediaMediaIdEditRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/kb/$articleId/edit': {
+      id: '/_authenticated/_admin/kb/$articleId/edit'
+      path: '/edit'
+      fullPath: '/kb/$articleId/edit'
+      preLoaderRoute: typeof AuthenticatedAdminKbArticleIdEditRouteImport
+      parentRoute: typeof AuthenticatedAdminKbArticleIdRoute
     }
     '/_authenticated/_admin/custom-fields/$groupId/edit': {
       id: '/_authenticated/_admin/custom-fields/$groupId/edit'
@@ -1577,9 +2180,13 @@ const AuthenticatedAdminSeoRouteWithChildren =
   )
 
 interface AuthenticatedAdminSettingsRouteChildren {
+  AuthenticatedAdminSettingsAiRoute: typeof AuthenticatedAdminSettingsAiRoute
+  AuthenticatedAdminSettingsAnalyticsRoute: typeof AuthenticatedAdminSettingsAnalyticsRoute
   AuthenticatedAdminSettingsDiscussionRoute: typeof AuthenticatedAdminSettingsDiscussionRoute
   AuthenticatedAdminSettingsEmailRoute: typeof AuthenticatedAdminSettingsEmailRoute
   AuthenticatedAdminSettingsGeneralRoute: typeof AuthenticatedAdminSettingsGeneralRoute
+  AuthenticatedAdminSettingsIntegrationsRoute: typeof AuthenticatedAdminSettingsIntegrationsRoute
+  AuthenticatedAdminSettingsMediaRoute: typeof AuthenticatedAdminSettingsMediaRoute
   AuthenticatedAdminSettingsNotificationsRoute: typeof AuthenticatedAdminSettingsNotificationsRoute
   AuthenticatedAdminSettingsPermalinksRoute: typeof AuthenticatedAdminSettingsPermalinksRoute
   AuthenticatedAdminSettingsPrivacyRoute: typeof AuthenticatedAdminSettingsPrivacyRoute
@@ -1594,11 +2201,17 @@ interface AuthenticatedAdminSettingsRouteChildren {
 
 const AuthenticatedAdminSettingsRouteChildren: AuthenticatedAdminSettingsRouteChildren =
   {
+    AuthenticatedAdminSettingsAiRoute: AuthenticatedAdminSettingsAiRoute,
+    AuthenticatedAdminSettingsAnalyticsRoute:
+      AuthenticatedAdminSettingsAnalyticsRoute,
     AuthenticatedAdminSettingsDiscussionRoute:
       AuthenticatedAdminSettingsDiscussionRoute,
     AuthenticatedAdminSettingsEmailRoute: AuthenticatedAdminSettingsEmailRoute,
     AuthenticatedAdminSettingsGeneralRoute:
       AuthenticatedAdminSettingsGeneralRoute,
+    AuthenticatedAdminSettingsIntegrationsRoute:
+      AuthenticatedAdminSettingsIntegrationsRoute,
+    AuthenticatedAdminSettingsMediaRoute: AuthenticatedAdminSettingsMediaRoute,
     AuthenticatedAdminSettingsNotificationsRoute:
       AuthenticatedAdminSettingsNotificationsRoute,
     AuthenticatedAdminSettingsPermalinksRoute:
@@ -1678,6 +2291,75 @@ const AuthenticatedAdminToolsRouteWithChildren =
     AuthenticatedAdminToolsRouteChildren,
   )
 
+interface AuthenticatedAdminKbArticleIdRouteChildren {
+  AuthenticatedAdminKbArticleIdEditRoute: typeof AuthenticatedAdminKbArticleIdEditRoute
+}
+
+const AuthenticatedAdminKbArticleIdRouteChildren: AuthenticatedAdminKbArticleIdRouteChildren =
+  {
+    AuthenticatedAdminKbArticleIdEditRoute:
+      AuthenticatedAdminKbArticleIdEditRoute,
+  }
+
+const AuthenticatedAdminKbArticleIdRouteWithChildren =
+  AuthenticatedAdminKbArticleIdRoute._addFileChildren(
+    AuthenticatedAdminKbArticleIdRouteChildren,
+  )
+
+interface AuthenticatedAdminPagesPageIdRouteChildren {
+  AuthenticatedAdminPagesPageIdEditRoute: typeof AuthenticatedAdminPagesPageIdEditRoute
+  AuthenticatedAdminPagesPageIdEngagementRoute: typeof AuthenticatedAdminPagesPageIdEngagementRoute
+  AuthenticatedAdminPagesPageIdRevisionsRoute: typeof AuthenticatedAdminPagesPageIdRevisionsRoute
+  AuthenticatedAdminPagesPageIdSeoRoute: typeof AuthenticatedAdminPagesPageIdSeoRoute
+  AuthenticatedAdminPagesPageIdTrafficRoute: typeof AuthenticatedAdminPagesPageIdTrafficRoute
+}
+
+const AuthenticatedAdminPagesPageIdRouteChildren: AuthenticatedAdminPagesPageIdRouteChildren =
+  {
+    AuthenticatedAdminPagesPageIdEditRoute:
+      AuthenticatedAdminPagesPageIdEditRoute,
+    AuthenticatedAdminPagesPageIdEngagementRoute:
+      AuthenticatedAdminPagesPageIdEngagementRoute,
+    AuthenticatedAdminPagesPageIdRevisionsRoute:
+      AuthenticatedAdminPagesPageIdRevisionsRoute,
+    AuthenticatedAdminPagesPageIdSeoRoute:
+      AuthenticatedAdminPagesPageIdSeoRoute,
+    AuthenticatedAdminPagesPageIdTrafficRoute:
+      AuthenticatedAdminPagesPageIdTrafficRoute,
+  }
+
+const AuthenticatedAdminPagesPageIdRouteWithChildren =
+  AuthenticatedAdminPagesPageIdRoute._addFileChildren(
+    AuthenticatedAdminPagesPageIdRouteChildren,
+  )
+
+interface AuthenticatedAdminPostsPostIdRouteChildren {
+  AuthenticatedAdminPostsPostIdEditRoute: typeof AuthenticatedAdminPostsPostIdEditRoute
+  AuthenticatedAdminPostsPostIdEngagementRoute: typeof AuthenticatedAdminPostsPostIdEngagementRoute
+  AuthenticatedAdminPostsPostIdRevisionsRoute: typeof AuthenticatedAdminPostsPostIdRevisionsRoute
+  AuthenticatedAdminPostsPostIdSeoRoute: typeof AuthenticatedAdminPostsPostIdSeoRoute
+  AuthenticatedAdminPostsPostIdTrafficRoute: typeof AuthenticatedAdminPostsPostIdTrafficRoute
+}
+
+const AuthenticatedAdminPostsPostIdRouteChildren: AuthenticatedAdminPostsPostIdRouteChildren =
+  {
+    AuthenticatedAdminPostsPostIdEditRoute:
+      AuthenticatedAdminPostsPostIdEditRoute,
+    AuthenticatedAdminPostsPostIdEngagementRoute:
+      AuthenticatedAdminPostsPostIdEngagementRoute,
+    AuthenticatedAdminPostsPostIdRevisionsRoute:
+      AuthenticatedAdminPostsPostIdRevisionsRoute,
+    AuthenticatedAdminPostsPostIdSeoRoute:
+      AuthenticatedAdminPostsPostIdSeoRoute,
+    AuthenticatedAdminPostsPostIdTrafficRoute:
+      AuthenticatedAdminPostsPostIdTrafficRoute,
+  }
+
+const AuthenticatedAdminPostsPostIdRouteWithChildren =
+  AuthenticatedAdminPostsPostIdRoute._addFileChildren(
+    AuthenticatedAdminPostsPostIdRouteChildren,
+  )
+
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAppearanceRoute: typeof AuthenticatedAdminAppearanceRouteWithChildren
   AuthenticatedAdminCustomFieldsRoute: typeof AuthenticatedAdminCustomFieldsRouteWithChildren
@@ -1687,30 +2369,44 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRouteWithChildren
   AuthenticatedAdminToolsRoute: typeof AuthenticatedAdminToolsRouteWithChildren
   AuthenticatedAdminCommentsPendingRoute: typeof AuthenticatedAdminCommentsPendingRoute
+  AuthenticatedAdminKbArticleIdRoute: typeof AuthenticatedAdminKbArticleIdRouteWithChildren
+  AuthenticatedAdminKbAnalyticsRoute: typeof AuthenticatedAdminKbAnalyticsRoute
+  AuthenticatedAdminKbCategoriesRoute: typeof AuthenticatedAdminKbCategoriesRoute
+  AuthenticatedAdminKbCollectionsRoute: typeof AuthenticatedAdminKbCollectionsRoute
+  AuthenticatedAdminKbNewRoute: typeof AuthenticatedAdminKbNewRoute
+  AuthenticatedAdminKbSettingsRoute: typeof AuthenticatedAdminKbSettingsRoute
+  AuthenticatedAdminKbTagsRoute: typeof AuthenticatedAdminKbTagsRoute
+  AuthenticatedAdminKbTemplatesRoute: typeof AuthenticatedAdminKbTemplatesRoute
+  AuthenticatedAdminKbWorkflowsRoute: typeof AuthenticatedAdminKbWorkflowsRoute
   AuthenticatedAdminMediaUploadRoute: typeof AuthenticatedAdminMediaUploadRoute
   AuthenticatedAdminMenusLocationsRoute: typeof AuthenticatedAdminMenusLocationsRoute
+  AuthenticatedAdminPagesPageIdRoute: typeof AuthenticatedAdminPagesPageIdRouteWithChildren
   AuthenticatedAdminPagesNewRoute: typeof AuthenticatedAdminPagesNewRoute
+  AuthenticatedAdminPostsPostIdRoute: typeof AuthenticatedAdminPostsPostIdRouteWithChildren
   AuthenticatedAdminPostsCategoriesRoute: typeof AuthenticatedAdminPostsCategoriesRoute
   AuthenticatedAdminPostsNewRoute: typeof AuthenticatedAdminPostsNewRoute
   AuthenticatedAdminPostsTagsRoute: typeof AuthenticatedAdminPostsTagsRoute
   AuthenticatedAdminRolesNewRoute: typeof AuthenticatedAdminRolesNewRoute
+  AuthenticatedAdminSupportAnalyticsRoute: typeof AuthenticatedAdminSupportAnalyticsRoute
+  AuthenticatedAdminTicketsTicketIdRoute: typeof AuthenticatedAdminTicketsTicketIdRoute
+  AuthenticatedAdminTicketsAnalyticsRoute: typeof AuthenticatedAdminTicketsAnalyticsRoute
+  AuthenticatedAdminTicketsCannedResponsesRoute: typeof AuthenticatedAdminTicketsCannedResponsesRoute
+  AuthenticatedAdminTicketsSettingsRoute: typeof AuthenticatedAdminTicketsSettingsRoute
   AuthenticatedAdminUsersNewRoute: typeof AuthenticatedAdminUsersNewRoute
   AuthenticatedAdminApiKeysIndexRoute: typeof AuthenticatedAdminApiKeysIndexRoute
   AuthenticatedAdminCommentsIndexRoute: typeof AuthenticatedAdminCommentsIndexRoute
+  AuthenticatedAdminKbIndexRoute: typeof AuthenticatedAdminKbIndexRoute
   AuthenticatedAdminMediaIndexRoute: typeof AuthenticatedAdminMediaIndexRoute
   AuthenticatedAdminMenusIndexRoute: typeof AuthenticatedAdminMenusIndexRoute
   AuthenticatedAdminPagesIndexRoute: typeof AuthenticatedAdminPagesIndexRoute
   AuthenticatedAdminPostsIndexRoute: typeof AuthenticatedAdminPostsIndexRoute
   AuthenticatedAdminRolesIndexRoute: typeof AuthenticatedAdminRolesIndexRoute
+  AuthenticatedAdminTicketsIndexRoute: typeof AuthenticatedAdminTicketsIndexRoute
   AuthenticatedAdminUsersIndexRoute: typeof AuthenticatedAdminUsersIndexRoute
   AuthenticatedAdminWebhooksIndexRoute: typeof AuthenticatedAdminWebhooksIndexRoute
   AuthenticatedAdminCommentsCommentIdEditRoute: typeof AuthenticatedAdminCommentsCommentIdEditRoute
   AuthenticatedAdminMediaMediaIdEditRoute: typeof AuthenticatedAdminMediaMediaIdEditRoute
   AuthenticatedAdminMenusMenuIdEditRoute: typeof AuthenticatedAdminMenusMenuIdEditRoute
-  AuthenticatedAdminPagesPageIdEditRoute: typeof AuthenticatedAdminPagesPageIdEditRoute
-  AuthenticatedAdminPagesPageIdRevisionsRoute: typeof AuthenticatedAdminPagesPageIdRevisionsRoute
-  AuthenticatedAdminPostsPostIdEditRoute: typeof AuthenticatedAdminPostsPostIdEditRoute
-  AuthenticatedAdminPostsPostIdRevisionsRoute: typeof AuthenticatedAdminPostsPostIdRevisionsRoute
   AuthenticatedAdminRolesRoleIdEditRoute: typeof AuthenticatedAdminRolesRoleIdEditRoute
   AuthenticatedAdminUsersUserIdEditRoute: typeof AuthenticatedAdminUsersUserIdEditRoute
 }
@@ -1727,22 +2423,48 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminToolsRoute: AuthenticatedAdminToolsRouteWithChildren,
   AuthenticatedAdminCommentsPendingRoute:
     AuthenticatedAdminCommentsPendingRoute,
+  AuthenticatedAdminKbArticleIdRoute:
+    AuthenticatedAdminKbArticleIdRouteWithChildren,
+  AuthenticatedAdminKbAnalyticsRoute: AuthenticatedAdminKbAnalyticsRoute,
+  AuthenticatedAdminKbCategoriesRoute: AuthenticatedAdminKbCategoriesRoute,
+  AuthenticatedAdminKbCollectionsRoute: AuthenticatedAdminKbCollectionsRoute,
+  AuthenticatedAdminKbNewRoute: AuthenticatedAdminKbNewRoute,
+  AuthenticatedAdminKbSettingsRoute: AuthenticatedAdminKbSettingsRoute,
+  AuthenticatedAdminKbTagsRoute: AuthenticatedAdminKbTagsRoute,
+  AuthenticatedAdminKbTemplatesRoute: AuthenticatedAdminKbTemplatesRoute,
+  AuthenticatedAdminKbWorkflowsRoute: AuthenticatedAdminKbWorkflowsRoute,
   AuthenticatedAdminMediaUploadRoute: AuthenticatedAdminMediaUploadRoute,
   AuthenticatedAdminMenusLocationsRoute: AuthenticatedAdminMenusLocationsRoute,
+  AuthenticatedAdminPagesPageIdRoute:
+    AuthenticatedAdminPagesPageIdRouteWithChildren,
   AuthenticatedAdminPagesNewRoute: AuthenticatedAdminPagesNewRoute,
+  AuthenticatedAdminPostsPostIdRoute:
+    AuthenticatedAdminPostsPostIdRouteWithChildren,
   AuthenticatedAdminPostsCategoriesRoute:
     AuthenticatedAdminPostsCategoriesRoute,
   AuthenticatedAdminPostsNewRoute: AuthenticatedAdminPostsNewRoute,
   AuthenticatedAdminPostsTagsRoute: AuthenticatedAdminPostsTagsRoute,
   AuthenticatedAdminRolesNewRoute: AuthenticatedAdminRolesNewRoute,
+  AuthenticatedAdminSupportAnalyticsRoute:
+    AuthenticatedAdminSupportAnalyticsRoute,
+  AuthenticatedAdminTicketsTicketIdRoute:
+    AuthenticatedAdminTicketsTicketIdRoute,
+  AuthenticatedAdminTicketsAnalyticsRoute:
+    AuthenticatedAdminTicketsAnalyticsRoute,
+  AuthenticatedAdminTicketsCannedResponsesRoute:
+    AuthenticatedAdminTicketsCannedResponsesRoute,
+  AuthenticatedAdminTicketsSettingsRoute:
+    AuthenticatedAdminTicketsSettingsRoute,
   AuthenticatedAdminUsersNewRoute: AuthenticatedAdminUsersNewRoute,
   AuthenticatedAdminApiKeysIndexRoute: AuthenticatedAdminApiKeysIndexRoute,
   AuthenticatedAdminCommentsIndexRoute: AuthenticatedAdminCommentsIndexRoute,
+  AuthenticatedAdminKbIndexRoute: AuthenticatedAdminKbIndexRoute,
   AuthenticatedAdminMediaIndexRoute: AuthenticatedAdminMediaIndexRoute,
   AuthenticatedAdminMenusIndexRoute: AuthenticatedAdminMenusIndexRoute,
   AuthenticatedAdminPagesIndexRoute: AuthenticatedAdminPagesIndexRoute,
   AuthenticatedAdminPostsIndexRoute: AuthenticatedAdminPostsIndexRoute,
   AuthenticatedAdminRolesIndexRoute: AuthenticatedAdminRolesIndexRoute,
+  AuthenticatedAdminTicketsIndexRoute: AuthenticatedAdminTicketsIndexRoute,
   AuthenticatedAdminUsersIndexRoute: AuthenticatedAdminUsersIndexRoute,
   AuthenticatedAdminWebhooksIndexRoute: AuthenticatedAdminWebhooksIndexRoute,
   AuthenticatedAdminCommentsCommentIdEditRoute:
@@ -1751,14 +2473,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminMediaMediaIdEditRoute,
   AuthenticatedAdminMenusMenuIdEditRoute:
     AuthenticatedAdminMenusMenuIdEditRoute,
-  AuthenticatedAdminPagesPageIdEditRoute:
-    AuthenticatedAdminPagesPageIdEditRoute,
-  AuthenticatedAdminPagesPageIdRevisionsRoute:
-    AuthenticatedAdminPagesPageIdRevisionsRoute,
-  AuthenticatedAdminPostsPostIdEditRoute:
-    AuthenticatedAdminPostsPostIdEditRoute,
-  AuthenticatedAdminPostsPostIdRevisionsRoute:
-    AuthenticatedAdminPostsPostIdRevisionsRoute,
   AuthenticatedAdminRolesRoleIdEditRoute:
     AuthenticatedAdminRolesRoleIdEditRoute,
   AuthenticatedAdminUsersUserIdEditRoute:
