@@ -1,6 +1,7 @@
 import type { ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 
+import { StrictMode } from "react";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import { ClerkProvider, useAuth } from "@clerk/clerk-react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
@@ -8,6 +9,7 @@ import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Toaster } from "@/components/ui/sonner";
 import { NotFoundTemplate } from "@/templates/NotFoundTemplate";
 import { ErrorTemplate } from "@/templates/ErrorTemplate";
+import { SupportWidget } from "@/components/support/widget/SupportWidget";
 
 import appCss from "../index.css?url";
 
@@ -29,11 +31,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "SmithHarper",
+        title: "ConvexPress",
       },
       {
         name: "description",
-        content: "SmithHarper - A modern content management system",
+        content: "ConvexPress - A modern content management system",
       },
       {
         name: "robots",
@@ -42,7 +44,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       // Open Graph site-wide defaults (overridden by child routes)
       {
         property: "og:site_name",
-        content: "SmithHarper",
+        content: "ConvexPress",
       },
       {
         property: "og:type",
@@ -59,6 +61,19 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       },
     ],
     links: [
+      {
+        rel: "preconnect",
+        href: "https://fonts.googleapis.com",
+      },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap",
+      },
       {
         rel: "stylesheet",
         href: appCss,
@@ -90,22 +105,26 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 function RootDocument() {
   const { convexQueryClient } = Route.useRouteContext();
   return (
-    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
-      <ConvexProviderWithClerk
-        client={convexQueryClient.convexClient}
-        useAuth={useAuth}
-      >
-        <html lang="en" className="dark" suppressHydrationWarning>
-          <head>
-            <HeadContent />
-          </head>
-          <body className="min-h-svh" suppressHydrationWarning>
-            <Outlet />
-            <Toaster richColors />
-            <Scripts />
-          </body>
-        </html>
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+    <StrictMode>
+      <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+        <ConvexProviderWithClerk
+          client={convexQueryClient.convexClient}
+          useAuth={useAuth}
+        >
+          <html lang="en" suppressHydrationWarning>
+            <head>
+              <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}})()` }} />
+              <HeadContent />
+            </head>
+            <body className="min-h-svh" suppressHydrationWarning>
+              <Outlet />
+              <SupportWidget />
+              <Toaster richColors />
+              <Scripts />
+            </body>
+          </html>
+        </ConvexProviderWithClerk>
+      </ClerkProvider>
+    </StrictMode>
   );
 }

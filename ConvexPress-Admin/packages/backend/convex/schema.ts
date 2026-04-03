@@ -36,6 +36,7 @@ import { analyticsTables } from "./schema/analytics";
 import { ga4Tables } from "./schema/ga4";
 import { kbTables } from "./schema/kb";
 import { ticketTables } from "./schema/tickets";
+import { supportTables } from "./schema/support";
 
 // ─── Compose Schema ──────────────────────────────────────────────────────────
 export default defineSchema({
@@ -72,4 +73,5 @@ export default defineSchema({
   ...ga4Tables,
   ...kbTables,
   ...ticketTables,
+  ...supportTables,
 });
