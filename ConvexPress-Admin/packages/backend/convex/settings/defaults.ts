@@ -25,6 +25,8 @@ export type SettingsSection =
   | "permalinks"
   | "privacy"
   | "email"
+  | "media"
+  | "analytics"
   | "ai"
   | "search"
   // Knowledge Base System sections
@@ -49,6 +51,8 @@ export const SECTION_NAMES: SettingsSection[] = [
   "permalinks",
   "privacy",
   "email",
+  "media",
+  "analytics",
   "ai",
   "search",
   // Knowledge Base System sections
@@ -223,6 +227,34 @@ export interface SearchSettings {
   meilisearchApiKey: string;
 }
 
+// ─── Media Settings Types ───────────────────────────────────────────────────
+
+export interface MediaSettings {
+  /** Maximum file upload size in bytes (default: 50MB) */
+  maxUploadSize: number;
+  /** WordPress-standard thumbnail dimensions */
+  thumbnailWidth: number;
+  thumbnailHeight: number;
+  thumbnailCrop: boolean;
+  mediumWidth: number;
+  mediumMaxHeight: number;
+  mediumLargeWidth: number;
+  mediumLargeMaxHeight: number;
+  largeWidth: number;
+  largeMaxHeight: number;
+}
+
+// ─── Analytics Settings Types ───────────────────────────────────────────────
+
+export interface AnalyticsSettings {
+  /** Master switch for built-in analytics tracking */
+  trackingEnabled: boolean;
+  /** Honor the browser Do Not Track header */
+  respectDoNotTrack: boolean;
+  /** Days to keep raw tracking events before purging */
+  retentionDays: number;
+}
+
 // ─── Knowledge Base Settings Types ───────────────────────────────────────────
 
 export interface KbGeneralSettings {
@@ -375,6 +407,29 @@ export const SEARCH_DEFAULTS: SearchSettings = {
   meilisearchApiKey: "",
 };
 
+// ─── Media Defaults ─────────────────────────────────────────────────────────
+
+export const MEDIA_DEFAULTS: MediaSettings = {
+  maxUploadSize: 50 * 1024 * 1024, // 50MB
+  thumbnailWidth: 150,
+  thumbnailHeight: 150,
+  thumbnailCrop: true,
+  mediumWidth: 300,
+  mediumMaxHeight: 0, // 0 = proportional
+  mediumLargeWidth: 768,
+  mediumLargeMaxHeight: 0,
+  largeWidth: 1024,
+  largeMaxHeight: 0,
+};
+
+// ─── Analytics Defaults ─────────────────────────────────────────────────────
+
+export const ANALYTICS_DEFAULTS: AnalyticsSettings = {
+  trackingEnabled: true,
+  respectDoNotTrack: true,
+  retentionDays: 90,
+};
+
 // ─── Knowledge Base Defaults ──────────────────────────────────────────────────
 
 export const KB_GENERAL_DEFAULTS: KbGeneralSettings = {
@@ -432,6 +487,8 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   permalinks: PERMALINK_DEFAULTS,
   privacy: PRIVACY_DEFAULTS,
   email: EMAIL_DEFAULTS,
+  media: MEDIA_DEFAULTS,
+  analytics: ANALYTICS_DEFAULTS,
   ai: AI_DEFAULTS,
   search: SEARCH_DEFAULTS,
   // Knowledge Base System sections

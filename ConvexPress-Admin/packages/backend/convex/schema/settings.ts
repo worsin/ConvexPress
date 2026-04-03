@@ -40,6 +40,9 @@ export const settingsTables = {
       // Ticket System sections
       v.literal("ticket.general"),
       v.literal("ticket.sla"),
+      // Support Bridge System sections
+      v.literal("support.widget"),
+      v.literal("support.ai"),
     ),
 
     /**
