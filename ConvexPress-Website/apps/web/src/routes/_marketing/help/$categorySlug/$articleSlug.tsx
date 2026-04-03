@@ -2,6 +2,7 @@ import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
+import type React from "react";
 
 export const Route = createFileRoute(
   "/_marketing/help/$categorySlug/$articleSlug",
@@ -18,6 +19,82 @@ export const Route = createFileRoute(
     ],
   }),
 });
+
+// ─── Content Renderer ─────────────────────────────────────────────────────────
+
+function ArticleContent({ content, plainText }: { content?: string; plainText?: string }) {
+  // Try TipTap JSON first
+  if (content) {
+    try {
+      const doc = JSON.parse(content);
+      if (doc.type === "doc" && Array.isArray(doc.content)) {
+        return <div className="prose max-w-none">{renderTipTapNodes(doc.content)}</div>;
+      }
+    } catch {
+      // Not JSON, fall through
+    }
+  }
+
+  // Fallback to plain text
+  if (plainText) {
+    return (
+      <div className="prose max-w-none whitespace-pre-wrap text-foreground">
+        {plainText}
+      </div>
+    );
+  }
+
+  return <p className="text-muted-foreground italic">This article has no content yet.</p>;
+}
+
+function renderTipTapNodes(nodes: any[]): React.ReactNode[] {
+  return nodes.map((node, i) => {
+    switch (node.type) {
+      case "paragraph":
+        return <p key={i}>{renderInlineContent(node.content)}</p>;
+      case "heading": {
+        const Tag = `h${node.attrs?.level ?? 2}` as keyof JSX.IntrinsicElements;
+        return <Tag key={i}>{renderInlineContent(node.content)}</Tag>;
+      }
+      case "bulletList":
+        return <ul key={i}>{renderTipTapNodes(node.content ?? [])}</ul>;
+      case "orderedList":
+        return <ol key={i}>{renderTipTapNodes(node.content ?? [])}</ol>;
+      case "listItem":
+        return <li key={i}>{renderTipTapNodes(node.content ?? [])}</li>;
+      case "blockquote":
+        return <blockquote key={i}>{renderTipTapNodes(node.content ?? [])}</blockquote>;
+      case "codeBlock":
+        return <pre key={i}><code>{renderInlineContent(node.content)}</code></pre>;
+      case "horizontalRule":
+        return <hr key={i} />;
+      default:
+        if (node.content) return <div key={i}>{renderTipTapNodes(node.content)}</div>;
+        return null;
+    }
+  });
+}
+
+function renderInlineContent(content?: any[]): React.ReactNode {
+  if (!content) return null;
+  return content.map((node, i) => {
+    if (node.type === "text") {
+      let text: React.ReactNode = node.text;
+      if (node.marks) {
+        for (const mark of node.marks) {
+          if (mark.type === "bold") text = <strong key={i}>{text}</strong>;
+          if (mark.type === "italic") text = <em key={i}>{text}</em>;
+          if (mark.type === "code") text = <code key={i}>{text}</code>;
+          if (mark.type === "link") text = <a key={i} href={mark.attrs?.href} className="text-primary underline">{text}</a>;
+        }
+      }
+      return <span key={i}>{text}</span>;
+    }
+    return null;
+  });
+}
+
+// ─── Article Reader ───────────────────────────────────────────────────────────
 
 function ArticleReader() {
   const { categorySlug, articleSlug } = Route.useParams();
@@ -82,18 +159,9 @@ function ArticleReader() {
         </div>
       </header>
 
-      {/* Article content — placeholder for TipTap renderer */}
-      <article className="prose prose-lg max-w-none">
-        {art.contentPlaintext ? (
-          <p className="text-foreground">{art.contentPlaintext}</p>
-        ) : (
-          <p className="text-muted-foreground">
-            Article content will be rendered here using the TipTap content
-            renderer. The full reader experience (with feedback widget,
-            comments, progress tracking, and bookmarks) will be implemented
-            by the Website Blog UI Expert.
-          </p>
-        )}
+      {/* Article content */}
+      <article>
+        <ArticleContent content={art.content} plainText={art.contentPlainText} />
       </article>
 
       {/* Helpful feedback widget */}

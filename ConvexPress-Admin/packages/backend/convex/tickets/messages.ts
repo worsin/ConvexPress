@@ -12,7 +12,7 @@
  */
 
 import { ConvexError } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { mutation, query, internalMutation } from "../_generated/server";
 import {
   requireCan,
   requireAuth,
@@ -326,11 +326,9 @@ export const addInternalNote = mutation({
  * This is an internal helper -- not directly callable by clients.
  * Wrapped as a mutation so it can be called from other mutations.
  */
-export const addSystemMessage = mutation({
+export const addSystemMessage = internalMutation({
   args: addSystemMessageArgs,
   handler: async (ctx, args) => {
-    // System messages require admin auth (any staff member)
-    await requireCan(ctx, "ticket.respond");
 
     const ticket = await ctx.db.get(args.ticketId);
     if (!ticket) {
