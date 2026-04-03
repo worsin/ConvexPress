@@ -18,6 +18,7 @@ import { ConvexError } from "convex/values";
 import { mutation, query, internalMutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
+import { getCurrentUser } from "../helpers/permissions";
 import {
   createSessionArgs,
   validateSessionArgs,
@@ -36,6 +37,11 @@ import {
 export const create = mutation({
   args: createSessionArgs,
   handler: async (ctx, args) => {
+    // Validate sessionId format
+    if (!args.sessionId || args.sessionId.length > 64 || args.sessionId.length < 16) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Invalid session ID format" });
+    }
+
     // Check if session already exists
     const existing = await ctx.db
       .query("ticket_sessions")
@@ -127,6 +133,15 @@ export const touch = mutation({
 export const associateUser = mutation({
   args: associateUserArgs,
   handler: async (ctx, args) => {
+    // Verify the caller IS the user being associated
+    const currentUser = await getCurrentUser(ctx);
+    if (!currentUser) {
+      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
+    }
+    if (currentUser._id !== args.userId) {
+      throw new ConvexError({ code: "FORBIDDEN", message: "Cannot associate another user's session" });
+    }
+
     const session = await ctx.db
       .query("ticket_sessions")
       .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))

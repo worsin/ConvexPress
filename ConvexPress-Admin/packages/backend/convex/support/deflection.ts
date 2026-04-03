@@ -16,7 +16,7 @@
 
 import { action, mutation } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { getCurrentUser } from "../helpers/permissions";
 import { SUPPORT_EVENTS, SYSTEM } from "../events/constants";
 import { emitEvent } from "../helpers/events";
@@ -193,6 +193,25 @@ export const generateAnswer = action({
 export const logInteraction = mutation({
   args: logInteractionArgs,
   handler: async (ctx, args) => {
+    // Validate input lengths
+    if (args.query.length > 2000) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Query too long" });
+    }
+    if (args.aiResponse.length > 50000) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Response too long" });
+    }
+
+    // Validate session exists and is not expired
+    if (args.sessionId) {
+      const session = await ctx.db
+        .query("ticket_sessions")
+        .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
+        .first();
+      if (!session || session.expiresAt < Date.now()) {
+        throw new ConvexError({ code: "INVALID_SESSION", message: "Invalid or expired session" });
+      }
+    }
+
     const user = await getCurrentUser(ctx);
     const now = Date.now();
 

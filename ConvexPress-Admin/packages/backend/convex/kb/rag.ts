@@ -280,6 +280,11 @@ export const searchRag = action({
     topK: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required for search" });
+    }
+
     if (!args.query.trim()) {
       return { results: [] };
     }
