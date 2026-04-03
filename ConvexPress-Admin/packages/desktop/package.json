@@ -1,0 +1,28 @@
+{
+  "name": "@convexpress/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "tsup electron/main.ts electron/preload.ts --watch --outDir dist-electron --format esm,cjs --onSuccess 'electron .'",
+    "build:electron": "tsup electron/main.ts --outDir dist-electron --format esm --external electron --external electron-updater --external electron-store --external fix-path && tsup electron/preload.ts --outDir dist-electron --format cjs --external electron && cp -r electron/wizard dist-electron/wizard",
+    "build:web": "cd ../../apps/web && bun run build && cp -r dist ../../packages/desktop/dist",
+    "build": "bun run build:web && bun run build:electron",
+    "package:mac": "electron-builder --mac",
+    "package:win": "electron-builder --win",
+    "package:linux": "electron-builder --linux"
+  },
+  "dependencies": {
+    "electron-store": "^10.0.0",
+    "electron-updater": "^6.3.0",
+    "fix-path": "3"
+  },
+  "devDependencies": {
+    "@electron/notarize": "^3.1.1",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5"
+  }
+}
