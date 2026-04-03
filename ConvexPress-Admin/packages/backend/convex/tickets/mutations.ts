@@ -497,10 +497,9 @@ export const updatePriority = mutation({
       updatedAt: Date.now(),
     });
 
-    await emitEvent(ctx, TICKET_EVENTS.STATUS_CHANGED, SYSTEM.TICKET, {
+    await emitEvent(ctx, TICKET_EVENTS.PRIORITY_CHANGED, SYSTEM.TICKET, {
       ticketId: args.ticketId,
       ticketNumber: ticket.ticketNumber,
-      field: "priority",
       previousPriority: ticket.priority,
       newPriority: args.priority,
       changedBy: user._id,

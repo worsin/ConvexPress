@@ -62,11 +62,19 @@ function TicketThreadPage() {
     );
   }
 
-  if (!data) {
+  if (data === undefined) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-8 animate-pulse space-y-4">
         <div className="h-8 bg-muted rounded w-1/3" />
         <div className="h-64 bg-muted rounded" />
+      </div>
+    );
+  }
+
+  if (data === null) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-12 text-center text-muted-foreground">
+        Ticket not found or you do not have permission to view it.
       </div>
     );
   }
@@ -217,8 +225,8 @@ function TicketThreadPage() {
                   <Star
                     className={`h-8 w-8 transition-colors ${
                       star <= rating
-                        ? "fill-amber-400 text-amber-400"
-                        : "text-foreground/15 hover:text-amber-300"
+                        ? "fill-warning text-warning"
+                        : "text-foreground/15 hover:text-warning/70"
                     }`}
                   />
                 </button>
