@@ -42,16 +42,16 @@ function StatCard({
   subtext?: string;
 }) {
   return (
-    <div className="rounded-lg border border-black/10 p-4">
-      <div className="flex items-center gap-2 text-black/50 mb-1">
+    <div className="rounded-lg border border-border p-4">
+      <div className="flex items-center gap-2 text-muted-foreground mb-1">
         <Icon className="h-4 w-4" />
         <span className="text-xs font-medium uppercase tracking-wider">
           {label}
         </span>
       </div>
-      <div className="text-2xl font-bold text-black/90">{value}</div>
+      <div className="text-2xl font-bold text-foreground">{value}</div>
       {subtext && (
-        <div className="text-xs text-black/40 mt-1">{subtext}</div>
+        <div className="text-xs text-foreground/40 mt-1">{subtext}</div>
       )}
     </div>
   );
@@ -103,8 +103,8 @@ function TicketAnalyticsPage() {
             </div>
 
             {/* Status Breakdown */}
-            <div className="rounded-lg border border-black/10 p-4">
-              <h2 className="text-sm font-semibold text-black/70 mb-3">
+            <div className="rounded-lg border border-border p-4">
+              <h2 className="text-sm font-semibold text-foreground/70 mb-3">
                 Tickets by Status
               </h2>
               <div className="grid grid-cols-5 gap-3">
@@ -112,7 +112,7 @@ function TicketAnalyticsPage() {
                   ([status, count]) => (
                     <div key={status} className="text-center">
                       <div className="text-lg font-bold">{count}</div>
-                      <div className="text-xs text-black/50 capitalize">
+                      <div className="text-xs text-muted-foreground capitalize">
                         {status.replace(/([A-Z])/g, " $1").trim()}
                       </div>
                     </div>
@@ -122,8 +122,8 @@ function TicketAnalyticsPage() {
             </div>
 
             {/* Priority Breakdown */}
-            <div className="rounded-lg border border-black/10 p-4">
-              <h2 className="text-sm font-semibold text-black/70 mb-3">
+            <div className="rounded-lg border border-border p-4">
+              <h2 className="text-sm font-semibold text-foreground/70 mb-3">
                 Active Tickets by Priority
               </h2>
               <div className="grid grid-cols-4 gap-3">
@@ -132,7 +132,7 @@ function TicketAnalyticsPage() {
                 ).map(([priority, count]) => (
                   <div key={priority} className="text-center">
                     <div className="text-lg font-bold">{count}</div>
-                    <div className="text-xs text-black/50 capitalize">
+                    <div className="text-xs text-muted-foreground capitalize">
                       {priority}
                     </div>
                   </div>
@@ -142,10 +142,10 @@ function TicketAnalyticsPage() {
 
             {/* Awaiting First Response */}
             {stats.awaitingFirstResponseCount > 0 && (
-              <div className="rounded-lg border border-orange-200/60 bg-orange-50/30 p-4">
+              <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-orange-600" />
-                  <span className="text-sm font-medium text-orange-700">
+                  <Clock className="h-4 w-4 text-warning" />
+                  <span className="text-sm font-medium text-warning">
                     {stats.awaitingFirstResponseCount} ticket
                     {stats.awaitingFirstResponseCount !== 1 ? "s" : ""} awaiting
                     first response
@@ -158,35 +158,35 @@ function TicketAnalyticsPage() {
           <div className="animate-pulse space-y-4">
             <div className="grid grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-24 bg-black/5 rounded-lg" />
+                <div key={i} className="h-24 bg-muted rounded-lg" />
               ))}
             </div>
-            <div className="h-32 bg-black/5 rounded-lg" />
-            <div className="h-24 bg-black/5 rounded-lg" />
+            <div className="h-32 bg-muted rounded-lg" />
+            <div className="h-24 bg-muted rounded-lg" />
           </div>
         )}
 
         {/* Rate Limit Stats */}
         {rateLimitStats && (
-          <div className="rounded-lg border border-black/10 p-4">
-            <h2 className="text-sm font-semibold text-black/70 mb-3">
+          <div className="rounded-lg border border-border p-4">
+            <h2 className="text-sm font-semibold text-foreground/70 mb-3">
               Rate Limiting (All Time)
             </h2>
             <div className="grid grid-cols-3 gap-3 text-sm">
               <div>
-                <span className="text-black/50">AI Queries:</span>{" "}
+                <span className="text-muted-foreground">AI Queries:</span>{" "}
                 <span className="font-medium">
                   {(rateLimitStats as any)?.aiQueryCount ?? 0}
                 </span>
               </div>
               <div>
-                <span className="text-black/50">Ticket Creations:</span>{" "}
+                <span className="text-muted-foreground">Ticket Creations:</span>{" "}
                 <span className="font-medium">
                   {(rateLimitStats as any)?.ticketCreateCount ?? 0}
                 </span>
               </div>
               <div>
-                <span className="text-black/50">Searches:</span>{" "}
+                <span className="text-muted-foreground">Searches:</span>{" "}
                 <span className="font-medium">
                   {(rateLimitStats as any)?.searchCount ?? 0}
                 </span>

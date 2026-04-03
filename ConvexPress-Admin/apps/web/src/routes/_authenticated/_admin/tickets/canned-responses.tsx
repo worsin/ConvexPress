@@ -138,8 +138,8 @@ function CannedResponsesManager() {
   if (!responses) {
     return (
       <div className="p-6 animate-pulse space-y-4">
-        <div className="h-8 bg-black/5 rounded w-1/4" />
-        <div className="h-48 bg-black/5 rounded" />
+        <div className="h-8 bg-muted rounded w-1/4" />
+        <div className="h-48 bg-muted rounded" />
       </div>
     );
   }
@@ -150,9 +150,9 @@ function CannedResponsesManager() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Canned Responses</h1>
-          <p className="text-sm text-black/50 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Pre-written replies for common support scenarios. Use{" "}
-            <code className="bg-black/5 px-1 rounded text-xs">
+            <code className="bg-muted px-1 rounded text-xs">
               {"{{variable}}"}
             </code>{" "}
             for dynamic values.
@@ -161,7 +161,7 @@ function CannedResponsesManager() {
         {!isCreating && !editingId && (
           <button
             onClick={startCreate}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
           >
             <Plus className="h-4 w-4" />
             Add New
@@ -171,28 +171,28 @@ function CannedResponsesManager() {
 
       {/* Create / Edit Form */}
       {(isCreating || editingId) && (
-        <div className="rounded-lg border border-blue-200/60 bg-blue-50/30 p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-black/70">
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-foreground/70">
             {isCreating ? "New Canned Response" : "Edit Canned Response"}
           </h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-black/60 mb-1">
-                Title <span className="text-red-500">*</span>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                Title <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 placeholder="e.g. Welcome to Support"
-                className="w-full px-3 py-1.5 text-sm border border-black/15 rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-black/60 mb-1">
-                Shortcut <span className="text-red-500">*</span>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                Shortcut <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
@@ -206,16 +206,16 @@ function CannedResponsesManager() {
                   })
                 }
                 placeholder="e.g. /welcome"
-                className="w-full px-3 py-1.5 text-sm border border-black/15 rounded-md bg-card font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
-              <p className="text-xs text-black/40 mt-0.5">
+              <p className="text-xs text-foreground/40 mt-0.5">
                 Lowercase letters, numbers, hyphens, underscores only
               </p>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-black/60 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               Category
             </label>
             <input
@@ -224,7 +224,7 @@ function CannedResponsesManager() {
               onChange={(e) => setForm({ ...form, category: e.target.value })}
               placeholder="e.g. billing, technical, onboarding"
               list="canned-categories"
-              className="w-full max-w-xs px-3 py-1.5 text-sm border border-black/15 rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              className="w-full max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
             <datalist id="canned-categories">
               {(categories ?? []).map((cat: string) => (
@@ -234,35 +234,35 @@ function CannedResponsesManager() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-black/60 mb-1">
-              Content <span className="text-red-500">*</span>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Content <span className="text-destructive">*</span>
             </label>
             <textarea
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}
               rows={6}
               placeholder="Hi {{userName}}, thank you for reaching out..."
-              className="w-full px-3 py-2 text-sm border border-black/15 rounded-md bg-card resize-y focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-mono"
+              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono"
             />
-            <p className="text-xs text-black/40 mt-0.5">
+            <p className="text-xs text-foreground/40 mt-0.5">
               Available variables:{" "}
-              <code className="bg-black/5 px-1 rounded">{"{{userName}}"}</code>{" "}
-              <code className="bg-black/5 px-1 rounded">{"{{ticketNumber}}"}</code>{" "}
-              <code className="bg-black/5 px-1 rounded">{"{{agentName}}"}</code>
+              <code className="bg-muted px-1 rounded">{"{{userName}}"}</code>{" "}
+              <code className="bg-muted px-1 rounded">{"{{ticketNumber}}"}</code>{" "}
+              <code className="bg-muted px-1 rounded">{"{{agentName}}"}</code>
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => void handleSave()}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
             >
               <Save className="h-4 w-4" />
               {isCreating ? "Create" : "Save Changes"}
             </button>
             <button
               onClick={cancelEdit}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black/60 border border-black/15 rounded-md hover:bg-black/5 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground border border-border rounded-md hover:bg-muted transition-colors"
             >
               <X className="h-4 w-4" />
               Cancel
@@ -273,61 +273,61 @@ function CannedResponsesManager() {
 
       {/* Responses List */}
       {responses.length === 0 ? (
-        <div className="rounded-lg border border-black/10 p-12 text-center text-sm text-black/40">
+        <div className="rounded-lg border border-border p-12 text-center text-sm text-foreground/40">
           No canned responses yet. Create one to speed up your support workflow.
         </div>
       ) : (
-        <div className="rounded-lg border border-black/10 overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden">
           <table className="min-w-full divide-y divide-black/10">
-            <thead className="bg-black/[0.02]">
+            <thead className="bg-muted/50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black/50 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Title
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black/50 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Shortcut
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black/50 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Category
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black/50 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Used
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-black/50 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-card divide-y divide-black/5">
               {(responses as CannedResponse[]).map((r) => (
-                <tr key={r._id} className="hover:bg-black/[0.01]">
+                <tr key={r._id} className="hover:bg-muted/30">
                   <td className="px-4 py-3">
-                    <div className="text-sm font-medium text-black/90">
+                    <div className="text-sm font-medium text-foreground">
                       {r.title}
                     </div>
-                    <div className="text-xs text-black/40 truncate max-w-sm mt-0.5">
+                    <div className="text-xs text-foreground/40 truncate max-w-sm mt-0.5">
                       {r.content.slice(0, 80)}
                       {r.content.length > 80 && "…"}
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <code className="text-xs bg-black/5 px-2 py-0.5 rounded font-mono">
+                    <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono">
                       {r.shortcut}
                     </code>
                   </td>
-                  <td className="px-4 py-3 text-sm text-black/60">
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
                     {r.category || (
-                      <span className="italic text-black/30">None</span>
+                      <span className="italic text-foreground/30">None</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-black/50">
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
                     {r.usageCount}x
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => startEdit(r)}
-                        className="p-1.5 rounded hover:bg-black/5 text-black/40 hover:text-black/70 transition-colors"
+                        className="p-1.5 rounded hover:bg-muted text-foreground/40 hover:text-foreground/70 transition-colors"
                         aria-label={`Edit ${r.title}`}
                       >
                         <Pencil className="h-4 w-4" />
@@ -336,13 +336,13 @@ function CannedResponsesManager() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => void handleDelete(r._id)}
-                            className="px-2 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
+                            className="px-2 py-1 text-xs font-medium text-primary-foreground bg-destructive rounded hover:bg-destructive/90 transition-colors"
                           >
                             Delete
                           </button>
                           <button
                             onClick={() => setDeleteConfirmId(null)}
-                            className="px-2 py-1 text-xs font-medium text-black/50 border border-black/15 rounded hover:bg-black/5 transition-colors"
+                            className="px-2 py-1 text-xs font-medium text-muted-foreground border border-border rounded hover:bg-muted transition-colors"
                           >
                             Cancel
                           </button>
@@ -350,7 +350,7 @@ function CannedResponsesManager() {
                       ) : (
                         <button
                           onClick={() => setDeleteConfirmId(r._id)}
-                          className="p-1.5 rounded hover:bg-red-50 text-black/40 hover:text-red-600 transition-colors"
+                          className="p-1.5 rounded hover:bg-destructive/10 text-foreground/40 hover:text-destructive transition-colors"
                           aria-label={`Delete ${r.title}`}
                         >
                           <Trash2 className="h-4 w-4" />

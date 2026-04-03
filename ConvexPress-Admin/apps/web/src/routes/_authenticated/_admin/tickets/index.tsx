@@ -153,8 +153,8 @@ function TicketListTable() {
   if (!result) {
     return (
       <div className="p-6 animate-pulse space-y-4">
-        <div className="h-8 bg-black/5 rounded w-1/4" />
-        <div className="h-64 bg-black/5 rounded" />
+        <div className="h-8 bg-muted rounded w-1/4" />
+        <div className="h-64 bg-muted rounded" />
       </div>
     );
   }
@@ -250,7 +250,7 @@ function TicketListTable() {
               },
             })
           }
-          className="px-3 py-1.5 text-sm border border-black/15 rounded-md bg-card"
+          className="px-3 py-1.5 text-sm border border-border rounded-md bg-card"
         >
           <option value="">All Priorities</option>
           <option value="urgent">Urgent</option>
@@ -270,7 +270,7 @@ function TicketListTable() {
               },
             })
           }
-          className="px-3 py-1.5 text-sm border border-black/15 rounded-md bg-card"
+          className="px-3 py-1.5 text-sm border border-border rounded-md bg-card"
         >
           <option value="">All Categories</option>
           {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
@@ -282,34 +282,34 @@ function TicketListTable() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-black/10">
-        <table className="min-w-full divide-y divide-black/10">
-          <thead className="bg-black/[0.02]">
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-muted/50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-black/50 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Ticket
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-black/50 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-black/50 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Priority
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-black/50 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Category
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-black/50 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Assignee
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-black/50 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Submitted
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-black/50 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Last Activity
               </th>
             </tr>
           </thead>
-          <tbody className="bg-card divide-y divide-black/5">
+          <tbody className="bg-card divide-y divide-border/50">
             {result.tickets.map((ticket: any) => (
               <tr
                 key={ticket._id}
@@ -319,14 +319,14 @@ function TicketListTable() {
                     params: { ticketId: ticket._id },
                   })
                 }
-                className="hover:bg-black/[0.02] cursor-pointer transition-colors"
+                className="hover:bg-muted/30 cursor-pointer transition-colors"
               >
                 <td className="px-4 py-3">
                   <div>
-                    <div className="text-sm font-medium text-black/90 truncate max-w-xs">
+                    <div className="text-sm font-medium text-foreground truncate max-w-xs">
                       {ticket.subject}
                     </div>
-                    <div className="text-xs text-black/40 mt-0.5">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       {ticket.ticketNumber} &middot; {ticket.userNameSnapshot}
                     </div>
                   </div>
@@ -337,23 +337,23 @@ function TicketListTable() {
                 <td className="px-4 py-3">
                   <PriorityBadge priority={ticket.priority} />
                 </td>
-                <td className="px-4 py-3 text-sm text-black/60">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   {CATEGORY_LABELS[ticket.category] ?? ticket.category}
                 </td>
-                <td className="px-4 py-3 text-sm text-black/60">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   {ticket.assigneeName ?? (
-                    <span className="text-black/30 italic">Unassigned</span>
+                    <span className="text-foreground/30 italic">Unassigned</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-sm text-black/50">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   {formatTimeAgo(ticket.createdAt)}
                 </td>
-                <td className="px-4 py-3 text-sm text-black/50">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <MessageSquare className="h-3 w-3" />
                     <span>{ticket.messageCount}</span>
                     {ticket.lastMessageAt && (
-                      <span className="text-black/30 ml-1">
+                      <span className="text-foreground/30 ml-1">
                         &middot; {formatTimeAgo(ticket.lastMessageAt)}
                       </span>
                     )}
@@ -365,7 +365,7 @@ function TicketListTable() {
               <tr>
                 <td
                   colSpan={7}
-                  className="px-4 py-12 text-center text-sm text-black/40"
+                  className="px-4 py-12 text-center text-sm text-muted-foreground"
                 >
                   No tickets found.
                 </td>
@@ -377,7 +377,7 @@ function TicketListTable() {
 
       {/* Pagination */}
       {result.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-black/50">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
             Showing {(result.page - 1) * result.perPage + 1}&ndash;
             {Math.min(result.page * result.perPage, result.total)} of{" "}
@@ -391,7 +391,7 @@ function TicketListTable() {
                   search: { ...search, page: result.page - 1 },
                 })
               }
-              className="px-3 py-1 rounded border border-black/15 disabled:opacity-30"
+              className="px-3 py-1 rounded border border-border disabled:opacity-30"
             >
               Previous
             </button>
@@ -402,7 +402,7 @@ function TicketListTable() {
                   search: { ...search, page: result.page + 1 },
                 })
               }
-              className="px-3 py-1 rounded border border-black/15 disabled:opacity-30"
+              className="px-3 py-1 rounded border border-border disabled:opacity-30"
             >
               Next
             </button>

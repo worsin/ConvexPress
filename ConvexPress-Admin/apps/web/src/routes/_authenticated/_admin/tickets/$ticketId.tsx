@@ -84,15 +84,15 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
   if (!data) {
     return (
       <div className="p-6 animate-pulse space-y-4">
-        <div className="h-8 bg-black/5 rounded w-1/3" />
-        <div className="h-96 bg-black/5 rounded" />
+        <div className="h-8 bg-muted rounded w-1/3" />
+        <div className="h-96 bg-muted rounded" />
       </div>
     );
   }
 
   if (data === null) {
     return (
-      <div className="p-6 text-center text-sm text-black/50">
+      <div className="p-6 text-center text-sm text-muted-foreground">
         Ticket not found or you do not have permission to view it.
       </div>
     );
@@ -146,14 +146,14 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
       <div className="flex items-center gap-3">
         <button
           onClick={() => void navigate({ to: "/_authenticated/_admin/tickets/" })}
-          className="p-1 rounded hover:bg-black/5"
+          className="p-1 rounded hover:bg-muted"
           aria-label="Back to tickets"
         >
-          <ArrowLeft className="h-5 w-5 text-black/50" />
+          <ArrowLeft className="h-5 w-5 text-muted-foreground" />
         </button>
         <div>
           <h1 className="text-xl font-bold">{ticket.subject}</h1>
-          <div className="text-sm text-black/50">
+          <div className="text-sm text-muted-foreground">
             {ticket.ticketNumber} &middot; Opened by {ticket.userNameSnapshot} (
             {ticket.userEmailSnapshot})
           </div>
@@ -170,39 +170,39 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
                 key={msg._id}
                 className={`rounded-lg border p-4 ${
                   msg.isInternal
-                    ? "border-amber-300/50 bg-amber-50/50"
+                    ? "border-warning/30 bg-warning/10"
                     : msg.senderType === "system"
-                      ? "border-black/5 bg-black/[0.02]"
+                      ? "border-border/50 bg-muted/30"
                       : msg.senderType === "admin"
-                        ? "border-blue-200/50 bg-blue-50/30"
-                        : "border-black/10 bg-card"
+                        ? "border-primary/20 bg-primary/5"
+                        : "border-border bg-card"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{msg.senderName}</span>
                     {msg.isInternal && (
-                      <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-500/15 px-1.5 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 text-xs text-warning bg-warning/15 px-1.5 py-0.5 rounded">
                         <Lock className="h-3 w-3" /> Internal
                       </span>
                     )}
                     {msg.senderType === "system" && (
-                      <span className="text-xs text-black/40 bg-black/5 px-1.5 py-0.5 rounded">
+                      <span className="text-xs text-foreground/40 bg-muted px-1.5 py-0.5 rounded">
                         System
                       </span>
                     )}
                     {msg.senderType === "admin" && !msg.isInternal && (
-                      <span className="text-xs text-blue-700 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                      <span className="text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                         Staff
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-black/40">
+                  <span className="text-xs text-foreground/40">
                     {formatDate(msg.createdAt)}
                     {msg.editedAt && " (edited)"}
                   </span>
                 </div>
-                <div className="text-sm text-black/80 whitespace-pre-wrap">
+                <div className="text-sm text-foreground whitespace-pre-wrap">
                   {msg.content}
                 </div>
                 {msg.attachments && msg.attachments.length > 0 && (
@@ -210,7 +210,7 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
                     {msg.attachments.map((att: any, i: number) => (
                       <span
                         key={i}
-                        className="text-xs bg-black/5 px-2 py-1 rounded"
+                        className="text-xs bg-muted px-2 py-1 rounded"
                       >
                         {att.name} ({Math.round(att.size / 1024)}KB)
                       </span>
@@ -223,14 +223,14 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
 
           {/* Reply Box */}
           {ticket.status !== "closed" && (
-            <div className="rounded-lg border border-black/10 p-4 space-y-3">
+            <div className="rounded-lg border border-border p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setIsInternal(false)}
                   className={`text-sm font-medium px-3 py-1 rounded transition-colors ${
                     !isInternal
-                      ? "bg-blue-500/15 text-blue-700"
-                      : "text-black/50 hover:text-black/70"
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:text-foreground/70"
                   }`}
                 >
                   Reply
@@ -239,8 +239,8 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
                   onClick={() => setIsInternal(true)}
                   className={`text-sm font-medium px-3 py-1 rounded flex items-center gap-1 transition-colors ${
                     isInternal
-                      ? "bg-amber-500/15 text-amber-700"
-                      : "text-black/50 hover:text-black/70"
+                      ? "bg-warning/15 text-warning"
+                      : "text-muted-foreground hover:text-foreground/70"
                   }`}
                 >
                   <Lock className="h-3 w-3" /> Internal Note
@@ -255,13 +255,13 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
                     : "Type your reply..."
                 }
                 rows={4}
-                className="w-full px-3 py-2 text-sm border border-black/15 rounded-md bg-card resize-y focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
               <div className="flex justify-end">
                 <button
                   onClick={() => void handleReply()}
                   disabled={!replyContent.trim()}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <Send className="h-4 w-4" />
                   {isInternal ? "Add Note" : "Send Reply"}
@@ -274,12 +274,12 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
         {/* Sidebar (1/3) */}
         <div className="space-y-4">
           {/* Status */}
-          <div className="rounded-lg border border-black/10 p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-black/70">Status</h3>
+          <div className="rounded-lg border border-border p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground/70">Status</h3>
             <select
               value={ticket.status}
               onChange={(e) => void handleStatusChange(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-black/15 rounded-md bg-card"
+              className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card"
             >
               <option value="open">Open</option>
               <option value="awaitingResponse">Awaiting Response</option>
@@ -290,12 +290,12 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
           </div>
 
           {/* Priority */}
-          <div className="rounded-lg border border-black/10 p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-black/70">Priority</h3>
+          <div className="rounded-lg border border-border p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground/70">Priority</h3>
             <select
               value={ticket.priority}
               onChange={(e) => void handlePriorityChange(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-black/15 rounded-md bg-card"
+              className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -305,18 +305,18 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
           </div>
 
           {/* Details */}
-          <div className="rounded-lg border border-black/10 p-4 space-y-2">
-            <h3 className="text-sm font-semibold text-black/70">Details</h3>
+          <div className="rounded-lg border border-border p-4 space-y-2">
+            <h3 className="text-sm font-semibold text-foreground/70">Details</h3>
             <div className="text-sm">
-              <span className="text-black/50">Category:</span>{" "}
-              <span className="text-black/80">{ticket.category}</span>
+              <span className="text-muted-foreground">Category:</span>{" "}
+              <span className="text-foreground">{ticket.category}</span>
             </div>
             <div className="text-sm">
-              <span className="text-black/50">Source:</span>{" "}
-              <span className="text-black/80">{ticket.source}</span>
+              <span className="text-muted-foreground">Source:</span>{" "}
+              <span className="text-foreground">{ticket.source}</span>
             </div>
             {ticket.aiAttempted && (
-              <div className="text-sm text-purple-700 flex items-center gap-1">
+              <div className="text-sm text-accent-foreground flex items-center gap-1">
                 <AlertTriangle className="h-3 w-3" />
                 AI deflection attempted
               </div>
@@ -324,8 +324,8 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
           </div>
 
           {/* Tags */}
-          <div className="rounded-lg border border-black/10 p-4 space-y-2">
-            <h3 className="text-sm font-semibold text-black/70 flex items-center gap-1">
+          <div className="rounded-lg border border-border p-4 space-y-2">
+            <h3 className="text-sm font-semibold text-foreground/70 flex items-center gap-1">
               <Tag className="h-3.5 w-3.5" /> Tags
             </h3>
             <div className="flex flex-wrap gap-1">
@@ -333,37 +333,37 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
                 ticket.tags.map((tag: string) => (
                   <span
                     key={tag}
-                    className="text-xs bg-black/5 px-2 py-0.5 rounded"
+                    className="text-xs bg-muted px-2 py-0.5 rounded"
                   >
                     {tag}
                   </span>
                 ))
               ) : (
-                <span className="text-xs text-black/30 italic">No tags</span>
+                <span className="text-xs text-foreground/30 italic">No tags</span>
               )}
             </div>
           </div>
 
           {/* SLA */}
-          <div className="rounded-lg border border-black/10 p-4 space-y-2">
-            <h3 className="text-sm font-semibold text-black/70 flex items-center gap-1">
+          <div className="rounded-lg border border-border p-4 space-y-2">
+            <h3 className="text-sm font-semibold text-foreground/70 flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" /> SLA
             </h3>
             <div className="text-sm">
-              <span className="text-black/50">Created:</span>{" "}
-              <span className="text-black/80">
+              <span className="text-muted-foreground">Created:</span>{" "}
+              <span className="text-foreground">
                 {formatDate(ticket.createdAt)}
               </span>
             </div>
             {ticket.firstResponseAt ? (
               <div className="text-sm">
-                <span className="text-black/50">First response:</span>{" "}
-                <span className="text-black/80">
+                <span className="text-muted-foreground">First response:</span>{" "}
+                <span className="text-foreground">
                   {formatDuration(ticket.firstResponseAt - ticket.createdAt)}
                 </span>
               </div>
             ) : (
-              <div className="text-sm text-orange-600 flex items-center gap-1">
+              <div className="text-sm text-warning flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 Awaiting first response (
                 {formatDuration(Date.now() - ticket.createdAt)})
@@ -371,8 +371,8 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
             )}
             {ticket.resolvedAt && (
               <div className="text-sm">
-                <span className="text-black/50">Resolved in:</span>{" "}
-                <span className="text-black/80">
+                <span className="text-muted-foreground">Resolved in:</span>{" "}
+                <span className="text-foreground">
                   {formatDuration(ticket.resolvedAt - ticket.createdAt)}
                 </span>
               </div>
@@ -381,8 +381,8 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
 
           {/* CSAT */}
           {ticket.rating !== undefined && (
-            <div className="rounded-lg border border-black/10 p-4 space-y-2">
-              <h3 className="text-sm font-semibold text-black/70 flex items-center gap-1">
+            <div className="rounded-lg border border-border p-4 space-y-2">
+              <h3 className="text-sm font-semibold text-foreground/70 flex items-center gap-1">
                 <Star className="h-3.5 w-3.5" /> Rating
               </h3>
               <div className="flex items-center gap-1">
@@ -391,17 +391,17 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
                     key={star}
                     className={`h-4 w-4 ${
                       star <= ticket.rating
-                        ? "fill-amber-400 text-amber-400"
-                        : "text-black/15"
+                        ? "fill-warning text-warning"
+                        : "text-foreground/15"
                     }`}
                   />
                 ))}
-                <span className="text-sm text-black/60 ml-1">
+                <span className="text-sm text-muted-foreground ml-1">
                   {ticket.rating}/5
                 </span>
               </div>
               {ticket.ratingComment && (
-                <p className="text-sm text-black/60 italic">
+                <p className="text-sm text-muted-foreground italic">
                   &ldquo;{ticket.ratingComment}&rdquo;
                 </p>
               )}
