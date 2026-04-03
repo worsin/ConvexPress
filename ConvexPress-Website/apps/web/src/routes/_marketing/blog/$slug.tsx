@@ -14,6 +14,7 @@ import { AuthorBox } from "@/components/blog/AuthorBox";
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { PasswordGate } from "@/components/blog/PasswordGate";
 import { PostContent } from "@/components/blog/PostContent";
+import { StructuredContent, hasStructuredContent } from "@/components/blog/StructuredContent";
 import { PostFooter } from "@/components/blog/PostFooter";
 import { PostHeader } from "@/components/blog/PostHeader";
 import { RelatedPosts } from "@/components/blog/RelatedPosts";
@@ -299,8 +300,24 @@ function SinglePost() {
         featuredImageUrl={post.featuredImageUrl}
         featuredImageAlt={post.featuredImageAlt}
       />
-      {/* Content */}
-      <PostContent content={post.content} />
+      {/* Content: structured (AI-generated) takes priority over TipTap blocks */}
+      {hasStructuredContent({
+        hero: resolvedPostData.hero,
+        topics: resolvedPostData.topics,
+        summary: resolvedPostData.summary,
+        sources: resolvedPostData.sources,
+        tableOfContents: resolvedPostData.tableOfContents,
+      }) ? (
+        <StructuredContent
+          hero={resolvedPostData.hero}
+          topics={resolvedPostData.topics}
+          summary={resolvedPostData.summary}
+          sources={resolvedPostData.sources}
+          tableOfContents={resolvedPostData.tableOfContents}
+        />
+      ) : (
+        <PostContent content={post.content} />
+      )}
       {/* Footer (tags, share, nav) */}
       <PostFooter
         tags={post.tags}
