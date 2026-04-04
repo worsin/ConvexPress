@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { Send, Loader2, User, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,7 @@ export function TicketDetailView({
   ticketId,
 }: TicketDetailViewProps) {
   const messages = useQuery(api.tickets.messages.getByTicket, {
-    ticketId: ticketId as any,
+    ticketId: ticketId as Id<"ticket_tickets">,
   });
   const replyToTicket = useMutation(api.tickets.mutations.reply);
 
@@ -35,7 +36,7 @@ export function TicketDetailView({
     setIsSending(true);
     try {
       await replyToTicket({
-        ticketId: ticketId as any,
+        ticketId: ticketId as Id<"ticket_tickets">,
         content: trimmed,
       });
       setReplyContent("");
@@ -74,7 +75,7 @@ export function TicketDetailView({
           </p>
         ) : (
           <div className="flex flex-col gap-3">
-            {messages.map((message: any) => {
+            {messages.map((message) => {
               const isUser = message.senderType === "user";
               const isSystem = message.senderType === "system";
 

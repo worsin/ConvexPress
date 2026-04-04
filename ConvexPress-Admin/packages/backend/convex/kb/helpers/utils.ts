@@ -268,20 +268,35 @@ export function extractPlainText(jsonContent: string): string {
   }
 }
 
+/** TipTap JSON node types for recursive text extraction. */
+interface TipTapTextNode {
+  type: "text";
+  text: string;
+  marks?: Array<{ type: string; attrs?: Record<string, unknown> }>;
+}
+
+interface TipTapBlockNode {
+  type: string;
+  content?: TipTapNode[];
+  attrs?: Record<string, unknown>;
+}
+
+type TipTapNode = TipTapTextNode | TipTapBlockNode;
+
 /**
  * Recursively extract text from a TipTap JSON node.
  */
-function extractTextFromNode(node: any): string {
+function extractTextFromNode(node: TipTapNode): string {
   if (!node) return "";
 
   // Text node -- return the text content
-  if (node.type === "text" && typeof node.text === "string") {
+  if (node.type === "text" && "text" in node && typeof node.text === "string") {
     return node.text;
   }
 
   // Container node -- recurse into children
-  if (Array.isArray(node.content)) {
-    const childTexts = node.content.map((child: any) => extractTextFromNode(child));
+  if ("content" in node && Array.isArray(node.content)) {
+    const childTexts = node.content.map((child) => extractTextFromNode(child));
     // Add newlines between block-level nodes
     const blockTypes = [
       "paragraph", "heading", "blockquote", "codeBlock",

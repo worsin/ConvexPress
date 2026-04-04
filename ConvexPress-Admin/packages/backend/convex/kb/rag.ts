@@ -20,6 +20,7 @@
  */
 
 import { action } from "../_generated/server";
+import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 
@@ -63,9 +64,9 @@ function cosineSimilarity(a: number[], b: number[]): number {
  * Resolve RAG settings from the kb.search settings section.
  * Throws CONFIGURATION_ERROR if RAG is not enabled or misconfigured.
  */
-async function resolveRagConfig(ctx: {
-  runQuery: (query: any, args?: any) => Promise<any>;
-}): Promise<{ provider: "openai" | "anthropic"; apiKey: string; model: string }> {
+async function resolveRagConfig(
+  ctx: Pick<ActionCtx, "runQuery">,
+): Promise<{ provider: "openai" | "anthropic"; apiKey: string; model: string }> {
   const settings = (await ctx.runQuery(
     internal.settings.internals.getInternal,
     { section: "kb.search" },
@@ -295,8 +296,20 @@ export const searchRag = action({
     // Embed the query
     const queryEmbedding = await generateEmbedding(args.query.trim(), apiKey, model);
 
-    // Load all stored chunks
-    const allChunks = await ctx.runQuery(internal.kb.internals.getAllRagChunks, {});
+    // Load all stored chunks -- cast once at the call site since runQuery
+    // inside actions returns a loosely typed result.
+    type RagChunk = {
+      articleId: string;
+      articleSlug: string;
+      content: string;
+      chunkIndex: number;
+      embedding: number[];
+      metadata: { title: string; categorySlug?: string; excerpt?: string };
+    };
+    const allChunks = (await ctx.runQuery(
+      internal.kb.internals.getAllRagChunks,
+      {},
+    )) as RagChunk[];
 
     if (!allChunks.length) {
       return { results: [] };
@@ -312,13 +325,13 @@ export const searchRag = action({
       score: number;
     };
 
-    const scored: ScoredChunk[] = allChunks.map((chunk: any) => ({
-      articleId: chunk.articleId as string,
-      articleSlug: chunk.articleSlug as string,
-      chunkContent: chunk.content as string,
-      chunkIndex: chunk.chunkIndex as number,
-      metadata: chunk.metadata as { title: string; categorySlug?: string; excerpt?: string },
-      score: cosineSimilarity(queryEmbedding, chunk.embedding as number[]),
+    const scored: ScoredChunk[] = allChunks.map((chunk) => ({
+      articleId: chunk.articleId,
+      articleSlug: chunk.articleSlug,
+      chunkContent: chunk.content,
+      chunkIndex: chunk.chunkIndex,
+      metadata: chunk.metadata,
+      score: cosineSimilarity(queryEmbedding, chunk.embedding),
     }));
 
     // Sort by descending score

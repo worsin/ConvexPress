@@ -54,7 +54,7 @@ function NewKBArticleForm() {
       toast.success("Article created");
       void navigate({
         to: "/kb/$articleId/edit",
-        params: { articleId: articleId as string },
+        params: { articleId: String(articleId) },
       });
     } catch (err: unknown) {
       toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to create article");

@@ -27,17 +27,40 @@ export const Route = createFileRoute("/_marketing/help/")({
   }),
 });
 
+/** Category shape returned by listPublished. */
+type KbCategory = {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  articleCount: number;
+};
+
+/** Featured article shape returned by getFeatured. */
+type FeaturedArticle = {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  viewCount: number;
+  categoryId?: string;
+  categorySlug?: string;
+  featuredImageId?: string;
+  readingTimeMinutes?: number;
+};
+
 function HelpCenter() {
   const navigate = useNavigate();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
   const { data: categories } = useSuspenseQuery(
-    // @ts-expect-error - Convex query type mismatch with useSuspenseQuery
-    convexQuery(api.kb.categories.listPublished, {}),
-  );
+    convexQuery(api.kb.categories.listPublished, {}) as any,
+  ) as { data: KbCategory[] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
   const { data: featured } = useSuspenseQuery(
-    // @ts-expect-error - Convex query type mismatch with useSuspenseQuery
-    convexQuery(api.kb.queries.getFeatured, { limit: 6 }),
-  );
+    convexQuery(api.kb.queries.getFeatured, { limit: 6 }) as any,
+  ) as { data: FeaturedArticle[] };
 
   function handleSearchSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -77,9 +100,9 @@ function HelpCenter() {
       {/* Categories grid */}
       <section className="mb-12">
         <h2 className="mb-6 text-2xl font-semibold">Browse by Category</h2>
-        {categories && (categories as any[]).length > 0 ? (
+        {categories && categories.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(categories as any[]).map((cat) => (
+            {categories.map((cat) => (
               <Link
                 key={cat._id}
                 to="/help/$categorySlug"
@@ -108,11 +131,11 @@ function HelpCenter() {
       </section>
 
       {/* Featured articles */}
-      {featured && (featured as any[]).length > 0 && (
+      {featured && featured.length > 0 && (
         <section>
           <h2 className="mb-6 text-2xl font-semibold">Featured Articles</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(featured as any[]).map((article) => (
+            {featured.map((article) => (
               <Link
                 key={article._id}
                 to="/help/$categorySlug/$articleSlug"

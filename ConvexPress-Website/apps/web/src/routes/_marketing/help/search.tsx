@@ -40,15 +40,26 @@ function KbSearchResults() {
 
   const hasQuery = Boolean(q?.trim());
 
+  type SearchResult = {
+    _id: string;
+    title: string;
+    slug: string;
+    excerpt?: string;
+    categorySlug?: string;
+    categoryName?: string;
+    readingTimeMinutes?: number;
+  };
+  type SearchData = { results: SearchResult[]; total: number };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
   const { data } = useSuspenseQuery(
-    // @ts-expect-error - Convex query type mismatch with useSuspenseQuery
     hasQuery
-      ? convexQuery(api.kb.search.search, {
+      ? (convexQuery(api.kb.search.search, {
           query: q!.trim(),
           limit: 20,
-        })
+        }) as any)
       : { queryKey: ["kb-search-empty"], queryFn: () => ({ results: [], total: 0 }) },
-  );
+  ) as { data: SearchData };
 
   function handleSearchSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -56,8 +67,8 @@ function KbSearchResults() {
     navigate({ to: "/help/search", search: { q: query.trim() || undefined } });
   }
 
-  const results = (data as any)?.results ?? [];
-  const total = (data as any)?.total ?? 0;
+  const results = data?.results ?? [];
+  const total = data?.total ?? 0;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
@@ -97,7 +108,7 @@ function KbSearchResults() {
 
       {/* Results */}
       <div className="space-y-4">
-        {results.map((article: any) => (
+        {results.map((article) => (
           <Link
             key={article._id}
             to="/help/$categorySlug/$articleSlug"

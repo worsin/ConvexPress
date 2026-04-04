@@ -46,7 +46,7 @@ function MyTicketsPage() {
     api.tickets.queries.getMyTickets,
     isSignedIn
       ? {
-          status: search.status as any,
+          status: search.status as "open" | "awaitingResponse" | "inProgress" | "resolved" | "closed" | undefined,
           page: search.page,
         }
       : "skip",
@@ -92,7 +92,7 @@ function MyTicketsPage() {
           <Link
             key={tab.key ?? "all"}
             to="/support/tickets"
-            search={{ status: tab.key as any }}
+            search={{ status: tab.key as "open" | "awaitingResponse" | "inProgress" | "resolved" | "closed" | undefined }}
             className={`px-3 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
               (tab.key === undefined ? !search.status : search.status === tab.key)
                 ? "border-primary text-primary"
