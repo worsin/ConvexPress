@@ -72,8 +72,41 @@ function renderTipTapNodes(nodes: any[]): React.ReactNode[] {
         return <pre key={i}><code>{renderInlineContent(node.content)}</code></pre>;
       case "horizontalRule":
         return <hr key={i} />;
+      case "image": {
+        const src = sanitizeLinkHref(node.attrs?.src);
+        return src ? <img key={i} src={src} alt={node.attrs?.alt ?? ""} title={node.attrs?.title ?? undefined} /> : null;
+      }
+      case "table":
+        return <table key={i} className="w-full border-collapse border border-border my-4"><tbody>{renderTipTapNodes(node.content ?? [])}</tbody></table>;
+      case "tableRow":
+        return <tr key={i}>{renderTipTapNodes(node.content ?? [])}</tr>;
+      case "tableCell":
+        return <td key={i} className="border border-border px-3 py-2">{renderTipTapNodes(node.content ?? [])}</td>;
+      case "tableHeader":
+        return <th key={i} className="border border-border px-3 py-2 font-semibold bg-muted">{renderTipTapNodes(node.content ?? [])}</th>;
+      case "taskList":
+        return <ul key={i} className="list-none pl-0">{renderTipTapNodes(node.content ?? [])}</ul>;
+      case "taskItem": {
+        const checked = node.attrs?.checked ?? false;
+        return (
+          <li key={i} className="flex items-start gap-2 mb-1">
+            <input type="checkbox" checked={checked} readOnly className="mt-1" />
+            <span>{renderTipTapNodes(node.content ?? [])}</span>
+          </li>
+        );
+      }
+      case "hardBreak":
+        return <br key={i} />;
+      case "details":
+        return <details key={i} className="my-4">{renderTipTapNodes(node.content ?? [])}</details>;
+      case "detailsSummary":
+        return <summary key={i} className="cursor-pointer font-medium">{renderInlineContent(node.content)}</summary>;
+      case "detailsContent":
+        return <div key={i}>{renderTipTapNodes(node.content ?? [])}</div>;
       default:
+        // Unknown node with children: render children in a div
         if (node.content) return <div key={i}>{renderTipTapNodes(node.content)}</div>;
+        // Unknown leaf node: skip
         return null;
     }
   });
@@ -81,8 +114,8 @@ function renderTipTapNodes(nodes: any[]): React.ReactNode[] {
 
 function sanitizeLinkHref(href: string | undefined): string | undefined {
   if (!href) return undefined;
-  const lower = href.trim().toLowerCase();
-  if (lower.startsWith("javascript:") || lower.startsWith("data:")) return undefined;
+  const trimmed = href.trim();
+  if (/^(javascript|data|vbscript|blob):/i.test(trimmed)) return undefined;
   return href;
 }
 
@@ -101,6 +134,11 @@ function renderInlineContent(content?: any[]): React.ReactNode {
           if (mark.type === "bold") text = <strong key={markKey}>{text}</strong>;
           else if (mark.type === "italic") text = <em key={markKey}>{text}</em>;
           else if (mark.type === "code") text = <code key={markKey}>{text}</code>;
+          else if (mark.type === "underline") text = <u key={markKey}>{text}</u>;
+          else if (mark.type === "strike") text = <s key={markKey}>{text}</s>;
+          else if (mark.type === "highlight") text = <mark key={markKey}>{text}</mark>;
+          else if (mark.type === "superscript") text = <sup key={markKey}>{text}</sup>;
+          else if (mark.type === "subscript") text = <sub key={markKey}>{text}</sub>;
           else if (mark.type === "link") {
             const safeHref = sanitizeLinkHref(mark.attrs?.href);
             const external = safeHref ? isExternalLink(safeHref) : false;
