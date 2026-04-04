@@ -33,7 +33,7 @@ export const trackPageView = mutation({
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Invalid session ID" });
     }
     // Validate article exists
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
@@ -44,8 +44,9 @@ export const trackPageView = mutation({
     // Check if this session has EVER viewed this article
     const priorView = await ctx.db
       .query("kb_pageViews")
-      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
-      .filter((q) => q.eq(q.field("articleId"), args.articleId))
+      .withIndex("by_session_article", (q) =>
+        q.eq("sessionId", args.sessionId).eq("articleId", args.articleId),
+      )
       .first();
 
     // Session-based deduplication: skip if same session+article viewed within 30 min
@@ -69,7 +70,7 @@ export const trackPageView = mutation({
 
     // Increment article view counts
     if (article) {
-      await ctx.db.patch(args.articleId, {
+      await ctx.db.patch("kb_articles", args.articleId, {
         viewCount: article.viewCount + 1,
         uniqueViewCount: isNewUnique ? article.uniqueViewCount + 1 : article.uniqueViewCount,
       });
@@ -89,12 +90,12 @@ export const updateDuration = mutation({
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Duration must be between 0 and 3600 seconds" });
     }
     // Validate page view exists
-    const pageView = await ctx.db.get(args.pageViewId);
+    const pageView = await ctx.db.get("kb_pageViews", args.pageViewId);
     if (!pageView) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Page view not found" });
     }
 
-    await ctx.db.patch(args.pageViewId, { duration: args.duration });
+    await ctx.db.patch("kb_pageViews", args.pageViewId, { duration: args.duration });
   },
 });
 
@@ -138,12 +139,12 @@ export const getDashboardStats = query({
     const startDate = args.startDate ?? now - 30 * 24 * 60 * 60 * 1000; // Default 30 days
     const endDate = args.endDate ?? now;
 
-    // Article counts by status — use per-status index scans instead of full table load
+    // Article counts by status — safety-bounded with .take(10000) per status
     const [draftArticles, reviewArticles, publishedArticles, archivedArticles] = await Promise.all([
-      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "draft")).collect(),
-      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "review")).collect(),
-      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "published")).collect(),
-      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "archived")).collect(),
+      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "draft")).take(10000),
+      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "review")).take(10000),
+      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "published")).take(10000),
+      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "archived")).take(10000),
     ]);
     const statusCounts = {
       draft: draftArticles.length,
@@ -153,22 +154,22 @@ export const getDashboardStats = query({
     };
     const totalArticles = draftArticles.length + reviewArticles.length + publishedArticles.length + archivedArticles.length;
 
-    // Page views in range — use date index to avoid full table scan
+    // Page views in range — safety-bounded with .take(50000)
     const viewsInRange = await ctx.db
       .query("kb_pageViews")
       .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
-      .collect();
+      .take(50000);
     const totalViews = viewsInRange.length;
     const uniqueSessions = new Set(viewsInRange.map((v) => v.sessionId)).size;
 
-    // Search queries in range — use date index to avoid full table scan
+    // Search queries in range — safety-bounded with .take(10000)
     const searchesInRange = await ctx.db
       .query("kb_searchQueries")
       .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
-      .collect();
+      .take(10000);
 
-    // Feedback stats — no date-range index on feedback; use a safety-bounded collect
-    const feedback = await ctx.db.query("kb_articleFeedback").take(50000);
+    // Feedback stats — no date-range index on feedback; use a safety-bounded take
+    const feedback = await ctx.db.query("kb_articleFeedback").take(5000);
     const helpful = feedback.filter((f) => f.isHelpful).length;
     const total = feedback.length;
 
@@ -247,7 +248,7 @@ export const getSearchAnalytics = query({
     const inRange = await ctx.db
       .query("kb_searchQueries")
       .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
-      .collect();
+      .take(10000);
 
     // Group by query
     const queryCounts: Record<string, { count: number; avgResults: number; clicked: number }> = {};

@@ -48,7 +48,7 @@ export const checkAndRecord = mutation({
       .withIndex("by_session_action", (q) =>
         q.eq("sessionId", args.sessionId).eq("action", args.action),
       )
-      .collect();
+      .take(100);
 
     // Filter to records within the current window
     const inWindow = recentRecords.filter((r) => r.createdAt >= windowStart);
@@ -99,7 +99,7 @@ export const getStatus = query({
       .withIndex("by_session_action", (q) =>
         q.eq("sessionId", args.sessionId).eq("action", args.action),
       )
-      .collect();
+      .take(100);
 
     const inWindow = recentRecords.filter((r) => r.createdAt >= windowStart);
 
@@ -132,7 +132,7 @@ export const cleanup = internalMutation({
       .take(batchSize);
 
     for (const record of expired) {
-      await ctx.db.delete(record._id);
+      await ctx.db.delete("ticket_rateLimits", record._id);
     }
 
     if (expired.length >= batchSize) {
@@ -170,7 +170,7 @@ export const getGlobalStats = query({
         .withIndex("by_action_time", (q) =>
           q.eq("action", action).gte("createdAt", oneHourAgo),
         )
-        .collect();
+        .take(5000);
 
       const uniqueSessions = new Set(records.map((r) => r.sessionId)).size;
       stats[action] = { count: records.length, uniqueSessions };

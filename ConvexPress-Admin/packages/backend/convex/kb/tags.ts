@@ -29,7 +29,7 @@ import {
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return ctx.db.query("kb_tags").collect();
+    return ctx.db.query("kb_tags").take(500);
   },
 });
 
@@ -81,12 +81,12 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.manageTags");
 
-    const tag = await ctx.db.get(args.tagId);
+    const tag = await ctx.db.get("kb_tags", args.tagId);
     if (!tag) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Tag not found" });
     }
 
-    const updates: Record<string, any> = { updatedAt: Date.now() };
+    const updates: Record<string, unknown> = { updatedAt: Date.now() };
 
     if (args.name !== undefined) {
       const name = args.name.trim();
@@ -100,7 +100,7 @@ export const update = mutation({
     if (args.description !== undefined) updates.description = args.description;
     if (args.color !== undefined) updates.color = args.color;
 
-    await ctx.db.patch(args.tagId, updates);
+    await ctx.db.patch("kb_tags", args.tagId, updates);
     return args.tagId;
   },
 });
@@ -112,7 +112,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.manageTags");
 
-    const tag = await ctx.db.get(args.tagId);
+    const tag = await ctx.db.get("kb_tags", args.tagId);
     if (!tag) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Tag not found" });
     }
@@ -121,12 +121,12 @@ export const remove = mutation({
     const articleTags = await ctx.db
       .query("kb_articleTags")
       .withIndex("by_tag", (q) => q.eq("tagId", args.tagId))
-      .collect();
+      .take(1000);
     for (const at of articleTags) {
-      await ctx.db.delete(at._id);
+      await ctx.db.delete("kb_articleTags", at._id);
     }
 
-    await ctx.db.delete(args.tagId);
+    await ctx.db.delete("kb_tags", args.tagId);
     return args.tagId;
   },
 });
@@ -158,9 +158,9 @@ export const addToArticle = mutation({
     });
 
     // Increment tag article count
-    const tag = await ctx.db.get(args.tagId);
+    const tag = await ctx.db.get("kb_tags", args.tagId);
     if (tag) {
-      await ctx.db.patch(args.tagId, {
+      await ctx.db.patch("kb_tags", args.tagId, {
         articleCount: tag.articleCount + 1,
         updatedAt: Date.now(),
       });
@@ -189,12 +189,12 @@ export const removeFromArticle = mutation({
 
     if (!existing) return null; // Not tagged
 
-    await ctx.db.delete(existing._id);
+    await ctx.db.delete("kb_bookmarks", existing._id);
 
     // Decrement tag article count
-    const tag = await ctx.db.get(args.tagId);
+    const tag = await ctx.db.get("kb_tags", args.tagId);
     if (tag && tag.articleCount > 0) {
-      await ctx.db.patch(args.tagId, {
+      await ctx.db.patch("kb_tags", args.tagId, {
         articleCount: tag.articleCount - 1,
         updatedAt: Date.now(),
       });

@@ -136,7 +136,7 @@ export const updateTicketSettings = mutation({
 
       if (changes.length > 0) {
         if (existingDoc) {
-          await ctx.db.patch(existingDoc._id, {
+          await ctx.db.patch("settings", existingDoc._id, {
             values: newValues,
             updatedAt: now,
             updatedBy: user._id,
@@ -177,7 +177,7 @@ export const updateTicketSettings = mutation({
 
       if (changes.length > 0) {
         if (existingDoc) {
-          await ctx.db.patch(existingDoc._id, {
+          await ctx.db.patch("settings", existingDoc._id, {
             values: newValues,
             updatedAt: now,
             updatedBy: user._id,

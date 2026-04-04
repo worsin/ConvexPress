@@ -51,7 +51,7 @@ export const getByTicket = query({
       });
     }
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) return null;
 
     // Access check
@@ -68,7 +68,7 @@ export const getByTicket = query({
     const messages = await ctx.db
       .query("ticket_messages")
       .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", args.ticketId))
-      .collect();
+      .take(1000);
 
     return canViewInternal
       ? messages
@@ -93,7 +93,7 @@ export const getPublicByTicket = query({
       });
     }
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) return null;
 
     // Access check: own ticket or ticket.viewAll
@@ -105,7 +105,7 @@ export const getPublicByTicket = query({
     const messages = await ctx.db
       .query("ticket_messages")
       .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", args.ticketId))
-      .collect();
+      .take(1000);
 
     return messages.filter((m) => !m.isInternal);
   },
@@ -122,7 +122,7 @@ export const getCount = query({
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) return null;
 
     // Access check
@@ -134,7 +134,7 @@ export const getCount = query({
     const messages = await ctx.db
       .query("ticket_messages")
       .withIndex("by_ticket", (q) => q.eq("ticketId", args.ticketId))
-      .collect();
+      .take(1000);
 
     const publicCount = messages.filter((m) => !m.isInternal).length;
 
@@ -165,7 +165,7 @@ export const edit = mutation({
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
 
-    const message = await ctx.db.get(args.messageId);
+    const message = await ctx.db.get("ticket_messages", args.messageId);
     if (!message) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Message not found" });
     }
@@ -205,7 +205,7 @@ export const edit = mutation({
       await requireCan(ctx, "ticket.respond");
     }
 
-    await ctx.db.patch(args.messageId, {
+    await ctx.db.patch("ticket_messages", args.messageId, {
       content: args.content.trim(),
       editedAt: now,
     });
@@ -225,7 +225,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "ticket.respond");
 
-    const message = await ctx.db.get(args.messageId);
+    const message = await ctx.db.get("ticket_messages", args.messageId);
     if (!message) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Message not found" });
     }
@@ -240,7 +240,7 @@ export const remove = mutation({
 
     // Soft delete: replace content but keep the message record.
     // messageCount is NOT decremented because the message still exists.
-    await ctx.db.patch(args.messageId, {
+    await ctx.db.patch("ticket_messages", args.messageId, {
       content: "[Message removed]",
       attachments: undefined,
       editedAt: Date.now(),
@@ -262,7 +262,7 @@ export const addInternalNote = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "ticket.viewInternalNotes");
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
@@ -293,9 +293,10 @@ export const addInternalNote = mutation({
 
     const now = Date.now();
     const senderName =
-      user.displayName || user.firstName
+      user.displayName ||
+      (user.firstName
         ? [user.firstName, user.lastName].filter(Boolean).join(" ")
-        : user.email;
+        : user.email);
 
     const messageId = await ctx.db.insert("ticket_messages", {
       ticketId: args.ticketId,
@@ -311,7 +312,7 @@ export const addInternalNote = mutation({
     });
 
     // Update message count but NOT lastMessageAt (internal note)
-    await ctx.db.patch(args.ticketId, {
+    await ctx.db.patch("ticket_tickets", args.ticketId, {
       messageCount: ticket.messageCount + 1,
       updatedAt: now,
     });
@@ -332,7 +333,7 @@ export const addSystemMessage = internalMutation({
   args: addSystemMessageArgs,
   handler: async (ctx, args) => {
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
@@ -357,7 +358,7 @@ export const addSystemMessage = internalMutation({
       createdAt: now,
     });
 
-    await ctx.db.patch(args.ticketId, {
+    await ctx.db.patch("ticket_tickets", args.ticketId, {
       messageCount: ticket.messageCount + 1,
       updatedAt: now,
     });

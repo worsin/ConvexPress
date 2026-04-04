@@ -37,14 +37,15 @@ export const getDeflectionStats = query({
     const canView = await currentUserCan(ctx, "ticket.viewAll");
     if (!canView) return null;
 
-    // Load logs in the date range using index to avoid full table scan
+    // Load logs in the date range using index. Default to last 90 days if no startDate.
     const now = Date.now();
-    const startDate = args.startDate ?? 0;
+    const startDate = args.startDate ?? now - 90 * 24 * 60 * 60 * 1000;
     const endDate = args.endDate ?? now;
+    // Safety-bounded with .take(50000)
     const logs = await ctx.db
       .query("support_deflectionLogs")
       .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
-      .collect();
+      .take(50000);
 
     if (logs.length === 0) {
       return {
@@ -104,14 +105,15 @@ export const getTopDeflectingArticles = query({
 
     const limit = Math.min(args.limit ?? 10, 50);
 
-    // Load logs in the date range using index to avoid full table scan
+    // Load logs in the date range. Default to last 90 days if no startDate.
     const now = Date.now();
-    const startDate = args.startDate ?? 0;
+    const startDate = args.startDate ?? now - 90 * 24 * 60 * 60 * 1000;
     const endDate = args.endDate ?? now;
+    // Safety-bounded with .take(50000)
     const logs = await ctx.db
       .query("support_deflectionLogs")
       .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
-      .collect();
+      .take(50000);
 
     // Count per-article helpful and total citations
     const articleCounts = new Map<string, { helpful: number; total: number }>();
@@ -167,14 +169,15 @@ export const getCommonUnanswered = query({
 
     const limit = Math.min(args.limit ?? 20, 100);
 
-    // Load logs in the date range using index to avoid full table scan
+    // Load logs in the date range. Default to last 90 days if no startDate.
     const now = Date.now();
-    const startDate = args.startDate ?? 0;
+    const startDate = args.startDate ?? now - 90 * 24 * 60 * 60 * 1000;
     const endDate = args.endDate ?? now;
+    // Safety-bounded with .take(50000)
     const logs = await ctx.db
       .query("support_deflectionLogs")
       .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
-      .collect();
+      .take(50000);
 
     // Filter to unanswered (no articles found)
     const unanswered = logs.filter((l) => l.kbArticleIds.length === 0);

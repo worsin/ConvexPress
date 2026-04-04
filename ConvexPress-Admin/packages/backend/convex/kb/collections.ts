@@ -39,7 +39,7 @@ export const list = query({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    return ctx.db.query("kb_collections").order("desc").collect();
+    return ctx.db.query("kb_collections").order("desc").take(500);
   },
 });
 
@@ -51,7 +51,7 @@ export const listPublic = query({
     return ctx.db
       .query("kb_collections")
       .withIndex("by_public", (q) => q.eq("isPublic", true))
-      .collect();
+      .take(500);
   },
 });
 
@@ -65,18 +65,18 @@ export const getById = query({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const collection = await ctx.db.get(args.collectionId);
+    const collection = await ctx.db.get("kb_collections", args.collectionId);
     if (!collection) return null;
 
     // Get articles in order
     const collectionArticles = await ctx.db
       .query("kb_collectionArticles")
       .withIndex("by_collection_order", (q) => q.eq("collectionId", args.collectionId))
-      .collect();
+      .take(500);
 
     const articles = await Promise.all(
       collectionArticles.map(async (ca) => {
-        const article = await ctx.db.get(ca.articleId);
+        const article = await ctx.db.get("kb_articles", ca.articleId);
         return article
           ? { ...ca, article: { _id: article._id, title: article.title, slug: article.slug, status: article.status } }
           : null;
@@ -102,11 +102,11 @@ export const getBySlug = query({
     const collectionArticles = await ctx.db
       .query("kb_collectionArticles")
       .withIndex("by_collection_order", (q) => q.eq("collectionId", collection._id))
-      .collect();
+      .take(500);
 
     const articles = await Promise.all(
       collectionArticles.map(async (ca) => {
-        const article = await ctx.db.get(ca.articleId);
+        const article = await ctx.db.get("kb_articles", ca.articleId);
         if (!article || article.status !== "published") return null;
         return {
           _id: article._id,
@@ -163,12 +163,12 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.manageCollections");
 
-    const collection = await ctx.db.get(args.collectionId);
+    const collection = await ctx.db.get("kb_collections", args.collectionId);
     if (!collection) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Collection not found" });
     }
 
-    const updates: Record<string, any> = { updatedAt: Date.now() };
+    const updates: Record<string, unknown> = { updatedAt: Date.now() };
 
     if (args.name !== undefined) {
       const name = args.name.trim();
@@ -184,7 +184,7 @@ export const update = mutation({
     if (args.type !== undefined) updates.type = args.type;
     if (args.isPublic !== undefined) updates.isPublic = args.isPublic;
 
-    await ctx.db.patch(args.collectionId, updates);
+    await ctx.db.patch("kb_collections", args.collectionId, updates);
     return args.collectionId;
   },
 });
@@ -196,7 +196,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.manageCollections");
 
-    const collection = await ctx.db.get(args.collectionId);
+    const collection = await ctx.db.get("kb_collections", args.collectionId);
     if (!collection) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Collection not found" });
     }
@@ -205,12 +205,12 @@ export const remove = mutation({
     const collectionArticles = await ctx.db
       .query("kb_collectionArticles")
       .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
-      .collect();
+      .take(500);
     for (const ca of collectionArticles) {
-      await ctx.db.delete(ca._id);
+      await ctx.db.delete("kb_collectionArticles", ca._id);
     }
 
-    await ctx.db.delete(args.collectionId);
+    await ctx.db.delete("kb_collections", args.collectionId);
     return args.collectionId;
   },
 });
@@ -226,7 +226,7 @@ export const addArticle = mutation({
     const existing = await ctx.db
       .query("kb_collectionArticles")
       .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
-      .collect();
+      .take(500);
 
     const alreadyAdded = existing.find((ca) => ca.articleId === args.articleId);
     if (alreadyAdded) return alreadyAdded._id;
@@ -244,9 +244,9 @@ export const addArticle = mutation({
     });
 
     // Increment collection article count
-    const collection = await ctx.db.get(args.collectionId);
+    const collection = await ctx.db.get("kb_collections", args.collectionId);
     if (collection) {
-      await ctx.db.patch(args.collectionId, {
+      await ctx.db.patch("kb_collections", args.collectionId, {
         articleCount: collection.articleCount + 1,
         updatedAt: Date.now(),
       });
@@ -266,17 +266,17 @@ export const removeArticle = mutation({
     const collectionArticles = await ctx.db
       .query("kb_collectionArticles")
       .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
-      .collect();
+      .take(500);
 
     const toRemove = collectionArticles.find((ca) => ca.articleId === args.articleId);
     if (!toRemove) return null;
 
-    await ctx.db.delete(toRemove._id);
+    await ctx.db.delete("kb_collectionArticles", toRemove._id);
 
     // Decrement collection article count
-    const collection = await ctx.db.get(args.collectionId);
+    const collection = await ctx.db.get("kb_collections", args.collectionId);
     if (collection && collection.articleCount > 0) {
-      await ctx.db.patch(args.collectionId, {
+      await ctx.db.patch("kb_collections", args.collectionId, {
         articleCount: collection.articleCount - 1,
         updatedAt: Date.now(),
       });
@@ -296,14 +296,14 @@ export const reorderArticles = mutation({
     const collectionArticles = await ctx.db
       .query("kb_collectionArticles")
       .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
-      .collect();
+      .take(500);
 
     const toReorder = collectionArticles.find((ca) => ca.articleId === args.articleId);
     if (!toReorder) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found in collection" });
     }
 
-    await ctx.db.patch(toReorder._id, { order: args.newOrder });
+    await ctx.db.patch("kb_collectionArticles", toReorder._id, { order: args.newOrder });
     return toReorder._id;
   },
 });

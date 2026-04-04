@@ -46,11 +46,12 @@ export const autoCloseResolved = internalMutation({
 
     const cutoffMs = Date.now() - autoCloseAfterDays * 24 * 60 * 60 * 1000;
 
-    // Find resolved tickets older than the cutoff
+    // Find resolved tickets older than the cutoff.
+    // Safety-bounded with .take() to avoid unbounded memory usage in crons.
     const resolvedTickets = await ctx.db
       .query("ticket_tickets")
       .withIndex("by_status", (q) => q.eq("status", "resolved"))
-      .collect();
+      .take(batchSize * 3);
 
     const toClose = resolvedTickets
       .filter((t) => t.resolvedAt && t.resolvedAt < cutoffMs)
@@ -58,7 +59,7 @@ export const autoCloseResolved = internalMutation({
 
     const now = Date.now();
     for (const ticket of toClose) {
-      await ctx.db.patch(ticket._id, {
+      await ctx.db.patch("ticket_tickets", ticket._id, {
         status: "closed",
         closedAt: now,
         updatedAt: now,
@@ -85,7 +86,7 @@ export const autoCloseResolved = internalMutation({
       });
 
       // Increment messageCount for the system message
-      await ctx.db.patch(ticket._id, {
+      await ctx.db.patch("ticket_tickets", ticket._id, {
         messageCount: ticket.messageCount + 1,
         updatedAt: now,
       });

@@ -33,7 +33,7 @@ export const list = query({
     return ctx.db
       .query("kb_templates")
       .withIndex("by_active", (q) => q.eq("isActive", true))
-      .collect();
+      .take(500);
   },
 });
 
@@ -47,7 +47,7 @@ export const getById = query({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    return ctx.db.get(args.templateId);
+    return ctx.db.get("kb_templates", args.templateId);
   },
 });
 
@@ -85,10 +85,10 @@ export const create = mutation({
       const others = await ctx.db
         .query("kb_templates")
         .withIndex("by_category", (q) => q.eq("category", args.category))
-        .collect();
+        .take(100);
       for (const other of others) {
         if (other._id !== templateId && other.isDefault) {
-          await ctx.db.patch(other._id, { isDefault: false, updatedAt: now });
+          await ctx.db.patch("kb_templates", other._id, { isDefault: false, updatedAt: now });
         }
       }
     }
@@ -104,12 +104,12 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.manageTemplates");
 
-    const template = await ctx.db.get(args.templateId);
+    const template = await ctx.db.get("kb_templates", args.templateId);
     if (!template) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Template not found" });
     }
 
-    const updates: Record<string, any> = { updatedAt: Date.now() };
+    const updates: Record<string, unknown> = { updatedAt: Date.now() };
 
     if (args.name !== undefined) {
       const name = args.name.trim();
@@ -132,16 +132,16 @@ export const update = mutation({
         const others = await ctx.db
           .query("kb_templates")
           .withIndex("by_category", (q) => q.eq("category", category))
-          .collect();
+          .take(100);
         for (const other of others) {
           if (other._id !== args.templateId && other.isDefault) {
-            await ctx.db.patch(other._id, { isDefault: false, updatedAt: Date.now() });
+            await ctx.db.patch("kb_templates", other._id, { isDefault: false, updatedAt: Date.now() });
           }
         }
       }
     }
 
-    await ctx.db.patch(args.templateId, updates);
+    await ctx.db.patch("kb_templates", args.templateId, updates);
     return args.templateId;
   },
 });
@@ -153,12 +153,12 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.manageTemplates");
 
-    const template = await ctx.db.get(args.templateId);
+    const template = await ctx.db.get("kb_templates", args.templateId);
     if (!template) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Template not found" });
     }
 
-    await ctx.db.delete(args.templateId);
+    await ctx.db.delete("kb_templates", args.templateId);
     return args.templateId;
   },
 });

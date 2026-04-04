@@ -20,13 +20,13 @@ import { KB_EVENTS, SYSTEM } from "../events/constants";
 export const publishScheduled = internalMutation({
   args: { articleId: v.id("kb_articles") },
   handler: async (ctx, { articleId }) => {
-    const article = await ctx.db.get(articleId);
+    const article = await ctx.db.get("kb_articles", articleId);
     if (!article || article.status !== "draft" || !article.scheduledAt) return;
 
     const now = Date.now();
     if (article.scheduledAt > now) return; // Not yet time
 
-    await ctx.db.patch(articleId, {
+    await ctx.db.patch("kb_articles", articleId, {
       status: "published",
       publishedAt: now,
       scheduledAt: undefined,
@@ -37,9 +37,9 @@ export const publishScheduled = internalMutation({
 
     // Update category article count
     if (article.categoryId) {
-      const category = await ctx.db.get(article.categoryId);
+      const category = await ctx.db.get("kb_categories", article.categoryId);
       if (category) {
-        await ctx.db.patch(article.categoryId, {
+        await ctx.db.patch("kb_categories", article.categoryId, {
           articleCount: category.articleCount + 1,
           updatedAt: now,
         });
@@ -68,17 +68,20 @@ export const publishScheduledBatch = internalMutation({
   handler: async (ctx) => {
     const now = Date.now();
 
-    const drafts = await ctx.db
+    // Use by_scheduled index with range bounds to only load articles due now.
+    // Safety-bounded with .take(200) to avoid unbounded memory usage in crons.
+    const candidates = await ctx.db
       .query("kb_articles")
-      .withIndex("by_status_updated", (q) => q.eq("status", "draft"))
-      .collect();
+      .withIndex("by_scheduled", (q) => q.lte("scheduledAt", now))
+      .take(200);
 
-    const due = drafts
-      .filter((a) => a.scheduledAt !== undefined && a.scheduledAt <= now)
+    // Filter for drafts only (scheduled articles in other statuses are skipped)
+    const due = candidates
+      .filter((a) => a.status === "draft" && a.scheduledAt !== undefined)
       .slice(0, 50);
 
     for (const article of due) {
-      await ctx.db.patch(article._id, {
+      await ctx.db.patch("kb_articles", article._id, {
         status: "published",
         publishedAt: now,
         scheduledAt: undefined,
@@ -88,9 +91,9 @@ export const publishScheduledBatch = internalMutation({
       });
 
       if (article.categoryId) {
-        const category = await ctx.db.get(article.categoryId);
+        const category = await ctx.db.get("kb_categories", article.categoryId);
         if (category) {
-          await ctx.db.patch(article.categoryId, {
+          await ctx.db.patch("kb_categories", article.categoryId, {
             articleCount: category.articleCount + 1,
             updatedAt: now,
           });
@@ -104,6 +107,11 @@ export const publishScheduledBatch = internalMutation({
         publishedAt: now,
         scheduledPublish: true,
       });
+    }
+
+    // Self-reschedule if we hit the safety bound — there may be more due articles
+    if (candidates.length >= 200) {
+      await ctx.scheduler.runAfter(0, internal.kb.internals.publishScheduledBatch, {});
     }
 
     return { published: due.length };
@@ -124,7 +132,7 @@ export const cleanupPageViews = internalMutation({
 
     let deleted = 0;
     for (const view of oldViews) {
-      await ctx.db.delete(view._id);
+      await ctx.db.delete("kb_pageViews", view._id);
       deleted++;
     }
 
@@ -168,21 +176,21 @@ export const getUnsyncedForRag = internalQuery({
 export const getArticleForSync = internalQuery({
   args: { articleId: v.id("kb_articles") },
   handler: async (ctx, { articleId }) => {
-    const article = await ctx.db.get(articleId);
+    const article = await ctx.db.get("kb_articles", articleId);
     if (!article) return null;
 
     // Resolve category slug
-    const category = article.categoryId ? await ctx.db.get(article.categoryId) : null;
+    const category = article.categoryId ? await ctx.db.get("kb_categories", article.categoryId) : null;
 
     // Resolve tags via junction table
     const articleTagRows = await ctx.db
       .query("kb_articleTags")
       .withIndex("by_article", (q) => q.eq("articleId", articleId))
-      .collect();
+      .take(100);
 
     const tagSlugs: string[] = [];
     for (const row of articleTagRows) {
-      const tag = await ctx.db.get(row.tagId);
+      const tag = await ctx.db.get("kb_tags", row.tagId);
       if (tag) tagSlugs.push(tag.slug);
     }
 
@@ -199,7 +207,7 @@ export const getArticleForSync = internalQuery({
 export const markMeilisearchSynced = internalMutation({
   args: { articleId: v.id("kb_articles") },
   handler: async (ctx, { articleId }) => {
-    await ctx.db.patch(articleId, {
+    await ctx.db.patch("kb_articles", articleId, {
       meilisearchSynced: true,
       meilisearchSyncedAt: Date.now(),
     });
@@ -211,7 +219,7 @@ export const markMeilisearchSynced = internalMutation({
 export const markRagSynced = internalMutation({
   args: { articleId: v.id("kb_articles") },
   handler: async (ctx, { articleId }) => {
-    await ctx.db.patch(articleId, {
+    await ctx.db.patch("kb_articles", articleId, {
       ragSynced: true,
       ragSyncedAt: Date.now(),
     });
@@ -266,10 +274,10 @@ export const removeArticleChunks = internalMutation({
     const chunks = await ctx.db
       .query("kb_ragChunks")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
+      .take(100);
 
     for (const chunk of chunks) {
-      await ctx.db.delete(chunk._id);
+      await ctx.db.delete("kb_ragChunks", chunk._id);
     }
 
     return { deleted: chunks.length };
@@ -279,13 +287,15 @@ export const removeArticleChunks = internalMutation({
 // ─── Get All RAG Chunks ──────────────────────────────────────────────────────
 
 /**
- * Load all RAG chunks for cosine similarity scoring.
- * NOTE: This is efficient for small-to-medium KB sizes but will need
- * vector index support (or batched pagination) for very large deployments.
+ * Load RAG chunks for cosine similarity scoring.
+ *
+ * KNOWN SCALABILITY LIMIT: This loads up to 5,000 chunks into memory for
+ * in-memory cosine similarity scoring. For large KBs (500+ articles, 10k+
+ * chunks), migrate to a Convex vector index on kb_ragChunks instead.
  */
 export const getAllRagChunks = internalQuery({
   args: {},
   handler: async (ctx) => {
-    return ctx.db.query("kb_ragChunks").collect();
+    return ctx.db.query("kb_ragChunks").take(5000);
   },
 });

@@ -37,7 +37,7 @@ export const list = query({
     const categories = await ctx.db
       .query("kb_categories")
       .withIndex("by_order")
-      .collect();
+      .take(500);
 
     return categories;
   },
@@ -51,7 +51,7 @@ export const listPublished = query({
     const categories = await ctx.db
       .query("kb_categories")
       .withIndex("by_published_order", (q) => q.eq("isPublished", true))
-      .collect();
+      .take(500);
 
     return categories;
   },
@@ -80,7 +80,7 @@ export const getHierarchy = query({
     const categories = await ctx.db
       .query("kb_categories")
       .withIndex("by_published_order", (q) => q.eq("isPublished", true))
-      .collect();
+      .take(500);
 
     // Build tree structure
     type CategoryNode = (typeof categories)[0] & { children: CategoryNode[] };
@@ -157,12 +157,12 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.manageCategories");
 
-    const category = await ctx.db.get(args.categoryId);
+    const category = await ctx.db.get("kb_categories", args.categoryId);
     if (!category) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Category not found" });
     }
 
-    const updates: Record<string, any> = { updatedAt: Date.now() };
+    const updates: Record<string, unknown> = { updatedAt: Date.now() };
 
     if (args.name !== undefined) {
       const name = args.name.trim();
@@ -182,7 +182,7 @@ export const update = mutation({
       }
       // Prevent circular parenting (A -> B -> A)
       if (args.parentId) {
-        let current = await ctx.db.get(args.parentId);
+        let current = await ctx.db.get("kb_categories", args.parentId);
         while (current) {
           if (current._id === args.categoryId) {
             throw new ConvexError({
@@ -190,14 +190,14 @@ export const update = mutation({
               message: "Circular parent reference detected: this would create a cycle",
             });
           }
-          current = current.parentId ? await ctx.db.get(current.parentId) : null;
+          current = current.parentId ? await ctx.db.get("kb_categories", current.parentId) : null;
         }
       }
       updates.parentId = args.parentId;
     }
     if (args.isPublished !== undefined) updates.isPublished = args.isPublished;
 
-    await ctx.db.patch(args.categoryId, updates);
+    await ctx.db.patch("kb_categories", args.categoryId, updates);
     return args.categoryId;
   },
 });
@@ -209,12 +209,12 @@ export const reorder = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.manageCategories");
 
-    const category = await ctx.db.get(args.categoryId);
+    const category = await ctx.db.get("kb_categories", args.categoryId);
     if (!category) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Category not found" });
     }
 
-    await ctx.db.patch(args.categoryId, {
+    await ctx.db.patch("kb_categories", args.categoryId, {
       order: args.newOrder,
       updatedAt: Date.now(),
     });
@@ -230,7 +230,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.manageCategories");
 
-    const category = await ctx.db.get(args.categoryId);
+    const category = await ctx.db.get("kb_categories", args.categoryId);
     if (!category) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Category not found" });
     }
@@ -239,9 +239,9 @@ export const remove = mutation({
     const children = await ctx.db
       .query("kb_categories")
       .withIndex("by_parent", (q) => q.eq("parentId", args.categoryId))
-      .collect();
+      .take(200);
     for (const child of children) {
-      await ctx.db.patch(child._id, {
+      await ctx.db.patch("kb_categories", child._id, {
         parentId: category.parentId,
         updatedAt: Date.now(),
       });
@@ -251,9 +251,9 @@ export const remove = mutation({
     const articles = await ctx.db
       .query("kb_articles")
       .withIndex("by_category", (q) => q.eq("categoryId", args.categoryId))
-      .collect();
+      .take(1000);
     for (const article of articles) {
-      await ctx.db.patch(article._id, {
+      await ctx.db.patch("kb_articles", article._id, {
         categoryId: undefined,
         meilisearchSynced: false,
         ragSynced: false,
@@ -261,7 +261,7 @@ export const remove = mutation({
       });
     }
 
-    await ctx.db.delete(args.categoryId);
+    await ctx.db.delete("kb_categories", args.categoryId);
     return args.categoryId;
   },
 });

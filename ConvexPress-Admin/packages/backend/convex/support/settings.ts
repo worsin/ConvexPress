@@ -47,15 +47,23 @@ export const SUPPORT_WIDGET_DEFAULTS = {
   escalationButtonLabel: "Contact Support",
 } as const;
 
-export const SUPPORT_AI_DEFAULTS = {
-  aiProvider: null as "openai" | "anthropic" | null,
+export const SUPPORT_AI_DEFAULTS: {
+  readonly aiProvider: "openai" | "anthropic" | null;
+  readonly aiApiKey: string;
+  readonly aiModel: string;
+  readonly meilisearchEnabled: boolean;
+  readonly meilisearchUrl: string;
+  readonly meilisearchApiKey: string;
+  readonly ragEnabled: boolean;
+} = {
+  aiProvider: null,
   aiApiKey: "",
   aiModel: "",
   meilisearchEnabled: false,
   meilisearchUrl: "",
   meilisearchApiKey: "",
   ragEnabled: false,
-} as const;
+};
 
 // ─── getSupportSettings ───────────────────────────────────────────────────────
 
@@ -179,7 +187,7 @@ export const updateSupportSettings = mutation({
 
       if (changes.length > 0) {
         if (existingDoc) {
-          await ctx.db.patch(existingDoc._id, {
+          await ctx.db.patch("settings", existingDoc._id, {
             values: newValues,
             updatedAt: now,
             updatedBy: user._id,
@@ -218,7 +226,7 @@ export const updateSupportSettings = mutation({
 
       if (changes.length > 0) {
         if (existingDoc) {
-          await ctx.db.patch(existingDoc._id, {
+          await ctx.db.patch("settings", existingDoc._id, {
             values: newValues,
             updatedAt: now,
             updatedBy: user._id,

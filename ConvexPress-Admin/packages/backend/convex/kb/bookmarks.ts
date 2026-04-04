@@ -26,12 +26,12 @@ export const list = query({
       .query("kb_bookmarks")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
-      .collect();
+      .take(500);
 
     // Enrich with article details
     return Promise.all(
       bookmarks.map(async (bookmark) => {
-        const article = await ctx.db.get(bookmark.articleId);
+        const article = await ctx.db.get("kb_articles", bookmark.articleId);
         return {
           ...bookmark,
           article: article
@@ -87,7 +87,7 @@ export const toggle = mutation({
       .first();
 
     if (existing) {
-      await ctx.db.delete(existing._id);
+      await ctx.db.delete("kb_bookmarks", existing._id);
       return { bookmarked: false };
     }
 
