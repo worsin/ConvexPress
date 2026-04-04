@@ -1,16 +1,17 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { useAuth } from "@clerk/clerk-react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { toast } from "sonner";
-import { ArrowLeft, Send, Star } from "lucide-react";
+import { ArrowLeft, Loader2, Send, Star } from "lucide-react";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
 
 export const Route = createFileRoute(
   "/_marketing/support/tickets/$ticketId",
 )({
   component: TicketThreadPage,
+  errorComponent: ErrorComponent,
   head: () => ({
     meta: [{ title: "Ticket - Support" }],
   }),
@@ -28,7 +29,7 @@ function formatDate(ms: number): string {
 
 function TicketThreadPage() {
   const { ticketId } = Route.useParams();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const [replyContent, setReplyContent] = useState("");
   const [rating, setRating] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
@@ -47,6 +48,14 @@ function TicketThreadPage() {
   const replyMutation = useMutation(api.tickets.mutations.reply);
   const rateMutation = useMutation(api.tickets.mutations.rate);
   const reopenMutation = useMutation(api.tickets.mutations.reopen);
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!isSignedIn) {
     return (
@@ -90,8 +99,8 @@ function TicketThreadPage() {
       });
       setReplyContent("");
       toast.success("Reply sent");
-    } catch (error: any) {
-      toast.error(error.data?.message ?? "Failed to send reply");
+    } catch (error: unknown) {
+      toast.error((error as { data?: { message?: string } })?.data?.message ?? "Failed to send reply");
     }
   }
 
@@ -105,8 +114,8 @@ function TicketThreadPage() {
       });
       setShowRating(false);
       toast.success("Thank you for your feedback!");
-    } catch (error: any) {
-      toast.error(error.data?.message ?? "Failed to submit rating");
+    } catch (error: unknown) {
+      toast.error((error as { data?: { message?: string } })?.data?.message ?? "Failed to submit rating");
     }
   }
 
@@ -116,8 +125,8 @@ function TicketThreadPage() {
         ticketId: ticketId as Id<"ticket_tickets">,
       });
       toast.success("Ticket reopened");
-    } catch (error: any) {
-      toast.error(error.data?.message ?? "Failed to reopen ticket");
+    } catch (error: unknown) {
+      toast.error((error as { data?: { message?: string } })?.data?.message ?? "Failed to reopen ticket");
     }
   }
 
@@ -177,7 +186,7 @@ function TicketThreadPage() {
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder="Type your reply..."
             rows={4}
-            className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-hidden focus:ring-2 focus:ring-primary/30"
           />
           <div className="flex justify-end">
             <button

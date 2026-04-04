@@ -6,7 +6,7 @@
  * filters. Sortable columns with pagination.
  */
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
 import { z } from "zod";
 import { useState } from "react";
 import { useQuery } from "convex/react";
@@ -45,6 +45,7 @@ const ticketSearchSchema = z.object({
 export const Route = createFileRoute("/_authenticated/_admin/tickets/")({
   validateSearch: ticketSearchSchema,
   component: TicketsPage,
+  errorComponent: ErrorComponent,
 });
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -228,7 +229,7 @@ function TicketListTable() {
               },
             });
           }}
-          className="flex-1 min-w-[12rem] max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="flex-1 min-w-[12rem] max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-hidden focus:ring-2 focus:ring-primary/30"
         />
 
         <select

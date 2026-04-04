@@ -31,7 +31,7 @@ export function WidgetButton({
         "fixed z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg",
         "bg-primary text-primary-foreground",
         "transition-all duration-200 hover:scale-105 hover:shadow-xl",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         position === "bottomRight" ? "bottom-6 right-6" : "bottom-6 left-6",
       )}
     >

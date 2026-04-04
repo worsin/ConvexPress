@@ -64,8 +64,8 @@ function StatusBadge({ status }: { status: SitemapStatus | undefined }) {
 
   if (status.hasStale) {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400">
-        <span className="size-1.5 bg-amber-500 rounded-full" />
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium bg-warning/10 text-warning">
+        <span className="size-1.5 bg-warning rounded-full" />
         Stale
       </span>
     );
@@ -80,8 +80,8 @@ function StatusBadge({ status }: { status: SitemapStatus | undefined }) {
   }
 
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-      <span className="size-1.5 bg-emerald-500 rounded-full" />
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium bg-success/10 text-success">
+      <span className="size-1.5 bg-success rounded-full" />
       Active
     </span>
   );
@@ -177,7 +177,7 @@ export function SitemapStatusCard({
                   title="Copy URL"
                 >
                   {copied ? (
-                    <Check className="size-3 text-emerald-500" />
+                    <Check className="size-3 text-success" />
                   ) : (
                     <Copy className="size-3" />
                   )}

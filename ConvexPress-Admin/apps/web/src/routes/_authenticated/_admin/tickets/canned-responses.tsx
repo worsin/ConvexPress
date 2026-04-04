@@ -186,7 +186,7 @@ function CannedResponsesManager() {
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 placeholder="e.g. Welcome to Support"
-                className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-hidden focus:ring-2 focus:ring-primary/30"
               />
             </div>
 
@@ -206,7 +206,7 @@ function CannedResponsesManager() {
                   })
                 }
                 placeholder="e.g. /welcome"
-                className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card font-mono focus:outline-hidden focus:ring-2 focus:ring-primary/30"
               />
               <p className="text-xs text-foreground/40 mt-0.5">
                 Lowercase letters, numbers, hyphens, underscores only
@@ -224,7 +224,7 @@ function CannedResponsesManager() {
               onChange={(e) => setForm({ ...form, category: e.target.value })}
               placeholder="e.g. billing, technical, onboarding"
               list="canned-categories"
-              className="w-full max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-hidden focus:ring-2 focus:ring-primary/30"
             />
             <datalist id="canned-categories">
               {(categories ?? []).map((cat: string) => (
@@ -242,7 +242,7 @@ function CannedResponsesManager() {
               onChange={(e) => setForm({ ...form, content: e.target.value })}
               rows={6}
               placeholder="Hi {{userName}}, thank you for reaching out..."
-              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono"
+              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-hidden focus:ring-2 focus:ring-primary/30 font-mono"
             />
             <p className="text-xs text-foreground/40 mt-0.5">
               Available variables:{" "}

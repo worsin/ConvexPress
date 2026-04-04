@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import { useAuth } from "@clerk/clerk-react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { z } from "zod";
-import { MessageSquarePlus } from "lucide-react";
+import { Loader2, MessageSquarePlus } from "lucide-react";
 
 const searchSchema = z.object({
   status: z
@@ -40,8 +40,16 @@ function formatTimeAgo(ms: number): string {
 }
 
 function MyTicketsPage() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const search = Route.useSearch();
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   const result = useQuery(
     api.tickets.queries.getMyTickets,

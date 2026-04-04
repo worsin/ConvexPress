@@ -361,7 +361,7 @@ export function DropZone() {
               <span>Uploading {activeCount} file{activeCount !== 1 ? "s" : ""}...</span>
             )}
             {completedCount > 0 && (
-              <span className="text-green-600">
+              <span className="text-success">
                 {completedCount} completed
               </span>
             )}
@@ -410,7 +410,7 @@ export function DropZone() {
                 {/* Progress / Status */}
                 <div className="shrink-0 w-20">
                   {upload.status === "done" ? (
-                    <span className="text-xs text-green-600 font-medium">
+                    <span className="text-xs text-success font-medium">
                       Done
                     </span>
                   ) : upload.status === "failed" ? (

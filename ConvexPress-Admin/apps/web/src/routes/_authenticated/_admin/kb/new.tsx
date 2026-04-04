@@ -54,7 +54,7 @@ function NewKBArticleForm() {
       toast.success("Article created");
       void navigate({
         to: "/kb/$articleId/edit",
-        params: { articleId: articleId as unknown as string },
+        params: { articleId: articleId as string },
       });
     } catch (err: unknown) {
       toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to create article");
@@ -82,7 +82,7 @@ function NewKBArticleForm() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Article title"
               autoFocus
-              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background focus:outline-hidden focus:ring-2 focus:ring-primary/30"
             />
           </div>
 

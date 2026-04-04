@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@clerk/clerk-react";
-import { LifeBuoy, MessageSquarePlus, List, Search } from "lucide-react";
+import { LifeBuoy, Loader2, MessageSquarePlus, List, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_marketing/support/")({
   component: SupportLandingPage,
@@ -10,7 +10,15 @@ export const Route = createFileRoute("/_marketing/support/")({
 });
 
 function SupportLandingPage() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 space-y-8">

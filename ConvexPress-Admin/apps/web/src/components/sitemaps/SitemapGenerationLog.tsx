@@ -76,7 +76,7 @@ export function SitemapGenerationLog({ entries }: SitemapGenerationLogProps) {
               key={entry._id}
               className={cn(
                 "border-b border-border/50 last:border-b-0",
-                entry.status === "error" && "bg-red-500/5",
+                entry.status === "error" && "bg-destructive/5",
               )}
             >
               <td className="py-1.5 px-2 text-muted-foreground whitespace-nowrap">
@@ -96,9 +96,9 @@ export function SitemapGenerationLog({ entries }: SitemapGenerationLogProps) {
               </td>
               <td className="py-1.5 px-2">
                 {entry.status === "success" ? (
-                  <span className="text-emerald-600 dark:text-emerald-400">Success</span>
+                  <span className="text-success">Success</span>
                 ) : (
-                  <span className="text-red-600 dark:text-red-400" title={entry.errorMessage}>
+                  <span className="text-destructive" title={entry.errorMessage}>
                     Error
                   </span>
                 )}
