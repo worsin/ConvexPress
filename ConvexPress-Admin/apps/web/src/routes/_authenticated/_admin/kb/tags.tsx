@@ -151,6 +151,7 @@ function KBTagsContent() {
                     <button
                       key={c}
                       onClick={() => setNewTag((p) => ({ ...p, color: c }))}
+                      aria-label={`Select color ${c}`}
                       className="h-5 w-5 rounded-full border-2 transition-transform hover:scale-110"
                       style={{ backgroundColor: c, borderColor: newTag.color === c ? "currentColor" : "transparent" }}
                     />

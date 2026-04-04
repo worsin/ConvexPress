@@ -66,7 +66,7 @@ function CreateTicketPage() {
       const result = await createTicket({
         subject: subject.trim(),
         description: description.trim(),
-        category: category as any,
+        category: category as "billing" | "technical" | "account" | "featureRequest" | "general" | "other",
         source: "dashboard",
       });
       toast.success(`Ticket ${result.ticketNumber} created`);

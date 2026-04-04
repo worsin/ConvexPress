@@ -60,6 +60,14 @@ export function AIAnswerView({
   );
   const [isLoading, setIsLoading] = useState(!prefetchedResult);
   const [feedbackGiven, setFeedbackGiven] = useState(false);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up pending timeout on unmount to prevent calling onHelpful on unmounted component
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     // If we already have a result from the search view, skip the fetch
@@ -98,8 +106,8 @@ export function AIAnswerView({
     });
 
     if (helpful) {
-      // Brief delay to show thank you, then go home
-      setTimeout(onHelpful, 1000);
+      // Brief delay to show thank you, then go home (ref-guarded for unmount safety)
+      feedbackTimerRef.current = setTimeout(onHelpful, 1000);
     } else {
       onNotHelpful();
     }
@@ -190,7 +198,7 @@ export function AIAnswerView({
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => handleFeedback(true)}
+                onClick={() => void handleFeedback(true)}
                 className={cn(
                   "flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm",
                   "transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary",
@@ -201,7 +209,7 @@ export function AIAnswerView({
               </button>
               <button
                 type="button"
-                onClick={() => handleFeedback(false)}
+                onClick={() => void handleFeedback(false)}
                 className={cn(
                   "flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm",
                   "transition-colors hover:border-destructive hover:bg-destructive/5 hover:text-destructive",

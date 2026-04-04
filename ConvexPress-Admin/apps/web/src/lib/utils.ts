@@ -41,6 +41,21 @@ export function getErrorMessage(error: unknown, fallback = "An error occurred"):
 // ─── Date Formatting Utilities ───────────────────────────────────────────────
 
 /**
+ * Format a timestamp as a compact relative time string (e.g., "5m ago", "2h ago").
+ * Consolidated from multiple duplicate implementations across route files.
+ */
+export function formatTimeAgo(ms: number): string {
+  const seconds = Math.floor((Date.now() - ms) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+/**
  * Format a timestamp as a short date string (e.g., "Feb 15, 2026").
  * Returns "--" if the timestamp is undefined or falsy.
  */

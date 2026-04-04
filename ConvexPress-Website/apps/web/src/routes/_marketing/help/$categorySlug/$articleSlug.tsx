@@ -162,15 +162,32 @@ function renderInlineContent(content?: any[]): React.ReactNode {
   });
 }
 
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type KbArticle = {
+  _id: string;
+  title: string;
+  slug: string;
+  content?: string;
+  contentPlainText?: string;
+  excerpt?: string;
+  readingTimeMinutes?: number;
+  publishedAt?: number;
+  author?: { _id: string; displayName: string; avatarUrl?: string } | null;
+  category?: { _id: string; name: string; slug: string } | null;
+  tags?: Array<{ _id: string; name: string; slug: string }>;
+  relatedArticles?: Array<{ _id: string; title: string; slug: string; categorySlug?: string }>;
+};
+
 // ─── Article Reader ───────────────────────────────────────────────────────────
 
 function ArticleReader() {
   const { categorySlug, articleSlug } = Route.useParams();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
   const { data: article } = useSuspenseQuery(
-    // @ts-expect-error - Convex query type mismatch with useSuspenseQuery
-    convexQuery(api.kb.queries.getBySlug, { slug: articleSlug }),
-  );
+    convexQuery(api.kb.queries.getBySlug, { slug: articleSlug }) as any,
+  ) as { data: KbArticle | null };
 
   // Session ID — initialized client-side only to avoid SSR hydration mismatches
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
@@ -187,7 +204,7 @@ function ArticleReader() {
   const trackView = useMutation(api.kb.analytics.trackPageView);
   const submitFeedback = useMutation(api.kb.feedback.submitHelpful);
 
-  const art = article as any;
+  const art = article;
 
   // Track page view on mount — only after sessionId is ready client-side
   // Ref guard prevents double-fire in React 18 StrictMode
@@ -208,7 +225,7 @@ function ArticleReader() {
   const userFeedback = useQuery(
     api.kb.feedback.getUserFeedback,
     sessionId && art?._id ? { articleId: art._id, sessionId } : "skip",
-  ) as any;
+  ) as { isHelpful?: boolean } | null | undefined;
 
   async function handleFeedback(isHelpful: boolean) {
     if (!art?._id || !sessionId) return;
@@ -317,11 +334,11 @@ function ArticleReader() {
       </div>
 
       {/* Related articles */}
-      {art.relatedArticles && (art.relatedArticles as any[]).length > 0 && (
+      {art.relatedArticles && art.relatedArticles.length > 0 && (
         <section className="mt-12 border-t border-border pt-8">
           <h2 className="mb-4 text-xl font-semibold">Related Articles</h2>
           <div className="space-y-3">
-            {(art.relatedArticles as any[]).map((related) => (
+            {art.relatedArticles.map((related) => (
               <Link
                 key={related._id}
                 to="/help/$categorySlug/$articleSlug"

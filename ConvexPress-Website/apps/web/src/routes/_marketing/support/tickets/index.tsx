@@ -2,6 +2,7 @@ import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useAuth } from "@clerk/clerk-react";
 import { api } from "@convexpress-website/backend/generated/api";
+import { formatRelativeTime } from "@/lib/format";
 import { z } from "zod";
 import { Loader2, MessageSquarePlus } from "lucide-react";
 
@@ -28,17 +29,6 @@ const STATUS_LABELS: Record<string, string> = {
   resolved: "Resolved",
   closed: "Closed",
 };
-
-function formatTimeAgo(ms: number): string {
-  const seconds = Math.floor((Date.now() - ms) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 function MyTicketsPage() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -129,7 +119,7 @@ function MyTicketsPage() {
                   <div className="font-medium">{ticket.subject}</div>
                   <div className="text-xs text-foreground/40 mt-1">
                     {ticket.ticketNumber} &middot;{" "}
-                    {formatTimeAgo(ticket.createdAt)}
+                    {formatRelativeTime(ticket.createdAt)}
                   </div>
                 </div>
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
@@ -140,7 +130,7 @@ function MyTicketsPage() {
                 <span>{ticket.messageCount} messages</span>
                 {ticket.lastMessageAt && (
                   <span>
-                    Last activity {formatTimeAgo(ticket.lastMessageAt)}
+                    Last activity {formatRelativeTime(ticket.lastMessageAt)}
                   </span>
                 )}
               </div>

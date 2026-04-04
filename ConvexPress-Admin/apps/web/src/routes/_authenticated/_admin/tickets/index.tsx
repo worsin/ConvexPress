@@ -8,12 +8,13 @@
 
 import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
 import { z } from "zod";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
+import { formatTimeAgo } from "@/lib/utils";
 import { MessageSquare } from "lucide-react";
 
 const ticketSearchSchema = z.object({
@@ -109,17 +110,6 @@ function PriorityBadge({ priority }: { priority: string }) {
   );
 }
 
-function formatTimeAgo(ms: number): string {
-  const seconds = Math.floor((Date.now() - ms) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function TicketsPage() {
@@ -136,6 +126,17 @@ function TicketListTable() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState(search.search ?? "");
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const debouncedNavigate = useCallback(
+    (value: string) => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        void navigate({ search: { ...search, search: value || undefined, page: 1 } });
+      }, 300);
+    },
+    [navigate, search],
+  );
 
   const result = useQuery(api.tickets.queries.getQueue, {
     status: search.status,
@@ -218,16 +219,11 @@ function TicketListTable() {
         <input
           type="text"
           placeholder="Search tickets..."
+          aria-label="Search tickets"
           value={searchInput}
           onChange={(e) => {
             setSearchInput(e.target.value);
-            void navigate({
-              search: {
-                ...search,
-                search: e.target.value || undefined,
-                page: 1,
-              },
-            });
+            debouncedNavigate(e.target.value);
           }}
           className="flex-1 min-w-[12rem] max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card focus:outline-hidden focus:ring-2 focus:ring-primary/30"
         />
