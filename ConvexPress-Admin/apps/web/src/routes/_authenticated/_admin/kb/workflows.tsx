@@ -21,6 +21,7 @@ export const Route = createFileRoute("/_authenticated/_admin/kb/workflows")({
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type WorkflowStep = {
+  id: string;
   name: string;
   requiredApprovals: number;
   assigneeId?: string;
@@ -33,13 +34,15 @@ type FormState = {
   steps: WorkflowStep[];
 };
 
-const DEFAULT_STEP: WorkflowStep = { name: "", requiredApprovals: 1 };
+function createStep(): WorkflowStep {
+  return { id: crypto.randomUUID(), name: "", requiredApprovals: 1 };
+}
 
 const EMPTY_FORM: FormState = {
   name: "",
   description: "",
   isDefault: false,
-  steps: [{ ...DEFAULT_STEP }],
+  steps: [createStep()],
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -73,17 +76,18 @@ function KBWorkflowsContent() {
       isDefault: w.isDefault,
       steps: w.steps.length > 0
         ? w.steps.map((s) => ({
+            id: crypto.randomUUID(),
             name: s.name,
             requiredApprovals: s.requiredApprovals,
             assigneeId: s.assigneeId,
           }))
-        : [{ ...DEFAULT_STEP }],
+        : [createStep()],
     });
     setShowCreate(false);
   }
 
   function addStep() {
-    setForm((p) => ({ ...p, steps: [...p.steps, { ...DEFAULT_STEP }] }));
+    setForm((p) => ({ ...p, steps: [...p.steps, createStep()] }));
   }
 
   function removeStep(idx: number) {
@@ -245,7 +249,7 @@ function KBWorkflowsContent() {
             </div>
             <div className="space-y-2">
               {form.steps.map((step, idx) => (
-                <div key={idx} className="flex items-center gap-2 rounded-md border border-border bg-background p-2">
+                <div key={step.id} className="flex items-center gap-2 rounded-md border border-border bg-background p-2">
                   <span className="text-xs font-medium text-foreground/40 w-5 text-center">{idx + 1}</span>
                   <input
                     type="text"
@@ -330,7 +334,7 @@ function KBWorkflowsContent() {
                     {/* Steps preview */}
                     <div className="flex items-center gap-1 mt-2">
                       {w.steps.map((step, idx) => (
-                        <span key={idx} className="flex items-center gap-1">
+                        <span key={`${step.name}-${idx}`} className="flex items-center gap-1">
                           <span className="text-xs px-2 py-0.5 rounded-full bg-muted border border-border text-foreground/70">
                             {step.name || `Step ${idx + 1}`}
                             {step.requiredApprovals > 1 && (

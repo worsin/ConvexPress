@@ -11,6 +11,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 
 import { WidgetButton } from "./WidgetButton";
 import { WidgetPanel } from "./WidgetPanel";
+import { WidgetErrorBoundary } from "./WidgetErrorBoundary";
 import { useWidgetState } from "../hooks/useWidgetState";
 import { useSessionId } from "../hooks/useSessionId";
 import { HomeView } from "../views/HomeView";
@@ -60,6 +61,7 @@ export function SupportWidget() {
         onBack={state.goBack}
         onClose={state.close}
       >
+        <WidgetErrorBoundary>
         {state.currentView === "home" && (
           <HomeView
             greeting={greeting}
@@ -113,6 +115,7 @@ export function SupportWidget() {
             ticketId={state.selectedTicketId}
           />
         )}
+        </WidgetErrorBoundary>
       </WidgetPanel>
     </>
   );

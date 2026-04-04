@@ -5,13 +5,67 @@
  * Wired to api.kb.settings.getKbSettings / updateKbSettings
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useReducer } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
+
+// ─── Form State ──────────────────────────────────────────────────────────────
+
+type KBSettingsState = {
+  general: {
+    siteName: string;
+    siteDescription: string;
+    homepageLayout: "categories" | "search" | "featured";
+    articlesPerPage: number;
+  };
+  features: {
+    commentsEnabled: boolean;
+    bookmarksEnabled: boolean;
+    progressTrackingEnabled: boolean;
+    ratingsEnabled: boolean;
+    relatedArticlesEnabled: boolean;
+  };
+  search: {
+    meilisearchEnabled: boolean;
+    meilisearchUrl: string;
+    meilisearchApiKey: string;
+    ragEnabled: boolean;
+    ragProvider: "openai" | "anthropic";
+    ragApiKey: string;
+    ragModel: string;
+  };
+};
+
+type KBSettingsAction =
+  | { type: "SET_GENERAL"; field: keyof KBSettingsState["general"]; value: string | number }
+  | { type: "SET_FEATURES"; field: keyof KBSettingsState["features"]; value: boolean }
+  | { type: "SET_SEARCH"; field: keyof KBSettingsState["search"]; value: string | boolean }
+  | { type: "RESET"; payload: KBSettingsState };
+
+const DEFAULT_STATE: KBSettingsState = {
+  general: { siteName: "", siteDescription: "", homepageLayout: "categories", articlesPerPage: 10 },
+  features: { commentsEnabled: true, bookmarksEnabled: true, progressTrackingEnabled: true, ratingsEnabled: true, relatedArticlesEnabled: true },
+  search: { meilisearchEnabled: false, meilisearchUrl: "", meilisearchApiKey: "", ragEnabled: false, ragProvider: "openai", ragApiKey: "", ragModel: "" },
+};
+
+function settingsReducer(state: KBSettingsState, action: KBSettingsAction): KBSettingsState {
+  switch (action.type) {
+    case "SET_GENERAL":
+      return { ...state, general: { ...state.general, [action.field]: action.value } };
+    case "SET_FEATURES":
+      return { ...state, features: { ...state.features, [action.field]: action.value } };
+    case "SET_SEARCH":
+      return { ...state, search: { ...state.search, [action.field]: action.value } };
+    case "RESET":
+      return action.payload;
+    default:
+      return state;
+  }
+}
 
 export const Route = createFileRoute("/_authenticated/_admin/kb/settings")({
   component: KBSettingsPage,
@@ -33,61 +87,47 @@ function KBSettingsForm() {
   const settings = useQuery(api.kb.settings.getKbSettings);
   const updateSettings = useMutation(api.kb.settings.updateKbSettings);
 
-  // General
-  const [siteName, setSiteName] = useState("");
-  const [siteDescription, setSiteDescription] = useState("");
-  const [homepageLayout, setHomepageLayout] = useState<"categories" | "search" | "featured">("categories");
-  const [articlesPerPage, setArticlesPerPage] = useState(10);
-
-  // Features
-  const [commentsEnabled, setCommentsEnabled] = useState(true);
-  const [bookmarksEnabled, setBookmarksEnabled] = useState(true);
-  const [progressTrackingEnabled, setProgressTrackingEnabled] = useState(true);
-  const [ratingsEnabled, setRatingsEnabled] = useState(true);
-  const [relatedArticlesEnabled, setRelatedArticlesEnabled] = useState(true);
-
-  // Search
-  const [meilisearchEnabled, setMeilisearchEnabled] = useState(false);
-  const [meilisearchUrl, setMeilisearchUrl] = useState("");
-  const [meilisearchApiKey, setMeilisearchApiKey] = useState("");
-  const [ragEnabled, setRagEnabled] = useState(false);
-  const [ragProvider, setRagProvider] = useState<"openai" | "anthropic">("openai");
-  const [ragApiKey, setRagApiKey] = useState("");
-  const [ragModel, setRagModel] = useState("");
-
+  const [form, dispatch] = useReducer(settingsReducer, DEFAULT_STATE);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Convenience accessors
+  const { general, features, search } = form;
 
   // Sync state from loaded settings
   useEffect(() => {
     if (!settings) return;
-    type G = { siteName?: string; siteDescription?: string; homepageLayout?: "categories" | "search" | "featured"; articlesPerPage?: number };
-    type F = { commentsEnabled?: boolean; bookmarksEnabled?: boolean; progressTrackingEnabled?: boolean; ratingsEnabled?: boolean; relatedArticlesEnabled?: boolean };
-    type S = { meilisearchEnabled?: boolean; meilisearchUrl?: string; meilisearchApiKey?: string; ragEnabled?: boolean; ragProvider?: "openai" | "anthropic"; ragApiKey?: string; ragModel?: string };
-    const g = settings.general as unknown as G;
-    const f = settings.features as unknown as F;
-    const s = settings.search as unknown as S;
-    if (g) {
-      setSiteName(g.siteName ?? "");
-      setSiteDescription(g.siteDescription ?? "");
-      setHomepageLayout(g.homepageLayout ?? "categories");
-      setArticlesPerPage(g.articlesPerPage ?? 10);
-    }
-    if (f) {
-      setCommentsEnabled(f.commentsEnabled ?? true);
-      setBookmarksEnabled(f.bookmarksEnabled ?? true);
-      setProgressTrackingEnabled(f.progressTrackingEnabled ?? true);
-      setRatingsEnabled(f.ratingsEnabled ?? true);
-      setRelatedArticlesEnabled(f.relatedArticlesEnabled ?? true);
-    }
-    if (s) {
-      setMeilisearchEnabled(s.meilisearchEnabled ?? false);
-      setMeilisearchUrl(s.meilisearchUrl ?? "");
-      setMeilisearchApiKey(s.meilisearchApiKey ?? "");
-      setRagEnabled(s.ragEnabled ?? false);
-      setRagProvider(s.ragProvider ?? "openai");
-      setRagApiKey(s.ragApiKey ?? "");
-      setRagModel(s.ragModel ?? "");
-    }
+    // Access settings sections -- property access is type-safe because the
+    // returned defaults object and the local shape use the same keys.
+    const g = settings.general as Record<string, unknown>;
+    const f = settings.features as Record<string, unknown>;
+    const s = settings.search as Record<string, unknown>;
+    dispatch({
+      type: "RESET",
+      payload: {
+        general: {
+          siteName: (g?.siteName as string) ?? "",
+          siteDescription: (g?.siteDescription as string) ?? "",
+          homepageLayout: (g?.homepageLayout as "categories" | "search" | "featured") ?? "categories",
+          articlesPerPage: (g?.articlesPerPage as number) ?? 10,
+        },
+        features: {
+          commentsEnabled: (f?.commentsEnabled as boolean) ?? true,
+          bookmarksEnabled: (f?.bookmarksEnabled as boolean) ?? true,
+          progressTrackingEnabled: (f?.progressTrackingEnabled as boolean) ?? true,
+          ratingsEnabled: (f?.ratingsEnabled as boolean) ?? true,
+          relatedArticlesEnabled: (f?.relatedArticlesEnabled as boolean) ?? true,
+        },
+        search: {
+          meilisearchEnabled: (s?.meilisearchEnabled as boolean) ?? false,
+          meilisearchUrl: (s?.meilisearchUrl as string) ?? "",
+          meilisearchApiKey: (s?.meilisearchApiKey as string) ?? "",
+          ragEnabled: (s?.ragEnabled as boolean) ?? false,
+          ragProvider: (s?.ragProvider as "openai" | "anthropic") ?? "openai",
+          ragApiKey: (s?.ragApiKey as string) ?? "",
+          ragModel: (s?.ragModel as string) ?? "",
+        },
+      },
+    });
   }, [settings]);
 
   async function handleSave() {
@@ -95,26 +135,26 @@ function KBSettingsForm() {
     try {
       await updateSettings({
         general: {
-          siteName: siteName || undefined,
-          siteDescription: siteDescription || undefined,
-          homepageLayout,
-          articlesPerPage,
+          siteName: general.siteName || undefined,
+          siteDescription: general.siteDescription || undefined,
+          homepageLayout: general.homepageLayout,
+          articlesPerPage: general.articlesPerPage,
         },
         features: {
-          commentsEnabled,
-          bookmarksEnabled,
-          progressTrackingEnabled,
-          ratingsEnabled,
-          relatedArticlesEnabled,
+          commentsEnabled: features.commentsEnabled,
+          bookmarksEnabled: features.bookmarksEnabled,
+          progressTrackingEnabled: features.progressTrackingEnabled,
+          ratingsEnabled: features.ratingsEnabled,
+          relatedArticlesEnabled: features.relatedArticlesEnabled,
         },
         search: {
-          meilisearchEnabled,
-          meilisearchUrl: meilisearchUrl || undefined,
-          meilisearchApiKey: meilisearchApiKey || undefined,
-          ragEnabled,
-          ragProvider,
-          ragApiKey: ragApiKey || undefined,
-          ragModel: ragModel || undefined,
+          meilisearchEnabled: search.meilisearchEnabled,
+          meilisearchUrl: search.meilisearchUrl || undefined,
+          meilisearchApiKey: search.meilisearchApiKey || undefined,
+          ragEnabled: search.ragEnabled,
+          ragProvider: search.ragProvider,
+          ragApiKey: search.ragApiKey || undefined,
+          ragModel: search.ragModel || undefined,
         },
       });
       toast.success("KB settings saved");
@@ -141,8 +181,8 @@ function KBSettingsForm() {
           <label className="block text-sm font-medium text-foreground/70 mb-1">Site Name</label>
           <input
             type="text"
-            value={siteName}
-            onChange={(e) => setSiteName(e.target.value)}
+            value={general.siteName}
+            onChange={(e) => dispatch({ type: "SET_GENERAL", field: "siteName", value: e.target.value })}
             placeholder="Help Center"
             className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card"
           />
@@ -152,8 +192,8 @@ function KBSettingsForm() {
           <label className="block text-sm font-medium text-foreground/70 mb-1">Site Description</label>
           <input
             type="text"
-            value={siteDescription}
-            onChange={(e) => setSiteDescription(e.target.value)}
+            value={general.siteDescription}
+            onChange={(e) => dispatch({ type: "SET_GENERAL", field: "siteDescription", value: e.target.value })}
             placeholder="Find answers to your questions"
             className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card"
           />
@@ -162,8 +202,8 @@ function KBSettingsForm() {
         <div>
           <label className="block text-sm font-medium text-foreground/70 mb-1">Homepage Layout</label>
           <select
-            value={homepageLayout}
-            onChange={(e) => setHomepageLayout(e.target.value as "categories" | "search" | "featured")}
+            value={general.homepageLayout}
+            onChange={(e) => dispatch({ type: "SET_GENERAL", field: "homepageLayout", value: e.target.value })}
             className="w-full max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card"
           >
             <option value="categories">Categories</option>
@@ -178,8 +218,8 @@ function KBSettingsForm() {
             type="number"
             min={5}
             max={50}
-            value={articlesPerPage}
-            onChange={(e) => setArticlesPerPage(Number(e.target.value))}
+            value={general.articlesPerPage}
+            onChange={(e) => dispatch({ type: "SET_GENERAL", field: "articlesPerPage", value: Number(e.target.value) })}
             className="w-full max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card"
           />
         </div>
@@ -188,20 +228,20 @@ function KBSettingsForm() {
       {/* Features */}
       <div className="rounded-lg border border-border p-6 space-y-3">
         <h2 className="text-lg font-semibold">Features</h2>
-        {[
-          { id: "comments", label: "Comments", value: commentsEnabled, set: setCommentsEnabled },
-          { id: "bookmarks", label: "Bookmarks", value: bookmarksEnabled, set: setBookmarksEnabled },
-          { id: "progress", label: "Reading Progress Tracking", value: progressTrackingEnabled, set: setProgressTrackingEnabled },
-          { id: "ratings", label: "Star Ratings", value: ratingsEnabled, set: setRatingsEnabled },
-          { id: "related", label: "Related Articles", value: relatedArticlesEnabled, set: setRelatedArticlesEnabled },
-        ].map((feat) => (
+        {([
+          { id: "comments", label: "Comments", field: "commentsEnabled" as const },
+          { id: "bookmarks", label: "Bookmarks", field: "bookmarksEnabled" as const },
+          { id: "progress", label: "Reading Progress Tracking", field: "progressTrackingEnabled" as const },
+          { id: "ratings", label: "Star Ratings", field: "ratingsEnabled" as const },
+          { id: "related", label: "Related Articles", field: "relatedArticlesEnabled" as const },
+        ]).map((feat) => (
           <div key={feat.id} className="flex items-center justify-between">
             <label htmlFor={`feat-${feat.id}`} className="text-sm text-foreground/80">{feat.label}</label>
             <input
               id={`feat-${feat.id}`}
               type="checkbox"
-              checked={feat.value}
-              onChange={(e) => feat.set(e.target.checked)}
+              checked={features[feat.field]}
+              onChange={(e) => dispatch({ type: "SET_FEATURES", field: feat.field, value: e.target.checked })}
               className="h-4 w-4 rounded border-border"
             />
           </div>
@@ -214,22 +254,23 @@ function KBSettingsForm() {
 
         <div className="space-y-3 border-b border-border pb-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground/80">Meilisearch</span>
+            <label htmlFor="search-meilisearch" className="text-sm font-medium text-foreground/80">Meilisearch</label>
             <input
+              id="search-meilisearch"
               type="checkbox"
-              checked={meilisearchEnabled}
-              onChange={(e) => setMeilisearchEnabled(e.target.checked)}
+              checked={search.meilisearchEnabled}
+              onChange={(e) => dispatch({ type: "SET_SEARCH", field: "meilisearchEnabled", value: e.target.checked })}
               className="h-4 w-4 rounded border-border"
             />
           </div>
-          {meilisearchEnabled && (
+          {search.meilisearchEnabled && (
             <>
               <div>
                 <label className="block text-xs font-medium text-foreground/70 mb-1">Meilisearch URL</label>
                 <input
                   type="url"
-                  value={meilisearchUrl}
-                  onChange={(e) => setMeilisearchUrl(e.target.value)}
+                  value={search.meilisearchUrl}
+                  onChange={(e) => dispatch({ type: "SET_SEARCH", field: "meilisearchUrl", value: e.target.value })}
                   placeholder="https://localhost:7700"
                   className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card"
                 />
@@ -238,8 +279,8 @@ function KBSettingsForm() {
                 <label className="block text-xs font-medium text-foreground/70 mb-1">Meilisearch API Key</label>
                 <input
                   type="password"
-                  value={meilisearchApiKey}
-                  onChange={(e) => setMeilisearchApiKey(e.target.value)}
+                  value={search.meilisearchApiKey}
+                  onChange={(e) => dispatch({ type: "SET_SEARCH", field: "meilisearchApiKey", value: e.target.value })}
                   placeholder="••••••••"
                   className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card"
                 />
@@ -250,21 +291,22 @@ function KBSettingsForm() {
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground/80">AI Search (RAG)</span>
+            <label htmlFor="search-rag" className="text-sm font-medium text-foreground/80">AI Search (RAG)</label>
             <input
+              id="search-rag"
               type="checkbox"
-              checked={ragEnabled}
-              onChange={(e) => setRagEnabled(e.target.checked)}
+              checked={search.ragEnabled}
+              onChange={(e) => dispatch({ type: "SET_SEARCH", field: "ragEnabled", value: e.target.checked })}
               className="h-4 w-4 rounded border-border"
             />
           </div>
-          {ragEnabled && (
+          {search.ragEnabled && (
             <>
               <div>
                 <label className="block text-xs font-medium text-foreground/70 mb-1">Provider</label>
                 <select
-                  value={ragProvider}
-                  onChange={(e) => setRagProvider(e.target.value as "openai" | "anthropic")}
+                  value={search.ragProvider}
+                  onChange={(e) => dispatch({ type: "SET_SEARCH", field: "ragProvider", value: e.target.value })}
                   className="w-full max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card"
                 >
                   <option value="openai">OpenAI</option>
@@ -275,8 +317,8 @@ function KBSettingsForm() {
                 <label className="block text-xs font-medium text-foreground/70 mb-1">API Key</label>
                 <input
                   type="password"
-                  value={ragApiKey}
-                  onChange={(e) => setRagApiKey(e.target.value)}
+                  value={search.ragApiKey}
+                  onChange={(e) => dispatch({ type: "SET_SEARCH", field: "ragApiKey", value: e.target.value })}
                   placeholder="••••••••"
                   className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card"
                 />
@@ -285,9 +327,9 @@ function KBSettingsForm() {
                 <label className="block text-xs font-medium text-foreground/70 mb-1">Model</label>
                 <input
                   type="text"
-                  value={ragModel}
-                  onChange={(e) => setRagModel(e.target.value)}
-                  placeholder={ragProvider === "openai" ? "text-embedding-3-small" : "claude-3-haiku-20240307"}
+                  value={search.ragModel}
+                  onChange={(e) => dispatch({ type: "SET_SEARCH", field: "ragModel", value: e.target.value })}
+                  placeholder={search.ragProvider === "openai" ? "text-embedding-3-small" : "claude-3-haiku-20240307"}
                   className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card"
                 />
               </div>
