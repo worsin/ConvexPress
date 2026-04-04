@@ -16,6 +16,7 @@
  */
 
 import { action } from "../_generated/server";
+import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 
@@ -25,9 +26,9 @@ import { v, ConvexError } from "convex/values";
  * Resolve Meilisearch URL and API key from the kb.search settings section.
  * Throws CONFIGURATION_ERROR if Meilisearch is not enabled or misconfigured.
  */
-async function resolveMeilisearchConfig(ctx: {
-  runQuery: (query: any, args?: any) => Promise<any>;
-}): Promise<{ url: string; apiKey: string }> {
+async function resolveMeilisearchConfig(
+  ctx: Pick<ActionCtx, "runQuery">,
+): Promise<{ url: string; apiKey: string }> {
   const settings = (await ctx.runQuery(
     internal.settings.internals.getInternal,
     { section: "kb.search" },

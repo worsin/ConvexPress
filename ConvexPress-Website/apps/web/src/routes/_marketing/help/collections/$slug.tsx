@@ -20,13 +20,33 @@ export const Route = createFileRoute("/_marketing/help/collections/$slug")({
   }),
 });
 
+type CollectionArticle = {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  readingTimeMinutes?: number;
+  categorySlug?: string;
+  order: number;
+};
+
+type Collection = {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  type?: string;
+  articleCount?: number;
+  articles: CollectionArticle[];
+};
+
 function CollectionView() {
   const { slug } = Route.useParams();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
   const { data: collection } = useSuspenseQuery(
-    // @ts-expect-error - Convex query type mismatch with useSuspenseQuery
-    convexQuery(api.kb.collections.getBySlug, { slug }),
-  );
+    convexQuery(api.kb.collections.getBySlug, { slug }) as any,
+  ) as { data: Collection | null };
 
   if (!collection) {
     return (
@@ -42,8 +62,8 @@ function CollectionView() {
     );
   }
 
-  const col = collection as any;
-  const articles = (col.articles as any[]) ?? [];
+  const col = collection;
+  const articles = col.articles ?? [];
 
   function collectionTypeLabel(type: string): string {
     if (type === "learningPath") return "in this learning path";
@@ -83,7 +103,7 @@ function CollectionView() {
 
       {/* Article list */}
       <div className="space-y-3">
-        {articles.map((article: any, index: number) => (
+        {articles.map((article, index: number) => (
           <Link
             key={article._id}
             to="/help/$categorySlug/$articleSlug"

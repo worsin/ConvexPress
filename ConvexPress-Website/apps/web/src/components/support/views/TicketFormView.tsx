@@ -58,7 +58,7 @@ export function TicketFormView({
       const result = await createTicket({
         subject: trimmedSubject,
         description: trimmedDescription,
-        category: category as any,
+        category: category as "billing" | "technical" | "account" | "featureRequest" | "general" | "other",
         source: "widget",
         aiAttempted: !!prefillQuery,
         aiQuery: prefillQuery,

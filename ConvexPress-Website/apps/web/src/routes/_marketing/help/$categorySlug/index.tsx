@@ -3,6 +3,28 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
+type KbCategory = {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  articleCount: number;
+};
+
+type ArticleItem = {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  readingTimeMinutes?: number;
+};
+
+type ArticlesResult = {
+  items?: ArticleItem[];
+  page?: ArticleItem[];
+};
+
 export const Route = createFileRoute("/_marketing/help/$categorySlug/")({
   component: CategoryPage,
   errorComponent: ErrorComponent,
@@ -13,12 +35,12 @@ export const Route = createFileRoute("/_marketing/help/$categorySlug/")({
     // Pre-fetch articles to eliminate the data waterfall (H6)
     if (category?._id) {
       await queryClient.ensureQueryData(
-        // @ts-expect-error - Convex query type mismatch with ensureQueryData
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch; fix by regenerating website types
         convexQuery(api.kb.queries.listPublished, {
-          categoryId: (category as any)._id,
+          categoryId: (category as KbCategory)._id,
           page: 1,
           perPage: 50,
-        }),
+        }) as any,
       );
     }
   },
@@ -34,19 +56,19 @@ export const Route = createFileRoute("/_marketing/help/$categorySlug/")({
 function CategoryPage() {
   const { categorySlug } = Route.useParams();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
   const { data: category } = useSuspenseQuery(
-    // @ts-expect-error - Convex query type mismatch with useSuspenseQuery
-    convexQuery(api.kb.categories.getBySlug, { slug: categorySlug }),
-  );
+    convexQuery(api.kb.categories.getBySlug, { slug: categorySlug }) as any,
+  ) as { data: KbCategory | null };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query type mismatch with useSuspenseQuery; fix by regenerating website types
   const { data: articles } = useSuspenseQuery(
-    // @ts-expect-error - Convex query type mismatch with useSuspenseQuery
     convexQuery(api.kb.queries.listPublished, {
-      categoryId: (category as any)?._id,
+      categoryId: category?._id,
       page: 1,
       perPage: 50,
-    }),
-  );
+    }) as any,
+  ) as { data: ArticlesResult | null };
 
   if (!category) {
     return (
@@ -62,8 +84,7 @@ function CategoryPage() {
     );
   }
 
-  const cat = category as any;
-  const articleItems = (articles as any)?.items ?? [];
+  const articleItems = articles?.items ?? articles?.page ?? [];
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
@@ -73,16 +94,16 @@ function CategoryPage() {
           Help Center
         </Link>
         <span className="mx-2">/</span>
-        <span>{cat.name}</span>
+        <span>{category.name}</span>
       </nav>
 
-      <h1 className="text-3xl font-bold">{cat.name}</h1>
-      {cat.description && (
-        <p className="mt-2 text-muted-foreground">{cat.description}</p>
+      <h1 className="text-3xl font-bold">{category.name}</h1>
+      {category.description && (
+        <p className="mt-2 text-muted-foreground">{category.description}</p>
       )}
 
       <div className="mt-8 space-y-3">
-        {articleItems.map((article: any) => (
+        {articleItems.map((article) => (
           <Link
             key={article._id}
             to="/help/$categorySlug/$articleSlug"
