@@ -213,7 +213,7 @@ export function SynonymManager({ className }: SynonymManagerProps) {
                       className={cn(
                         "inline-flex items-center rounded-sm px-1.5 py-0.5 text-[10px] font-medium uppercase",
                         syn.isActive
-                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                          ? "bg-success/15 text-success"
                           : "bg-black/10 text-foreground/60 dark:bg-white/10",
                       )}
                     >
@@ -240,7 +240,7 @@ export function SynonymManager({ className }: SynonymManagerProps) {
                           <button
                             type="button"
                             onClick={() => handleDelete(syn._id)}
-                            className="rounded-sm bg-red-500/15 px-2 py-1 text-[10px] font-medium text-red-700 transition-colors hover:bg-red-500/25 dark:text-red-400"
+                            className="rounded-sm bg-destructive/15 px-2 py-1 text-[10px] font-medium text-destructive transition-colors hover:bg-destructive/25"
                           >
                             Confirm
                           </button>
@@ -256,7 +256,7 @@ export function SynonymManager({ className }: SynonymManagerProps) {
                         <button
                           type="button"
                           onClick={() => setDeleteId(syn._id)}
-                          className="flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600"
+                          className="flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                           title="Delete"
                         >
                           <Trash2 className="size-4" />

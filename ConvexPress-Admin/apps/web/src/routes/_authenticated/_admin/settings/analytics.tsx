@@ -169,7 +169,7 @@ function AnalyticsSettingsPage() {
           {/* Connected State */}
           <div className="rounded-lg border border-border bg-card p-6">
             <div className="flex items-center gap-3 mb-4">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <CheckCircle2 className="h-5 w-5 text-success" />
               <h2 className="text-lg font-semibold text-foreground">
                 Google Analytics 4 Connected
               </h2>

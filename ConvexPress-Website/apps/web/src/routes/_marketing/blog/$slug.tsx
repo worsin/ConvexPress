@@ -28,6 +28,8 @@ import {
 } from "@/lib/seo/resolve";
 import type { PostSeoData, SeoSettings } from "@/lib/seo/resolve";
 export const Route = createFileRoute("/_marketing/blog/$slug")({
+  // .parse() is intentional here: TanStack Router catches the thrown ZodError
+  // and triggers the not-found/error boundary for malformed slug params.
   params: { parse: (raw) => slugParamsSchema.parse(raw) },
   component: SinglePost,
   loader: async ({ context: { queryClient }, params: { slug } }) => {

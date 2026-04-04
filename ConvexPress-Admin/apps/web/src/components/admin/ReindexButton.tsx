@@ -102,8 +102,8 @@ export function ReindexButton({ className }: ReindexButtonProps) {
 
       {/* Results */}
       {result && (
-        <div className="flex items-start gap-2 rounded-sm border border-border bg-emerald-500/5 p-3">
-          <Check className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+        <div className="flex items-start gap-2 rounded-sm border border-border bg-success/5 p-3">
+          <Check className="mt-0.5 size-4 shrink-0 text-success" />
           <div className="text-xs">
             <p className="font-medium">Reindex completed successfully</p>
             <p className="mt-1 text-muted-foreground">
@@ -121,8 +121,8 @@ export function ReindexButton({ className }: ReindexButtonProps) {
 
       {/* Error */}
       {error && (
-        <div className="flex items-start gap-2 rounded-sm border border-border bg-red-500/5 p-3">
-          <AlertCircle className="mt-0.5 size-4 shrink-0 text-red-600 dark:text-red-400" />
+        <div className="flex items-start gap-2 rounded-sm border border-border bg-destructive/5 p-3">
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="text-xs">
             <p className="font-medium">Reindex failed</p>
             <p className="mt-1 text-muted-foreground">{error}</p>

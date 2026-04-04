@@ -56,13 +56,13 @@ function IntegrationCard({
       <div
         className={cn(
           "flex h-12 w-12 shrink-0 items-center justify-center rounded-lg",
-          connected ? "bg-green-500/10" : "bg-muted",
+          connected ? "bg-success/10" : "bg-muted",
         )}
       >
         <Icon
           className={cn(
             "h-6 w-6",
-            connected ? "text-green-500" : "text-muted-foreground",
+            connected ? "text-success" : "text-muted-foreground",
           )}
         />
       </div>
@@ -73,14 +73,14 @@ function IntegrationCard({
       <div className="flex items-center gap-2 shrink-0">
         <div className="flex items-center gap-1.5">
           {connected ? (
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <CheckCircle2 className="h-4 w-4 text-success" />
           ) : (
             <XCircle className="h-4 w-4 text-muted-foreground" />
           )}
           <span
             className={cn(
               "text-xs font-medium",
-              connected ? "text-green-500" : "text-muted-foreground",
+              connected ? "text-success" : "text-muted-foreground",
             )}
           >
             {statusLabel}

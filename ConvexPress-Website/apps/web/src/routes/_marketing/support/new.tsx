@@ -1,13 +1,14 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, ErrorComponent } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { useAuth } from "@clerk/clerk-react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { toast } from "sonner";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Loader2, Send } from "lucide-react";
 
 export const Route = createFileRoute("/_marketing/support/new")({
   component: CreateTicketPage,
+  errorComponent: ErrorComponent,
   head: () => ({
     meta: [{ title: "New Ticket - Support" }],
   }),
@@ -23,7 +24,7 @@ const CATEGORIES = [
 ];
 
 function CreateTicketPage() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const navigate = useNavigate();
 
   const [subject, setSubject] = useState("");
@@ -32,6 +33,14 @@ function CreateTicketPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const createTicket = useMutation(api.tickets.mutations.create);
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!isSignedIn) {
     return (
@@ -120,7 +129,7 @@ function CreateTicketPage() {
             onChange={(e) => setSubject(e.target.value)}
             placeholder="Brief summary of your issue"
             maxLength={200}
-            className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card focus:outline-hidden focus:ring-2 focus:ring-primary/30"
           />
           <p className="text-xs text-foreground/30 mt-1">
             {subject.length}/200 characters
@@ -140,7 +149,7 @@ function CreateTicketPage() {
             placeholder="Please describe your issue in detail. Include any steps to reproduce, expected behavior, and screenshots if applicable."
             rows={8}
             maxLength={10000}
-            className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-hidden focus:ring-2 focus:ring-primary/30"
           />
           <p className="text-xs text-foreground/30 mt-1">
             {description.length}/10000 characters

@@ -1,10 +1,11 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
 export const Route = createFileRoute("/_marketing/help/")({
   component: HelpCenter,
+  errorComponent: ErrorComponent,
   loader: async ({ context: { queryClient } }) => {
     await Promise.all([
       queryClient.ensureQueryData(
@@ -62,7 +63,7 @@ function HelpCenter() {
             name="q"
             type="text"
             placeholder="Search articles..."
-            className="flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
           />
           <button
             type="submit"

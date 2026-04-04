@@ -479,12 +479,12 @@ function AISettingsPage() {
                 className={cn(
                   "flex items-start gap-2 rounded-md p-3",
                   testResult.success
-                    ? "bg-green-500/10"
+                    ? "bg-success/10"
                     : "bg-destructive/10",
                 )}
               >
                 {testResult.success ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
                 ) : (
                   <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
                 )}
@@ -492,7 +492,7 @@ function AISettingsPage() {
                   className={cn(
                     "text-sm",
                     testResult.success
-                      ? "text-green-500"
+                      ? "text-success"
                       : "text-destructive",
                   )}
                 >
@@ -592,12 +592,12 @@ function AISettingsPage() {
                 className={cn(
                   "flex items-start gap-2 rounded-md p-3",
                   tavilyTestResult.success
-                    ? "bg-green-500/10"
+                    ? "bg-success/10"
                     : "bg-destructive/10",
                 )}
               >
                 {tavilyTestResult.success ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
                 ) : (
                   <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
                 )}
@@ -605,7 +605,7 @@ function AISettingsPage() {
                   className={cn(
                     "text-sm",
                     tavilyTestResult.success
-                      ? "text-green-500"
+                      ? "text-success"
                       : "text-destructive",
                   )}
                 >

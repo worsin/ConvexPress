@@ -8,7 +8,7 @@
  */
 
 import { useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, ErrorComponent } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
@@ -28,6 +28,7 @@ export const Route = createFileRoute(
   "/_authenticated/_admin/tickets/$ticketId",
 )({
   component: TicketDetailPage,
+  errorComponent: ErrorComponent,
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -285,7 +286,7 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
                     : "Type your reply..."
                 }
                 rows={4}
-                className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-hidden focus:ring-2 focus:ring-primary/30"
               />
               <div className="flex justify-end">
                 <button

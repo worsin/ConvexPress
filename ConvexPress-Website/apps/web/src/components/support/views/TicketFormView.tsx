@@ -105,7 +105,7 @@ export function TicketFormView({
           className={cn(
             "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm",
             "placeholder:text-muted-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring",
+            "focus:outline-hidden focus:ring-2 focus:ring-ring",
           )}
           autoFocus
           required
@@ -126,7 +126,7 @@ export function TicketFormView({
           onChange={(e) => setCategory(e.target.value)}
           className={cn(
             "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm",
-            "focus:outline-none focus:ring-2 focus:ring-ring",
+            "focus:outline-hidden focus:ring-2 focus:ring-ring",
           )}
         >
           <option value="general">General</option>
@@ -155,7 +155,7 @@ export function TicketFormView({
           className={cn(
             "w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm",
             "placeholder:text-muted-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring",
+            "focus:outline-hidden focus:ring-2 focus:ring-ring",
           )}
           required
         />

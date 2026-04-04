@@ -1,6 +1,6 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, ErrorComponent } from "@tanstack/react-router";
 import { z } from "zod";
 import { api } from "@convexpress-website/backend/generated/api";
 
@@ -11,31 +11,27 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/_marketing/help/search")({
   validateSearch: searchSchema,
   component: KbSearchResults,
-  loader: async ({ context: { queryClient }, search }) => {
-    if (search.q?.trim()) {
+  errorComponent: ErrorComponent,
+  loaderDeps: ({ search }) => ({ q: search.q }),
+  loader: async ({ context: { queryClient }, deps }) => {
+    if (deps.q?.trim()) {
       await queryClient.ensureQueryData(
         convexQuery(api.kb.search.search, {
-          query: search.q.trim(),
+          query: deps.q.trim(),
           limit: 20,
         }),
       );
     }
   },
-  head: (ctx) => {
-    const q =
-      typeof (ctx as any).search?.q === "string"
-        ? (ctx as any).search.q
-        : "";
-    return {
-      meta: [
-        {
-          title: q
-            ? `Search: ${q} - Help Center - ConvexPress`
-            : "Search - Help Center - ConvexPress",
-        },
-      ],
-    };
-  },
+  head: ({ search }) => ({
+    meta: [
+      {
+        title: search.q
+          ? `Search: ${search.q} - Help Center - ConvexPress`
+          : "Search - Help Center - ConvexPress",
+      },
+    ],
+  }),
 });
 
 function KbSearchResults() {
@@ -81,7 +77,7 @@ function KbSearchResults() {
           type="text"
           defaultValue={q ?? ""}
           placeholder="Search articles..."
-          className="flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
           autoFocus={!hasQuery}
         />
         <button

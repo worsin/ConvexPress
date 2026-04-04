@@ -34,9 +34,9 @@ interface AuditEntry {
 }
 
 const SEVERITY_CLASSES: Record<string, string> = {
-  critical: "text-red-500",
-  high: "text-orange-500",
-  medium: "text-yellow-500",
+  critical: "text-destructive",
+  high: "text-warning",
+  medium: "text-warning",
   low: "text-foreground",
   informational: "text-muted-foreground",
 };

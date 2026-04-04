@@ -57,7 +57,7 @@ export function HomeView({
           className={cn(
             "w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-4 text-sm",
             "placeholder:text-muted-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring",
+            "focus:outline-hidden focus:ring-2 focus:ring-ring",
           )}
           autoFocus
         />

@@ -38,12 +38,12 @@ interface AdminSearchResultProps {
 // ─── Status Badge ───────────────────────────────────────────────────────────
 
 const STATUS_STYLES: Record<string, string> = {
-  publish: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  publish: "bg-success/15 text-success",
   draft: "bg-black/10 text-foreground/60 dark:bg-white/10",
-  pending: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  trash: "bg-red-500/15 text-red-700 dark:text-red-400",
-  private: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
-  approved: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  pending: "bg-warning/15 text-warning",
+  trash: "bg-destructive/15 text-destructive",
+  private: "bg-private/15 text-private",
+  approved: "bg-success/15 text-success",
 };
 
 function StatusBadge({ status }: { status: string }) {

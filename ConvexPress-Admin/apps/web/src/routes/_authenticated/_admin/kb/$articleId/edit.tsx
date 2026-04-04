@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
@@ -17,6 +17,7 @@ import { Save, Globe, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/_admin/kb/$articleId/edit")({
   component: EditKBArticlePage,
+  errorComponent: ErrorComponent,
 });
 
 function EditKBArticlePage() {
@@ -70,7 +71,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
 
   const art = article as KBArticle | null | undefined;
 
-  // Populate form when article loads
+  // Populate form when article loads or changes (Convex returns new references on data change)
   useEffect(() => {
     if (!art) return;
     setTitle(art.title ?? "");
@@ -82,8 +83,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
     setMetaDescription(art.metaDescription ?? "");
     setKeywords((art.keywords ?? []).join(", "));
     setIsDirty(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [art?._id]);
+  }, [art]);
 
   function markDirty() {
     setIsDirty(true);
@@ -164,7 +164,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
     return (
       <div className="text-center py-16">
         <p className="text-muted-foreground mb-4">Article not found.</p>
-        <Link to="/admin/kb" className="text-primary hover:underline text-sm">
+        <Link to="/kb" className="text-primary hover:underline text-sm">
           ← Back to Articles
         </Link>
       </div>
@@ -172,7 +172,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
   }
 
   // At this point article is guaranteed non-null/undefined
-  const isPublished = art!.status === "published";
+  const isPublished = art?.status === "published";
 
   return (
     <div className="space-y-5">
@@ -180,7 +180,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link
-            to="/admin/kb"
+            to="/kb"
             aria-label="Back to articles"
             className="text-foreground/50 hover:text-foreground transition-colors"
           >
@@ -247,7 +247,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
               value={title}
               onChange={(e) => { setTitle(e.target.value); markDirty(); }}
               placeholder="Article title"
-              className="w-full px-3 py-2 text-base font-medium border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2 text-base font-medium border border-border rounded-md bg-card focus:outline-hidden focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
@@ -259,7 +259,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
               onChange={(e) => { setContent(e.target.value); markDirty(); }}
               placeholder="Write article content here…"
               rows={16}
-              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono"
+              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-hidden focus:ring-2 focus:ring-primary/30 font-mono"
             />
           </div>
 
@@ -271,7 +271,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
               onChange={(e) => { setExcerpt(e.target.value); markDirty(); }}
               placeholder="Short summary of the article"
               rows={3}
-              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-none focus:outline-hidden focus:ring-2 focus:ring-primary/30"
             />
           </div>
         </div>
