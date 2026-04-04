@@ -32,7 +32,7 @@ export async function signAccessToken(payload: {
     email: payload.email,
     name: payload.name,
   })
-    .setProtectedHeader({ alg: ALG })
+    .setProtectedHeader({ alg: ALG, kid: "convexpress-admin-1" })
     .setSubject(payload.userId)
     .setIssuer(ISSUER)
     .setAudience(AUDIENCE)
@@ -45,7 +45,9 @@ export async function signAccessToken(payload: {
 
 export async function getJWKS(): Promise<{ keys: object[] }> {
   const privateKeyPem = process.env.AUTH_PRIVATE_KEY!;
-  const privateKey = await importPKCS8(privateKeyPem, ALG);
+  // Must pass { extractable: true } so exportJWK can read the key material.
+  // jose v6+ defaults to non-extractable keys.
+  const privateKey = await importPKCS8(privateKeyPem, ALG, { extractable: true });
   const publicJwk = await exportJWK(privateKey);
   const { d, ...publicOnly } = publicJwk as Record<string, unknown>;
 

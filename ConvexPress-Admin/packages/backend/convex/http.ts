@@ -56,11 +56,28 @@ const corsPreflight = httpAction(async () => {
   return corsPreflightResponse();
 });
 
+// Auth endpoints use credentials (cookies), so the preflight MUST echo the
+// request Origin instead of returning "*". Browsers reject wildcard when
+// credentials mode is "include".
+const authCorsPreflight = httpAction(async (_ctx, request) => {
+  const origin = request.headers.get("origin") ?? "";
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Authorization, Content-Type",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
+});
+
 // ─── Auth Routes ────────────────────────────────────────────────────────────
 http.route({
   path: "/auth/login",
   method: "OPTIONS",
-  handler: corsPreflight,
+  handler: authCorsPreflight,
 });
 http.route({
   path: "/auth/login",
@@ -70,7 +87,7 @@ http.route({
 http.route({
   path: "/auth/refresh",
   method: "OPTIONS",
-  handler: corsPreflight,
+  handler: authCorsPreflight,
 });
 http.route({
   path: "/auth/refresh",
@@ -80,7 +97,7 @@ http.route({
 http.route({
   path: "/auth/logout",
   method: "OPTIONS",
-  handler: corsPreflight,
+  handler: authCorsPreflight,
 });
 http.route({
   path: "/auth/logout",

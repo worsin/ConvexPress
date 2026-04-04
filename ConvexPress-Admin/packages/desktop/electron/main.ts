@@ -162,8 +162,10 @@ app.whenReady().then(async () => {
   fileLog("[Main] App ready");
 
   // Set Dock icon on macOS (in dev mode)
+  // Uses icon_dock.png which has the squircle mask pre-baked — macOS does NOT
+  // apply the squircle mask to dock.setIcon() in dev mode.
   if (process.platform === "darwin" && app.dock && !app.isPackaged) {
-    const iconPath = path.join(__dirname, "../resources/icon.png");
+    const iconPath = path.join(__dirname, "../resources/icon_dock.png");
     try {
       const dockIcon = nativeImage.createFromPath(iconPath);
       if (!dockIcon.isEmpty()) {

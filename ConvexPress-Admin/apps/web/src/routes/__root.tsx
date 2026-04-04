@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { NotificationToastProvider } from "@/components/notifications/notification-toast-provider";
 import { NotFoundTemplate } from "@/templates/NotFoundTemplate";
 import { ErrorTemplate } from "@/templates/ErrorTemplate";
+import { isElectron } from "@/lib/electron";
 
 import "../index.css";
 
@@ -52,6 +53,16 @@ function RootComponent() {
   return (
     <>
       <HeadContent />
+      {/* Electron: invisible drag region at the very top of the window so the
+          window is always movable, even on pages without the AdminBar (login,
+          setup wizard, error screens). The AdminBar has its own drag region
+          that covers the full header height once the admin shell loads. */}
+      {isElectron() && (
+        <div
+          className="fixed top-0 left-0 right-0 z-[9999] h-8"
+          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+        />
+      )}
       <ThemeProvider
         attribute="class"
         defaultTheme="dark"

@@ -1,0 +1,611 @@
+- generic [active]:
+  - generic:
+    - link "Skip to main content" [ref=e18] [cursor=pointer]:
+      - /url: "#admin-content"
+    - generic [ref=e19]:
+      - navigation "Admin navigation" [ref=e20]:
+        - generic [ref=e21]:
+          - img [ref=e22]
+          - generic [ref=e24]: ConvexPress
+        - list [ref=e26]:
+          - listitem [ref=e27]:
+            - link "Dashboard" [ref=e28] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e29]
+              - generic [ref=e34]: Dashboard
+          - listitem [ref=e35]:
+            - button "Posts" [ref=e37]:
+              - img [ref=e38]
+              - generic [ref=e41]: Posts
+              - img [ref=e42]
+            - list:
+              - listitem [ref=e44]:
+                - link "All Posts" [ref=e45] [cursor=pointer]:
+                  - /url: /posts
+                  - generic [ref=e46]: All Posts
+              - listitem [ref=e47]:
+                - link "Add New Post" [ref=e48] [cursor=pointer]:
+                  - /url: /posts/new
+                  - img [ref=e49]
+                  - generic [ref=e50]: Add New Post
+              - listitem [ref=e51]:
+                - link "Categories" [ref=e52] [cursor=pointer]:
+                  - /url: /posts/categories
+                  - generic [ref=e53]: Categories
+              - listitem [ref=e54]:
+                - link "Tags" [ref=e55] [cursor=pointer]:
+                  - /url: /posts/tags
+                  - generic [ref=e56]: Tags
+          - listitem [ref=e57]:
+            - button "Media" [ref=e58]:
+              - img [ref=e59]
+              - generic [ref=e63]: Media
+              - img [ref=e64]
+            - list:
+              - listitem [ref=e66]:
+                - link "Library" [ref=e67] [cursor=pointer]:
+                  - /url: /media
+                  - generic [ref=e68]: Library
+              - listitem [ref=e69]:
+                - link "Add New" [ref=e70] [cursor=pointer]:
+                  - /url: /media/upload
+                  - img [ref=e71]
+                  - generic [ref=e72]: Add New
+          - listitem [ref=e73]:
+            - button "Pages" [ref=e74]:
+              - img [ref=e75]
+              - generic [ref=e78]: Pages
+              - img [ref=e79]
+            - list:
+              - listitem [ref=e81]:
+                - link "All Pages" [ref=e82] [cursor=pointer]:
+                  - /url: /pages
+                  - generic [ref=e83]: All Pages
+              - listitem [ref=e84]:
+                - link "Add New Page" [ref=e85] [cursor=pointer]:
+                  - /url: /pages/new
+                  - img [ref=e86]
+                  - generic [ref=e87]: Add New Page
+          - listitem [ref=e88]:
+            - button "Knowledge Base" [ref=e89]:
+              - img [ref=e90]
+              - generic [ref=e92]: Knowledge Base
+              - img [ref=e93]
+            - list:
+              - listitem [ref=e95]:
+                - link "All Articles" [ref=e96] [cursor=pointer]:
+                  - /url: /kb
+                  - generic [ref=e97]: All Articles
+              - listitem [ref=e98]:
+                - link "Add New" [ref=e99] [cursor=pointer]:
+                  - /url: /kb/new
+                  - img [ref=e100]
+                  - generic [ref=e101]: Add New
+              - listitem [ref=e102]:
+                - link "Categories" [ref=e103] [cursor=pointer]:
+                  - /url: /kb/categories
+                  - generic [ref=e104]: Categories
+              - listitem [ref=e105]:
+                - link "Tags" [ref=e106] [cursor=pointer]:
+                  - /url: /kb/tags
+                  - generic [ref=e107]: Tags
+              - listitem [ref=e108]:
+                - link "Collections" [ref=e109] [cursor=pointer]:
+                  - /url: /kb/collections
+                  - generic [ref=e110]: Collections
+              - listitem [ref=e111]:
+                - link "Templates" [ref=e112] [cursor=pointer]:
+                  - /url: /kb/templates
+                  - generic [ref=e113]: Templates
+              - listitem [ref=e114]:
+                - link "Workflows" [ref=e115] [cursor=pointer]:
+                  - /url: /kb/workflows
+                  - generic [ref=e116]: Workflows
+              - listitem [ref=e117]:
+                - link "Analytics" [ref=e118] [cursor=pointer]:
+                  - /url: /kb/analytics
+                  - generic [ref=e119]: Analytics
+              - listitem [ref=e120]:
+                - link "Settings" [ref=e121] [cursor=pointer]:
+                  - /url: /kb/settings
+                  - generic [ref=e122]: Settings
+          - listitem [ref=e123]:
+            - button "Support Tickets" [ref=e124]:
+              - img [ref=e125]
+              - generic [ref=e128]: Support Tickets
+              - img [ref=e129]
+            - list:
+              - listitem [ref=e131]:
+                - link "All Tickets" [ref=e132] [cursor=pointer]:
+                  - /url: /tickets
+                  - generic [ref=e133]: All Tickets
+              - listitem [ref=e134]:
+                - link "Canned Responses" [ref=e135] [cursor=pointer]:
+                  - /url: /tickets/canned-responses
+                  - generic [ref=e136]: Canned Responses
+              - listitem [ref=e137]:
+                - link "Analytics" [ref=e138] [cursor=pointer]:
+                  - /url: /tickets/analytics
+                  - generic [ref=e139]: Analytics
+              - listitem [ref=e140]:
+                - link "Deflection Analytics" [ref=e141] [cursor=pointer]:
+                  - /url: /support/analytics
+                  - generic [ref=e142]: Deflection Analytics
+              - listitem [ref=e143]:
+                - link "Settings" [ref=e144] [cursor=pointer]:
+                  - /url: /tickets/settings
+                  - generic [ref=e145]: Settings
+          - listitem [ref=e146]:
+            - button "Comments" [ref=e147]:
+              - img [ref=e148]
+              - generic [ref=e150]: Comments
+              - img [ref=e151]
+            - list:
+              - listitem [ref=e153]:
+                - link "All Comments" [ref=e154] [cursor=pointer]:
+                  - /url: /comments
+                  - generic [ref=e155]: All Comments
+              - listitem [ref=e156]:
+                - link "Pending" [ref=e157] [cursor=pointer]:
+                  - /url: /comments/pending
+                  - generic [ref=e158]: Pending
+          - listitem [ref=e159]:
+            - button "Custom Fields" [ref=e160]:
+              - img [ref=e161]
+              - generic [ref=e162]: Custom Fields
+              - img [ref=e163]
+            - list:
+              - listitem [ref=e165]:
+                - link "Field Groups" [ref=e166] [cursor=pointer]:
+                  - /url: /custom-fields
+                  - generic [ref=e167]: Field Groups
+              - listitem [ref=e168]:
+                - link "Add New" [ref=e169] [cursor=pointer]:
+                  - /url: /custom-fields/new
+                  - img [ref=e170]
+                  - generic [ref=e171]: Add New
+          - listitem [ref=e172]:
+            - button "Users" [ref=e174]:
+              - img [ref=e175]
+              - generic [ref=e180]: Users
+              - img [ref=e181]
+            - list:
+              - listitem [ref=e183]:
+                - link "All Users" [ref=e184] [cursor=pointer]:
+                  - /url: /users
+                  - generic [ref=e185]: All Users
+              - listitem [ref=e186]:
+                - link "Add New User" [ref=e187] [cursor=pointer]:
+                  - /url: /users/new
+                  - img [ref=e188]
+                  - generic [ref=e189]: Add New User
+              - listitem [ref=e190]:
+                - link "Your Profile" [ref=e191] [cursor=pointer]:
+                  - /url: /profile
+                  - generic [ref=e192]: Your Profile
+              - listitem [ref=e193]:
+                - link "Roles & Capabilities" [ref=e194] [cursor=pointer]:
+                  - /url: /roles
+                  - generic [ref=e195]: Roles & Capabilities
+              - listitem [ref=e196]:
+                - link "Add New Role" [ref=e197] [cursor=pointer]:
+                  - /url: /roles/new
+                  - img [ref=e198]
+                  - generic [ref=e199]: Add New Role
+          - listitem [ref=e200]:
+            - button "Appearance" [ref=e202]:
+              - img [ref=e203]
+              - generic [ref=e209]: Appearance
+              - img [ref=e210]
+            - list:
+              - listitem [ref=e212]:
+                - link "Website Colors" [ref=e213] [cursor=pointer]:
+                  - /url: /appearance/colors
+                  - generic [ref=e214]: Website Colors
+              - listitem [ref=e215]:
+                - link "Menus" [ref=e216] [cursor=pointer]:
+                  - /url: /menus
+                  - generic [ref=e217]: Menus
+              - listitem [ref=e218]:
+                - link "Menu Locations" [ref=e219] [cursor=pointer]:
+                  - /url: /menus/locations
+                  - generic [ref=e220]: Menu Locations
+          - listitem [ref=e221]:
+            - button "SEO" [ref=e222]:
+              - img [ref=e223]
+              - generic [ref=e226]: SEO
+              - img [ref=e227]
+            - list:
+              - listitem [ref=e229]:
+                - link "Dashboard" [ref=e230] [cursor=pointer]:
+                  - /url: /seo
+                  - generic [ref=e231]: Dashboard
+              - listitem [ref=e232]:
+                - link "Settings" [ref=e233] [cursor=pointer]:
+                  - /url: /seo/settings
+                  - generic [ref=e234]: Settings
+              - listitem [ref=e235]:
+                - link "Sitemap" [ref=e236] [cursor=pointer]:
+                  - /url: /seo/sitemap
+                  - generic [ref=e237]: Sitemap
+          - listitem [ref=e238]:
+            - button "Settings" [ref=e239]:
+              - img [ref=e240]
+              - generic [ref=e243]: Settings
+              - img [ref=e244]
+            - list:
+              - listitem [ref=e246]:
+                - link "General" [ref=e247] [cursor=pointer]:
+                  - /url: /settings/general
+                  - generic [ref=e248]: General
+              - listitem [ref=e249]:
+                - link "Reading" [ref=e250] [cursor=pointer]:
+                  - /url: /settings/reading
+                  - generic [ref=e251]: Reading
+              - listitem [ref=e252]:
+                - link "Writing" [ref=e253] [cursor=pointer]:
+                  - /url: /settings/writing
+                  - generic [ref=e254]: Writing
+              - listitem [ref=e255]:
+                - link "Discussion" [ref=e256] [cursor=pointer]:
+                  - /url: /settings/discussion
+                  - generic [ref=e257]: Discussion
+              - listitem [ref=e258]:
+                - link "Notifications" [ref=e259] [cursor=pointer]:
+                  - /url: /settings/notifications
+                  - generic [ref=e260]: Notifications
+              - listitem [ref=e261]:
+                - link "Permalinks" [ref=e262] [cursor=pointer]:
+                  - /url: /settings/permalinks
+                  - generic [ref=e263]: Permalinks
+              - listitem [ref=e264]:
+                - link "Privacy" [ref=e265] [cursor=pointer]:
+                  - /url: /settings/privacy
+                  - generic [ref=e266]: Privacy
+              - listitem [ref=e267]:
+                - link "Email" [ref=e268] [cursor=pointer]:
+                  - /url: /settings/email
+                  - generic [ref=e269]: Email
+              - listitem [ref=e270]:
+                - link "Search" [ref=e271] [cursor=pointer]:
+                  - /url: /settings/search
+                  - generic [ref=e272]: Search
+              - listitem [ref=e273]:
+                - link "Analytics" [ref=e274] [cursor=pointer]:
+                  - /url: /settings/analytics
+                  - generic [ref=e275]: Analytics
+              - listitem [ref=e276]:
+                - link "AI Providers" [ref=e277] [cursor=pointer]:
+                  - /url: /settings/ai
+                  - generic [ref=e278]: AI Providers
+              - listitem [ref=e279]:
+                - link "Integrations" [ref=e280] [cursor=pointer]:
+                  - /url: /settings/integrations
+                  - generic [ref=e281]: Integrations
+          - listitem [ref=e282]:
+            - button "Tools" [ref=e284]:
+              - img [ref=e285]
+              - generic [ref=e287]: Tools
+              - img [ref=e288]
+            - list:
+              - listitem [ref=e290]:
+                - link "Activity Log" [ref=e291] [cursor=pointer]:
+                  - /url: /tools/activity
+                  - generic [ref=e292]: Activity Log
+              - listitem [ref=e293]:
+                - link "404 Log" [ref=e294] [cursor=pointer]:
+                  - /url: /tools/404-log
+                  - generic [ref=e295]: 404 Log
+              - listitem [ref=e296]:
+                - link "Audit Log" [ref=e297] [cursor=pointer]:
+                  - /url: /tools/audit-log
+                  - generic [ref=e298]: Audit Log
+              - listitem [ref=e299]:
+                - link "Roles" [ref=e300] [cursor=pointer]:
+                  - /url: /tools/roles
+                  - generic [ref=e301]: Roles
+              - listitem [ref=e302]:
+                - link "Capabilities" [ref=e303] [cursor=pointer]:
+                  - /url: /tools/capabilities
+                  - generic [ref=e304]: Capabilities
+              - listitem [ref=e305]:
+                - link "Events" [ref=e306] [cursor=pointer]:
+                  - /url: /tools/events
+                  - generic [ref=e307]: Events
+              - listitem [ref=e308]:
+                - link "Routes" [ref=e309] [cursor=pointer]:
+                  - /url: /tools/routes
+                  - generic [ref=e310]: Routes
+              - listitem [ref=e311]:
+                - link "Email Notifications" [ref=e312] [cursor=pointer]:
+                  - /url: /tools/email-notifications
+                  - generic [ref=e313]: Email Notifications
+              - listitem [ref=e314]:
+                - link "Site Notifications" [ref=e315] [cursor=pointer]:
+                  - /url: /tools/site-notifications
+                  - generic [ref=e316]: Site Notifications
+              - listitem [ref=e317]:
+                - link "Redirects" [ref=e318] [cursor=pointer]:
+                  - /url: /tools/redirects
+                  - generic [ref=e319]: Redirects
+              - listitem [ref=e320]:
+                - link "API Keys" [ref=e321] [cursor=pointer]:
+                  - /url: /api-keys
+                  - generic [ref=e322]: API Keys
+              - listitem [ref=e323]:
+                - link "Webhooks" [ref=e324] [cursor=pointer]:
+                  - /url: /webhooks
+                  - generic [ref=e325]: Webhooks
+              - listitem [ref=e326]:
+                - link "WordPress Sync" [ref=e327] [cursor=pointer]:
+                  - /url: /tools/wordpress-sync
+                  - generic [ref=e328]: WordPress Sync
+              - listitem [ref=e329]:
+                - link "Updates" [ref=e330] [cursor=pointer]:
+                  - /url: /updates
+                  - generic [ref=e331]: Updates
+        - button "Collapse sidebar" [ref=e333]:
+          - img [ref=e334]
+          - generic [ref=e337]: Collapse
+      - generic [ref=e338]:
+        - banner [ref=e339]:
+          - link "My Site" [ref=e341] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e342]: My Site
+            - img [ref=e343]
+          - button "Search admin content (Ctrl+K)" [ref=e348]:
+            - img [ref=e349]
+            - generic [ref=e352]: Search everything...
+            - generic [ref=e353]: ⌘K
+          - generic [ref=e354]:
+            - button "Notifications" [ref=e356]:
+              - img [ref=e357]
+            - button "Toggle theme" [ref=e360]:
+              - img
+              - generic [ref=e361]: Toggle theme
+            - button "A Admin" [ref=e362]:
+              - generic [ref=e363]: A
+              - generic [ref=e364]: Admin
+        - progressbar [ref=e365]
+        - main [ref=e366]:
+          - generic [ref=e367]:
+            - heading "Dashboard" [level=1] [ref=e369]
+            - button "Screen Options" [ref=e372]:
+              - text: Screen Options
+              - img [ref=e373]
+            - generic [ref=e375]:
+              - button "Dismiss this welcome panel" [ref=e376]:
+                - img [ref=e377]
+              - generic [ref=e380]:
+                - heading "Welcome to ConvexPress, Admin!" [level=2] [ref=e381]
+                - paragraph [ref=e382]: "Here are some links to get you started:"
+                - generic [ref=e383]:
+                  - generic [ref=e384]:
+                    - heading "Get Started" [level=3] [ref=e385]
+                    - list [ref=e386]:
+                      - listitem [ref=e387]:
+                        - link "Customize Your Site" [ref=e388] [cursor=pointer]:
+                          - /url: /settings/general
+                          - img [ref=e389]
+                          - text: Customize Your Site
+                      - listitem [ref=e395]:
+                        - link "Write Your First Post" [ref=e396] [cursor=pointer]:
+                          - /url: /posts/new
+                          - img [ref=e397]
+                          - text: Write Your First Post
+                      - listitem [ref=e399]:
+                        - link "Add a Page" [ref=e400] [cursor=pointer]:
+                          - /url: /pages/new
+                          - img [ref=e401]
+                          - text: Add a Page
+                  - generic [ref=e404]:
+                    - heading "Next Steps" [level=3] [ref=e405]
+                    - list [ref=e406]:
+                      - listitem [ref=e407]:
+                        - link "Manage Media" [ref=e408] [cursor=pointer]:
+                          - /url: /media
+                          - img [ref=e409]
+                          - text: Manage Media
+                      - listitem [ref=e413]:
+                        - link "Manage Users" [ref=e414] [cursor=pointer]:
+                          - /url: /users
+                          - img [ref=e415]
+                          - text: Manage Users
+                  - generic [ref=e420]:
+                    - heading "More Actions" [level=3] [ref=e421]
+                    - list [ref=e422]:
+                      - listitem [ref=e423]:
+                        - link "Settings" [ref=e424] [cursor=pointer]:
+                          - /url: /settings/general
+                          - img [ref=e425]
+                          - text: Settings
+              - button "Dismiss" [ref=e429]
+            - generic [ref=e430]:
+              - generic [ref=e431]:
+                - generic [ref=e434]:
+                  - generic [ref=e435]:
+                    - generic [ref=e436]:
+                      - generic "Drag to reorder" [ref=e437]:
+                        - img [ref=e438]
+                      - heading "At a Glance" [level=3] [ref=e445]
+                    - button "Collapse widget" [expanded] [ref=e446]:
+                      - img [ref=e447]
+                  - generic [ref=e450]:
+                    - generic [ref=e451]:
+                      - link "6 Posts" [ref=e452] [cursor=pointer]:
+                        - /url: /posts
+                        - img [ref=e454]
+                        - generic [ref=e457]:
+                          - generic [ref=e458]: "6"
+                          - generic [ref=e459]: Posts
+                      - link "5 Pages" [ref=e460] [cursor=pointer]:
+                        - /url: /pages
+                        - img [ref=e462]
+                        - generic [ref=e466]:
+                          - generic [ref=e467]: "5"
+                          - generic [ref=e468]: Pages
+                      - link "1 Comment" [ref=e469] [cursor=pointer]:
+                        - /url: /comments
+                        - img [ref=e471]
+                        - generic [ref=e473]:
+                          - generic [ref=e474]: "1"
+                          - generic [ref=e475]: Comment
+                      - link "7 Users" [ref=e476] [cursor=pointer]:
+                        - /url: /users
+                        - img [ref=e478]
+                        - generic [ref=e483]:
+                          - generic [ref=e484]: "7"
+                          - generic [ref=e485]: Users
+                    - link "1 Draft" [ref=e488] [cursor=pointer]:
+                      - /url: /posts?status=draft
+                - generic [ref=e491]:
+                  - generic [ref=e492]:
+                    - generic [ref=e493]:
+                      - generic "Drag to reorder" [ref=e494]:
+                        - img [ref=e495]
+                      - heading "Activity" [level=3] [ref=e502]
+                    - button "Collapse widget" [expanded] [ref=e503]:
+                      - img [ref=e504]
+                  - generic [ref=e507]:
+                    - generic [ref=e508]:
+                      - heading "Recently Published" [level=4] [ref=e509]
+                      - list [ref=e510]:
+                        - listitem [ref=e511]:
+                          - generic [ref=e512]: Feb 24
+                          - generic [ref=e513]:
+                            - link "Visual Audit Test Post - Created by Claude" [ref=e514] [cursor=pointer]:
+                              - /url: /posts/nx7dq0z5wdjn1bv1gp01snh3e181sqk7/edit
+                            - generic [ref=e515]: by claude@test.smithharper.com
+                        - listitem [ref=e516]:
+                          - generic [ref=e517]: Feb 17
+                          - generic [ref=e518]:
+                            - link "Secure Automation Pipeline for Marketing Sites" [ref=e519] [cursor=pointer]:
+                              - /url: /posts/nx75mdfe3mq1rcm21wet85wqzd81cx17/edit
+                            - generic [ref=e520]: by codexverified1771373311
+                        - listitem [ref=e521]:
+                          - generic [ref=e522]: Feb 17
+                          - generic [ref=e523]:
+                            - link "AI-Assisted Editorial Workflow for Agencies" [ref=e524] [cursor=pointer]:
+                              - /url: /posts/nx7aewdkjtv68z4jkd8r3pmzjx81ct8f/edit
+                            - generic [ref=e525]: by codexverified1771373311
+                        - listitem [ref=e526]:
+                          - generic [ref=e527]: Feb 17
+                          - generic [ref=e528]:
+                            - link "Convex and TanStack Realtime CMS Deployment Guide" [ref=e529] [cursor=pointer]:
+                              - /url: /posts/nx7fk5fqw5x7g997ct1cz7nbt581dp7a/edit
+                            - generic [ref=e530]: by codexverified1771373311
+                        - listitem [ref=e531]:
+                          - generic [ref=e532]: Feb 17
+                          - generic [ref=e533]:
+                            - link "Practical Prompt QA Checklist for Content Teams" [ref=e534] [cursor=pointer]:
+                              - /url: /posts/nx7daa5kxsnkr4tt0pa6nmgs0h81c1vm/edit
+                            - generic [ref=e535]: by codexverified1771373311
+                    - generic [ref=e536]:
+                      - heading "Recent Comments" [level=4] [ref=e537]
+                      - list [ref=e538]:
+                        - listitem [ref=e539]:
+                          - generic [ref=e540]:
+                            - generic [ref=e541]: Claude Auditor
+                            - generic [ref=e542]: "on"
+                            - link "Visual Audit Test Post - Created by Claude" [ref=e543] [cursor=pointer]:
+                              - /url: /posts/nx7dq0z5wdjn1bv1gp01snh3e181sqk7/edit
+                          - paragraph [ref=e544]: This is a test comment added during the SmithHarper CMS visual audit workflow. Testing the comment submission and modera...
+                          - generic [ref=e545]: Feb 24
+              - generic [ref=e546]:
+                - generic [ref=e549]:
+                  - generic [ref=e550]:
+                    - generic [ref=e551]:
+                      - generic "Drag to reorder" [ref=e552]:
+                        - img [ref=e553]
+                      - heading "Quick Draft" [level=3] [ref=e560]
+                    - button "Collapse widget" [expanded] [ref=e561]:
+                      - img [ref=e562]
+                  - generic [ref=e565]:
+                    - generic [ref=e566]:
+                      - generic [ref=e567]:
+                        - generic [ref=e568]: Title
+                        - textbox "What's on your mind?" [ref=e569]
+                      - generic [ref=e570]:
+                        - generic [ref=e571]: Content
+                        - textbox "What would you like to say?" [ref=e572]
+                      - generic [ref=e573]:
+                        - button "Save Draft" [disabled]
+                    - generic [ref=e574]:
+                      - heading "Your Recent Drafts" [level=4] [ref=e575]
+                      - paragraph [ref=e576]: No drafts yet. Use the form above to create one.
+                - generic [ref=e579]:
+                  - generic [ref=e580]:
+                    - generic [ref=e581]:
+                      - generic "Drag to reorder" [ref=e582]:
+                        - img [ref=e583]
+                      - heading "Moderation Queue" [level=3] [ref=e590]
+                    - button "Collapse widget" [expanded] [ref=e591]:
+                      - img [ref=e592]
+                  - generic [ref=e595]:
+                    - generic [ref=e596]:
+                      - img [ref=e598]
+                      - generic [ref=e600]:
+                        - generic [ref=e601]: "0"
+                        - generic [ref=e602]: Comments awaiting moderation
+                    - paragraph [ref=e604]: No comments need moderation. All clear.
+                - generic [ref=e607]:
+                  - generic [ref=e608]:
+                    - generic [ref=e609]:
+                      - generic "Drag to reorder" [ref=e610]:
+                        - img [ref=e611]
+                      - heading "Recent Comments" [level=3] [ref=e618]
+                    - button "Collapse widget" [expanded] [ref=e619]:
+                      - img [ref=e620]
+                  - generic [ref=e623]:
+                    - list [ref=e624]:
+                      - listitem [ref=e625]:
+                        - generic [ref=e626]: C
+                        - generic [ref=e627]:
+                          - generic [ref=e629]: Claude Auditor
+                          - paragraph [ref=e630]: This is a test comment added during the SmithHarpe...
+                          - generic [ref=e631]:
+                            - img [ref=e632]
+                            - generic [ref=e634]:
+                              - text: "on"
+                              - link "Visual Audit Test Post - Created by Claude" [ref=e635] [cursor=pointer]:
+                                - /url: /posts/nx7dq0z5wdjn1bv1gp01snh3e181sqk7/edit
+                            - generic [ref=e636]: 38d ago
+                    - link "View all comments" [ref=e638] [cursor=pointer]:
+                      - /url: /comments
+                      - text: View all comments
+                      - img [ref=e639]
+                - generic [ref=e643]:
+                  - generic [ref=e644]:
+                    - generic [ref=e645]:
+                      - generic "Drag to reorder" [ref=e646]:
+                        - img [ref=e647]
+                      - heading "System Health" [level=3] [ref=e654]
+                    - button "Collapse widget" [expanded] [ref=e655]:
+                      - img [ref=e656]
+                  - generic [ref=e659]:
+                    - generic [ref=e660]:
+                      - generic [ref=e661]:
+                        - generic [ref=e662]:
+                          - img [ref=e663]
+                          - generic [ref=e666]: Database
+                        - generic [ref=e667]: Connected
+                      - generic [ref=e668]:
+                        - generic [ref=e669]:
+                          - img [ref=e670]
+                          - generic [ref=e673]: Environment
+                        - generic [ref=e674]: Development
+                      - generic [ref=e675]:
+                        - generic [ref=e676]:
+                          - img [ref=e677]
+                          - generic [ref=e680]: CMS Version
+                        - generic [ref=e681]: ConvexPress 1.0
+                      - generic [ref=e682]:
+                        - generic [ref=e683]:
+                          - img [ref=e684]
+                          - generic [ref=e687]: Auth
+                        - generic [ref=e688]: Local JWT
+                    - paragraph [ref=e690]: For detailed system information, visit Settings.
+        - contentinfo [ref=e691]:
+          - generic [ref=e692]: Thank you for creating with ConvexPress
+          - generic [ref=e693]: Version 1.0.0
+    - region "Notifications alt+T"

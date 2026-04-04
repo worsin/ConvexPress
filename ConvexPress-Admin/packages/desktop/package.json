@@ -5,6 +5,7 @@
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
+    "postinstall": "node scripts/patch-electron-mac.cjs",
     "dev": "tsup electron/main.ts --format esm --outDir dist-electron --watch & tsup electron/preload.ts --format cjs --outDir dist-electron --watch --onSuccess 'electron .'",
     "build:electron": "tsup electron/main.ts --outDir dist-electron --format esm --external electron --external electron-updater --external electron-store --external fix-path && tsup electron/preload.ts --outDir dist-electron --format cjs --external electron && cp -r electron/wizard dist-electron/wizard",
     "build:web": "cd ../../apps/web && ELECTRON_BUILD=true bun run build && cp -r dist ../../packages/desktop/dist",
