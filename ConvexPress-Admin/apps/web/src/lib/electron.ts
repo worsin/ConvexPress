@@ -34,6 +34,17 @@ export interface ConvexpressApp {
   installUpdate: () => Promise<void>;
 }
 
+export interface ConvexpressUpdate {
+  /** Check for app-content updates (git-based) */
+  checkForAppUpdate: () => Promise<unknown>;
+  /** Install app-content update (git pull + build) */
+  installAppUpdate: () => Promise<void>;
+  /** Check for shell updates (electron-updater) */
+  checkForShellUpdate: () => Promise<void>;
+  /** Install shell update (quit and install) */
+  installShellUpdate: () => Promise<void>;
+}
+
 export interface ConvexpressBridge {
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;

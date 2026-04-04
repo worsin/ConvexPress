@@ -17,6 +17,7 @@ import {
   Puzzle,
   BookOpen,
   TicketCheck,
+  ArrowUpCircle,
 } from "lucide-react";
 
 import type { AdminNavSection } from "./types";
@@ -367,6 +368,13 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         label: "WordPress Sync",
         to: "/tools/wordpress-sync",
         icon: RefreshCcw,
+        capability: "manage_options",
+      },
+      {
+        id: "tools-updates",
+        label: "Updates",
+        to: "/updates",
+        icon: ArrowUpCircle,
         capability: "manage_options",
       },
     ],
