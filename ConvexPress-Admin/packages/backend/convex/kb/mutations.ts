@@ -31,6 +31,7 @@ import {
   calculateReadingTime,
   generateExcerpt,
 } from "./helpers/utils";
+import { sanitizeTipTapContent } from "../helpers/sanitize";
 import {
   createArticleArgs,
   updateArticleArgs,
@@ -103,6 +104,9 @@ export const create = mutation({
         }
       }
     }
+
+    // Sanitize TipTap content to prevent XSS
+    content = sanitizeTipTapContent(content);
 
     const plainText = contentPlainText;
     const excerpt = args.excerpt ?? generateExcerpt(plainText);
@@ -200,7 +204,8 @@ export const update = mutation({
     }
 
     if (args.content !== undefined) {
-      updates.content = args.content;
+      // Sanitize TipTap content to prevent XSS
+      updates.content = sanitizeTipTapContent(args.content);
       const plainText = args.contentPlainText ?? extractPlainText(args.content);
       updates.contentPlainText = plainText;
       updates.readingTimeMinutes = calculateReadingTime(plainText);
