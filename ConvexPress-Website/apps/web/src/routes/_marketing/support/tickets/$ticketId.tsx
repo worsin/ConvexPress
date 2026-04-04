@@ -190,7 +190,7 @@ function TicketThreadPage() {
           />
           <div className="flex justify-end">
             <button
-              onClick={handleReply}
+              onClick={() => void handleReply()}
               disabled={!replyContent.trim()}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 disabled:opacity-40 transition-opacity"
             >
@@ -208,7 +208,7 @@ function TicketThreadPage() {
             This ticket is {ticket.status}. Still need help?
           </p>
           <button
-            onClick={handleReopen}
+            onClick={() => void handleReopen()}
             className="px-4 py-2 text-sm font-medium border border-border rounded-md hover:bg-muted transition-colors"
           >
             Reopen Ticket
@@ -252,7 +252,7 @@ function TicketThreadPage() {
                   className="w-full max-w-md mx-auto px-3 py-2 text-sm border border-border rounded-md bg-card"
                 />
                 <button
-                  onClick={handleRate}
+                  onClick={() => void handleRate()}
                   className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 transition-opacity"
                 >
                   Submit Rating

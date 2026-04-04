@@ -1,15 +1,16 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { useMutation, useQuery } from "convex/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type React from "react";
 
 export const Route = createFileRoute(
   "/_marketing/help/$categorySlug/$articleSlug",
 )({
   component: ArticleReader,
+  errorComponent: ErrorComponent,
   loader: async ({ context: { queryClient }, params }) => {
     await queryClient.ensureQueryData(
       convexQuery(api.kb.queries.getBySlug, { slug: params.articleSlug }),
@@ -189,15 +190,19 @@ function ArticleReader() {
   const art = article as any;
 
   // Track page view on mount — only after sessionId is ready client-side
+  // Ref guard prevents double-fire in React 18 StrictMode
+  const hasTrackedRef = useRef(false);
   useEffect(() => {
+    if (hasTrackedRef.current) return;
     if (!art?._id || !sessionId) return;
+    hasTrackedRef.current = true;
     void trackView({
       articleId: art._id,
       sessionId,
-      referrer: typeof document !== "undefined" ? document.referrer : undefined,
-      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+      referrer: document.referrer || undefined,
+      userAgent: navigator.userAgent || undefined,
     });
-  }, [art?._id, sessionId]);
+  }, [art?._id, sessionId, trackView]);
 
   // Get existing feedback to show which button is already selected
   const userFeedback = useQuery(

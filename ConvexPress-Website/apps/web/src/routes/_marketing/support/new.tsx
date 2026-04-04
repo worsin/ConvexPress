@@ -74,8 +74,8 @@ function CreateTicketPage() {
         to: "/support/tickets/$ticketId",
         params: { ticketId: result.ticketId },
       });
-    } catch (error: any) {
-      toast.error(error.data?.message ?? "Failed to create ticket");
+    } catch (error: unknown) {
+      toast.error((error as { data?: { message?: string } })?.data?.message ?? "Failed to create ticket");
     } finally {
       setSubmitting(false);
     }
@@ -97,7 +97,7 @@ function CreateTicketPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
         {/* Category */}
         <div>
           <label htmlFor="ticket-category" className="block text-sm font-medium text-foreground/70 mb-1">

@@ -5,7 +5,7 @@
  * Wired to api.kb.analytics.getDashboardStats
  */
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
@@ -13,6 +13,7 @@ import { BookOpen, Eye, Search, ThumbsUp, TrendingUp, FileText } from "lucide-re
 
 export const Route = createFileRoute("/_authenticated/_admin/kb/analytics")({
   component: KBAnalyticsPage,
+  errorComponent: ErrorComponent,
 });
 
 // ─── StatCard ─────────────────────────────────────────────────────────────────

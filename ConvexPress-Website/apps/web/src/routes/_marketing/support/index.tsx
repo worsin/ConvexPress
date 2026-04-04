@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { useAuth } from "@clerk/clerk-react";
 import { LifeBuoy, Loader2, MessageSquarePlus, List, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_marketing/support/")({
   component: SupportLandingPage,
+  errorComponent: ErrorComponent,
   head: () => ({
     meta: [{ title: "Support - ConvexPress" }],
   }),
