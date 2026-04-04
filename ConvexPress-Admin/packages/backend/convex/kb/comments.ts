@@ -25,6 +25,7 @@ import {
   removeVoteArgs,
   getCommentCountArgs,
 } from "./validators";
+import { enrichUser } from "./helpers/enrichUser";
 
 // ─── List By Article (Public, threaded) ─────────────────────────────────────
 
@@ -34,7 +35,7 @@ export const listByArticle = query({
     const comments = await ctx.db
       .query("kb_comments")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
+      .take(500);
 
     // Only show approved, non-deleted comments
     const visible = comments.filter((c) => c.isApproved && !c.isDeleted);
@@ -42,16 +43,10 @@ export const listByArticle = query({
     // Enrich with author info
     const enriched = await Promise.all(
       visible.map(async (comment) => {
-        const author = await ctx.db.get(comment.userId);
+        const author = await ctx.db.get("users", comment.userId);
         return {
           ...comment,
-          author: author
-            ? {
-                _id: author._id,
-                displayName: (author as any).displayName ?? author.email,
-                avatarUrl: (author as any).avatarUrl,
-              }
-            : null,
+          author: enrichUser(author),
         };
       }),
     );
@@ -79,7 +74,7 @@ export const create = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
@@ -91,7 +86,7 @@ export const create = mutation({
 
     // Validate parent if replying (max 2-level nesting)
     if (args.parentId) {
-      const parent = await ctx.db.get(args.parentId);
+      const parent = await ctx.db.get("kb_comments", args.parentId);
       if (!parent || parent.articleId !== args.articleId) {
         throw new ConvexError({ code: "VALIDATION_ERROR", message: "Invalid parent comment" });
       }
@@ -136,7 +131,7 @@ export const update = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const comment = await ctx.db.get(args.commentId);
+    const comment = await ctx.db.get("kb_comments", args.commentId);
     if (!comment) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Comment not found" });
     }
@@ -151,7 +146,7 @@ export const update = mutation({
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Comment content is required" });
     }
 
-    await ctx.db.patch(args.commentId, {
+    await ctx.db.patch("kb_comments", args.commentId, {
       content,
       isEdited: true,
       updatedAt: Date.now(),
@@ -171,7 +166,7 @@ export const deleteComment = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const comment = await ctx.db.get(args.commentId);
+    const comment = await ctx.db.get("kb_comments", args.commentId);
     if (!comment) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Comment not found" });
     }
@@ -181,7 +176,7 @@ export const deleteComment = mutation({
       await requireCan(ctx, "kb.moderateComments");
     }
 
-    await ctx.db.patch(args.commentId, {
+    await ctx.db.patch("kb_comments", args.commentId, {
       isDeleted: true,
       content: "[deleted]",
       updatedAt: Date.now(),
@@ -201,7 +196,7 @@ export const vote = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const comment = await ctx.db.get(args.commentId);
+    const comment = await ctx.db.get("kb_comments", args.commentId);
     if (!comment) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Comment not found" });
     }
@@ -227,19 +222,19 @@ export const vote = mutation({
       }
 
       // Change vote direction
-      await ctx.db.patch(existingVote._id, {
+      await ctx.db.patch("kb_commentVotes", existingVote._id, {
         voteType: args.voteType,
         createdAt: Date.now(),
       });
 
       // Update denormalized counts
       if (args.voteType === "up") {
-        await ctx.db.patch(args.commentId, {
+        await ctx.db.patch("kb_comments", args.commentId, {
           upvotes: comment.upvotes + 1,
           downvotes: Math.max(0, comment.downvotes - 1),
         });
       } else {
-        await ctx.db.patch(args.commentId, {
+        await ctx.db.patch("kb_comments", args.commentId, {
           upvotes: Math.max(0, comment.upvotes - 1),
           downvotes: comment.downvotes + 1,
         });
@@ -258,9 +253,9 @@ export const vote = mutation({
 
     // Update denormalized counts
     if (args.voteType === "up") {
-      await ctx.db.patch(args.commentId, { upvotes: comment.upvotes + 1 });
+      await ctx.db.patch("kb_comments", args.commentId, { upvotes: comment.upvotes + 1 });
     } else {
-      await ctx.db.patch(args.commentId, { downvotes: comment.downvotes + 1 });
+      await ctx.db.patch("kb_comments", args.commentId, { downvotes: comment.downvotes + 1 });
     }
 
     return voteId;
@@ -286,20 +281,20 @@ export const removeVote = mutation({
 
     if (!existingVote) return null;
 
-    const comment = await ctx.db.get(args.commentId);
+    const comment = await ctx.db.get("kb_comments", args.commentId);
     if (comment) {
       if (existingVote.voteType === "up") {
-        await ctx.db.patch(args.commentId, {
+        await ctx.db.patch("kb_comments", args.commentId, {
           upvotes: Math.max(0, comment.upvotes - 1),
         });
       } else {
-        await ctx.db.patch(args.commentId, {
+        await ctx.db.patch("kb_comments", args.commentId, {
           downvotes: Math.max(0, comment.downvotes - 1),
         });
       }
     }
 
-    await ctx.db.delete(existingVote._id);
+    await ctx.db.delete("kb_commentVotes", existingVote._id);
     return existingVote._id;
   },
 });
@@ -312,7 +307,7 @@ export const getCount = query({
     const comments = await ctx.db
       .query("kb_comments")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
+      .take(1000);
 
     return comments.filter((c) => c.isApproved && !c.isDeleted).length;
   },

@@ -309,6 +309,7 @@ export const kbTables = {
     .index("by_article", ["articleId"])
     .index("by_user", ["userId"])
     .index("by_session", ["sessionId"])
+    .index("by_session_article", ["sessionId", "articleId"])
     .index("by_date", ["createdAt"]),
 
   kb_searchQueries: defineTable({
@@ -349,6 +350,7 @@ export const kbTables = {
     updatedAt: v.number(),
   })
     .index("by_article", ["articleId"])
+    .index("by_workflow", ["workflowId"])
     .index("by_assignee", ["assigneeId"])
     .index("by_status", ["status"])
     .index("by_due_date", ["dueDate"]),

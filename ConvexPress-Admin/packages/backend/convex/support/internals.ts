@@ -66,7 +66,7 @@ export const cleanupOldLogs = internalMutation({
 
     let deleted = 0;
     for (const log of oldLogs) {
-      await ctx.db.delete(log._id);
+      await ctx.db.delete("support_deflectionLogs", log._id);
       deleted++;
     }
 
@@ -98,7 +98,7 @@ export const searchKbConvex = internalQuery({
       .take(10);
 
     return results.map((article, index) => ({
-      id: article._id as string,
+      id: String(article._id),
       title: article.title,
       excerpt: article.excerpt,
       slug: article.slug,
@@ -183,9 +183,20 @@ export const searchKbKeywordFallback = internalQuery({
  *
  * Returns null if the support.ai settings section has never been saved.
  */
+/** Return shape for getSupportAiSettings. */
+interface SupportAiSettings {
+  aiProvider: string | null;
+  aiApiKey: string | null;
+  aiModel: string | null;
+  meilisearchEnabled: boolean;
+  meilisearchUrl: string | null;
+  meilisearchApiKey: string | null;
+  ragEnabled: boolean;
+}
+
 export const getSupportAiSettings = internalQuery({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<SupportAiSettings> => {
     const doc = await ctx.db
       .query("settings")
       .withIndex("by_section", (q) => q.eq("section", "support.ai"))
@@ -193,12 +204,12 @@ export const getSupportAiSettings = internalQuery({
 
     if (!doc) {
       return {
-        aiProvider: null as string | null,
-        aiApiKey: null as string | null,
-        aiModel: null as string | null,
+        aiProvider: null,
+        aiApiKey: null,
+        aiModel: null,
         meilisearchEnabled: false,
-        meilisearchUrl: null as string | null,
-        meilisearchApiKey: null as string | null,
+        meilisearchUrl: null,
+        meilisearchApiKey: null,
         ragEnabled: false,
       };
     }

@@ -27,7 +27,7 @@ export const submitHelpful = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
 
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
@@ -52,21 +52,20 @@ export const submitHelpful = mutation({
     if (existing) {
       // Update existing feedback
       const oldIsHelpful = existing.isHelpful;
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("kb_articleFeedback", existing._id, {
         isHelpful: args.isHelpful,
         comment: args.comment,
       });
 
-      // Update denormalized counts on article
-      const article = await ctx.db.get(args.articleId);
-      if (article && oldIsHelpful !== args.isHelpful) {
+      // Update denormalized counts on article (use outer `article` -- already validated non-null)
+      if (oldIsHelpful !== args.isHelpful) {
         if (args.isHelpful) {
-          await ctx.db.patch(args.articleId, {
+          await ctx.db.patch("kb_articles", args.articleId, {
             helpfulVotes: article.helpfulVotes + 1,
             notHelpfulVotes: Math.max(0, article.notHelpfulVotes - 1),
           });
         } else {
-          await ctx.db.patch(args.articleId, {
+          await ctx.db.patch("kb_articles", args.articleId, {
             helpfulVotes: Math.max(0, article.helpfulVotes - 1),
             notHelpfulVotes: article.notHelpfulVotes + 1,
           });
@@ -86,18 +85,15 @@ export const submitHelpful = mutation({
       createdAt: Date.now(),
     });
 
-    // Update denormalized counts
-    const article = await ctx.db.get(args.articleId);
-    if (article) {
-      if (args.isHelpful) {
-        await ctx.db.patch(args.articleId, {
-          helpfulVotes: article.helpfulVotes + 1,
-        });
-      } else {
-        await ctx.db.patch(args.articleId, {
-          notHelpfulVotes: article.notHelpfulVotes + 1,
-        });
-      }
+    // Update denormalized counts (use outer `article` -- already validated non-null)
+    if (args.isHelpful) {
+      await ctx.db.patch("kb_articles", args.articleId, {
+        helpfulVotes: article.helpfulVotes + 1,
+      });
+    } else {
+      await ctx.db.patch("kb_articles", args.articleId, {
+        notHelpfulVotes: article.notHelpfulVotes + 1,
+      });
     }
 
     await emitEvent(ctx, KB_EVENTS.FEEDBACK_SUBMITTED, SYSTEM.KB, {
@@ -117,7 +113,7 @@ export const submitRating = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
 
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
@@ -146,25 +142,23 @@ export const submitRating = mutation({
     if (existing) {
       const newIsHelpful = args.rating >= 4;
       const oldIsHelpful = existing.isHelpful;
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("kb_articleFeedback", existing._id, {
         rating: args.rating,
         comment: args.comment,
         isHelpful: newIsHelpful,
       });
+      // Update denormalized counts (use outer `article` -- already validated non-null)
       if (newIsHelpful !== oldIsHelpful) {
-        const article = await ctx.db.get(args.articleId);
-        if (article) {
-          if (newIsHelpful) {
-            await ctx.db.patch(args.articleId, {
-              helpfulVotes: article.helpfulVotes + 1,
-              notHelpfulVotes: Math.max(0, article.notHelpfulVotes - 1),
-            });
-          } else {
-            await ctx.db.patch(args.articleId, {
-              notHelpfulVotes: article.notHelpfulVotes + 1,
-              helpfulVotes: Math.max(0, article.helpfulVotes - 1),
-            });
-          }
+        if (newIsHelpful) {
+          await ctx.db.patch("kb_articles", args.articleId, {
+            helpfulVotes: article.helpfulVotes + 1,
+            notHelpfulVotes: Math.max(0, article.notHelpfulVotes - 1),
+          });
+        } else {
+          await ctx.db.patch("kb_articles", args.articleId, {
+            notHelpfulVotes: article.notHelpfulVotes + 1,
+            helpfulVotes: Math.max(0, article.helpfulVotes - 1),
+          });
         }
       }
       return existing._id;
@@ -181,14 +175,11 @@ export const submitRating = mutation({
       createdAt: Date.now(),
     });
 
-    // Update denormalized counts on article
-    const article = await ctx.db.get(args.articleId);
-    if (article) {
-      if (isHelpful) {
-        await ctx.db.patch(args.articleId, { helpfulVotes: article.helpfulVotes + 1 });
-      } else {
-        await ctx.db.patch(args.articleId, { notHelpfulVotes: article.notHelpfulVotes + 1 });
-      }
+    // Update denormalized counts (use outer `article` -- already validated non-null)
+    if (isHelpful) {
+      await ctx.db.patch("kb_articles", args.articleId, { helpfulVotes: article.helpfulVotes + 1 });
+    } else {
+      await ctx.db.patch("kb_articles", args.articleId, { notHelpfulVotes: article.notHelpfulVotes + 1 });
     }
 
     await emitEvent(ctx, KB_EVENTS.FEEDBACK_SUBMITTED, SYSTEM.KB, {
@@ -206,10 +197,11 @@ export const submitRating = mutation({
 export const getArticleStats = query({
   args: getArticleFeedbackStatsArgs,
   handler: async (ctx, args) => {
+    // Safety-bounded with .take(5000) — use denormalized article counts for basic stats
     const feedback = await ctx.db
       .query("kb_articleFeedback")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
+      .take(5000);
 
     const helpful = feedback.filter((f) => f.isHelpful).length;
     const notHelpful = feedback.filter((f) => !f.isHelpful).length;

@@ -64,7 +64,7 @@ export const trackProgress = mutation({
       const newReadTime = existing.readTime + args.readTime;
       const completed = args.completedRead ?? (newPercent >= 90);
 
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("kb_userProgress", existing._id, {
         progressPercent: newPercent,
         scrollPosition: args.scrollPosition,
         lastReadAt: now,
@@ -107,7 +107,7 @@ export const getUserHistory = query({
 
     return Promise.all(
       progress.map(async (p) => {
-        const article = await ctx.db.get(p.articleId);
+        const article = await ctx.db.get("kb_articles", p.articleId);
         return {
           ...p,
           article: article

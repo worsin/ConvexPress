@@ -134,7 +134,7 @@ export const create = mutation({
     let counter: number;
     if (counterDoc) {
       counter = counterDoc.counter + 1;
-      await ctx.db.patch(counterDoc._id, { counter });
+      await ctx.db.patch("ticket_counters", counterDoc._id, { counter });
     } else {
       counter = 1;
       await ctx.db.insert("ticket_counters", { year, month, counter });
@@ -155,8 +155,9 @@ export const create = mutation({
       .query("settings")
       .withIndex("by_section", (q) => q.eq("section", "ticket.general"))
       .unique();
-    if (prioritySetting?.values?.defaultPriority) {
-      defaultPriority = prioritySetting.values.defaultPriority;
+    const rawPriority = prioritySetting?.values?.defaultPriority;
+    if (rawPriority === "low" || rawPriority === "medium" || rawPriority === "high") {
+      defaultPriority = rawPriority;
     }
 
     // ── Resolve effective priority ──────────────────────────────────────
@@ -237,7 +238,7 @@ export const reply = mutation({
     const user = await requireAuth(ctx);
 
     // ── Validate ticket exists and belongs to user ──────────────────────
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
@@ -306,7 +307,7 @@ export const reply = mutation({
     if (ticket.status === "awaitingResponse") {
       updates.status = "open";
     }
-    await ctx.db.patch(args.ticketId, updates);
+    await ctx.db.patch("ticket_tickets", args.ticketId, updates);
 
     // ── Emit event ──────────────────────────────────────────────────────
     await emitEvent(ctx, TICKET_EVENTS.REPLIED, SYSTEM.TICKET, {
@@ -337,7 +338,7 @@ export const adminReply = mutation({
     const user = await requireCan(ctx, "ticket.respond");
 
     // ── Validate ticket exists ──────────────────────────────────────────
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
@@ -408,7 +409,7 @@ export const adminReply = mutation({
       updates.firstResponseAt = now;
     }
 
-    await ctx.db.patch(args.ticketId, updates);
+    await ctx.db.patch("ticket_tickets", args.ticketId, updates);
 
     // ── Emit event ──────────────────────────────────────────────────────
     await emitEvent(ctx, TICKET_EVENTS.REPLIED, SYSTEM.TICKET, {
@@ -437,7 +438,7 @@ export const updateStatus = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "ticket.updateStatus");
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
@@ -460,7 +461,7 @@ export const updateStatus = mutation({
       updates.closedAt = now;
     }
 
-    await ctx.db.patch(args.ticketId, updates);
+    await ctx.db.patch("ticket_tickets", args.ticketId, updates);
 
     // ── Emit appropriate event ──────────────────────────────────────────
     const eventCode =
@@ -490,7 +491,7 @@ export const updatePriority = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "ticket.updatePriority");
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
@@ -499,7 +500,7 @@ export const updatePriority = mutation({
       return; // No-op
     }
 
-    await ctx.db.patch(args.ticketId, {
+    await ctx.db.patch("ticket_tickets", args.ticketId, {
       priority: args.priority,
       updatedAt: Date.now(),
     });
@@ -524,13 +525,13 @@ export const assign = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "ticket.assign");
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
 
     // Validate assignee exists
-    const assignee = await ctx.db.get(args.assigneeId);
+    const assignee = await ctx.db.get("users", args.assigneeId);
     if (!assignee) {
       throw new ConvexError({
         code: "NOT_FOUND",
@@ -539,7 +540,7 @@ export const assign = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch(args.ticketId, {
+    await ctx.db.patch("ticket_tickets", args.ticketId, {
       assignedTo: args.assigneeId,
       assignedAt: now,
       // Auto-transition to inProgress if currently open
@@ -567,12 +568,12 @@ export const unassign = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "ticket.assign");
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
 
-    await ctx.db.patch(args.ticketId, {
+    await ctx.db.patch("ticket_tickets", args.ticketId, {
       assignedTo: undefined,
       assignedAt: undefined,
       updatedAt: Date.now(),
@@ -598,7 +599,7 @@ export const close = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "ticket.close");
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
@@ -608,7 +609,7 @@ export const close = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch(args.ticketId, {
+    await ctx.db.patch("ticket_tickets", args.ticketId, {
       status: "closed",
       closedAt: now,
       resolvedAt: ticket.resolvedAt ?? now,
@@ -635,7 +636,7 @@ export const reopen = mutation({
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
@@ -653,7 +654,7 @@ export const reopen = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch(args.ticketId, {
+    await ctx.db.patch("ticket_tickets", args.ticketId, {
       status: "open",
       resolvedAt: undefined,
       closedAt: undefined,
@@ -681,7 +682,7 @@ export const rate = mutation({
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx);
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
@@ -721,7 +722,7 @@ export const rate = mutation({
       });
     }
 
-    await ctx.db.patch(args.ticketId, {
+    await ctx.db.patch("ticket_tickets", args.ticketId, {
       rating: args.rating,
       ratingComment: args.comment?.trim(),
       updatedAt: Date.now(),
@@ -746,7 +747,7 @@ export const addTags = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "ticket.respond");
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
@@ -768,7 +769,7 @@ export const addTags = mutation({
       });
     }
 
-    await ctx.db.patch(args.ticketId, {
+    await ctx.db.patch("ticket_tickets", args.ticketId, {
       tags: merged,
       updatedAt: Date.now(),
     });
@@ -785,7 +786,7 @@ export const removeTags = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "ticket.respond");
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
@@ -793,7 +794,7 @@ export const removeTags = mutation({
     const toRemove = new Set(args.tags);
     const filtered = ticket.tags.filter((t) => !toRemove.has(t));
 
-    await ctx.db.patch(args.ticketId, {
+    await ctx.db.patch("ticket_tickets", args.ticketId, {
       tags: filtered,
       updatedAt: Date.now(),
     });

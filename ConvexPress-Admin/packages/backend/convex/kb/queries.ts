@@ -25,6 +25,7 @@ import {
   getFeaturedArticlesArgs,
   getVersionsArgs,
 } from "./validators";
+import { enrichUser } from "./helpers/enrichUser";
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
@@ -55,16 +56,10 @@ export const list = query({
 
       const enriched = await Promise.all(
         filtered.map(async (article) => {
-          const author = await ctx.db.get(article.authorId);
+          const author = await ctx.db.get("users", article.authorId);
           return {
             ...article,
-            author: author
-              ? {
-                  _id: author._id,
-                  displayName: (author as any).displayName ?? author.email,
-                  avatarUrl: (author as any).avatarUrl,
-                }
-              : null,
+            author: enrichUser(author),
           };
         }),
       );
@@ -106,16 +101,10 @@ export const list = query({
 
     const enrichedPage = await Promise.all(
       pageItems.map(async (article) => {
-        const author = await ctx.db.get(article.authorId);
+        const author = await ctx.db.get("users", article.authorId);
         return {
           ...article,
-          author: author
-            ? {
-                _id: author._id,
-                displayName: (author as any).displayName ?? author.email,
-                avatarUrl: (author as any).avatarUrl,
-              }
-            : null,
+          author: enrichUser(author),
         };
       }),
     );
@@ -137,30 +126,24 @@ export const getById = query({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) return null;
 
-    const author = await ctx.db.get(article.authorId);
-    const category = article.categoryId ? await ctx.db.get(article.categoryId) : null;
+    const author = await ctx.db.get("users", article.authorId);
+    const category = article.categoryId ? await ctx.db.get("kb_categories", article.categoryId) : null;
 
     // Get tags
     const articleTags = await ctx.db
       .query("kb_articleTags")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
+      .take(100);
     const tags = await Promise.all(
-      articleTags.map(async (at) => ctx.db.get(at.tagId)),
+      articleTags.map(async (at) => ctx.db.get("kb_tags", at.tagId)),
     );
 
     return {
       ...article,
-      author: author
-        ? {
-            _id: author._id,
-            displayName: (author as any).displayName ?? author.email,
-            avatarUrl: (author as any).avatarUrl,
-          }
-        : null,
+      author: enrichUser(author),
       category,
       tags: tags.filter(Boolean),
     };
@@ -179,25 +162,25 @@ export const getBySlug = query({
 
     if (!article || article.status !== "published") return null;
 
-    const author = await ctx.db.get(article.authorId);
-    const category = article.categoryId ? await ctx.db.get(article.categoryId) : null;
+    const author = await ctx.db.get("users", article.authorId);
+    const category = article.categoryId ? await ctx.db.get("kb_categories", article.categoryId) : null;
 
     const articleTags = await ctx.db
       .query("kb_articleTags")
       .withIndex("by_article", (q) => q.eq("articleId", article._id))
-      .collect();
+      .take(100);
     const tags = await Promise.all(
-      articleTags.map(async (at) => ctx.db.get(at.tagId)),
+      articleTags.map(async (at) => ctx.db.get("kb_tags", at.tagId)),
     );
 
     // Get related articles
     const relatedLinks = await ctx.db
       .query("kb_relatedArticles")
       .withIndex("by_source", (q) => q.eq("sourceArticleId", article._id))
-      .collect();
+      .take(50);
     const relatedArticles = await Promise.all(
       relatedLinks.map(async (link) => {
-        const related = await ctx.db.get(link.relatedArticleId);
+        const related = await ctx.db.get("kb_articles", link.relatedArticleId);
         if (!related || related.status !== "published") return null;
         return {
           _id: related._id,
@@ -211,13 +194,7 @@ export const getBySlug = query({
 
     return {
       ...article,
-      author: author
-        ? {
-            _id: author._id,
-            displayName: (author as any).displayName ?? author.email,
-            avatarUrl: (author as any).avatarUrl,
-          }
-        : null,
+      author: enrichUser(author),
       category,
       tags: tags.filter(Boolean),
       relatedArticles: relatedArticles.filter(Boolean),
@@ -254,17 +231,11 @@ export const listPublished = query({
 
     const enrichedPage = await Promise.all(
       pageItems.map(async (article) => {
-        const author = await ctx.db.get(article.authorId);
-        const category = article.categoryId ? await ctx.db.get(article.categoryId) : null;
+        const author = await ctx.db.get("users", article.authorId);
+        const category = article.categoryId ? await ctx.db.get("kb_categories", article.categoryId) : null;
         return {
           ...article,
-          author: author
-            ? {
-                _id: author._id,
-                displayName: (author as any).displayName ?? author.email,
-                avatarUrl: (author as any).avatarUrl,
-              }
-            : null,
+          author: enrichUser(author),
           category,
         };
       }),
@@ -378,19 +349,14 @@ export const getVersions = query({
       .query("kb_articleVersions")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
       .order("desc")
-      .collect();
+      .take(100);
 
     return Promise.all(
       versions.map(async (v) => {
-        const author = await ctx.db.get(v.authorId);
+        const author = await ctx.db.get("users", v.authorId);
         return {
           ...v,
-          author: author
-            ? {
-                _id: author._id,
-                displayName: (author as any).displayName ?? author.email,
-              }
-            : null,
+          author: enrichUser(author),
         };
       }),
     );

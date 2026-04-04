@@ -45,7 +45,7 @@ export const list = query({
     const canManage = await currentUserCan(ctx, "ticket.respond");
     if (!canManage) return null;
 
-    const responses = await ctx.db.query("ticket_cannedResponses").collect();
+    const responses = await ctx.db.query("ticket_cannedResponses").take(500);
     responses.sort((a, b) => b.usageCount - a.usageCount);
     return responses;
   },
@@ -65,7 +65,7 @@ export const listByCategory = query({
     const responses = await ctx.db
       .query("ticket_cannedResponses")
       .withIndex("by_category", (q) => q.eq("category", args.category))
-      .collect();
+      .take(500);
 
     responses.sort((a, b) => b.usageCount - a.usageCount);
     return responses;
@@ -108,9 +108,9 @@ export const search = query({
       responses = await ctx.db
         .query("ticket_cannedResponses")
         .withIndex("by_category", (q) => q.eq("category", args.category!))
-        .collect();
+        .take(500);
     } else {
-      responses = await ctx.db.query("ticket_cannedResponses").collect();
+      responses = await ctx.db.query("ticket_cannedResponses").take(500);
     }
 
     const queryLower = args.query.toLowerCase();
@@ -138,7 +138,7 @@ export const applyTemplate = mutation({
   handler: async (ctx, args) => {
     await requireCan(ctx, "ticket.respond");
 
-    const template = await ctx.db.get(args.id);
+    const template = await ctx.db.get("ticket_cannedResponses", args.id);
     if (!template) {
       throw new ConvexError({
         code: "NOT_FOUND",
@@ -146,7 +146,7 @@ export const applyTemplate = mutation({
       });
     }
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
     }
@@ -230,7 +230,7 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "ticket.manageCannedResponses");
 
-    const existing = await ctx.db.get(args.id);
+    const existing = await ctx.db.get("ticket_cannedResponses", args.id);
     if (!existing) {
       throw new ConvexError({
         code: "NOT_FOUND",
@@ -285,7 +285,7 @@ export const update = mutation({
       updates.category = args.category.trim();
     }
 
-    await ctx.db.patch(args.id, updates);
+    await ctx.db.patch("ticket_cannedResponses", args.id, updates);
 
     return { id: args.id };
   },
@@ -301,7 +301,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "ticket.manageCannedResponses");
 
-    const existing = await ctx.db.get(args.id);
+    const existing = await ctx.db.get("ticket_cannedResponses", args.id);
     if (!existing) {
       throw new ConvexError({
         code: "NOT_FOUND",
@@ -309,7 +309,7 @@ export const remove = mutation({
       });
     }
 
-    await ctx.db.delete(args.id);
+    await ctx.db.delete("ticket_cannedResponses", args.id);
   },
 });
 
@@ -324,10 +324,10 @@ export const incrementUsage = mutation({
   handler: async (ctx, args) => {
     await requireCan(ctx, "ticket.respond");
 
-    const response = await ctx.db.get(args.id);
+    const response = await ctx.db.get("ticket_cannedResponses", args.id);
     if (!response) return;
 
-    await ctx.db.patch(args.id, {
+    await ctx.db.patch("ticket_cannedResponses", args.id, {
       usageCount: response.usageCount + 1,
     });
   },
@@ -344,7 +344,7 @@ export const getCategories = query({
     const canManage = await currentUserCan(ctx, "ticket.respond");
     if (!canManage) return null;
 
-    const responses = await ctx.db.query("ticket_cannedResponses").collect();
+    const responses = await ctx.db.query("ticket_cannedResponses").take(500);
     const categories = [...new Set(responses.map((r) => r.category))];
     categories.sort();
     return categories;

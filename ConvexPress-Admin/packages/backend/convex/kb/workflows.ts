@@ -36,7 +36,7 @@ export const list = query({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    return ctx.db.query("kb_workflows").collect();
+    return ctx.db.query("kb_workflows").take(100);
   },
 });
 
@@ -50,7 +50,7 @@ export const get = query({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    return ctx.db.get(args.workflowId);
+    return ctx.db.get("kb_workflows", args.workflowId);
   },
 });
 
@@ -96,7 +96,7 @@ export const create = mutation({
         .withIndex("by_default", (q) => q.eq("isDefault", true))
         .first();
       if (existingDefault) {
-        await ctx.db.patch(existingDefault._id, { isDefault: false, updatedAt: now });
+        await ctx.db.patch("kb_workflows", existingDefault._id, { isDefault: false, updatedAt: now });
       }
     }
 
@@ -121,12 +121,12 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.manageWorkflows");
 
-    const workflow = await ctx.db.get(args.workflowId);
+    const workflow = await ctx.db.get("kb_workflows", args.workflowId);
     if (!workflow) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Workflow not found" });
     }
 
-    const updates: Record<string, any> = { updatedAt: Date.now() };
+    const updates: Record<string, unknown> = { updatedAt: Date.now() };
 
     if (args.name !== undefined) {
       const name = args.name.trim();
@@ -153,12 +153,12 @@ export const update = mutation({
           .withIndex("by_default", (q) => q.eq("isDefault", true))
           .first();
         if (existingDefault && existingDefault._id !== args.workflowId) {
-          await ctx.db.patch(existingDefault._id, { isDefault: false, updatedAt: Date.now() });
+          await ctx.db.patch("kb_workflows", existingDefault._id, { isDefault: false, updatedAt: Date.now() });
         }
       }
     }
 
-    await ctx.db.patch(args.workflowId, updates);
+    await ctx.db.patch("kb_workflows", args.workflowId, updates);
     return args.workflowId;
   },
 });
@@ -170,7 +170,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.manageWorkflows");
 
-    const workflow = await ctx.db.get(args.workflowId);
+    const workflow = await ctx.db.get("kb_workflows", args.workflowId);
     if (!workflow) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Workflow not found" });
     }
@@ -178,15 +178,13 @@ export const remove = mutation({
     // Delete all article workflow instances using this workflow
     const instances = await ctx.db
       .query("kb_articleWorkflows")
-      .withIndex("by_status")
-      .collect();
+      .withIndex("by_workflow", (q) => q.eq("workflowId", args.workflowId))
+      .take(500);
     for (const instance of instances) {
-      if (instance.workflowId === args.workflowId) {
-        await ctx.db.delete(instance._id);
-      }
+      await ctx.db.delete("kb_articleWorkflows", instance._id);
     }
 
-    await ctx.db.delete(args.workflowId);
+    await ctx.db.delete("kb_workflows", args.workflowId);
     return args.workflowId;
   },
 });
@@ -201,7 +199,7 @@ export const startWorkflow = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
@@ -209,7 +207,7 @@ export const startWorkflow = mutation({
     // Get the workflow (specified or default)
     let workflow;
     if (args.workflowId) {
-      workflow = await ctx.db.get(args.workflowId);
+      workflow = await ctx.db.get("kb_workflows", args.workflowId);
     } else {
       workflow = await ctx.db
         .query("kb_workflows")
@@ -229,7 +227,7 @@ export const startWorkflow = mutation({
     const existingWorkflow = await ctx.db
       .query("kb_articleWorkflows")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
+      .take(50);
     const activeWorkflow = existingWorkflow.find(
       (w) => w.status === "inProgress" || w.status === "pendingReview",
     );
@@ -238,7 +236,7 @@ export const startWorkflow = mutation({
     }
 
     // Update article status to review
-    await ctx.db.patch(args.articleId, {
+    await ctx.db.patch("kb_articles", args.articleId, {
       status: "review",
       updatedAt: Date.now(),
     });
@@ -268,7 +266,7 @@ export const approveStep = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.publish");
 
-    const articleWorkflow = await ctx.db.get(args.articleWorkflowId);
+    const articleWorkflow = await ctx.db.get("kb_articleWorkflows", args.articleWorkflowId);
     if (!articleWorkflow) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article workflow not found" });
     }
@@ -277,7 +275,7 @@ export const approveStep = mutation({
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Workflow is not pending review" });
     }
 
-    const workflow = await ctx.db.get(articleWorkflow.workflowId);
+    const workflow = await ctx.db.get("kb_workflows", articleWorkflow.workflowId);
     if (!workflow) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Workflow definition not found" });
     }
@@ -304,14 +302,14 @@ export const approveStep = mutation({
 
       if (nextStepIndex >= workflow.steps.length) {
         // All steps completed -- workflow approved
-        await ctx.db.patch(args.articleWorkflowId, {
+        await ctx.db.patch("kb_articleWorkflows", args.articleWorkflowId, {
           status: "approved",
           approvals: newApprovals,
           updatedAt: now,
         });
 
         // Publish the article
-        const article = await ctx.db.get(articleWorkflow.articleId);
+        const article = await ctx.db.get("kb_articles", articleWorkflow.articleId);
         if (article) {
           // Don't publish if article has been archived or deleted in the meantime
           if (article.status === "archived") {
@@ -320,7 +318,7 @@ export const approveStep = mutation({
               message: "Cannot publish: article has been archived",
             });
           }
-          await ctx.db.patch(articleWorkflow.articleId, {
+          await ctx.db.patch("kb_articles", articleWorkflow.articleId, {
             status: "published",
             publishedAt: now,
             updatedAt: now,
@@ -329,9 +327,9 @@ export const approveStep = mutation({
           });
           // Increment category article count
           if (article.categoryId) {
-            const category = await ctx.db.get(article.categoryId);
+            const category = await ctx.db.get("kb_categories", article.categoryId);
             if (category) {
-              await ctx.db.patch(article.categoryId, {
+              await ctx.db.patch("kb_categories", article.categoryId, {
                 articleCount: category.articleCount + 1,
                 updatedAt: now,
               });
@@ -341,7 +339,7 @@ export const approveStep = mutation({
       } else {
         // Move to next step
         const nextStep = workflow.steps[nextStepIndex];
-        await ctx.db.patch(args.articleWorkflowId, {
+        await ctx.db.patch("kb_articleWorkflows", args.articleWorkflowId, {
           currentStep: nextStepIndex,
           approvals: [],
           assigneeId: nextStep?.assigneeId,
@@ -350,7 +348,7 @@ export const approveStep = mutation({
       }
     } else {
       // Record approval but wait for more
-      await ctx.db.patch(args.articleWorkflowId, {
+      await ctx.db.patch("kb_articleWorkflows", args.articleWorkflowId, {
         approvals: newApprovals,
         updatedAt: now,
       });
@@ -367,7 +365,7 @@ export const rejectStep = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.publish");
 
-    const articleWorkflow = await ctx.db.get(args.articleWorkflowId);
+    const articleWorkflow = await ctx.db.get("kb_articleWorkflows", args.articleWorkflowId);
     if (!articleWorkflow) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article workflow not found" });
     }
@@ -377,13 +375,13 @@ export const rejectStep = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch(args.articleWorkflowId, {
+    await ctx.db.patch("kb_articleWorkflows", args.articleWorkflowId, {
       status: "rejected",
       updatedAt: now,
     });
 
     // Revert article to draft
-    await ctx.db.patch(articleWorkflow.articleId, {
+    await ctx.db.patch("kb_articles", articleWorkflow.articleId, {
       status: "draft",
       updatedAt: now,
     });

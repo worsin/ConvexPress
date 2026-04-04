@@ -302,7 +302,7 @@ async function generateAiAnswer(
   articles: SourceArticle[],
   provider: string,
   apiKey: string,
-  model: string | undefined,
+  model: string | null | undefined,
 ): Promise<{ answer: string; confidence: "high" | "medium" | "low" }> {
   const articleContext = articles
     .map((a, i) => `Article ${i + 1}: ${a.title}\n${a.excerpt}`)

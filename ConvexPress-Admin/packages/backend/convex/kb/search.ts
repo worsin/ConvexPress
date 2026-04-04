@@ -15,7 +15,7 @@ import { searchArticlesArgs } from "./validators";
 export const search = query({
   args: searchArticlesArgs,
   handler: async (ctx, args) => {
-    const limit = args.limit ?? 20;
+    const limit = Math.min(args.limit ?? 20, 100);
 
     if (!args.query.trim()) return { results: [], total: 0 };
 
@@ -33,7 +33,7 @@ export const search = query({
 
     const enriched = await Promise.all(
       results.map(async (article) => {
-        const category = article.categoryId ? await ctx.db.get(article.categoryId) : null;
+        const category = article.categoryId ? await ctx.db.get("kb_categories", article.categoryId) : null;
         return {
           _id: article._id,
           title: article.title,

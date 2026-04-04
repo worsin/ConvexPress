@@ -51,7 +51,7 @@ export const create = mutation({
     if (existing) {
       // Session already exists, just touch it
       const now = Date.now();
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("ticket_sessions", existing._id, {
         lastActivityAt: now,
         expiresAt: now + SESSION_TTL_MS,
       });
@@ -117,7 +117,7 @@ export const touch = mutation({
     if (!session) return;
 
     const now = Date.now();
-    await ctx.db.patch(session._id, {
+    await ctx.db.patch("ticket_sessions", session._id, {
       lastActivityAt: now,
       expiresAt: now + SESSION_TTL_MS,
     });
@@ -154,7 +154,7 @@ export const associateUser = mutation({
       });
     }
 
-    await ctx.db.patch(session._id, {
+    await ctx.db.patch("ticket_sessions", session._id, {
       userId: args.userId,
       lastActivityAt: Date.now(),
     });
@@ -176,7 +176,7 @@ export const invalidate = mutation({
 
     if (!session) return;
 
-    await ctx.db.delete(session._id);
+    await ctx.db.delete("ticket_sessions", session._id);
   },
 });
 
@@ -199,7 +199,7 @@ export const cleanupExpired = internalMutation({
       .take(batchSize);
 
     for (const session of expired) {
-      await ctx.db.delete(session._id);
+      await ctx.db.delete("ticket_sessions", session._id);
     }
 
     // If we got a full batch, there may be more

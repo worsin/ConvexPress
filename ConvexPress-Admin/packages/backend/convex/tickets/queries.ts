@@ -134,7 +134,7 @@ export const getById = query({
       });
     }
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) return null;
 
     // Access check
@@ -165,7 +165,7 @@ export const getTicketWithReplies = query({
       });
     }
 
-    const ticket = await ctx.db.get(args.ticketId);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) return null;
 
     // Access check
@@ -183,7 +183,7 @@ export const getTicketWithReplies = query({
     const allMessages = await ctx.db
       .query("ticket_messages")
       .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", args.ticketId))
-      .collect();
+      .take(1000);
 
     const messages = canViewInternal
       ? allMessages
@@ -192,7 +192,7 @@ export const getTicketWithReplies = query({
     // Resolve assignee name if assigned
     let assigneeName: string | undefined;
     if (ticket.assignedTo) {
-      const assignee = await ctx.db.get(ticket.assignedTo);
+      const assignee = await ctx.db.get("users", ticket.assignedTo);
       if (assignee) {
         assigneeName =
           assignee.displayName ||
@@ -338,7 +338,7 @@ export const getQueue = query({
     ];
     const assigneeMap = new Map<string, string>();
     for (const id of assigneeIds) {
-      const assignee = await ctx.db.get(id);
+      const assignee = await ctx.db.get("users", id);
       if (assignee) {
         assigneeMap.set(
           id,
@@ -399,10 +399,11 @@ export const getStats = query({
     const counts: Record<string, number> = {};
 
     for (const status of statuses) {
+      // Safety-bounded with .take(10000) to avoid unbounded memory usage
       const tickets = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_status", (q) => q.eq("status", status))
-        .collect();
+        .take(10000);
       counts[status] = tickets.length;
     }
 

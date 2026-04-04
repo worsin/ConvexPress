@@ -90,9 +90,9 @@ export const create = mutation({
 
     // If a template was specified, increment its usage count and apply content
     if (args.templateId) {
-      const template = await ctx.db.get(args.templateId);
+      const template = await ctx.db.get("kb_templates", args.templateId);
       if (template) {
-        await ctx.db.patch(args.templateId, {
+        await ctx.db.patch("kb_templates", args.templateId, {
           usageCount: template.usageCount + 1,
           updatedAt: Date.now(),
         });
@@ -166,7 +166,7 @@ export const update = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
@@ -179,7 +179,7 @@ export const update = mutation({
       await requireCan(ctx, "kb.editOwn");
     }
 
-    const updates: Record<string, any> = { updatedAt: Date.now() };
+    const updates: Record<string, unknown> = { updatedAt: Date.now() };
 
     if (args.title !== undefined) {
       const title = args.title.trim();
@@ -221,9 +221,9 @@ export const update = mutation({
         const now = Date.now();
         // Decrement old category count
         if (article.categoryId) {
-          const oldCategory = await ctx.db.get(article.categoryId);
+          const oldCategory = await ctx.db.get("kb_categories", article.categoryId);
           if (oldCategory && oldCategory.articleCount > 0) {
-            await ctx.db.patch(article.categoryId, {
+            await ctx.db.patch("kb_categories", article.categoryId, {
               articleCount: oldCategory.articleCount - 1,
               updatedAt: now,
             });
@@ -231,9 +231,9 @@ export const update = mutation({
         }
         // Increment new category count
         if (args.categoryId) {
-          const newCategory = await ctx.db.get(args.categoryId);
+          const newCategory = await ctx.db.get("kb_categories", args.categoryId);
           if (newCategory) {
-            await ctx.db.patch(args.categoryId, {
+            await ctx.db.patch("kb_categories", args.categoryId, {
               articleCount: newCategory.articleCount + 1,
               updatedAt: now,
             });
@@ -262,7 +262,7 @@ export const update = mutation({
       updates.contributors = [...article.contributors, user._id];
     }
 
-    await ctx.db.patch(args.articleId, updates);
+    await ctx.db.patch("kb_articles", args.articleId, updates);
 
     await emitEvent(ctx, KB_EVENTS.ARTICLE_UPDATED, SYSTEM.KB, {
       articleId: args.articleId,
@@ -281,7 +281,7 @@ export const publish = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.publish");
 
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
@@ -295,7 +295,7 @@ export const publish = mutation({
     }
 
     const now = Date.now();
-    const updates: Record<string, any> = {
+    const updates: Record<string, unknown> = {
       status: "published" as const,
       publishedAt: args.scheduledAt ?? now,
       scheduledAt: args.scheduledAt ?? undefined,
@@ -315,14 +315,14 @@ export const publish = mutation({
       updates.scheduledAt = undefined;
     }
 
-    await ctx.db.patch(args.articleId, updates);
+    await ctx.db.patch("kb_articles", args.articleId, updates);
 
     // Update category article count only when publishing immediately (not scheduling for future)
     if (!args.scheduledAt || args.scheduledAt <= now) {
       if (article.categoryId) {
-        const category = await ctx.db.get(article.categoryId);
+        const category = await ctx.db.get("kb_categories", article.categoryId);
         if (category) {
-          await ctx.db.patch(article.categoryId, {
+          await ctx.db.patch("kb_categories", article.categoryId, {
             articleCount: category.articleCount + 1,
             updatedAt: now,
           });
@@ -348,7 +348,7 @@ export const unpublish = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.publish");
 
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
@@ -358,7 +358,7 @@ export const unpublish = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch(args.articleId, {
+    await ctx.db.patch("kb_articles", args.articleId, {
       status: "draft",
       publishedAt: undefined,
       updatedAt: now,
@@ -368,9 +368,9 @@ export const unpublish = mutation({
 
     // Decrement category article count
     if (article.categoryId) {
-      const category = await ctx.db.get(article.categoryId);
+      const category = await ctx.db.get("kb_categories", article.categoryId);
       if (category && category.articleCount > 0) {
-        await ctx.db.patch(article.categoryId, {
+        await ctx.db.patch("kb_categories", article.categoryId, {
           articleCount: category.articleCount - 1,
           updatedAt: now,
         });
@@ -393,7 +393,7 @@ export const archive = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.delete");
 
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
@@ -401,7 +401,7 @@ export const archive = mutation({
     const wasPublished = article.status === "published";
     const now = Date.now();
 
-    await ctx.db.patch(args.articleId, {
+    await ctx.db.patch("kb_articles", args.articleId, {
       status: "archived",
       updatedAt: now,
       meilisearchSynced: false,
@@ -410,9 +410,9 @@ export const archive = mutation({
 
     // Decrement category count if was published
     if (wasPublished && article.categoryId) {
-      const category = await ctx.db.get(article.categoryId);
+      const category = await ctx.db.get("kb_categories", article.categoryId);
       if (category && category.articleCount > 0) {
-        await ctx.db.patch(article.categoryId, {
+        await ctx.db.patch("kb_categories", article.categoryId, {
           articleCount: category.articleCount - 1,
           updatedAt: now,
         });
@@ -436,7 +436,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.delete");
 
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
@@ -445,113 +445,113 @@ export const remove = mutation({
     const articleTags = await ctx.db
       .query("kb_articleTags")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
+      .take(1000);
     for (const at of articleTags) {
       // Decrement tag article count
-      const tag = await ctx.db.get(at.tagId);
+      const tag = await ctx.db.get("kb_tags", at.tagId);
       if (tag && tag.articleCount > 0) {
-        await ctx.db.patch(at.tagId, { articleCount: tag.articleCount - 1, updatedAt: Date.now() });
+        await ctx.db.patch("kb_tags", at.tagId, { articleCount: tag.articleCount - 1, updatedAt: Date.now() });
       }
-      await ctx.db.delete(at._id);
+      await ctx.db.delete("kb_articleTags", at._id);
     }
 
     const relatedFrom = await ctx.db
       .query("kb_relatedArticles")
       .withIndex("by_source", (q) => q.eq("sourceArticleId", args.articleId))
-      .collect();
-    for (const r of relatedFrom) await ctx.db.delete(r._id);
+      .take(1000);
+    for (const r of relatedFrom) await ctx.db.delete("kb_relatedArticles", r._id);
 
     const relatedTo = await ctx.db
       .query("kb_relatedArticles")
       .withIndex("by_related", (q) => q.eq("relatedArticleId", args.articleId))
-      .collect();
-    for (const r of relatedTo) await ctx.db.delete(r._id);
+      .take(1000);
+    for (const r of relatedTo) await ctx.db.delete("kb_relatedArticles", r._id);
 
     const versions = await ctx.db
       .query("kb_articleVersions")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
-    for (const v of versions) await ctx.db.delete(v._id);
+      .take(1000);
+    for (const v of versions) await ctx.db.delete("kb_articleVersions", v._id);
 
     const collectionArticles = await ctx.db
       .query("kb_collectionArticles")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
+      .take(1000);
     for (const ca of collectionArticles) {
-      const collection = await ctx.db.get(ca.collectionId);
+      const collection = await ctx.db.get("kb_collections", ca.collectionId);
       if (collection && collection.articleCount > 0) {
-        await ctx.db.patch(ca.collectionId, {
+        await ctx.db.patch("kb_collections", ca.collectionId, {
           articleCount: collection.articleCount - 1,
           updatedAt: Date.now(),
         });
       }
-      await ctx.db.delete(ca._id);
+      await ctx.db.delete("kb_collectionArticles", ca._id);
     }
 
     const feedback = await ctx.db
       .query("kb_articleFeedback")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
-    for (const f of feedback) await ctx.db.delete(f._id);
+      .take(1000);
+    for (const f of feedback) await ctx.db.delete("kb_articleFeedback", f._id);
 
     const bookmarks = await ctx.db
       .query("kb_bookmarks")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
-    for (const b of bookmarks) await ctx.db.delete(b._id);
+      .take(1000);
+    for (const b of bookmarks) await ctx.db.delete("kb_bookmarks", b._id);
 
     const progress = await ctx.db
       .query("kb_userProgress")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
-    for (const p of progress) await ctx.db.delete(p._id);
+      .take(1000);
+    for (const p of progress) await ctx.db.delete("kb_userProgress", p._id);
 
     const views = await ctx.db
       .query("kb_pageViews")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
-    for (const pv of views) await ctx.db.delete(pv._id);
+      .take(1000);
+    for (const pv of views) await ctx.db.delete("kb_pageViews", pv._id);
 
     const comments = await ctx.db
       .query("kb_comments")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
+      .take(1000);
     for (const c of comments) {
       const votes = await ctx.db
         .query("kb_commentVotes")
         .withIndex("by_comment", (q) => q.eq("commentId", c._id))
-        .collect();
-      for (const cv of votes) await ctx.db.delete(cv._id);
-      await ctx.db.delete(c._id);
+        .take(1000);
+      for (const cv of votes) await ctx.db.delete("kb_commentVotes", cv._id);
+      await ctx.db.delete("kb_comments", c._id);
     }
 
     const ragChunks = await ctx.db
       .query("kb_ragChunks")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
-    for (const rc of ragChunks) await ctx.db.delete(rc._id);
+      .take(1000);
+    for (const rc of ragChunks) await ctx.db.delete("kb_ragChunks", rc._id);
 
     // Clean up article workflows
     const articleWorkflows = await ctx.db
       .query("kb_articleWorkflows")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-      .collect();
+      .take(1000);
     for (const aw of articleWorkflows) {
-      await ctx.db.delete(aw._id);
+      await ctx.db.delete("kb_articleWorkflows", aw._id);
     }
 
     // Decrement category article count if was published
     if (article.status === "published" && article.categoryId) {
-      const category = await ctx.db.get(article.categoryId);
+      const category = await ctx.db.get("kb_categories", article.categoryId);
       if (category && category.articleCount > 0) {
-        await ctx.db.patch(article.categoryId, {
+        await ctx.db.patch("kb_categories", article.categoryId, {
           articleCount: category.articleCount - 1,
           updatedAt: Date.now(),
         });
       }
     }
 
-    await ctx.db.delete(args.articleId);
+    await ctx.db.delete("kb_articles", args.articleId);
 
     await emitEvent(ctx, KB_EVENTS.ARTICLE_DELETED, SYSTEM.KB, { articleId: args.articleId });
 
@@ -566,12 +566,12 @@ export const toggleFeatured = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "kb.publish");
 
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
 
-    await ctx.db.patch(args.articleId, {
+    await ctx.db.patch("kb_articles", args.articleId, {
       isFeatured: !article.isFeatured,
       updatedAt: Date.now(),
     });
@@ -590,7 +590,7 @@ export const createVersion = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
@@ -613,7 +613,7 @@ export const createVersion = mutation({
       createdAt: now,
     });
 
-    await ctx.db.patch(args.articleId, {
+    await ctx.db.patch("kb_articles", args.articleId, {
       version: article.version + 1,
       lastMajorUpdate: now,
       updatedAt: now,
