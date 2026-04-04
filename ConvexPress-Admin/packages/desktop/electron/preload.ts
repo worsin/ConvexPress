@@ -21,7 +21,10 @@ const ALLOWED_INVOKE_CHANNELS = new Set([
   "app:get-version",
   "app:get-platform",
   "app:quit",
-  // Shell updater
+  // App-content updater (git-based)
+  "app-update:check",
+  "app-update:install",
+  // Shell updater (electron-updater)
   "app:check-for-updates",
   "app:install-update",
   // Setup wizard
@@ -36,7 +39,11 @@ const ALLOWED_ON_CHANNELS = new Set([
   "theme:os-changed",
   // Navigation (main process can push routes)
   "navigate",
-  // Shell updater events
+  // App-content updater events (git-based)
+  "app-update:available",
+  "app-update:progress",
+  "app-update:check-error",
+  // Shell updater events (electron-updater)
   "app:update-available",
   "app:update-downloaded",
   "app:update-error",

@@ -12,10 +12,13 @@ import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import Store from "electron-store";
 import { registerAllIpcHandlers } from "./ipc/index.js";
+import { initAppUpdater } from "./ipc/app-updater.js";
+import { initUpdaterEvents } from "./ipc/updater.js";
 import { createTray } from "./tray.js";
 import { setQuitting } from "./utils/app-state.js";
 import { safeError, safeLog } from "./utils/safe-log.js";
 import { windowManager } from "./window-manager.js";
+import { readManifest } from "./version.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -116,52 +119,23 @@ function launchApp(): void {
     }
   });
 
-  // Initialize shell updater (electron-updater for DMG/EXE auto-updates)
-  initShellUpdater();
-}
-
-async function initShellUpdater(): Promise<void> {
-  try {
-    const { autoUpdater } = await import("electron-updater");
-
-    // Forward update events to the renderer
-    autoUpdater.on("checking-for-update", () => {
-      const win = windowManager.getMainWindow();
-      if (win && !win.isDestroyed()) {
-        win.webContents.send("app:checking-for-updates");
-      }
-    });
-    autoUpdater.on("update-available", (info) => {
-      const win = windowManager.getMainWindow();
-      if (win && !win.isDestroyed()) {
-        win.webContents.send("app:update-available", info);
-      }
-    });
-    autoUpdater.on("update-downloaded", (info) => {
-      const win = windowManager.getMainWindow();
-      if (win && !win.isDestroyed()) {
-        win.webContents.send("app:update-downloaded", info);
-      }
-    });
-    autoUpdater.on("error", (err) => {
-      const win = windowManager.getMainWindow();
-      if (win && !win.isDestroyed()) {
-        win.webContents.send("app:update-error", err.message);
-      }
-    });
-
-    autoUpdater.checkForUpdates().catch(() => {});
-
-    // Check every 4 hours
-    setInterval(
-      () => {
-        autoUpdater.checkForUpdates().catch(() => {});
-      },
-      4 * 60 * 60 * 1000
-    );
-  } catch {
-    fileLog("[Main] Shell auto-updater not available (dev mode)");
+  // Initialize app-content updater (git-based, primary system)
+  // Only when packaged and a version manifest exists (indicates git-managed install)
+  if (app.isPackaged) {
+    const installPath = path.dirname(app.getAppPath());
+    const manifest = readManifest(installPath);
+    if (manifest) {
+      fileLog(`[Main] App-content updater initialized at ${installPath}`);
+      initAppUpdater(installPath);
+    } else {
+      fileLog("[Main] No version manifest found — app-content updater skipped");
+    }
   }
+
+  // Initialize shell updater (electron-updater for DMG/EXE auto-updates)
+  initUpdaterEvents().catch((err) => {
+    fileLog(`[Main] Shell auto-updater init failed: ${err}`);
+  });
 }
 
 // ---------- Single Instance Lock ----------
@@ -208,7 +182,7 @@ app.whenReady().then(async () => {
           "default-src 'self' file: blob:",
           "script-src 'self' file: 'unsafe-inline'",
           "style-src 'self' file: 'unsafe-inline'",
-          "connect-src 'self' https://*.convex.cloud https://*.convex.dev wss://*.convex.cloud wss://*.convex.dev https://convex.cloud https://convex.dev",
+          "connect-src 'self' https://*.convex.cloud https://*.convex.dev https://*.convex.site wss://*.convex.cloud wss://*.convex.dev https://convex.cloud https://convex.dev",
           "img-src 'self' file: data: blob:",
           "font-src 'self' file: data:",
           "frame-ancestors 'none'",
@@ -217,7 +191,7 @@ app.whenReady().then(async () => {
           "default-src 'self'",
           "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
           "style-src 'self' 'unsafe-inline'",
-          "connect-src 'self' http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:* https://*.convex.cloud https://*.convex.dev wss://*.convex.cloud wss://*.convex.dev https://convex.cloud https://convex.dev",
+          "connect-src 'self' http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:* https://*.convex.cloud https://*.convex.dev https://*.convex.site wss://*.convex.cloud wss://*.convex.dev https://convex.cloud https://convex.dev",
           "img-src 'self' data: blob:",
           "font-src 'self' data:",
           "frame-ancestors 'none'",
