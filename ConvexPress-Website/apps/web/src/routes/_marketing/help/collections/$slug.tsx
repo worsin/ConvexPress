@@ -1,10 +1,11 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
 export const Route = createFileRoute("/_marketing/help/collections/$slug")({
   component: CollectionView,
+  errorComponent: ErrorComponent,
   loader: async ({ context: { queryClient }, params }) => {
     await queryClient.ensureQueryData(
       convexQuery(api.kb.collections.getBySlug, { slug: params.slug }),

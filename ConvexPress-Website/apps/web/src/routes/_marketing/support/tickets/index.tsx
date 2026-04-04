@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useAuth } from "@clerk/clerk-react";
 import { api } from "@convexpress-website/backend/generated/api";
@@ -15,6 +15,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/_marketing/support/tickets/")({
   validateSearch: searchSchema,
   component: MyTicketsPage,
+  errorComponent: ErrorComponent,
   head: () => ({
     meta: [{ title: "My Tickets - Support" }],
   }),

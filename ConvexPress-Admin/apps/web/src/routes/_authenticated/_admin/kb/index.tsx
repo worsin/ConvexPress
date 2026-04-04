@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { KBArticleListTable } from "@/components/kb/KBArticleListTable";
@@ -18,6 +18,7 @@ const kbSearchSchema = z.object({
 export const Route = createFileRoute("/_authenticated/_admin/kb/")({
   validateSearch: kbSearchSchema,
   component: KBPage,
+  errorComponent: ErrorComponent,
 });
 
 function KBPage() {

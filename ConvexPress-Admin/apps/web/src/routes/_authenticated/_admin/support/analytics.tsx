@@ -10,9 +10,10 @@
  *   - Common unanswered queries (content gaps)
  */
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
+import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { useState, useMemo } from "react";
 import {
   BarChart3,
@@ -31,10 +32,19 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute(
   "/_authenticated/_admin/support/analytics",
 )({
-  component: SupportAnalyticsDashboard,
+  component: SupportAnalyticsPage,
+  errorComponent: ErrorComponent,
 });
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
+
+function SupportAnalyticsPage() {
+  return (
+    <RoutePermissionGuard requiredAccess="/admin/support">
+      <SupportAnalyticsDashboard />
+    </RoutePermissionGuard>
+  );
+}
 
 function SupportAnalyticsDashboard() {
   // Date range (default: last 30 days)
