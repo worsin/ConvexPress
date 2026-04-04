@@ -1,0 +1,411 @@
+- generic:
+  - generic:
+    - link "Skip to main content" [ref=e7] [cursor=pointer]:
+      - /url: "#admin-content"
+    - generic [ref=e8]:
+      - navigation "Admin navigation" [ref=e9]:
+        - generic [ref=e10]:
+          - img [ref=e11]
+          - generic [ref=e13]: ConvexPress
+        - list [ref=e15]:
+          - listitem [ref=e16]:
+            - link "Dashboard" [ref=e17] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e18]
+              - generic [ref=e23]: Dashboard
+          - listitem [ref=e24]:
+            - button "Posts" [ref=e26]:
+              - img [ref=e27]
+              - generic [ref=e30]: Posts
+              - img [ref=e31]
+            - list:
+              - listitem [ref=e33]:
+                - link "All Posts" [ref=e34] [cursor=pointer]:
+                  - /url: /posts
+                  - generic [ref=e35]: All Posts
+              - listitem [ref=e36]:
+                - link "Add New Post" [ref=e37] [cursor=pointer]:
+                  - /url: /posts/new
+                  - img [ref=e38]
+                  - generic [ref=e39]: Add New Post
+              - listitem [ref=e40]:
+                - link "Categories" [ref=e41] [cursor=pointer]:
+                  - /url: /posts/categories
+                  - generic [ref=e42]: Categories
+              - listitem [ref=e43]:
+                - link "Tags" [ref=e44] [cursor=pointer]:
+                  - /url: /posts/tags
+                  - generic [ref=e45]: Tags
+          - listitem [ref=e46]:
+            - button "Media" [ref=e47]:
+              - img [ref=e48]
+              - generic [ref=e52]: Media
+              - img [ref=e53]
+            - list:
+              - listitem [ref=e55]:
+                - link "Library" [ref=e56] [cursor=pointer]:
+                  - /url: /media
+                  - generic [ref=e57]: Library
+              - listitem [ref=e58]:
+                - link "Add New" [ref=e59] [cursor=pointer]:
+                  - /url: /media/upload
+                  - img [ref=e60]
+                  - generic [ref=e61]: Add New
+          - listitem [ref=e62]:
+            - button "Pages" [ref=e63]:
+              - img [ref=e64]
+              - generic [ref=e67]: Pages
+              - img [ref=e68]
+            - list:
+              - listitem [ref=e70]:
+                - link "All Pages" [ref=e71] [cursor=pointer]:
+                  - /url: /pages
+                  - generic [ref=e72]: All Pages
+              - listitem [ref=e73]:
+                - link "Add New Page" [ref=e74] [cursor=pointer]:
+                  - /url: /pages/new
+                  - img [ref=e75]
+                  - generic [ref=e76]: Add New Page
+          - listitem [ref=e77]:
+            - button "Knowledge Base" [expanded] [ref=e78]:
+              - img [ref=e79]
+              - generic [ref=e81]: Knowledge Base
+              - img [ref=e82]
+            - list [ref=e683]:
+              - listitem [ref=e84]:
+                - link "All Articles" [ref=e85] [cursor=pointer]:
+                  - /url: /kb
+                  - generic [ref=e86]: All Articles
+              - listitem [ref=e87]:
+                - link "Add New" [ref=e88] [cursor=pointer]:
+                  - /url: /kb/new
+                  - img [ref=e89]
+                  - generic [ref=e90]: Add New
+              - listitem [ref=e91]:
+                - link "Categories" [ref=e92] [cursor=pointer]:
+                  - /url: /kb/categories
+                  - generic [ref=e93]: Categories
+              - listitem [ref=e94]:
+                - link "Tags" [ref=e95] [cursor=pointer]:
+                  - /url: /kb/tags
+                  - generic [ref=e96]: Tags
+              - listitem [ref=e97]:
+                - link "Collections" [ref=e98] [cursor=pointer]:
+                  - /url: /kb/collections
+                  - generic [ref=e99]: Collections
+              - listitem [ref=e100]:
+                - link "Templates" [ref=e101] [cursor=pointer]:
+                  - /url: /kb/templates
+                  - generic [ref=e102]: Templates
+              - listitem [ref=e103]:
+                - link "Workflows" [ref=e104] [cursor=pointer]:
+                  - /url: /kb/workflows
+                  - generic [ref=e105]: Workflows
+              - listitem [ref=e106]:
+                - link "Analytics" [ref=e107] [cursor=pointer]:
+                  - /url: /kb/analytics
+                  - generic [ref=e108]: Analytics
+              - listitem [ref=e109]:
+                - link "Settings" [ref=e110] [cursor=pointer]:
+                  - /url: /kb/settings
+                  - generic [ref=e111]: Settings
+          - listitem [ref=e112]:
+            - button "Support Tickets" [ref=e113]:
+              - img [ref=e114]
+              - generic [ref=e117]: Support Tickets
+              - img [ref=e118]
+            - list:
+              - listitem [ref=e120]:
+                - link "All Tickets" [ref=e121] [cursor=pointer]:
+                  - /url: /tickets
+                  - generic [ref=e122]: All Tickets
+              - listitem [ref=e123]:
+                - link "Canned Responses" [ref=e124] [cursor=pointer]:
+                  - /url: /tickets/canned-responses
+                  - generic [ref=e125]: Canned Responses
+              - listitem [ref=e126]:
+                - link "Analytics" [ref=e127] [cursor=pointer]:
+                  - /url: /tickets/analytics
+                  - generic [ref=e128]: Analytics
+              - listitem [ref=e129]:
+                - link "Deflection Analytics" [ref=e130] [cursor=pointer]:
+                  - /url: /support/analytics
+                  - generic [ref=e131]: Deflection Analytics
+              - listitem [ref=e132]:
+                - link "Settings" [ref=e133] [cursor=pointer]:
+                  - /url: /tickets/settings
+                  - generic [ref=e134]: Settings
+          - listitem [ref=e135]:
+            - button "Comments" [ref=e136]:
+              - img [ref=e137]
+              - generic [ref=e139]: Comments
+              - img [ref=e140]
+            - list:
+              - listitem [ref=e142]:
+                - link "All Comments" [ref=e143] [cursor=pointer]:
+                  - /url: /comments
+                  - generic [ref=e144]: All Comments
+              - listitem [ref=e145]:
+                - link "Pending" [ref=e146] [cursor=pointer]:
+                  - /url: /comments/pending
+                  - generic [ref=e147]: Pending
+          - listitem [ref=e148]:
+            - button "Custom Fields" [ref=e149]:
+              - img [ref=e150]
+              - generic [ref=e151]: Custom Fields
+              - img [ref=e152]
+            - list:
+              - listitem [ref=e154]:
+                - link "Field Groups" [ref=e155] [cursor=pointer]:
+                  - /url: /custom-fields
+                  - generic [ref=e156]: Field Groups
+              - listitem [ref=e157]:
+                - link "Add New" [ref=e158] [cursor=pointer]:
+                  - /url: /custom-fields/new
+                  - img [ref=e159]
+                  - generic [ref=e160]: Add New
+          - listitem [ref=e161]:
+            - button "Users" [ref=e163]:
+              - img [ref=e164]
+              - generic [ref=e169]: Users
+              - img [ref=e170]
+            - list:
+              - listitem [ref=e172]:
+                - link "All Users" [ref=e173] [cursor=pointer]:
+                  - /url: /users
+                  - generic [ref=e174]: All Users
+              - listitem [ref=e175]:
+                - link "Add New User" [ref=e176] [cursor=pointer]:
+                  - /url: /users/new
+                  - img [ref=e177]
+                  - generic [ref=e178]: Add New User
+              - listitem [ref=e179]:
+                - link "Your Profile" [ref=e180] [cursor=pointer]:
+                  - /url: /profile
+                  - generic [ref=e181]: Your Profile
+              - listitem [ref=e182]:
+                - link "Roles & Capabilities" [ref=e183] [cursor=pointer]:
+                  - /url: /roles
+                  - generic [ref=e184]: Roles & Capabilities
+              - listitem [ref=e185]:
+                - link "Add New Role" [ref=e186] [cursor=pointer]:
+                  - /url: /roles/new
+                  - img [ref=e187]
+                  - generic [ref=e188]: Add New Role
+          - listitem [ref=e189]:
+            - button "Appearance" [ref=e191]:
+              - img [ref=e192]
+              - generic [ref=e198]: Appearance
+              - img [ref=e199]
+            - list:
+              - listitem [ref=e201]:
+                - link "Website Colors" [ref=e202] [cursor=pointer]:
+                  - /url: /appearance/colors
+                  - generic [ref=e203]: Website Colors
+              - listitem [ref=e204]:
+                - link "Menus" [ref=e205] [cursor=pointer]:
+                  - /url: /menus
+                  - generic [ref=e206]: Menus
+              - listitem [ref=e207]:
+                - link "Menu Locations" [ref=e208] [cursor=pointer]:
+                  - /url: /menus/locations
+                  - generic [ref=e209]: Menu Locations
+          - listitem [ref=e210]:
+            - button "SEO" [ref=e211]:
+              - img [ref=e212]
+              - generic [ref=e215]: SEO
+              - img [ref=e216]
+            - list:
+              - listitem [ref=e218]:
+                - link "Dashboard" [ref=e219] [cursor=pointer]:
+                  - /url: /seo
+                  - generic [ref=e220]: Dashboard
+              - listitem [ref=e221]:
+                - link "Settings" [ref=e222] [cursor=pointer]:
+                  - /url: /seo/settings
+                  - generic [ref=e223]: Settings
+              - listitem [ref=e224]:
+                - link "Sitemap" [ref=e225] [cursor=pointer]:
+                  - /url: /seo/sitemap
+                  - generic [ref=e226]: Sitemap
+          - listitem [ref=e227]:
+            - button "Settings" [ref=e228]:
+              - img [ref=e229]
+              - generic [ref=e232]: Settings
+              - img [ref=e233]
+            - list:
+              - listitem [ref=e235]:
+                - link "General" [ref=e236] [cursor=pointer]:
+                  - /url: /settings/general
+                  - generic [ref=e237]: General
+              - listitem [ref=e238]:
+                - link "Reading" [ref=e239] [cursor=pointer]:
+                  - /url: /settings/reading
+                  - generic [ref=e240]: Reading
+              - listitem [ref=e241]:
+                - link "Writing" [ref=e242] [cursor=pointer]:
+                  - /url: /settings/writing
+                  - generic [ref=e243]: Writing
+              - listitem [ref=e244]:
+                - link "Discussion" [ref=e245] [cursor=pointer]:
+                  - /url: /settings/discussion
+                  - generic [ref=e246]: Discussion
+              - listitem [ref=e247]:
+                - link "Notifications" [ref=e248] [cursor=pointer]:
+                  - /url: /settings/notifications
+                  - generic [ref=e249]: Notifications
+              - listitem [ref=e250]:
+                - link "Permalinks" [ref=e251] [cursor=pointer]:
+                  - /url: /settings/permalinks
+                  - generic [ref=e252]: Permalinks
+              - listitem [ref=e253]:
+                - link "Privacy" [ref=e254] [cursor=pointer]:
+                  - /url: /settings/privacy
+                  - generic [ref=e255]: Privacy
+              - listitem [ref=e256]:
+                - link "Email" [ref=e257] [cursor=pointer]:
+                  - /url: /settings/email
+                  - generic [ref=e258]: Email
+              - listitem [ref=e259]:
+                - link "Search" [ref=e260] [cursor=pointer]:
+                  - /url: /settings/search
+                  - generic [ref=e261]: Search
+              - listitem [ref=e262]:
+                - link "Analytics" [ref=e263] [cursor=pointer]:
+                  - /url: /settings/analytics
+                  - generic [ref=e264]: Analytics
+              - listitem [ref=e265]:
+                - link "AI Providers" [ref=e266] [cursor=pointer]:
+                  - /url: /settings/ai
+                  - generic [ref=e267]: AI Providers
+              - listitem [ref=e268]:
+                - link "Integrations" [ref=e269] [cursor=pointer]:
+                  - /url: /settings/integrations
+                  - generic [ref=e270]: Integrations
+          - listitem [ref=e271]:
+            - button "Tools" [ref=e273]:
+              - img [ref=e274]
+              - generic [ref=e276]: Tools
+              - img [ref=e277]
+            - list:
+              - listitem [ref=e279]:
+                - link "Activity Log" [ref=e280] [cursor=pointer]:
+                  - /url: /tools/activity
+                  - generic [ref=e281]: Activity Log
+              - listitem [ref=e282]:
+                - link "404 Log" [ref=e283] [cursor=pointer]:
+                  - /url: /tools/404-log
+                  - generic [ref=e284]: 404 Log
+              - listitem [ref=e285]:
+                - link "Audit Log" [ref=e286] [cursor=pointer]:
+                  - /url: /tools/audit-log
+                  - generic [ref=e287]: Audit Log
+              - listitem [ref=e288]:
+                - link "Roles" [ref=e289] [cursor=pointer]:
+                  - /url: /tools/roles
+                  - generic [ref=e290]: Roles
+              - listitem [ref=e291]:
+                - link "Capabilities" [ref=e292] [cursor=pointer]:
+                  - /url: /tools/capabilities
+                  - generic [ref=e293]: Capabilities
+              - listitem [ref=e294]:
+                - link "Events" [ref=e295] [cursor=pointer]:
+                  - /url: /tools/events
+                  - generic [ref=e296]: Events
+              - listitem [ref=e297]:
+                - link "Routes" [ref=e298] [cursor=pointer]:
+                  - /url: /tools/routes
+                  - generic [ref=e299]: Routes
+              - listitem [ref=e300]:
+                - link "Email Notifications" [ref=e301] [cursor=pointer]:
+                  - /url: /tools/email-notifications
+                  - generic [ref=e302]: Email Notifications
+              - listitem [ref=e303]:
+                - link "Site Notifications" [ref=e304] [cursor=pointer]:
+                  - /url: /tools/site-notifications
+                  - generic [ref=e305]: Site Notifications
+              - listitem [ref=e306]:
+                - link "Redirects" [ref=e307] [cursor=pointer]:
+                  - /url: /tools/redirects
+                  - generic [ref=e308]: Redirects
+              - listitem [ref=e309]:
+                - link "API Keys" [ref=e310] [cursor=pointer]:
+                  - /url: /api-keys
+                  - generic [ref=e311]: API Keys
+              - listitem [ref=e312]:
+                - link "Webhooks" [ref=e313] [cursor=pointer]:
+                  - /url: /webhooks
+                  - generic [ref=e314]: Webhooks
+              - listitem [ref=e315]:
+                - link "WordPress Sync" [ref=e316] [cursor=pointer]:
+                  - /url: /tools/wordpress-sync
+                  - generic [ref=e317]: WordPress Sync
+              - listitem [ref=e318]:
+                - link "Updates" [ref=e319] [cursor=pointer]:
+                  - /url: /updates
+                  - generic [ref=e320]: Updates
+        - button "Collapse sidebar" [ref=e322]:
+          - img [ref=e323]
+          - generic [ref=e326]: Collapse
+      - generic [ref=e327]:
+        - banner [ref=e328]:
+          - link "My Site" [ref=e330] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e331]: My Site
+            - img [ref=e332]
+          - button "Search admin content (Ctrl+K)" [ref=e337]:
+            - img [ref=e338]
+            - generic [ref=e341]: Search everything...
+            - generic [ref=e342]: ⌘K
+          - generic [ref=e343]:
+            - button "Notifications" [ref=e345]:
+              - img [ref=e346]
+            - button "Toggle theme" [ref=e349]:
+              - img
+              - generic [ref=e350]: Toggle theme
+            - button "A Admin" [ref=e351]:
+              - generic [ref=e352]: A
+              - generic [ref=e353]: Admin
+        - progressbar [ref=e354]
+        - main [ref=e355]:
+          - navigation "Breadcrumb" [ref=e684]:
+            - list [ref=e685]:
+              - listitem [ref=e686]:
+                - link "Dashboard" [ref=e687] [cursor=pointer]:
+                  - /url: /dashboard
+              - listitem [ref=e688]:
+                - img [ref=e689]
+                - link "Kb" [ref=e691] [cursor=pointer]:
+                  - /url: /kb
+              - listitem [ref=e1269]:
+                - img [ref=e1270]
+                - generic [ref=e1272]: Add New
+          - generic [ref=e1273]:
+            - generic [ref=e1274]:
+              - img [ref=e1275]
+              - heading "New Article" [level=1] [ref=e1277]
+            - generic [ref=e1278]:
+              - generic [ref=e1279]:
+                - generic [ref=e1280]:
+                  - generic [ref=e1281]: Title *
+                  - textbox "Article title" [active] [ref=e1282]
+                - generic [ref=e1283]:
+                  - generic [ref=e1284]: Start from template(optional)
+                  - combobox [ref=e1285]:
+                    - option "— Blank article —" [selected]
+                - generic [ref=e1286]:
+                  - generic [ref=e1287]: Category(optional)
+                  - combobox [ref=e1288]:
+                    - option "— Uncategorized —" [selected]
+                    - option "Getting Started"
+                    - option "Account & Billing"
+                    - option "Troubleshooting"
+                    - option "API & Integrations"
+                    - option "Best Practices"
+              - button "Create & Edit" [disabled] [ref=e1289]:
+                - text: Create & Edit
+                - img [ref=e1290]
+        - contentinfo [ref=e680]:
+          - generic [ref=e681]: Thank you for creating with ConvexPress
+          - generic [ref=e682]: Version 1.0.0
+    - region "Notifications alt+T"

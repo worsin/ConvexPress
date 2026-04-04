@@ -40,10 +40,17 @@ async function resolveConfig(): Promise<BootstrapConfig> {
       | AdminGateProps["pendingCredentials"]
       | null;
 
+    // In dev mode, the electron-store may be empty (fresh install / no setup
+    // wizard completed yet). Fall back to Vite env vars so the app can still
+    // boot and render the setup wizard or login screen.
+    const resolvedConvexUrl =
+      convexUrl || import.meta.env.VITE_CONVEX_URL;
+    const resolvedSiteUrl =
+      convexSiteUrl || import.meta.env.VITE_CONVEX_SITE_URL || resolvedConvexUrl;
+
     return {
-      convexUrl,
-      // Convex site URL defaults to the deployment URL with /api path replaced
-      convexSiteUrl: convexSiteUrl ?? convexUrl,
+      convexUrl: resolvedConvexUrl,
+      convexSiteUrl: resolvedSiteUrl,
       electronMode,
       pendingCredentials: pending ?? undefined,
     };
@@ -74,25 +81,24 @@ async function bootstrap() {
     Wrap: function WrapComponent({ children }: { children: React.ReactNode }) {
       const auth = useLocalAuth();
 
-      const inner = (
-        <ConvexProviderWithAuth client={convex} useAuth={useLocalAuth}>
-          <LocalAuthProvider value={auth}>{children}</LocalAuthProvider>
-        </ConvexProviderWithAuth>
+      // AdminGate needs LocalAuthProvider context, so it must be INSIDE the
+      // provider tree, not wrapping it.
+      const gatedChildren = isElectron() ? (
+        <AdminGate
+          mode={config.electronMode}
+          pendingCredentials={config.pendingCredentials}
+        >
+          {children}
+        </AdminGate>
+      ) : (
+        children
       );
 
-      // In Electron, wrap with AdminGate for first-run handling
-      if (isElectron()) {
-        return (
-          <AdminGate
-            mode={config.electronMode}
-            pendingCredentials={config.pendingCredentials}
-          >
-            {inner}
-          </AdminGate>
-        );
-      }
-
-      return inner;
+      return (
+        <ConvexProviderWithAuth client={convex} useAuth={useLocalAuth}>
+          <LocalAuthProvider value={auth}>{gatedChildren}</LocalAuthProvider>
+        </ConvexProviderWithAuth>
+      );
     },
   });
 

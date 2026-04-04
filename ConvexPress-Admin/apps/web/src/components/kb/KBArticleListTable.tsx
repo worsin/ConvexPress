@@ -12,7 +12,7 @@
  * will implement the full component using the shared list table patterns.
  */
 
-import { useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { useNavigate } from "@tanstack/react-router";
@@ -22,14 +22,16 @@ export function KBArticleListTable() {
   const search = Route.useSearch();
   const navigate = useNavigate();
 
-  const articles = useQuery(api.kb.queries.list, {
-    status: search.status,
-    search: search.search,
-    page: search.page ?? 1,
-    perPage: search.perPage ?? 20,
-    categoryId: search.categoryId as Id<"kb_categories"> | undefined,
-    authorId: search.authorId as Id<"users"> | undefined,
-  });
+  const articles = usePaginatedQuery(
+    api.kb.queries.list,
+    {
+      status: search.status as any,
+      search: search.search,
+      categoryId: search.categoryId as Id<"kb_categories"> | undefined,
+      authorId: search.authorId as Id<"users"> | undefined,
+    },
+    { initialNumItems: 20 },
+  );
 
   return (
     <div className="space-y-4">
@@ -70,13 +72,13 @@ export function KBArticleListTable() {
 
       {/* Article list -- placeholder for full list table implementation */}
       <div className="rounded-lg border border-border bg-card">
-        {articles === undefined ? (
+        {articles.status === "LoadingFirstPage" ? (
           <div className="animate-pulse space-y-2 p-4">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-10 bg-muted rounded" />
             ))}
           </div>
-        ) : articles.items.length === 0 ? (
+        ) : articles.results.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             No articles found.
           </div>
@@ -92,7 +94,7 @@ export function KBArticleListTable() {
               </tr>
             </thead>
             <tbody>
-              {articles.items.map((article) => (
+              {articles.results.map((article) => (
                 <tr
                   key={article._id}
                   className="border-b border-border hover:bg-muted/50 cursor-pointer"
