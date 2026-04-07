@@ -31,6 +31,7 @@ import { PageRenderer } from "@/components/pages/PageRenderer";
 import { PagePasswordForm } from "@/components/pages/PagePasswordForm";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
+import { usePageOverrides } from "@/contexts/PageOverridesContext";
 
 export const Route = createFileRoute("/_marketing/page/$")({
   component: SinglePage,
@@ -56,6 +57,7 @@ function SinglePage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [submittedPassword, setSubmittedPassword] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const { setOverrides } = usePageOverrides();
 
   // Extract the full path from the splat param
   const splatPath = params._splat ?? "";
@@ -79,6 +81,24 @@ function SinglePage() {
 
   // Use path-based result preferentially; fall back to slug-based for single segments
   const rawPage = rawPageByPath ?? rawPageBySlug;
+
+  // Propagate per-page layout overrides (hideHeader/hideFooter) to parent layout
+  useEffect(() => {
+    if (rawPage && "_id" in rawPage) {
+      const page = rawPage as Record<string, unknown>;
+      setOverrides({
+        hideHeader: (page.hideHeader as boolean) ?? false,
+        hideFooter: (page.hideFooter as boolean) ?? false,
+        layoutId: (page.layoutId as string) ?? undefined,
+      });
+    }
+    return () => setOverrides({});
+  }, [
+    rawPage && "_id" in rawPage ? (rawPage as Record<string, unknown>).hideHeader : undefined,
+    rawPage && "_id" in rawPage ? (rawPage as Record<string, unknown>).hideFooter : undefined,
+    rawPage && "_id" in rawPage ? (rawPage as Record<string, unknown>).layoutId : undefined,
+    setOverrides,
+  ]);
 
   // Fetch breadcrumbs if we have a page ID
   const pageId = rawPage && "_id" in rawPage ? rawPage._id : undefined;

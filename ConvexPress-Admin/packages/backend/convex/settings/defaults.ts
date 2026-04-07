@@ -87,6 +87,8 @@ export const AUTOLOADED_SECTIONS: SettingsSection[] = [
   "permalinks",
   "discussion",
   "privacy",
+  "header",
+  "footer",
 ];
 
 // ─── Section Value Types ─────────────────────────────────────────────────────
@@ -165,6 +167,7 @@ export interface DiscussionSettings {
 export interface PluginsSettings {
   knowledgeBaseEnabled: boolean;
   ticketsEnabled: boolean;
+  customFieldsEnabled: boolean;
 }
 
 export interface PermalinkSettings {
@@ -610,6 +613,7 @@ export const TICKET_SLA_DEFAULTS: TicketSlaSettings = {
 export const PLUGINS_DEFAULTS: PluginsSettings = {
   knowledgeBaseEnabled: true,
   ticketsEnabled: true,
+  customFieldsEnabled: true,
 };
 
 // ─── Layout Assignment Defaults ─────────────────────────────────────────────

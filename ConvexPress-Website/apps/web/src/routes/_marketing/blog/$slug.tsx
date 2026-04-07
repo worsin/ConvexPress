@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useAuth } from "@clerk/clerk-react";
 import { api } from "@convexpress-website/backend/generated/api";
+import { usePageOverrides } from "@/contexts/PageOverridesContext";
 
 import { slugParamsSchema } from "@/lib/schemas/routeParams";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
@@ -71,6 +72,20 @@ function SinglePost() {
   }, []);
   // Fetch post by slug (public, no auth required)
   const rawPost = useQuery(api.posts.queries.getPublished, { slug });
+
+  // Propagate per-post layout overrides (hideHeader/hideFooter) to parent layout
+  const { setOverrides } = usePageOverrides();
+  useEffect(() => {
+    if (rawPost) {
+      setOverrides({
+        hideHeader: rawPost.hideHeader ?? false,
+        hideFooter: rawPost.hideFooter ?? false,
+        layoutId: rawPost.layoutId ?? undefined,
+      });
+    }
+    return () => setOverrides({});
+  }, [rawPost?.hideHeader, rawPost?.hideFooter, rawPost?.layoutId, setOverrides]);
+
   // Fetch taxonomies for this post (only when post is loaded)
   const taxonomies = useQuery(
     api.taxonomies.queries.getByPost,

@@ -112,7 +112,7 @@ export const getBySection = query({
  * PUBLIC query - no auth required.
  *
  * Returns a record keyed by section name, each containing the merged values.
- * Autoloaded sections: general, reading, permalinks, discussion, privacy.
+ * Autoloaded sections: general, reading, permalinks, discussion, privacy, header, footer.
  * Writing is NOT autoloaded (only needed when creating posts).
  *
  * This is the WordPress equivalent of `wp_load_alloptions()`.
@@ -176,6 +176,8 @@ export const getPublic = query({
     const discussion = sections.discussion ?? {};
     const permalinks = sections.permalinks ?? {};
     const privacy = sections.privacy ?? {};
+    const header = sections.header ?? {};
+    const footer = sections.footer ?? {};
 
     return {
       // General (excluding adminEmail)
@@ -218,6 +220,12 @@ export const getPublic = query({
       // Privacy
       privacyPolicyPageId: privacy.privacyPolicyPageId,
       showPrivacyPolicyLink: privacy.showPrivacyPolicyLink,
+
+      // Website Appearance - Header config (all fields are safe for public)
+      headerConfig: header,
+
+      // Website Appearance - Footer config (all fields are safe for public)
+      footerConfig: footer,
     };
   },
 });
