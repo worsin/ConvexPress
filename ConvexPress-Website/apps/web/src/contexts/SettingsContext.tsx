@@ -76,6 +76,10 @@ export interface PublicSettings {
   // Privacy
   privacyPolicyPageId: string | null;
   showPrivacyPolicyLink: boolean;
+
+  // Website Appearance - Header & Footer configs
+  headerConfig: Record<string, unknown> | null;
+  footerConfig: Record<string, unknown> | null;
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
