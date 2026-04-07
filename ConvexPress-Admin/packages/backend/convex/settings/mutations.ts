@@ -56,6 +56,7 @@ const SECTION_CAPABILITY_MAP: Record<
   media: "manage_options",
   analytics: "manage_options",
   ai: "manage_options",
+  plugins: "manage_options",
   search: "manage_options",
   // Knowledge Base System sections
   "kb.general": "manage_options",
@@ -67,6 +68,10 @@ const SECTION_CAPABILITY_MAP: Record<
   // Support Bridge System sections
   "support.widget": "manage_options",
   "support.ai": "manage_options",
+  // Website Appearance sections
+  layout: "manage_options",
+  header: "manage_options",
+  footer: "manage_options",
 };
 
 // ─── updateSection ───────────────────────────────────────────────────────────

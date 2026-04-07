@@ -476,6 +476,24 @@ function validateSearch(values: Record<string, unknown>): ValidationError[] {
   return errors;
 }
 
+function validateLayoutAssignment(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+  // Layout IDs are optional strings - no strict validation needed
+  return errors;
+}
+
+function validateHeader(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+  // Header config is deeply nested - accept any valid object
+  return errors;
+}
+
+function validateFooter(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+  // Footer config is deeply nested - accept any valid object
+  return errors;
+}
+
 // ─── Main Validator ───────────────────────────────────────────────────────────
 
 /**
@@ -507,6 +525,8 @@ export function validateSectionValues(
       return []; // Analytics settings validated at analytics system level
     case "ai":
       return validateAI(values);
+    case "plugins":
+      return [];
     case "search":
       return validateSearch(values);
     // Knowledge Base System sections
@@ -522,6 +542,13 @@ export function validateSectionValues(
     case "support.widget":
     case "support.ai":
       return []; // Support settings validated at support system level
+    // Website Appearance sections
+    case "layout":
+      return validateLayoutAssignment(values);
+    case "header":
+      return validateHeader(values);
+    case "footer":
+      return validateFooter(values);
     default:
       return [];
   }
