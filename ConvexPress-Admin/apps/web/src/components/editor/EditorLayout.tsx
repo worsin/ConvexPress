@@ -33,6 +33,7 @@ import { AuthorSelector } from "./AuthorSelector";
 import { RevisionsMetabox } from "./RevisionsMetabox";
 import { SeoMetabox } from "@/components/seo/SeoMetabox";
 import { PageAttributesMetabox } from "./PageAttributesMetabox";
+import { LayoutMetabox } from "./LayoutMetabox";
 import { PostEditLockNotice } from "./PostEditLockNotice";
 import { EditorFooter } from "./EditorFooter";
 import { EditorSidebar } from "./EditorSidebar";
@@ -155,6 +156,9 @@ function EditorLayoutInner({
   const scheduledFor = formValues.scheduledFor;
   const categoryIds = formValues.categoryIds;
   const menuOrder = formValues.menuOrder;
+  const layoutId = formValues.layoutId;
+  const hideHeader = formValues.hideHeader;
+  const hideFooter = formValues.hideFooter;
 
   // Track manually selected tags (with full data for display)
   const [selectedTags, setSelectedTags] = useState<TagItem[]>([]);
@@ -532,6 +536,17 @@ function EditorLayoutInner({
             onMenuOrderChange={(val) => form.setFieldValue("menuOrder", val)}
           />
         );
+      case "layout":
+        return (
+          <LayoutMetabox
+            layoutId={layoutId}
+            hideHeader={hideHeader}
+            hideFooter={hideFooter}
+            onLayoutChange={(val) => form.setFieldValue("layoutId", val)}
+            onHideHeaderChange={(val) => form.setFieldValue("hideHeader", val)}
+            onHideFooterChange={(val) => form.setFieldValue("hideFooter", val)}
+          />
+        );
       default:
         return null;
     }
@@ -742,7 +757,7 @@ function EditorLayoutInner({
         </div>
 
         {/* Sidebar column */}
-        <div className="space-y-3">
+        <div className="space-y-3 sticky top-16 max-h-[calc(100vh-5rem)] overflow-y-auto">
           {/* Publish box (sticky, always first, NOT draggable) */}
           <PublishBox
             contentType={contentType}

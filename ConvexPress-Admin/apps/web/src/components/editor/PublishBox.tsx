@@ -162,7 +162,7 @@ export function PublishBox({
   }, [isPublished, isScheduled, onUpdate, onPublish]);
 
   return (
-    <div className="sticky top-16 z-10 border border-border bg-card rounded-none">
+    <div className="border border-border bg-card rounded-none">
       {/* Title bar */}
       <div className="bg-muted/50 px-3 py-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-foreground">

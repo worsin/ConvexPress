@@ -8,6 +8,7 @@ import {
   BookTemplate,
   ChevronDown,
   ArrowLeft,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -446,6 +447,18 @@ export function LayoutComposer({
               />
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setConfig(DEFAULT_LAYOUT_CONFIG);
+                  toast.success("Reset to defaults");
+                }}
+                disabled={saving}
+              >
+                <RotateCcw className="size-3.5" data-icon="inline-start" />
+                Reset
+              </Button>
               {isEditing && (
                 <Button
                   variant="outline"

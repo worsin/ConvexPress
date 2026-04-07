@@ -444,6 +444,7 @@ export function FooterComposer() {
   const updateSection = useMutation(api.settings.mutations.updateSection);
 
   const [config, setConfig] = useState<FooterConfig>(FOOTER_DEFAULTS);
+  const [initialConfig, setInitialConfig] = useState<FooterConfig | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [device, setDevice] = useState<DeviceSize>("desktop");
   const [initialized, setInitialized] = useState(false);
@@ -452,25 +453,32 @@ export function FooterComposer() {
   useEffect(() => {
     if (settingsData !== undefined && !initialized) {
       const stored = settingsData as Record<string, unknown> | null;
+      let merged = FOOTER_DEFAULTS;
       if (stored) {
         // Deep merge but keep arrays (navColumns.columns) from stored data
-        const merged = deepMerge(
+        merged = deepMerge(
           FOOTER_DEFAULTS,
           stored as unknown as Partial<FooterConfig>,
         );
         // Override columns array directly from stored if present
         const storedNavColumns = (stored as unknown as Partial<FooterConfig>)?.navColumns;
         if (storedNavColumns?.columns) {
-          merged.navColumns = {
-            ...merged.navColumns,
-            columns: storedNavColumns.columns,
+          merged = {
+            ...merged,
+            navColumns: {
+              ...merged.navColumns,
+              columns: storedNavColumns.columns,
+            },
           };
         }
-        setConfig(merged);
       }
+      setConfig(merged);
+      setInitialConfig(merged);
       setInitialized(true);
     }
   }, [settingsData, initialized]);
+
+  const hasChanges = initialConfig !== null && JSON.stringify(config) !== JSON.stringify(initialConfig);
 
   const handleToggle = useCallback(
     (sectionId: string, enabled: boolean) => {
@@ -513,13 +521,14 @@ export function FooterComposer() {
 
   const handleReset = useCallback(() => {
     setConfig(FOOTER_DEFAULTS);
-    toast.info("Reset to default footer settings");
+    toast.success("Reset to defaults");
   }, []);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
       await updateSection({ section: "footer", values: config });
+      setInitialConfig(config);
       toast.success("Footer saved successfully");
     } catch (err: unknown) {
       const message =
@@ -601,7 +610,7 @@ export function FooterComposer() {
               size="sm"
               className="flex-1 gap-1.5"
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={!hasChanges || isSaving}
             >
               {isSaving ? (
                 <Loader2 className="size-3 animate-spin" />

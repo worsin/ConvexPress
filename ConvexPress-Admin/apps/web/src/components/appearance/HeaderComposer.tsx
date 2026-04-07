@@ -326,6 +326,7 @@ export function HeaderComposer() {
   const updateSection = useMutation(api.settings.mutations.updateSection);
 
   const [config, setConfig] = useState<HeaderConfig>(HEADER_DEFAULTS);
+  const [initialConfig, setInitialConfig] = useState<HeaderConfig | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [device, setDevice] = useState<DeviceSize>("desktop");
   const [initialized, setInitialized] = useState(false);
@@ -334,12 +335,16 @@ export function HeaderComposer() {
   useEffect(() => {
     if (settingsData !== undefined && !initialized) {
       const stored = settingsData as Record<string, unknown> | null;
-      if (stored) {
-        setConfig(deepMerge(HEADER_DEFAULTS, stored as unknown as Partial<HeaderConfig>));
-      }
+      const merged = stored
+        ? deepMerge(HEADER_DEFAULTS, stored as unknown as Partial<HeaderConfig>)
+        : HEADER_DEFAULTS;
+      setConfig(merged);
+      setInitialConfig(merged);
       setInitialized(true);
     }
   }, [settingsData, initialized]);
+
+  const hasChanges = initialConfig !== null && JSON.stringify(config) !== JSON.stringify(initialConfig);
 
   const handleToggle = useCallback(
     (sectionId: string, enabled: boolean) => {
@@ -369,13 +374,14 @@ export function HeaderComposer() {
 
   const handleReset = useCallback(() => {
     setConfig(HEADER_DEFAULTS);
-    toast.info("Reset to default header settings");
+    toast.success("Reset to defaults");
   }, []);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
       await updateSection({ section: "header", values: config });
+      setInitialConfig(config);
       toast.success("Header saved successfully");
     } catch (err: unknown) {
       const message =
@@ -456,7 +462,7 @@ export function HeaderComposer() {
               size="sm"
               className="flex-1 gap-1.5"
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={!hasChanges || isSaving}
             >
               {isSaving ? (
                 <Loader2 className="size-3 animate-spin" />
