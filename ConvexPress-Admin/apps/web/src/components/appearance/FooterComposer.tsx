@@ -45,7 +45,7 @@ const DEVICE_WIDTHS: Record<DeviceSize, string> = {
 
 // ─── Deep Merge Helper ──────────────────────────────
 
-function deepMerge<T extends Record<string, unknown>>(
+function deepMerge<T extends object>(
   defaults: T,
   overrides: Partial<T> | null | undefined,
 ): T {
@@ -456,10 +456,10 @@ export function FooterComposer() {
         // Deep merge but keep arrays (navColumns.columns) from stored data
         const merged = deepMerge(
           FOOTER_DEFAULTS,
-          stored as Partial<FooterConfig>,
+          stored as unknown as Partial<FooterConfig>,
         );
         // Override columns array directly from stored if present
-        const storedNavColumns = (stored as Partial<FooterConfig>)?.navColumns;
+        const storedNavColumns = (stored as unknown as Partial<FooterConfig>)?.navColumns;
         if (storedNavColumns?.columns) {
           merged.navColumns = {
             ...merged.navColumns,

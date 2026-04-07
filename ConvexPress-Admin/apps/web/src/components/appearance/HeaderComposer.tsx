@@ -42,7 +42,7 @@ const DEVICE_WIDTHS: Record<DeviceSize, string> = {
 
 // ─── Deep Merge Helper ──────────────────────────────
 
-function deepMerge<T extends Record<string, unknown>>(
+function deepMerge<T extends object>(
   defaults: T,
   overrides: Partial<T> | null | undefined,
 ): T {
@@ -335,7 +335,7 @@ export function HeaderComposer() {
     if (settingsData !== undefined && !initialized) {
       const stored = settingsData as Record<string, unknown> | null;
       if (stored) {
-        setConfig(deepMerge(HEADER_DEFAULTS, stored as Partial<HeaderConfig>));
+        setConfig(deepMerge(HEADER_DEFAULTS, stored as unknown as Partial<HeaderConfig>));
       }
       setInitialized(true);
     }

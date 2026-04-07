@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "@cvx/api";
+import { api } from "@backend/convex/_generated/api";
 import {
   FileText,
   File,
