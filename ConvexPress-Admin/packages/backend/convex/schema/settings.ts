@@ -32,6 +32,7 @@ export const settingsTables = {
       v.literal("media"),
       v.literal("analytics"),
       v.literal("ai"),
+      v.literal("plugins"),
       v.literal("search"),
       // Knowledge Base System sections
       v.literal("kb.general"),
@@ -43,6 +44,10 @@ export const settingsTables = {
       // Support Bridge System sections
       v.literal("support.widget"),
       v.literal("support.ai"),
+      // Website Appearance sections
+      v.literal("layout"),
+      v.literal("header"),
+      v.literal("footer"),
     ),
 
     /**

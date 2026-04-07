@@ -28,6 +28,7 @@ export type SettingsSection =
   | "media"
   | "analytics"
   | "ai"
+  | "plugins"
   | "search"
   // Knowledge Base System sections
   | "kb.general"
@@ -38,7 +39,11 @@ export type SettingsSection =
   | "ticket.sla"
   // Support Bridge System sections
   | "support.widget"
-  | "support.ai";
+  | "support.ai"
+  // Website Appearance sections
+  | "layout"
+  | "header"
+  | "footer";
 
 /**
  * Ordered array of all valid section names.
@@ -54,6 +59,7 @@ export const SECTION_NAMES: SettingsSection[] = [
   "media",
   "analytics",
   "ai",
+  "plugins",
   "search",
   // Knowledge Base System sections
   "kb.general",
@@ -65,6 +71,10 @@ export const SECTION_NAMES: SettingsSection[] = [
   // Support Bridge System sections
   "support.widget",
   "support.ai",
+  // Website Appearance sections
+  "layout",
+  "header",
+  "footer",
 ];
 
 /**
@@ -150,6 +160,11 @@ export interface DiscussionSettings {
   showAvatars: boolean;
   avatarRating: "G" | "PG" | "R" | "X";
   defaultAvatar: string;
+}
+
+export interface PluginsSettings {
+  knowledgeBaseEnabled: boolean;
+  ticketsEnabled: boolean;
 }
 
 export interface PermalinkSettings {
@@ -298,6 +313,121 @@ export interface TicketSlaSettings {
   firstResponseTarget: number;
   /** Resolution SLA target in minutes */
   resolutionTarget: number;
+}
+
+// ─── Layout Assignment Settings Types ────────────────────────────────────────
+
+export interface LayoutAssignmentSettings {
+  blogPostLayout: string;
+  pageLayout: string;
+  blogIndexLayout: string;
+  categoryArchiveLayout: string;
+  tagArchiveLayout: string;
+  authorArchiveLayout: string;
+  searchResultsLayout: string;
+  kbArticleLayout: string;
+}
+
+// ─── Header Settings Types ──────────────────────────────────────────────────
+
+export interface HeaderSettings {
+  layout: {
+    style: "standard" | "centered" | "split";
+    sticky: "always" | "scroll-up" | "none";
+    background: "solid" | "transparent" | "glass";
+    height: "compact" | "normal" | "tall";
+    bottomBorder: "subtle" | "bold" | "none" | "shadow";
+  };
+  topBar: {
+    enabled: boolean;
+    leftContent: "contact" | "announcement" | "social" | "none";
+    rightContent: "contact" | "announcement" | "social" | "none";
+    email: string;
+    phone: string;
+    announcementText: string;
+  };
+  logo: {
+    enabled: boolean;
+    showImage: boolean;
+    showTitle: boolean;
+    showTagline: boolean;
+    size: "small" | "medium" | "large";
+  };
+  navigation: {
+    enabled: boolean;
+    menuSource: "primary" | "secondary" | "custom";
+    style: "inline" | "pills" | "underline";
+    dropdownStyle: "flyout" | "mega";
+  };
+  search: {
+    enabled: boolean;
+    variant: "inline" | "icon" | "expandable";
+    placeholder: string;
+  };
+  cta: {
+    enabled: boolean;
+    label: string;
+    url: string;
+    style: "filled" | "outline" | "ghost";
+  };
+  userMenu: {
+    enabled: boolean;
+    guestDisplay: "login-register" | "login-only" | "hidden";
+    loggedInDisplay: "avatar-dropdown" | "name-dropdown" | "avatar-only";
+    dropdownPreset: "dashboard-profile-logout" | "profile-settings-logout" | "custom";
+  };
+  darkModeToggle: {
+    enabled: boolean;
+    variant: "icon" | "switch";
+  };
+  mobileMenu: {
+    variant: "drawer" | "fullscreen" | "dropdown";
+    drawerSide: "left" | "right";
+  };
+}
+
+// ─── Footer Settings Types ──────────────────────────────────────────────────
+
+export interface FooterSettings {
+  layout: {
+    columns: "1" | "2" | "3" | "4" | "centered" | "minimal";
+    background: "dark" | "match-site" | "accent" | "image";
+    backgroundImageId: string | null;
+    topBorder: "subtle" | "bold" | "accent" | "none";
+    padding: "compact" | "normal" | "spacious";
+  };
+  branding: {
+    enabled: boolean;
+    showLogo: boolean;
+    showDescription: boolean;
+    description: string;
+    showSocial: boolean;
+  };
+  navColumns: {
+    enabled: boolean;
+    columns: Array<{
+      heading: string;
+      menuSource: "footer-1" | "footer-2" | "footer-3" | "auto-pages" | "custom";
+    }>;
+  };
+  newsletter: {
+    enabled: boolean;
+    heading: string;
+    subtext: string;
+    buttonText: string;
+  };
+  contactInfo: {
+    enabled: boolean;
+    address: string;
+    phone: string;
+    email: string;
+  };
+  bottomBar: {
+    enabled: boolean;
+    copyrightText: string;
+    legalLinks: "privacy-terms" | "privacy-only" | "custom" | "none";
+    poweredBy: boolean;
+  };
 }
 
 // ─── Default Values ──────────────────────────────────────────────────────────
@@ -477,6 +607,49 @@ export const TICKET_SLA_DEFAULTS: TicketSlaSettings = {
   resolutionTarget: 2880, // 48 hours in minutes
 };
 
+export const PLUGINS_DEFAULTS: PluginsSettings = {
+  knowledgeBaseEnabled: true,
+  ticketsEnabled: true,
+};
+
+// ─── Layout Assignment Defaults ─────────────────────────────────────────────
+
+export const LAYOUT_ASSIGNMENT_DEFAULTS: LayoutAssignmentSettings = {
+  blogPostLayout: "",
+  pageLayout: "",
+  blogIndexLayout: "",
+  categoryArchiveLayout: "",
+  tagArchiveLayout: "",
+  authorArchiveLayout: "",
+  searchResultsLayout: "",
+  kbArticleLayout: "",
+};
+
+// ─── Header Defaults ────────────────────────────────────────────────────────
+
+export const HEADER_DEFAULTS: HeaderSettings = {
+  layout: { style: "standard", sticky: "always", background: "solid", height: "normal", bottomBorder: "subtle" },
+  topBar: { enabled: false, leftContent: "contact", rightContent: "social", email: "", phone: "", announcementText: "" },
+  logo: { enabled: true, showImage: true, showTitle: true, showTagline: false, size: "medium" },
+  navigation: { enabled: true, menuSource: "primary", style: "inline", dropdownStyle: "flyout" },
+  search: { enabled: true, variant: "inline", placeholder: "Search..." },
+  cta: { enabled: false, label: "Get Started", url: "/register", style: "filled" },
+  userMenu: { enabled: true, guestDisplay: "login-register", loggedInDisplay: "avatar-dropdown", dropdownPreset: "dashboard-profile-logout" },
+  darkModeToggle: { enabled: true, variant: "icon" },
+  mobileMenu: { variant: "drawer", drawerSide: "right" },
+};
+
+// ─── Footer Defaults ────────────────────────────────────────────────────────
+
+export const FOOTER_DEFAULTS: FooterSettings = {
+  layout: { columns: "4", background: "dark", backgroundImageId: null, topBorder: "subtle", padding: "normal" },
+  branding: { enabled: true, showLogo: true, showDescription: true, description: "", showSocial: true },
+  navColumns: { enabled: true, columns: [{ heading: "Company", menuSource: "footer-1" }, { heading: "Resources", menuSource: "footer-2" }] },
+  newsletter: { enabled: true, heading: "Stay Updated", subtext: "Get the latest posts delivered to your inbox.", buttonText: "Subscribe" },
+  contactInfo: { enabled: false, address: "", phone: "", email: "" },
+  bottomBar: { enabled: true, copyrightText: "", legalLinks: "privacy-terms", poweredBy: true },
+};
+
 // ─── Defaults Map ────────────────────────────────────────────────────────────
 
 const DEFAULTS_MAP: Record<SettingsSection, object> = {
@@ -490,6 +663,7 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   media: MEDIA_DEFAULTS,
   analytics: ANALYTICS_DEFAULTS,
   ai: AI_DEFAULTS,
+  plugins: PLUGINS_DEFAULTS,
   search: SEARCH_DEFAULTS,
   // Knowledge Base System sections
   "kb.general": KB_GENERAL_DEFAULTS,
@@ -498,6 +672,10 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   // Ticket System sections
   "ticket.general": TICKET_GENERAL_DEFAULTS,
   "ticket.sla": TICKET_SLA_DEFAULTS,
+  // Website Appearance sections
+  layout: LAYOUT_ASSIGNMENT_DEFAULTS,
+  header: HEADER_DEFAULTS,
+  footer: FOOTER_DEFAULTS,
   // Support Bridge System sections
   "support.widget": {
     enabled: true,

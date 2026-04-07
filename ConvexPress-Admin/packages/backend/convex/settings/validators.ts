@@ -27,6 +27,7 @@ export const sectionValidator = v.union(
   v.literal("media"),
   v.literal("analytics"),
   v.literal("ai"),
+  v.literal("plugins"),
   v.literal("search"),
   // Knowledge Base System sections
   v.literal("kb.general"),
@@ -38,6 +39,10 @@ export const sectionValidator = v.union(
   // Support Bridge System sections
   v.literal("support.widget"),
   v.literal("support.ai"),
+  // Website Appearance sections
+  v.literal("layout"),
+  v.literal("header"),
+  v.literal("footer"),
 );
 
 // ─── Per-Section Value Validators ────────────────────────────────────────────
@@ -150,6 +155,11 @@ export const permalinkValuesValidator = v.object({
   tagBase: v.string(),
 });
 
+export const pluginsValuesValidator = v.object({
+  knowledgeBaseEnabled: v.boolean(),
+  ticketsEnabled: v.boolean(),
+});
+
 /**
  * Privacy settings value shape validator.
  */
@@ -201,6 +211,35 @@ export const searchValuesValidator = v.object({
   meilisearchHost: v.string(),
   meilisearchApiKey: v.string(),
 });
+
+// ─── Layout Assignment Value Validator ───────────────────────────────────────
+
+/**
+ * Layout assignment settings value shape validator.
+ * Maps content types to their assigned layout template IDs.
+ */
+export const layoutAssignmentValuesValidator = v.object({
+  blogPostLayout: v.string(),
+  pageLayout: v.string(),
+  blogIndexLayout: v.string(),
+  categoryArchiveLayout: v.string(),
+  tagArchiveLayout: v.string(),
+  authorArchiveLayout: v.string(),
+  searchResultsLayout: v.string(),
+  kbArticleLayout: v.string(),
+});
+
+/**
+ * Header settings value validator.
+ * Uses v.any() because the nested object structure is complex.
+ */
+export const headerValuesValidator = v.any();
+
+/**
+ * Footer settings value validator.
+ * Uses v.any() because the nested object structure is complex.
+ */
+export const footerValuesValidator = v.any();
 
 // ─── Argument Validators ─────────────────────────────────────────────────────
 
