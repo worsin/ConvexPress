@@ -235,10 +235,10 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     children: [
       { id: "appearance-themes", label: "Themes", to: "/appearance/themes" },
       { id: "appearance-colors", label: "Website Colors", to: "/appearance/colors" },
-      { id: "appearance-layouts", label: "Layouts", to: "/layouts" },
+      { id: "appearance-layouts", label: "Layouts", to: "/layouts", exact: true },
       { id: "appearance-header", label: "Header", to: "/appearance/header" },
       { id: "appearance-footer", label: "Footer", to: "/appearance/footer" },
-      { id: "appearance-menus", label: "Menus", to: "/menus" },
+      { id: "appearance-menus", label: "Menus", to: "/menus", exact: true },
       { id: "appearance-menu-locations", label: "Menu Locations", to: "/menus/locations" },
     ],
   },
