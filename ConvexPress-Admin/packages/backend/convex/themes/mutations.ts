@@ -1,5 +1,6 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
+import { requireAuth } from "../helpers/auth";
 
 export const create = mutation({
   args: {
@@ -47,6 +48,7 @@ export const update = mutation({
 export const activate = mutation({
   args: { id: v.id("themes") },
   handler: async (ctx, args) => {
+    const user = await requireAuth(ctx);
     const theme = await ctx.db.get(args.id);
     if (!theme) throw new Error("Theme not found");
 
@@ -65,56 +67,26 @@ export const activate = mutation({
     // Apply theme configs to settings
     const now = Date.now();
 
-    if (theme.headerConfig) {
+    const upsertSettings = async (section: string, values: unknown) => {
       const existing = await ctx.db
         .query("settings")
-        .withIndex("by_section", (q) => q.eq("section", "header"))
+        .withIndex("by_section", (q) => q.eq("section", section as any))
         .first();
       if (existing) {
-        await ctx.db.patch(existing._id, { values: theme.headerConfig, updatedAt: now });
+        await ctx.db.patch(existing._id, { values, updatedAt: now, updatedBy: user._id });
       } else {
         await ctx.db.insert("settings", {
-          section: "header",
-          values: theme.headerConfig,
+          section: section as any,
+          values,
           updatedAt: now,
-          updatedBy: theme.createdBy || ("" as any),
+          updatedBy: user._id,
         });
       }
-    }
+    };
 
-    if (theme.footerConfig) {
-      const existing = await ctx.db
-        .query("settings")
-        .withIndex("by_section", (q) => q.eq("section", "footer"))
-        .first();
-      if (existing) {
-        await ctx.db.patch(existing._id, { values: theme.footerConfig, updatedAt: now });
-      } else {
-        await ctx.db.insert("settings", {
-          section: "footer",
-          values: theme.footerConfig,
-          updatedAt: now,
-          updatedBy: theme.createdBy || ("" as any),
-        });
-      }
-    }
-
-    if (theme.layoutAssignments) {
-      const existing = await ctx.db
-        .query("settings")
-        .withIndex("by_section", (q) => q.eq("section", "layout"))
-        .first();
-      if (existing) {
-        await ctx.db.patch(existing._id, { values: theme.layoutAssignments, updatedAt: now });
-      } else {
-        await ctx.db.insert("settings", {
-          section: "layout",
-          values: theme.layoutAssignments,
-          updatedAt: now,
-          updatedBy: theme.createdBy || ("" as any),
-        });
-      }
-    }
+    if (theme.headerConfig) await upsertSettings("header", theme.headerConfig);
+    if (theme.footerConfig) await upsertSettings("footer", theme.footerConfig);
+    if (theme.layoutAssignments) await upsertSettings("layout", theme.layoutAssignments);
 
     return { activated: true, themeId: args.id };
   },
