@@ -17,6 +17,7 @@ import {
   Puzzle,
   BookOpen,
   TicketCheck,
+  ChefHat,
   ArrowUpCircle,
 } from "lucide-react";
 
@@ -165,6 +166,28 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
+    id: "recipes",
+    label: "Recipes",
+    to: "/recipes",
+    icon: ChefHat,
+    capability: "edit_posts",
+    pluginId: "recipes",
+    children: [
+      { id: "recipes-all", label: "All Recipes", to: "/recipes", exact: true },
+      {
+        id: "recipes-new",
+        label: "Add New",
+        to: "/recipes/new",
+        isAddNew: true,
+      },
+      {
+        id: "recipes-categories",
+        label: "Categories",
+        to: "/recipes/categories",
+      },
+    ],
+  },
+  {
     id: "users",
     label: "Users",
     to: "/users",
@@ -213,7 +236,6 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       { id: "appearance-themes", label: "Themes", to: "/appearance/themes" },
       { id: "appearance-colors", label: "Website Colors", to: "/appearance/colors" },
       { id: "appearance-layouts", label: "Layouts", to: "/layouts" },
-      { id: "appearance-layout-assign", label: "Default Layouts", to: "/layouts/assign" },
       { id: "appearance-header", label: "Header", to: "/appearance/header" },
       { id: "appearance-footer", label: "Footer", to: "/appearance/footer" },
       { id: "appearance-menus", label: "Menus", to: "/menus" },
