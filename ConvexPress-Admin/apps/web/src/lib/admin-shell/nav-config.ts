@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import type { AdminNavSection } from "./types";
+import { PLUGINS_NAV_SECTION } from "@/lib/plugins/registry";
 
 /**
  * Admin sidebar navigation configuration.
@@ -97,6 +98,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     to: "/kb",
     icon: BookOpen,
     capability: "kb.view",
+    pluginId: "knowledgeBase",
     children: [
       { id: "kb-all", label: "All Articles", to: "/kb", exact: true },
       { id: "kb-new", label: "Add New", to: "/kb/new", isAddNew: true },
@@ -115,6 +117,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     to: "/tickets",
     icon: TicketCheck,
     capability: "ticket.view",
+    pluginId: "tickets",
     children: [
       { id: "tickets-all", label: "All Tickets", to: "/tickets", exact: true },
       { id: "tickets-canned", label: "Canned Responses", to: "/tickets/canned-responses", capability: "manage_options" },
@@ -208,6 +211,9 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     separator: true,
     children: [
       { id: "appearance-colors", label: "Website Colors", to: "/appearance/colors" },
+      { id: "appearance-layouts", label: "Layouts", to: "/layouts" },
+      { id: "appearance-header", label: "Header", to: "/appearance/header" },
+      { id: "appearance-footer", label: "Footer", to: "/appearance/footer" },
       { id: "appearance-menus", label: "Menus", to: "/menus" },
       { id: "appearance-menu-locations", label: "Menu Locations", to: "/menus/locations" },
     ],
@@ -230,6 +236,10 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     ],
   },
   // Widgets section removed — widget infrastructure deprecated (AI handles frontend design)
+  {
+    ...PLUGINS_NAV_SECTION,
+    separator: true,
+  },
   {
     id: "settings",
     label: "Settings",

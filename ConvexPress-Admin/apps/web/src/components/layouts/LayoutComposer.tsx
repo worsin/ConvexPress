@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
-import { api } from "@cvx/api";
+import { api } from "@backend/convex/_generated/api";
 import {
   Save,
   Copy,
