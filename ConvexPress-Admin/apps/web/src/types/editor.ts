@@ -97,6 +97,10 @@ export interface EditorFormValues {
   categoryIds: string[];
   tagIds: string[];
   menuOrder: number;
+  // Layout override fields
+  layoutId: string;
+  hideHeader: boolean;
+  hideFooter: boolean;
   // Structured content fields
   hero: HeroFields;
   topics: TopicFields[];
@@ -123,6 +127,10 @@ export const DEFAULT_EDITOR_FORM_VALUES: EditorFormValues = {
   categoryIds: [],
   tagIds: [],
   menuOrder: 0,
+  // Layout override defaults
+  layoutId: "",
+  hideHeader: false,
+  hideFooter: false,
   // Structured content defaults
   hero: DEFAULT_HERO,
   topics: [],
@@ -224,6 +232,14 @@ export const DEFAULT_POST_METABOXES: MetaboxConfig[] = [
     position: "sidebar",
   },
   {
+    id: "layout",
+    title: "Layout",
+    isCollapsed: true,
+    isVisible: true,
+    isDraggable: true,
+    position: "sidebar",
+  },
+  {
     id: "seo",
     title: "SEO",
     isCollapsed: true,
@@ -295,6 +311,14 @@ export const DEFAULT_PAGE_METABOXES: MetaboxConfig[] = [
     id: "page-attributes",
     title: "Page Attributes",
     isCollapsed: false,
+    isVisible: true,
+    isDraggable: true,
+    position: "sidebar",
+  },
+  {
+    id: "layout",
+    title: "Layout",
+    isCollapsed: true,
     isVisible: true,
     isDraggable: true,
     position: "sidebar",

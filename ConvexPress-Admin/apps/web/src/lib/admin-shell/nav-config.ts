@@ -210,8 +210,10 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     capability: "edit_theme_options",
     separator: true,
     children: [
+      { id: "appearance-themes", label: "Themes", to: "/appearance/themes" },
       { id: "appearance-colors", label: "Website Colors", to: "/appearance/colors" },
       { id: "appearance-layouts", label: "Layouts", to: "/layouts" },
+      { id: "appearance-layout-assign", label: "Default Layouts", to: "/layouts/assign" },
       { id: "appearance-header", label: "Header", to: "/appearance/header" },
       { id: "appearance-footer", label: "Footer", to: "/appearance/footer" },
       { id: "appearance-menus", label: "Menus", to: "/menus" },
