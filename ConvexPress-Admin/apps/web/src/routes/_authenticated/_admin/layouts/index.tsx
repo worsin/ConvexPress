@@ -2,7 +2,8 @@ import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
-import { Plus, LayoutGrid } from "lucide-react";
+import { Plus, LayoutGrid, Settings2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -50,10 +51,18 @@ function LayoutLibraryPage() {
             </p>
           </div>
         </div>
-        <Button onClick={() => navigate({ to: "/layouts/new" })}>
-          <Plus className="size-4" data-icon="inline-start" />
-          New Layout
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link to="/layouts/assign">
+            <Button variant="outline">
+              <Settings2 className="size-4" data-icon="inline-start" />
+              Assign Defaults
+            </Button>
+          </Link>
+          <Button onClick={() => navigate({ to: "/layouts/new" })}>
+            <Plus className="size-4" data-icon="inline-start" />
+            New Layout
+          </Button>
+        </div>
       </div>
 
       {/* Filter chips */}
