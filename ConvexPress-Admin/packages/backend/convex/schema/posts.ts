@@ -112,6 +112,12 @@ export const postTables = {
     parentId: v.optional(v.id("posts")), // Parent page (pages only)
     menuOrder: v.optional(v.number()), // Manual sort order (pages only)
     pageTemplate: v.optional(v.string()), // Page template key (pages only)
+
+    // ── Layout Override Fields ───────────────────────────────────────────
+    layoutId: v.optional(v.string()),       // Per-post/page layout override (layout _id)
+    hideHeader: v.optional(v.boolean()),     // Hide site header on this page
+    hideFooter: v.optional(v.boolean()),     // Hide site footer on this page
+
     path: v.optional(v.string()), // Full URL path (pages only, e.g., "/services/web-design")
     depth: v.optional(v.number()), // Nesting depth (pages only, 0 = top-level)
 
