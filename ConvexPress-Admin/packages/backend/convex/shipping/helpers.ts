@@ -114,3 +114,8 @@ export function buildFedexTrackingUrl(trackingNumber?: string) {
   if (!trackingNumber) return undefined;
   return `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(trackingNumber)}`;
 }
+
+export function buildDhlTrackingUrl(trackingNumber?: string) {
+  if (!trackingNumber) return undefined;
+  return `https://www.dhl.com/us-en/home/tracking/tracking-express.html?submit=1&tracking-id=${encodeURIComponent(trackingNumber)}`;
+}

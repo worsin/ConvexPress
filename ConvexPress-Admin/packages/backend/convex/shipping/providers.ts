@@ -223,14 +223,15 @@ export const SHIPPING_PROVIDER_DESCRIPTORS: Record<
     summary:
       "Direct carrier adapter planned around DHL Express first, then broader international shipment operations.",
     modeNotes:
-      "Foundation only. No live calls yet; intended for international-first shipping stacks.",
-    implementationStatus: "foundation",
+      "Live Basic Auth verification against the DHL Express rates endpoint. Rates are validated on connect; labels and tracking are planned follow-up slices.",
+    implementationStatus: "active",
     operations: {
       ...PLANNED_OPERATIONS,
+      rates: "implemented",
     },
     primaryUseCase:
       "International shipping flows where direct DHL Express integration matters for cost, service mapping, or customs handling.",
-    verificationMode: "local_readiness",
+    verificationMode: "live_api",
     credentialFields: [
       {
         key: "apiBaseUrl",

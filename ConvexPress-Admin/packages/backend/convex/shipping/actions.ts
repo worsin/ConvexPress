@@ -98,6 +98,12 @@ function getFedexDefaultBaseUrl(mode?: string) {
     : "https://apis.fedex.com";
 }
 
+function getDhlDefaultBaseUrl(mode?: string) {
+  return mode === "sandbox"
+    ? "https://express.api.dhl.com/mydhlapi/test"
+    : "https://express.api.dhl.com/mydhlapi";
+}
+
 async function getUpsCredentials(ctx: any) {
   const payload = await getProviderSecretPayload(ctx, "ups");
   const providerSettings = await ctx.runQuery(
@@ -275,6 +281,39 @@ async function getFedexCredentials(ctx: any) {
       "",
     ),
   };
+}
+
+async function getDhlCredentials(ctx: any) {
+  const payload = await getProviderSecretPayload(ctx, "dhl");
+  const providerSettings = await ctx.runQuery(
+    internal.settings.httpInternals.getBySectionInternal,
+    { section: "integrations.shipping.dhl" },
+  );
+
+  if (!payload.username || !payload.password || !payload.accountNumber) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message:
+        "DHL credentials are incomplete. Username, Password, and Account Number are required.",
+    });
+  }
+
+  return {
+    username: payload.username,
+    password: payload.password,
+    accountNumber: payload.accountNumber,
+    apiBaseUrl: (payload.apiBaseUrl || getDhlDefaultBaseUrl(providerSettings?.mode)).replace(
+      /\/+$/,
+      "",
+    ),
+  };
+}
+
+function getDhlBasicAuth(credentials: { username: string; password: string }) {
+  return Buffer.from(
+    `${credentials.username}:${credentials.password}`,
+    "utf8",
+  ).toString("base64");
 }
 
 async function getFedexAccessToken(ctx: any) {
@@ -2966,6 +3005,85 @@ export const verifyDirectCarrierFoundation = action({
             error instanceof Error
               ? error.message
               : "FedEx verification failed.",
+        });
+      }
+    }
+
+    if (args.provider === "dhl") {
+      try {
+        const credentials = await getDhlCredentials(ctx);
+        const basicAuth = getDhlBasicAuth(credentials);
+
+        const response = await fetch(
+          `${credentials.apiBaseUrl}/rates?accountNumber=${encodeURIComponent(
+            credentials.accountNumber,
+          )}&originCountryCode=US&originCityName=New+York&destinationCountryCode=US&destinationCityName=Los+Angeles&weight=1&length=10&width=10&height=10`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Basic ${basicAuth}`,
+              Accept: "application/json",
+            },
+          },
+        );
+
+        if (!response.ok) {
+          const body = await response.text();
+          await ctx.runMutation(internal.shipping.internals.updateConnectionHealth, {
+            provider: "dhl",
+            status: response.status >= 500 ? "degraded" : "error",
+            lastErrorCode: String(response.status),
+            lastErrorMessage: body.slice(0, 500),
+          });
+
+          throw new ConvexError({
+            code: "DHL_AUTH_ERROR",
+            message: body.slice(0, 500) || "DHL verification failed.",
+          });
+        }
+
+        await ctx.runMutation(
+          internal.shipping.internals.syncProviderAccountsAndServices,
+          {
+            provider: "dhl",
+            carriers: [
+              {
+                carrier_id: credentials.accountNumber,
+                carrier_code: "dhl",
+                friendly_name: "DHL Express",
+                status: "active",
+                supports_rates: true,
+                supports_labels: false,
+                supports_tracking: false,
+                supports_manifests: false,
+                supports_returns: false,
+                services: [],
+              },
+            ],
+          },
+        );
+
+        await ctx.runMutation(internal.shipping.internals.updateConnectionHealth, {
+          provider: "dhl",
+          status: "connected",
+          lastSyncAt: Date.now(),
+          lastErrorCode: undefined,
+          lastErrorMessage: undefined,
+        });
+
+        return {
+          success: true,
+          verificationMode: "live_api",
+          missingFields: [],
+          message:
+            "DHL Express verification succeeded. Direct DHL rating is ready to use.",
+        };
+      } catch (error) {
+        if (error instanceof ConvexError) throw error;
+        throw new ConvexError({
+          code: "DHL_AUTH_ERROR",
+          message:
+            error instanceof Error ? error.message : "DHL verification failed.",
         });
       }
     }
