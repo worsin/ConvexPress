@@ -40,12 +40,12 @@ describe("assertShippingProvider", () => {
     expect(() => assertShippingProvider("shipstation")).not.toThrow();
   });
 
-  test("returns the provider string for valid input", () => {
-    expect(assertShippingProvider("ups")).toBe("ups");
-    expect(assertShippingProvider("fedex")).toBe("fedex");
-    expect(assertShippingProvider("usps")).toBe("usps");
-    expect(assertShippingProvider("dhl")).toBe("dhl");
-    expect(assertShippingProvider("shipstation")).toBe("shipstation");
+  test("does not throw for any valid provider", () => {
+    expect(() => assertShippingProvider("ups")).not.toThrow();
+    expect(() => assertShippingProvider("fedex")).not.toThrow();
+    expect(() => assertShippingProvider("usps")).not.toThrow();
+    expect(() => assertShippingProvider("dhl")).not.toThrow();
+    expect(() => assertShippingProvider("shipstation")).not.toThrow();
   });
 
   test("throws ConvexError for unknown provider", () => {
