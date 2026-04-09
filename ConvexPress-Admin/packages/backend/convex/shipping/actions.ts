@@ -1154,7 +1154,7 @@ async function fetchFedexRatesInternal(
         status: "active",
         supports_rates: true,
         supports_labels: true,
-        supports_tracking: false,
+        supports_tracking: true,
         supports_manifests: false,
         supports_returns: false,
         services: normalized.map((quote) => ({
@@ -1273,6 +1273,123 @@ async function syncUspsTrackingInternal(ctx: any, args: { shipmentId: any }) {
     success: true,
     provider: "usps",
     trackingStatus: String(statusSource || ""),
+    status: normalizedStatus,
+  };
+}
+
+async function syncFedexTrackingInternal(ctx: any, args: { shipmentId: any }) {
+  const actorUserId = await requireShippingAdminAction(ctx);
+  const { accessToken } = await getFedexAccessToken(ctx);
+  const shipmentContext = await ctx.runQuery(
+    internal.shipping.internals.getShipmentForTracking,
+    { shipmentId: args.shipmentId },
+  );
+
+  if (!shipmentContext?.shipment) {
+    throw new ConvexError({
+      code: "NOT_FOUND",
+      message: "Shipment not found.",
+    });
+  }
+
+  const trackingNumber = shipmentContext.shipment.trackingNumber;
+  if (!trackingNumber) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "Shipment has no tracking number.",
+    });
+  }
+
+  const requestPayload = {
+    trackingInfo: [
+      {
+        trackingNumberInfo: {
+          trackingNumber,
+        },
+      },
+    ],
+    includeDetailedScans: false,
+  };
+
+  const credentials = await getFedexCredentials(ctx);
+  const response = await fetch(`${credentials.apiBaseUrl}/track/v1/trackingnumbers`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "x-customer-transaction-id": `convexpress-fedex-track-${Date.now()}`,
+    },
+    body: JSON.stringify(requestPayload),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    await ctx.runMutation(internal.shipping.internals.updateConnectionHealth, {
+      provider: "fedex",
+      status: response.status >= 500 ? "degraded" : "error",
+      lastErrorCode: String(response.status),
+      lastErrorMessage: body.slice(0, 500),
+    });
+    throw new ConvexError({
+      code: "FEDEX_TRACKING_ERROR",
+      message: body.slice(0, 500) || "Failed to sync FedEx tracking.",
+    });
+  }
+
+  const data = (await response.json()) as any;
+  const trackResult =
+    data?.output?.completeTrackResults?.[0]?.trackResults?.[0] ??
+    data?.completeTrackResults?.[0]?.trackResults?.[0] ??
+    {};
+
+  const latestStatus =
+    trackResult?.latestStatusDetail?.statusByLocale ??
+    trackResult?.latestStatusDetail?.description ??
+    trackResult?.statusDetail?.description;
+
+  const fedexStatusCode =
+    trackResult?.latestStatusDetail?.code ??
+    trackResult?.statusDetail?.code ??
+    "";
+
+  // FedEx status codes: DL=Delivered, IT=In Transit, OD=Out for Delivery, DP=Departed
+  const normalizedStatus =
+    fedexStatusCode === "DL"
+      ? "delivered"
+      : fedexStatusCode === "IT" ||
+          fedexStatusCode === "OD" ||
+          fedexStatusCode === "DP"
+        ? "shipped"
+        : shipmentContext.shipment.status;
+
+  await ctx.runMutation(
+    internal.shipping.internals.updateShipmentTrackingFromProvider,
+    {
+      shipmentId: shipmentContext.shipment._id,
+      actorUserId,
+      status: normalizedStatus,
+      trackingStatus: String(latestStatus || fedexStatusCode || ""),
+      trackingNumber: shipmentContext.shipment.trackingNumber,
+      trackingUrl:
+        buildFedexTrackingUrl(trackingNumber) ?? shipmentContext.shipment.trackingUrl,
+      labelUrl: shipmentContext.shipment.labelUrl,
+      rawMetadata: data,
+    },
+  );
+
+  await ctx.runMutation(internal.shipping.internals.updateConnectionHealth, {
+    provider: "fedex",
+    status: "connected",
+    lastSyncAt: Date.now(),
+    lastErrorCode: undefined,
+    lastErrorMessage: undefined,
+  });
+
+  return {
+    success: true,
+    provider: "fedex",
+    trackingStatus: String(latestStatus || fedexStatusCode || ""),
     status: normalizedStatus,
   };
 }
@@ -2660,6 +2777,10 @@ export const syncShipmentTracking = action({
       return syncUspsTrackingInternal(ctx, args);
     }
 
+    if (shipmentContext.shipment.provider === "fedex") {
+      return syncFedexTrackingInternal(ctx, args);
+    }
+
     if (shipmentContext.shipment.provider === "shipstation") {
       return syncShipStationTrackingInternal(ctx, args);
     }
@@ -2813,7 +2934,7 @@ export const verifyDirectCarrierFoundation = action({
               status: "active",
               supports_rates: true,
               supports_labels: true,
-              supports_tracking: false,
+              supports_tracking: true,
               supports_manifests: false,
               supports_returns: false,
               services: [],
