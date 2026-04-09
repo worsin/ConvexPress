@@ -60,6 +60,8 @@ function CommerceOrderDetailPage() {
   const [shipmentStatusDrafts, setShipmentStatusDrafts] = useState<
     Record<string, string>
   >({});
+  const providerCapabilities = useQuery(api.shipping.queries.getProviderCapabilities, {});
+
   const [isCreatingLabel, setIsCreatingLabel] = useState(false);
   const [syncingShipmentId, setSyncingShipmentId] = useState<string | null>(null);
 
@@ -496,28 +498,42 @@ function CommerceOrderDetailPage() {
                             .join(" • ")
                         : "Automatic label purchase is only available when checkout selected a supported live-rate quote."}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => void handleCreateProviderLabel()}
-                      disabled={
-                        isCreatingLabel ||
-                        !["shipstation", "ups"].includes(
-                          String(order.shippingProvider || ""),
-                        ) ||
-                        Boolean(
-                          order.shipments?.some(
-                            (shipment: any) =>
-                              shipment.provider === order.shippingProvider &&
-                              shipment.externalLabelId,
-                          ),
-                        )
-                      }
-                      className="mt-4 inline-flex rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {isCreatingLabel
-                        ? "Purchasing label..."
-                        : `Buy ${String(order.shippingProvider || "provider").toUpperCase()} label`}
-                    </button>
+                    {(() => {
+                      const orderProvider = order.shippingProvider;
+                      const providerCaps = providerCapabilities?.find(
+                        (p: any) => p.provider === orderProvider,
+                      );
+                      const existingLabel = order.shipments?.some(
+                        (shipment: any) =>
+                          shipment.provider === orderProvider &&
+                          shipment.externalLabelId,
+                      );
+                      const canBuyLabel = Boolean(
+                        orderProvider &&
+                          providerCaps?.supportsLabels &&
+                          !existingLabel,
+                      );
+                      const labelButtonTitle = !orderProvider
+                        ? "No shipping provider on this order"
+                        : !providerCaps?.supportsLabels
+                          ? `${String(orderProvider).toUpperCase()} does not support label purchase`
+                          : existingLabel
+                            ? "Label already purchased"
+                            : undefined;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => void handleCreateProviderLabel()}
+                          disabled={!canBuyLabel || isCreatingLabel}
+                          title={labelButtonTitle}
+                          className="mt-4 inline-flex rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isCreatingLabel
+                            ? "Purchasing label..."
+                            : `Buy ${String(order.shippingProvider || "provider").toUpperCase()} label`}
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -765,23 +781,29 @@ function CommerceOrderDetailPage() {
                           >
                             Update
                           </button>
-                          {["shipstation", "ups", "usps"].includes(
-                            String(shipment.provider || ""),
-                          ) &&
-                          shipment.trackingNumber ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                void handleSyncShipmentTracking(shipment._id)
-                              }
-                              disabled={syncingShipmentId === shipment._id}
-                              className="inline-flex rounded-xl border border-border px-3 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {syncingShipmentId === shipment._id
-                                ? "Syncing..."
-                                : "Sync tracking"}
-                            </button>
-                          ) : null}
+                          {(() => {
+                            const canSyncTracking = Boolean(
+                              shipment.provider &&
+                                providerCapabilities?.find(
+                                  (p: any) => p.provider === shipment.provider,
+                                )?.supportsTracking &&
+                                shipment.trackingNumber,
+                            );
+                            return canSyncTracking ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void handleSyncShipmentTracking(shipment._id)
+                                }
+                                disabled={syncingShipmentId === shipment._id}
+                                className="inline-flex rounded-xl border border-border px-3 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {syncingShipmentId === shipment._id
+                                  ? "Syncing..."
+                                  : "Sync tracking"}
+                              </button>
+                            ) : null;
+                          })()}
                         </div>
                       </div>
                     ))

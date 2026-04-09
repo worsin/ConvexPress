@@ -134,3 +134,29 @@ export const getRecentQuoteDiagnostics = query({
       .take(limit);
   },
 });
+
+export const getProviderCapabilities = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
+
+    const connections = await ctx.db.query("shipping_provider_connections").collect();
+    const accounts = await ctx.db.query("shipping_provider_accounts").collect();
+
+    return connections.map((conn: any) => {
+      const providerAccounts = accounts.filter((a: any) => a.provider === conn.provider);
+      const primaryAccount = providerAccounts[0];
+      return {
+        provider: conn.provider,
+        status: conn.status,
+        enabled: conn.enabled,
+        supportsRates: primaryAccount?.supportsRates ?? false,
+        supportsLabels: primaryAccount?.supportsLabels ?? false,
+        supportsTracking: primaryAccount?.supportsTracking ?? false,
+        supportsManifests: primaryAccount?.supportsManifests ?? false,
+        supportsReturns: primaryAccount?.supportsReturns ?? false,
+      };
+    });
+  },
+});
