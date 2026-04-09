@@ -284,6 +284,7 @@ export interface ShippingIntegrationSettings {
   preferredProvider: "shipstation" | "ups" | "usps" | "fedex" | "dhl" | "";
   liveRatesEnabled: boolean;
   fallbackToManualRates: boolean;
+  fallbackMessage: string;
   recommendationStrategy: "best_value_weighted";
   cheapestBadgeLabel: string;
   fastestBadgeLabel: string;
@@ -632,6 +633,7 @@ export const SHIPPING_INTEGRATION_DEFAULTS: ShippingIntegrationSettings = {
   preferredProvider: "shipstation",
   liveRatesEnabled: true,
   fallbackToManualRates: true,
+  fallbackMessage: "Live shipping rates are temporarily unavailable. Standard shipping options are shown below.",
   recommendationStrategy: "best_value_weighted",
   cheapestBadgeLabel: "Cheapest",
   fastestBadgeLabel: "Fastest",
