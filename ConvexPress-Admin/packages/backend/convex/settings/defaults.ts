@@ -30,6 +30,13 @@ export type SettingsSection =
   | "ai"
   | "plugins"
   | "search"
+  | "commerce.general"
+  | "integrations.shipping"
+  | "integrations.shipping.shipstation"
+  | "integrations.shipping.ups"
+  | "integrations.shipping.usps"
+  | "integrations.shipping.fedex"
+  | "integrations.shipping.dhl"
   // Knowledge Base System sections
   | "kb.general"
   | "kb.features"
@@ -61,6 +68,13 @@ export const SECTION_NAMES: SettingsSection[] = [
   "ai",
   "plugins",
   "search",
+  "commerce.general",
+  "integrations.shipping",
+  "integrations.shipping.shipstation",
+  "integrations.shipping.ups",
+  "integrations.shipping.usps",
+  "integrations.shipping.fedex",
+  "integrations.shipping.dhl",
   // Knowledge Base System sections
   "kb.general",
   "kb.features",
@@ -165,9 +179,14 @@ export interface DiscussionSettings {
 }
 
 export interface PluginsSettings {
+  commerceEnabled: boolean;
+  commerceSubscriptionsEnabled: boolean;
+  membershipEnabled: boolean;
   knowledgeBaseEnabled: boolean;
   ticketsEnabled: boolean;
   customFieldsEnabled: boolean;
+  recipesEnabled: boolean;
+  galleryEnabled: boolean;
 }
 
 export interface PermalinkSettings {
@@ -243,6 +262,52 @@ export interface SearchSettings {
   meilisearchHost: string;
   /** Meilisearch API key for authentication */
   meilisearchApiKey: string;
+}
+
+export interface CommerceGeneralSettings {
+  storeName: string;
+  storeEmail: string;
+  currencyCode: string;
+  currencySymbol: string;
+  pricesIncludeTax: boolean;
+  taxRateBasis: "billing" | "shipping" | "store";
+  defaultCountryCode: string;
+  defaultState: string;
+  checkoutRequiresPhone: boolean;
+  allowGuestCheckout: boolean;
+  shippingEnabled: boolean;
+  shippingMethods: Array<{ code: string; label: string }>;
+  paymentMethods: Array<{ code: string; label: string; enabled: boolean }>;
+}
+
+export interface ShippingIntegrationSettings {
+  preferredProvider: "shipstation" | "ups" | "usps" | "fedex" | "dhl" | "";
+  liveRatesEnabled: boolean;
+  fallbackToManualRates: boolean;
+  recommendationStrategy: "best_value_weighted";
+  cheapestBadgeLabel: string;
+  fastestBadgeLabel: string;
+  bestOptionBadgeLabel: string;
+  quoteCacheTtlSeconds: number;
+  defaultPackageWeightOz: number;
+  shipFromName: string;
+  shipFromCompany: string;
+  shipFromLine1: string;
+  shipFromLine2: string;
+  shipFromCity: string;
+  shipFromState: string;
+  shipFromPostalCode: string;
+  shipFromCountryCode: string;
+}
+
+export interface ShippingProviderSettings {
+  enabled: boolean;
+  displayName: string;
+  mode: "sandbox" | "production";
+  isPrimary: boolean;
+  rateShoppingEnabled: boolean;
+  rateShoppingPriority: number;
+  accountNickname: string;
 }
 
 // ─── Media Settings Types ───────────────────────────────────────────────────
@@ -540,6 +605,59 @@ export const SEARCH_DEFAULTS: SearchSettings = {
   meilisearchApiKey: "",
 };
 
+export const COMMERCE_GENERAL_DEFAULTS: CommerceGeneralSettings = {
+  storeName: "ConvexPress Store",
+  storeEmail: "",
+  currencyCode: "USD",
+  currencySymbol: "$",
+  pricesIncludeTax: false,
+  taxRateBasis: "shipping",
+  defaultCountryCode: "US",
+  defaultState: "",
+  checkoutRequiresPhone: false,
+  allowGuestCheckout: true,
+  shippingEnabled: true,
+  shippingMethods: [
+    { code: "standard", label: "Standard shipping" },
+    { code: "express", label: "Express shipping" },
+  ],
+  paymentMethods: [
+    { code: "card", label: "Credit or debit card", enabled: true },
+    { code: "manual_invoice", label: "Manual invoice", enabled: true },
+    { code: "cash_on_delivery", label: "Cash on delivery", enabled: false },
+  ],
+};
+
+export const SHIPPING_INTEGRATION_DEFAULTS: ShippingIntegrationSettings = {
+  preferredProvider: "shipstation",
+  liveRatesEnabled: true,
+  fallbackToManualRates: true,
+  recommendationStrategy: "best_value_weighted",
+  cheapestBadgeLabel: "Cheapest",
+  fastestBadgeLabel: "Fastest",
+  bestOptionBadgeLabel: "Best Option",
+  quoteCacheTtlSeconds: 300,
+  defaultPackageWeightOz: 16,
+  shipFromName: "",
+  shipFromCompany: "",
+  shipFromLine1: "",
+  shipFromLine2: "",
+  shipFromCity: "",
+  shipFromState: "",
+  shipFromPostalCode: "",
+  shipFromCountryCode: "US",
+};
+
+export const SHIPPING_PROVIDER_DEFAULTS: ShippingProviderSettings = {
+  enabled: false,
+  displayName: "",
+  mode: "production",
+  isPrimary: false,
+  rateShoppingEnabled: false,
+  rateShoppingPriority: 100,
+  accountNickname: "",
+};
+
 // ─── Media Defaults ─────────────────────────────────────────────────────────
 
 export const MEDIA_DEFAULTS: MediaSettings = {
@@ -611,9 +729,14 @@ export const TICKET_SLA_DEFAULTS: TicketSlaSettings = {
 };
 
 export const PLUGINS_DEFAULTS: PluginsSettings = {
+  commerceEnabled: false,
+  commerceSubscriptionsEnabled: false,
+  membershipEnabled: false,
   knowledgeBaseEnabled: true,
   ticketsEnabled: true,
   customFieldsEnabled: true,
+  recipesEnabled: true,
+  galleryEnabled: true,
 };
 
 // ─── Layout Assignment Defaults ─────────────────────────────────────────────
@@ -669,6 +792,35 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   ai: AI_DEFAULTS,
   plugins: PLUGINS_DEFAULTS,
   search: SEARCH_DEFAULTS,
+  "commerce.general": COMMERCE_GENERAL_DEFAULTS,
+  "integrations.shipping": SHIPPING_INTEGRATION_DEFAULTS,
+  "integrations.shipping.shipstation": {
+    ...SHIPPING_PROVIDER_DEFAULTS,
+    displayName: "ShipStation",
+    isPrimary: true,
+    rateShoppingEnabled: true,
+    rateShoppingPriority: 10,
+  },
+  "integrations.shipping.ups": {
+    ...SHIPPING_PROVIDER_DEFAULTS,
+    displayName: "UPS",
+    rateShoppingPriority: 20,
+  },
+  "integrations.shipping.usps": {
+    ...SHIPPING_PROVIDER_DEFAULTS,
+    displayName: "USPS",
+    rateShoppingPriority: 30,
+  },
+  "integrations.shipping.fedex": {
+    ...SHIPPING_PROVIDER_DEFAULTS,
+    displayName: "FedEx",
+    rateShoppingPriority: 40,
+  },
+  "integrations.shipping.dhl": {
+    ...SHIPPING_PROVIDER_DEFAULTS,
+    displayName: "DHL",
+    rateShoppingPriority: 50,
+  },
   // Knowledge Base System sections
   "kb.general": KB_GENERAL_DEFAULTS,
   "kb.features": KB_FEATURES_DEFAULTS,
