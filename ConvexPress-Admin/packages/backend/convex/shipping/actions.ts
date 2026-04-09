@@ -2969,7 +2969,89 @@ export const fetchCheckoutRates = action({
       expiresAt: Date.now() + Number(integrationSettings.quoteCacheTtlSeconds ?? 300) * 1000,
     }));
 
-    if (!rankedQuotes.length) {
+    // Zone/method enforcement ------------------------------------------------
+    const matchedZone = await ctx.runQuery(
+      internal.shipping.internals.matchZoneForAddress,
+      {
+        countryCode: args.shippingAddress.countryCode,
+        state: args.shippingAddress.state,
+        postalCode: args.shippingAddress.postalCode,
+      },
+    );
+
+    let filteredQuotes = rankedQuotes;
+    if (matchedZone) {
+      const liveRateMethods = matchedZone.methods.filter(
+        (m) => m.methodType === "live_rate",
+      );
+
+      if (liveRateMethods.length > 0) {
+        const allowedProviders = new Set(
+          liveRateMethods.map((m) => m.provider).filter(Boolean),
+        );
+        const allowedServices = new Set(
+          liveRateMethods
+            .flatMap((m) => {
+              const filters = m.serviceFilters;
+              return Array.isArray(filters) ? filters : [];
+            })
+            .filter(Boolean),
+        );
+
+        filteredQuotes = rankedQuotes.filter((quote) => {
+          if (allowedProviders.size > 0 && !allowedProviders.has(quote.provider)) {
+            return false;
+          }
+          if (allowedServices.size > 0 && !allowedServices.has(quote.serviceCode)) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      // Inject flat_rate and free_shipping methods as synthetic quotes
+      for (const method of matchedZone.methods) {
+        if (method.methodType === "flat_rate") {
+          const flatAmount = method.pricingRules?.flatRateAmount;
+          if (flatAmount != null) {
+            filteredQuotes.push({
+              quoteKey: `zone:flat-${method._id}`,
+              provider: "manual",
+              carrierCode: "flat_rate",
+              carrierName: method.label,
+              serviceCode: "flat_rate",
+              serviceName: method.label,
+              amount: flatAmount,
+              currency: integrationSettings.currencyCode ?? "USD",
+              isCheapest: false,
+              isFastest: false,
+              isBestValue: false,
+              expiresAt: Date.now() + 3600000,
+            });
+          }
+        }
+
+        if (method.methodType === "free_shipping") {
+          filteredQuotes.push({
+            quoteKey: `zone:free-${method._id}`,
+            provider: "manual",
+            carrierCode: "free_shipping",
+            carrierName: method.label,
+            serviceCode: "free_shipping",
+            serviceName: method.label,
+            amount: 0,
+            currency: integrationSettings.currencyCode ?? "USD",
+            isCheapest: true,
+            isFastest: false,
+            isBestValue: false,
+            expiresAt: Date.now() + 3600000,
+          });
+        }
+      }
+    }
+    // End zone/method enforcement ---------------------------------------------
+
+    if (!filteredQuotes.length) {
       if (integrationSettings.fallbackToManualRates !== false) {
         await ctx.runMutation(internal.shipping.internals.saveQuoteDiagnostics, {
           checkoutSessionId: undefined,
@@ -3009,7 +3091,7 @@ export const fetchCheckoutRates = action({
 
     await ctx.runMutation(internal.shipping.internals.replaceCheckoutQuotes, {
       checkoutSessionId: rateContext.checkoutSession._id,
-      quotes: rankedQuotes,
+      quotes: filteredQuotes,
     });
 
     await ctx.runMutation(internal.shipping.internals.saveQuoteDiagnostics, {
@@ -3017,14 +3099,14 @@ export const fetchCheckoutRates = action({
       requestedAt: Date.now(),
       shippingAddress: args.shippingAddress,
       providerResults: diagnosticResults,
-      totalQuotes: rankedQuotes.length,
+      totalQuotes: filteredQuotes.length,
       fallbackUsed: false,
     });
 
     return {
       success: true,
       provider: "aggregated",
-      quotes: rankedQuotes,
+      quotes: filteredQuotes,
       providerResults,
       aggregatedProviders: providerOrder,
     };

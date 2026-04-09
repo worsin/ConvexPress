@@ -62,6 +62,54 @@ async function recalculateOrderFulfillment(ctx: any, orderId: any) {
   });
 }
 
+export const matchZoneForAddress = internalQuery({
+  args: {
+    countryCode: v.string(),
+    state: v.optional(v.string()),
+    postalCode: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const zones = await ctx.db.query("commerce_shipping_zones").collect();
+    const sorted = zones
+      .filter((z: any) => z.enabled !== false)
+      .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+    for (const zone of sorted) {
+      if (!zone.countries.includes(args.countryCode)) continue;
+
+      if (zone.states && zone.states.length > 0 && args.state) {
+        if (!zone.states.includes(args.state)) continue;
+      }
+
+      if (zone.postalCodeRules && zone.postalCodeRules.length > 0 && args.postalCode) {
+        let matched = false;
+        for (const pattern of zone.postalCodeRules) {
+          const regex = new RegExp(`^${pattern.replace(/\*/g, ".*")}$`);
+          if (regex.test(args.postalCode)) {
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) continue;
+      }
+
+      const methods = await ctx.db
+        .query("commerce_shipping_zone_methods")
+        .withIndex("by_zone", (q: any) => q.eq("zoneId", zone._id))
+        .collect();
+
+      return {
+        zone,
+        methods: methods
+          .filter((m: any) => m.enabled !== false)
+          .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+      };
+    }
+
+    return null;
+  },
+});
+
 export const saveQuoteDiagnostics = internalMutation({
   args: {
     checkoutSessionId: v.optional(v.id("commerce_checkout_sessions")),
