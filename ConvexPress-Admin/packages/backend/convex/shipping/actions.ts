@@ -6,7 +6,7 @@ import { ConvexError, v } from "convex/values";
 import { action } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { decryptSecret } from "../api/crypto_helpers";
-import { rankShippingQuotes } from "./helpers";
+import { rankShippingQuotes, buildFedexTrackingUrl } from "./helpers";
 import {
   createShippingLabelForOrderArgs,
   createShipStationLabelForOrderArgs,
@@ -1153,7 +1153,7 @@ async function fetchFedexRatesInternal(
         friendly_name: "FedEx",
         status: "active",
         supports_rates: true,
-        supports_labels: false,
+        supports_labels: true,
         supports_tracking: false,
         supports_manifests: false,
         supports_returns: false,
@@ -1512,6 +1512,236 @@ async function createUpsLabelForOrderInternal(ctx: any, args: { orderId: any }) 
   return {
     success: true,
     provider: "ups",
+    shipmentId,
+    trackingNumber,
+    labelUrl,
+  };
+}
+
+async function createFedexLabelForOrderInternal(ctx: any, args: { orderId: any }) {
+  const actorUserId = await requireShippingAdminAction(ctx);
+  const { accessToken, credentials } = await getFedexAccessToken(ctx);
+  const labelContext = await ctx.runQuery(
+    internal.shipping.internals.getLabelContextForOrder,
+    { orderId: args.orderId },
+  );
+
+  if (!labelContext?.order) {
+    throw new ConvexError({
+      code: "NOT_FOUND",
+      message: "Order not found.",
+    });
+  }
+
+  if (!labelContext.order.shippingAddress) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "Order has no shipping address.",
+    });
+  }
+
+  if (labelContext.existingShipment?.externalLabelId) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "A purchased label already exists for this order.",
+    });
+  }
+
+  const shippingSettings = await ctx.runQuery(
+    internal.settings.httpInternals.getBySectionInternal,
+    { section: "integrations.shipping" },
+  );
+
+  if (
+    !shippingSettings.shipFromLine1 ||
+    !shippingSettings.shipFromCity ||
+    !shippingSettings.shipFromPostalCode ||
+    !shippingSettings.shipFromCountryCode
+  ) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "Ship-from address is incomplete in commerce shipping settings.",
+    });
+  }
+
+  const totalWeightOz = labelContext.items.reduce((sum: number, item: any) => {
+    const unitWeight =
+      item?.productShippingWeightOz ??
+      item?.shippingWeightOz ??
+      shippingSettings.defaultPackageWeightOz ??
+      16;
+    return sum + Math.max(1, unitWeight) * item.quantity;
+  }, 0);
+  const totalWeightLbs = Math.max(0.1, Math.round((totalWeightOz / 16) * 100) / 100);
+
+  const serviceCode =
+    labelContext.order.shippingServiceCode ??
+    labelContext.quote?.serviceCode ??
+    labelContext.order.shippingQuoteRaw?.serviceType ??
+    "FEDEX_GROUND";
+
+  const recipientName =
+    [
+      labelContext.order.shippingAddress.firstName,
+      labelContext.order.shippingAddress.lastName,
+    ]
+      .filter(Boolean)
+      .join(" ") || "Customer";
+
+  const payload = {
+    accountNumber: { value: credentials.accountNumber },
+    labelResponseOptions: "URL_ONLY",
+    requestedShipment: {
+      shipper: {
+        contact: {
+          personName: shippingSettings.shipFromName || shippingSettings.storeName || "Store",
+          phoneNumber: shippingSettings.shipFromPhone || "0000000000",
+        },
+        address: {
+          streetLines: [
+            shippingSettings.shipFromLine1,
+            shippingSettings.shipFromLine2 || undefined,
+          ].filter(Boolean),
+          city: shippingSettings.shipFromCity,
+          stateOrProvinceCode: shippingSettings.shipFromState || undefined,
+          postalCode: shippingSettings.shipFromPostalCode,
+          countryCode: shippingSettings.shipFromCountryCode,
+        },
+      },
+      recipients: [
+        {
+          contact: {
+            personName: recipientName,
+            phoneNumber: labelContext.order.shippingAddress.phone || "0000000000",
+          },
+          address: {
+            streetLines: [
+              labelContext.order.shippingAddress.line1,
+              labelContext.order.shippingAddress.line2 || undefined,
+            ].filter(Boolean),
+            city: labelContext.order.shippingAddress.city,
+            stateOrProvinceCode: labelContext.order.shippingAddress.state || undefined,
+            postalCode: labelContext.order.shippingAddress.postalCode,
+            countryCode: labelContext.order.shippingAddress.countryCode,
+            residential: true,
+          },
+        },
+      ],
+      pickupType: "DROPOFF_AT_FEDEX_LOCATION",
+      serviceType: serviceCode,
+      packagingType: "YOUR_PACKAGING",
+      shippingChargesPayment: {
+        paymentType: "SENDER",
+        payor: {
+          responsibleParty: {
+            accountNumber: { value: credentials.accountNumber },
+          },
+        },
+      },
+      labelSpecification: {
+        labelFormatType: "COMMON2D",
+        imageType: "PDF",
+        labelStockType: "PAPER_4X6",
+      },
+      requestedPackageLineItems: [
+        {
+          weight: {
+            units: "LB",
+            value: totalWeightLbs,
+          },
+        },
+      ],
+    },
+  };
+
+  const response = await fetch(`${credentials.apiBaseUrl}/ship/v1/shipments`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "X-locale": "en_US",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+
+    await ctx.runMutation(internal.shipping.internals.updateConnectionHealth, {
+      provider: "fedex",
+      status: response.status >= 500 ? "degraded" : "error",
+      lastErrorCode: String(response.status),
+      lastErrorMessage: body.slice(0, 500),
+    });
+
+    throw new ConvexError({
+      code: "FEDEX_LABEL_ERROR",
+      message: body.slice(0, 500) || "Failed to purchase FedEx label.",
+    });
+  }
+
+  const data = (await response.json()) as any;
+  const shipmentOutput =
+    data?.output?.transactionShipments?.[0] ??
+    data?.transactionShipments?.[0] ??
+    data;
+  const pieceResponse =
+    shipmentOutput?.pieceResponses?.[0] ??
+    shipmentOutput?.completedShipmentDetail?.completedPackageDetails?.[0] ??
+    {};
+  const trackingNumber =
+    pieceResponse?.trackingNumber ??
+    shipmentOutput?.masterTrackingNumber ??
+    shipmentOutput?.trackingIdList?.[0]?.trackingNumber;
+  const labelUrl =
+    pieceResponse?.packageDocuments?.[0]?.url ??
+    shipmentOutput?.completedShipmentDetail?.completedPackageDetails?.[0]?.label?.url ??
+    pieceResponse?.label?.url;
+  const trackingUrl = buildFedexTrackingUrl(trackingNumber);
+  const shipmentNumber =
+    shipmentOutput?.masterTrackingNumber ??
+    trackingNumber ??
+    `FEDEX-${Date.now().toString().slice(-8)}`;
+
+  const shipmentId = await ctx.runMutation(
+    internal.shipping.internals.createOrderShipmentFromLabel,
+    {
+      orderId: labelContext.order._id,
+      actorUserId,
+      shipmentNumber,
+      provider: "fedex",
+      status: "label_created",
+      carrier: "FedEx",
+      carrierCode: "fedex",
+      serviceCode: String(serviceCode),
+      serviceName: getFedexServiceName(String(serviceCode)),
+      trackingNumber,
+      trackingUrl,
+      trackingStatus: undefined,
+      externalShipmentId: shipmentOutput?.masterTrackingNumber,
+      externalLabelId: trackingNumber ?? shipmentOutput?.masterTrackingNumber,
+      labelUrl,
+      labelFormat: "PDF",
+      items: labelContext.items.map((item: any) => ({
+        orderItemId: item._id,
+        quantity: item.quantity,
+      })),
+      rawMetadata: data,
+    },
+  );
+
+  await ctx.runMutation(internal.shipping.internals.updateConnectionHealth, {
+    provider: "fedex",
+    status: "connected",
+    lastSyncAt: Date.now(),
+    lastErrorCode: undefined,
+    lastErrorMessage: undefined,
+  });
+
+  return {
+    success: true,
+    provider: "fedex",
     shipmentId,
     trackingNumber,
     labelUrl,
@@ -2389,6 +2619,10 @@ export const createShippingLabelForOrder = action({
       return createShipStationLabelForOrderInternal(ctx, args);
     }
 
+    if (labelContext.order.shippingProvider === "fedex") {
+      return createFedexLabelForOrderInternal(ctx, args);
+    }
+
     throw new ConvexError({
       code: "VALIDATION_ERROR",
       message:
@@ -2578,7 +2812,7 @@ export const verifyDirectCarrierFoundation = action({
               friendly_name: "FedEx",
               status: "active",
               supports_rates: true,
-              supports_labels: false,
+              supports_labels: true,
               supports_tracking: false,
               supports_manifests: false,
               supports_returns: false,
