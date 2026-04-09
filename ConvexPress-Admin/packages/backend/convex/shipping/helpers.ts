@@ -109,3 +109,8 @@ export function rankShippingQuotes(
 
   return ranked.map(({ score: _score, ...quote }) => quote);
 }
+
+export function buildFedexTrackingUrl(trackingNumber?: string) {
+  if (!trackingNumber) return undefined;
+  return `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(trackingNumber)}`;
+}

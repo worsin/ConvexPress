@@ -178,11 +178,12 @@ export const SHIPPING_PROVIDER_DESCRIPTORS: Record<
     summary:
       "Direct carrier adapter for FedEx rating, labels, tracking, and service-level shipping workflows.",
     modeNotes:
-      "Direct FedEx OAuth verification and rate shopping are live. Labels and tracking remain planned follow-up slices behind the same provider contract.",
+      "Direct FedEx OAuth verification, rate shopping, and label purchase are live. Tracking remains a planned follow-up slice behind the same provider contract.",
     implementationStatus: "active",
     operations: {
       ...PLANNED_OPERATIONS,
       rates: "implemented",
+      labels: "implemented",
     },
     primaryUseCase:
       "Direct FedEx accounts with negotiated rates, service controls, or enterprise operational requirements.",
