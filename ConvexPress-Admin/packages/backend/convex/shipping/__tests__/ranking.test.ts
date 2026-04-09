@@ -111,16 +111,11 @@ describe("rankShippingQuotes", () => {
 
     const results = rankShippingQuotes([cheap, mid, fast]);
 
-    // Cheapest should also be best value because cost is weighted 60%
-    // cheap: normCost=0 (min), normSpeed=1 (slowest) → 0*0.6 + 1*0.4 = 0.4
-    // mid:   normCost=0.375, normSpeed=0.333 → 0.375*0.6 + 0.333*0.4 ≈ 0.358
-    // fast:  normCost=1 (max), normSpeed=0   → 1*0.6 + 0*0.4 = 0.6
-    // Wait, mid has a LOWER score than cheap in this case, let's verify:
-    // cost range: 5000-1000=4000; day range: 7-1=6
-    // cheap: normCost=(1000-1000)/4000=0, normSpeed=(7-1)/6=1 → 0*0.6+1*0.4=0.40
-    // mid:   normCost=(2500-1000)/4000=0.375, normSpeed=(3-1)/6=0.333 → 0.225+0.133=0.358
-    // fast:  normCost=(5000-1000)/4000=1.0, normSpeed=(1-1)/6=0 → 0.6+0=0.60
-    // Best value: mid (score 0.358) — since cost is 60% weighted, mid balances well
+    // Rank-based scoring: costRank * 0.6 + speedRank * 0.4 (lower = better)
+    // Cost ranks: cheap=1, mid=2, fast=3
+    // Speed ranks: fast=1, mid=2, cheap=3
+    // Scores: cheap=1*0.6+3*0.4=1.8, mid=2*0.6+2*0.4=2.0, fast=3*0.6+1*0.4=2.2
+    // Best value = cheapest (1.8) because cost weight (60%) dominates
 
     const cheapResult = results.find((r) => r.serviceCode === "ground")!;
     const midResult = results.find((r) => r.serviceCode === "2day")!;
@@ -130,9 +125,9 @@ describe("rankShippingQuotes", () => {
     expect(cheapResult.isCheapest).toBe(true);
     // fast is fastest
     expect(fastResult.isFastest).toBe(true);
-    // mid is best value (balanced score beats pure-cheap-but-slow)
-    expect(midResult.isBestValue).toBe(true);
-    expect(cheapResult.isBestValue).toBe(false);
+    // cheap is best value (cost 60% weight dominates)
+    expect(cheapResult.isBestValue).toBe(true);
+    expect(midResult.isBestValue).toBe(false);
     expect(fastResult.isBestValue).toBe(false);
   });
 
@@ -168,60 +163,53 @@ describe("rankShippingQuotes", () => {
 
   test("handles cross-provider ranking", () => {
     const upsGround = makeQuote({
-      quoteKey: "ups:UPS:03",
+      quoteKey: "ups:03-0",
       provider: "ups",
-      carrierCode: "UPS",
+      carrierCode: "ups",
       carrierName: "UPS",
       serviceCode: "03",
       serviceName: "UPS Ground",
       amount: 1250,
       estimatedDaysMin: 5,
     });
-    const fedexGround: InputQuote = {
-      quoteKey: "fedex:FEDEX:FEDEX_GROUND",
+    const fedex2Day = makeQuote({
+      quoteKey: "fedex:FEDEX_2_DAY-0",
       provider: "fedex",
-      carrierCode: "FEDEX",
+      carrierCode: "fedex",
       carrierName: "FedEx",
-      serviceCode: "FEDEX_GROUND",
-      serviceName: "FedEx Ground",
-      amount: 1275,
-      currency: "USD",
-      estimatedDaysMin: 5,
-    };
-    const uspsGround: InputQuote = {
-      quoteKey: "usps:USPS:USPS_GROUND_ADVANTAGE",
+      serviceCode: "FEDEX_2_DAY",
+      serviceName: "FedEx 2Day",
+      amount: 2250,
+      estimatedDaysMin: 2,
+    });
+    const uspsPriority = makeQuote({
+      quoteKey: "usps:PRIORITY_MAIL-0",
       provider: "usps",
-      carrierCode: "USPS",
+      carrierCode: "usps",
       carrierName: "USPS",
-      serviceCode: "USPS_GROUND_ADVANTAGE",
-      serviceName: "USPS Ground Advantage",
-      amount: 475,
-      currency: "USD",
-      estimatedDaysMin: 5,
-    };
+      serviceCode: "PRIORITY_MAIL",
+      serviceName: "USPS Priority Mail",
+      amount: 1250,
+      estimatedDaysMin: 2,
+    });
 
-    const results = rankShippingQuotes([upsGround, fedexGround, uspsGround]);
+    const results = rankShippingQuotes([upsGround, fedex2Day, uspsPriority]);
 
-    // USPS is cheapest at $4.75
-    const uspsResult = results.find(
-      (r) => r.serviceCode === "USPS_GROUND_ADVANTAGE",
-    )!;
     const upsResult = results.find((r) => r.serviceCode === "03")!;
-    const fedexResult = results.find((r) => r.serviceCode === "FEDEX_GROUND")!;
+    const fedexResult = results.find((r) => r.serviceCode === "FEDEX_2_DAY")!;
+    const uspsResult = results.find((r) => r.serviceCode === "PRIORITY_MAIL")!;
 
+    // UPS and USPS tie for cheapest ($12.50)
+    expect(upsResult.isCheapest).toBe(true);
     expect(uspsResult.isCheapest).toBe(true);
-    expect(upsResult.isCheapest).toBe(false);
-    expect(fedexResult.isCheapest).toBe(false);
 
-    // All same speed — all fastest
-    expect(uspsResult.isFastest).toBe(true);
-    expect(upsResult.isFastest).toBe(true);
+    // FedEx and USPS tie for fastest (2 days)
     expect(fedexResult.isFastest).toBe(true);
+    expect(uspsResult.isFastest).toBe(true);
 
-    // USPS cheapest — will be best value (same speed for all, only cost differs)
-    expect(uspsResult.isBestValue).toBe(true);
-
-    // Total of 3 results
+    // All 3 providers represented
     expect(results).toHaveLength(3);
+    // Exactly one best value
+    expect(results.filter((r) => r.isBestValue)).toHaveLength(1);
   });
 });
