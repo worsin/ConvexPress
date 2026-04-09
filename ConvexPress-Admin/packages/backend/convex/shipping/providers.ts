@@ -184,6 +184,7 @@ export const SHIPPING_PROVIDER_DESCRIPTORS: Record<
       ...PLANNED_OPERATIONS,
       rates: "implemented",
       labels: "implemented",
+      tracking: "implemented",
     },
     primaryUseCase:
       "Direct FedEx accounts with negotiated rates, service controls, or enterprise operational requirements.",
