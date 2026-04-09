@@ -266,6 +266,70 @@ export function getShippingProviderDescriptor(provider: ShippingProvider) {
   return SHIPPING_PROVIDER_DESCRIPTORS[provider];
 }
 
+/**
+ * Canonical runtime capabilities per provider.
+ * Updated as new adapters are implemented.
+ * This is the single source of truth — never hardcode flags at call sites.
+ */
+export const PROVIDER_CAPABILITIES: Record<
+  string,
+  {
+    supports_rates: boolean;
+    supports_labels: boolean;
+    supports_tracking: boolean;
+    supports_manifests: boolean;
+    supports_returns: boolean;
+  }
+> = {
+  shipstation: {
+    supports_rates: true,
+    supports_labels: true,
+    supports_tracking: true,
+    supports_manifests: false,
+    supports_returns: false,
+  },
+  ups: {
+    supports_rates: true,
+    supports_labels: true,
+    supports_tracking: true,
+    supports_manifests: false,
+    supports_returns: false,
+  },
+  usps: {
+    supports_rates: true,
+    supports_labels: false,
+    supports_tracking: true,
+    supports_manifests: false,
+    supports_returns: false,
+  },
+  fedex: {
+    supports_rates: true,
+    supports_labels: true,
+    supports_tracking: true,
+    supports_manifests: false,
+    supports_returns: false,
+  },
+  dhl: {
+    supports_rates: true,
+    supports_labels: false,
+    supports_tracking: false,
+    supports_manifests: false,
+    supports_returns: false,
+  },
+};
+
+export function getProviderCapabilities(provider: string) {
+  return (
+    PROVIDER_CAPABILITIES[provider] ?? {
+      supports_rates: false,
+      supports_labels: false,
+      supports_tracking: false,
+      supports_manifests: false,
+      supports_returns: false,
+    }
+  );
+}
+
 export function validateProviderCredentials(
   provider: ShippingProvider,
   credentials: Record<string, unknown>,
