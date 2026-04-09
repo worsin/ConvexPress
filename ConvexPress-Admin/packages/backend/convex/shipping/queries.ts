@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { query } from "../_generated/server";
+import { getCurrentUser } from "../helpers/auth";
 import { requireCommerceEnabled } from "../commerce/helpers";
 import {
   SHIPPING_PROVIDERS,
@@ -117,5 +118,19 @@ export const listCheckoutQuotes = query({
     });
 
     return quotes;
+  },
+});
+
+export const getRecentQuoteDiagnostics = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+    const limit = args.limit ?? 25;
+    return ctx.db
+      .query("shipping_quote_diagnostics")
+      .withIndex("by_requestedAt")
+      .order("desc")
+      .take(limit);
   },
 });

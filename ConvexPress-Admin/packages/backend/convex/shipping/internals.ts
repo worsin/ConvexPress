@@ -62,6 +62,32 @@ async function recalculateOrderFulfillment(ctx: any, orderId: any) {
   });
 }
 
+export const saveQuoteDiagnostics = internalMutation({
+  args: {
+    checkoutSessionId: v.optional(v.id("commerce_checkout_sessions")),
+    requestedAt: v.number(),
+    requestedBy: v.optional(v.string()),
+    shippingAddress: v.optional(v.any()),
+    providerResults: v.array(
+      v.object({
+        provider: v.string(),
+        attempted: v.boolean(),
+        success: v.boolean(),
+        quoteCount: v.number(),
+        durationMs: v.optional(v.number()),
+        errorCode: v.optional(v.string()),
+        errorMessage: v.optional(v.string()),
+        skippedReason: v.optional(v.string()),
+      }),
+    ),
+    totalQuotes: v.number(),
+    fallbackUsed: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    return ctx.db.insert("shipping_quote_diagnostics", args);
+  },
+});
+
 export const getProviderSecret = internalQuery({
   args: {
     provider: shippingProviderArg,

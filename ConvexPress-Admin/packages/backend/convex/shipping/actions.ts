@@ -2863,7 +2863,19 @@ export const fetchCheckoutRates = action({
       error?: string;
     }> = [];
 
+    const diagnosticResults: Array<{
+      provider: string;
+      attempted: boolean;
+      success: boolean;
+      quoteCount: number;
+      durationMs?: number;
+      errorCode?: string;
+      errorMessage?: string;
+      skippedReason?: string;
+    }> = [];
+
     for (const provider of providerOrder) {
+      const startMs = Date.now();
       try {
         const result =
           provider === "shipstation"
@@ -2878,18 +2890,60 @@ export const fetchCheckoutRates = action({
                 shippingAddress: args.shippingAddress,
               });
 
+        const quotes = result?.quotes ?? [];
         providerResults.push({
           provider,
           success: true,
-          quotes: result?.quotes ?? [],
+          quotes,
+        });
+        diagnosticResults.push({
+          provider,
+          attempted: true,
+          success: true,
+          quoteCount: quotes.length,
+          durationMs: Date.now() - startMs,
         });
       } catch (error) {
+        const errorData = (error as { data?: { code?: string; message?: string } })?.data;
+        const errorMessage =
+          errorData?.message ??
+          (error instanceof Error ? error.message : "Provider quote fetch failed.");
+
         providerResults.push({
           provider,
           success: false,
-          error:
-            (error as { data?: { message?: string } })?.data?.message ??
-            (error instanceof Error ? error.message : "Provider quote fetch failed."),
+          error: errorMessage,
+        });
+        diagnosticResults.push({
+          provider,
+          attempted: true,
+          success: false,
+          quoteCount: 0,
+          durationMs: Date.now() - startMs,
+          errorCode: errorData?.code,
+          errorMessage,
+        });
+      }
+    }
+
+    // Add entries for providers that were not attempted
+    const allProviders = ["shipstation", "ups", "usps", "fedex", "dhl"];
+    for (const p of allProviders) {
+      if (!diagnosticResults.find((d) => d.provider === p)) {
+        const connection = connections.find((c: any) => c.provider === p);
+        let skippedReason = "not_in_provider_order";
+        if (!connection) skippedReason = "no_connection_record";
+        else if (!connection.enabled) skippedReason = "disabled";
+        else if (connection.rateShoppingEnabled === false) skippedReason = "rate_shopping_disabled";
+        else if (!["connected", "degraded"].includes(String(connection.status)))
+          skippedReason = `status_${connection.status}`;
+
+        diagnosticResults.push({
+          provider: p,
+          attempted: false,
+          success: false,
+          quoteCount: 0,
+          skippedReason,
         });
       }
     }
@@ -2917,6 +2971,15 @@ export const fetchCheckoutRates = action({
 
     if (!rankedQuotes.length) {
       if (integrationSettings.fallbackToManualRates !== false) {
+        await ctx.runMutation(internal.shipping.internals.saveQuoteDiagnostics, {
+          checkoutSessionId: undefined,
+          requestedAt: Date.now(),
+          shippingAddress: args.shippingAddress,
+          providerResults: diagnosticResults,
+          totalQuotes: 0,
+          fallbackUsed: true,
+        });
+
         return {
           success: true,
           provider: "manual_fallback",
@@ -2947,6 +3010,15 @@ export const fetchCheckoutRates = action({
     await ctx.runMutation(internal.shipping.internals.replaceCheckoutQuotes, {
       checkoutSessionId: rateContext.checkoutSession._id,
       quotes: rankedQuotes,
+    });
+
+    await ctx.runMutation(internal.shipping.internals.saveQuoteDiagnostics, {
+      checkoutSessionId: rateContext?.checkoutSession?._id,
+      requestedAt: Date.now(),
+      shippingAddress: args.shippingAddress,
+      providerResults: diagnosticResults,
+      totalQuotes: rankedQuotes.length,
+      fallbackUsed: false,
     });
 
     return {
