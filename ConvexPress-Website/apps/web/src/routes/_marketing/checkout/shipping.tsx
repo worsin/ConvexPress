@@ -63,6 +63,11 @@ function CheckoutShippingPage() {
   });
   const [shippingMethod, setShippingMethod] = useState("");
   const [isLoadingRates, setIsLoadingRates] = useState(false);
+  const [rateResult, setRateResult] = useState<{
+    provider?: string;
+    fallbackMessage?: string;
+    quotes?: any[];
+  } | null>(null);
   const liveRateProvider =
     settings?.commerceConfig?.preferredProvider || "shipstation";
 
@@ -118,12 +123,15 @@ function CheckoutShippingPage() {
         provider: liveRateProvider,
         shippingAddress: address,
       });
+      setRateResult(result as any);
       if (result?.quotes?.length) {
         const recommended = result.quotes.find((quote: any) => quote.isBestValue);
         if (recommended?.quoteKey) {
           setShippingMethod(recommended.quoteKey);
         }
         toast.success("Live shipping rates refreshed.");
+      } else if (result?.provider === "manual_fallback") {
+        toast.info("Live rates unavailable. Using manual shipping methods.");
       } else {
         toast.error("No live rates were returned for this address.");
       }
@@ -217,6 +225,25 @@ function CheckoutShippingPage() {
               <p className="text-xs text-muted-foreground">
                 ConvexPress ranks quotes across enabled live providers and highlights the best overall option. Current provider priority starts with {liveRateProvider}. If no live providers return rates, checkout keeps manual shipping methods available.
               </p>
+
+              {rateResult?.provider === "manual_fallback" && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 mb-4">
+                  <p className="font-medium">Live Rates Unavailable</p>
+                  <p className="mt-1 text-amber-700">
+                    {rateResult.fallbackMessage ||
+                      "Live shipping rates are temporarily unavailable. Standard shipping options are shown below."}
+                  </p>
+                </div>
+              )}
+
+              {rateResult?.provider === "manual_fallback" && shippingMethods.length === 0 && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                  <p className="font-medium">No Shipping Available</p>
+                  <p className="mt-1">
+                    We're unable to calculate shipping for your address right now. Please try again later or contact support.
+                  </p>
+                </div>
+              )}
 
               {quotes && quotes.length > 0 ? (
                 <div className="space-y-3">

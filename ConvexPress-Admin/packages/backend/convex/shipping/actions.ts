@@ -3068,6 +3068,13 @@ export const fetchCheckoutRates = action({
           quotes: [],
           providerResults,
           aggregatedProviders: providerOrder,
+          fallbackReason: providerResults
+            .filter((r: any) => !r.success)
+            .map((r: any) => `${r.provider}: ${r.error}`)
+            .join("; ") || "No providers returned rates",
+          fallbackMessage:
+            (integrationSettings as any).fallbackMessage ??
+            "Live shipping rates are temporarily unavailable. Standard shipping options are shown below.",
         };
       }
 
