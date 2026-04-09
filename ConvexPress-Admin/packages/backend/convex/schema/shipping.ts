@@ -164,6 +164,29 @@ export const shippingTables = {
     .index("by_zone", ["zoneId"])
     .index("by_zone_sort", ["zoneId", "sortOrder"]),
 
+  shipping_quote_diagnostics: defineTable({
+    checkoutSessionId: v.optional(v.id("commerce_checkout_sessions")),
+    requestedAt: v.number(),
+    requestedBy: v.optional(v.string()),
+    shippingAddress: v.optional(v.any()),
+    providerResults: v.array(
+      v.object({
+        provider: v.string(),
+        attempted: v.boolean(),
+        success: v.boolean(),
+        quoteCount: v.number(),
+        durationMs: v.optional(v.number()),
+        errorCode: v.optional(v.string()),
+        errorMessage: v.optional(v.string()),
+        skippedReason: v.optional(v.string()),
+      }),
+    ),
+    totalQuotes: v.number(),
+    fallbackUsed: v.boolean(),
+  })
+    .index("by_session", ["checkoutSessionId"])
+    .index("by_requestedAt", ["requestedAt"]),
+
   commerce_shipping_rate_quotes: defineTable({
     checkoutSessionId: v.id("commerce_checkout_sessions"),
     quoteKey: v.string(),
