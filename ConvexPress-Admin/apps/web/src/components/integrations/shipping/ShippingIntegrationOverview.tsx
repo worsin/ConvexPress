@@ -15,6 +15,14 @@ export function ShippingIntegrationOverview(props: {
           title: string;
           summary: string;
           implementationStatus: string;
+          operations?: {
+            rates?: string;
+            labels?: string;
+            tracking?: string;
+            manifests?: string;
+            returns?: string;
+            address_validation?: string;
+          };
         };
       }>
     | undefined;
@@ -33,6 +41,7 @@ export function ShippingIntegrationOverview(props: {
           status={provider.connection?.status ?? "disconnected"}
           accountCount={provider.accountCount}
           implementationStatus={provider.descriptor.implementationStatus}
+          operations={provider.descriptor.operations}
           footerNote={
             provider.settings?.rateShoppingEnabled
               ? `Rate shopping priority ${provider.settings.rateShoppingPriority ?? "?"}`
