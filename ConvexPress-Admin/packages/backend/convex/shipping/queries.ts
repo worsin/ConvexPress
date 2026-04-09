@@ -135,6 +135,26 @@ export const getRecentQuoteDiagnostics = query({
   },
 });
 
+export const listZonesWithMethods = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    const zones = await ctx.db.query("commerce_shipping_zones").collect();
+    const methods = await ctx.db.query("commerce_shipping_zone_methods").collect();
+
+    return zones
+      .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map((zone: any) => ({
+        ...zone,
+        methods: methods
+          .filter((m: any) => m.zoneId === zone._id)
+          .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+      }));
+  },
+});
+
 export const getProviderCapabilities = query({
   args: {},
   handler: async (ctx) => {
