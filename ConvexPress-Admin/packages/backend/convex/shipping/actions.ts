@@ -395,6 +395,24 @@ function getFedexServiceName(code: string) {
   return serviceNames[code] || code.replace(/_/g, " ");
 }
 
+function getDhlServiceName(code: string) {
+  const serviceNames: Record<string, string> = {
+    N: "DHL Express Domestic",
+    P: "DHL Express Worldwide",
+    U: "DHL Express Worldwide (EU)",
+    K: "DHL Express 9:00",
+    E: "DHL Express 10:30",
+    Y: "DHL Express 12:00",
+    T: "DHL Express Easy",
+    D: "DHL Express Worldwide (Doc)",
+    X: "DHL Express Envelope",
+    H: "DHL Economy Select",
+    W: "DHL Economy Select (Non-Doc)",
+    G: "DHL Express International",
+  };
+  return serviceNames[code] || `DHL ${code}`;
+}
+
 function parseFedexTransitDays(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
@@ -1216,6 +1234,209 @@ async function fetchFedexRatesInternal(
   return {
     success: true,
     provider: "fedex",
+    quotes: normalized,
+  };
+}
+
+async function fetchDhlRatesInternal(
+  ctx: any,
+  args: {
+    sessionToken: string;
+    persistQuotes?: boolean;
+    shippingAddress: {
+      firstName?: string;
+      lastName?: string;
+      company?: string;
+      line1: string;
+      line2?: string;
+      city: string;
+      state?: string;
+      postalCode: string;
+      countryCode: string;
+      phone?: string;
+    };
+  },
+) {
+  const rateContext = await ctx.runQuery(
+    internal.shipping.internals.getRateContextForSession,
+    { sessionToken: args.sessionToken },
+  );
+
+  if (!rateContext?.checkoutSession || !rateContext.cart) {
+    throw new ConvexError({
+      code: "NOT_FOUND",
+      message: "Checkout session not found.",
+    });
+  }
+
+  const shippingSettings = await ctx.runQuery(
+    internal.settings.httpInternals.getBySectionInternal,
+    { section: "integrations.shipping" },
+  );
+
+  if (
+    !shippingSettings.shipFromCity ||
+    !shippingSettings.shipFromPostalCode ||
+    !shippingSettings.shipFromCountryCode
+  ) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "Ship-from address is incomplete in commerce shipping settings.",
+    });
+  }
+
+  const credentials = await getDhlCredentials(ctx);
+  const basicAuth = getDhlBasicAuth(credentials);
+
+  const shippableItems = rateContext.items.filter(
+    (item: any) => item.product && item.product.isVirtual !== true,
+  );
+
+  const totalWeightOz = shippableItems.reduce((sum: number, item: any) => {
+    const unitWeight =
+      item.product?.shippingWeightOz ?? shippingSettings.defaultPackageWeightOz ?? 16;
+    return sum + Math.max(1, unitWeight) * item.quantity;
+  }, 0);
+
+  if (totalWeightOz <= 0) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "No shippable item weight is available for quote calculation.",
+    });
+  }
+
+  const totalWeightKg = Math.max(0.1, Math.round((totalWeightOz / 35.274) * 100) / 100);
+
+  const params = new URLSearchParams({
+    accountNumber: credentials.accountNumber,
+    originCountryCode: shippingSettings.shipFromCountryCode,
+    originPostalCode: shippingSettings.shipFromPostalCode,
+    originCityName: shippingSettings.shipFromCity,
+    destinationCountryCode: args.shippingAddress.countryCode,
+    destinationPostalCode: args.shippingAddress.postalCode,
+    destinationCityName: args.shippingAddress.city,
+    weight: totalWeightKg.toFixed(2),
+    length: "20",
+    width: "15",
+    height: "10",
+    plannedShippingDate: new Date().toISOString().slice(0, 10),
+    isCustomsDeclarable: shippingSettings.shipFromCountryCode !== args.shippingAddress.countryCode ? "true" : "false",
+    unitOfMeasurement: "metric",
+  });
+
+  const response = await fetch(`${credentials.apiBaseUrl}/rates?${params.toString()}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Basic ${basicAuth}`,
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    await ctx.runMutation(internal.shipping.internals.updateConnectionHealth, {
+      provider: "dhl",
+      status: response.status >= 500 ? "degraded" : "error",
+      lastErrorCode: String(response.status),
+      lastErrorMessage: body.slice(0, 500),
+    });
+    throw new ConvexError({
+      code: "DHL_RATE_ERROR",
+      message: body.slice(0, 500) || "Failed to fetch DHL rates.",
+    });
+  }
+
+  const data = (await response.json()) as any;
+  const rawProducts = Array.isArray(data?.products) ? data.products : [];
+
+  const normalized = rankShippingQuotes(
+    rawProducts
+      .filter((product: any) => {
+        const totalPrice = product?.totalPrice?.[0]?.price ?? product?.totalPrice ?? 0;
+        return Number(totalPrice) > 0;
+      })
+      .map((product: any, index: number) => {
+        const serviceCode =
+          product.productCode ?? product.productName ?? `dhl-service-${index + 1}`;
+        const priceEntry = Array.isArray(product.totalPrice)
+          ? product.totalPrice[0]
+          : product.totalPrice ?? {};
+        const amount = priceEntry?.price ?? priceEntry ?? 0;
+        const currency = priceEntry?.priceCurrency ?? rateContext.cart.currencyCode;
+
+        const deliveryDate = product.deliveryCapabilities?.estimatedDeliveryDateAndTime;
+        let estimatedDays: number | undefined;
+        if (deliveryDate) {
+          const diffMs = new Date(deliveryDate).getTime() - Date.now();
+          estimatedDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        }
+        if (!estimatedDays && product.deliveryCapabilities?.totalTransitDays) {
+          estimatedDays = Number(product.deliveryCapabilities.totalTransitDays);
+        }
+
+        return {
+          quoteKey: `dhl:${serviceCode}-${index}`,
+          provider: "dhl" as const,
+          carrierCode: "dhl",
+          carrierName: "DHL Express",
+          serviceCode: String(serviceCode),
+          serviceName: product.productName || getDhlServiceName(String(serviceCode)),
+          amount: Math.round(Number(amount || 0) * 100) || 0,
+          currency,
+          estimatedDaysMin: estimatedDays,
+          estimatedDaysMax: estimatedDays,
+          rawQuote: product,
+        };
+      }),
+  ).map((quote) => ({
+    ...quote,
+    expiresAt:
+      Date.now() + Number(shippingSettings.quoteCacheTtlSeconds ?? 300) * 1000,
+  }));
+
+  if (args.persistQuotes !== false) {
+    await ctx.runMutation(internal.shipping.internals.replaceCheckoutQuotes, {
+      checkoutSessionId: rateContext.checkoutSession._id,
+      quotes: normalized,
+    });
+  }
+
+  await ctx.runMutation(
+    internal.shipping.internals.syncProviderAccountsAndServices,
+    {
+      provider: "dhl",
+      carriers: [
+        {
+          carrier_id: credentials.accountNumber,
+          carrier_code: "dhl",
+          friendly_name: "DHL Express",
+          status: "active",
+          supports_rates: true,
+          supports_labels: false,
+          supports_tracking: false,
+          supports_manifests: false,
+          supports_returns: false,
+          services: normalized.map((quote) => ({
+            service_code: quote.serviceCode,
+            name: quote.serviceName,
+            active: true,
+          })),
+        },
+      ],
+    },
+  );
+
+  await ctx.runMutation(internal.shipping.internals.updateConnectionHealth, {
+    provider: "dhl",
+    status: "connected",
+    lastSyncAt: Date.now(),
+    lastErrorCode: undefined,
+    lastErrorMessage: undefined,
+  });
+
+  return {
+    success: true,
+    provider: "dhl",
     quotes: normalized,
   };
 }
@@ -2483,9 +2704,17 @@ async function fetchDirectCarrierRatesInternal(
     });
   }
 
+  if (args.provider === "dhl") {
+    return fetchDhlRatesInternal(ctx, {
+      sessionToken: args.sessionToken,
+      persistQuotes: args.persistQuotes,
+      shippingAddress: args.shippingAddress,
+    });
+  }
+
   throw new ConvexError({
     code: "NOT_IMPLEMENTED",
-    message: `${args.provider.toUpperCase()} live rates are not implemented yet. Keep ShipStation as the active live-rate provider until the direct adapter is finished.`,
+    message: `${args.provider.toUpperCase()} live rates are not implemented yet.`,
   });
 }
 
@@ -2630,6 +2859,7 @@ export const fetchCheckoutRates = action({
         if (provider === "ups") return true;
         if (provider === "usps") return true;
         if (provider === "fedex") return true;
+        if (provider === "dhl") return true;
         return false;
       });
 
