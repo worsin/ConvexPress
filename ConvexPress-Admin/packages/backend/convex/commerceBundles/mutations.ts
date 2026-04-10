@@ -363,6 +363,8 @@ export const addComponent = mutation({
 export const updateComponent = mutation({
   args: {
     componentId: v.id("commerce_bundle_components"),
+    variantId: v.optional(v.id("commerce_product_variants")),
+    clearVariant: v.optional(v.boolean()),
     quantity: v.optional(v.number()),
     minQuantity: v.optional(v.number()),
     maxQuantity: v.optional(v.number()),
@@ -378,7 +380,7 @@ export const updateComponent = mutation({
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.edit");
 
-    const { componentId, ...updates } = args;
+    const { componentId, clearVariant, ...updates } = args;
 
     const component = await ctx.db.get(componentId);
     if (!component) {
@@ -391,6 +393,11 @@ export const updateComponent = mutation({
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, val]) => val !== undefined),
     );
+
+    // Handle clearing variantId explicitly (since undefined means "don't change")
+    if (clearVariant) {
+      cleanUpdates.variantId = undefined;
+    }
 
     await ctx.db.patch(componentId, {
       ...cleanUpdates,
@@ -454,6 +461,53 @@ export const reorderComponents = mutation({
     }
 
     return args.bundleId;
+  },
+});
+
+// ============================================
+// ADMIN: BACKFILL
+// ============================================
+
+/**
+ * Backfill owning product links for bundles that lack a productId.
+ * Admin-callable wrapper around the internal backfill logic.
+ */
+export const backfillOwningProducts = mutation({
+  args: {},
+  handler: async (ctx: any) => {
+    await requireCommerceBundlesEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    const bundles = await ctx.db.query("commerce_bundles").collect();
+    const unlinked = bundles.filter((b: any) => !b.productId);
+
+    let linked = 0;
+    const now = Date.now();
+
+    for (const bundle of unlinked) {
+      // Create a virtual product entry for the bundle
+      const productId = await ctx.db.insert("commerce_products", {
+        title: bundle.name,
+        slug: `bundle-${bundle.slug}`,
+        status: bundle.status === "active" ? "publish" : "draft",
+        productType: "bundle",
+        basePrice: { amount: bundle.bundlePrice ?? bundle.regularPrice ?? 0, currency: "USD" },
+        trackInventory: bundle.trackInventory ?? false,
+        stockQuantity: bundle.stockCount ?? 0,
+        allowBackorders: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await ctx.db.patch(bundle._id, {
+        productId,
+        updatedAt: now,
+      });
+
+      linked++;
+    }
+
+    return { linked, total: bundles.length };
   },
 });
 
