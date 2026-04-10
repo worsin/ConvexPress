@@ -41,6 +41,7 @@ import { themesTables } from "./schema/themes";
 import { layoutTables } from "./schema/layouts";
 import { commerceTables } from "./schema/commerce";
 import { commerceBundlesTables } from "./schema/commerceBundles";
+import { commerceReturnsTables } from "./schema/commerceReturns";
 
 // ─── Compose Schema ──────────────────────────────────────────────────────────
 export default defineSchema({
@@ -82,4 +83,5 @@ export default defineSchema({
   ...layoutTables,
   ...commerceTables,
   ...commerceBundlesTables,
+  ...commerceReturnsTables,
 });
