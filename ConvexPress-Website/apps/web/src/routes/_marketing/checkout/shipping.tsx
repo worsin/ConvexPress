@@ -271,17 +271,17 @@ function CheckoutShippingPage() {
                             </span>
                             {quote.isBestValue ? (
                               <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
-                                Best Option
+                                {settings?.commerceConfig?.bestOptionBadgeLabel ?? "Best Option"}
                               </span>
                             ) : null}
                             {quote.isCheapest ? (
                               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-800">
-                                Cheapest
+                                {settings?.commerceConfig?.cheapestBadgeLabel ?? "Cheapest"}
                               </span>
                             ) : null}
                             {quote.isFastest ? (
                               <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-900">
-                                Fastest
+                                {settings?.commerceConfig?.fastestBadgeLabel ?? "Fastest"}
                               </span>
                             ) : null}
                           </div>

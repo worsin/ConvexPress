@@ -124,8 +124,7 @@ export const listCheckoutQuotes = query({
 export const getRecentQuoteDiagnostics = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) return [];
+    await requireShippingAdmin(ctx);
     const limit = args.limit ?? 25;
     return ctx.db
       .query("shipping_quote_diagnostics")
@@ -138,8 +137,7 @@ export const getRecentQuoteDiagnostics = query({
 export const listZonesWithMethods = query({
   args: {},
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) return [];
+    await requireShippingAdmin(ctx);
 
     const zones = await ctx.db.query("commerce_shipping_zones").collect();
     const methods = await ctx.db.query("commerce_shipping_zone_methods").collect();
@@ -183,8 +181,7 @@ export const getPackage = query({
 export const getProviderCapabilities = query({
   args: {},
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) return null;
+    await requireShippingAdmin(ctx);
 
     const connections = await ctx.db.query("shipping_provider_connections").collect();
     const accounts = await ctx.db.query("shipping_provider_accounts").collect();
