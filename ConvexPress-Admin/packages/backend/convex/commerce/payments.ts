@@ -25,6 +25,7 @@ import {
 import { internal } from "../_generated/api";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { getCommerceSettings, requireCommerceEnabled } from "./helpers";
+import { getBundlePurchaseDelta, isBundleLineMetadata } from "../commerceBundles/runtime";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // QUERIES
@@ -417,6 +418,42 @@ export const confirmPaymentSuccess = internalMutation({
           paidAt: now,
           updatedAt: now,
         });
+
+        // Commit inventory for paid order
+        const orderItems = await ctx.db
+          .query("commerce_order_items")
+          .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+          .collect();
+
+        for (const item of orderItems) {
+          // Bundle stock decrement
+          if (isBundleLineMetadata(item.metadata)) {
+            const delta = getBundlePurchaseDelta(item.metadata, item.quantity);
+            if (delta) {
+              const bundle = await ctx.db.get(delta.bundleId);
+              if (bundle?.trackInventory && typeof bundle.stockCount === "number") {
+                await ctx.db.patch(delta.bundleId, {
+                  stockCount: Math.max(0, bundle.stockCount - delta.quantity),
+                });
+              }
+            }
+          }
+        }
+
+        // Mark inventory committed
+        await ctx.db.patch(order._id, { inventoryCommittedAt: now });
+
+        // Increment bundle purchase counts now that payment is confirmed
+        for (const item of orderItems) {
+          if (isBundleLineMetadata(item.metadata) && item.metadata.bundleId) {
+            const bundle = await ctx.db.get(item.metadata.bundleId);
+            if (bundle) {
+              await ctx.db.patch(item.metadata.bundleId, {
+                purchaseCount: (bundle.purchaseCount ?? 0) + item.quantity,
+              });
+            }
+          }
+        }
 
         // Add order history entry
         await ctx.db.insert("commerce_order_history", {
