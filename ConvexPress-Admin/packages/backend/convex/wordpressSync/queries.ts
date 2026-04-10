@@ -59,10 +59,13 @@ export const listSites = query({
       wpVersion: site.wpVersion,
       siteName: site.siteName,
       siteDescription: site.siteDescription,
+      capabilities: site.capabilities,
+      hasWooCredentials: Boolean(site.wooConsumerKey),
+      wooAuthMode: site.wooAuthMode,
       createdAt: site.createdAt,
       updatedAt: site.updatedAt,
       activeJob: activeJobSiteIds.has(site._id),
-      // Don't include applicationPassword
+      // Don't include applicationPassword, wooConsumerKey, or wooConsumerSecret
     }));
   },
 });
@@ -93,6 +96,9 @@ export const getSite = query({
       wpVersion: site.wpVersion,
       siteName: site.siteName,
       siteDescription: site.siteDescription,
+      capabilities: site.capabilities,
+      hasWooCredentials: Boolean(site.wooConsumerKey),
+      wooAuthMode: site.wooAuthMode,
       createdBy: site.createdBy,
       createdAt: site.createdAt,
       updatedAt: site.updatedAt,
@@ -351,5 +357,89 @@ export const getJobErrors = query({
       errors: paginatedErrors,
       total: allErrors.length,
     };
+  },
+});
+
+// ─── Report Queries ──────────────────────────────────────────────────────
+
+/**
+ * Get the latest sync report for a site.
+ */
+export const getLatestReport = query({
+  args: { siteId: v.id("wordpressSites") },
+  handler: async (ctx, { siteId }) => {
+    await requireCan(ctx, "manage_options");
+    return await ctx.db
+      .query("wordpressSyncReports")
+      .withIndex("by_site_created", (q) => q.eq("siteId", siteId))
+      .order("desc")
+      .first();
+  },
+});
+
+/**
+ * Get the report for a specific sync job.
+ */
+export const getJobReport = query({
+  args: { jobId: v.id("wordpressSyncJobs") },
+  handler: async (ctx, { jobId }) => {
+    await requireCan(ctx, "manage_options");
+    return await ctx.db
+      .query("wordpressSyncReports")
+      .withIndex("by_job", (q) => q.eq("jobId", jobId))
+      .first();
+  },
+});
+
+/**
+ * List sync reports for a site, most recent first.
+ */
+export const listReports = query({
+  args: {
+    siteId: v.id("wordpressSites"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { siteId, limit = 20 }) => {
+    await requireCan(ctx, "manage_options");
+    return await ctx.db
+      .query("wordpressSyncReports")
+      .withIndex("by_site_created", (q) => q.eq("siteId", siteId))
+      .order("desc")
+      .take(Math.min(limit, 50));
+  },
+});
+
+// ─── Findings Queries ────────────────────────────────────────────────────
+
+/**
+ * List reconciliation findings for a job, with optional filtering
+ * by severity or finding code.
+ */
+export const listFindings = query({
+  args: {
+    jobId: v.id("wordpressSyncJobs"),
+    severity: v.optional(v.union(v.literal("error"), v.literal("warning"), v.literal("info"))),
+    code: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { jobId, severity, code, limit = 50 }) => {
+    await requireCan(ctx, "manage_options");
+
+    let q;
+    if (severity) {
+      q = ctx.db
+        .query("wordpressSyncReconciliationFindings")
+        .withIndex("by_job_severity", (q) => q.eq("jobId", jobId).eq("severity", severity));
+    } else if (code) {
+      q = ctx.db
+        .query("wordpressSyncReconciliationFindings")
+        .withIndex("by_job_code", (q) => q.eq("jobId", jobId).eq("code", code));
+    } else {
+      q = ctx.db
+        .query("wordpressSyncReconciliationFindings")
+        .withIndex("by_job_created", (q) => q.eq("jobId", jobId));
+    }
+
+    return await q.take(Math.min(limit, 100));
   },
 });

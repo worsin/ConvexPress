@@ -79,6 +79,21 @@ export const testSiteConnection = action({
     // Test the connection
     const result = await testConnection(credentials);
 
+    // Build full capabilities object with defaults for fields not yet probed
+    const fullCapabilities = result.success
+      ? {
+          wpRest: true,
+          wpAuthValid: true, // We got here, so auth is valid
+          wooAuthValid: false, // Will be probed separately later
+          menusApi: false, // Will be detected during first meta fetch
+          woocommerceApi: false, // Will be detected during first meta fetch
+          customMetaEndpointConfigured: false,
+          customMetaEndpointDetected: false,
+          elementorDetected: false, // Will be detected during first meta fetch
+          mediaAccessible: true, // Assume true if we can reach the API
+        }
+      : undefined;
+
     // Update the site with test results if we have a siteId
     if (args.siteId) {
       await ctx.runMutation(api.wordpressSync.mutations.updateConnectionTest, {
@@ -88,10 +103,14 @@ export const testSiteConnection = action({
         siteName: result.success ? result.siteInfo.name : undefined,
         siteDescription: result.success ? result.siteInfo.description : undefined,
         error: result.success ? undefined : result.error,
+        capabilities: fullCapabilities,
       });
     }
 
-    return result;
+    return {
+      ...result,
+      capabilities: fullCapabilities,
+    };
   },
 });
 
@@ -134,8 +153,9 @@ export const getWPContentCounts = action({
 export const startSync = action({
   args: {
     siteId: v.id("wordpressSites"),
+    importConfig: v.optional(v.any()),
   },
-  handler: async (ctx, { siteId }) => {
+  handler: async (ctx, { siteId, importConfig }) => {
     // Check if there's already an active job
     const activeJob = await ctx.runQuery(api.wordpressSync.queries.getActiveJob, {
       siteId,
@@ -152,6 +172,7 @@ export const startSync = action({
       // Create a new job
       jobId = await ctx.runMutation(api.wordpressSync.mutations.createJob, {
         siteId,
+        importConfig: importConfig ?? undefined,
       });
     }
 

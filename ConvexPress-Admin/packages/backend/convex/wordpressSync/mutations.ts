@@ -33,8 +33,11 @@ export const createSite = mutation({
     siteUrl: v.string(),
     username: v.string(),
     applicationPassword: v.string(),
+    wooConsumerKey: v.optional(v.string()),
+    wooConsumerSecret: v.optional(v.string()),
+    wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
   },
-  handler: async (ctx, { name, siteUrl, username, applicationPassword }) => {
+  handler: async (ctx, { name, siteUrl, username, applicationPassword, wooConsumerKey, wooConsumerSecret, wooAuthMode }) => {
     const user = await requireCan(ctx, "manage_options");
 
     // Validate inputs
@@ -79,6 +82,26 @@ export const createSite = mutation({
       encryptedPassword = applicationPassword.trim();
     }
 
+    // Encrypt WooCommerce credentials if provided
+    let encryptedWooKey: string | undefined;
+    let encryptedWooSecret: string | undefined;
+    if (wooConsumerKey?.trim()) {
+      if (WP_ENCRYPTION_KEY) {
+        encryptedWooKey = await encryptSecret(wooConsumerKey.trim(), WP_ENCRYPTION_KEY);
+      } else {
+        console.warn("[WP Sync] WP_SYNC_ENCRYPTION_KEY not set - storing Woo key unencrypted");
+        encryptedWooKey = wooConsumerKey.trim();
+      }
+    }
+    if (wooConsumerSecret?.trim()) {
+      if (WP_ENCRYPTION_KEY) {
+        encryptedWooSecret = await encryptSecret(wooConsumerSecret.trim(), WP_ENCRYPTION_KEY);
+      } else {
+        console.warn("[WP Sync] WP_SYNC_ENCRYPTION_KEY not set - storing Woo secret unencrypted");
+        encryptedWooSecret = wooConsumerSecret.trim();
+      }
+    }
+
     const now = Date.now();
 
     // Create the site record
@@ -87,6 +110,9 @@ export const createSite = mutation({
       siteUrl: normalizedUrl,
       username: username.trim(),
       applicationPassword: encryptedPassword,
+      wooConsumerKey: encryptedWooKey,
+      wooConsumerSecret: encryptedWooSecret,
+      wooAuthMode: wooAuthMode ?? "shared",
       status: "inactive", // Will be set to active after successful connection test
       createdBy: user._id,
       createdAt: now,
@@ -107,8 +133,11 @@ export const updateSite = mutation({
     username: v.optional(v.string()),
     applicationPassword: v.optional(v.string()),
     status: v.optional(siteStatusValidator),
+    wooConsumerKey: v.optional(v.string()),
+    wooConsumerSecret: v.optional(v.string()),
+    wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
   },
-  handler: async (ctx, { siteId, name, username, applicationPassword, status }) => {
+  handler: async (ctx, { siteId, name, username, applicationPassword, status, wooConsumerKey, wooConsumerSecret, wooAuthMode }) => {
     await requireCan(ctx, "manage_options");
 
     const site = await ctx.db.get(siteId);
@@ -149,6 +178,37 @@ export const updateSite = mutation({
 
     if (status !== undefined) {
       updates.status = status;
+    }
+
+    if (wooConsumerKey !== undefined) {
+      if (wooConsumerKey.trim()) {
+        if (WP_ENCRYPTION_KEY) {
+          updates.wooConsumerKey = await encryptSecret(wooConsumerKey.trim(), WP_ENCRYPTION_KEY);
+        } else {
+          console.warn("[WP Sync] WP_SYNC_ENCRYPTION_KEY not set - storing Woo key unencrypted");
+          updates.wooConsumerKey = wooConsumerKey.trim();
+        }
+      } else {
+        // Allow clearing the key by passing empty string
+        updates.wooConsumerKey = undefined;
+      }
+    }
+
+    if (wooConsumerSecret !== undefined) {
+      if (wooConsumerSecret.trim()) {
+        if (WP_ENCRYPTION_KEY) {
+          updates.wooConsumerSecret = await encryptSecret(wooConsumerSecret.trim(), WP_ENCRYPTION_KEY);
+        } else {
+          console.warn("[WP Sync] WP_SYNC_ENCRYPTION_KEY not set - storing Woo secret unencrypted");
+          updates.wooConsumerSecret = wooConsumerSecret.trim();
+        }
+      } else {
+        updates.wooConsumerSecret = undefined;
+      }
+    }
+
+    if (wooAuthMode !== undefined) {
+      updates.wooAuthMode = wooAuthMode;
     }
 
     await ctx.db.patch(siteId, updates);
@@ -234,8 +294,9 @@ export const updateConnectionTest = mutation({
     siteName: v.optional(v.string()),
     siteDescription: v.optional(v.string()),
     error: v.optional(v.string()),
+    capabilities: v.optional(v.any()),
   },
-  handler: async (ctx, { siteId, success, wpVersion, siteName, siteDescription, error }) => {
+  handler: async (ctx, { siteId, success, wpVersion, siteName, siteDescription, error, capabilities }) => {
     await requireCan(ctx, "manage_options");
 
     const site = await ctx.db.get(siteId);
@@ -254,6 +315,7 @@ export const updateConnectionTest = mutation({
       if (wpVersion) updates.wpVersion = wpVersion;
       if (siteName) updates.siteName = siteName;
       if (siteDescription) updates.siteDescription = siteDescription;
+      if (capabilities) updates.capabilities = capabilities;
     } else {
       updates.status = "error";
       updates.connectionError = error || "Connection failed";
@@ -272,8 +334,9 @@ export const updateConnectionTest = mutation({
 export const createJob = mutation({
   args: {
     siteId: v.id("wordpressSites"),
+    importConfig: v.optional(v.any()),
   },
-  handler: async (ctx, { siteId }) => {
+  handler: async (ctx, { siteId, importConfig }) => {
     const user = await requireCan(ctx, "manage_options");
 
     const site = await ctx.db.get(siteId);
@@ -308,6 +371,7 @@ export const createJob = mutation({
       status: "pending",
       currentPhase: "users",
       progress: createInitialProgress(),
+      importConfig: importConfig,
       errors: [],
       createdBy: user._id,
       createdAt: now,
