@@ -12,7 +12,15 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { PhaseResult } from "../internals";
 import type { PhaseProgress, SyncError } from "../validators";
-import { createDefaultImportConfig } from "../validators";
+import { createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { createFinding } from "../helpers/idMapping";
+import { createHash } from "crypto";
+
+// ─── Source Hash Helper ───────────────────────────────────────────────────
+
+function computeSourceHashCT(fields: Record<string, unknown>): string {
+  return createHash("md5").update(JSON.stringify(fields)).digest("hex");
+}
 import {
   fetchWooCoupons,
   fetchWooCustomers,
@@ -90,6 +98,7 @@ export const importBatch = internalAction({
     if (cursor < customerTotal) {
       return await importCustomerBatch(ctx, {
         siteId,
+        jobId,
         credentials,
         progress,
         customerTotal,
@@ -100,6 +109,7 @@ export const importBatch = internalAction({
     if (cursor < customerTotal + orderTotal) {
       return await importOrderBatch(ctx, {
         siteId,
+        jobId,
         credentials,
         progress,
         orderTotal,
@@ -111,6 +121,7 @@ export const importBatch = internalAction({
     if (cursor < customerTotal + orderTotal + couponTotal) {
       return await importCouponBatch(ctx, {
         siteId,
+        jobId,
         credentials,
         progress,
         customerTotal,
@@ -137,6 +148,7 @@ async function importCustomerBatch(
   ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
   args: {
     siteId: Id<"wordpressSites">;
+    jobId: Id<"wordpressSyncJobs">;
     credentials: { siteUrl: string; username: string; applicationPassword: string };
     progress: PhaseProgress;
     customerTotal: number;
@@ -157,6 +169,31 @@ async function importCustomerBatch(
 
   for (const customer of customers) {
     try {
+      // Email collision detection for customers
+      const customerEmail = customer.email?.trim().toLowerCase();
+      if (customerEmail && args.jobId) {
+        const existingByEmail = await ctx.runQuery(
+          internal.wordpressSync.internals.findCustomerByEmail,
+          { email: customerEmail }
+        );
+        const existingMapping = await ctx.runQuery(
+          internal.wordpressSync.helpers.idMapping.getByWpId,
+          { siteId: args.siteId, objectType: "commerceCustomer", wpId: customer.id }
+        );
+        if (existingByEmail && !existingMapping) {
+          await createFinding(ctx, {
+            siteId: args.siteId, jobId: args.jobId, severity: "warning",
+            phase: "commerceTransactions",
+            code: FINDING_CODES.EMAIL_COLLISION,
+            message: `Customer with email "${customerEmail}" already exists locally (ID: ${existingByEmail._id})`,
+            sourceType: "customer", sourceId: String(customer.id),
+            destinationTable: "commerce_customer_profiles", wpId: customer.id,
+            convexId: existingByEmail._id,
+          });
+          // The upsertCustomerProfile mutation handles merging
+        }
+      }
+
       if (!args.isDryRun) {
         const customerId = await importCustomerProfile(ctx, args.siteId, customer);
         await importCustomerDefaultAddress(ctx, customerId, "billing", customer.billing);
@@ -194,6 +231,7 @@ async function importOrderBatch(
   ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
   args: {
     siteId: Id<"wordpressSites">;
+    jobId: Id<"wordpressSyncJobs">;
     credentials: { siteUrl: string; username: string; applicationPassword: string };
     progress: PhaseProgress;
     orderTotal: number;
@@ -216,6 +254,31 @@ async function importOrderBatch(
 
   for (const order of orders) {
     try {
+      // Order number collision detection
+      const orderNumber = buildImportedOrderNumber(args.siteId, order);
+      const existingMapping = await ctx.runQuery(
+        internal.wordpressSync.helpers.idMapping.getByWpId,
+        { siteId: args.siteId, objectType: "commerceOrder", wpId: order.id }
+      );
+      if (!existingMapping) {
+        const existingByNumber = await ctx.runQuery(
+          internal.wordpressSync.internals.findOrderByNumber,
+          { orderNumber }
+        );
+        if (existingByNumber) {
+          await createFinding(ctx, {
+            siteId: args.siteId, jobId: args.jobId, severity: "warning",
+            phase: "commerceTransactions",
+            code: FINDING_CODES.ORDER_NUMBER_COLLISION,
+            message: `Order with number "${orderNumber}" already exists locally (ID: ${existingByNumber._id})`,
+            sourceType: "order", sourceId: String(order.id),
+            destinationTable: "commerce_orders", wpId: order.id,
+            convexId: existingByNumber._id,
+          });
+          // The upsertOrder mutation handles merging
+        }
+      }
+
       if (!args.isDryRun) {
         await importSingleOrder(ctx, args.siteId, args.credentials, order);
       }
@@ -251,6 +314,7 @@ async function importCouponBatch(
   ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
   args: {
     siteId: Id<"wordpressSites">;
+    jobId: Id<"wordpressSyncJobs">;
     credentials: { siteUrl: string; username: string; applicationPassword: string };
     progress: PhaseProgress;
     customerTotal: number;
@@ -284,6 +348,25 @@ async function importCouponBatch(
         skipped++;
         args.progress.imported++;
         continue;
+      }
+
+      // Coupon code collision detection
+      const couponCode = coupon.code?.trim().toUpperCase() || `COUPON-${coupon.id}`;
+      const existingByCode = await ctx.runQuery(
+        internal.wordpressSync.internals.findDiscountByCode,
+        { code: couponCode }
+      );
+      if (existingByCode) {
+        await createFinding(ctx, {
+          siteId: args.siteId, jobId: args.jobId, severity: "warning",
+          phase: "commerceTransactions",
+          code: FINDING_CODES.COUPON_CODE_COLLISION,
+          message: `Coupon with code "${couponCode}" already exists locally (ID: ${existingByCode._id})`,
+          sourceType: "coupon", sourceId: String(coupon.id),
+          destinationTable: "commerce_discount_codes", wpId: coupon.id,
+          convexId: existingByCode._id,
+        });
+        // The upsertDiscountCode mutation handles merging
       }
 
       if (!args.isDryRun) {

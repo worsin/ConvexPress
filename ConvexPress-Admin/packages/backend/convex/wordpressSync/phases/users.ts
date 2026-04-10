@@ -18,7 +18,15 @@ import type { Id } from "../../_generated/dataModel";
 import { fetchWPUsers, type WPUser } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { WP_BATCH_SIZE, createDefaultImportConfig } from "../validators";
+import { WP_BATCH_SIZE, createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { createFinding } from "../helpers/idMapping";
+import { createHash } from "crypto";
+
+// ─── Source Hash Helper ───────────────────────────────────────────────────
+
+function computeSourceHash(fields: Record<string, unknown>): string {
+  return createHash("md5").update(JSON.stringify(fields)).digest("hex");
+}
 
 // ─── User Import Action ────────────────────────────────────────────────────
 
@@ -72,16 +80,67 @@ export const importBatch = internalAction({
     // Process each user
     for (const wpUser of wpUsers) {
       try {
-        // Check if already imported
+        // Compute source hash for change detection
+        const sourceHash = computeSourceHash({
+          email: wpUser.email,
+          name: wpUser.name,
+          username: wpUser.username,
+          slug: wpUser.slug,
+        });
+
+        // Check if already imported (full mapping for sourceHash)
         const existingMapping = await ctx.runQuery(
-          internal.wordpressSync.helpers.idMapping.getByWpId,
+          internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
           { siteId, objectType: "user", wpId: wpUser.id }
         );
 
         if (existingMapping) {
-          skipped++;
+          // Source hash comparison - skip if unchanged
+          if (existingMapping.sourceHash === sourceHash) {
+            skipped++;
+            progress.imported++;
+            continue;
+          }
+
+          // Update sourceHash on existing mapping
+          if (!isDryRun) {
+            await ctx.runMutation(
+              internal.wordpressSync.helpers.idMapping.updateSourceHash,
+              { siteId, objectType: "user", wpId: wpUser.id, sourceHash }
+            );
+          }
+
+          if (!importConfig.behavior.updateExisting) {
+            skipped++;
+            progress.imported++;
+            continue;
+          }
+
+          updated++;
           progress.imported++;
           continue;
+        }
+
+        // No existing mapping - check for email collision
+        if (wpUser.email) {
+          const existingByEmail = await ctx.runQuery(
+            internal.wordpressSync.internals.findUserByEmail,
+            { email: wpUser.email }
+          );
+
+          if (existingByEmail) {
+            await createFinding(ctx, {
+              siteId, jobId, severity: "warning", phase: "users",
+              code: FINDING_CODES.EMAIL_COLLISION,
+              message: `User with email "${wpUser.email}" already exists locally (ID: ${existingByEmail._id})`,
+              sourceType: "user", sourceId: String(wpUser.id),
+              destinationTable: "users", wpId: wpUser.id,
+              convexId: existingByEmail._id,
+            });
+            // Users with matching email are merged, not skipped — the
+            // usersCreate mutation already handles this by linking
+            // rather than duplicating. No need to skip.
+          }
         }
 
         if (!isDryRun) {
@@ -103,12 +162,13 @@ export const importBatch = internalAction({
             siteId,
           });
 
-          // Create ID mapping
+          // Create ID mapping with sourceHash
           await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
             siteId,
             objectType: "user",
             wpId: wpUser.id,
             convexId: userId,
+            sourceHash,
           });
         }
 

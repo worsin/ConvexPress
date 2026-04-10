@@ -14,7 +14,15 @@ import type { Id } from "../../_generated/dataModel";
 import { fetchWPMedia, type WPMedia } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { MEDIA_BATCH_SIZE, createDefaultImportConfig } from "../validators";
+import { MEDIA_BATCH_SIZE, createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { createFinding } from "../helpers/idMapping";
+import { createHash } from "crypto";
+
+// ─── Source Hash Helper ───────────────────────────────────────────────────
+
+function computeSourceHash(fields: Record<string, unknown>): string {
+  return createHash("md5").update(JSON.stringify(fields)).digest("hex");
+}
 
 // ─── Media Import Action ───────────────────────────────────────────────────
 
@@ -65,30 +73,62 @@ export const importBatch = internalAction({
     // Process each media item
     for (const wpMedia of mediaItems) {
       try {
-        // Check if already imported
+        // Compute source hash for change detection
+        const sourceHash = computeSourceHash({
+          title: wpMedia.title?.rendered,
+          source_url: wpMedia.source_url,
+          mime_type: wpMedia.mime_type,
+          slug: wpMedia.slug,
+        });
+
+        // Check if already imported (full mapping for sourceHash)
         const existingMapping = await ctx.runQuery(
-          internal.wordpressSync.helpers.idMapping.getByWpId,
+          internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
           { siteId, objectType: "media", wpId: wpMedia.id }
         );
 
         if (existingMapping) {
-          skipped++;
+          // Source hash comparison - skip if unchanged
+          if (existingMapping.sourceHash === sourceHash) {
+            skipped++;
+            progress.imported++;
+            continue;
+          }
+
+          if (!isDryRun) {
+            await ctx.runMutation(
+              internal.wordpressSync.helpers.idMapping.updateSourceHash,
+              { siteId, objectType: "media", wpId: wpMedia.id, sourceHash }
+            );
+          }
+
+          if (!importConfig.behavior.updateExisting) {
+            skipped++;
+            progress.imported++;
+            continue;
+          }
+
+          updated++;
           progress.imported++;
           continue;
         }
+
+        // No existing mapping - sourceUrl collision is already handled
+        // inside downloadAndUpload via mediaFindBySourceUrl
 
         if (!isDryRun) {
           // Download and upload the media file
           const result = await downloadAndUpload(ctx, wpMedia, siteId);
 
           if (result.success && result.mediaId) {
-            // Create ID mapping with sourceUrl
+            // Create ID mapping with sourceUrl and sourceHash
             await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
               siteId,
               objectType: "media",
               wpId: wpMedia.id,
               convexId: result.mediaId,
               sourceUrl: wpMedia.source_url,
+              sourceHash,
             });
 
             created++;

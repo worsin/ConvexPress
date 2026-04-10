@@ -89,6 +89,134 @@ export const getMappingsBatch = internalQuery({
   },
 });
 
+// ─── Collision Detection Queries ──────────────────────────────────────────
+
+/**
+ * Find a post by slug (for slug collision detection).
+ */
+export const findPostBySlug = internalQuery({
+  args: { slug: v.string(), type: v.optional(v.string()) },
+  handler: async (ctx, { slug, type }) => {
+    const result = await ctx.db
+      .query("posts")
+      .filter((q) =>
+        type
+          ? q.and(q.eq(q.field("slug"), slug), q.eq(q.field("type"), type))
+          : q.eq(q.field("slug"), slug)
+      )
+      .first();
+    return result;
+  },
+});
+
+/**
+ * Find a user by email (for email collision detection).
+ */
+export const findUserByEmail = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .first();
+  },
+});
+
+/**
+ * Find a term by slug and taxonomy (for taxonomy collision detection).
+ */
+export const findTermBySlug = internalQuery({
+  args: { slug: v.string(), taxonomy: v.string() },
+  handler: async (ctx, { slug, taxonomy }) => {
+    return await ctx.db
+      .query("terms")
+      .withIndex("by_slug_taxonomy", (q) => q.eq("slug", slug).eq("taxonomy", taxonomy))
+      .first();
+  },
+});
+
+/**
+ * Find a menu by slug (for menu collision detection).
+ */
+export const findMenuBySlug = internalQuery({
+  args: { slug: v.string() },
+  handler: async (ctx, { slug }) => {
+    return await ctx.db
+      .query("menus")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .first();
+  },
+});
+
+/**
+ * Find a product by SKU (for SKU collision detection).
+ */
+export const findProductBySku = internalQuery({
+  args: { sku: v.string() },
+  handler: async (ctx, { sku }) => {
+    // commerce_products may have a by_sku index, otherwise filter
+    const result = await ctx.db
+      .query("commerce_products")
+      .filter((q) => q.eq(q.field("sku"), sku))
+      .first();
+    return result;
+  },
+});
+
+/**
+ * Find a customer by email (for email collision detection).
+ */
+export const findCustomerByEmail = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    return await ctx.db
+      .query("commerce_customer_profiles")
+      .filter((q) => q.eq(q.field("email"), email))
+      .first();
+  },
+});
+
+/**
+ * Find an order by orderNumber (for order number collision detection).
+ */
+export const findOrderByNumber = internalQuery({
+  args: { orderNumber: v.string() },
+  handler: async (ctx, { orderNumber }) => {
+    return await ctx.db
+      .query("commerce_orders")
+      .filter((q) => q.eq(q.field("orderNumber"), orderNumber))
+      .first();
+  },
+});
+
+/**
+ * Find a discount code by code (for coupon code collision detection).
+ */
+export const findDiscountByCode = internalQuery({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    return await ctx.db
+      .query("commerce_discount_codes")
+      .filter((q) => q.eq(q.field("code"), code))
+      .first();
+  },
+});
+
+/**
+ * Generic entity lookup by table + ID string.
+ * Used for local edit detection — fetches the local entity to compare updatedAt.
+ */
+export const getEntityById = internalQuery({
+  args: { table: v.string(), id: v.string() },
+  handler: async (ctx, { table, id }) => {
+    try {
+      return await ctx.db.get(id as any);
+    } catch {
+      return null;
+    }
+  },
+});
+
 // ─── Internal Mutations ────────────────────────────────────────────────────
 
 /**

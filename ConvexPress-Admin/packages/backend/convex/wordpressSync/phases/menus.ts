@@ -17,7 +17,15 @@ import type { Id } from "../../_generated/dataModel";
 import { fetchWPMenus, fetchWPMenuItems, type WPMenu, type WPMenuItem } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { createDefaultImportConfig } from "../validators";
+import { createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { createFinding } from "../helpers/idMapping";
+import { createHash } from "crypto";
+
+// ─── Source Hash Helper ───────────────────────────────────────────────────
+
+function computeSourceHash(fields: Record<string, unknown>): string {
+  return createHash("md5").update(JSON.stringify(fields)).digest("hex");
+}
 
 // ─── Menus Import Action ───────────────────────────────────────────────────
 
@@ -82,16 +90,61 @@ export const importBatch = internalAction({
     // Process each menu
     for (const wpMenu of menus) {
       try {
-        // Check if already imported
+        // Compute source hash for change detection
+        const sourceHash = computeSourceHash({
+          name: wpMenu.name,
+          slug: wpMenu.slug,
+          description: wpMenu.description,
+          locations: wpMenu.locations,
+        });
+
+        // Check if already imported (full mapping for sourceHash)
         const existingMapping = await ctx.runQuery(
-          internal.wordpressSync.helpers.idMapping.getByWpId,
+          internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
           { siteId, objectType: "menu", wpId: wpMenu.id }
         );
 
         if (existingMapping) {
-          skipped++;
+          if (existingMapping.sourceHash === sourceHash) {
+            skipped++;
+            progress.imported++;
+            continue;
+          }
+
+          if (!isDryRun) {
+            await ctx.runMutation(
+              internal.wordpressSync.helpers.idMapping.updateSourceHash,
+              { siteId, objectType: "menu", wpId: wpMenu.id, sourceHash }
+            );
+          }
+
+          if (!importConfig.behavior.updateExisting) {
+            skipped++;
+            progress.imported++;
+            continue;
+          }
+
+          updated++;
           progress.imported++;
           continue;
+        }
+
+        // No existing mapping - check for slug collision
+        const existingBySlug = await ctx.runQuery(
+          internal.wordpressSync.internals.findMenuBySlug,
+          { slug: wpMenu.slug }
+        );
+
+        if (existingBySlug) {
+          await createFinding(ctx, {
+            siteId, jobId, severity: "warning", phase: "menus",
+            code: FINDING_CODES.MENU_HANDLE_COLLISION,
+            message: `Menu with slug "${wpMenu.slug}" already exists locally (ID: ${existingBySlug._id})`,
+            sourceType: "menu", sourceId: String(wpMenu.id),
+            destinationTable: "menus", wpId: wpMenu.id,
+            convexId: existingBySlug._id,
+          });
+          // The menusCreate mutation already handles merging by slug
         }
 
         if (!isDryRun) {
@@ -107,12 +160,13 @@ export const importBatch = internalAction({
             siteId,
           });
 
-          // Create menu ID mapping
+          // Create menu ID mapping with sourceHash
           await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
             siteId,
             objectType: "menu",
             wpId: wpMenu.id,
             convexId: menuId,
+            sourceHash,
           });
 
           // Fetch and import menu items

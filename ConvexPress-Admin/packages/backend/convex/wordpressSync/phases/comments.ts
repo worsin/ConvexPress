@@ -16,6 +16,13 @@ import { fetchWPComments, type WPComment } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
 import { WP_BATCH_SIZE, createDefaultImportConfig } from "../validators";
+import { createHash } from "crypto";
+
+// ─── Source Hash Helper ───────────────────────────────────────────────────
+
+function computeSourceHash(fields: Record<string, unknown>): string {
+  return createHash("md5").update(JSON.stringify(fields)).digest("hex");
+}
 
 // ─── Comments Import Action ────────────────────────────────────────────────
 
@@ -73,14 +80,43 @@ export const importBatch = internalAction({
     // Process each comment
     for (const wpComment of sorted) {
       try {
-        // Check if already imported
+        // Compute source hash for change detection
+        const sourceHash = computeSourceHash({
+          content: wpComment.content?.rendered,
+          status: wpComment.status,
+          author_name: wpComment.author_name,
+          post: wpComment.post,
+        });
+
+        // Check if already imported (full mapping for sourceHash)
         const existingMapping = await ctx.runQuery(
-          internal.wordpressSync.helpers.idMapping.getByWpId,
+          internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
           { siteId, objectType: "comment", wpId: wpComment.id }
         );
 
         if (existingMapping) {
-          skipped++;
+          // Source hash comparison - skip if unchanged
+          if (existingMapping.sourceHash === sourceHash) {
+            skipped++;
+            progress.imported++;
+            continue;
+          }
+
+          // Update sourceHash
+          if (!isDryRun) {
+            await ctx.runMutation(
+              internal.wordpressSync.helpers.idMapping.updateSourceHash,
+              { siteId, objectType: "comment", wpId: wpComment.id, sourceHash }
+            );
+          }
+
+          if (!importConfig.behavior.updateExisting) {
+            skipped++;
+            progress.imported++;
+            continue;
+          }
+
+          updated++;
           progress.imported++;
           continue;
         }
@@ -147,12 +183,13 @@ export const importBatch = internalAction({
             siteId,
           });
 
-          // Create ID mapping
+          // Create ID mapping with sourceHash
           await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
             siteId,
             objectType: "comment",
             wpId: wpComment.id,
             convexId: commentId,
+            sourceHash,
           });
         }
 

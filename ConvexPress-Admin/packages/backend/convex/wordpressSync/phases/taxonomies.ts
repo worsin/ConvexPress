@@ -14,7 +14,15 @@ import type { Id } from "../../_generated/dataModel";
 import { fetchWPCategories, fetchWPTags, type WPCategory, type WPTag } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { WP_BATCH_SIZE, createDefaultImportConfig } from "../validators";
+import { WP_BATCH_SIZE, createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { createFinding } from "../helpers/idMapping";
+import { createHash } from "crypto";
+
+// ─── Source Hash Helper ───────────────────────────────────────────────────
+
+function computeSourceHash(fields: Record<string, unknown>): string {
+  return createHash("md5").update(JSON.stringify(fields)).digest("hex");
+}
 
 // ─── Taxonomies Import Action ──────────────────────────────────────────────
 
@@ -54,7 +62,7 @@ export const importBatch = internalAction({
 
     // Process categories if not done
     if (categoriesProgress.imported + categoriesProgress.failed < categoriesProgress.total || categoriesProgress.total === 0) {
-      const result = await importCategories(ctx, siteId, credentials, categoriesProgress, isDryRun);
+      const result = await importCategories(ctx, siteId, jobId, credentials, categoriesProgress, isDryRun, importConfig);
       errors.push(...result.errors);
 
       // Return categories progress if still more to do
@@ -68,7 +76,7 @@ export const importBatch = internalAction({
     }
 
     // Process tags
-    const tagsResult = await importTags(ctx, siteId, credentials, tagsProgress, isDryRun);
+    const tagsResult = await importTags(ctx, siteId, jobId, credentials, tagsProgress, isDryRun, importConfig);
     errors.push(...tagsResult.errors);
 
     // Combine progress for reporting
@@ -86,9 +94,11 @@ export const importBatch = internalAction({
 async function importCategories(
   ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
   siteId: Id<"wordpressSites">,
+  jobId: Id<"wordpressSyncJobs">,
   credentials: { siteUrl: string; username: string; applicationPassword: string },
   progress: PhaseProgress,
-  isDryRun: boolean
+  isDryRun: boolean,
+  importConfig: any
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
   let created = 0;
@@ -113,16 +123,62 @@ async function importCategories(
 
   for (const wpCategory of sorted) {
     try {
-      // Check if already imported
+      // Compute source hash for change detection
+      const sourceHash = computeSourceHash({
+        name: wpCategory.name,
+        slug: wpCategory.slug,
+        description: wpCategory.description,
+        parent: wpCategory.parent,
+      });
+
+      // Check if already imported (full mapping for sourceHash)
       const existingMapping = await ctx.runQuery(
-        internal.wordpressSync.helpers.idMapping.getByWpId,
+        internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
         { siteId, objectType: "category", wpId: wpCategory.id }
       );
 
       if (existingMapping) {
-        skipped++;
+        if (existingMapping.sourceHash === sourceHash) {
+          skipped++;
+          progress.imported++;
+          continue;
+        }
+
+        if (!isDryRun) {
+          await ctx.runMutation(
+            internal.wordpressSync.helpers.idMapping.updateSourceHash,
+            { siteId, objectType: "category", wpId: wpCategory.id, sourceHash }
+          );
+        }
+
+        if (!importConfig.behavior.updateExisting) {
+          skipped++;
+          progress.imported++;
+          continue;
+        }
+
+        updated++;
         progress.imported++;
         continue;
+      }
+
+      // No existing mapping - check for slug collision
+      const existingBySlug = await ctx.runQuery(
+        internal.wordpressSync.internals.findTermBySlug,
+        { slug: wpCategory.slug, taxonomy: "category" }
+      );
+
+      if (existingBySlug) {
+        await createFinding(ctx, {
+          siteId, jobId, severity: "warning", phase: "taxonomies",
+          code: FINDING_CODES.TAXONOMY_PATH_COLLISION,
+          message: `Category with slug "${wpCategory.slug}" already exists locally (ID: ${existingBySlug._id})`,
+          sourceType: "category", sourceId: String(wpCategory.id),
+          destinationTable: "terms", wpId: wpCategory.id,
+          convexId: existingBySlug._id,
+        });
+        // The taxonomiesCreateTerm mutation already handles merging
+        // (finding by slug and linking), so we don't skip here
       }
 
       if (!isDryRun) {
@@ -150,12 +206,13 @@ async function importCategories(
           siteId,
         });
 
-        // Create ID mapping
+        // Create ID mapping with sourceHash
         await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
           siteId,
           objectType: "category",
           wpId: wpCategory.id,
           convexId: termId,
+          sourceHash,
         });
       }
 
@@ -192,9 +249,11 @@ async function importCategories(
 async function importTags(
   ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
   siteId: Id<"wordpressSites">,
+  jobId: Id<"wordpressSyncJobs">,
   credentials: { siteUrl: string; username: string; applicationPassword: string },
   progress: PhaseProgress,
-  isDryRun: boolean
+  isDryRun: boolean,
+  importConfig: any
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
   let created = 0;
@@ -212,16 +271,60 @@ async function importTags(
 
   for (const wpTag of tags) {
     try {
-      // Check if already imported
+      // Compute source hash for change detection
+      const sourceHash = computeSourceHash({
+        name: wpTag.name,
+        slug: wpTag.slug,
+        description: wpTag.description,
+      });
+
+      // Check if already imported (full mapping for sourceHash)
       const existingMapping = await ctx.runQuery(
-        internal.wordpressSync.helpers.idMapping.getByWpId,
+        internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
         { siteId, objectType: "tag", wpId: wpTag.id }
       );
 
       if (existingMapping) {
-        skipped++;
+        if (existingMapping.sourceHash === sourceHash) {
+          skipped++;
+          progress.imported++;
+          continue;
+        }
+
+        if (!isDryRun) {
+          await ctx.runMutation(
+            internal.wordpressSync.helpers.idMapping.updateSourceHash,
+            { siteId, objectType: "tag", wpId: wpTag.id, sourceHash }
+          );
+        }
+
+        if (!importConfig.behavior.updateExisting) {
+          skipped++;
+          progress.imported++;
+          continue;
+        }
+
+        updated++;
         progress.imported++;
         continue;
+      }
+
+      // No existing mapping - check for slug collision
+      const existingBySlug = await ctx.runQuery(
+        internal.wordpressSync.internals.findTermBySlug,
+        { slug: wpTag.slug, taxonomy: "post_tag" }
+      );
+
+      if (existingBySlug) {
+        await createFinding(ctx, {
+          siteId, jobId, severity: "warning", phase: "taxonomies",
+          code: FINDING_CODES.TAXONOMY_PATH_COLLISION,
+          message: `Tag with slug "${wpTag.slug}" already exists locally (ID: ${existingBySlug._id})`,
+          sourceType: "tag", sourceId: String(wpTag.id),
+          destinationTable: "terms", wpId: wpTag.id,
+          convexId: existingBySlug._id,
+        });
+        // The taxonomiesCreateTerm mutation already handles merging
       }
 
       if (!isDryRun) {
@@ -240,12 +343,13 @@ async function importTags(
           siteId,
         });
 
-        // Create ID mapping
+        // Create ID mapping with sourceHash
         await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
           siteId,
           objectType: "tag",
           wpId: wpTag.id,
           convexId: termId,
+          sourceHash,
         });
       }
 

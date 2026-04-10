@@ -12,7 +12,15 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { PhaseResult } from "../internals";
 import type { PhaseProgress, SyncError } from "../validators";
-import { createDefaultImportConfig } from "../validators";
+import { createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { createFinding } from "../helpers/idMapping";
+import { createHash } from "crypto";
+
+// ─── Source Hash Helper ───────────────────────────────────────────────────
+
+function computeSourceHashCC(fields: Record<string, unknown>): string {
+  return createHash("md5").update(JSON.stringify(fields)).digest("hex");
+}
 import {
   fetchWooProductCategories,
   fetchWooProducts,
@@ -93,6 +101,7 @@ export const importBatch = internalAction({
 
     const result = await importProductBatch(ctx, {
       siteId,
+      jobId,
       credentials,
       progress,
       siteCreatedBy: site.createdBy,
@@ -217,6 +226,7 @@ async function importProductBatch(
   ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
   args: {
     siteId: Id<"wordpressSites">;
+    jobId: Id<"wordpressSyncJobs">;
     credentials: { siteUrl: string; username: string; applicationPassword: string };
     progress: PhaseProgress;
     siteCreatedBy: Id<"users">;
@@ -238,6 +248,32 @@ async function importProductBatch(
     const product = products[index];
 
     try {
+      // SKU collision detection for products with SKUs
+      if (product.sku && args.jobId) {
+        const existingBySku = await ctx.runQuery(
+          internal.wordpressSync.internals.findProductBySku,
+          { sku: product.sku }
+        );
+        if (existingBySku) {
+          // Check if this product is already mapped
+          const existingMapping = await ctx.runQuery(
+            internal.wordpressSync.helpers.idMapping.getByWpId,
+            { siteId: args.siteId, objectType: "commerceProduct", wpId: product.id }
+          );
+          if (!existingMapping) {
+            await createFinding(ctx, {
+              siteId: args.siteId, jobId: args.jobId, severity: "warning",
+              phase: "commerceCatalog",
+              code: FINDING_CODES.SKU_COLLISION,
+              message: `Product with SKU "${product.sku}" already exists locally (ID: ${existingBySku._id})`,
+              sourceType: "product", sourceId: String(product.id),
+              destinationTable: "commerce_products", wpId: product.id,
+              convexId: existingBySku._id,
+            });
+          }
+        }
+      }
+
       if (!args.isDryRun) {
         const productId = await importSingleProduct(ctx, {
           siteId: args.siteId,
@@ -296,6 +332,16 @@ async function importSingleProduct(
     product: WooProduct;
   }
 ): Promise<string> {
+  // Compute source hash for change detection
+  const productSourceHash = computeSourceHashCC({
+    name: args.product.name,
+    slug: args.product.slug,
+    sku: args.product.sku,
+    status: args.product.status,
+    price: args.product.price,
+    regular_price: args.product.regular_price,
+  });
+
   const existingId = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
     siteId: args.siteId,
     objectType: "commerceProduct",
@@ -355,6 +401,7 @@ async function importSingleProduct(
     objectType: "commerceProduct",
     wpId: args.product.id,
     convexId: productId,
+    sourceHash: productSourceHash,
   });
 
   return productId;

@@ -8,9 +8,11 @@
  *   - Check if an object has already been imported (deduplication)
  *   - Resolve WordPress IDs to Convex IDs for relationship linking
  *   - Create new mappings after successful imports
+ *   - Detect collisions and create structured findings
  */
 
 import { internalMutation, internalQuery } from "../../_generated/server";
+import { internal } from "../../_generated/api";
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
 
@@ -25,7 +27,17 @@ const objectTypeValidator = v.union(
   v.literal("media"),
   v.literal("comment"),
   v.literal("menu"),
-  v.literal("menuItem")
+  v.literal("menuItem"),
+  v.literal("commerceCategory"),
+  v.literal("commerceProduct"),
+  v.literal("commerceProductVariant"),
+  v.literal("commerceCustomer"),
+  v.literal("commerceOrder"),
+  v.literal("commerceOrderItem"),
+  v.literal("commercePaymentTransaction"),
+  v.literal("commerceDiscount"),
+  v.literal("commerceReview"),
+  v.literal("commerceRefund")
 );
 
 export type WPObjectType =
@@ -37,7 +49,17 @@ export type WPObjectType =
   | "media"
   | "comment"
   | "menu"
-  | "menuItem";
+  | "menuItem"
+  | "commerceCategory"
+  | "commerceProduct"
+  | "commerceProductVariant"
+  | "commerceCustomer"
+  | "commerceOrder"
+  | "commerceOrderItem"
+  | "commercePaymentTransaction"
+  | "commerceDiscount"
+  | "commerceReview"
+  | "commerceRefund";
 
 // ─── Query Functions ───────────────────────────────────────────────────────
 
@@ -204,8 +226,9 @@ export const create = internalMutation({
     wpId: v.number(),
     convexId: v.string(),
     sourceUrl: v.optional(v.string()),
+    sourceHash: v.optional(v.string()),
   },
-  handler: async (ctx, { siteId, objectType, wpId, convexId, sourceUrl }) => {
+  handler: async (ctx, { siteId, objectType, wpId, convexId, sourceUrl, sourceHash }) => {
     // Check for existing mapping to prevent duplicates
     const existing = await ctx.db
       .query("wpIdMappings")
@@ -223,6 +246,9 @@ export const create = internalMutation({
       if (sourceUrl && existing.sourceUrl !== sourceUrl) {
         patch.sourceUrl = sourceUrl;
       }
+      if (sourceHash && existing.sourceHash !== sourceHash) {
+        patch.sourceHash = sourceHash;
+      }
       if (Object.keys(patch).length > 0) {
         await ctx.db.patch(existing._id, patch);
       }
@@ -236,6 +262,7 @@ export const create = internalMutation({
       wpId,
       convexId,
       sourceUrl,
+      sourceHash,
       createdAt: Date.now(),
     });
   },
@@ -340,3 +367,95 @@ export const deleteByType = internalMutation({
     return deleted;
   },
 });
+
+// ─── Full Mapping Retrieval ──────────────────────────────────────────────
+
+/**
+ * Get the full mapping document (including sourceHash) by WordPress ID.
+ * Returns null if no mapping exists.
+ */
+export const getFullMappingByWpId = internalQuery({
+  args: {
+    siteId: v.id("wordpressSites"),
+    objectType: objectTypeValidator,
+    wpId: v.number(),
+  },
+  handler: async (ctx, { siteId, objectType, wpId }) => {
+    return await ctx.db
+      .query("wpIdMappings")
+      .withIndex("by_wp_id", (q) =>
+        q.eq("siteId", siteId).eq("objectType", objectType).eq("wpId", wpId)
+      )
+      .first();
+  },
+});
+
+// ─── Source Hash Update ──────────────────────────────────────────────────
+
+/**
+ * Update sourceHash on an existing mapping.
+ */
+export const updateSourceHash = internalMutation({
+  args: {
+    siteId: v.id("wordpressSites"),
+    objectType: objectTypeValidator,
+    wpId: v.number(),
+    sourceHash: v.string(),
+  },
+  handler: async (ctx, { siteId, objectType, wpId, sourceHash }) => {
+    const mapping = await ctx.db
+      .query("wpIdMappings")
+      .withIndex("by_wp_id", (q) =>
+        q.eq("siteId", siteId).eq("objectType", objectType).eq("wpId", wpId)
+      )
+      .first();
+
+    if (mapping) {
+      await ctx.db.patch(mapping._id, { sourceHash });
+    }
+  },
+});
+
+// ─── Finding Creation Helper ─────────────────────────────────────────────
+
+/**
+ * Create a structured finding record via the insertFinding internal mutation.
+ * This is a helper for use in internalAction handlers.
+ */
+export async function createFinding(
+  ctx: {
+    runMutation: (ref: any, args: any) => Promise<any>;
+  },
+  args: {
+    siteId: any;
+    jobId: any;
+    severity: "error" | "warning" | "info";
+    phase: string;
+    code: string;
+    message: string;
+    sourceType?: string;
+    sourceId?: string;
+    destinationTable?: string;
+    wpId?: number;
+    objectType?: string;
+    convexId?: string;
+    metadata?: Record<string, unknown>;
+  },
+) {
+  await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
+    siteId: args.siteId,
+    jobId: args.jobId,
+    severity: args.severity,
+    phase: args.phase,
+    code: args.code,
+    message: args.message,
+    sourceType: args.sourceType,
+    sourceId: args.sourceId,
+    destinationTable: args.destinationTable,
+    wpId: args.wpId,
+    objectType: args.objectType,
+    convexId: args.convexId,
+    metadata: args.metadata ? JSON.stringify(args.metadata) : undefined,
+    createdAt: Date.now(),
+  });
+}
