@@ -155,6 +155,31 @@ export const listZonesWithMethods = query({
   },
 });
 
+// ---------------------------------------------------------------------------
+// Shipping Packages
+// ---------------------------------------------------------------------------
+
+export const listPackages = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+    const packages = await ctx.db.query("commerce_shipping_packages").collect();
+    return packages.sort(
+      (a: any, b: any) => (b.createdAt ?? 0) - (a.createdAt ?? 0),
+    );
+  },
+});
+
+export const getPackage = query({
+  args: { packageId: v.id("commerce_shipping_packages") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
+    return ctx.db.get(args.packageId);
+  },
+});
+
 export const getProviderCapabilities = query({
   args: {},
   handler: async (ctx) => {

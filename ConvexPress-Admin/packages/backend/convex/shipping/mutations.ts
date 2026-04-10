@@ -268,3 +268,109 @@ export const deleteZoneMethod = mutation({
     await ctx.db.delete(args.methodId);
   },
 });
+
+// ---------------------------------------------------------------------------
+// Shipping Package CRUD
+// ---------------------------------------------------------------------------
+
+export const createPackage = mutation({
+  args: {
+    code: v.string(),
+    label: v.string(),
+    packageType: v.string(),
+    weight: v.optional(v.number()),
+    dimensions: v.optional(
+      v.object({
+        length: v.number(),
+        width: v.number(),
+        height: v.number(),
+      }),
+    ),
+    carrierCode: v.optional(v.string()),
+    provider: v.optional(shippingProviderValidator),
+  },
+  handler: async (ctx, args) => {
+    await requireShippingAdmin(ctx);
+
+    // Ensure unique code
+    const existing = await ctx.db
+      .query("commerce_shipping_packages")
+      .withIndex("by_code", (q: any) => q.eq("code", args.code))
+      .unique();
+
+    if (existing) {
+      throw new ConvexError({ code: "DUPLICATE", message: `Package code "${args.code}" already exists.` });
+    }
+
+    const now = Date.now();
+    return ctx.db.insert("commerce_shipping_packages", {
+      code: args.code,
+      label: args.label,
+      packageType: args.packageType,
+      weight: args.weight,
+      dimensions: args.dimensions,
+      carrierCode: args.carrierCode,
+      provider: args.provider,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+export const updatePackage = mutation({
+  args: {
+    packageId: v.id("commerce_shipping_packages"),
+    code: v.optional(v.string()),
+    label: v.optional(v.string()),
+    packageType: v.optional(v.string()),
+    weight: v.optional(v.number()),
+    dimensions: v.optional(
+      v.object({
+        length: v.number(),
+        width: v.number(),
+        height: v.number(),
+      }),
+    ),
+    carrierCode: v.optional(v.string()),
+    provider: v.optional(shippingProviderValidator),
+  },
+  handler: async (ctx, args) => {
+    await requireShippingAdmin(ctx);
+    const existing = await ctx.db.get(args.packageId);
+    if (!existing) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Package not found." });
+    }
+
+    // If code changed, check uniqueness
+    if (args.code && args.code !== existing.code) {
+      const dup = await ctx.db
+        .query("commerce_shipping_packages")
+        .withIndex("by_code", (q: any) => q.eq("code", args.code))
+        .unique();
+      if (dup) {
+        throw new ConvexError({ code: "DUPLICATE", message: `Package code "${args.code}" already exists.` });
+      }
+    }
+
+    const { packageId, ...updates } = args;
+    const patch: Record<string, any> = { updatedAt: Date.now() };
+    for (const [key, val] of Object.entries(updates)) {
+      if (val !== undefined) patch[key] = val;
+    }
+    await ctx.db.patch(packageId, patch);
+    return packageId;
+  },
+});
+
+export const deletePackage = mutation({
+  args: { packageId: v.id("commerce_shipping_packages") },
+  handler: async (ctx, args) => {
+    await requireShippingAdmin(ctx);
+    const existing = await ctx.db.get(args.packageId);
+    if (!existing) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Package not found." });
+    }
+    await ctx.db.delete(args.packageId);
+    return { success: true };
+  },
+});
