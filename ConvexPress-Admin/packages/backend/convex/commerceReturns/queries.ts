@@ -17,6 +17,8 @@
  *   Admin:
  *   - list                 List returns with status filter & pagination
  *   - getStats             Return statistics dashboard
+ *   - getRefundHealth      Refund pipeline health & stuck refund detection
+ *   - getStuckRefunds      List refunds stuck in refund_pending state
  */
 
 import { v } from "convex/values";
@@ -215,7 +217,7 @@ export const list = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCan(ctx, "manage_options");
+    await requireCan(ctx, "commerce.returns.view");
     await requireCommerceReturnsEnabled(ctx);
 
     const limit = args.limit ?? 20;
@@ -265,7 +267,7 @@ export const list = query({
 export const getStats = query({
   args: {},
   handler: async (ctx: any) => {
-    await requireCan(ctx, "manage_options");
+    await requireCan(ctx, "commerce.returns.view");
     await requireCommerceReturnsEnabled(ctx);
 
     const allReturns = await ctx.db
@@ -283,6 +285,9 @@ export const getStats = query({
     ).length;
     const received = allReturns.filter(
       (r: any) => r.status === "received",
+    ).length;
+    const refundPending = allReturns.filter(
+      (r: any) => r.status === "refund_pending",
     ).length;
     const refunded = allReturns.filter(
       (r: any) => r.status === "refunded",
@@ -304,6 +309,14 @@ export const getStats = query({
       (r: any) => r.createdAt > thirtyDaysAgo,
     );
 
+    // Stuck refunds (in refund_pending for more than 1 hour)
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const stuckRefunds = allReturns.filter(
+      (r: any) =>
+        r.status === "refund_pending" &&
+        (r.refundPendingAt ?? r.updatedAt) < oneHourAgo,
+    ).length;
+
     return {
       total: allReturns.length,
       byStatus: {
@@ -311,12 +324,73 @@ export const getStats = query({
         approved,
         rejected,
         received,
+        refundPending,
         refunded,
         completed,
       },
-      pendingAction: requested + approved + received,
+      pendingAction: requested + approved + received + refundPending,
       totalRefunded,
       recentCount: recentReturns.length,
+      stuckRefunds,
     };
+  },
+});
+
+/**
+ * Get refund pipeline health — provides observability into the refund process.
+ * Tracks pending, stuck, and completed refunds.
+ */
+export const getRefundHealth = query({
+  args: {},
+  handler: async (ctx: any) => {
+    await requireCan(ctx, "commerce.returns.view");
+    await requireCommerceReturnsEnabled(ctx);
+
+    const returns = await ctx.db.query("commerce_return_requests").collect();
+    const now = Date.now();
+    const oneHourAgo = now - 60 * 60 * 1000;
+
+    return {
+      total: returns.length,
+      refundPending: returns.filter((r: any) => r.status === "refund_pending").length,
+      stuckRefunds: returns.filter(
+        (r: any) =>
+          r.status === "refund_pending" &&
+          (r.refundPendingAt ?? r.updatedAt) < oneHourAgo,
+      ).length,
+      completedToday: returns.filter(
+        (r: any) =>
+          r.status === "completed" &&
+          r.completedAt &&
+          r.completedAt > now - 86400000,
+      ).length,
+    };
+  },
+});
+
+/**
+ * Get returns stuck in refund_pending state beyond a threshold.
+ * Useful for admin dashboards and alerting.
+ */
+export const getStuckRefunds = query({
+  args: {
+    staleMinutes: v.optional(v.number()),
+  },
+  handler: async (ctx: any, args: any) => {
+    await requireCan(ctx, "commerce.returns.view");
+    await requireCommerceReturnsEnabled(ctx);
+
+    const staleThreshold =
+      Date.now() - (args.staleMinutes ?? 60) * 60 * 1000;
+
+    const returns = await ctx.db
+      .query("commerce_return_requests")
+      .collect();
+
+    return returns.filter(
+      (r: any) =>
+        r.status === "refund_pending" &&
+        (r.refundPendingAt ?? r.updatedAt) < staleThreshold,
+    );
   },
 });
