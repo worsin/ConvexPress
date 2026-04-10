@@ -537,6 +537,44 @@ export const getStats = query({
 });
 
 // ============================================
+// INVENTORY ALERTS
+// ============================================
+
+/**
+ * Get bundles with low stock (admin).
+ *
+ * Returns bundles where trackInventory is enabled and stockCount is
+ * at or below the given threshold. Used by the inventory dashboard
+ * to surface bundle-level stock warnings alongside product-level ones.
+ */
+export const getLowStock = query({
+  args: { threshold: v.optional(v.number()) },
+  handler: async (ctx: any, args: any) => {
+    await requireCommerceBundlesEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    const threshold = args.threshold ?? 5;
+    const bundles = await ctx.db.query("commerce_bundles").collect();
+
+    return bundles
+      .filter(
+        (b: any) =>
+          b.trackInventory &&
+          typeof b.stockCount === "number" &&
+          b.stockCount <= threshold &&
+          b.status === "active",
+      )
+      .map((b: any) => ({
+        _id: b._id,
+        name: b.name,
+        slug: b.slug,
+        stockCount: b.stockCount,
+        status: b.status,
+      }));
+  },
+});
+
+// ============================================
 // CART QUERIES
 // ============================================
 
