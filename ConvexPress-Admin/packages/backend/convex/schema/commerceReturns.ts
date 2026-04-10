@@ -6,6 +6,7 @@ export const commerceReturnStatusValidator = v.union(
   v.literal("approved"),
   v.literal("rejected"),
   v.literal("received"),
+  v.literal("refund_pending"),
   v.literal("refunded"),
   v.literal("completed"),
 );
@@ -31,6 +32,8 @@ export const commerceReturnsTables = {
     trackingNumber: v.optional(v.string()),
     returnShippingLabel: v.optional(v.string()),
     processedBy: v.optional(v.id("users")),
+    refundPendingAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

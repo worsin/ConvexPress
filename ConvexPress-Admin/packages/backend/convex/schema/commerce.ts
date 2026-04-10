@@ -99,6 +99,7 @@ export const commerceTables = {
     isVirtual: v.boolean(),
     shippingWeightOz: v.optional(v.number()),
     isDownloadable: v.boolean(),
+    isNonReturnable: v.optional(v.boolean()),
     publishedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -357,13 +358,20 @@ export const commerceTables = {
   commerce_payment_refunds: defineTable({
     orderId: v.id("commerce_orders"),
     transactionId: v.optional(v.id("commerce_payment_transactions")),
+    returnId: v.optional(v.id("commerce_return_requests")),
     amount: commerceMoneyValidator,
     reason: v.optional(v.string()),
     status: v.string(),
+    providerRefundId: v.optional(v.string()),
+    failureCode: v.optional(v.string()),
+    failureMessage: v.optional(v.string()),
+    completedAt: v.optional(v.number()),
     createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_order", ["orderId"]),
+  })
+    .index("by_order", ["orderId"])
+    .index("by_return", ["returnId"]),
 
   commerce_shipping_methods: defineTable({
     code: v.string(),
