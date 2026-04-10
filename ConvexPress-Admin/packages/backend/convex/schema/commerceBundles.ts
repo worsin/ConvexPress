@@ -35,6 +35,9 @@ export const commerceBundlesTables = {
     shortDescription: v.optional(v.string()),
     images: v.array(v.string()),
 
+    // Owning product link (for checkout pipeline integration)
+    productId: v.optional(v.id("commerce_products")),
+
     // Bundle behaviour
     bundleType: commerceBundleTypeValidator,
     minItems: v.optional(v.number()),
