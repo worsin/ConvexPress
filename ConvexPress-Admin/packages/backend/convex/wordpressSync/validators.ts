@@ -39,21 +39,27 @@ export const syncPhaseValidator = v.union(
   v.literal("pages"),
   v.literal("comments"),
   v.literal("menus"),
+  v.literal("commerceCatalog"),
+  v.literal("commerceTransactions"),
+  v.literal("reconciliation"),
   v.literal("cleanup")
 );
 
-export type SyncPhase = "users" | "taxonomies" | "media" | "posts" | "pages" | "comments" | "menus" | "cleanup";
+export type SyncPhase = "users" | "taxonomies" | "media" | "posts" | "pages" | "comments" | "menus" | "commerceCatalog" | "commerceTransactions" | "reconciliation" | "cleanup";
 
 // Phase execution order (dependencies matter!)
 export const PHASE_ORDER: SyncPhase[] = [
-  "users",      // Must be first - posts reference authors
-  "taxonomies", // Must be before posts - posts reference terms
-  "media",      // Must be before posts - posts reference featured images
-  "posts",      // Main content
-  "pages",      // Pages (separate because Elementor handling)
-  "comments",   // After posts - references post IDs
-  "menus",      // Last - references posts/pages/categories
-  "cleanup",    // Finalization
+  "users",                // Must be first - posts reference authors
+  "taxonomies",           // Must be before posts - posts reference terms
+  "media",                // Must be before posts - posts reference featured images
+  "posts",                // Main content
+  "pages",                // Pages (separate because Elementor handling)
+  "comments",             // After posts - references post IDs
+  "menus",                // Last content - references posts/pages/categories
+  "commerceCatalog",      // WooCommerce products, attributes, variations
+  "commerceTransactions", // WooCommerce orders, customers, coupons, reviews
+  "reconciliation",       // Cross-phase integrity checks and conflict resolution
+  "cleanup",              // Finalization
 ];
 
 // ─── Object Type ───────────────────────────────────────────────────────────
@@ -79,6 +85,10 @@ export const phaseProgressValidator = v.object({
   imported: v.number(),
   failed: v.number(),
   cursor: v.optional(v.number()),
+  created: v.optional(v.number()),
+  updated: v.optional(v.number()),
+  skipped: v.optional(v.number()),
+  conflicted: v.optional(v.number()),
 });
 
 export interface PhaseProgress {
@@ -86,6 +96,10 @@ export interface PhaseProgress {
   imported: number;
   failed: number;
   cursor?: number;
+  created?: number;
+  updated?: number;
+  skipped?: number;
+  conflicted?: number;
 }
 
 export const progressValidator = v.object({
@@ -97,6 +111,9 @@ export const progressValidator = v.object({
   pages: phaseProgressValidator,
   comments: phaseProgressValidator,
   menus: phaseProgressValidator,
+  commerceCatalog: phaseProgressValidator,
+  commerceTransactions: phaseProgressValidator,
+  reconciliation: phaseProgressValidator,
 });
 
 export type Progress = {
@@ -108,6 +125,9 @@ export type Progress = {
   pages: PhaseProgress;
   comments: PhaseProgress;
   menus: PhaseProgress;
+  commerceCatalog: PhaseProgress;
+  commerceTransactions: PhaseProgress;
+  reconciliation: PhaseProgress;
 };
 
 // ─── Sync Error ────────────────────────────────────────────────────────────
@@ -138,6 +158,128 @@ export interface SiteCredentials {
   siteUrl: string;
   username: string;
   applicationPassword: string;
+}
+
+// ─── Import Config ────────────────────────────────────────────────────────
+
+export interface ImportScope {
+  wpContent: boolean;
+  elementor: boolean;
+  media: boolean;
+  menus: boolean;
+  comments: boolean;
+  wooCatalog: boolean;
+  wooCustomers: boolean;
+  wooOrders: boolean;
+  wooCoupons: boolean;
+  wooReviews: boolean;
+  cleanup: boolean;
+}
+
+export type TombstoneMode = "never" | "mark_stale" | "soft_delete" | "hard_delete";
+
+export interface ImportBehavior {
+  dryRun: boolean;
+  updateExisting: boolean;
+  preserveLocalEdits: boolean;
+  importDrafts: boolean;
+  importHistoricalOrders: boolean;
+  importRefunds: boolean;
+  importReviews: boolean;
+  importCoupons: boolean;
+  tombstoneMode?: TombstoneMode;
+  destructiveDelete?: boolean;
+}
+
+export interface ImportFilters {
+  dateRangeStart?: number;
+  dateRangeEnd?: number;
+  entityLimit?: number;
+}
+
+export interface ImportConfig {
+  scope: ImportScope;
+  behavior: ImportBehavior;
+  filters: ImportFilters;
+}
+
+export function createDefaultImportConfig(): ImportConfig {
+  return {
+    scope: {
+      wpContent: true, elementor: true, media: true, menus: true, comments: true,
+      wooCatalog: true, wooCustomers: true, wooOrders: true, wooCoupons: true,
+      wooReviews: true, cleanup: true,
+    },
+    behavior: {
+      dryRun: false, updateExisting: true, preserveLocalEdits: false,
+      importDrafts: true, importHistoricalOrders: true, importRefunds: true,
+      importReviews: true, importCoupons: true, tombstoneMode: "never",
+      destructiveDelete: false,
+    },
+    filters: {},
+  };
+}
+
+/**
+ * Determine whether a given sync phase should run based on the import scope.
+ */
+export function shouldRunPhase(phase: SyncPhase, scope: ImportScope): boolean {
+  switch (phase) {
+    case "users": return scope.wpContent;
+    case "taxonomies": return scope.wpContent;
+    case "media": return scope.media;
+    case "posts": return scope.wpContent;
+    case "pages": return scope.wpContent;
+    case "comments": return scope.comments;
+    case "menus": return scope.menus;
+    case "commerceCatalog": return scope.wooCatalog;
+    case "commerceTransactions":
+      return scope.wooCustomers || scope.wooOrders || scope.wooCoupons || scope.wooReviews;
+    case "reconciliation": return true;
+    case "cleanup": return scope.cleanup;
+    default: return true;
+  }
+}
+
+// ─── Finding Codes ────────────────────────────────────────────────────────
+
+export const FINDING_CODES = {
+  SLUG_COLLISION: "SLUG_COLLISION",
+  SKU_COLLISION: "SKU_COLLISION",
+  EMAIL_COLLISION: "EMAIL_COLLISION",
+  ORDER_NUMBER_COLLISION: "ORDER_NUMBER_COLLISION",
+  COUPON_CODE_COLLISION: "COUPON_CODE_COLLISION",
+  MEDIA_URL_COLLISION: "MEDIA_URL_COLLISION",
+  TAXONOMY_PATH_COLLISION: "TAXONOMY_PATH_COLLISION",
+  MENU_HANDLE_COLLISION: "MENU_HANDLE_COLLISION",
+  LOCAL_EDIT_CONFLICT: "LOCAL_EDIT_CONFLICT",
+  SOURCE_OBJECT_MISSING: "SOURCE_OBJECT_MISSING",
+  MISSING_RELATIONSHIP_TARGET: "MISSING_RELATIONSHIP_TARGET",
+  ELEMENTOR_PARSE_FAILED: "ELEMENTOR_PARSE_FAILED",
+  META_ENDPOINT_UNAVAILABLE: "META_ENDPOINT_UNAVAILABLE",
+  UNRESOLVED_MEDIA_URL: "UNRESOLVED_MEDIA_URL",
+  MEDIA_REWRITE_APPLIED: "MEDIA_REWRITE_APPLIED",
+  ORDER_TOTAL_MISMATCH: "ORDER_TOTAL_MISMATCH",
+  AUTH_FAILED: "AUTH_FAILED",
+  CAPABILITY_MISSING: "CAPABILITY_MISSING",
+  SOURCE_DATA_INVALID: "SOURCE_DATA_INVALID",
+  RATE_LIMITED: "RATE_LIMITED",
+} as const;
+
+export type FindingCode = typeof FINDING_CODES[keyof typeof FINDING_CODES];
+
+// ─── Adapter Config ───────────────────────────────────────────────────────
+
+export interface AdapterConfig {
+  siteUrl: string;
+  username: string;
+  password: string;
+  wooKey?: string;
+  wooSecret?: string;
+  wooAuthMode: "shared" | "separate";
+  metaEndpointPath?: string;
+  retryCount?: number;
+  batchSize?: number;
 }
 
 // ─── Create Site Args ──────────────────────────────────────────────────────
@@ -188,6 +330,9 @@ export function createInitialProgress(): Progress {
     pages: { total: 0, imported: 0, failed: 0 },
     comments: { total: 0, imported: 0, failed: 0 },
     menus: { total: 0, imported: 0, failed: 0 },
+    commerceCatalog: { total: 0, imported: 0, failed: 0 },
+    commerceTransactions: { total: 0, imported: 0, failed: 0 },
+    reconciliation: { total: 0, imported: 0, failed: 0 },
   };
 }
 
