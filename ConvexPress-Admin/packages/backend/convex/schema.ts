@@ -39,6 +39,14 @@ import { ticketTables } from "./schema/tickets";
 import { supportTables } from "./schema/support";
 import { themesTables } from "./schema/themes";
 import { layoutTables } from "./schema/layouts";
+import { recipeTables } from "./schema/recipes";
+import { galleryTables } from "./schema/gallery";
+import { commerceTables } from "./schema/commerce";
+import { shippingTables } from "./schema/shipping";
+import { commerceSubscriptionTables } from "./schema/commerceSubscriptions";
+import { membershipTables } from "./schema/membership";
+import { commerceDigitalTables } from "./schema/commerceDigital";
+import { commerceReviewsTables } from "./schema/commerceReviews";
 
 // ─── Compose Schema ──────────────────────────────────────────────────────────
 export default defineSchema({
@@ -78,4 +86,12 @@ export default defineSchema({
   ...supportTables,
   ...themesTables,
   ...layoutTables,
+  ...recipeTables,
+  ...galleryTables,
+  ...commerceTables,
+  ...shippingTables,
+  ...commerceSubscriptionTables,
+  ...membershipTables,
+  ...commerceDigitalTables,
+  ...commerceReviewsTables,
 });
