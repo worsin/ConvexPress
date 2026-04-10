@@ -114,6 +114,7 @@ export const progressValidator = v.object({
   commerceCatalog: phaseProgressValidator,
   commerceTransactions: phaseProgressValidator,
   reconciliation: phaseProgressValidator,
+  cleanup: phaseProgressValidator,
 });
 
 export type Progress = {
@@ -128,6 +129,7 @@ export type Progress = {
   commerceCatalog: PhaseProgress;
   commerceTransactions: PhaseProgress;
   reconciliation: PhaseProgress;
+  cleanup: PhaseProgress;
 };
 
 // ─── Sync Error ────────────────────────────────────────────────────────────
@@ -333,6 +335,7 @@ export function createInitialProgress(): Progress {
     commerceCatalog: { total: 0, imported: 0, failed: 0 },
     commerceTransactions: { total: 0, imported: 0, failed: 0 },
     reconciliation: { total: 0, imported: 0, failed: 0 },
+    cleanup: { total: 0, imported: 0, failed: 0 },
   };
 }
 
