@@ -7,6 +7,7 @@ export const shippingProviderValidator = v.union(
   v.literal("usps"),
   v.literal("fedex"),
   v.literal("dhl"),
+  v.literal("manual"),
 );
 
 export const shippingConnectionStatusValidator = v.union(

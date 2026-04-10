@@ -77,11 +77,12 @@ export const matchZoneForAddress = internalQuery({
     for (const zone of sorted) {
       if (!zone.countries.includes(args.countryCode)) continue;
 
-      if (zone.states && zone.states.length > 0 && args.state) {
-        if (!zone.states.includes(args.state)) continue;
+      if (zone.states && zone.states.length > 0) {
+        if (!args.state || !zone.states.includes(args.state)) continue;
       }
 
-      if (zone.postalCodeRules && zone.postalCodeRules.length > 0 && args.postalCode) {
+      if (zone.postalCodeRules && zone.postalCodeRules.length > 0) {
+        if (!args.postalCode) continue;
         let matched = false;
         for (const pattern of zone.postalCodeRules) {
           const regex = new RegExp(`^${pattern.replace(/\*/g, ".*")}$`);

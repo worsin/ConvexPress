@@ -2849,10 +2849,8 @@ export const fetchCheckoutRates = action({
 
     const providerOrder = Array.from(
       new Set([
-        requestedProvider,
+        ...(activeProviders.includes(requestedProvider) ? [requestedProvider] : []),
         ...activeProviders,
-        integrationSettings.preferredProvider,
-        "shipstation",
       ].filter(Boolean)),
     ) as Array<"shipstation" | "ups" | "usps" | "fedex" | "dhl">;
 
@@ -2969,6 +2967,12 @@ export const fetchCheckoutRates = action({
       expiresAt: Date.now() + Number(integrationSettings.quoteCacheTtlSeconds ?? 300) * 1000,
     }));
 
+    // Fetch rate context early so cart currency is available for synthetic quotes
+    const rateContext = await ctx.runQuery(
+      internal.shipping.internals.getRateContextForSession,
+      { sessionToken: args.sessionToken },
+    );
+
     // Zone/method enforcement ------------------------------------------------
     const matchedZone = await ctx.runQuery(
       internal.shipping.internals.matchZoneForAddress,
@@ -3022,7 +3026,7 @@ export const fetchCheckoutRates = action({
               serviceCode: "flat_rate",
               serviceName: method.label,
               amount: flatAmount,
-              currency: integrationSettings.currencyCode ?? "USD",
+              currency: rateContext?.cart?.currencyCode ?? "USD",
               isCheapest: false,
               isFastest: false,
               isBestValue: false,
@@ -3040,7 +3044,7 @@ export const fetchCheckoutRates = action({
             serviceCode: "free_shipping",
             serviceName: method.label,
             amount: 0,
-            currency: integrationSettings.currencyCode ?? "USD",
+            currency: rateContext?.cart?.currencyCode ?? "USD",
             isCheapest: true,
             isFastest: false,
             isBestValue: false,
@@ -3083,11 +3087,6 @@ export const fetchCheckoutRates = action({
         message: "No live shipping rates were returned from the configured providers.",
       });
     }
-
-    const rateContext = await ctx.runQuery(
-      internal.shipping.internals.getRateContextForSession,
-      { sessionToken: args.sessionToken },
-    );
 
     if (!rateContext?.checkoutSession?._id) {
       throw new ConvexError({
@@ -3155,9 +3154,8 @@ export const createShippingLabelForOrder = action({
     }
 
     throw new ConvexError({
-      code: "VALIDATION_ERROR",
-      message:
-        "Automatic label purchase is only available for orders created from a supported live-rate provider.",
+      code: "PROVIDER_NOT_SUPPORTED",
+      message: `Label purchase is not available for ${labelContext.order.shippingProvider?.toUpperCase() ?? "this provider"}. Supported: UPS, FedEx, ShipStation.`,
     });
   },
 });
@@ -3200,8 +3198,8 @@ export const syncShipmentTracking = action({
     }
 
     throw new ConvexError({
-      code: "VALIDATION_ERROR",
-      message: "Tracking sync is not implemented for this shipment provider.",
+      code: "PROVIDER_NOT_SUPPORTED",
+      message: `Tracking sync is not available for ${shipmentContext.shipment.provider?.toUpperCase() ?? "this provider"}. Supported: UPS, USPS, FedEx, ShipStation.`,
     });
   },
 });
