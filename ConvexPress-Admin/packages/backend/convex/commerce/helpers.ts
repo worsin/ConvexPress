@@ -87,6 +87,13 @@ export async function isCommerceReviewsEnabled(
   return settings.commerceEnabled && (settings as any).commerceReviewsEnabled;
 }
 
+export async function isCommerceWishlistsEnabled(
+  ctx: CommerceCtx,
+): Promise<boolean> {
+  const settings = await getPluginSettings(ctx);
+  return settings.commerceEnabled && (settings as any).commerceWishlistsEnabled;
+}
+
 export async function isMembershipPluginEnabled(
   ctx: CommerceCtx,
 ): Promise<boolean> {
