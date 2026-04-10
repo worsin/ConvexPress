@@ -428,4 +428,36 @@ export const commerceTables = {
   })
     .index("by_checkout", ["checkoutSessionId"])
     .index("by_product_status", ["productId", "status"]),
+
+  commerce_saved_payment_methods: defineTable({
+    userId: v.id("users"),
+    provider: v.string(),
+    providerMethodId: v.string(),
+    providerCustomerId: v.optional(v.string()),
+    type: v.string(),
+    brand: v.optional(v.string()),
+    last4: v.string(),
+    expiryMonth: v.optional(v.number()),
+    expiryYear: v.optional(v.number()),
+    isDefault: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_provider_method", ["providerMethodId"]),
+
+  commerce_webhook_events: defineTable({
+    provider: v.string(),
+    eventType: v.string(),
+    eventId: v.string(),
+    payload: v.optional(v.any()),
+    status: v.union(
+      v.literal("received"),
+      v.literal("processing"),
+      v.literal("processed"),
+      v.literal("failed"),
+    ),
+    errorMessage: v.optional(v.string()),
+    processedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_provider_event", ["provider", "eventId"]),
 };
