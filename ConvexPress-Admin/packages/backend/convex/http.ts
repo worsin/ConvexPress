@@ -370,7 +370,7 @@ http.route({
   handler: clerkWebhookHandler,
 });
 
-// ─── Stripe Webhook ─────────────────────────────────────────────────────────
+// ─── Stripe Webhook (with idempotency and dispute handling) ────────────────
 http.route({
   path: "/webhooks/stripe",
   method: "POST",
@@ -380,55 +380,468 @@ http.route({
 
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret || !signature) {
-      return new Response("Missing webhook secret or signature", {
-        status: 400,
-      });
+      return new Response(
+        JSON.stringify({ error: "Missing webhook secret or signature" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
     }
 
     // Dynamic import for Stripe SDK (Node.js action context)
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-    let event: any;
+    let webhookEventId: string | undefined;
+
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err: any) {
-      console.error("[Stripe Webhook] Signature verification failed:", err.message);
-      return new Response("Invalid signature", { status: 400 });
-    }
+      const event = stripe.webhooks.constructEvent(
+        body,
+        signature,
+        webhookSecret,
+      );
 
-    // Handle payment intent events
-    if (event.type === "payment_intent.succeeded") {
-      const intent = event.data.object;
-      await ctx.runMutation(
-        internal.commerce.payments.confirmPaymentSuccess,
+      // Log the webhook event and check for idempotency
+      const logResult = await ctx.runMutation(
+        internal.commerce.payments.logWebhookEvent,
         {
-          providerTransactionId: intent.id,
           provider: "stripe",
+          eventType: event.type,
+          eventId: event.id,
+          payload: body.substring(0, 10000), // Truncate large payloads
         },
       );
-    } else if (event.type === "payment_intent.payment_failed") {
-      const intent = event.data.object;
+
+      // If already processed, return 200 without re-processing
+      if (logResult.alreadyExists && logResult.status === "processed") {
+        return new Response(
+          JSON.stringify({ received: true, status: "already_processed" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      webhookEventId = logResult.eventId;
+
+      // Mark as processing
       await ctx.runMutation(
-        internal.commerce.payments.confirmPaymentFailure,
-        {
-          providerTransactionId: intent.id,
-          provider: "stripe",
-          error:
-            intent.last_payment_error?.message || "Payment failed",
-        },
+        internal.commerce.payments.markWebhookProcessing,
+        { eventId: logResult.eventId },
       );
-    } else if (event.type === "charge.refunded") {
-      // Refund confirmation handled via processStripeRefund action callback.
-      // This webhook event is logged but does not trigger a separate mutation
-      // to avoid double-processing (the action already calls completeRefund).
-      console.log(
-        "[Stripe Webhook] charge.refunded received:",
-        event.data.object.id,
+
+      // Handle different event types
+      switch (event.type) {
+        case "payment_intent.succeeded": {
+          const paymentIntent = event.data.object;
+          await ctx.runMutation(
+            internal.commerce.payments.confirmPaymentSuccess,
+            {
+              providerTransactionId: paymentIntent.id,
+              provider: "stripe",
+            },
+          );
+          break;
+        }
+
+        case "payment_intent.payment_failed": {
+          const paymentIntent = event.data.object;
+          await ctx.runMutation(
+            internal.commerce.payments.confirmPaymentFailure,
+            {
+              providerTransactionId: paymentIntent.id,
+              provider: "stripe",
+              error:
+                paymentIntent.last_payment_error?.message ?? "Payment failed",
+            },
+          );
+          break;
+        }
+
+        case "payment_intent.requires_action": {
+          // 3D Secure authentication required.
+          // Frontend handles 3DS via stripe.confirmCardPayment().
+          // Log for audit purposes only.
+          const paymentIntent = event.data.object;
+          console.log(
+            "[Stripe Webhook] 3DS required for:",
+            paymentIntent.id,
+          );
+          break;
+        }
+
+        case "payment_intent.canceled": {
+          const paymentIntent = event.data.object;
+          await ctx.runMutation(
+            internal.commerce.payments.confirmPaymentFailure,
+            {
+              providerTransactionId: paymentIntent.id,
+              provider: "stripe",
+              error: "Payment cancelled",
+            },
+          );
+          break;
+        }
+
+        case "charge.refunded": {
+          // Refund confirmation handled via processStripeRefund action callback.
+          // This webhook is logged for redundancy/audit.
+          console.log(
+            "[Stripe Webhook] charge.refunded received:",
+            event.data.object.id,
+          );
+          break;
+        }
+
+        case "charge.dispute.created": {
+          // Log dispute and warn admin
+          const dispute = event.data.object as {
+            id: string;
+            amount: number;
+            currency: string;
+            reason: string;
+            evidence_details?: { due_by?: number };
+            payment_intent?: string;
+          };
+          console.warn(
+            "[Stripe Webhook] Dispute created:",
+            dispute.id,
+            "Amount:",
+            dispute.amount,
+            "Reason:",
+            dispute.reason,
+          );
+          break;
+        }
+
+        default:
+          console.log("[Stripe Webhook] Unhandled event type:", event.type);
+      }
+
+      // Mark as processed
+      await ctx.runMutation(
+        internal.commerce.payments.markWebhookProcessed,
+        { eventId: logResult.eventId },
+      );
+
+      return new Response(
+        JSON.stringify({ received: true }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    } catch (error: any) {
+      console.error("[Stripe Webhook] Error:", error.message);
+
+      // Mark webhook as failed if we have an event ID
+      if (webhookEventId) {
+        try {
+          await ctx.runMutation(
+            internal.commerce.payments.markWebhookFailed,
+            {
+              eventId: webhookEventId as any,
+              errorMessage: error.message || "Unknown error",
+            },
+          );
+        } catch (markError) {
+          console.error(
+            "[Stripe Webhook] Failed to mark webhook as failed:",
+            markError,
+          );
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ error: "Webhook processing failed" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }),
+});
+
+// ─── PayPal Webhook ────────────────────────────────────────────────────────
+http.route({
+  path: "/webhooks/paypal",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const body = await request.text();
+    let payload: any;
+
+    try {
+      payload = JSON.parse(body);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
 
-    return new Response("OK", { status: 200 });
+    // ── PayPal Signature Verification ──────────────────────────────────────
+    const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+    if (!webhookId) {
+      console.error("[PayPal Webhook] PAYPAL_WEBHOOK_ID not configured");
+      return new Response(
+        JSON.stringify({ error: "Webhook not configured" }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    const transmissionId = request.headers.get("paypal-transmission-id");
+    const transmissionTime = request.headers.get("paypal-transmission-time");
+    const transmissionSignature = request.headers.get("paypal-transmission-sig");
+    const certUrl = request.headers.get("paypal-cert-url");
+    const authAlgo = request.headers.get("paypal-auth-algo");
+
+    if (
+      !transmissionId ||
+      !transmissionTime ||
+      !transmissionSignature ||
+      !certUrl ||
+      !authAlgo
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Missing PayPal signature headers" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    // Verify signature via PayPal API
+    const paypalClientId = process.env.PAYPAL_CLIENT_ID;
+    const paypalClientSecret = process.env.PAYPAL_CLIENT_SECRET;
+    const paypalMode = process.env.PAYPAL_MODE || "sandbox";
+    const paypalBaseUrl =
+      paypalMode === "live"
+        ? "https://api-m.paypal.com"
+        : "https://api-m.sandbox.paypal.com";
+
+    if (!paypalClientId || !paypalClientSecret) {
+      console.error("[PayPal Webhook] PayPal credentials not configured");
+      return new Response(
+        JSON.stringify({ error: "PayPal not configured" }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    try {
+      // Get PayPal access token
+      const tokenResponse = await fetch(
+        `${paypalBaseUrl}/v1/oauth2/token`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${btoa(`${paypalClientId}:${paypalClientSecret}`)}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: "grant_type=client_credentials",
+        },
+      );
+
+      if (!tokenResponse.ok) {
+        console.error(
+          "[PayPal Webhook] Failed to get access token:",
+          await tokenResponse.text(),
+        );
+        return new Response(
+          JSON.stringify({ error: "Signature verification failed" }),
+          { status: 401, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      const tokenBody = (await tokenResponse.json()) as {
+        access_token?: string;
+      };
+      const accessToken = tokenBody.access_token;
+
+      if (!accessToken) {
+        return new Response(
+          JSON.stringify({ error: "Signature verification failed" }),
+          { status: 401, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      // Verify webhook signature
+      const verifyResponse = await fetch(
+        `${paypalBaseUrl}/v1/notifications/verify-webhook-signature`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            transmission_id: transmissionId,
+            transmission_time: transmissionTime,
+            cert_url: certUrl,
+            auth_algo: authAlgo,
+            transmission_sig: transmissionSignature,
+            webhook_id: webhookId,
+            webhook_event: payload,
+          }),
+        },
+      );
+
+      if (!verifyResponse.ok) {
+        console.error(
+          "[PayPal Webhook] Verification request failed:",
+          await verifyResponse.text(),
+        );
+        return new Response(
+          JSON.stringify({ error: "Invalid webhook signature" }),
+          { status: 401, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      const verifyBody = (await verifyResponse.json()) as {
+        verification_status?: string;
+      };
+      if (verifyBody.verification_status !== "SUCCESS") {
+        return new Response(
+          JSON.stringify({ error: "Invalid webhook signature" }),
+          { status: 401, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    } catch (verifyError: any) {
+      console.error(
+        "[PayPal Webhook] Signature verification error:",
+        verifyError.message,
+      );
+      return new Response(
+        JSON.stringify({ error: "Signature verification failed" }),
+        { status: 401, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    // ── Signature verified — process events ────────────────────────────────
+    let webhookEventId: string | undefined;
+
+    try {
+      // Log the webhook event and check for idempotency
+      const logResult = await ctx.runMutation(
+        internal.commerce.payments.logWebhookEvent,
+        {
+          provider: "paypal",
+          eventType: payload.event_type,
+          eventId: payload.id, // PayPal includes event ID in payload
+          payload: body.substring(0, 10000),
+        },
+      );
+
+      // If already processed, return 200 without re-processing
+      if (logResult.alreadyExists && logResult.status === "processed") {
+        return new Response(
+          JSON.stringify({ received: true, status: "already_processed" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      webhookEventId = logResult.eventId;
+
+      // Mark as processing
+      await ctx.runMutation(
+        internal.commerce.payments.markWebhookProcessing,
+        { eventId: logResult.eventId },
+      );
+
+      switch (payload.event_type) {
+        case "PAYMENT.CAPTURE.COMPLETED": {
+          const orderId =
+            payload.resource?.supplementary_data?.related_ids?.order_id ||
+            payload.resource?.custom_id;
+
+          if (orderId) {
+            await ctx.runMutation(
+              internal.commerce.payments.confirmPaymentSuccess,
+              {
+                providerTransactionId: orderId,
+                provider: "paypal",
+              },
+            );
+          }
+          break;
+        }
+
+        case "PAYMENT.CAPTURE.DENIED": {
+          const orderId =
+            payload.resource?.supplementary_data?.related_ids?.order_id ||
+            payload.resource?.custom_id;
+
+          if (orderId) {
+            await ctx.runMutation(
+              internal.commerce.payments.confirmPaymentFailure,
+              {
+                providerTransactionId: orderId,
+                provider: "paypal",
+                error: "Payment denied by PayPal",
+              },
+            );
+          }
+          break;
+        }
+
+        case "PAYMENT.CAPTURE.REFUNDED": {
+          // Refund confirmation — we track this via our refund flow.
+          console.log(
+            "[PayPal Webhook] Refund received:",
+            payload.resource?.id,
+          );
+          break;
+        }
+
+        case "CHECKOUT.ORDER.APPROVED": {
+          // Customer approved the order — trigger capture
+          const paypalOrderId = payload.resource?.id;
+          const transactionId =
+            payload.resource?.purchase_units?.[0]?.custom_id;
+
+          if (paypalOrderId && transactionId) {
+            await ctx.runAction(
+              internal.commerce.paymentActions.capturePayPalOrderAction,
+              {
+                transactionId: transactionId as any,
+                paypalOrderId,
+              },
+            );
+          }
+          break;
+        }
+
+        default:
+          console.log(
+            "[PayPal Webhook] Unhandled event type:",
+            payload.event_type,
+          );
+      }
+
+      // Mark as processed
+      await ctx.runMutation(
+        internal.commerce.payments.markWebhookProcessed,
+        { eventId: logResult.eventId },
+      );
+
+      return new Response(
+        JSON.stringify({ received: true }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    } catch (error: any) {
+      console.error("[PayPal Webhook] Error:", error.message);
+
+      // Mark webhook as failed if we have an event ID
+      if (webhookEventId) {
+        try {
+          await ctx.runMutation(
+            internal.commerce.payments.markWebhookFailed,
+            {
+              eventId: webhookEventId as any,
+              errorMessage: error.message || "Unknown error",
+            },
+          );
+        } catch (markError) {
+          console.error(
+            "[PayPal Webhook] Failed to mark webhook as failed:",
+            markError,
+          );
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ error: "Webhook processing failed" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
   }),
 });
 
