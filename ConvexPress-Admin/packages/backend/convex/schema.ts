@@ -39,6 +39,8 @@ import { ticketTables } from "./schema/tickets";
 import { supportTables } from "./schema/support";
 import { themesTables } from "./schema/themes";
 import { layoutTables } from "./schema/layouts";
+import { commerceTables } from "./schema/commerce";
+import { commerceBundlesTables } from "./schema/commerceBundles";
 
 // ─── Compose Schema ──────────────────────────────────────────────────────────
 export default defineSchema({
@@ -78,4 +80,6 @@ export default defineSchema({
   ...supportTables,
   ...themesTables,
   ...layoutTables,
+  ...commerceTables,
+  ...commerceBundlesTables,
 });
