@@ -12,8 +12,57 @@ import {
   ArrowUp,
   ArrowDown,
   Pencil,
+  AlertTriangle,
 } from "lucide-react";
 import { api } from "@backend/convex/_generated/api";
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
+type BundleStatus = "draft" | "active" | "archived";
+type BundleType = "fixed" | "mix_and_match" | "bogo";
+type PricingType = "fixed" | "percent_off" | "amount_off" | "component_sum";
+
+interface BundleComponentData {
+  _id: string;
+  productId: string;
+  quantity: number;
+  isRequired: boolean;
+  label?: string;
+  sortOrder: number;
+  priceOverride?: number;
+  discountPercent?: number;
+  variantId?: string;
+  allowVariantChange?: boolean;
+  product?: {
+    _id: string;
+    title: string;
+    status?: string;
+    basePrice?: number | { amount: number };
+    productType?: string;
+  };
+  variant?: {
+    _id: string;
+    name?: string;
+  } | null;
+}
+
+interface BundleData {
+  _id: string;
+  name: string;
+  slug: string;
+  status: BundleStatus;
+  bundleType: BundleType;
+  pricingType: PricingType;
+  regularPrice?: number;
+  bundlePrice?: number;
+  fixedPrice?: number;
+  discountPercent?: number;
+  discountAmount?: number;
+  componentCount: number;
+  createdAt: number;
+}
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/commerce/bundles",
@@ -73,8 +122,8 @@ function CreateBundleForm({ onCreated }: { onCreated?: () => void }) {
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [bundleType, setBundleType] = useState<string>("fixed");
-  const [pricingType, setPricingType] = useState<string>("component_sum");
+  const [bundleType, setBundleType] = useState<BundleType>("fixed");
+  const [pricingType, setPricingType] = useState<PricingType>("component_sum");
   const [fixedPrice, setFixedPrice] = useState("");
   const [discountPercent, setDiscountPercent] = useState("");
   const [discountAmount, setDiscountAmount] = useState("");
@@ -98,8 +147,8 @@ function CreateBundleForm({ onCreated }: { onCreated?: () => void }) {
         name: name.trim(),
         slug: slug.trim(),
         description: description.trim() || undefined,
-        bundleType: bundleType as any,
-        pricingType: pricingType as any,
+        bundleType,
+        pricingType,
         fixedPrice:
           pricingType === "fixed" && fixedPrice
             ? displayToCents(fixedPrice)
@@ -183,7 +232,7 @@ function CreateBundleForm({ onCreated }: { onCreated?: () => void }) {
             </label>
             <select
               value={bundleType}
-              onChange={(e) => setBundleType(e.target.value)}
+              onChange={(e) => setBundleType(e.target.value as BundleType)}
               className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm"
             >
               <option value="fixed">Fixed (pre-set components)</option>
@@ -197,7 +246,7 @@ function CreateBundleForm({ onCreated }: { onCreated?: () => void }) {
             </label>
             <select
               value={pricingType}
-              onChange={(e) => setPricingType(e.target.value)}
+              onChange={(e) => setPricingType(e.target.value as PricingType)}
               className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm"
             >
               <option value="component_sum">Sum of Components</option>
@@ -377,23 +426,7 @@ function ComponentList({ bundleId }: { bundleId: string }) {
   const components = useQuery(
     (api as any).commerceBundles.queries.getComponents,
     { bundleId },
-  ) as
-    | Array<{
-        _id: string;
-        productId: string;
-        quantity: number;
-        isRequired: boolean;
-        label?: string;
-        sortOrder: number;
-        priceOverride?: number;
-        discountPercent?: number;
-        product?: {
-          _id: string;
-          title: string;
-          basePrice?: number | { amount: number };
-        };
-      }>
-    | undefined;
+  ) as BundleComponentData[] | undefined;
 
   const removeComponent = useMutation(
     (api as any).commerceBundles.mutations.removeComponent,
@@ -530,12 +563,12 @@ function ComponentList({ bundleId }: { bundleId: string }) {
 /*  Bundle Row (expandable)                                            */
 /* ------------------------------------------------------------------ */
 
-function BundleRow({ bundle }: { bundle: any }) {
+function BundleRow({ bundle }: { bundle: BundleData }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(bundle.name);
-  const [editStatus, setEditStatus] = useState(bundle.status);
-  const [editPricingType, setEditPricingType] = useState(bundle.pricingType);
+  const [editStatus, setEditStatus] = useState<BundleStatus>(bundle.status);
+  const [editPricingType, setEditPricingType] = useState<PricingType>(bundle.pricingType);
   const [editFixedPrice, setEditFixedPrice] = useState(
     bundle.fixedPrice ? (bundle.fixedPrice / 100).toFixed(2) : "",
   );
@@ -546,6 +579,14 @@ function BundleRow({ bundle }: { bundle: any }) {
     bundle.discountAmount ? (bundle.discountAmount / 100).toFixed(2) : "",
   );
 
+  const [publishErrors, setPublishErrors] = useState<string[]>([]);
+
+  // Fetch components when editing so we can validate before publish
+  const bundleComponents = useQuery(
+    (api as any).commerceBundles.queries.getComponents,
+    editing ? { bundleId: bundle._id } : "skip",
+  ) as BundleComponentData[] | undefined;
+
   const updateBundle = useMutation(
     (api as any).commerceBundles.mutations.update,
   );
@@ -553,13 +594,66 @@ function BundleRow({ bundle }: { bundle: any }) {
     (api as any).commerceBundles.mutations.remove,
   );
 
+  /**
+   * Validate that a bundle is ready to publish. Returns an array of
+   * human-readable error strings (empty = valid).
+   */
+  function validateForPublish(): string[] {
+    const errors: string[] = [];
+
+    if (!bundleComponents) {
+      errors.push("Component data is still loading. Please wait.");
+      return errors;
+    }
+
+    if (bundleComponents.length === 0) {
+      errors.push("Bundle must have at least 1 component product.");
+    }
+
+    for (const comp of bundleComponents) {
+      if (!comp.product) {
+        errors.push(
+          `Component "${comp.label || comp._id}" references a missing product.`,
+        );
+        continue;
+      }
+      if (comp.product.status && comp.product.status !== "publish" && comp.product.status !== "active") {
+        errors.push(
+          `Component product "${comp.product.title}" is not published (status: ${comp.product.status}).`,
+        );
+      }
+      // Variable products should have a variant selected
+      if (
+        comp.product.productType === "variable" &&
+        !comp.variantId &&
+        !comp.allowVariantChange
+      ) {
+        errors.push(
+          `Component "${comp.product.title}" is a variable product but has no variant selected.`,
+        );
+      }
+    }
+
+    return errors;
+  }
+
   async function handleSave() {
+    // Run pre-publish validation when transitioning to active
+    if (editStatus === "active" && bundle.status !== "active") {
+      const errors = validateForPublish();
+      if (errors.length > 0) {
+        setPublishErrors(errors);
+        return;
+      }
+    }
+    setPublishErrors([]);
+
     try {
       await updateBundle({
         id: bundle._id,
         name: editName.trim() || undefined,
-        status: editStatus as any,
-        pricingType: editPricingType as any,
+        status: editStatus,
+        pricingType: editPricingType,
         fixedPrice:
           editPricingType === "fixed" && editFixedPrice
             ? displayToCents(editFixedPrice)
@@ -694,7 +788,10 @@ function BundleRow({ bundle }: { bundle: any }) {
                   </label>
                   <select
                     value={editStatus}
-                    onChange={(e) => setEditStatus(e.target.value)}
+                    onChange={(e) => {
+                      setEditStatus(e.target.value as BundleStatus);
+                      setPublishErrors([]);
+                    }}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
                   >
                     <option value="draft">Draft</option>
@@ -708,7 +805,7 @@ function BundleRow({ bundle }: { bundle: any }) {
                   </label>
                   <select
                     value={editPricingType}
-                    onChange={(e) => setEditPricingType(e.target.value)}
+                    onChange={(e) => setEditPricingType(e.target.value as PricingType)}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
                   >
                     <option value="component_sum">Sum of Components</option>
@@ -754,6 +851,20 @@ function BundleRow({ bundle }: { bundle: any }) {
                   </div>
                 )}
               </div>
+              {/* Pre-publish validation errors */}
+              {publishErrors.length > 0 && (
+                <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-amber-900">
+                    <AlertTriangle className="h-4 w-4" />
+                    Cannot publish bundle
+                  </div>
+                  <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-amber-800">
+                    {publishErrors.map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <div className="mt-3 flex items-center gap-3">
                 <button
                   type="button"
@@ -806,20 +917,7 @@ function CommerceBundlesPage() {
   const bundles = useQuery(
     (api as any).commerceBundles.queries.list,
     {},
-  ) as
-    | Array<{
-        _id: string;
-        name: string;
-        slug: string;
-        status: string;
-        bundleType: string;
-        pricingType: string;
-        regularPrice?: number;
-        bundlePrice?: number;
-        componentCount: number;
-        createdAt: number;
-      }>
-    | undefined;
+  ) as BundleData[] | undefined;
 
   const activeCount =
     bundles?.filter((b) => b.status === "active").length ?? 0;
