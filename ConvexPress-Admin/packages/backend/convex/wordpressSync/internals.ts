@@ -14,8 +14,11 @@ import {
   type SyncPhase,
   type SyncError,
   type PhaseProgress,
+  type ImportConfig,
   PHASE_ORDER,
   getNextPhase,
+  shouldRunPhase,
+  createDefaultImportConfig,
   BATCH_DELAY_MS,
   MAX_PHASE_ERRORS,
   syncPhaseValidator,
@@ -50,6 +53,39 @@ export const getJobInternal = internalQuery({
   },
   handler: async (ctx, { jobId }) => {
     return await ctx.db.get(jobId);
+  },
+});
+
+/**
+ * Count/fetch reconciliation findings for a job (up to limit).
+ */
+export const countFindings = internalQuery({
+  args: { jobId: v.id("wordpressSyncJobs"), limit: v.number() },
+  handler: async (ctx, { jobId, limit }) => {
+    return await ctx.db
+      .query("wordpressSyncReconciliationFindings")
+      .withIndex("by_job_created", (q) => q.eq("jobId", jobId))
+      .take(limit);
+  },
+});
+
+/**
+ * Get a batch of ID mappings for a site, paginated by wpId.
+ */
+export const getMappingsBatch = internalQuery({
+  args: {
+    siteId: v.id("wordpressSites"),
+    objectType: v.string(),
+    afterWpId: v.number(),
+    limit: v.number(),
+  },
+  handler: async (ctx, { siteId, objectType, afterWpId, limit }) => {
+    return await ctx.db
+      .query("wpIdMappings")
+      .withIndex("by_wp_id", (q) =>
+        q.eq("siteId", siteId).eq("objectType", objectType as any).gt("wpId", afterWpId)
+      )
+      .take(limit);
   },
 });
 
@@ -177,6 +213,92 @@ export const completeJob = internalMutation({
       lastSyncAt: now,
       updatedAt: now,
     });
+
+    // Schedule report generation
+    await ctx.scheduler.runAfter(0, internal.wordpressSync.internals.generateFinalReport, { jobId });
+  },
+});
+
+/**
+ * Upsert a sync report for a completed job.
+ * Creates on first call, patches on subsequent calls.
+ */
+export const upsertReport = internalMutation({
+  args: {
+    jobId: v.id("wordpressSyncJobs"),
+    siteId: v.id("wordpressSites"),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    finalStatus: v.string(),
+    detectedCapabilities: v.object({
+      wpRest: v.boolean(),
+      wpAuthValid: v.boolean(),
+      wooRest: v.boolean(),
+      wooAuthValid: v.boolean(),
+      menusApi: v.boolean(),
+      customMetaEndpoint: v.boolean(),
+      elementorDetected: v.boolean(),
+      mediaAccessible: v.boolean(),
+    }),
+    importConfig: v.string(),
+    phaseCounts: v.string(),
+    totalCounts: v.object({
+      created: v.number(),
+      updated: v.number(),
+      skipped: v.number(),
+      conflicted: v.number(),
+      failed: v.number(),
+    }),
+    findingSummary: v.string(),
+    operatorSummary: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("wordpressSyncReports")
+      .withIndex("by_job", (q) => q.eq("jobId", args.jobId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        completedAt: args.completedAt,
+        finalStatus: args.finalStatus,
+        phaseCounts: args.phaseCounts,
+        totalCounts: args.totalCounts,
+        findingSummary: args.findingSummary,
+        operatorSummary: args.operatorSummary,
+      });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("wordpressSyncReports", {
+      ...args,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+/**
+ * Insert a single reconciliation finding.
+ */
+export const insertFinding = internalMutation({
+  args: {
+    siteId: v.id("wordpressSites"),
+    jobId: v.id("wordpressSyncJobs"),
+    severity: v.union(v.literal("error"), v.literal("warning"), v.literal("info")),
+    phase: v.string(),
+    code: v.optional(v.string()),
+    message: v.string(),
+    sourceType: v.optional(v.string()),
+    sourceId: v.optional(v.string()),
+    destinationTable: v.optional(v.string()),
+    wpId: v.optional(v.number()),
+    objectType: v.optional(v.string()),
+    convexId: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    createdAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("wordpressSyncReconciliationFindings", args);
   },
 });
 
@@ -269,6 +391,22 @@ export const runSyncPhase = internalAction({
     const phase = job.currentPhase;
     console.log(`[WP Sync] Running phase: ${phase} for job ${jobId}`);
 
+    // Get import config (default to all-enabled if not set)
+    const importConfig = job.importConfig ?? createDefaultImportConfig();
+
+    // Skip phases not in scope
+    if (!shouldRunPhase(phase, importConfig.scope)) {
+      console.log(`[WP Sync] Skipping phase ${phase} (not in scope) for job ${jobId}`);
+      const nextPhase = getNextPhase(phase);
+      if (nextPhase) {
+        await ctx.runMutation(internal.wordpressSync.internals.advancePhase, { jobId, phase: nextPhase });
+        await ctx.scheduler.runAfter(BATCH_DELAY_MS, internal.wordpressSync.internals.runSyncPhase, { jobId });
+      } else {
+        await ctx.runMutation(internal.wordpressSync.internals.completeJob, { jobId });
+      }
+      return;
+    }
+
     try {
       // Run the appropriate phase handler
       let result: PhaseResult;
@@ -321,6 +459,13 @@ export const runSyncPhase = internalAction({
             jobId,
             siteId: job.siteId,
           });
+          break;
+
+        case "reconciliation":
+          result = await ctx.runAction(
+            internal.wordpressSync.phases.reconciliation.runBatch,
+            { jobId, siteId: job.siteId, credentials }
+          );
           break;
 
         case "cleanup":
@@ -426,6 +571,85 @@ async function runCleanup(
     hasMore: false,
   };
 }
+
+// ─── Report Generation ───────────────────────────────────────────────────────
+
+/**
+ * Generate final sync report after job completion.
+ * Aggregates findings, computes totals, and stores an operator summary.
+ */
+export const generateFinalReport = internalAction({
+  args: { jobId: v.id("wordpressSyncJobs") },
+  handler: async (ctx, { jobId }) => {
+    const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
+    if (!job) return;
+
+    const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId: job.siteId });
+    if (!site) return;
+
+    // Count findings by severity and code
+    const findingCounts: Record<string, number> = { error: 0, warning: 0, info: 0 };
+    const codeCounts: Record<string, number> = {};
+    const SCAN_LIMIT = 1000;
+
+    const findings = await ctx.runQuery(internal.wordpressSync.internals.countFindings, {
+      jobId, limit: SCAN_LIMIT,
+    });
+
+    for (const f of findings) {
+      findingCounts[f.severity] = (findingCounts[f.severity] || 0) + 1;
+      if (f.code) codeCounts[f.code] = (codeCounts[f.code] || 0) + 1;
+    }
+
+    // Compute total counts from progress
+    const progress = job.progress;
+    let totalCreated = 0, totalUpdated = 0, totalSkipped = 0, totalConflicted = 0, totalFailed = 0;
+    for (const p of Object.values(progress)) {
+      totalCreated += (p as PhaseProgress).created || 0;
+      totalUpdated += (p as PhaseProgress).updated || 0;
+      totalSkipped += (p as PhaseProgress).skipped || 0;
+      totalConflicted += (p as PhaseProgress).conflicted || 0;
+      totalFailed += (p as PhaseProgress).failed || 0;
+    }
+
+    const importConfig = job.importConfig ?? createDefaultImportConfig();
+    const isDryRun = importConfig.behavior.dryRun;
+
+    const summary = isDryRun
+      ? `Dry run complete. Would create ${totalCreated}, update ${totalUpdated}, skip ${totalSkipped}. ${findingCounts.error} errors, ${findingCounts.warning} warnings.`
+      : `Import complete. Created ${totalCreated}, updated ${totalUpdated}, skipped ${totalSkipped}, failed ${totalFailed}. ${findingCounts.error} errors, ${findingCounts.warning} warnings.`;
+
+    const capabilities = site.capabilities ?? {
+      wpRest: false, wpAuthValid: false, menusApi: false,
+      woocommerceApi: false, wooAuthValid: false,
+      customMetaEndpointConfigured: false, customMetaEndpointDetected: false,
+      elementorDetected: false, mediaAccessible: false,
+    };
+
+    await ctx.runMutation(internal.wordpressSync.internals.upsertReport, {
+      jobId,
+      siteId: job.siteId,
+      startedAt: job.startedAt || job.createdAt,
+      completedAt: job.completedAt || Date.now(),
+      finalStatus: job.status,
+      detectedCapabilities: {
+        wpRest: capabilities.wpRest ?? false,
+        wpAuthValid: capabilities.wpAuthValid ?? false,
+        wooRest: capabilities.woocommerceApi ?? false,
+        wooAuthValid: capabilities.wooAuthValid ?? false,
+        menusApi: capabilities.menusApi ?? false,
+        customMetaEndpoint: capabilities.customMetaEndpointDetected ?? false,
+        elementorDetected: capabilities.elementorDetected ?? false,
+        mediaAccessible: capabilities.mediaAccessible ?? false,
+      },
+      importConfig: JSON.stringify(importConfig),
+      phaseCounts: JSON.stringify(progress),
+      totalCounts: { created: totalCreated, updated: totalUpdated, skipped: totalSkipped, conflicted: totalConflicted, failed: totalFailed },
+      findingSummary: JSON.stringify({ bySeverity: findingCounts, byCode: codeCounts }),
+      operatorSummary: summary,
+    });
+  },
+});
 
 // ─── Cron Cleanup Functions ─────────────────────────────────────────────────
 
