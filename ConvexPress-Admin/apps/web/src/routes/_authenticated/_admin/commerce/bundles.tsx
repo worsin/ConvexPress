@@ -13,6 +13,7 @@ import {
   ArrowDown,
   Pencil,
   AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import { api } from "@backend/convex/_generated/api";
 
@@ -61,6 +62,9 @@ interface BundleData {
   discountPercent?: number;
   discountAmount?: number;
   componentCount: number;
+  trackInventory?: boolean;
+  stockCount?: number;
+  images?: string[];
   createdAt: number;
 }
 
@@ -128,12 +132,20 @@ function CreateBundleForm({ onCreated }: { onCreated?: () => void }) {
   const [discountPercent, setDiscountPercent] = useState("");
   const [discountAmount, setDiscountAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [trackInventory, setTrackInventory] = useState(false);
+  const [stockCount, setStockCount] = useState("");
+  const [imagesText, setImagesText] = useState("");
   const [creating, setCreating] = useState(false);
 
   function handleNameChange(value: string) {
     setName(value);
     setSlug(slugify(value));
   }
+
+  const parsedImages = imagesText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 
   async function handleCreate() {
     if (!name.trim() || !slug.trim()) {
@@ -161,6 +173,9 @@ function CreateBundleForm({ onCreated }: { onCreated?: () => void }) {
           pricingType === "amount_off" && discountAmount
             ? displayToCents(discountAmount)
             : undefined,
+        trackInventory: trackInventory || undefined,
+        stockCount: trackInventory && stockCount ? Number(stockCount) : undefined,
+        images: parsedImages.length > 0 ? parsedImages : undefined,
       });
 
       setName("");
@@ -171,6 +186,9 @@ function CreateBundleForm({ onCreated }: { onCreated?: () => void }) {
       setDiscountAmount("");
       setBundleType("fixed");
       setPricingType("component_sum");
+      setTrackInventory(false);
+      setStockCount("");
+      setImagesText("");
       toast.success("Bundle created");
       onCreated?.();
     } catch (error) {
@@ -298,6 +316,55 @@ function CreateBundleForm({ onCreated }: { onCreated?: () => void }) {
             />
           </div>
         )}
+
+        {/* Inventory tracking */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={trackInventory}
+              onChange={(e) => setTrackInventory(e.target.checked)}
+              className="rounded"
+            />
+            Track inventory
+          </label>
+          {trackInventory && (
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Stock Count
+              </label>
+              <input
+                value={stockCount}
+                onChange={(e) => setStockCount(e.target.value)}
+                placeholder="100"
+                type="number"
+                min="0"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Images */}
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+            Images (one URL per line)
+          </label>
+          <textarea
+            value={imagesText}
+            onChange={(e) => setImagesText(e.target.value)}
+            placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg"
+            rows={2}
+            className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm"
+          />
+          {parsedImages.length > 0 && (
+            <div className="mt-2 flex gap-2">
+              {parsedImages.filter(Boolean).slice(0, 4).map((url, i) => (
+                <img key={i} src={url} alt="" className="h-16 w-16 rounded border border-border object-cover" />
+              ))}
+            </div>
+          )}
+        </div>
 
         <button
           type="button"
@@ -578,8 +645,20 @@ function BundleRow({ bundle }: { bundle: BundleData }) {
   const [editDiscountAmount, setEditDiscountAmount] = useState(
     bundle.discountAmount ? (bundle.discountAmount / 100).toFixed(2) : "",
   );
+  const [editTrackInventory, setEditTrackInventory] = useState(bundle.trackInventory ?? false);
+  const [editStockCount, setEditStockCount] = useState(
+    bundle.stockCount?.toString() ?? "",
+  );
+  const [editImagesText, setEditImagesText] = useState(
+    (bundle.images ?? []).join("\n"),
+  );
 
   const [publishErrors, setPublishErrors] = useState<string[]>([]);
+
+  const editParsedImages = editImagesText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 
   // Fetch components when editing so we can validate before publish
   const bundleComponents = useQuery(
@@ -666,6 +745,9 @@ function BundleRow({ bundle }: { bundle: BundleData }) {
           editPricingType === "amount_off" && editDiscountAmount
             ? displayToCents(editDiscountAmount)
             : undefined,
+        trackInventory: editTrackInventory,
+        stockCount: editTrackInventory && editStockCount ? Number(editStockCount) : undefined,
+        images: editParsedImages.length > 0 ? editParsedImages : undefined,
       });
       setEditing(false);
       toast.success("Bundle updated");
@@ -741,6 +823,17 @@ function BundleRow({ bundle }: { bundle: BundleData }) {
         <div className="text-sm font-medium text-foreground">{displayPrice}</div>
 
         <div className="flex items-center justify-end gap-2">
+          {bundle.status === "active" && (
+            <a
+              href={`/bundles/${bundle.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded p-1.5 text-muted-foreground hover:bg-muted"
+              title="View on storefront"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -851,6 +944,51 @@ function BundleRow({ bundle }: { bundle: BundleData }) {
                   </div>
                 )}
               </div>
+              {/* Inventory management */}
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={editTrackInventory}
+                    onChange={(e) => setEditTrackInventory(e.target.checked)}
+                    className="rounded"
+                  />
+                  Track inventory
+                </label>
+                {editTrackInventory && (
+                  <div>
+                    <label className="mb-1 block text-xs text-muted-foreground">
+                      Stock Count
+                    </label>
+                    <input
+                      value={editStockCount}
+                      onChange={(e) => setEditStockCount(e.target.value)}
+                      type="number"
+                      min="0"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+              </div>
+              {/* Images */}
+              <div className="mt-3">
+                <label className="mb-1 block text-xs text-muted-foreground">
+                  Images (one URL per line)
+                </label>
+                <textarea
+                  value={editImagesText}
+                  onChange={(e) => setEditImagesText(e.target.value)}
+                  rows={2}
+                  className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                />
+                {editParsedImages.length > 0 && (
+                  <div className="mt-2 flex gap-2">
+                    {editParsedImages.filter(Boolean).slice(0, 4).map((url, i) => (
+                      <img key={i} src={url} alt="" className="h-16 w-16 rounded border border-border object-cover" />
+                    ))}
+                  </div>
+                )}
+              </div>
               {/* Pre-publish validation errors */}
               {publishErrors.length > 0 && (
                 <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
@@ -919,11 +1057,75 @@ function CommerceBundlesPage() {
     {},
   ) as BundleData[] | undefined;
 
+  const stats = useQuery(
+    (api as any).commerceBundles.queries.getStats,
+    {},
+  ) as { total: number; active: number; draft: number; archived: number; unlinked: number; draftsBlocked: number } | undefined;
+
+  const lowStockBundles = useQuery(
+    (api as any).commerceBundles.queries.getLowStock,
+    {},
+  ) as Array<{ _id: string; name: string; slug: string; stockCount: number }> | undefined;
+
+  const backfill = useMutation(
+    (api as any).commerceBundles.mutations.backfillOwningProducts,
+  );
+
+  const [backfilling, setBackfilling] = useState(false);
+
+  async function handleBackfill() {
+    setBackfilling(true);
+    try {
+      await backfill({});
+      toast.success("Backfill complete");
+    } catch (error) {
+      toast.error("Backfill failed");
+    } finally {
+      setBackfilling(false);
+    }
+  }
+
   const activeCount =
     bundles?.filter((b) => b.status === "active").length ?? 0;
 
   return (
     <div className="space-y-8">
+      {/* Backfill banner */}
+      {stats && stats.unlinked > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm">
+          <p className="font-medium text-amber-800">
+            {stats.unlinked} bundle{stats.unlinked === 1 ? "" : "s"} need product linking
+          </p>
+          <p className="mt-1 text-amber-700">
+            These bundles were created before the product linkage system. Run backfill to create associated product entries.
+          </p>
+          <button
+            type="button"
+            onClick={() => void handleBackfill()}
+            disabled={backfilling}
+            className="mt-2 text-amber-700 underline disabled:opacity-50"
+          >
+            {backfilling ? "Running..." : "Run backfill now"}
+          </button>
+        </div>
+      )}
+
+      {/* Low stock alerts */}
+      {lowStockBundles && lowStockBundles.length > 0 && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm">
+          <p className="font-medium text-rose-800">
+            {lowStockBundles.length} bundle{lowStockBundles.length === 1 ? "" : "s"} with low stock
+          </p>
+          <ul className="mt-2 space-y-1">
+            {lowStockBundles.slice(0, 5).map((b) => (
+              <li key={b._id} className="text-rose-700">
+                {b.name} — {b.stockCount} remaining
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">

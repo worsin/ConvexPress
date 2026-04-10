@@ -347,19 +347,45 @@ function BundleDetailPage() {
           {/* Item count for configurable */}
           {isConfigurable && (
             <div className="rounded-xl bg-muted/40 p-3 text-sm text-muted-foreground">
-              {totalSelectedItems} item{totalSelectedItems === 1 ? "" : "s"}{" "}
-              selected
-              {bundle.minItems && (
-                <span className="ml-1">(min {bundle.minItems})</span>
-              )}
-              {bundle.maxItems && (
-                <span className="ml-1">(max {bundle.maxItems})</span>
-              )}
-              {!meetsMinItems && (
-                <span className="ml-2 text-amber-600">
-                  Need {bundle.minItems! - totalSelectedItems} more
+              <div className="flex items-center justify-between">
+                <span>
+                  {totalSelectedItems} item{totalSelectedItems === 1 ? "" : "s"}{" "}
+                  selected
+                  {bundle.minItems && (
+                    <span className="ml-1">(min {bundle.minItems})</span>
+                  )}
+                  {bundle.maxItems && (
+                    <span className="ml-1">(max {bundle.maxItems})</span>
+                  )}
+                  {!meetsMinItems && (
+                    <span className="ml-2 text-amber-600">
+                      Need {bundle.minItems! - totalSelectedItems} more
+                    </span>
+                  )}
                 </span>
-              )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const defaults = new Map<
+                      string,
+                      { componentId: string; productId: string; quantity: number }
+                    >();
+                    bundle!.components
+                      .filter((c) => c.isRequired || c.isDefault)
+                      .forEach((c) =>
+                        defaults.set(c._id, {
+                          componentId: c._id,
+                          productId: c.productId,
+                          quantity: c.minQuantity ?? c.quantity,
+                        }),
+                      );
+                    setSelections(defaults);
+                  }}
+                  className="text-sm text-muted-foreground underline hover:text-foreground"
+                >
+                  Reset to defaults
+                </button>
+              </div>
             </div>
           )}
 
