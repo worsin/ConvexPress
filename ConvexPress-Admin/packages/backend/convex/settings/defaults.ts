@@ -210,12 +210,18 @@ export interface PrivacySettings {
 export interface AISettings {
   /** AI provider: "openrouter" or "anthropic" */
   provider: "openrouter" | "anthropic";
-  /** API key for the selected provider */
-  apiKey: string;
   /** Default model identifier */
   defaultModel: string;
-  /** Tavily API key for research features */
-  tavilyApiKey: string;
+  /**
+   * @deprecated API keys are now stored in encrypted service_secrets.
+   * Kept for backward compatibility during migration.
+   */
+  apiKey?: string;
+  /**
+   * @deprecated API keys are now stored in encrypted service_secrets.
+   * Kept for backward compatibility during migration.
+   */
+  tavilyApiKey?: string;
 }
 
 export interface EmailSettings {
@@ -260,8 +266,11 @@ export interface EmailSettings {
 export interface SearchSettings {
   /** Meilisearch host URL (e.g., http://localhost:7700 or cloud URL) */
   meilisearchHost: string;
-  /** Meilisearch API key for authentication */
-  meilisearchApiKey: string;
+  /**
+   * @deprecated API keys are now stored in encrypted service_secrets.
+   * Kept for backward compatibility during migration.
+   */
+  meilisearchApiKey?: string;
 }
 
 export interface CommerceGeneralSettings {

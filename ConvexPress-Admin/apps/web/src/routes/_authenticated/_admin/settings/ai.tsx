@@ -25,6 +25,7 @@ import {
   EyeOff,
   ExternalLink,
   Search,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +72,16 @@ function AISettingsPage() {
     section: "ai" as any,
   });
   const updateSection = useMutation(api.settings.mutations.updateSection);
+  const saveSecret = useMutation(api.settings.secrets.saveServiceSecret);
+  const deleteSecret = useMutation(api.settings.secrets.deleteServiceSecret);
+
+  // Check encrypted secret existence (not the value, just whether one is stored)
+  const hasProviderKey = useQuery(api.settings.secrets.hasServiceSecret, {
+    service: "ai.provider",
+  });
+  const hasTavilyKey = useQuery(api.settings.secrets.hasServiceSecret, {
+    service: "ai.tavily",
+  });
 
   // Form state
   const [provider, setProvider] = useState<"openrouter" | "anthropic">(
@@ -81,6 +92,10 @@ function AISettingsPage() {
     "anthropic/claude-sonnet-4-20250514",
   );
   const [tavilyApiKey, setTavilyApiKey] = useState("");
+
+  // Track whether user has typed a new key (vs. showing placeholder for existing)
+  const [apiKeyDirty, setApiKeyDirty] = useState(false);
+  const [tavilyKeyDirty, setTavilyKeyDirty] = useState(false);
 
   // UI state
   const [showApiKey, setShowApiKey] = useState(false);
@@ -97,16 +112,24 @@ function AISettingsPage() {
     message: string;
   } | null>(null);
 
-  // Initialize form from stored settings
+  // Initialize form from stored settings (non-secret fields only)
   useEffect(() => {
     if (settings && settings !== null) {
       const s = settings as any;
       if (s.provider) setProvider(s.provider);
-      if (s.apiKey) setApiKey(s.apiKey);
       if (s.defaultModel) setDefaultModel(s.defaultModel);
-      if (s.tavilyApiKey) setTavilyApiKey(s.tavilyApiKey);
+      // Legacy migration: if apiKey is still in settings, pre-fill so user
+      // can save to migrate it to encrypted storage
+      if (s.apiKey && !hasProviderKey) {
+        setApiKey(s.apiKey);
+        setApiKeyDirty(true);
+      }
+      if (s.tavilyApiKey && !hasTavilyKey) {
+        setTavilyApiKey(s.tavilyApiKey);
+        setTavilyKeyDirty(true);
+      }
     }
-  }, [settings]);
+  }, [settings, hasProviderKey, hasTavilyKey]);
 
   // Reset model when provider changes
   const handleProviderChange = useCallback(
@@ -128,15 +151,39 @@ function AISettingsPage() {
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
+      // Save non-secret settings (provider, model) to the settings table.
+      // API keys are stored encrypted in service_secrets, NOT in settings.
       await updateSection({
         section: "ai" as any,
         values: {
           provider,
-          apiKey,
           defaultModel,
-          tavilyApiKey,
         },
       });
+
+      // Save API keys to encrypted secret storage (only if user entered a new value)
+      if (apiKeyDirty && apiKey.trim()) {
+        await saveSecret({ service: "ai.provider", secret: apiKey.trim() });
+      } else if (apiKeyDirty && !apiKey.trim()) {
+        // User cleared the key
+        await deleteSecret({ service: "ai.provider" });
+      }
+
+      if (tavilyKeyDirty && tavilyApiKey.trim()) {
+        await saveSecret({
+          service: "ai.tavily",
+          secret: tavilyApiKey.trim(),
+        });
+      } else if (tavilyKeyDirty && !tavilyApiKey.trim()) {
+        await deleteSecret({ service: "ai.tavily" });
+      }
+
+      // Reset dirty flags after successful save
+      setApiKeyDirty(false);
+      setTavilyKeyDirty(false);
+      setApiKey("");
+      setTavilyApiKey("");
+
       toast.success("AI settings saved successfully.");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
@@ -144,7 +191,17 @@ function AISettingsPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [provider, apiKey, defaultModel, tavilyApiKey, updateSection]);
+  }, [
+    provider,
+    apiKey,
+    defaultModel,
+    tavilyApiKey,
+    apiKeyDirty,
+    tavilyKeyDirty,
+    updateSection,
+    saveSecret,
+    deleteSecret,
+  ]);
 
   // ─── Test AI Connection ───────────────────────────────────────────────────
 
@@ -388,19 +445,31 @@ function AISettingsPage() {
                   ? "OpenRouter API Key"
                   : "Anthropic API Key"}
               </label>
+
+              {/* Encrypted key indicator */}
+              {hasProviderKey && !apiKeyDirty && (
+                <div className="flex items-center gap-1.5 mb-2 text-xs text-success">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <span>API key is stored securely (encrypted)</span>
+                </div>
+              )}
+
               <div className="relative">
                 <input
                   id="ai-api-key"
                   type={showApiKey ? "text" : "password"}
-                  value={apiKey}
+                  value={apiKeyDirty ? apiKey : ""}
                   onChange={(e) => {
                     setApiKey(e.target.value);
+                    setApiKeyDirty(true);
                     setTestResult(null);
                   }}
                   placeholder={
-                    provider === "openrouter"
-                      ? "sk-or-v1-..."
-                      : "sk-ant-api03-..."
+                    hasProviderKey && !apiKeyDirty
+                      ? "Enter a new key to replace the existing one"
+                      : provider === "openrouter"
+                        ? "sk-or-v1-..."
+                        : "sk-ant-api03-..."
                   }
                   className="w-full rounded-md border border-border bg-background px-3 py-2 pr-10 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
@@ -505,7 +574,7 @@ function AISettingsPage() {
             <button
               type="button"
               onClick={handleTestConnection}
-              disabled={isTesting || !apiKey.trim()}
+              disabled={isTesting || (!apiKey.trim() && !hasProviderKey)}
               className={cn(
                 "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",
                 "border border-border bg-background text-foreground hover:bg-muted",
@@ -548,16 +617,30 @@ function AISettingsPage() {
               >
                 Tavily API Key
               </label>
+
+              {/* Encrypted key indicator */}
+              {hasTavilyKey && !tavilyKeyDirty && (
+                <div className="flex items-center gap-1.5 mb-2 text-xs text-success">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <span>API key is stored securely (encrypted)</span>
+                </div>
+              )}
+
               <div className="relative">
                 <input
                   id="tavily-api-key"
                   type={showTavilyKey ? "text" : "password"}
-                  value={tavilyApiKey}
+                  value={tavilyKeyDirty ? tavilyApiKey : ""}
                   onChange={(e) => {
                     setTavilyApiKey(e.target.value);
+                    setTavilyKeyDirty(true);
                     setTavilyTestResult(null);
                   }}
-                  placeholder="tvly-..."
+                  placeholder={
+                    hasTavilyKey && !tavilyKeyDirty
+                      ? "Enter a new key to replace the existing one"
+                      : "tvly-..."
+                  }
                   className="w-full rounded-md border border-border bg-background px-3 py-2 pr-10 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
                 <button
@@ -618,7 +701,7 @@ function AISettingsPage() {
             <button
               type="button"
               onClick={handleTestTavily}
-              disabled={isTavilyTesting || !tavilyApiKey.trim()}
+              disabled={isTavilyTesting || (!tavilyApiKey.trim() && !hasTavilyKey)}
               className={cn(
                 "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",
                 "border border-border bg-background text-foreground hover:bg-muted",

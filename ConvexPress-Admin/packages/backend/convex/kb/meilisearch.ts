@@ -24,6 +24,12 @@ import { v, ConvexError } from "convex/values";
 
 /**
  * Resolve Meilisearch URL and API key from the kb.search settings section.
+ *
+ * API key resolution order:
+ *   1. Encrypted service_secrets (service: "kb.search.meilisearch")
+ *   2. Legacy plain-text in kb.search settings (backward compatibility)
+ *   3. MEILISEARCH_API_KEY env var
+ *
  * Throws CONFIGURATION_ERROR if Meilisearch is not enabled or misconfigured.
  */
 async function resolveMeilisearchConfig(
@@ -44,7 +50,18 @@ async function resolveMeilisearchConfig(
   }
 
   const url = (settings?.meilisearchUrl as string) ?? "";
-  const apiKey = (settings?.meilisearchApiKey as string) ?? "";
+
+  // Resolve API key: encrypted secret -> legacy settings -> env var
+  const encryptedKey = await ctx.runQuery(
+    internal.settings.secrets.getServiceSecret,
+    { service: "kb.search.meilisearch" },
+  ) as string | null;
+
+  const apiKey =
+    encryptedKey ??
+    ((settings?.meilisearchApiKey as string) || "").trim() ||
+    process.env.MEILISEARCH_API_KEY ??
+    "";
 
   if (!url || !apiKey) {
     throw new ConvexError({

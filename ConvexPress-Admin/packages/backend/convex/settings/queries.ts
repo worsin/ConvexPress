@@ -96,6 +96,16 @@ export const getBySection = query({
       ? { ...defaults, ...(doc.values as Record<string, unknown>) }
       : { ...defaults };
 
+    // Strip secret fields from sections that now use encrypted service_secrets.
+    // This prevents legacy plain-text keys from leaking to the client.
+    if (section === "ai") {
+      delete values.apiKey;
+      delete values.tavilyApiKey;
+    }
+    if (section === "search") {
+      delete values.meilisearchApiKey;
+    }
+
     return {
       ...values,
       _id: doc?._id ?? null,
@@ -260,9 +270,22 @@ export const exportAll = query({
         .withIndex("by_section", (q) => q.eq("section", section))
         .unique();
 
-      settings[section] = doc
+      const values = doc
         ? { ...defaults, ...(doc.values as Record<string, unknown>) }
         : { ...defaults };
+
+      // Strip secret fields from exported settings.
+      // These are now stored encrypted in service_secrets and should not
+      // be included in plain-text exports.
+      if (section === "ai") {
+        delete values.apiKey;
+        delete values.tavilyApiKey;
+      }
+      if (section === "search") {
+        delete values.meilisearchApiKey;
+      }
+
+      settings[section] = values;
     }
 
     return {

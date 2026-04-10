@@ -202,27 +202,39 @@ export const getSupportAiSettings = internalQuery({
       .withIndex("by_section", (q) => q.eq("section", "support.ai"))
       .unique();
 
-    if (!doc) {
-      return {
-        aiProvider: null,
-        aiApiKey: null,
-        aiModel: null,
-        meilisearchEnabled: false,
-        meilisearchUrl: null,
-        meilisearchApiKey: null,
-        ragEnabled: false,
-      };
-    }
+    const values = doc ? (doc.values as Record<string, unknown>) : {};
 
-    const values = doc.values as Record<string, unknown>;
+    // Read encrypted secrets for support AI and Meilisearch keys
+    const encryptedAiKey = await ctx.db
+      .query("service_secrets")
+      .withIndex("by_service", (q) => q.eq("service", "support.ai"))
+      .unique();
+
+    const encryptedMeilisearchKey = await ctx.db
+      .query("service_secrets")
+      .withIndex("by_service", (q) => q.eq("service", "support.meilisearch"))
+      .unique();
+
+    // For encrypted secrets in internalQuery, we cannot decrypt (no crypto in query runtime).
+    // We check for existence here; the action that actually needs the decrypted value
+    // should call internal.settings.secrets.getServiceSecret separately.
+    // For backward compatibility, return legacy plain-text values if no encrypted secret exists.
+    const hasEncryptedAiKey = encryptedAiKey !== null;
+    const hasEncryptedMeilisearchKey = encryptedMeilisearchKey !== null;
 
     return {
       aiProvider: (values.aiProvider as string | null) ?? null,
-      aiApiKey: (values.aiApiKey as string | null) ?? null,
+      // If encrypted key exists, return a sentinel; the action layer reads the real value.
+      // If no encrypted key, return legacy plain-text value for backward compatibility.
+      aiApiKey: hasEncryptedAiKey
+        ? "__encrypted__"
+        : (values.aiApiKey as string | null) ?? null,
       aiModel: (values.aiModel as string | null) ?? null,
       meilisearchEnabled: (values.meilisearchEnabled as boolean) ?? false,
       meilisearchUrl: (values.meilisearchUrl as string | null) ?? null,
-      meilisearchApiKey: (values.meilisearchApiKey as string | null) ?? null,
+      meilisearchApiKey: hasEncryptedMeilisearchKey
+        ? "__encrypted__"
+        : (values.meilisearchApiKey as string | null) ?? null,
       ragEnabled: (values.ragEnabled as boolean) ?? false,
     };
   },

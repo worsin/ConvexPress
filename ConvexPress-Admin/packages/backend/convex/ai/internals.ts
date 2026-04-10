@@ -17,28 +17,55 @@
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
-import { resolveServiceKey } from "../helpers/serviceKeys";
 
 // ─── Settings Helper ────────────────────────────────────────────────────────
 
 /**
- * Read AI settings from the settings table, falling back to env vars.
- * Uses the shared resolveServiceKey helper for consistent key resolution.
- * Returns resolved provider, apiKey, model, and tavilyApiKey.
+ * Read AI settings from the settings table and encrypted secrets.
+ *
+ * Non-secret settings (provider, defaultModel) come from the settings table.
+ * Secret keys (apiKey, tavilyApiKey) come from encrypted service_secrets,
+ * with env var fallback for backward compatibility.
  */
 async function resolveAiSettings(ctx: {
   runQuery: (query: any, args?: any) => Promise<any>;
 }) {
+  // Read non-secret settings
   const settings = (await ctx.runQuery(
     internal.settings.internals.getInternal,
     { section: "ai" },
   )) as Record<string, unknown> | null;
 
+  // Read encrypted secrets (returns null if not stored)
+  const encryptedApiKey = await ctx.runQuery(
+    internal.settings.secrets.getServiceSecret,
+    { service: "ai.provider" },
+  ) as string | null;
+
+  const encryptedTavilyKey = await ctx.runQuery(
+    internal.settings.secrets.getServiceSecret,
+    { service: "ai.tavily" },
+  ) as string | null;
+
+  // Resolve API key: encrypted secret -> legacy settings -> env var
+  const apiKey =
+    encryptedApiKey ??
+    ((settings?.apiKey as string) || "").trim() ||
+    process.env.ANTHROPIC_API_KEY ??
+    "";
+
+  // Resolve Tavily key: encrypted secret -> legacy settings -> env var
+  const tavilyApiKey =
+    encryptedTavilyKey ??
+    ((settings?.tavilyApiKey as string) || "").trim() ||
+    process.env.TAVILY_API_KEY ??
+    "";
+
   return {
     provider: ((settings?.provider as string) || "anthropic") as "openrouter" | "anthropic",
-    apiKey: resolveServiceKey(settings, "apiKey", "ANTHROPIC_API_KEY") ?? "",
+    apiKey,
     defaultModel: (settings?.defaultModel as string) || "claude-sonnet-4-20250514",
-    tavilyApiKey: resolveServiceKey(settings, "tavilyApiKey", "TAVILY_API_KEY") ?? "",
+    tavilyApiKey,
   };
 }
 
