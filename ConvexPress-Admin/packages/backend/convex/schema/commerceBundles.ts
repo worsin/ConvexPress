@@ -53,6 +53,10 @@ export const commerceBundlesTables = {
     // Inventory
     stockCount: v.optional(v.number()),
     trackInventory: v.optional(v.boolean()),
+    // allowPartialStock: When true, the bundle can be purchased even if not all
+    // optional components are in stock. Required components must always be in stock.
+    // This only applies to configurable/mix-and-match bundles, not fixed bundles.
+    // Used by checkAvailability in queries.ts (line ~431).
     allowPartialStock: v.optional(v.boolean()),
 
     // Taxonomy & SEO
@@ -105,6 +109,11 @@ export const commerceBundlesTables = {
    * Ported from VexCart bundle_selections. Captures the exact component
    * choices a shopper made, linked to a cart item, together with the
    * resolved total price at the time of selection.
+   *
+   * LEGACY/STAGING NOTE: This table is actively used during cart configuration
+   * for mix-and-match and BOGO bundles. Rows may accumulate over time as cart
+   * sessions are abandoned. Use cleanupStaleBundleSelections (internals.ts) to
+   * prune stale records older than 30 days that aren't linked to active orders.
    */
   commerce_bundle_selections: defineTable({
     bundleId: v.id("commerce_bundles"),

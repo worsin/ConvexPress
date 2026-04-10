@@ -441,6 +441,102 @@ export const checkAvailability = query({
 });
 
 // ============================================
+// PRODUCT-BUNDLE RELATIONSHIP QUERIES
+// ============================================
+
+/**
+ * Check if a product is used as a component in any active bundle.
+ *
+ * Used by the product editor to:
+ * - Show a notice: "This product is a component of bundle X. Edit bundle settings there."
+ * - Prevent trashing/archiving a product that is in an active bundle.
+ *
+ * TODO (FIX 7): When the product editor page is built, use this query to display
+ * a bundle-backed product notice and disable destructive status changes.
+ */
+export const getBundlesForProduct = query({
+  args: { productId: v.id("commerce_products") },
+  handler: async (ctx: any, args: any) => {
+    await requireCommerceBundlesEnabled(ctx);
+
+    const components = await ctx.db
+      .query("commerce_bundle_components")
+      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+      .collect();
+
+    if (components.length === 0) return [];
+
+    // Resolve bundle details for each component
+    const bundleIds = [...new Set(components.map((c: any) => c.bundleId))];
+    const bundles = await Promise.all(
+      bundleIds.map(async (id: any) => {
+        const bundle = await ctx.db.get(id);
+        if (!bundle) return null;
+        return {
+          _id: bundle._id,
+          name: bundle.name,
+          slug: bundle.slug,
+          status: bundle.status,
+        };
+      }),
+    );
+
+    return bundles.filter(Boolean);
+  },
+});
+
+// ============================================
+// HEALTH & METRICS QUERIES
+// ============================================
+
+/**
+ * Get bundle system health stats (admin only).
+ *
+ * Returns:
+ *   total          — all bundles
+ *   active         — bundles with status "active"
+ *   draft          — bundles with status "draft"
+ *   archived       — bundles with status "archived"
+ *   unlinked       — bundles missing a productId (need backfill, if productId is adopted)
+ *   draftsBlocked  — draft bundles that cannot publish because they have zero components
+ */
+export const getStats = query({
+  args: {},
+  handler: async (ctx: any) => {
+    await requireCommerceBundlesEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    const bundles = await ctx.db.query("commerce_bundles").collect();
+    const active = bundles.filter((b: any) => b.status === "active");
+    const draft = bundles.filter((b: any) => b.status === "draft");
+    const archived = bundles.filter((b: any) => b.status === "archived");
+
+    // Count bundles missing productId (need backfill if productId linkage is adopted)
+    const unlinked = bundles.filter((b: any) => !b.productId);
+
+    // Count drafts that can't publish (no components)
+    const components = await ctx.db
+      .query("commerce_bundle_components")
+      .collect();
+    const draftsBlocked = draft.filter((b: any) => {
+      const bComponents = components.filter(
+        (c: any) => c.bundleId === b._id,
+      );
+      return bComponents.length === 0;
+    });
+
+    return {
+      total: bundles.length,
+      active: active.length,
+      draft: draft.length,
+      archived: archived.length,
+      unlinked: unlinked.length,
+      draftsBlocked: draftsBlocked.length,
+    };
+  },
+});
+
+// ============================================
 // CART QUERIES
 // ============================================
 
