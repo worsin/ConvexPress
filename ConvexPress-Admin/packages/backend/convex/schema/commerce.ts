@@ -399,11 +399,30 @@ export const commerceTables = {
     adjustmentType: v.string(),
     quantityDelta: v.number(),
     reason: v.optional(v.string()),
+    orderId: v.optional(v.id("commerce_orders")),
     actorUserId: v.optional(v.id("users")),
     createdAt: v.number(),
   })
     .index("by_product", ["productId"])
-    .index("by_variant", ["variantId"]),
+    .index("by_variant", ["variantId"])
+    .index("by_type", ["adjustmentType"])
+    .index("by_date", ["createdAt"]),
+
+  commerce_low_stock_alerts: defineTable({
+    productId: v.id("commerce_products"),
+    stockQuantity: v.number(),
+    threshold: v.number(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("acknowledged"),
+      v.literal("resolved"),
+    ),
+    acknowledgedBy: v.optional(v.id("users")),
+    acknowledgedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_product", ["productId"])
+    .index("by_status", ["status"]),
 
   commerce_stock_reservations: defineTable({
     checkoutSessionId: v.id("commerce_checkout_sessions"),
