@@ -89,10 +89,20 @@ export const generateAnswer = action({
     // ── Step 3: Meilisearch (if enabled) ────────────────────────────────────
     if (supportAiSettings?.meilisearchEnabled && supportAiSettings.meilisearchUrl) {
       try {
+        // Resolve Meilisearch API key: encrypted secret -> legacy settings -> empty
+        let resolvedMeilisearchKey = supportAiSettings.meilisearchApiKey ?? "";
+        if (resolvedMeilisearchKey === "__encrypted__") {
+          const decrypted = await ctx.runQuery(
+            internal.settings.secrets.getServiceSecret,
+            { service: "support.meilisearch" },
+          ) as string | null;
+          resolvedMeilisearchKey = decrypted ?? "";
+        }
+
         const meilisearchResults = await searchMeilisearch(
           query,
           supportAiSettings.meilisearchUrl,
-          supportAiSettings.meilisearchApiKey ?? "",
+          resolvedMeilisearchKey,
         );
         for (const article of meilisearchResults) {
           // Meilisearch results boost score if article already found by Convex
@@ -147,11 +157,21 @@ export const generateAnswer = action({
     // ── Step 6: AI answer generation (if provider configured) ────────────────
     if (supportAiSettings?.aiProvider && supportAiSettings.aiApiKey) {
       try {
+        // Resolve AI API key: encrypted secret -> legacy settings value
+        let resolvedAiKey = supportAiSettings.aiApiKey;
+        if (resolvedAiKey === "__encrypted__") {
+          const decrypted = await ctx.runQuery(
+            internal.settings.secrets.getServiceSecret,
+            { service: "support.ai" },
+          ) as string | null;
+          resolvedAiKey = decrypted ?? "";
+        }
+
         const aiResult = await generateAiAnswer(
           query,
           sourceArticles,
           supportAiSettings.aiProvider,
-          supportAiSettings.aiApiKey,
+          resolvedAiKey,
           supportAiSettings.aiModel,
         );
 

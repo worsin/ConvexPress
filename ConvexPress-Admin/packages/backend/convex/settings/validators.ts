@@ -194,22 +194,29 @@ export const emailValuesValidator = v.object({
 
 /**
  * AI settings value shape validator.
- * Controls AI provider configuration: provider selection, API keys, model.
+ * Controls AI provider configuration: provider selection and model.
+ *
+ * API keys are now stored in encrypted service_secrets (not in settings).
+ * The apiKey and tavilyApiKey fields are kept as optional for backward
+ * compatibility during migration -- new saves will not include them.
  */
 export const aiValuesValidator = v.object({
   provider: v.union(v.literal("openrouter"), v.literal("anthropic")),
-  apiKey: v.string(),
   defaultModel: v.string(),
-  tavilyApiKey: v.string(),
+  apiKey: v.optional(v.string()),
+  tavilyApiKey: v.optional(v.string()),
 });
 
 /**
  * Search settings value shape validator.
- * Controls Meilisearch connection: host URL and API key.
+ * Controls Meilisearch connection: host URL.
+ *
+ * The meilisearchApiKey is now stored in encrypted service_secrets.
+ * Kept as optional for backward compatibility during migration.
  */
 export const searchValuesValidator = v.object({
   meilisearchHost: v.string(),
-  meilisearchApiKey: v.string(),
+  meilisearchApiKey: v.optional(v.string()),
 });
 
 // ─── Layout Assignment Value Validator ───────────────────────────────────────

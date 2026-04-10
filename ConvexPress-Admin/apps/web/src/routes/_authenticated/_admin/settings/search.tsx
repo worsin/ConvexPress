@@ -25,6 +25,7 @@ import {
   CheckCircle,
   XCircle,
   Wifi,
+  ShieldCheck,
 } from "lucide-react";
 
 import { SearchAnalyticsDashboard } from "@/components/admin/SearchAnalyticsDashboard";
@@ -56,10 +57,18 @@ function MeilisearchConfigSection() {
     section: "search",
   });
   const updateSettings = useMutation(api.settings.mutations.updateSection);
+  const saveSecret = useMutation(api.settings.secrets.saveServiceSecret);
+  const deleteSecret = useMutation(api.settings.secrets.deleteServiceSecret);
+
+  // Check encrypted secret existence
+  const hasMeilisearchKey = useQuery(api.settings.secrets.hasServiceSecret, {
+    service: "search.meilisearch",
+  });
 
   // Form state
   const [meilisearchHost, setMeilisearchHost] = useState("");
   const [meilisearchApiKey, setMeilisearchApiKey] = useState("");
+  const [apiKeyDirty, setApiKeyDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [connectionStatus, setConnectionStatus] =
@@ -73,22 +82,43 @@ function MeilisearchConfigSection() {
     if (searchSettings && !initialized) {
       const values = searchSettings as Record<string, unknown>;
       setMeilisearchHost((values.meilisearchHost as string) ?? "");
-      setMeilisearchApiKey((values.meilisearchApiKey as string) ?? "");
+      // Legacy migration: if API key is still in plain settings, pre-fill
+      if (
+        (values.meilisearchApiKey as string) &&
+        !hasMeilisearchKey
+      ) {
+        setMeilisearchApiKey((values.meilisearchApiKey as string) ?? "");
+        setApiKeyDirty(true);
+      }
       setInitialized(true);
     }
-  }, [searchSettings, initialized]);
+  }, [searchSettings, initialized, hasMeilisearchKey]);
 
   // Save handler
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
+      // Save non-secret settings (host URL) to the settings table.
+      // API key is stored encrypted in service_secrets.
       await updateSettings({
         section: "search",
         values: {
           meilisearchHost,
-          meilisearchApiKey,
         },
       });
+
+      // Save API key to encrypted secret storage (only if user changed it)
+      if (apiKeyDirty && meilisearchApiKey.trim()) {
+        await saveSecret({
+          service: "search.meilisearch",
+          secret: meilisearchApiKey.trim(),
+        });
+      } else if (apiKeyDirty && !meilisearchApiKey.trim()) {
+        await deleteSecret({ service: "search.meilisearch" });
+      }
+
+      setApiKeyDirty(false);
+      setMeilisearchApiKey("");
       toast.success("Search settings saved.");
     } catch (error: unknown) {
       const msg =
@@ -99,7 +129,14 @@ function MeilisearchConfigSection() {
     } finally {
       setIsSaving(false);
     }
-  }, [updateSettings, meilisearchHost, meilisearchApiKey]);
+  }, [
+    updateSettings,
+    meilisearchHost,
+    meilisearchApiKey,
+    apiKeyDirty,
+    saveSecret,
+    deleteSecret,
+  ]);
 
   // Test connection -- pings the Meilisearch /health endpoint
   const handleTestConnection = useCallback(async () => {
@@ -231,15 +268,29 @@ function MeilisearchConfigSection() {
           {/* API Key */}
           <div className="space-y-1.5">
             <Label htmlFor="meilisearch-api-key">API Key</Label>
+
+            {/* Encrypted key indicator */}
+            {hasMeilisearchKey && !apiKeyDirty && (
+              <div className="flex items-center gap-1.5 text-xs text-success">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span>API key is stored securely (encrypted)</span>
+              </div>
+            )}
+
             <div className="relative">
               <Input
                 id="meilisearch-api-key"
                 type={showApiKey ? "text" : "password"}
-                value={meilisearchApiKey}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setMeilisearchApiKey(e.target.value)
+                value={apiKeyDirty ? meilisearchApiKey : ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setMeilisearchApiKey(e.target.value);
+                  setApiKeyDirty(true);
+                }}
+                placeholder={
+                  hasMeilisearchKey && !apiKeyDirty
+                    ? "Enter a new key to replace the existing one"
+                    : "your-meilisearch-master-key"
                 }
-                placeholder="your-meilisearch-master-key"
                 className="pr-10"
               />
               <button

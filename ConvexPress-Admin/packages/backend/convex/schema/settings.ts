@@ -19,6 +19,29 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export const settingsTables = {
+  /**
+   * Encrypted secret storage for service API keys.
+   *
+   * Stores API keys (AI provider, Tavily, Meilisearch, Resend, etc.)
+   * encrypted with AES-256-GCM. Each service is identified by a
+   * dotted key (e.g. "ai.openrouter", "ai.tavily", "search.meilisearch").
+   *
+   * Only internal queries can decrypt; client queries can only check
+   * existence via hasServiceSecret.
+   */
+  service_secrets: defineTable({
+    /** Dotted service identifier, e.g. "ai.openrouter", "search.meilisearch" */
+    service: v.string(),
+    /** AES-256-GCM encrypted payload in "iv:authTag:ciphertext" format */
+    encryptedPayload: v.string(),
+    /** Monotonically increasing version for rotation tracking */
+    version: v.number(),
+    /** Unix timestamp (ms) of last update */
+    updatedAt: v.number(),
+    /** User who last updated this secret */
+    updatedBy: v.optional(v.id("users")),
+  }).index("by_service", ["service"]),
+
   settings: defineTable({
     /** Which settings section this document represents */
     section: v.union(

@@ -46,6 +46,15 @@ export const getBySectionInternal = internalQuery({
       ? { ...defaults, ...(doc.values as Record<string, unknown>) }
       : { ...defaults };
 
+    // Strip secret fields from sections that now use encrypted service_secrets.
+    if (section === "ai") {
+      delete values.apiKey;
+      delete values.tavilyApiKey;
+    }
+    if (section === "search") {
+      delete values.meilisearchApiKey;
+    }
+
     return {
       ...values,
       _id: doc?._id ?? null,
