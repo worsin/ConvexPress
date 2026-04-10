@@ -15,7 +15,7 @@ import type { Id } from "../../_generated/dataModel";
 import { fetchWPComments, type WPComment } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { WP_BATCH_SIZE } from "../validators";
+import { WP_BATCH_SIZE, createDefaultImportConfig } from "../validators";
 
 // ─── Comments Import Action ────────────────────────────────────────────────
 
@@ -26,10 +26,17 @@ export const importBatch = internalAction({
   },
   handler: async (ctx, { jobId, siteId }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
 
     // Get job and site
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
+
+    // Get import config
+    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
       return {
@@ -73,6 +80,7 @@ export const importBatch = internalAction({
         );
 
         if (existingMapping) {
+          skipped++;
           progress.imported++;
           continue;
         }
@@ -103,49 +111,52 @@ export const importBatch = internalAction({
           continue;
         }
 
-        // Resolve parent comment if this is a reply
-        let parentCommentId: string | undefined;
-        if (wpComment.parent > 0) {
-          parentCommentId = await ctx.runQuery(
-            internal.wordpressSync.helpers.idMapping.getByWpId,
-            { siteId, objectType: "comment", wpId: wpComment.parent }
-          ) ?? undefined;
+        if (!isDryRun) {
+          // Resolve parent comment if this is a reply
+          let parentCommentId: string | undefined;
+          if (wpComment.parent > 0) {
+            parentCommentId = await ctx.runQuery(
+              internal.wordpressSync.helpers.idMapping.getByWpId,
+              { siteId, objectType: "comment", wpId: wpComment.parent }
+            ) ?? undefined;
+          }
+
+          // Try to find the author user
+          let authorId: string | undefined;
+          if (wpComment.author > 0) {
+            authorId = await ctx.runQuery(
+              internal.wordpressSync.helpers.idMapping.getByWpId,
+              { siteId, objectType: "user", wpId: wpComment.author }
+            ) ?? undefined;
+          }
+
+          // Create comment
+          const commentId = await ctx.runMutation(internal.wordpressSync.phases.commentsCreate, {
+            wpComment: {
+              id: wpComment.id,
+              postId: resolvedPostId,
+              parentId: parentCommentId,
+              authorId,
+              authorName: wpComment.author_name,
+              authorEmail: wpComment.author_email,
+              authorUrl: wpComment.author_url,
+              content: wpComment.content?.rendered || "",
+              status: mapCommentStatus(wpComment.status),
+              createdAt: wpComment.date ? new Date(wpComment.date).getTime() : Date.now(),
+            },
+            siteId,
+          });
+
+          // Create ID mapping
+          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+            siteId,
+            objectType: "comment",
+            wpId: wpComment.id,
+            convexId: commentId,
+          });
         }
 
-        // Try to find the author user
-        let authorId: string | undefined;
-        if (wpComment.author > 0) {
-          authorId = await ctx.runQuery(
-            internal.wordpressSync.helpers.idMapping.getByWpId,
-            { siteId, objectType: "user", wpId: wpComment.author }
-          ) ?? undefined;
-        }
-
-        // Create comment
-        const commentId = await ctx.runMutation(internal.wordpressSync.phases.commentsCreate, {
-          wpComment: {
-            id: wpComment.id,
-            postId: resolvedPostId,
-            parentId: parentCommentId,
-            authorId,
-            authorName: wpComment.author_name,
-            authorEmail: wpComment.author_email,
-            authorUrl: wpComment.author_url,
-            content: wpComment.content?.rendered || "",
-            status: mapCommentStatus(wpComment.status),
-            createdAt: wpComment.date ? new Date(wpComment.date).getTime() : Date.now(),
-          },
-          siteId,
-        });
-
-        // Create ID mapping
-        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-          siteId,
-          objectType: "comment",
-          wpId: wpComment.id,
-          convexId: commentId,
-        });
-
+        created++;
         progress.imported++;
       } catch (error) {
         errors.push({
@@ -162,7 +173,13 @@ export const importBatch = internalAction({
     progress.cursor = cursor + comments.length;
 
     return {
-      progress,
+      progress: {
+        ...progress,
+        created,
+        updated,
+        skipped,
+        conflicted: 0,
+      },
       errors,
       hasMore: progress.imported + progress.failed < progress.total,
     };

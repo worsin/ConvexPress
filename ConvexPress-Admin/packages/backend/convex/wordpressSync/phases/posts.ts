@@ -20,7 +20,7 @@ import { parseACFFields, hasACFFields, acfToPostMeta } from "../helpers/acfParse
 import { parseYoastMeta, hasYoastMeta, yoastToSEOMeta } from "../helpers/yoastParser";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { WP_BATCH_SIZE } from "../validators";
+import { WP_BATCH_SIZE, createDefaultImportConfig } from "../validators";
 
 // ─── Posts Import Action ───────────────────────────────────────────────────
 
@@ -31,10 +31,17 @@ export const importBatch = internalAction({
   },
   handler: async (ctx, { jobId, siteId }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
 
     // Get job and site
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
+
+    // Get import config
+    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
       return {
@@ -71,111 +78,115 @@ export const importBatch = internalAction({
         );
 
         if (existingMapping) {
+          skipped++;
           progress.imported++;
           continue;
         }
 
-        // Fetch post meta (for Elementor, ACF, Yoast)
-        let postMeta: WPMeta[] = [];
-        try {
-          postMeta = await fetchWPPostMeta(credentials, wpPost.id);
-        } catch {
-          // Continue without meta if fetch fails
-        }
+        if (!isDryRun) {
+          // Fetch post meta (for Elementor, ACF, Yoast)
+          let postMeta: WPMeta[] = [];
+          try {
+            postMeta = await fetchWPPostMeta(credentials, wpPost.id);
+          } catch {
+            // Continue without meta if fetch fails
+          }
 
-        // Process content and meta
-        const processedContent = await processPostContent(wpPost, postMeta);
+          // Process content and meta
+          const processedContent = await processPostContent(wpPost, postMeta);
 
-        // Resolve author
-        const authorId = await ctx.runQuery(
-          internal.wordpressSync.helpers.idMapping.getByWpId,
-          { siteId, objectType: "user", wpId: wpPost.author }
-        );
-
-        // Resolve featured image
-        let featuredImageId: string | undefined;
-        if (wpPost.featured_media) {
-          featuredImageId = await ctx.runQuery(
+          // Resolve author
+          const authorId = await ctx.runQuery(
             internal.wordpressSync.helpers.idMapping.getByWpId,
-            { siteId, objectType: "media", wpId: wpPost.featured_media }
-          ) ?? undefined;
-        }
+            { siteId, objectType: "user", wpId: wpPost.author }
+          );
 
-        // Resolve categories and tags
-        const categoryIds = await resolveTermIds(ctx, siteId, wpPost.categories || [], "category");
-        const tagIds = await resolveTermIds(ctx, siteId, wpPost.tags || [], "tag");
+          // Resolve featured image
+          let featuredImageId: string | undefined;
+          if (wpPost.featured_media) {
+            featuredImageId = await ctx.runQuery(
+              internal.wordpressSync.helpers.idMapping.getByWpId,
+              { siteId, objectType: "media", wpId: wpPost.featured_media }
+            ) ?? undefined;
+          }
 
-        // Create the post
-        const postId = await ctx.runMutation(internal.wordpressSync.phases.postsCreate, {
-          wpPost: {
-            id: wpPost.id,
-            title: wpPost.title?.rendered || "",
-            slug: wpPost.slug,
-            content: processedContent.content,
-            excerpt: wpPost.excerpt?.rendered || "",
-            status: mapWPStatus(wpPost.status),
-            commentStatus: wpPost.comment_status === "open" ? "open" : "closed",
-            isSticky: wpPost.sticky || false,
-            publishedAt: wpPost.date ? new Date(wpPost.date).getTime() : undefined,
-            guid: wpPost.guid?.rendered,
-          },
-          authorId: authorId ?? undefined,
-          featuredImageId,
-          siteId,
-        });
+          // Resolve categories and tags
+          const categoryIds = await resolveTermIds(ctx, siteId, wpPost.categories || [], "category");
+          const tagIds = await resolveTermIds(ctx, siteId, wpPost.tags || [], "tag");
 
-        // Store Elementor data if present
-        if (processedContent.elementorData) {
-          await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
-            postId,
-            key: "_elementor_data",
-            value: processedContent.elementorData,
+          // Create the post
+          const postId = await ctx.runMutation(internal.wordpressSync.phases.postsCreate, {
+            wpPost: {
+              id: wpPost.id,
+              title: wpPost.title?.rendered || "",
+              slug: wpPost.slug,
+              content: processedContent.content,
+              excerpt: wpPost.excerpt?.rendered || "",
+              status: mapWPStatus(wpPost.status),
+              commentStatus: wpPost.comment_status === "open" ? "open" : "closed",
+              isSticky: wpPost.sticky || false,
+              publishedAt: wpPost.date ? new Date(wpPost.date).getTime() : undefined,
+              guid: wpPost.guid?.rendered,
+            },
+            authorId: authorId ?? undefined,
+            featuredImageId,
+            siteId,
           });
 
-          // Also store original rendered HTML for reference
-          if (wpPost.content?.rendered) {
+          // Store Elementor data if present
+          if (processedContent.elementorData) {
             await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
               postId,
-              key: "_wp_content_rendered",
-              value: wpPost.content.rendered,
+              key: "_elementor_data",
+              value: processedContent.elementorData,
+            });
+
+            // Also store original rendered HTML for reference
+            if (wpPost.content?.rendered) {
+              await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+                postId,
+                key: "_wp_content_rendered",
+                value: wpPost.content.rendered,
+              });
+            }
+          }
+
+          // Store ACF data
+          for (const acfMeta of processedContent.acfMeta) {
+            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+              postId,
+              key: acfMeta.key,
+              value: acfMeta.value,
             });
           }
-        }
 
-        // Store ACF data
-        for (const acfMeta of processedContent.acfMeta) {
-          await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
-            postId,
-            key: acfMeta.key,
-            value: acfMeta.value,
+          // Store Yoast SEO data
+          for (const seoMeta of processedContent.seoMeta) {
+            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+              postId,
+              key: seoMeta.key,
+              value: seoMeta.value,
+            });
+          }
+
+          // Create term relationships
+          for (const termId of [...categoryIds, ...tagIds]) {
+            await ctx.runMutation(internal.wordpressSync.phases.postsCreateTermRelationship, {
+              postId,
+              termId,
+            });
+          }
+
+          // Create ID mapping
+          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+            siteId,
+            objectType: "post",
+            wpId: wpPost.id,
+            convexId: postId,
           });
         }
 
-        // Store Yoast SEO data
-        for (const seoMeta of processedContent.seoMeta) {
-          await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
-            postId,
-            key: seoMeta.key,
-            value: seoMeta.value,
-          });
-        }
-
-        // Create term relationships
-        for (const termId of [...categoryIds, ...tagIds]) {
-          await ctx.runMutation(internal.wordpressSync.phases.postsCreateTermRelationship, {
-            postId,
-            termId,
-          });
-        }
-
-        // Create ID mapping
-        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-          siteId,
-          objectType: "post",
-          wpId: wpPost.id,
-          convexId: postId,
-        });
-
+        created++;
         progress.imported++;
       } catch (error) {
         errors.push({
@@ -192,7 +203,13 @@ export const importBatch = internalAction({
     progress.cursor = cursor + posts.length;
 
     return {
-      progress,
+      progress: {
+        ...progress,
+        created,
+        updated,
+        skipped,
+        conflicted: 0,
+      },
       errors,
       hasMore: progress.imported + progress.failed < progress.total,
     };

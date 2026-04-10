@@ -14,7 +14,7 @@ import type { Id } from "../../_generated/dataModel";
 import { fetchWPMedia, type WPMedia } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { MEDIA_BATCH_SIZE } from "../validators";
+import { MEDIA_BATCH_SIZE, createDefaultImportConfig } from "../validators";
 
 // ─── Media Import Action ───────────────────────────────────────────────────
 
@@ -25,10 +25,17 @@ export const importBatch = internalAction({
   },
   handler: async (ctx, { jobId, siteId }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
 
     // Get job and site
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
+
+    // Get import config
+    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
       return {
@@ -65,31 +72,40 @@ export const importBatch = internalAction({
         );
 
         if (existingMapping) {
+          skipped++;
           progress.imported++;
           continue;
         }
 
-        // Download and upload the media file
-        const result = await downloadAndUpload(ctx, wpMedia, siteId);
+        if (!isDryRun) {
+          // Download and upload the media file
+          const result = await downloadAndUpload(ctx, wpMedia, siteId);
 
-        if (result.success && result.mediaId) {
-          // Create ID mapping
-          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-            siteId,
-            objectType: "media",
-            wpId: wpMedia.id,
-            convexId: result.mediaId,
-          });
+          if (result.success && result.mediaId) {
+            // Create ID mapping with sourceUrl
+            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+              siteId,
+              objectType: "media",
+              wpId: wpMedia.id,
+              convexId: result.mediaId,
+              sourceUrl: wpMedia.source_url,
+            });
 
-          progress.imported++;
+            created++;
+            progress.imported++;
+          } else {
+            errors.push({
+              phase: "media",
+              wpId: wpMedia.id,
+              message: result.error || "Failed to upload media",
+              timestamp: Date.now(),
+            });
+            progress.failed++;
+          }
         } else {
-          errors.push({
-            phase: "media",
-            wpId: wpMedia.id,
-            message: result.error || "Failed to upload media",
-            timestamp: Date.now(),
-          });
-          progress.failed++;
+          // Dry run - count as created without actually creating
+          created++;
+          progress.imported++;
         }
       } catch (error) {
         errors.push({
@@ -106,7 +122,13 @@ export const importBatch = internalAction({
     progress.cursor = cursor + mediaItems.length;
 
     return {
-      progress,
+      progress: {
+        ...progress,
+        created,
+        updated,
+        skipped,
+        conflicted: 0,
+      },
       errors,
       hasMore: progress.imported + progress.failed < progress.total,
     };

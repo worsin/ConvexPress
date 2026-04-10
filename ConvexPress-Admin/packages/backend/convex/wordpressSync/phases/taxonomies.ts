@@ -14,7 +14,7 @@ import type { Id } from "../../_generated/dataModel";
 import { fetchWPCategories, fetchWPTags, type WPCategory, type WPTag } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { WP_BATCH_SIZE } from "../validators";
+import { WP_BATCH_SIZE, createDefaultImportConfig } from "../validators";
 
 // ─── Taxonomies Import Action ──────────────────────────────────────────────
 
@@ -38,6 +38,10 @@ export const importBatch = internalAction({
       };
     }
 
+    // Get import config
+    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const isDryRun = importConfig.behavior.dryRun;
+
     const credentials = {
       siteUrl: site.siteUrl,
       username: site.username,
@@ -50,7 +54,7 @@ export const importBatch = internalAction({
 
     // Process categories if not done
     if (categoriesProgress.imported + categoriesProgress.failed < categoriesProgress.total || categoriesProgress.total === 0) {
-      const result = await importCategories(ctx, siteId, credentials, categoriesProgress);
+      const result = await importCategories(ctx, siteId, credentials, categoriesProgress, isDryRun);
       errors.push(...result.errors);
 
       // Return categories progress if still more to do
@@ -64,7 +68,7 @@ export const importBatch = internalAction({
     }
 
     // Process tags
-    const tagsResult = await importTags(ctx, siteId, credentials, tagsProgress);
+    const tagsResult = await importTags(ctx, siteId, credentials, tagsProgress, isDryRun);
     errors.push(...tagsResult.errors);
 
     // Combine progress for reporting
@@ -83,9 +87,13 @@ async function importCategories(
   ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
   siteId: Id<"wordpressSites">,
   credentials: { siteUrl: string; username: string; applicationPassword: string },
-  progress: PhaseProgress
+  progress: PhaseProgress,
+  isDryRun: boolean
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
   const cursor = progress.cursor || 0;
   const page = Math.floor(cursor / WP_BATCH_SIZE) + 1;
 
@@ -112,42 +120,46 @@ async function importCategories(
       );
 
       if (existingMapping) {
+        skipped++;
         progress.imported++;
         continue;
       }
 
-      // Resolve parent ID if this category has a parent
-      let parentId: string | undefined;
-      if (wpCategory.parent > 0) {
-        parentId = await ctx.runQuery(
-          internal.wordpressSync.helpers.idMapping.getByWpId,
-          { siteId, objectType: "category", wpId: wpCategory.parent }
-        ) ?? undefined;
+      if (!isDryRun) {
+        // Resolve parent ID if this category has a parent
+        let parentId: string | undefined;
+        if (wpCategory.parent > 0) {
+          parentId = await ctx.runQuery(
+            internal.wordpressSync.helpers.idMapping.getByWpId,
+            { siteId, objectType: "category", wpId: wpCategory.parent }
+          ) ?? undefined;
+        }
+
+        // Create term
+        const termId = await ctx.runMutation(internal.wordpressSync.phases.taxonomiesCreateTerm, {
+          wpTerm: {
+            id: wpCategory.id,
+            name: wpCategory.name,
+            slug: wpCategory.slug,
+            description: wpCategory.description,
+            count: wpCategory.count,
+            parent: wpCategory.parent,
+          },
+          taxonomy: "category",
+          parentId,
+          siteId,
+        });
+
+        // Create ID mapping
+        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+          siteId,
+          objectType: "category",
+          wpId: wpCategory.id,
+          convexId: termId,
+        });
       }
 
-      // Create term
-      const termId = await ctx.runMutation(internal.wordpressSync.phases.taxonomiesCreateTerm, {
-        wpTerm: {
-          id: wpCategory.id,
-          name: wpCategory.name,
-          slug: wpCategory.slug,
-          description: wpCategory.description,
-          count: wpCategory.count,
-          parent: wpCategory.parent,
-        },
-        taxonomy: "category",
-        parentId,
-        siteId,
-      });
-
-      // Create ID mapping
-      await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-        siteId,
-        objectType: "category",
-        wpId: wpCategory.id,
-        convexId: termId,
-      });
-
+      created++;
       progress.imported++;
     } catch (error) {
       errors.push({
@@ -163,7 +175,13 @@ async function importCategories(
   progress.cursor = cursor + categories.length;
 
   return {
-    progress,
+    progress: {
+      ...progress,
+      created,
+      updated,
+      skipped,
+      conflicted: 0,
+    },
     errors,
     hasMore: progress.imported + progress.failed < progress.total,
   };
@@ -175,9 +193,13 @@ async function importTags(
   ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
   siteId: Id<"wordpressSites">,
   credentials: { siteUrl: string; username: string; applicationPassword: string },
-  progress: PhaseProgress
+  progress: PhaseProgress,
+  isDryRun: boolean
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
   const cursor = progress.cursor || 0;
   const page = Math.floor(cursor / WP_BATCH_SIZE) + 1;
 
@@ -197,33 +219,37 @@ async function importTags(
       );
 
       if (existingMapping) {
+        skipped++;
         progress.imported++;
         continue;
       }
 
-      // Create term
-      const termId = await ctx.runMutation(internal.wordpressSync.phases.taxonomiesCreateTerm, {
-        wpTerm: {
-          id: wpTag.id,
-          name: wpTag.name,
-          slug: wpTag.slug,
-          description: wpTag.description,
-          count: wpTag.count,
-          parent: 0,
-        },
-        taxonomy: "post_tag",
-        parentId: undefined,
-        siteId,
-      });
+      if (!isDryRun) {
+        // Create term
+        const termId = await ctx.runMutation(internal.wordpressSync.phases.taxonomiesCreateTerm, {
+          wpTerm: {
+            id: wpTag.id,
+            name: wpTag.name,
+            slug: wpTag.slug,
+            description: wpTag.description,
+            count: wpTag.count,
+            parent: 0,
+          },
+          taxonomy: "post_tag",
+          parentId: undefined,
+          siteId,
+        });
 
-      // Create ID mapping
-      await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-        siteId,
-        objectType: "tag",
-        wpId: wpTag.id,
-        convexId: termId,
-      });
+        // Create ID mapping
+        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+          siteId,
+          objectType: "tag",
+          wpId: wpTag.id,
+          convexId: termId,
+        });
+      }
 
+      created++;
       progress.imported++;
     } catch (error) {
       errors.push({
@@ -239,7 +265,13 @@ async function importTags(
   progress.cursor = cursor + tags.length;
 
   return {
-    progress,
+    progress: {
+      ...progress,
+      created,
+      updated,
+      skipped,
+      conflicted: 0,
+    },
     errors,
     hasMore: progress.imported + progress.failed < progress.total,
   };

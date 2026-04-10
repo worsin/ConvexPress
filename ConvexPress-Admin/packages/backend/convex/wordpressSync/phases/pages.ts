@@ -20,7 +20,7 @@ import { parseACFFields, hasACFFields, acfToPostMeta } from "../helpers/acfParse
 import { parseYoastMeta, hasYoastMeta, yoastToSEOMeta } from "../helpers/yoastParser";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { WP_BATCH_SIZE } from "../validators";
+import { WP_BATCH_SIZE, createDefaultImportConfig } from "../validators";
 
 // ─── Pages Import Action ───────────────────────────────────────────────────
 
@@ -31,10 +31,17 @@ export const importBatch = internalAction({
   },
   handler: async (ctx, { jobId, siteId }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
 
     // Get job and site
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
+
+    // Get import config
+    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
       return {
@@ -78,117 +85,121 @@ export const importBatch = internalAction({
         );
 
         if (existingMapping) {
+          skipped++;
           progress.imported++;
           continue;
         }
 
-        // Fetch post meta (for Elementor - very important for pages!)
-        let pageMeta: WPMeta[] = [];
-        try {
-          pageMeta = await fetchWPPostMeta(credentials, wpPage.id);
-        } catch {
-          // Continue without meta if fetch fails
-        }
+        if (!isDryRun) {
+          // Fetch post meta (for Elementor - very important for pages!)
+          let pageMeta: WPMeta[] = [];
+          try {
+            pageMeta = await fetchWPPostMeta(credentials, wpPage.id);
+          } catch {
+            // Continue without meta if fetch fails
+          }
 
-        // Process content and meta
-        const processedContent = await processPageContent(wpPage, pageMeta);
+          // Process content and meta
+          const processedContent = await processPageContent(wpPage, pageMeta);
 
-        // Resolve author
-        const authorId = await ctx.runQuery(
-          internal.wordpressSync.helpers.idMapping.getByWpId,
-          { siteId, objectType: "user", wpId: wpPage.author }
-        );
-
-        // Resolve featured image
-        let featuredImageId: string | undefined;
-        if (wpPage.featured_media) {
-          featuredImageId = await ctx.runQuery(
+          // Resolve author
+          const authorId = await ctx.runQuery(
             internal.wordpressSync.helpers.idMapping.getByWpId,
-            { siteId, objectType: "media", wpId: wpPage.featured_media }
-          ) ?? undefined;
-        }
+            { siteId, objectType: "user", wpId: wpPage.author }
+          );
 
-        // Resolve parent page
-        let parentId: string | undefined;
-        if (wpPage.parent > 0) {
-          parentId = await ctx.runQuery(
-            internal.wordpressSync.helpers.idMapping.getByWpId,
-            { siteId, objectType: "page", wpId: wpPage.parent }
-          ) ?? undefined;
-        }
+          // Resolve featured image
+          let featuredImageId: string | undefined;
+          if (wpPage.featured_media) {
+            featuredImageId = await ctx.runQuery(
+              internal.wordpressSync.helpers.idMapping.getByWpId,
+              { siteId, objectType: "media", wpId: wpPage.featured_media }
+            ) ?? undefined;
+          }
 
-        // Create the page
-        const pageId = await ctx.runMutation(internal.wordpressSync.phases.pagesCreate, {
-          wpPage: {
-            id: wpPage.id,
-            title: wpPage.title?.rendered || "",
-            slug: wpPage.slug,
-            content: processedContent.content,
-            excerpt: wpPage.excerpt?.rendered || "",
-            status: mapWPStatus(wpPage.status),
-            commentStatus: wpPage.comment_status === "open" ? "open" : "closed",
-            menuOrder: wpPage.menu_order || 0,
-            template: wpPage.template || "default",
-            publishedAt: wpPage.date ? new Date(wpPage.date).getTime() : undefined,
-            guid: wpPage.guid?.rendered,
-          },
-          authorId: authorId ?? undefined,
-          featuredImageId,
-          parentId,
-          siteId,
-        });
+          // Resolve parent page
+          let parentId: string | undefined;
+          if (wpPage.parent > 0) {
+            parentId = await ctx.runQuery(
+              internal.wordpressSync.helpers.idMapping.getByWpId,
+              { siteId, objectType: "page", wpId: wpPage.parent }
+            ) ?? undefined;
+          }
 
-        // Store Elementor data if present (this is critical for pages!)
-        if (processedContent.elementorData) {
-          await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
-            postId: pageId,
-            key: "_elementor_data",
-            value: processedContent.elementorData,
+          // Create the page
+          const pageId = await ctx.runMutation(internal.wordpressSync.phases.pagesCreate, {
+            wpPage: {
+              id: wpPage.id,
+              title: wpPage.title?.rendered || "",
+              slug: wpPage.slug,
+              content: processedContent.content,
+              excerpt: wpPage.excerpt?.rendered || "",
+              status: mapWPStatus(wpPage.status),
+              commentStatus: wpPage.comment_status === "open" ? "open" : "closed",
+              menuOrder: wpPage.menu_order || 0,
+              template: wpPage.template || "default",
+              publishedAt: wpPage.date ? new Date(wpPage.date).getTime() : undefined,
+              guid: wpPage.guid?.rendered,
+            },
+            authorId: authorId ?? undefined,
+            featuredImageId,
+            parentId,
+            siteId,
           });
 
-          // Mark this page as using Elementor
-          await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
-            postId: pageId,
-            key: "_elementor_edit_mode",
-            value: "builder",
-          });
-
-          // Store original rendered HTML
-          if (wpPage.content?.rendered) {
+          // Store Elementor data if present (this is critical for pages!)
+          if (processedContent.elementorData) {
             await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
               postId: pageId,
-              key: "_wp_content_rendered",
-              value: wpPage.content.rendered,
+              key: "_elementor_data",
+              value: processedContent.elementorData,
+            });
+
+            // Mark this page as using Elementor
+            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+              postId: pageId,
+              key: "_elementor_edit_mode",
+              value: "builder",
+            });
+
+            // Store original rendered HTML
+            if (wpPage.content?.rendered) {
+              await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+                postId: pageId,
+                key: "_wp_content_rendered",
+                value: wpPage.content.rendered,
+              });
+            }
+          }
+
+          // Store ACF data
+          for (const acfMeta of processedContent.acfMeta) {
+            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+              postId: pageId,
+              key: acfMeta.key,
+              value: acfMeta.value,
             });
           }
-        }
 
-        // Store ACF data
-        for (const acfMeta of processedContent.acfMeta) {
-          await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
-            postId: pageId,
-            key: acfMeta.key,
-            value: acfMeta.value,
+          // Store Yoast SEO data
+          for (const seoMeta of processedContent.seoMeta) {
+            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+              postId: pageId,
+              key: seoMeta.key,
+              value: seoMeta.value,
+            });
+          }
+
+          // Create ID mapping
+          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+            siteId,
+            objectType: "page",
+            wpId: wpPage.id,
+            convexId: pageId,
           });
         }
 
-        // Store Yoast SEO data
-        for (const seoMeta of processedContent.seoMeta) {
-          await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
-            postId: pageId,
-            key: seoMeta.key,
-            value: seoMeta.value,
-          });
-        }
-
-        // Create ID mapping
-        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-          siteId,
-          objectType: "page",
-          wpId: wpPage.id,
-          convexId: pageId,
-        });
-
+        created++;
         progress.imported++;
       } catch (error) {
         errors.push({
@@ -205,7 +216,13 @@ export const importBatch = internalAction({
     progress.cursor = cursor + pages.length;
 
     return {
-      progress,
+      progress: {
+        ...progress,
+        created,
+        updated,
+        skipped,
+        conflicted: 0,
+      },
       errors,
       hasMore: progress.imported + progress.failed < progress.total,
     };

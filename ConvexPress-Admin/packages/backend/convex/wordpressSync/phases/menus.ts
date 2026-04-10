@@ -17,6 +17,7 @@ import type { Id } from "../../_generated/dataModel";
 import { fetchWPMenus, fetchWPMenuItems, type WPMenu, type WPMenuItem } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
+import { createDefaultImportConfig } from "../validators";
 
 // ─── Menus Import Action ───────────────────────────────────────────────────
 
@@ -27,10 +28,17 @@ export const importBatch = internalAction({
   },
   handler: async (ctx, { jobId, siteId }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
 
     // Get job and site
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
+
+    // Get import config
+    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
       return {
@@ -81,105 +89,109 @@ export const importBatch = internalAction({
         );
 
         if (existingMapping) {
+          skipped++;
           progress.imported++;
           continue;
         }
 
-        // Create the menu
-        const menuId = await ctx.runMutation(internal.wordpressSync.phases.menusCreate, {
-          wpMenu: {
-            id: wpMenu.id,
-            name: wpMenu.name,
-            slug: wpMenu.slug,
-            description: wpMenu.description,
-            locations: wpMenu.locations || [],
-          },
-          siteId,
-        });
-
-        // Create menu ID mapping
-        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-          siteId,
-          objectType: "menu",
-          wpId: wpMenu.id,
-          convexId: menuId,
-        });
-
-        // Fetch and import menu items
-        try {
-          const { data: items } = await fetchWPMenuItems(credentials, wpMenu.id);
-
-          // Sort by parent to ensure parents are created first
-          const sorted = [...items].sort((a, b) => {
-            if (a.parent === 0 && b.parent !== 0) return -1;
-            if (a.parent !== 0 && b.parent === 0) return 1;
-            return a.menu_order - b.menu_order;
+        if (!isDryRun) {
+          // Create the menu
+          const menuId = await ctx.runMutation(internal.wordpressSync.phases.menusCreate, {
+            wpMenu: {
+              id: wpMenu.id,
+              name: wpMenu.name,
+              slug: wpMenu.slug,
+              description: wpMenu.description,
+              locations: wpMenu.locations || [],
+            },
+            siteId,
           });
 
-          // Import each menu item
-          for (const wpItem of sorted) {
-            try {
-              // Resolve parent menu item
-              let parentItemId: string | undefined;
-              if (wpItem.parent > 0) {
-                parentItemId = await ctx.runQuery(
-                  internal.wordpressSync.helpers.idMapping.getByWpId,
-                  { siteId, objectType: "menuItem", wpId: wpItem.parent }
-                ) ?? undefined;
-              }
-
-              // Resolve linked object
-              const linkedObject = await resolveLinkedObject(ctx, siteId, wpItem);
-
-              // Create menu item
-              const itemId = await ctx.runMutation(internal.wordpressSync.phases.menusCreateItem, {
-                wpItem: {
-                  id: wpItem.id,
-                  menuId,
-                  parentItemId,
-                  title: wpItem.title?.rendered || wpItem.attr_title || "",
-                  url: wpItem.url || linkedObject.url,
-                  itemType: linkedObject.itemType,
-                  objectId: linkedObject.objectId,
-                  target: wpItem.target === "_blank" ? "_blank" : "_self",
-                  cssClasses: wpItem.classes?.join(" "),
-                  position: wpItem.menu_order,
-                  description: wpItem.description,
-                },
-                siteId,
-              });
-
-              // Create menu item ID mapping
-              await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-                siteId,
-                objectType: "menuItem",
-                wpId: wpItem.id,
-                convexId: itemId,
-              });
-            } catch (itemError) {
-              errors.push({
-                phase: "menus",
-                wpId: wpItem.id,
-                message: `Menu item: ${itemError instanceof Error ? itemError.message : "Unknown error"}`,
-                timestamp: Date.now(),
-              });
-            }
-          }
-
-          // Update menu item count
-          await ctx.runMutation(internal.wordpressSync.phases.menusUpdateCount, {
-            menuId,
-            count: sorted.length,
-          });
-        } catch (itemsError) {
-          errors.push({
-            phase: "menus",
+          // Create menu ID mapping
+          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+            siteId,
+            objectType: "menu",
             wpId: wpMenu.id,
-            message: `Menu items: ${itemsError instanceof Error ? itemsError.message : "Failed to fetch"}`,
-            timestamp: Date.now(),
+            convexId: menuId,
           });
+
+          // Fetch and import menu items
+          try {
+            const { data: items } = await fetchWPMenuItems(credentials, wpMenu.id);
+
+            // Sort by parent to ensure parents are created first
+            const sorted = [...items].sort((a, b) => {
+              if (a.parent === 0 && b.parent !== 0) return -1;
+              if (a.parent !== 0 && b.parent === 0) return 1;
+              return a.menu_order - b.menu_order;
+            });
+
+            // Import each menu item
+            for (const wpItem of sorted) {
+              try {
+                // Resolve parent menu item
+                let parentItemId: string | undefined;
+                if (wpItem.parent > 0) {
+                  parentItemId = await ctx.runQuery(
+                    internal.wordpressSync.helpers.idMapping.getByWpId,
+                    { siteId, objectType: "menuItem", wpId: wpItem.parent }
+                  ) ?? undefined;
+                }
+
+                // Resolve linked object
+                const linkedObject = await resolveLinkedObject(ctx, siteId, wpItem);
+
+                // Create menu item
+                const itemId = await ctx.runMutation(internal.wordpressSync.phases.menusCreateItem, {
+                  wpItem: {
+                    id: wpItem.id,
+                    menuId,
+                    parentItemId,
+                    title: wpItem.title?.rendered || wpItem.attr_title || "",
+                    url: wpItem.url || linkedObject.url,
+                    itemType: linkedObject.itemType,
+                    objectId: linkedObject.objectId,
+                    target: wpItem.target === "_blank" ? "_blank" : "_self",
+                    cssClasses: wpItem.classes?.join(" "),
+                    position: wpItem.menu_order,
+                    description: wpItem.description,
+                  },
+                  siteId,
+                });
+
+                // Create menu item ID mapping
+                await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+                  siteId,
+                  objectType: "menuItem",
+                  wpId: wpItem.id,
+                  convexId: itemId,
+                });
+              } catch (itemError) {
+                errors.push({
+                  phase: "menus",
+                  wpId: wpItem.id,
+                  message: `Menu item: ${itemError instanceof Error ? itemError.message : "Unknown error"}`,
+                  timestamp: Date.now(),
+                });
+              }
+            }
+
+            // Update menu item count
+            await ctx.runMutation(internal.wordpressSync.phases.menusUpdateCount, {
+              menuId,
+              count: sorted.length,
+            });
+          } catch (itemsError) {
+            errors.push({
+              phase: "menus",
+              wpId: wpMenu.id,
+              message: `Menu items: ${itemsError instanceof Error ? itemsError.message : "Failed to fetch"}`,
+              timestamp: Date.now(),
+            });
+          }
         }
 
+        created++;
         progress.imported++;
       } catch (error) {
         errors.push({
@@ -193,7 +205,13 @@ export const importBatch = internalAction({
     }
 
     return {
-      progress,
+      progress: {
+        ...progress,
+        created,
+        updated,
+        skipped,
+        conflicted: 0,
+      },
       errors,
       hasMore: false, // Menus are fetched all at once
     };

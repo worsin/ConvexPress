@@ -18,7 +18,7 @@ import type { Id } from "../../_generated/dataModel";
 import { fetchWPUsers, type WPUser } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { WP_BATCH_SIZE } from "../validators";
+import { WP_BATCH_SIZE, createDefaultImportConfig } from "../validators";
 
 // ─── User Import Action ────────────────────────────────────────────────────
 
@@ -29,10 +29,17 @@ export const importBatch = internalAction({
   },
   handler: async (ctx, { jobId, siteId }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
 
     // Get job and site
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
+
+    // Get import config
+    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
       return {
@@ -72,36 +79,40 @@ export const importBatch = internalAction({
         );
 
         if (existingMapping) {
+          skipped++;
           progress.imported++;
           continue;
         }
 
-        // Create user
-        const userId = await ctx.runMutation(internal.wordpressSync.phases.usersCreate, {
-          wpUser: {
-            id: wpUser.id,
-            username: wpUser.username,
-            name: wpUser.name,
-            firstName: wpUser.first_name,
-            lastName: wpUser.last_name,
-            email: wpUser.email,
-            url: wpUser.url,
-            description: wpUser.description,
-            slug: wpUser.slug,
-            avatarUrl: wpUser.avatar_urls?.["96"] || wpUser.avatar_urls?.["48"],
-            roles: wpUser.roles,
-          },
-          siteId,
-        });
+        if (!isDryRun) {
+          // Create user
+          const userId = await ctx.runMutation(internal.wordpressSync.phases.usersCreate, {
+            wpUser: {
+              id: wpUser.id,
+              username: wpUser.username,
+              name: wpUser.name,
+              firstName: wpUser.first_name,
+              lastName: wpUser.last_name,
+              email: wpUser.email,
+              url: wpUser.url,
+              description: wpUser.description,
+              slug: wpUser.slug,
+              avatarUrl: wpUser.avatar_urls?.["96"] || wpUser.avatar_urls?.["48"],
+              roles: wpUser.roles,
+            },
+            siteId,
+          });
 
-        // Create ID mapping
-        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-          siteId,
-          objectType: "user",
-          wpId: wpUser.id,
-          convexId: userId,
-        });
+          // Create ID mapping
+          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+            siteId,
+            objectType: "user",
+            wpId: wpUser.id,
+            convexId: userId,
+          });
+        }
 
+        created++;
         progress.imported++;
       } catch (error) {
         errors.push({
@@ -118,7 +129,13 @@ export const importBatch = internalAction({
     progress.cursor = cursor + wpUsers.length;
 
     return {
-      progress,
+      progress: {
+        ...progress,
+        created,
+        updated,
+        skipped,
+        conflicted: 0,
+      },
       errors,
       hasMore: progress.imported + progress.failed < progress.total,
     };

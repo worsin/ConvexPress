@@ -203,8 +203,9 @@ export const create = internalMutation({
     objectType: objectTypeValidator,
     wpId: v.number(),
     convexId: v.string(),
+    sourceUrl: v.optional(v.string()),
   },
-  handler: async (ctx, { siteId, objectType, wpId, convexId }) => {
+  handler: async (ctx, { siteId, objectType, wpId, convexId, sourceUrl }) => {
     // Check for existing mapping to prevent duplicates
     const existing = await ctx.db
       .query("wpIdMappings")
@@ -215,8 +216,15 @@ export const create = internalMutation({
 
     if (existing) {
       // Update existing mapping if convexId changed
+      const patch: Record<string, unknown> = {};
       if (existing.convexId !== convexId) {
-        await ctx.db.patch(existing._id, { convexId });
+        patch.convexId = convexId;
+      }
+      if (sourceUrl && existing.sourceUrl !== sourceUrl) {
+        patch.sourceUrl = sourceUrl;
+      }
+      if (Object.keys(patch).length > 0) {
+        await ctx.db.patch(existing._id, patch);
       }
       return existing._id;
     }
@@ -227,6 +235,7 @@ export const create = internalMutation({
       objectType,
       wpId,
       convexId,
+      sourceUrl,
       createdAt: Date.now(),
     });
   },
