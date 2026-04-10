@@ -183,6 +183,9 @@ export interface DiscussionSettings {
 export interface PluginsSettings {
   commerceEnabled: boolean;
   commerceSubscriptionsEnabled: boolean;
+  commerceDigitalEnabled: boolean;
+  commerceWishlistsEnabled: boolean;
+  commerceReturnsEnabled: boolean;
   membershipEnabled: boolean;
   knowledgeBaseEnabled: boolean;
   ticketsEnabled: boolean;
@@ -747,6 +750,9 @@ export const TICKET_SLA_DEFAULTS: TicketSlaSettings = {
 export const PLUGINS_DEFAULTS: PluginsSettings = {
   commerceEnabled: false,
   commerceSubscriptionsEnabled: false,
+  commerceDigitalEnabled: false,
+  commerceWishlistsEnabled: false,
+  commerceReturnsEnabled: false,
   membershipEnabled: false,
   knowledgeBaseEnabled: true,
   ticketsEnabled: true,

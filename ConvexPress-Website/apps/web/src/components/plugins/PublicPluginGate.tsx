@@ -8,6 +8,8 @@ type PublicPluginId =
   | "commerce"
   | "commerceDigital"
   | "commerceSubscriptions"
+  | "commerceWishlists"
+  | "commerceReturns"
   | "kb"
   | "tickets"
   | "recipes"
@@ -26,6 +28,8 @@ function isPluginEnabled(
       commerceEnabled?: boolean;
       commerceDigitalEnabled?: boolean;
       commerceSubscriptionsEnabled?: boolean;
+      commerceWishlistsEnabled?: boolean;
+      commerceReturnsEnabled?: boolean;
       kbEnabled?: boolean;
       ticketsEnabled?: boolean;
       recipesEnabled?: boolean;
@@ -43,6 +47,10 @@ function isPluginEnabled(
       return settings.plugins?.commerceDigitalEnabled !== false;
     case "commerceSubscriptions":
       return settings.plugins?.commerceSubscriptionsEnabled !== false;
+    case "commerceWishlists":
+      return settings.plugins?.commerceWishlistsEnabled !== false;
+    case "commerceReturns":
+      return settings.plugins?.commerceReturnsEnabled !== false;
     case "kb":
       return settings.plugins?.kbEnabled !== false;
     case "tickets":
