@@ -1,0 +1,431 @@
+import { defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export const commerceProductStatusValidator = v.union(
+  v.literal("draft"),
+  v.literal("publish"),
+  v.literal("private"),
+  v.literal("trash"),
+);
+
+export const commerceProductTypeValidator = v.union(
+  v.literal("simple"),
+  v.literal("variable"),
+  v.literal("external"),
+);
+
+export const commerceCartStatusValidator = v.union(
+  v.literal("active"),
+  v.literal("abandoned"),
+  v.literal("converted"),
+);
+
+export const commerceCheckoutStatusValidator = v.union(
+  v.literal("draft"),
+  v.literal("collecting_shipping"),
+  v.literal("collecting_payment"),
+  v.literal("ready_for_review"),
+  v.literal("completed"),
+  v.literal("abandoned"),
+  v.literal("failed"),
+);
+
+export const commerceOrderStatusValidator = v.union(
+  v.literal("pending"),
+  v.literal("processing"),
+  v.literal("paid"),
+  v.literal("fulfilled"),
+  v.literal("completed"),
+  v.literal("cancelled"),
+  v.literal("refunded"),
+  v.literal("failed"),
+);
+
+export const commerceShipmentStatusValidator = v.union(
+  v.literal("label_created"),
+  v.literal("shipped"),
+  v.literal("delivered"),
+  v.literal("returned"),
+);
+
+export const commerceAddressValidator = v.object({
+  firstName: v.optional(v.string()),
+  lastName: v.optional(v.string()),
+  company: v.optional(v.string()),
+  line1: v.string(),
+  line2: v.optional(v.string()),
+  city: v.string(),
+  state: v.optional(v.string()),
+  postalCode: v.string(),
+  countryCode: v.string(),
+  phone: v.optional(v.string()),
+});
+
+export const commerceMoneyValidator = v.object({
+  amount: v.number(),
+  currencyCode: v.string(),
+});
+
+export const commerceTables = {
+  commerce_product_categories: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    description: v.optional(v.string()),
+    parentId: v.optional(v.id("commerce_product_categories")),
+    productCount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_parent", ["parentId"]),
+
+  commerce_products: defineTable({
+    title: v.string(),
+    slug: v.string(),
+    description: v.optional(v.string()),
+    excerpt: v.optional(v.string()),
+    status: commerceProductStatusValidator,
+    productType: commerceProductTypeValidator,
+    sku: v.optional(v.string()),
+    authorId: v.id("users"),
+    featuredMediaId: v.optional(v.id("media")),
+    galleryMediaIds: v.array(v.id("media")),
+    categoryIds: v.array(v.id("commerce_product_categories")),
+    basePrice: commerceMoneyValidator,
+    salePrice: v.optional(commerceMoneyValidator),
+    trackInventory: v.boolean(),
+    stockQuantity: v.optional(v.number()),
+    allowBackorders: v.boolean(),
+    isVirtual: v.boolean(),
+    shippingWeightOz: v.optional(v.number()),
+    isDownloadable: v.boolean(),
+    publishedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_status", ["status"])
+    .index("by_author", ["authorId"])
+    .searchIndex("search_commerce_products", {
+      searchField: "title",
+      filterFields: ["status", "authorId"],
+    }),
+
+  commerce_product_variants: defineTable({
+    productId: v.id("commerce_products"),
+    title: v.string(),
+    sku: v.optional(v.string()),
+    optionSummary: v.string(),
+    price: commerceMoneyValidator,
+    salePrice: v.optional(commerceMoneyValidator),
+    stockQuantity: v.optional(v.number()),
+    isDefault: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_product", ["productId"])
+    .index("by_product_default", ["productId", "isDefault"]),
+
+  commerce_carts: defineTable({
+    userId: v.optional(v.id("users")),
+    sessionToken: v.string(),
+    status: commerceCartStatusValidator,
+    currencyCode: v.string(),
+    appliedDiscountCode: v.optional(v.string()),
+    appliedDiscountDescription: v.optional(v.string()),
+    subtotalAmount: v.number(),
+    discountAmount: v.number(),
+    shippingAmount: v.number(),
+    taxAmount: v.number(),
+    totalAmount: v.number(),
+    itemCount: v.number(),
+    lastActiveAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_session", ["sessionToken"])
+    .index("by_status", ["status"]),
+
+  commerce_cart_items: defineTable({
+    cartId: v.id("commerce_carts"),
+    productId: v.id("commerce_products"),
+    variantId: v.optional(v.id("commerce_product_variants")),
+    quantity: v.number(),
+    unitPriceAmount: v.number(),
+    lineTotalAmount: v.number(),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_cart", ["cartId"])
+    .index("by_cart_product", ["cartId", "productId"]),
+
+  commerce_checkout_sessions: defineTable({
+    cartId: v.id("commerce_carts"),
+    userId: v.optional(v.id("users")),
+    sessionToken: v.string(),
+    status: commerceCheckoutStatusValidator,
+    currencyCode: v.string(),
+    email: v.optional(v.string()),
+    shippingAddress: v.optional(commerceAddressValidator),
+    billingAddress: v.optional(commerceAddressValidator),
+    selectedShippingMethodCode: v.optional(v.string()),
+    selectedShippingMethodLabel: v.optional(v.string()),
+    selectedPaymentMethodCode: v.optional(v.string()),
+    selectedPaymentMethodLabel: v.optional(v.string()),
+    appliedDiscountCode: v.optional(v.string()),
+    appliedDiscountDescription: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    subtotalAmount: v.number(),
+    discountAmount: v.number(),
+    shippingAmount: v.number(),
+    taxAmount: v.number(),
+    totalAmount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_cart", ["cartId"])
+    .index("by_session", ["sessionToken"])
+    .index("by_user", ["userId"]),
+
+  commerce_customer_profiles: defineTable({
+    userId: v.optional(v.id("users")),
+    email: v.string(),
+    phone: v.optional(v.string()),
+    defaultBillingAddressId: v.optional(v.id("commerce_customer_addresses")),
+    defaultShippingAddressId: v.optional(v.id("commerce_customer_addresses")),
+    totalOrders: v.number(),
+    totalSpentAmount: v.number(),
+    currencyCode: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_email", ["email"]),
+
+  commerce_customer_addresses: defineTable({
+    customerId: v.id("commerce_customer_profiles"),
+    label: v.string(),
+    addressType: v.union(v.literal("billing"), v.literal("shipping")),
+    isDefault: v.boolean(),
+    address: commerceAddressValidator,
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_customer", ["customerId"])
+    .index("by_customer_default", ["customerId", "isDefault"]),
+
+  commerce_orders: defineTable({
+    orderNumber: v.string(),
+    trackingToken: v.string(),
+    customerId: v.optional(v.id("commerce_customer_profiles")),
+    userId: v.optional(v.id("users")),
+    checkoutSessionId: v.optional(v.id("commerce_checkout_sessions")),
+    status: commerceOrderStatusValidator,
+    currencyCode: v.string(),
+    email: v.string(),
+    billingAddress: commerceAddressValidator,
+    shippingAddress: v.optional(commerceAddressValidator),
+    shippingProvider: v.optional(v.string()),
+    shippingCarrierCode: v.optional(v.string()),
+    shippingCarrierName: v.optional(v.string()),
+    shippingServiceCode: v.optional(v.string()),
+    shippingServiceName: v.optional(v.string()),
+    shippingQuoteRaw: v.optional(v.any()),
+    selectedShippingMethodCode: v.optional(v.string()),
+    selectedShippingMethodLabel: v.optional(v.string()),
+    selectedPaymentMethodCode: v.optional(v.string()),
+    selectedPaymentMethodLabel: v.optional(v.string()),
+    appliedDiscountCode: v.optional(v.string()),
+    appliedDiscountDescription: v.optional(v.string()),
+    subtotalAmount: v.number(),
+    discountAmount: v.number(),
+    shippingAmount: v.number(),
+    taxAmount: v.number(),
+    totalAmount: v.number(),
+    paymentStatus: v.string(),
+    fulfillmentStatus: v.string(),
+    inventoryCommittedAt: v.optional(v.number()),
+    inventoryReleasedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    paidAt: v.optional(v.number()),
+  })
+    .index("by_orderNumber", ["orderNumber"])
+    .index("by_trackingToken", ["trackingToken"])
+    .index("by_customer", ["customerId"])
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"]),
+
+  commerce_order_items: defineTable({
+    orderId: v.id("commerce_orders"),
+    productId: v.id("commerce_products"),
+    variantId: v.optional(v.id("commerce_product_variants")),
+    productTitle: v.string(),
+    sku: v.optional(v.string()),
+    quantity: v.number(),
+    unitPriceAmount: v.number(),
+    lineSubtotalAmount: v.number(),
+    lineTotalAmount: v.number(),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+  }).index("by_order", ["orderId"]),
+
+  commerce_order_history: defineTable({
+    orderId: v.id("commerce_orders"),
+    eventType: v.string(),
+    message: v.string(),
+    actorUserId: v.optional(v.id("users")),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+  }).index("by_order", ["orderId"]),
+
+  commerce_shipments: defineTable({
+    orderId: v.id("commerce_orders"),
+    shipmentNumber: v.string(),
+    status: commerceShipmentStatusValidator,
+    provider: v.optional(v.string()),
+    carrier: v.optional(v.string()),
+    carrierCode: v.optional(v.string()),
+    serviceCode: v.optional(v.string()),
+    serviceName: v.optional(v.string()),
+    trackingNumber: v.optional(v.string()),
+    trackingUrl: v.optional(v.string()),
+    trackingStatus: v.optional(v.string()),
+    externalShipmentId: v.optional(v.string()),
+    externalLabelId: v.optional(v.string()),
+    externalManifestId: v.optional(v.string()),
+    labelUrl: v.optional(v.string()),
+    labelFormat: v.optional(v.string()),
+    labelPurchasedAt: v.optional(v.number()),
+    voidedAt: v.optional(v.number()),
+    items: v.array(
+      v.object({
+        orderItemId: v.id("commerce_order_items"),
+        quantity: v.number(),
+      }),
+    ),
+    note: v.optional(v.string()),
+    shippedAt: v.optional(v.number()),
+    deliveredAt: v.optional(v.number()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_order", ["orderId"])
+    .index("by_status", ["status"])
+    .index("by_tracking", ["trackingNumber"]),
+
+  commerce_discount_codes: defineTable({
+    code: v.string(),
+    description: v.optional(v.string()),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    discountType: v.union(
+      v.literal("fixed_cart"),
+      v.literal("percent"),
+      v.literal("fixed_product"),
+    ),
+    amount: v.number(),
+    usageCount: v.number(),
+    usageLimit: v.optional(v.number()),
+    startsAt: v.optional(v.number()),
+    endsAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_code", ["code"])
+    .index("by_status", ["status"]),
+
+  commerce_payment_transactions: defineTable({
+    orderId: v.optional(v.id("commerce_orders")),
+    checkoutSessionId: v.optional(v.id("commerce_checkout_sessions")),
+    provider: v.string(),
+    providerTransactionId: v.optional(v.string()),
+    clientSecret: v.optional(v.string()),
+    status: v.string(),
+    amount: commerceMoneyValidator,
+    refundedAmount: v.optional(v.number()),
+    metadata: v.optional(v.any()),
+    failureCode: v.optional(v.string()),
+    failureMessage: v.optional(v.string()),
+    completedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_order", ["orderId"])
+    .index("by_checkout", ["checkoutSessionId"])
+    .index("by_provider_status", ["provider", "status"])
+    .index("by_provider_txn", ["provider", "providerTransactionId"]),
+
+  commerce_payment_refunds: defineTable({
+    orderId: v.id("commerce_orders"),
+    transactionId: v.optional(v.id("commerce_payment_transactions")),
+    amount: commerceMoneyValidator,
+    reason: v.optional(v.string()),
+    status: v.string(),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_order", ["orderId"]),
+
+  commerce_shipping_methods: defineTable({
+    code: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+    rateType: v.union(v.literal("flat"), v.literal("free"), v.literal("pickup")),
+    baseAmount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_code", ["code"])
+    .index("by_active", ["isActive"]),
+
+  commerce_tax_rules: defineTable({
+    name: v.string(),
+    countryCode: v.string(),
+    stateCode: v.optional(v.string()),
+    postalCodePattern: v.optional(v.string()),
+    ratePercent: v.number(),
+    priority: v.number(),
+    isCompound: v.boolean(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_country", ["countryCode"])
+    .index("by_active", ["isActive"]),
+
+  commerce_inventory_adjustments: defineTable({
+    productId: v.id("commerce_products"),
+    variantId: v.optional(v.id("commerce_product_variants")),
+    adjustmentType: v.string(),
+    quantityDelta: v.number(),
+    reason: v.optional(v.string()),
+    actorUserId: v.optional(v.id("users")),
+    createdAt: v.number(),
+  })
+    .index("by_product", ["productId"])
+    .index("by_variant", ["variantId"]),
+
+  commerce_stock_reservations: defineTable({
+    checkoutSessionId: v.id("commerce_checkout_sessions"),
+    productId: v.id("commerce_products"),
+    variantId: v.optional(v.id("commerce_product_variants")),
+    quantity: v.number(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("released"),
+      v.literal("converted"),
+      v.literal("expired"),
+    ),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_checkout", ["checkoutSessionId"])
+    .index("by_product_status", ["productId", "status"]),
+};

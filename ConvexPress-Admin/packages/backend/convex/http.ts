@@ -47,6 +47,7 @@ import { resendWebhookHandler } from "./http/resendWebhook";
 import { clerkWebhookHandler } from "./auth/clerkWebhook";
 import { analyticsTrackHandler } from "./http/analytics";
 import { httpAction } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 const http = httpRouter();
 
@@ -367,6 +368,68 @@ http.route({
   path: "/webhooks/clerk",
   method: "POST",
   handler: clerkWebhookHandler,
+});
+
+// ─── Stripe Webhook ─────────────────────────────────────────────────────────
+http.route({
+  path: "/webhooks/stripe",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const body = await request.text();
+    const signature = request.headers.get("stripe-signature");
+
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret || !signature) {
+      return new Response("Missing webhook secret or signature", {
+        status: 400,
+      });
+    }
+
+    // Dynamic import for Stripe SDK (Node.js action context)
+    const Stripe = (await import("stripe")).default;
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+    let event: any;
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    } catch (err: any) {
+      console.error("[Stripe Webhook] Signature verification failed:", err.message);
+      return new Response("Invalid signature", { status: 400 });
+    }
+
+    // Handle payment intent events
+    if (event.type === "payment_intent.succeeded") {
+      const intent = event.data.object;
+      await ctx.runMutation(
+        internal.commerce.payments.confirmPaymentSuccess,
+        {
+          providerTransactionId: intent.id,
+          provider: "stripe",
+        },
+      );
+    } else if (event.type === "payment_intent.payment_failed") {
+      const intent = event.data.object;
+      await ctx.runMutation(
+        internal.commerce.payments.confirmPaymentFailure,
+        {
+          providerTransactionId: intent.id,
+          provider: "stripe",
+          error:
+            intent.last_payment_error?.message || "Payment failed",
+        },
+      );
+    } else if (event.type === "charge.refunded") {
+      // Refund confirmation handled via processStripeRefund action callback.
+      // This webhook event is logged but does not trigger a separate mutation
+      // to avoid double-processing (the action already calls completeRefund).
+      console.log(
+        "[Stripe Webhook] charge.refunded received:",
+        event.data.object.id,
+      );
+    }
+
+    return new Response("OK", { status: 200 });
+  }),
 });
 
 // ─── Analytics Tracking (Public, no auth) ───────────────────────────────────
