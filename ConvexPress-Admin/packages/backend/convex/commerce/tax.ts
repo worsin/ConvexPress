@@ -118,6 +118,19 @@ export function calculateTaxFromRules(
 // ============================================
 
 /**
+ * Get a single tax rule by ID (admin)
+ */
+export const getById = query({
+  args: {
+    id: v.id("commerce_tax_rules"),
+  },
+  handler: async (ctx, args) => {
+    await requireCan(ctx, "manage_options");
+    return ctx.db.get(args.id);
+  },
+});
+
+/**
  * List all tax rules (admin)
  */
 export const list = query({
@@ -265,5 +278,72 @@ export const toggleActive = mutation({
     });
 
     return { success: true, isActive: !rule.isActive };
+  },
+});
+
+// ============================================
+// MUTATIONS — Seeding
+// ============================================
+
+/**
+ * Seed default US state tax rules.
+ * Skips gracefully if any rules already exist.
+ * Requires manage_options capability.
+ */
+export const seedDefaultTaxRules = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireCan(ctx, "manage_options");
+
+    const existing = await ctx.db.query("commerce_tax_rules").first();
+    if (existing !== null) {
+      return { seeded: false, reason: "rules already exist" } as const;
+    }
+
+    const now = Date.now();
+
+    const defaults: Array<{
+      name: string;
+      countryCode: string;
+      stateCode?: string;
+      ratePercent: number;
+      priority: number;
+    }> = [
+      // No-tax states
+      { name: "Oregon - No Tax",       countryCode: "US", stateCode: "OR", ratePercent: 0,    priority: 1 },
+      { name: "Montana - No Tax",      countryCode: "US", stateCode: "MT", ratePercent: 0,    priority: 1 },
+      { name: "Delaware - No Tax",     countryCode: "US", stateCode: "DE", ratePercent: 0,    priority: 1 },
+      { name: "New Hampshire - No Tax",countryCode: "US", stateCode: "NH", ratePercent: 0,    priority: 1 },
+      { name: "Alaska - No Tax",       countryCode: "US", stateCode: "AK", ratePercent: 0,    priority: 1 },
+      // Higher-tax states
+      { name: "California",            countryCode: "US", stateCode: "CA", ratePercent: 7.25, priority: 1 },
+      { name: "New York",              countryCode: "US", stateCode: "NY", ratePercent: 8,    priority: 1 },
+      { name: "Texas",                 countryCode: "US", stateCode: "TX", ratePercent: 6.25, priority: 1 },
+      { name: "Florida",               countryCode: "US", stateCode: "FL", ratePercent: 6,    priority: 1 },
+      { name: "Washington",            countryCode: "US", stateCode: "WA", ratePercent: 6.5,  priority: 1 },
+      { name: "Pennsylvania",          countryCode: "US", stateCode: "PA", ratePercent: 6,    priority: 1 },
+      { name: "Illinois",              countryCode: "US", stateCode: "IL", ratePercent: 6.25, priority: 1 },
+      { name: "Ohio",                  countryCode: "US", stateCode: "OH", ratePercent: 5.75, priority: 1 },
+      { name: "Georgia",               countryCode: "US", stateCode: "GA", ratePercent: 4,    priority: 1 },
+      { name: "North Carolina",        countryCode: "US", stateCode: "NC", ratePercent: 4.75, priority: 1 },
+      // Fallback for all other US addresses
+      { name: "US Default",            countryCode: "US",                  ratePercent: 5,    priority: 0 },
+    ];
+
+    for (const rule of defaults) {
+      await ctx.db.insert("commerce_tax_rules", {
+        name: rule.name,
+        countryCode: rule.countryCode,
+        stateCode: rule.stateCode,
+        ratePercent: rule.ratePercent,
+        priority: rule.priority,
+        isCompound: false,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    return { seeded: true, count: defaults.length } as const;
   },
 });
