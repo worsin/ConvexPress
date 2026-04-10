@@ -275,6 +275,16 @@ type TicketCapability =
   | "ticket.viewAnalytics"
   | "ticket.viewInternalNotes";
 
+// ─── Commerce Returns Capabilities (6) ──────────────────────────────────────
+
+type CommerceReturnsCapability =
+  | "commerce.returns.view"
+  | "commerce.returns.review"
+  | "commerce.returns.receive"
+  | "commerce.returns.refund"
+  | "commerce.returns.manage"
+  | "commerce.returns.settings";
+
 // ─── Settings Management Capability (1) ─────────────────────────────────────
 // WordPress-standard "manage_options" used by admin-only settings operations.
 
@@ -329,6 +339,7 @@ export type Capability =
   | AnalyticsCapability
   | KBCapability
   | TicketCapability
+  | CommerceReturnsCapability
   | SettingsManageCapability;
 
 /**
@@ -535,6 +546,13 @@ export const ALL_CAPABILITIES: Capability[] = [
   "ticket.manageCannedResponses",
   "ticket.viewAnalytics",
   "ticket.viewInternalNotes",
+  // Commerce Returns (6)
+  "commerce.returns.view",
+  "commerce.returns.review",
+  "commerce.returns.receive",
+  "commerce.returns.refund",
+  "commerce.returns.manage",
+  "commerce.returns.settings",
   // Settings Management (1)
   "manage_options",
 ] as const;
@@ -797,6 +815,14 @@ export const CAPABILITY_DOMAINS: Record<string, Capability[]> = {
     "ticket.manageCannedResponses",
     "ticket.viewAnalytics",
     "ticket.viewInternalNotes",
+  ],
+  "Commerce Returns": [
+    "commerce.returns.view",
+    "commerce.returns.review",
+    "commerce.returns.receive",
+    "commerce.returns.refund",
+    "commerce.returns.manage",
+    "commerce.returns.settings",
   ],
   "Settings Management": ["manage_options"],
 };

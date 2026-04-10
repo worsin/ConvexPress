@@ -5,6 +5,10 @@
  * Ported from VexCart returns.ts mutations, adapted to ConvexPress
  * schema (commerce_return_* tables) and auth patterns.
  *
+ * POLICY: Returns require an authenticated user account.
+ * Guest checkout orders must be claimed to an account before a return can be requested.
+ * This is intentional — returns involve ongoing communication, refund tracking, and shipping labels.
+ *
  * Functions:
  *   Customer:
  *   - requestReturn        Customer initiates a return request
@@ -17,6 +21,7 @@
  *   - completeReturn       Complete return (final step — restocks inventory)
  *   - addShippingLabel     Add return shipping label
  *   - updateNotes          Update return notes
+ *   - retryStuckRefund     Retry a refund stuck in refund_pending state
  */
 
 import { ConvexError, v } from "convex/values";
@@ -105,6 +110,17 @@ export const requestReturn = mutation({
           message: `Return quantity must be greater than 0 for ${orderItem.productTitle}.`,
         });
       }
+
+      // Check if product is non-returnable
+      if (orderItem.productId) {
+        const product = await ctx.db.get(orderItem.productId);
+        if (product?.isNonReturnable === true) {
+          throw new ConvexError({
+            code: "VALIDATION_ERROR",
+            message: `${orderItem.productTitle} is not eligible for return.`,
+          });
+        }
+      }
     }
 
     // Generate return number
@@ -157,7 +173,7 @@ export const approveReturn = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    const admin = await requireCan(ctx, "manage_options");
+    const admin = await requireCan(ctx, "commerce.returns.review");
     await requireCommerceReturnsEnabled(ctx);
 
     const returnRequest = await ctx.db.get(args.returnId);
@@ -214,7 +230,7 @@ export const rejectReturn = mutation({
     reason: v.string(),
   },
   handler: async (ctx: any, args: any) => {
-    const admin = await requireCan(ctx, "manage_options");
+    const admin = await requireCan(ctx, "commerce.returns.review");
     await requireCommerceReturnsEnabled(ctx);
 
     const returnRequest = await ctx.db.get(args.returnId);
@@ -264,7 +280,7 @@ export const markReceived = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    const admin = await requireCan(ctx, "manage_options");
+    const admin = await requireCan(ctx, "commerce.returns.receive");
     await requireCommerceReturnsEnabled(ctx);
 
     const returnRequest = await ctx.db.get(args.returnId);
@@ -309,6 +325,9 @@ export const markReceived = mutation({
 /**
  * Process refund for return — creates a refund record in the payments system
  * and triggers the actual payment provider refund.
+ *
+ * Sets status to "refund_pending" until the provider confirms completion,
+ * at which point completeReturn can be called.
  */
 export const processRefund = mutation({
   args: {
@@ -317,7 +336,7 @@ export const processRefund = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    const admin = await requireCan(ctx, "manage_options");
+    const admin = await requireCan(ctx, "commerce.returns.refund");
     await requireCommerceReturnsEnabled(ctx);
 
     const returnRequest = await ctx.db.get(args.returnId);
@@ -344,10 +363,11 @@ export const processRefund = mutation({
 
     const now = Date.now();
 
-    // Update return status to refunded
+    // Set status to refund_pending — will transition to refunded once provider confirms
     await ctx.db.patch(args.returnId, {
-      status: "refunded",
+      status: "refund_pending",
       refundMethod: args.refundMethod,
+      refundPendingAt: now,
       notes: args.notes
         ? (returnRequest.notes ?? "") + "\n\n" + args.notes
         : returnRequest.notes,
@@ -371,6 +391,7 @@ export const processRefund = mutation({
       const refundId = await ctx.db.insert("commerce_payment_refunds", {
         orderId: returnRequest.orderId,
         transactionId: succeededTxn._id,
+        returnId: args.returnId,
         amount: {
           amount: returnRequest.refundAmount,
           currencyCode: succeededTxn.amount.currencyCode,
@@ -394,7 +415,19 @@ export const processRefund = mutation({
             amount: returnRequest.refundAmount,
           },
         );
+      } else {
+        // For non-Stripe or manual refunds, mark as refunded immediately
+        await ctx.db.patch(args.returnId, {
+          status: "refunded",
+          updatedAt: now,
+        });
       }
+    } else {
+      // No payment transaction found — mark as refunded for manual processing
+      await ctx.db.patch(args.returnId, {
+        status: "refunded",
+        updatedAt: now,
+      });
     }
 
     // Add to order history
@@ -424,7 +457,7 @@ export const completeReturn = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    const admin = await requireCan(ctx, "manage_options");
+    const admin = await requireCan(ctx, "commerce.returns.manage");
     await requireCommerceReturnsEnabled(ctx);
 
     const returnRequest = await ctx.db.get(args.returnId);
@@ -446,6 +479,7 @@ export const completeReturn = mutation({
 
     await ctx.db.patch(args.returnId, {
       status: "completed",
+      completedAt: now,
       notes: args.notes
         ? (returnRequest.notes ?? "") + "\n\n" + args.notes
         : returnRequest.notes,
@@ -504,7 +538,7 @@ export const addShippingLabel = mutation({
     carrier: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    const admin = await requireCan(ctx, "manage_options");
+    const admin = await requireCan(ctx, "commerce.returns.manage");
     await requireCommerceReturnsEnabled(ctx);
 
     const returnRequest = await ctx.db.get(args.returnId);
@@ -561,7 +595,7 @@ export const updateNotes = mutation({
     notes: v.string(),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCan(ctx, "manage_options");
+    await requireCan(ctx, "commerce.returns.view");
     await requireCommerceReturnsEnabled(ctx);
 
     const returnRequest = await ctx.db.get(args.returnId);
@@ -578,5 +612,123 @@ export const updateNotes = mutation({
     });
 
     return { success: true };
+  },
+});
+
+// ============================================
+// STUCK REFUND RECOVERY
+// ============================================
+
+/**
+ * Retry a refund that is stuck in refund_pending state.
+ * Re-triggers the payment provider refund action.
+ */
+export const retryStuckRefund = mutation({
+  args: {
+    returnId: v.id("commerce_return_requests"),
+  },
+  handler: async (ctx: any, args: any) => {
+    await requireCan(ctx, "commerce.returns.refund");
+    await requireCommerceReturnsEnabled(ctx);
+
+    const returnRequest = await ctx.db.get(args.returnId);
+    if (!returnRequest || returnRequest.status !== "refund_pending") {
+      throw new ConvexError({
+        code: "INVALID_STATE",
+        message: "Return is not in refund_pending state.",
+      });
+    }
+
+    if (!returnRequest.refundAmount) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "No refund amount set on this return.",
+      });
+    }
+
+    const now = Date.now();
+
+    // Look up the original payment transaction
+    const transactions = await ctx.db
+      .query("commerce_payment_transactions")
+      .withIndex("by_order", (q: any) =>
+        q.eq("orderId", returnRequest.orderId),
+      )
+      .collect();
+
+    const succeededTxn = transactions.find(
+      (t: any) => t.status === "succeeded" || t.status === "partially_refunded",
+    );
+
+    if (!succeededTxn || !succeededTxn.providerTransactionId) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "No eligible payment transaction found for retry.",
+      });
+    }
+
+    // Find or create a pending refund record
+    const existingRefunds = await ctx.db
+      .query("commerce_payment_refunds")
+      .withIndex("by_return", (q: any) => q.eq("returnId", args.returnId))
+      .collect();
+
+    let refundId;
+    const pendingRefund = existingRefunds.find((r: any) => r.status === "pending" || r.status === "failed");
+    if (pendingRefund) {
+      // Reset existing failed refund to pending
+      await ctx.db.patch(pendingRefund._id, {
+        status: "pending",
+        failureCode: undefined,
+        failureMessage: undefined,
+        updatedAt: now,
+      });
+      refundId = pendingRefund._id;
+    } else {
+      // Create a new refund record
+      refundId = await ctx.db.insert("commerce_payment_refunds", {
+        orderId: returnRequest.orderId,
+        transactionId: succeededTxn._id,
+        returnId: args.returnId,
+        amount: {
+          amount: returnRequest.refundAmount,
+          currencyCode: succeededTxn.amount.currencyCode,
+        },
+        reason: `Return ${returnRequest.returnNumber}: retry`,
+        status: "pending",
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    // Update the refundPendingAt timestamp
+    await ctx.db.patch(args.returnId, {
+      refundPendingAt: now,
+      updatedAt: now,
+    });
+
+    // Re-schedule the provider refund action
+    if (succeededTxn.provider === "stripe") {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.commerce.paymentActions.processStripeRefund,
+        {
+          refundId,
+          transactionId: succeededTxn._id,
+          providerTransactionId: succeededTxn.providerTransactionId,
+          amount: returnRequest.refundAmount,
+        },
+      );
+    }
+
+    // Add to order history
+    await ctx.db.insert("commerce_order_history", {
+      orderId: returnRequest.orderId,
+      eventType: "refund_retried",
+      message: `Refund retry initiated for return ${returnRequest.returnNumber}`,
+      createdAt: now,
+    });
+
+    return { success: true, refundId };
   },
 });
