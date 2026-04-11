@@ -37,6 +37,10 @@ import { SyncProgress } from "../../wordpress-sync/-components/SyncProgress";
 import { JobHistory } from "../../wordpress-sync/-components/JobHistory";
 import { ErrorLog } from "../../wordpress-sync/-components/ErrorLog";
 import { ImportConfigPanel } from "../../wordpress-sync/-components/ImportConfigPanel";
+import { CapabilitiesCard } from "../../wordpress-sync/-components/CapabilitiesCard";
+import { PhaseSummaryCard } from "../../wordpress-sync/-components/PhaseSummaryCard";
+import { FindingsSummaryCard } from "../../wordpress-sync/-components/FindingsSummaryCard";
+import { ReportHistory } from "../../wordpress-sync/-components/ReportHistory";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/tools/website-import/$siteId/",
@@ -61,6 +65,9 @@ function WebsiteImportSiteDetail() {
     siteId: siteId as Id<"wordpressSites">,
   });
   const importStats = useQuery(api.wordpressSync.queries.getImportStats, {
+    siteId: siteId as Id<"wordpressSites">,
+  });
+  const latestReport = useQuery(api.wordpressSync.queries.getLatestReport, {
     siteId: siteId as Id<"wordpressSites">,
   });
 
@@ -355,6 +362,22 @@ function WebsiteImportSiteDetail() {
       {!hasActiveJob && latestJob && ["completed", "failed"].includes(latestJob.status) && (
         <SyncProgress job={latestJob} />
       )}
+
+      {/* Operator Dashboard Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CapabilitiesCard capabilities={site.capabilities ?? null} />
+        {latestReport && (
+          <>
+            <PhaseSummaryCard phaseCounts={latestReport.phaseCounts ?? null} />
+            <FindingsSummaryCard
+              findingSummary={latestReport.findingSummary ?? null}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Import Reports */}
+      <ReportHistory siteId={site._id} />
 
       {/* Job History */}
       <JobHistory siteId={site._id} />
