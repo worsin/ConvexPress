@@ -217,6 +217,43 @@ export const getEntityById = internalQuery({
   },
 });
 
+/**
+ * Generic entity patch by table + ID string.
+ * Used by reconciliation phase to repair relationships.
+ */
+export const patchEntity = internalMutation({
+  args: {
+    table: v.string(),
+    id: v.string(),
+    fields: v.any(),
+  },
+  handler: async (ctx, { table, id, fields }) => {
+    try {
+      await ctx.db.patch(id as any, fields);
+    } catch {
+      // Entity may have been deleted
+    }
+  },
+});
+
+/**
+ * Get media mappings that have sourceUrl populated.
+ * Used by reconciliation phase to build URL rewrite maps.
+ */
+export const getMediaMappingsWithUrls = internalQuery({
+  args: {
+    siteId: v.id("wordpressSites"),
+    limit: v.number(),
+  },
+  handler: async (ctx, { siteId, limit }) => {
+    const all = await ctx.db
+      .query("wpIdMappings")
+      .withIndex("by_site", (q) => q.eq("siteId", siteId))
+      .take(limit);
+    return all.filter((m: any) => m.objectType === "media" && m.sourceUrl);
+  },
+});
+
 // ─── Internal Mutations ────────────────────────────────────────────────────
 
 /**
