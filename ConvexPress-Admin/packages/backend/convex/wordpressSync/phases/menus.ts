@@ -19,12 +19,12 @@ import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
 import { createDefaultImportConfig, FINDING_CODES } from "../validators";
 import { createFinding } from "../helpers/idMapping";
-import { createHash } from "crypto";
+
 
 // ─── Source Hash Helper ───────────────────────────────────────────────────
 
 function computeSourceHash(fields: Record<string, unknown>): string {
-  return createHash("md5").update(JSON.stringify(fields)).digest("hex");
+  const str = JSON.stringify(fields); let h = 0; for (let i = 0; i < str.length; i++) { h = ((h << 5) - h + str.charCodeAt(i)) | 0; } return h.toString(36);
 }
 
 // ─── Menus Import Action ───────────────────────────────────────────────────

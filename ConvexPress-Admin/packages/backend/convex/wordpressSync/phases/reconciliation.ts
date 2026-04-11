@@ -819,24 +819,33 @@ async function repairUpsellCrosssell(
 
 // ─── Pass 9: Media URL Rewrite ────────────────────────────────────────────
 
+// Cursor offset to separate post range from page range within the media_rewrite pass.
+// Cursors < PAGE_CURSOR_OFFSET process posts; cursors >= PAGE_CURSOR_OFFSET process pages.
+const PAGE_CURSOR_OFFSET = 500_000_000;
+
 async function rewriteMediaUrls(
   ctx: any,
   siteId: any,
   jobId: any,
   cursor: number,
 ): Promise<PassResult> {
-  // Process posts in batches, checking if content contains source media URLs
-  const postMappings = await ctx.runQuery(internal.wordpressSync.internals.getMappingsBatch, {
+  const isPagePhase = cursor >= PAGE_CURSOR_OFFSET;
+  const objectType = isPagePhase ? "page" : "post";
+  const realCursor = isPagePhase ? cursor - PAGE_CURSOR_OFFSET : cursor;
+
+  const mappings = await ctx.runQuery(internal.wordpressSync.internals.getMappingsBatch, {
     siteId,
-    objectType: "post",
-    afterWpId: cursor,
+    objectType,
+    afterWpId: realCursor,
     limit: BATCH_SIZE,
   });
 
-  if (postMappings.length === 0) {
-    // Also process pages — use a secondary cursor space
-    // If cursor is still in "post" range (< 500_000_000), switch to pages
-    // by returning hasMore=false so we advance to the next pass
+  if (mappings.length === 0) {
+    if (!isPagePhase) {
+      // Posts exhausted — switch to pages
+      return { repaired: 0, failed: 0, hasMore: true, nextCursor: PAGE_CURSOR_OFFSET };
+    }
+    // Pages also exhausted — pass complete
     return { repaired: 0, failed: 0, hasMore: false, nextCursor: cursor };
   }
 
@@ -858,33 +867,28 @@ async function rewriteMediaUrls(
   let failed = 0;
 
   if (urlMap.size === 0) {
-    // No media URLs to rewrite
+    const lastWpId = mappings[mappings.length - 1].wpId;
     return {
       repaired: 0,
       failed: 0,
-      hasMore: postMappings.length === BATCH_SIZE,
-      nextCursor:
-        postMappings.length > 0
-          ? postMappings[postMappings.length - 1].wpId
-          : cursor,
+      hasMore: mappings.length === BATCH_SIZE,
+      nextCursor: isPagePhase ? lastWpId + PAGE_CURSOR_OFFSET : lastWpId,
     };
   }
 
-  for (const mapping of postMappings) {
+  for (const mapping of mappings) {
     try {
-      const post = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-        table: "posts",
+      const entity = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
+        table: objectType === "page" ? "pages" : "posts",
         id: mapping.convexId,
       });
-      if (!post || !post.content) continue;
+      if (!entity || !entity.content) continue;
 
-      let newContent = post.content;
+      let newContent = entity.content;
       let replacementCount = 0;
 
       for (const [sourceUrl, localId] of urlMap) {
         if (newContent.includes(sourceUrl)) {
-          // Replace the source URL with a placeholder that references the local media ID
-          // The actual URL depends on media serving config, so we use a resolvable reference
           const localRef = `{{media:${localId}}}`;
           newContent = newContent.split(sourceUrl).join(localRef);
           replacementCount++;
@@ -893,7 +897,7 @@ async function rewriteMediaUrls(
 
       if (replacementCount > 0) {
         await ctx.runMutation(internal.wordpressSync.internals.patchEntity, {
-          table: "posts",
+          table: objectType === "page" ? "pages" : "posts",
           id: mapping.convexId,
           fields: { content: newContent },
         });
@@ -904,8 +908,8 @@ async function rewriteMediaUrls(
           severity: "info",
           phase: "reconciliation",
           code: FINDING_CODES.MEDIA_REWRITE_APPLIED,
-          message: `Rewrote ${replacementCount} media URL(s) in post ${mapping.convexId}`,
-          sourceType: "post",
+          message: `Rewrote ${replacementCount} media URL(s) in ${objectType} ${mapping.convexId}`,
+          sourceType: objectType,
           sourceId: String(mapping.wpId),
           createdAt: Date.now(),
         });
@@ -917,14 +921,12 @@ async function rewriteMediaUrls(
     }
   }
 
+  const lastWpId = mappings[mappings.length - 1].wpId;
   return {
     repaired,
     failed,
-    hasMore: postMappings.length === BATCH_SIZE,
-    nextCursor:
-      postMappings.length > 0
-        ? postMappings[postMappings.length - 1].wpId
-        : cursor,
+    hasMore: mappings.length === BATCH_SIZE,
+    nextCursor: isPagePhase ? lastWpId + PAGE_CURSOR_OFFSET : lastWpId,
   };
 }
 
