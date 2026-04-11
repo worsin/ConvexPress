@@ -1,7 +1,7 @@
 /**
- * Sync Progress
+ * Import Progress
  *
- * Detailed real-time sync progress display.
+ * Detailed real-time import progress display.
  * Shows all phases with progress bars, item counts, status icons, and timing.
  * Updates in real-time via Convex reactive queries.
  */
@@ -45,16 +45,7 @@ interface Job {
     | "failed"
     | "cancelled";
   currentPhase: string;
-  progress: {
-    users: PhaseProgress;
-    categories: PhaseProgress;
-    tags: PhaseProgress;
-    media: PhaseProgress;
-    posts: PhaseProgress;
-    pages: PhaseProgress;
-    comments: PhaseProgress;
-    menus: PhaseProgress;
-  };
+  progress: Record<string, PhaseProgress>;
   startedAt?: number;
   completedAt?: number;
   pausedAt?: number;
@@ -68,11 +59,15 @@ const PHASE_CONFIG = {
   users: { label: "Users", icon: UsersIcon, order: 1 },
   categories: { label: "Categories", icon: FolderTreeIcon, order: 2 },
   tags: { label: "Tags", icon: FolderTreeIcon, order: 3 },
-  media: { label: "Media", icon: ImageIcon, order: 4 },
+  media: { label: "Media Library", icon: ImageIcon, order: 4 },
   posts: { label: "Posts", icon: FileTextIcon, order: 5 },
   pages: { label: "Pages", icon: FileIcon, order: 6 },
   comments: { label: "Comments", icon: MessageSquareIcon, order: 7 },
-  menus: { label: "Menus", icon: MenuIcon, order: 8 },
+  menus: { label: "Navigation Menus", icon: MenuIcon, order: 8 },
+  commerceCatalog: { label: "Product Catalog", icon: FileTextIcon, order: 9 },
+  commerceTransactions: { label: "Orders & Customers", icon: UsersIcon, order: 10 },
+  reconciliation: { label: "Reconciliation", icon: CheckCircleIcon, order: 11 },
+  cleanup: { label: "Validation & Cleanup", icon: CheckCircleIcon, order: 12 },
 } as const;
 
 type Phase = keyof typeof PHASE_CONFIG;
@@ -88,7 +83,7 @@ export function SyncProgress({ job }: SyncProgressProps) {
   }, [job.status]);
 
   // Calculate overall progress
-  const phases = Object.entries(job.progress) as [Phase, PhaseProgress][];
+  const phases = Object.entries(job.progress) as [string, PhaseProgress][];
   const totalItems = phases.reduce((sum, [, p]) => sum + p.total, 0);
   const importedItems = phases.reduce((sum, [, p]) => sum + p.imported, 0);
   const failedItems = phases.reduce((sum, [, p]) => sum + p.failed, 0);
@@ -101,10 +96,13 @@ export function SyncProgress({ job }: SyncProgressProps) {
   const endedAt = job.completedAt || (job.status === "running" ? now : job.pausedAt);
   const elapsed = startedAt && endedAt ? endedAt - startedAt : 0;
 
-  // Sort phases by order
-  const sortedPhases = [...phases].sort(
-    ([a], [b]) => PHASE_CONFIG[a].order - PHASE_CONFIG[b].order,
-  );
+  // Sort phases by order (unknown phases go to the end)
+  const phaseOrders = PHASE_CONFIG as Record<string, { order: number }>;
+  const sortedPhases = [...phases].sort(([a], [b]) => {
+    const orderA = phaseOrders[a]?.order ?? 999;
+    const orderB = phaseOrders[b]?.order ?? 999;
+    return orderA - orderB;
+  });
 
   // Get current phase index
   const currentPhaseIndex = sortedPhases.findIndex(
@@ -124,7 +122,7 @@ export function SyncProgress({ job }: SyncProgressProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <JobStatusIcon status={job.status} />
-            {isFinished ? "Sync Result" : "Sync Progress"}
+            {isFinished ? "Import Result" : "Import Progress"}
           </CardTitle>
           <div className="flex items-center gap-3">
             {startedAt && (
@@ -168,7 +166,11 @@ export function SyncProgress({ job }: SyncProgressProps) {
         {/* Phase Progress Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {sortedPhases.map(([phase, progress], index) => {
-            const config = PHASE_CONFIG[phase];
+            const config = (PHASE_CONFIG as Record<string, { label: string; icon: typeof CheckCircleIcon; order: number }>)[phase] ?? {
+              label: phase.charAt(0).toUpperCase() + phase.slice(1),
+              icon: CheckCircleIcon,
+              order: 999,
+            };
             const isCurrent = job.currentPhase === phase;
             const isComplete =
               progress.imported + progress.failed >= progress.total &&

@@ -1,28 +1,15 @@
 /**
- * Tools > WordPress Sync
+ * Tools > WordPress Sync (Legacy Redirect)
  *
- * Main page for WordPress site connections and content import.
- * Connect WordPress sites and sync all content in one click.
- *
- * Features:
- * - List connected WordPress sites
- * - Add new site connections
- * - Test connections
- * - Start/pause/cancel sync jobs
- * - Real-time sync progress
- * - Job history and error logs
+ * Redirects to the new "Website Import" route.
  */
 
-import { createFileRoute } from "@tanstack/react-router";
-
-import { WordPressSyncDashboard } from "./-components/WordPressSyncDashboard";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/tools/wordpress-sync/",
 )({
-  component: WordPressSyncPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/tools/website-import" });
+  },
 });
-
-function WordPressSyncPage() {
-  return <WordPressSyncDashboard />;
-}

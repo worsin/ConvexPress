@@ -209,13 +209,13 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
             <InfoIcon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
             <div className="text-sm">
               <p className="font-medium text-foreground mb-1">
-                WordPress + Elementor Sync
+                WordPress / WooCommerce Import
               </p>
               <p className="text-muted-foreground">
-                This tool imports content from WordPress sites built with
-                Elementor. It syncs users, media, categories, tags, posts,
-                pages, comments, and menus -- preserving Elementor page structure
-                and metadata.
+                Import all content from WordPress and WooCommerce sites --
+                users, media, categories, tags, posts, pages, comments, menus,
+                products, orders, and more. Elementor page structure and
+                metadata are preserved automatically.
               </p>
             </div>
           </div>
@@ -392,7 +392,7 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
                     <strong>Application Passwords</strong> section
                   </li>
                   <li>
-                    Enter a name (e.g., "ConvexPress Sync") and click{" "}
+                    Enter a name (e.g., "ConvexPress Import") and click{" "}
                     <strong>Add New Application Password</strong>
                   </li>
                   <li>Copy the generated password and paste it above</li>

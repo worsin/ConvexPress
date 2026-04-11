@@ -96,9 +96,9 @@ function SiteCard({ site }: { site: Site }) {
   const handleStartSync = async () => {
     try {
       await startSync({ siteId: site._id });
-      toast.success("Sync started");
+      toast.success("Import started");
     } catch (error) {
-      toast.error("Failed to start sync");
+      toast.error("Failed to start import");
     }
   };
 
@@ -136,7 +136,7 @@ function SiteCard({ site }: { site: Site }) {
               </div>
               <div className="min-w-0">
                 <Link
-                  to="/tools/wordpress-sync/$siteId"
+                  to="/tools/website-import/$siteId"
                   params={{ siteId: site._id }}
                   className="text-sm font-semibold text-foreground hover:text-primary transition-colors truncate block"
                 >
@@ -164,7 +164,7 @@ function SiteCard({ site }: { site: Site }) {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem>
                   <Link
-                    to="/tools/wordpress-sync/$siteId"
+                    to="/tools/website-import/$siteId"
                     params={{ siteId: site._id }}
                     className="flex items-center w-full"
                   >
@@ -210,7 +210,7 @@ function SiteCard({ site }: { site: Site }) {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-4">
             <div>
-              <span className="text-foreground font-medium">Last sync:</span>{" "}
+              <span className="text-foreground font-medium">Last import:</span>{" "}
               {site.lastSyncAt ? formatDate(site.lastSyncAt) : "Never"}
             </div>
             <div>
@@ -225,7 +225,7 @@ function SiteCard({ site }: { site: Site }) {
           <div className="flex gap-2">
             {site.activeJob ? (
               <Link
-                to="/tools/wordpress-sync/$siteId"
+                to="/tools/website-import/$siteId"
                 params={{ siteId: site._id }}
                 className="flex-1"
               >
@@ -243,7 +243,7 @@ function SiteCard({ site }: { site: Site }) {
                 disabled={site.status === "error"}
               >
                 <PlayIcon className="mr-2 h-3 w-3" />
-                Start Sync
+                Start Import
               </Button>
             )}
             <Button

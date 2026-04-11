@@ -76,7 +76,7 @@ export function ErrorLog({ errors }: ErrorLogProps) {
         >
           <CardTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangleIcon className="h-4 w-4" />
-            Sync Errors
+            Import Errors
             <Badge
               variant="outline"
               className="ml-2 text-destructive border-destructive/30"

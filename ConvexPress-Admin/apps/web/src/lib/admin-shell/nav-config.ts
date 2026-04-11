@@ -398,9 +398,9 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         capability: "api.create_webhook",
       },
       {
-        id: "tools-wordpress-sync",
-        label: "WordPress Sync",
-        to: "/tools/wordpress-sync",
+        id: "tools-website-import",
+        label: "Website Import",
+        to: "/tools/website-import",
         icon: RefreshCcw,
         capability: "manage_options",
       },

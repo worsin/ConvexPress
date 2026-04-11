@@ -1,7 +1,7 @@
 /**
- * WordPress Sync Dashboard
+ * Website Import Dashboard
  *
- * Main dashboard showing connected sites, sync stats, and controls.
+ * Main dashboard showing connected sites, import stats, and controls.
  * Uses real Convex queries for all data with real-time subscriptions.
  */
 
@@ -70,10 +70,10 @@ export function WordPressSyncDashboard() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              WordPress Sync
+              Website Import
             </h1>
             <p className="text-sm text-muted-foreground">
-              Connect WordPress sites and import all content
+              Connect WordPress / WooCommerce sites and import all content
             </p>
           </div>
         </div>
@@ -103,13 +103,13 @@ export function WordPressSyncDashboard() {
           value={overview.totalImported.toLocaleString()}
           sublabel={
             overview.totalImportedIsApproximate
-              ? "10,000+ items synced"
-              : "items synced"
+              ? "10,000+ items imported"
+              : "items imported"
           }
         />
         <StatCard
           icon={ClockIcon}
-          label="Last Sync"
+          label="Last Import"
           value={formatLastSync(overview.lastSyncAt)}
           sublabel={overview.lastSyncSite || undefined}
         />
@@ -125,11 +125,11 @@ export function WordPressSyncDashboard() {
       {/* Add Site Form (inline, collapsible) */}
       <AddSiteForm open={isAddingNew} onOpenChange={setIsAddingNew} />
 
-      {/* Active Sync Jobs */}
+      {/* Active Import Jobs */}
       {overview.activeJobs > 0 && (
         <section>
           <h2 className="text-lg font-semibold mb-3 text-foreground">
-            Active Sync Jobs
+            Active Import Jobs
           </h2>
           <div className="space-y-3">
             {sites

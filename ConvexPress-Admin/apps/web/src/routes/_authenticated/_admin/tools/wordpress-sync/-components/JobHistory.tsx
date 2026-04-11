@@ -78,7 +78,7 @@ export function JobHistory({ siteId }: JobHistoryProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Sync History</CardTitle>
+          <CardTitle>Import History</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -100,12 +100,12 @@ export function JobHistory({ siteId }: JobHistoryProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Sync History</CardTitle>
+          <CardTitle>Import History</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <ClockIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>No sync history yet</p>
+            <p>No import history yet</p>
           </div>
         </CardContent>
       </Card>
@@ -124,7 +124,7 @@ export function JobHistory({ siteId }: JobHistoryProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Sync History</CardTitle>
+        <CardTitle>Import History</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
