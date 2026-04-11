@@ -31,6 +31,18 @@ export interface DetectedCapabilities {
   customMetaEndpoint: boolean;
 }
 
+export interface FullDetectedCapabilities {
+  wpRest: boolean;
+  wpAuthValid: boolean;
+  menusApi: boolean;
+  woocommerceApi: boolean;
+  wooAuthValid: boolean;
+  customMetaEndpointConfigured: boolean;
+  customMetaEndpointDetected: boolean;
+  elementorDetected: boolean;
+  mediaAccessible: boolean;
+}
+
 // ─── Content Counts ───────────────────────────────────────────────────────
 
 export interface ContentCounts {
@@ -307,6 +319,56 @@ export class WPAdapter extends BaseAdapter {
       menusApi,
       woocommerceApi,
       customMetaEndpoint,
+    };
+  }
+
+  // ─── Full Capability Detection ─────────────────────────────────────────
+
+  /**
+   * Extended capability detection that goes beyond namespace/route inspection.
+   * Probes the live site for Elementor presence (via post meta) and media
+   * accessibility (via the media endpoint).
+   *
+   * Returns the full capabilities shape expected by the site schema.
+   */
+  async detectCapabilitiesFull(
+    siteInfo: WPSiteInfo,
+  ): Promise<FullDetectedCapabilities> {
+    const basic = this.detectCapabilities(siteInfo);
+
+    // Detect Elementor by checking first post's meta for _elementor_data
+    let elementorDetected = false;
+    if (basic.customMetaEndpoint) {
+      try {
+        const posts = await this.fetchPosts(1, 1);
+        if (posts.data.length > 0) {
+          const meta = await this.fetchPostMeta(posts.data[0].id, "posts");
+          elementorDetected = meta !== null && "_elementor_data" in meta;
+        }
+      } catch {
+        /* non-critical — Elementor detection is best-effort */
+      }
+    }
+
+    // Check media accessibility by attempting to fetch a single media item
+    let mediaAccessible = false;
+    try {
+      const media = await this.fetchMedia(1, 1);
+      mediaAccessible = media.pagination.total > 0;
+    } catch {
+      /* non-critical — media detection is best-effort */
+    }
+
+    return {
+      wpRest: basic.wpRest,
+      wpAuthValid: true, // We got this far, auth works
+      menusApi: basic.menusApi,
+      woocommerceApi: basic.woocommerceApi,
+      wooAuthValid: false, // Set by WooAdapter probe separately
+      customMetaEndpointConfigured: !!this.config.metaEndpointPath,
+      customMetaEndpointDetected: basic.customMetaEndpoint,
+      elementorDetected,
+      mediaAccessible,
     };
   }
 }

@@ -10,6 +10,8 @@ import { v, ConvexError } from "convex/values";
 import { internal, api } from "../_generated/api";
 import { testConnection, getContentCounts } from "./helpers/wpClient";
 import { decryptSecret } from "../api/crypto_helpers";
+import { WPAdapter } from "./helpers/adapters/wpAdapter";
+import { WooAdapter } from "./helpers/adapters/wooAdapter";
 
 // Environment variable for decrypting application passwords
 const WP_ENCRYPTION_KEY = process.env.WP_SYNC_ENCRYPTION_KEY;
@@ -80,7 +82,7 @@ export const testSiteConnection = action({
     const result = await testConnection(credentials);
 
     // Build full capabilities object with defaults for fields not yet probed
-    const fullCapabilities = result.success
+    let fullCapabilities = result.success
       ? {
           wpRest: true,
           wpAuthValid: true, // We got here, so auth is valid
@@ -93,6 +95,46 @@ export const testSiteConnection = action({
           mediaAccessible: true, // Assume true if we can reach the API
         }
       : undefined;
+
+    // If testing an existing site with a successful connection, do a deeper capability probe
+    if (args.siteId && result.success && fullCapabilities) {
+      try {
+        // Fetch the site record to get metaEndpointPath
+        const site = await ctx.runQuery(
+          internal.wordpressSync.internals.getSiteWithCredentials,
+          { siteId: args.siteId },
+        );
+
+        const metaEndpointPath = site?.metaEndpointPath;
+
+        const adapterConfig = {
+          siteUrl: credentials.siteUrl,
+          username: credentials.username,
+          password: credentials.applicationPassword,
+          wooAuthMode: "shared" as const,
+          metaEndpointPath: metaEndpointPath,
+        };
+
+        const wpAdapter = new WPAdapter(adapterConfig);
+        const fullCaps = await wpAdapter.detectCapabilitiesFull(result.siteInfo);
+
+        // If WooCommerce is detected, probe its authentication
+        if (fullCaps.woocommerceApi) {
+          try {
+            const wooAdapter = new WooAdapter(adapterConfig);
+            const wooProbe = await wooAdapter.probe();
+            fullCaps.wooAuthValid = wooProbe.authenticated;
+          } catch {
+            /* non-critical — WooCommerce auth probe is best-effort */
+          }
+        }
+
+        // Use the deep probe results instead of defaults
+        fullCapabilities = fullCaps;
+      } catch {
+        // Fall back to basic capabilities on any failure
+      }
+    }
 
     // Update the site with test results if we have a siteId
     if (args.siteId) {
