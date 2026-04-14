@@ -499,17 +499,47 @@ async function repairOrderCustomers(
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
             jobId,
-            severity: "warning",
+            severity: "error",
             phase: "reconciliation",
             code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
             message: `Order ${mapping.convexId} references missing customer ${localOrder.customerId}`,
-            sourceType: "commerceOrder",
+            sourceType: "order",
             sourceId: String(mapping.wpId),
+            destinationTable: "commerce_orders",
+            wpId: mapping.wpId,
+            convexId: mapping.convexId,
             createdAt: Date.now(),
           });
           failed++;
+          continue;
         }
       }
+
+      // Verify userId resolves if set — links imported customer to auth user
+      if (localOrder.userId) {
+        const user = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
+          table: "users",
+          id: localOrder.userId,
+        });
+        if (!user) {
+          await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
+            siteId,
+            jobId,
+            severity: "warning",
+            phase: "reconciliation",
+            code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
+            message: `Order ${mapping.convexId} references missing user ${localOrder.userId}`,
+            sourceType: "order",
+            sourceId: String(mapping.wpId),
+            destinationTable: "commerce_orders",
+            wpId: mapping.wpId,
+            convexId: mapping.convexId,
+            createdAt: Date.now(),
+          });
+        }
+      }
+
+      repaired++;
     } catch {
       failed++;
     }
@@ -549,6 +579,32 @@ async function repairOrderItems(
       });
       if (!localItem) continue;
 
+      // Verify parent orderId reference
+      if (localItem.orderId) {
+        const order = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
+          table: "commerce_orders",
+          id: localItem.orderId,
+        });
+        if (!order) {
+          await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
+            siteId,
+            jobId,
+            severity: "error",
+            phase: "reconciliation",
+            code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
+            message: `Order item ${mapping.convexId} references missing order ${localItem.orderId}`,
+            sourceType: "orderItem",
+            sourceId: String(mapping.wpId),
+            destinationTable: "commerce_order_items",
+            wpId: mapping.wpId,
+            convexId: mapping.convexId,
+            createdAt: Date.now(),
+          });
+          failed++;
+          continue;
+        }
+      }
+
       // Verify productId reference
       if (localItem.productId) {
         const product = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
@@ -559,12 +615,15 @@ async function repairOrderItems(
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
             jobId,
-            severity: "warning",
+            severity: "error",
             phase: "reconciliation",
             code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
             message: `Order item ${mapping.convexId} references missing product ${localItem.productId}`,
-            sourceType: "commerceOrderItem",
+            sourceType: "orderItem",
             sourceId: String(mapping.wpId),
+            destinationTable: "commerce_order_items",
+            wpId: mapping.wpId,
+            convexId: mapping.convexId,
             createdAt: Date.now(),
           });
           failed++;
@@ -582,17 +641,22 @@ async function repairOrderItems(
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
             jobId,
-            severity: "info",
+            severity: "warning",
             phase: "reconciliation",
             code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
             message: `Order item ${mapping.convexId} references missing variant ${localItem.variantId}`,
-            sourceType: "commerceOrderItem",
+            sourceType: "orderItem",
             sourceId: String(mapping.wpId),
+            destinationTable: "commerce_order_items",
+            wpId: mapping.wpId,
+            convexId: mapping.convexId,
             createdAt: Date.now(),
           });
-          // Not a failure — variant may have been deleted after order was placed
+          // Not a fatal failure — variant may have been deleted after order was placed
         }
       }
+
+      repaired++;
     } catch {
       failed++;
     }
@@ -642,17 +706,23 @@ async function repairRefundLinkage(
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
             jobId,
-            severity: "warning",
+            severity: "error",
             phase: "reconciliation",
             code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
             message: `Refund ${mapping.convexId} references missing order ${localRefund.orderId}`,
-            sourceType: "commerceRefund",
+            sourceType: "refund",
             sourceId: String(mapping.wpId),
+            destinationTable: "commerce_payment_refunds",
+            wpId: mapping.wpId,
+            convexId: mapping.convexId,
             createdAt: Date.now(),
           });
           failed++;
+          continue;
         }
       }
+
+      repaired++;
     } catch {
       failed++;
     }
@@ -702,15 +772,43 @@ async function repairReviewLinkage(
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
             jobId,
-            severity: "warning",
+            severity: "error",
             phase: "reconciliation",
             code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
             message: `Review ${mapping.convexId} references missing product ${localReview.productId}`,
-            sourceType: "commerceReview",
+            sourceType: "review",
             sourceId: String(mapping.wpId),
+            destinationTable: "commerce_review_items",
+            wpId: mapping.wpId,
+            convexId: mapping.convexId,
             createdAt: Date.now(),
           });
           failed++;
+          continue;
+        }
+      }
+
+      // Verify customerId reference (when set)
+      if (localReview.customerId) {
+        const customer = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
+          table: "commerce_customer_profiles",
+          id: localReview.customerId,
+        });
+        if (!customer) {
+          await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
+            siteId,
+            jobId,
+            severity: "warning",
+            phase: "reconciliation",
+            code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
+            message: `Review ${mapping.convexId} references missing customer ${localReview.customerId}`,
+            sourceType: "review",
+            sourceId: String(mapping.wpId),
+            destinationTable: "commerce_review_items",
+            wpId: mapping.wpId,
+            convexId: mapping.convexId,
+            createdAt: Date.now(),
+          });
         }
       }
 
@@ -724,17 +822,22 @@ async function repairReviewLinkage(
           await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
             siteId,
             jobId,
-            severity: "info",
+            severity: "warning",
             phase: "reconciliation",
             code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
             message: `Review ${mapping.convexId} references missing user ${localReview.userId}`,
-            sourceType: "commerceReview",
+            sourceType: "review",
             sourceId: String(mapping.wpId),
+            destinationTable: "commerce_review_items",
+            wpId: mapping.wpId,
+            convexId: mapping.convexId,
             createdAt: Date.now(),
           });
-          // Info-level — user may have been deleted
+          // Warning-level — user may have been deleted
         }
       }
+
+      repaired++;
     } catch {
       failed++;
     }
@@ -756,12 +859,10 @@ async function repairUpsellCrosssell(
   jobId: any,
   cursor: number,
 ): Promise<PassResult> {
-  // Products may have upsellIds/crossSellIds stored as WP IDs during import.
-  // This pass resolves them to local Convex IDs.
-  // The commerce_products schema doesn't currently have upsell/crosssell fields,
-  // so this pass verifies product-to-product relationships and creates findings
-  // for any that can't be resolved.
-
+  // Products store raw WP upsell/cross-sell IDs in `rawSourceMeta` (JSON string)
+  // during import. This pass parses that JSON, resolves each WP product ID to its
+  // local Convex ID via the wpIdMappings table, and patches the product with
+  // `upsellProductIds` / `crossSellProductIds` arrays of local IDs.
   const mappings = await ctx.runQuery(internal.wordpressSync.internals.getMappingsBatch, {
     siteId,
     objectType: "commerceProduct",
@@ -774,35 +875,93 @@ async function repairUpsellCrosssell(
 
   for (const mapping of mappings) {
     try {
-      const localProduct = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
+      const product = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
         table: "commerce_products",
         id: mapping.convexId,
       });
-      if (!localProduct) continue;
+      if (!product || !product.rawSourceMeta) continue;
 
-      // Verify the product exists and is structurally sound
-      // Upsell/crosssell fields would be resolved here when the schema supports them.
-      // For now, verify categoryIds references are valid.
-      if (localProduct.categoryIds && Array.isArray(localProduct.categoryIds)) {
-        for (const catId of localProduct.categoryIds) {
-          const cat = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
-            table: "commerce_product_categories",
-            id: catId,
+      let meta: any;
+      try {
+        meta = JSON.parse(product.rawSourceMeta);
+      } catch {
+        continue;
+      }
+
+      const upsellWpIds: number[] = Array.isArray(meta?.upsell_ids_wp)
+        ? meta.upsell_ids_wp.filter((n: any) => typeof n === "number")
+        : [];
+      const crossSellWpIds: number[] = Array.isArray(meta?.cross_sell_ids_wp)
+        ? meta.cross_sell_ids_wp.filter((n: any) => typeof n === "number")
+        : [];
+
+      if (upsellWpIds.length === 0 && crossSellWpIds.length === 0) continue;
+
+      // Resolve WP product IDs to local IDs via mappings
+      const upsellLocalIds: string[] = [];
+      for (const wpId of upsellWpIds) {
+        const localId = await ctx.runQuery(
+          internal.wordpressSync.helpers.idMapping.getByWpId,
+          { siteId, objectType: "commerceProduct", wpId },
+        );
+        if (localId) {
+          upsellLocalIds.push(localId);
+        } else {
+          await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
+            siteId,
+            jobId,
+            severity: "warning",
+            phase: "reconciliation",
+            code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
+            message: `Product ${mapping.convexId} has unresolved upsell reference to WP product ${wpId}`,
+            sourceType: "product",
+            sourceId: String(mapping.wpId),
+            destinationTable: "commerce_products",
+            wpId: mapping.wpId,
+            convexId: mapping.convexId,
+            createdAt: Date.now(),
           });
-          if (!cat) {
-            await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
-              siteId,
-              jobId,
-              severity: "info",
-              phase: "reconciliation",
-              code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
-              message: `Product ${mapping.convexId} references missing category ${catId}`,
-              sourceType: "commerceProduct",
-              sourceId: String(mapping.wpId),
-              createdAt: Date.now(),
-            });
-          }
         }
+      }
+
+      const crossSellLocalIds: string[] = [];
+      for (const wpId of crossSellWpIds) {
+        const localId = await ctx.runQuery(
+          internal.wordpressSync.helpers.idMapping.getByWpId,
+          { siteId, objectType: "commerceProduct", wpId },
+        );
+        if (localId) {
+          crossSellLocalIds.push(localId);
+        } else {
+          await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
+            siteId,
+            jobId,
+            severity: "warning",
+            phase: "reconciliation",
+            code: FINDING_CODES.MISSING_RELATIONSHIP_TARGET,
+            message: `Product ${mapping.convexId} has unresolved cross-sell reference to WP product ${wpId}`,
+            sourceType: "product",
+            sourceId: String(mapping.wpId),
+            destinationTable: "commerce_products",
+            wpId: mapping.wpId,
+            convexId: mapping.convexId,
+            createdAt: Date.now(),
+          });
+        }
+      }
+
+      // Patch the product with resolved local IDs (only if we have at least one)
+      if (upsellLocalIds.length > 0 || crossSellLocalIds.length > 0) {
+        const patch: any = {};
+        if (upsellLocalIds.length > 0) patch.upsellProductIds = upsellLocalIds;
+        if (crossSellLocalIds.length > 0) patch.crossSellProductIds = crossSellLocalIds;
+
+        await ctx.runMutation(internal.wordpressSync.internals.patchEntity, {
+          table: "commerce_products",
+          id: mapping.convexId,
+          fields: patch,
+        });
+        repaired++;
       }
     } catch {
       failed++;
@@ -884,16 +1043,9 @@ async function rewriteMediaUrls(
       });
       if (!entity || !entity.content) continue;
 
-      let newContent = entity.content;
-      let replacementCount = 0;
-
-      for (const [sourceUrl, localId] of urlMap) {
-        if (newContent.includes(sourceUrl)) {
-          const localRef = `{{media:${localId}}}`;
-          newContent = newContent.split(sourceUrl).join(localRef);
-          replacementCount++;
-        }
-      }
+      const rewriteResult = rewriteMediaReferences(entity.content, urlMap);
+      const newContent = rewriteResult.content;
+      const replacementCount = rewriteResult.replacementCount;
 
       if (replacementCount > 0) {
         await ctx.runMutation(internal.wordpressSync.internals.patchEntity, {
@@ -928,6 +1080,52 @@ async function rewriteMediaUrls(
     hasMore: mappings.length === BATCH_SIZE,
     nextCursor: isPagePhase ? lastWpId + PAGE_CURSOR_OFFSET : lastWpId,
   };
+}
+
+function rewriteMediaReferences(
+  content: string,
+  urlMap: Map<string, string>,
+): { content: string; replacementCount: number } {
+  try {
+    const parsed = JSON.parse(content);
+    const replacementCount = rewriteMediaNode(parsed, urlMap);
+    if (replacementCount > 0) {
+      return { content: JSON.stringify(parsed), replacementCount };
+    }
+  } catch {
+    // Non-JSON content cannot be safely rewritten into structured media refs here.
+  }
+
+  return { content, replacementCount: 0 };
+}
+
+function rewriteMediaNode(node: unknown, urlMap: Map<string, string>): number {
+  if (!node || typeof node !== "object") return 0;
+
+  let replacementCount = 0;
+  const record = node as Record<string, unknown>;
+  const attrs = record.attrs;
+
+  if (attrs && typeof attrs === "object") {
+    const attrRecord = attrs as Record<string, unknown>;
+    const src = attrRecord.src;
+    if (typeof src === "string") {
+      const mediaId = urlMap.get(src);
+      if (mediaId && attrRecord.mediaId !== mediaId) {
+        attrRecord.mediaId = mediaId;
+        replacementCount++;
+      }
+    }
+  }
+
+  const content = record.content;
+  if (Array.isArray(content)) {
+    for (const child of content) {
+      replacementCount += rewriteMediaNode(child, urlMap);
+    }
+  }
+
+  return replacementCount;
 }
 
 // ─── Pass 10: Tombstone Detection ─────────────────────────────────────────
