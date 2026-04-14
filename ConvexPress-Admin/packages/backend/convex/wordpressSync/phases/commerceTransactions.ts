@@ -370,6 +370,28 @@ async function importCouponBatch(
       }
 
       if (!args.isDryRun) {
+        const couponRawMeta = {
+          usageLimitPerUser: coupon.usage_limit_per_user,
+          limitUsageToXItems: coupon.limit_usage_to_x_items,
+          productIds: coupon.product_ids,
+          excludedProductIds: coupon.excluded_product_ids,
+          productCategories: coupon.product_categories,
+          excludedProductCategories: coupon.excluded_product_categories,
+          minimumAmount: coupon.minimum_amount,
+          maximumAmount: coupon.maximum_amount,
+          freeShipping: coupon.free_shipping,
+          individualUse: coupon.individual_use,
+          excludeSaleItems: coupon.exclude_sale_items,
+          emailRestrictions: coupon.email_restrictions,
+          metaData: coupon.meta_data,
+        };
+
+        // Only include if at least one value is defined
+        const hasMeta = Object.values(couponRawMeta).some(
+          (v) => v !== undefined && v !== null
+        );
+        const rawSourceMeta = hasMeta ? JSON.stringify(couponRawMeta) : undefined;
+
         const discountId = await ctx.runMutation(
           internal.wordpressSync.phases.commerceTransactions.upsertDiscountCode,
           {
@@ -386,6 +408,7 @@ async function importCouponBatch(
               usageLimit: typeof coupon.usage_limit === "number" ? coupon.usage_limit : undefined,
               startsAt: coupon.date_created ? new Date(coupon.date_created).getTime() : undefined,
               endsAt: coupon.date_expires ? new Date(coupon.date_expires).getTime() : undefined,
+              rawSourceMeta,
             },
           }
         );
@@ -573,6 +596,9 @@ async function importCustomerProfile(
         userId: linkedUserId ?? undefined,
         email: normalizeEmail(customer.email, customer.billing?.email),
         phone: normalizePhone(customer.billing?.phone),
+        firstName: customer.first_name?.trim() || customer.billing?.first_name?.trim() || undefined,
+        lastName: customer.last_name?.trim() || customer.billing?.last_name?.trim() || undefined,
+        isGuest: false,  // Real WooCommerce customer account
         totalOrders: 0,
         totalSpentAmount: 0,
         currencyCode: "USD",
@@ -904,6 +930,9 @@ async function ensureOrderCustomer(
       customer: {
         email: normalizeEmail(order.billing?.email, undefined),
         phone: normalizePhone(order.billing?.phone),
+        firstName: order.billing?.first_name?.trim() || undefined,
+        lastName: order.billing?.last_name?.trim() || undefined,
+        isGuest: true,  // Created from order billing, not a registered customer
         totalOrders: 0,
         totalSpentAmount: 0,
         currencyCode: (order.currency || "USD").toUpperCase(),
@@ -1189,6 +1218,9 @@ export const upsertCustomerProfile = internalMutation({
       userId: v.optional(v.string()),
       email: v.string(),
       phone: v.optional(v.string()),
+      firstName: v.optional(v.string()),
+      lastName: v.optional(v.string()),
+      isGuest: v.optional(v.boolean()),
       totalOrders: v.number(),
       totalSpentAmount: v.number(),
       currencyCode: v.string(),
@@ -1206,24 +1238,39 @@ export const upsertCustomerProfile = internalMutation({
       targetId = byEmail?._id;
     }
 
-    const patch = {
-      userId: customer.userId ? (customer.userId as Id<"users">) : undefined,
-      email: customer.email,
-      phone: customer.phone,
-      totalOrders: customer.totalOrders,
-      totalSpentAmount: customer.totalSpentAmount,
-      currencyCode: customer.currencyCode,
-      updatedAt: now,
-    };
-
     if (targetId) {
+      // For updates, conditionally include only defined optional fields to
+      // avoid clearing existing values when a later import passes undefined.
+      const patch: any = {
+        email: customer.email,
+        phone: customer.phone,
+        totalOrders: customer.totalOrders,
+        totalSpentAmount: customer.totalSpentAmount,
+        currencyCode: customer.currencyCode,
+        updatedAt: now,
+      };
+      if (customer.userId) patch.userId = customer.userId as Id<"users">;
+      if (customer.firstName !== undefined) patch.firstName = customer.firstName;
+      if (customer.lastName !== undefined) patch.lastName = customer.lastName;
+      if (customer.isGuest !== undefined) patch.isGuest = customer.isGuest;
+
       await ctx.db.patch(targetId, patch);
       return targetId;
     }
 
+    // For inserts, pass all fields directly (undefined is fine for new docs).
     return await ctx.db.insert("commerce_customer_profiles", {
-      ...patch,
+      userId: customer.userId ? (customer.userId as Id<"users">) : undefined,
+      email: customer.email,
+      phone: customer.phone,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      isGuest: customer.isGuest,
+      totalOrders: customer.totalOrders,
+      totalSpentAmount: customer.totalSpentAmount,
+      currencyCode: customer.currencyCode,
       createdAt: now,
+      updatedAt: now,
     });
   },
 });
@@ -1579,6 +1626,7 @@ export const upsertDiscountCode = internalMutation({
       usageLimit: v.optional(v.number()),
       startsAt: v.optional(v.number()),
       endsAt: v.optional(v.number()),
+      rawSourceMeta: v.optional(v.string()),
     }),
   },
   handler: async (ctx, { existingId, discount }) => {
@@ -1602,6 +1650,7 @@ export const upsertDiscountCode = internalMutation({
       usageLimit: discount.usageLimit,
       startsAt: discount.startsAt,
       endsAt: discount.endsAt,
+      rawSourceMeta: discount.rawSourceMeta,
       updatedAt: now,
     };
 
