@@ -370,6 +370,16 @@ export const getBySlug = query({
       return null;
     }
 
+    // Check if this product is owned by a bundle — if so, include a redirect hint
+    const owningBundle = await ctx.db
+      .query("commerce_bundles")
+      .withIndex("by_product", (q: any) => q.eq("productId", product._id))
+      .first();
+    if (owningBundle) {
+      const detail = await serializeProductDetail(ctx, product);
+      return { ...detail, isBundleProduct: true, bundleSlug: owningBundle.slug };
+    }
+
     return serializeProductDetail(ctx, product);
   },
 });
@@ -403,16 +413,26 @@ export const listPublished = query({
         )
       : products;
 
-    filtered.sort((a: any, b: any) => {
+    // Filter out bundle-owned products (they're purchased through bundle pages)
+    const bundles = await ctx.db.query("commerce_bundles").collect();
+    const bundleProductIds = new Set<string>();
+    for (const b of bundles) {
+      if (b.productId) bundleProductIds.add(b.productId.toString());
+    }
+    const catalogProducts = filtered.filter(
+      (p: any) => !bundleProductIds.has(p._id.toString()),
+    );
+
+    catalogProducts.sort((a: any, b: any) => {
       const aTime = a.publishedAt ?? a.updatedAt ?? a.createdAt;
       const bTime = b.publishedAt ?? b.updatedAt ?? b.createdAt;
       return bTime - aTime;
     });
 
-    const total = filtered.length;
+    const total = catalogProducts.length;
     const totalPages = total === 0 ? 1 : Math.ceil(total / perPage);
     const start = (page - 1) * perPage;
-    const pageItems = filtered.slice(start, start + perPage);
+    const pageItems = catalogProducts.slice(start, start + perPage);
 
     return {
       products: await Promise.all(
@@ -1253,7 +1273,9 @@ export const generateVariants = mutation({
       .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
       .collect();
 
-    const existingSummaries = new Set(existing.map((v: any) => v.optionSummary));
+    const existingSelectionKeys = new Set(
+      existing.map((v: any) => v.selectionKey).filter(Boolean),
+    );
 
     const currency = product.basePrice?.currencyCode ?? "USD";
     const basePrice = args.basePriceAmount ?? product.basePrice?.amount ?? 0;
@@ -1272,10 +1294,7 @@ export const generateVariants = mutation({
         .map((selection: any) => `${selection.optionTypeName}: ${selection.optionValueLabel}`)
         .join(" / ");
       const selectionKey = buildSelectionKey(selections);
-      if (existingSummaries.has(summary)) continue;
-      if (selectionKey && existing.some((variant: any) => variant.selectionKey === selectionKey)) {
-        continue;
-      }
+      if (selectionKey && existingSelectionKeys.has(selectionKey)) continue;
 
       await ctx.db.insert("commerce_product_variants", {
         productId: args.productId,

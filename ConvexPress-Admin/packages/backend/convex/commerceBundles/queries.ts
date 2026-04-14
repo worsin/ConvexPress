@@ -214,7 +214,7 @@ export const getBySlug = query({
       .withIndex("by_bundle", (q: any) => q.eq("bundleId", bundle._id))
       .collect();
 
-    // Enrich components with product data
+    // Enrich components with product data + available variants
     const enrichedComponents = await Promise.all(
       components.map(async (comp: any) => {
         const product = await ctx.db.get(comp.productId);
@@ -222,10 +222,20 @@ export const getBySlug = query({
           ? await ctx.db.get(comp.variantId)
           : null;
 
+        // Load available variants for components that allow variant change
+        let variants: any[] = [];
+        if (comp.allowVariantChange && product) {
+          variants = await ctx.db
+            .query("commerce_product_variants")
+            .withIndex("by_product", (q: any) => q.eq("productId", comp.productId))
+            .collect();
+        }
+
         return {
           ...comp,
           product,
           variant,
+          variants,
         };
       }),
     );

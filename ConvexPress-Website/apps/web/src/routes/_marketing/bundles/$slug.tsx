@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
@@ -37,6 +37,7 @@ interface BundleComponent {
   maxQuantity?: number;
   isRequired: boolean;
   isDefault?: boolean;
+  allowVariantChange?: boolean;
   label?: string;
   sortOrder: number;
   priceOverride?: number;
@@ -53,8 +54,15 @@ interface BundleComponent {
   variant?: {
     _id: string;
     name?: string;
+    title?: string;
     price?: number | { amount: number };
   };
+  variants?: Array<{
+    _id: string;
+    name?: string;
+    title?: string;
+    price?: number | { amount: number };
+  }>;
 }
 
 interface BundleData {
@@ -95,10 +103,37 @@ function BundleDetailPage() {
     }) as any,
   ) as { data: BundleData | null };
 
+  // Initialize selections with required + default components
+  const initialSelections = useMemo(() => {
+    const map = new Map<
+      string,
+      { componentId: string; productId: string; variantId?: string; quantity: number }
+    >();
+    if (!bundle?.components) return map;
+    for (const comp of bundle.components) {
+      if (comp.isRequired || comp.isDefault) {
+        map.set(comp._id, {
+          componentId: comp._id,
+          productId: comp.productId,
+          variantId: comp.variantId,
+          quantity: comp.minQuantity ?? comp.quantity ?? 1,
+        });
+      }
+    }
+    return map;
+  }, [bundle?.components]);
+
   // For configurable bundles, track selected components + quantities
   const [selections, setSelections] = useState<
-    Map<string, { componentId: string; productId: string; quantity: number }>
-  >(new Map());
+    Map<string, { componentId: string; productId: string; variantId?: string; quantity: number }>
+  >(initialSelections);
+
+  // Re-sync selections when bundle data arrives for the first time
+  useEffect(() => {
+    if (initialSelections.size > 0 && selections.size === 0) {
+      setSelections(initialSelections);
+    }
+  }, [initialSelections]);
 
   const addToCart = useMutation((api as any).commerce.cart.addItem);
 
@@ -307,7 +342,7 @@ function BundleDetailPage() {
               {bundle.bundleType === "mix_and_match"
                 ? "Mix & Match"
                 : bundle.bundleType === "bogo"
-                  ? "BOGO"
+                  ? "Configurable"
                   : "Bundle"}
             </span>
             <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-900">
@@ -424,7 +459,7 @@ function BundleDetailPage() {
                 {bundle.bundleType === "mix_and_match"
                   ? "Mix & Match"
                   : bundle.bundleType === "bogo"
-                    ? "Buy One Get One"
+                    ? "Configurable"
                     : "Fixed Bundle"}
               </dd>
             </div>
@@ -567,6 +602,27 @@ function BundleDetailPage() {
                       <span className="text-sm text-muted-foreground">
                         Qty: {comp.quantity}
                       </span>
+                    )}
+
+                    {/* Variant selector for components that allow variant change */}
+                    {comp.allowVariantChange && comp.variants && comp.variants.length > 0 && (
+                      <select
+                        value={selections.get(comp._id)?.variantId ?? ""}
+                        onChange={(e) => {
+                          const next = new Map(selections);
+                          const current = next.get(comp._id);
+                          if (current) {
+                            next.set(comp._id, { ...current, variantId: e.target.value || undefined });
+                            setSelections(next);
+                          }
+                        }}
+                        className="rounded border border-border bg-background px-2 py-1 text-sm"
+                      >
+                        <option value="">Default variant</option>
+                        {comp.variants.map((v) => (
+                          <option key={v._id} value={v._id}>{v.title || v.name || "Variant"}</option>
+                        ))}
+                      </select>
                     )}
 
                     <div className="flex items-center gap-2">
