@@ -155,12 +155,6 @@ async function importCategoryBatch(
         wpId: category.id,
       });
 
-      if (existingId) {
-        skipped++;
-        args.progress.imported++;
-        continue;
-      }
-
       if (!args.isDryRun) {
         let parentId: string | undefined;
         if (category.parent > 0) {
@@ -170,6 +164,11 @@ async function importCategoryBatch(
             wpId: category.parent,
           })) ?? undefined;
         }
+        const categoryMediaIds = await resolveCommerceMediaIds(
+          ctx,
+          args.siteId,
+          category.image?.id ? [category.image.id] : []
+        );
 
         const categoryId = await ctx.runMutation(
           internal.wordpressSync.phases.commerceCatalog.upsertCategory,
@@ -182,19 +181,23 @@ async function importCategoryBatch(
               slug: category.slug,
               description: category.description || undefined,
               count: category.count ?? 0,
+              thumbnailMediaId: categoryMediaIds[0],
             },
           }
         );
 
-        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-          siteId: args.siteId,
-          objectType: "commerceCategory",
-          wpId: category.id,
-          convexId: categoryId,
-        });
+        if (!existingId) {
+          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+            siteId: args.siteId,
+            objectType: "commerceCategory",
+            wpId: category.id,
+            convexId: categoryId,
+          });
+        }
       }
 
-      created++;
+      if (existingId) updated++;
+      else created++;
       args.progress.imported++;
     } catch (error) {
       errors.push({
@@ -340,6 +343,12 @@ async function importSingleProduct(
     status: args.product.status,
     price: args.product.price,
     regular_price: args.product.regular_price,
+    sale_price: args.product.sale_price,
+    date_on_sale_from: args.product.date_on_sale_from,
+    date_on_sale_to: args.product.date_on_sale_to,
+    weight: args.product.weight,
+    dimensions: args.product.dimensions,
+    stock_quantity: args.product.stock_quantity,
   });
 
   const existingId = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
@@ -359,6 +368,14 @@ async function importSingleProduct(
     args.product.images?.map((image) => image.id).filter(Boolean) ?? []
   );
   const optionTypes = buildOptionTypes(args.product.attributes);
+
+  const shippingWeightOz = convertWeightToOz(args.product.weight);
+  const shippingLengthIn = convertDimensionToInches(args.product.dimensions?.length);
+  const shippingWidthIn = convertDimensionToInches(args.product.dimensions?.width);
+  const shippingHeightIn = convertDimensionToInches(args.product.dimensions?.height);
+  const salePriceFrom = wooDateToTimestamp(args.product.date_on_sale_from);
+  const salePriceTo = wooDateToTimestamp(args.product.date_on_sale_to);
+  const rawSourceMeta = buildProductRawSourceMeta(args.product);
 
   const productId = await ctx.runMutation(
     internal.wordpressSync.phases.commerceCatalog.upsertProduct,
@@ -392,6 +409,13 @@ async function importSingleProduct(
         publishedAt: args.product.status === "publish" && args.product.date_created
           ? new Date(args.product.date_created).getTime()
           : undefined,
+        shippingWeightOz,
+        shippingLengthIn,
+        shippingWidthIn,
+        shippingHeightIn,
+        salePriceFrom,
+        salePriceTo,
+        rawSourceMeta,
       },
     }
   );
@@ -453,6 +477,11 @@ async function importProductVariations(
         const optionSummary = selections
           ?.map((selection) => `${selection.optionTypeName}: ${selection.optionValueLabel}`)
           .join(" / ") || variation.attributes?.map((attr) => attr.option).filter(Boolean).join(" / ") || "Default";
+        const variantMediaIds = await resolveCommerceMediaIds(
+          ctx,
+          args.siteId,
+          variation.image?.id ? [variation.image.id] : []
+        );
 
         const variantId = await ctx.runMutation(
           internal.wordpressSync.phases.commerceCatalog.upsertVariant,
@@ -472,6 +501,7 @@ async function importProductVariations(
                 ? toMoney(variation.sale_price, inferCurrencyCode(args.product))
                 : undefined,
               stockQuantity: normalizeStockQuantity(variation.stock_quantity),
+              featuredMediaId: variantMediaIds[0],
               isDefault: Boolean(!existingId && page === 1 && index === 0),
             },
           }
@@ -584,6 +614,82 @@ function toMoney(raw: string | undefined, currencyCode: string) {
   };
 }
 
+/**
+ * Convert WooCommerce weight (string) to ounces.
+ * WooCommerce stores weights as strings; unit is configured per-site.
+ * We assume the site uses lbs if no unit is detectable.
+ * 1 lb = 16 oz. 1 kg = 35.274 oz.
+ */
+function convertWeightToOz(weight: string | undefined, unitHint?: string): number | undefined {
+  if (!weight) return undefined;
+  const parsed = Number.parseFloat(weight);
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+  const unit = (unitHint || "lbs").toLowerCase();
+  if (unit === "kg") return Math.round(parsed * 35.274 * 100) / 100;
+  if (unit === "g") return Math.round(parsed * 0.035274 * 100) / 100;
+  if (unit === "oz") return Math.round(parsed * 100) / 100;
+  // Default: assume lbs
+  return Math.round(parsed * 16 * 100) / 100;
+}
+
+/**
+ * Convert WooCommerce dimension (string) to inches.
+ * WooCommerce stores dimensions as strings; unit is configured per-site.
+ * We assume the site uses cm if no unit is detectable (WC default is cm).
+ * 1 cm = 0.393701 in. 1 mm = 0.0393701 in. 1 m = 39.3701 in.
+ */
+function convertDimensionToInches(value: string | undefined, unitHint?: string): number | undefined {
+  if (!value) return undefined;
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+  const unit = (unitHint || "cm").toLowerCase();
+  if (unit === "in" || unit === "inch" || unit === "inches") return Math.round(parsed * 100) / 100;
+  if (unit === "mm") return Math.round(parsed * 0.0393701 * 100) / 100;
+  if (unit === "m") return Math.round(parsed * 39.3701 * 100) / 100;
+  // Default: assume cm
+  return Math.round(parsed * 0.393701 * 100) / 100;
+}
+
+/**
+ * Parse a WooCommerce date string to a timestamp.
+ */
+function wooDateToTimestamp(value: string | undefined | null): number | undefined {
+  if (!value) return undefined;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : undefined;
+}
+
+/**
+ * Build the rawSourceMeta JSON string for a WooCommerce product.
+ * Preserves fields we don't have dedicated columns for so no data is lost.
+ */
+function buildProductRawSourceMeta(product: WooProduct): string | undefined {
+  const meta: Record<string, unknown> = {};
+  if (product.meta_data) meta.meta_data = product.meta_data;
+  if (product.tax_class) meta.tax_class = product.tax_class;
+  if (product.tax_status) meta.tax_status = product.tax_status;
+  if (product.stock_status) meta.stock_status = product.stock_status;
+  if (product.total_sales !== undefined) meta.total_sales = product.total_sales;
+  if (product.purchase_note) meta.purchase_note = product.purchase_note;
+  if (product.external_url) meta.external_url = product.external_url;
+  if (product.button_text) meta.button_text = product.button_text;
+  if (product.grouped_products && product.grouped_products.length > 0) {
+    meta.grouped_products_wp_ids = product.grouped_products;
+  }
+  // Preserve raw upsell/cross-sell WP IDs for reconciliation pass to resolve later
+  if (product.upsell_ids && product.upsell_ids.length > 0) {
+    meta.upsell_ids_wp = product.upsell_ids;
+  }
+  if (product.cross_sell_ids && product.cross_sell_ids.length > 0) {
+    meta.cross_sell_ids_wp = product.cross_sell_ids;
+  }
+  // Preserve grouped product type since we map it to "simple"
+  if (product.type === "grouped") {
+    meta.original_product_type = "grouped";
+  }
+  return Object.keys(meta).length > 0 ? JSON.stringify(meta) : undefined;
+}
+
 function buildOptionTypes(attributes: WooProductAttribute[] | undefined) {
   const variableAttributes = (attributes ?? []).filter((attribute) => attribute.variation);
   if (variableAttributes.length === 0) return undefined;
@@ -672,6 +778,7 @@ export const upsertCategory = internalMutation({
       slug: v.string(),
       description: v.optional(v.string()),
       count: v.number(),
+      thumbnailMediaId: v.optional(v.string()),
     }),
   },
   handler: async (ctx, { existingId, parentId, wpCategory }) => {
@@ -681,6 +788,9 @@ export const upsertCategory = internalMutation({
       slug: wpCategory.slug,
       description: wpCategory.description,
       parentId: parentId ? (parentId as Id<"commerce_product_categories">) : undefined,
+      thumbnailMediaId: wpCategory.thumbnailMediaId
+        ? (wpCategory.thumbnailMediaId as Id<"media">)
+        : undefined,
       productCount: wpCategory.count,
       updatedAt: now,
     };
@@ -745,6 +855,13 @@ export const upsertProduct = internalMutation({
       isVirtual: v.boolean(),
       isDownloadable: v.boolean(),
       publishedAt: v.optional(v.number()),
+      shippingWeightOz: v.optional(v.number()),
+      shippingLengthIn: v.optional(v.number()),
+      shippingWidthIn: v.optional(v.number()),
+      shippingHeightIn: v.optional(v.number()),
+      salePriceFrom: v.optional(v.number()),
+      salePriceTo: v.optional(v.number()),
+      rawSourceMeta: v.optional(v.string()),
     }),
   },
   handler: async (ctx, { existingId, authorId, product }) => {
@@ -770,7 +887,13 @@ export const upsertProduct = internalMutation({
       stockQuantity: product.trackInventory ? product.stockQuantity : undefined,
       allowBackorders: product.allowBackorders,
       isVirtual: product.isVirtual,
-      shippingWeightOz: undefined,
+      shippingWeightOz: product.shippingWeightOz,
+      shippingLengthIn: product.shippingLengthIn,
+      shippingWidthIn: product.shippingWidthIn,
+      shippingHeightIn: product.shippingHeightIn,
+      salePriceFrom: product.salePriceFrom,
+      salePriceTo: product.salePriceTo,
+      rawSourceMeta: product.rawSourceMeta,
       isDownloadable: product.isDownloadable,
       publishedAt: product.status === "publish" ? (product.publishedAt ?? now) : undefined,
       updatedAt: now,
@@ -815,6 +938,7 @@ export const upsertVariant = internalMutation({
         currencyCode: v.string(),
       })),
       stockQuantity: v.optional(v.number()),
+      featuredMediaId: v.optional(v.string()),
       isDefault: v.boolean(),
     }),
   },
@@ -872,6 +996,9 @@ export const upsertVariant = internalMutation({
       price: variant.price,
       salePrice: variant.salePrice,
       stockQuantity: variant.stockQuantity,
+      featuredMediaId: variant.featuredMediaId
+        ? (variant.featuredMediaId as Id<"media">)
+        : undefined,
       isDefault: variant.isDefault,
       updatedAt: now,
     };
