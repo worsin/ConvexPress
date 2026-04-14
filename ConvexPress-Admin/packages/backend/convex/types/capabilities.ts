@@ -275,6 +275,23 @@ type TicketCapability =
   | "ticket.viewAnalytics"
   | "ticket.viewInternalNotes";
 
+// ─── Commerce Returns Capabilities (5) ──────────────────────────────────────
+
+type CommerceReturnsCapability =
+  | "commerce.returns.view"
+  | "commerce.returns.review"
+  | "commerce.returns.receive"
+  | "commerce.returns.refund"
+  | "commerce.returns.manage";
+
+// ─── Commerce Bundles Capabilities (4) ──────────────────────────────────────
+
+type CommerceBundlesCapability =
+  | "commerce.bundles.view"
+  | "commerce.bundles.create"
+  | "commerce.bundles.edit"
+  | "commerce.bundles.delete";
+
 // ─── Settings Management Capability (1) ─────────────────────────────────────
 // WordPress-standard "manage_options" used by admin-only settings operations.
 
@@ -298,7 +315,7 @@ export type MetaCapability =
 // ─── Combined Capability Type ───────────────────────────────────────────────
 
 /**
- * Union type of all 161 concrete capabilities across 25 domains.
+ * Union type of all 165 concrete capabilities across 26 domains.
  * Use this type for capability arrays on roles and for permission checks.
  */
 export type Capability =
@@ -329,6 +346,8 @@ export type Capability =
   | AnalyticsCapability
   | KBCapability
   | TicketCapability
+  | CommerceReturnsCapability
+  | CommerceBundlesCapability
   | SettingsManageCapability;
 
 /**
@@ -535,6 +554,17 @@ export const ALL_CAPABILITIES: Capability[] = [
   "ticket.manageCannedResponses",
   "ticket.viewAnalytics",
   "ticket.viewInternalNotes",
+  // Commerce Returns (5)
+  "commerce.returns.view",
+  "commerce.returns.review",
+  "commerce.returns.receive",
+  "commerce.returns.refund",
+  "commerce.returns.manage",
+  // Commerce Bundles (4)
+  "commerce.bundles.view",
+  "commerce.bundles.create",
+  "commerce.bundles.edit",
+  "commerce.bundles.delete",
   // Settings Management (1)
   "manage_options",
 ] as const;
@@ -797,6 +827,12 @@ export const CAPABILITY_DOMAINS: Record<string, Capability[]> = {
     "ticket.manageCannedResponses",
     "ticket.viewAnalytics",
     "ticket.viewInternalNotes",
+  ],
+  "Commerce Bundles": [
+    "commerce.bundles.view",
+    "commerce.bundles.create",
+    "commerce.bundles.edit",
+    "commerce.bundles.delete",
   ],
   "Settings Management": ["manage_options"],
 };
