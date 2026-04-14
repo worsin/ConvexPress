@@ -72,6 +72,7 @@ export const commerceTables = {
     slug: v.string(),
     description: v.optional(v.string()),
     parentId: v.optional(v.id("commerce_product_categories")),
+    thumbnailMediaId: v.optional(v.id("media")),
     productCount: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -98,7 +99,20 @@ export const commerceTables = {
     allowBackorders: v.boolean(),
     isVirtual: v.boolean(),
     shippingWeightOz: v.optional(v.number()),
+    // Shipping dimensions (inches)
+    shippingLengthIn: v.optional(v.number()),
+    shippingWidthIn: v.optional(v.number()),
+    shippingHeightIn: v.optional(v.number()),
+    // Scheduled sale window
+    salePriceFrom: v.optional(v.number()),
+    salePriceTo: v.optional(v.number()),
+    // Cross-selling
+    upsellProductIds: v.optional(v.array(v.id("commerce_products"))),
+    crossSellProductIds: v.optional(v.array(v.id("commerce_products"))),
+    // Preserved source metadata for fields we don't have dedicated columns for
+    rawSourceMeta: v.optional(v.string()),
     isDownloadable: v.boolean(),
+    isNonReturnable: v.optional(v.boolean()),
     publishedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -116,15 +130,30 @@ export const commerceTables = {
     title: v.string(),
     sku: v.optional(v.string()),
     optionSummary: v.string(),
+    selections: v.optional(
+      v.array(
+        v.object({
+          optionTypeId: v.string(),
+          optionTypeName: v.string(),
+          optionValueId: v.string(),
+          optionValueLabel: v.string(),
+          sortOrder: v.number(),
+        }),
+      ),
+    ),
+    selectionKey: v.optional(v.string()),
     price: commerceMoneyValidator,
     salePrice: v.optional(commerceMoneyValidator),
     stockQuantity: v.optional(v.number()),
+    featuredMediaId: v.optional(v.id("media")),
     isDefault: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_product", ["productId"])
-    .index("by_product_default", ["productId", "isDefault"]),
+    .index("by_product_default", ["productId", "isDefault"])
+    .index("by_product_selection_key", ["productId", "selectionKey"])
+    .index("by_sku", ["sku"]),
 
   commerce_carts: defineTable({
     userId: v.optional(v.id("users")),
@@ -194,6 +223,9 @@ export const commerceTables = {
     userId: v.optional(v.id("users")),
     email: v.string(),
     phone: v.optional(v.string()),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    isGuest: v.optional(v.boolean()),
     defaultBillingAddressId: v.optional(v.id("commerce_customer_addresses")),
     defaultShippingAddressId: v.optional(v.id("commerce_customer_addresses")),
     totalOrders: v.number(),
@@ -333,6 +365,7 @@ export const commerceTables = {
     usageLimit: v.optional(v.number()),
     startsAt: v.optional(v.number()),
     endsAt: v.optional(v.number()),
+    rawSourceMeta: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -363,13 +396,19 @@ export const commerceTables = {
   commerce_payment_refunds: defineTable({
     orderId: v.id("commerce_orders"),
     transactionId: v.optional(v.id("commerce_payment_transactions")),
+    returnId: v.optional(v.id("commerce_return_requests")),
     amount: commerceMoneyValidator,
     reason: v.optional(v.string()),
     status: v.string(),
+    providerRefundId: v.optional(v.string()),
+    failureCode: v.optional(v.string()),
+    failureMessage: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_order", ["orderId"]),
+  })
+    .index("by_order", ["orderId"])
+    .index("by_return", ["returnId"]),
 
   commerce_shipping_methods: defineTable({
     code: v.string(),
