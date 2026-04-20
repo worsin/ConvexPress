@@ -61,6 +61,7 @@ import {
   MAX_RATING_COMMENT_LENGTH,
   MAX_ATTACHMENTS,
 } from "./validators";
+import { requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Create ─────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,7 @@ import {
 export const create = mutation({
   args: createTicketArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireAuth(ctx);
 
     // ── Validate input ──────────────────────────────────────────────────
@@ -235,6 +237,7 @@ export const create = mutation({
 export const reply = mutation({
   args: replyTicketArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireAuth(ctx);
 
     // ── Validate ticket exists and belongs to user ──────────────────────
@@ -335,6 +338,7 @@ export const reply = mutation({
 export const adminReply = mutation({
   args: adminReplyArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
 
     // ── Validate ticket exists ──────────────────────────────────────────
@@ -436,6 +440,7 @@ export const adminReply = mutation({
 export const updateStatus = mutation({
   args: updateStatusArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.updateStatus");
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
@@ -489,6 +494,7 @@ export const updateStatus = mutation({
 export const updatePriority = mutation({
   args: updatePriorityArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.updatePriority");
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
@@ -523,6 +529,7 @@ export const updatePriority = mutation({
 export const assign = mutation({
   args: assignTicketArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.assign");
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
@@ -566,6 +573,7 @@ export const assign = mutation({
 export const unassign = mutation({
   args: unassignTicketArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.assign");
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
@@ -597,6 +605,7 @@ export const unassign = mutation({
 export const close = mutation({
   args: closeTicketArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.close");
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
@@ -634,6 +643,7 @@ export const close = mutation({
 export const reopen = mutation({
   args: reopenTicketArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireAuth(ctx);
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
@@ -680,6 +690,7 @@ export const reopen = mutation({
 export const rate = mutation({
   args: rateTicketArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireAuth(ctx);
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
@@ -745,6 +756,7 @@ export const rate = mutation({
 export const addTags = mutation({
   args: addTagsArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
@@ -784,6 +796,7 @@ export const addTags = mutation({
 export const removeTags = mutation({
   args: removeTagsArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);

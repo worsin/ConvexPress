@@ -48,6 +48,9 @@ import { membershipTables } from "./schema/membership";
 import { commerceDigitalTables } from "./schema/commerceDigital";
 import { commerceReviewsTables } from "./schema/commerceReviews";
 import { commerceWishlistsTables } from "./schema/commerceWishlists";
+import { commerceBundlesTables } from "./schema/commerceBundles";
+import { commerceReturnsTables } from "./schema/commerceReturns";
+import { productAttributesTables } from "./schema/productAttributes";
 
 // ─── Compose Schema ──────────────────────────────────────────────────────────
 export default defineSchema({
@@ -96,4 +99,7 @@ export default defineSchema({
   ...commerceDigitalTables,
   ...commerceReviewsTables,
   ...commerceWishlistsTables,
+  ...commerceBundlesTables,
+  ...commerceReturnsTables,
+  ...productAttributesTables,
 });

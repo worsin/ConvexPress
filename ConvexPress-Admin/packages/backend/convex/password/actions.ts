@@ -279,7 +279,13 @@ export const completePasswordReset = action({
     }
 
     // 4. Update the password in Clerk via the Backend API
-    const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+    const { getServiceKeyFromAction } = await import("../helpers/serviceKeys");
+    const clerkSecretKey = await getServiceKeyFromAction(
+      ctx,
+      "integrations.clerk",
+      "clerkSecretKey",
+      "CLERK_SECRET_KEY",
+    );
     if (!clerkSecretKey) {
       throw new ConvexError({
         code: "PASSWORD_UPDATE_FAILED",

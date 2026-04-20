@@ -25,6 +25,7 @@ import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { requireCommerceWishlistsEnabled } from "./helpers";
+import { isPluginEnabled } from "../helpers/plugins";
 
 // ============================================
 // CUSTOMER QUERIES
@@ -36,6 +37,7 @@ import { requireCommerceWishlistsEnabled } from "./helpers";
 export const getMyWishlists = query({
   args: {},
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return null;
     await requireCommerceWishlistsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -72,6 +74,7 @@ export const getMyWishlists = query({
 export const getWishlist = query({
   args: { wishlistId: v.id("commerce_wishlists") },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return null;
     await requireCommerceWishlistsEnabled(ctx);
 
     const wishlist = await ctx.db.get(args.wishlistId);
@@ -128,6 +131,7 @@ export const getWishlist = query({
 export const getSharedWishlist = query({
   args: { shareToken: v.string() },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return null;
     await requireCommerceWishlistsEnabled(ctx);
 
     const wishlist = await ctx.db
@@ -193,6 +197,7 @@ export const isInWishlist = query({
     variantId: v.optional(v.id("commerce_product_variants")),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return { inWishlist: false };
     await requireCommerceWishlistsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -246,6 +251,7 @@ export const isInWishlist = query({
 export const getAnalytics = query({
   args: {},
   handler: async (ctx: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return null;
     await requireCommerceWishlistsEnabled(ctx);
     await requireCan(ctx, "commerce.wishlists.manage");
 
@@ -305,6 +311,7 @@ export const getPopularItems = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return null;
     await requireCommerceWishlistsEnabled(ctx);
     await requireCan(ctx, "commerce.wishlists.manage");
 
@@ -361,6 +368,7 @@ export const getRecentActivity = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return null;
     await requireCommerceWishlistsEnabled(ctx);
     await requireCan(ctx, "commerce.wishlists.manage");
 

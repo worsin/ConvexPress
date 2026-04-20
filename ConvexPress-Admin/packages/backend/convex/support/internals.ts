@@ -16,6 +16,7 @@ import { internalMutation, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { logDeflectionInternalArgs, DEFLECTION_LOG_RETENTION_MS } from "./validators";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── logDeflection ────────────────────────────────────────────────────────────
 
@@ -28,6 +29,7 @@ import { logDeflectionInternalArgs, DEFLECTION_LOG_RETENTION_MS } from "./valida
 export const logDeflection = internalMutation({
   args: logDeflectionInternalArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     return ctx.db.insert("support_deflectionLogs", {
       sessionId: args.sessionId,
       userId: args.userId,
@@ -56,6 +58,7 @@ export const logDeflection = internalMutation({
 export const cleanupOldLogs = internalMutation({
   args: {},
   handler: async (ctx) => {
+    await requirePluginEnabled(ctx, "tickets");
     const cutoff = Date.now() - DEFLECTION_LOG_RETENTION_MS;
 
     // Use by_date index to efficiently find old records
@@ -90,6 +93,7 @@ export const cleanupOldLogs = internalMutation({
 export const searchKbConvex = internalQuery({
   args: { query: v.string() },
   handler: async (ctx, { query }) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return [];
     const results = await ctx.db
       .query("kb_articles")
       .withSearchIndex("search_articles", (q) =>
@@ -125,6 +129,7 @@ export const searchKbConvex = internalQuery({
 export const searchKbKeywordFallback = internalQuery({
   args: { query: v.string() },
   handler: async (ctx, { query }) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     // Collect a sample of chunks and do client-side keyword matching
     // Note: Real RAG implementation would use vectorize or a similar index
     const allChunks = await ctx.db
@@ -197,6 +202,7 @@ interface SupportAiSettings {
 export const getSupportAiSettings = internalQuery({
   args: {},
   handler: async (ctx): Promise<SupportAiSettings> => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return { aiProvider: null, aiApiKey: null, aiModel: null, meilisearchEnabled: false, meilisearchUrl: null, meilisearchApiKey: null, ragEnabled: false };
     const doc = await ctx.db
       .query("settings")
       .withIndex("by_section", (q) => q.eq("section", "support.ai"))

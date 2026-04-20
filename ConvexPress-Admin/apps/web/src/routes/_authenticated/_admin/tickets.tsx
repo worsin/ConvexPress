@@ -7,6 +7,7 @@
 
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { ErrorTemplate } from "@/templates/ErrorTemplate";
+import { PluginGuard } from "@/components/plugins/PluginGuard";
 
 export const Route = createFileRoute("/_authenticated/_admin/tickets")({
   component: TicketsLayout,
@@ -14,5 +15,9 @@ export const Route = createFileRoute("/_authenticated/_admin/tickets")({
 });
 
 function TicketsLayout() {
-  return <Outlet />;
+  return (
+    <PluginGuard pluginId="tickets">
+      <Outlet />
+    </PluginGuard>
+  );
 }

@@ -41,6 +41,7 @@ import { emitEvent } from "../helpers/events";
 import { POST_EVENTS, SYSTEM } from "../events/constants";
 import { generateUniqueSlug, sanitizeSlug } from "../helpers/slug";
 import { checkPostCapability, isPostOwner, getUserRoleLevel } from "../helpers/postAuth";
+import { setMediaAttachment, setMediaAttachmentBatch } from "../media/helpers";
 import type { AuthUser, AuthPost } from "../helpers/postAuth";
 import {
   createPostArgs,
@@ -176,6 +177,19 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    // ── Auto-attach media to this post (WP-style first-use wins) ─────────
+    await setMediaAttachment(ctx, args.featuredImageId, postId);
+    if (args.hero?.imageId) {
+      await setMediaAttachment(ctx, args.hero.imageId, postId);
+    }
+    if (Array.isArray(args.topics)) {
+      await setMediaAttachmentBatch(
+        ctx,
+        args.topics.map((t: any) => t?.imageId).filter(Boolean),
+        postId,
+      );
+    }
 
     // ── Handle scheduled publish ────────────────────────────────────────
     if (status === "future" && scheduledAt) {
@@ -505,6 +519,21 @@ export const update = mutation({
 
     // ── Apply patch ─────────────────────────────────────────────────────
     await ctx.db.patch("posts", args.postId, patch);
+
+    // ── Auto-attach any newly-assigned media (first-use wins) ────────────
+    if (args.featuredImageId !== undefined && args.featuredImageId) {
+      await setMediaAttachment(ctx, args.featuredImageId, args.postId);
+    }
+    if (args.hero?.imageId) {
+      await setMediaAttachment(ctx, args.hero.imageId, args.postId);
+    }
+    if (Array.isArray(args.topics)) {
+      await setMediaAttachmentBatch(
+        ctx,
+        args.topics.map((t: any) => t?.imageId).filter(Boolean),
+        args.postId,
+      );
+    }
 
     // ── Handle taxonomy updates ─────────────────────────────────────────
     if (args.categoryIds !== undefined) {

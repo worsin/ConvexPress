@@ -868,7 +868,304 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     eventCode: "kb.comment_added",
   },
 
+  // ═══ Commerce Returns ═══════════════════════════════════════════════════════
+
+  {
+    slug: "commerce-return-requested-admin",
+    name: "Return Requested Admin Alert",
+    description: "Sent to admins when a customer requests a return",
+    subjectTemplate: "Return request {returnNumber} for order {orderNumber}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Return requested</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        {customerEmail} requested return <strong>{returnNumber}</strong> for order <strong>{orderNumber}</strong>.
+      </p>
+      <p style="margin:0;font-size:14px;color:#6b7280;">Reason: {reason}</p>
+    `),
+    preheaderText: "A customer return request needs review",
+    availableVariables: [
+      { name: "returnNumber", description: "Return/RMA number", required: true },
+      { name: "orderNumber", description: "Order number", required: true },
+      { name: "customerEmail", description: "Customer email address", required: false },
+      { name: "reason", description: "Customer return reason", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "admin",
+    category: "commerce",
+    eventCode: "commerce.return_requested",
+  },
+
+  {
+    slug: "commerce-return-approved",
+    name: "Return Approved",
+    description: "Sent to customers when a return is approved",
+    subjectTemplate: "Your return {returnNumber} was approved",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Return approved</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Your return <strong>{returnNumber}</strong> for order <strong>{orderNumber}</strong> was approved.
+      </p>
+      <p style="margin:0;font-size:14px;color:#6b7280;">Estimated refund: {refundAmount}</p>
+    `),
+    preheaderText: "Your return request was approved",
+    availableVariables: [
+      { name: "returnNumber", description: "Return/RMA number", required: true },
+      { name: "orderNumber", description: "Order number", required: true },
+      { name: "refundAmount", description: "Approved refund amount", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "commerce",
+    eventCode: "commerce.return_approved",
+  },
+
+  {
+    slug: "commerce-return-rejected",
+    name: "Return Rejected",
+    description: "Sent to customers when a return is rejected",
+    subjectTemplate: "Update on return {returnNumber}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Return update</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Return <strong>{returnNumber}</strong> for order <strong>{orderNumber}</strong> was not approved.
+      </p>
+      <p style="margin:0;font-size:14px;color:#6b7280;">Reason: {rejectionReason}</p>
+    `),
+    preheaderText: "Your return request has an update",
+    availableVariables: [
+      { name: "returnNumber", description: "Return/RMA number", required: true },
+      { name: "orderNumber", description: "Order number", required: true },
+      { name: "rejectionReason", description: "Admin rejection reason", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "commerce",
+    eventCode: "commerce.return_rejected",
+  },
+
+  {
+    slug: "commerce-return-label-added",
+    name: "Return Shipping Label Added",
+    description: "Sent when a return shipping label is available",
+    subjectTemplate: "Return label for {returnNumber}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Return label ready</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        A return shipping label is ready for return <strong>{returnNumber}</strong>.
+      </p>
+      <p style="margin:0;font-size:14px;color:#6b7280;">Tracking: {trackingNumber}</p>
+    `),
+    preheaderText: "Your return shipping label is ready",
+    availableVariables: [
+      { name: "returnNumber", description: "Return/RMA number", required: true },
+      { name: "trackingNumber", description: "Return tracking number", required: false },
+      { name: "labelUrl", description: "Return label URL", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "commerce",
+    eventCode: "commerce.return_label_added",
+  },
+
+  {
+    slug: "commerce-return-refunded",
+    name: "Return Refunded",
+    description: "Sent when a return refund succeeds",
+    subjectTemplate: "Refund processed for {returnNumber}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Refund processed</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Refund <strong>{refundAmount}</strong> was processed for return <strong>{returnNumber}</strong>.
+      </p>
+      <p style="margin:0;font-size:14px;color:#6b7280;">Refund method: {refundMethod}</p>
+    `),
+    preheaderText: "Your return refund was processed",
+    availableVariables: [
+      { name: "returnNumber", description: "Return/RMA number", required: true },
+      { name: "refundAmount", description: "Refund amount", required: true },
+      { name: "refundMethod", description: "Refund method", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "commerce",
+    eventCode: "commerce.return_refunded",
+  },
+
+  {
+    slug: "commerce-return-refund-failed",
+    name: "Return Refund Failed Admin Alert",
+    description: "Sent to admins when an automatic return refund fails",
+    subjectTemplate: "Refund failed for return {returnNumber}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Refund failed</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        The refund for return <strong>{returnNumber}</strong> failed and needs review.
+      </p>
+      <p style="margin:0;font-size:14px;color:#6b7280;">Error: {failureReason}</p>
+    `),
+    preheaderText: "A return refund needs attention",
+    availableVariables: [
+      { name: "returnNumber", description: "Return/RMA number", required: true },
+      { name: "refundAmount", description: "Refund amount", required: false },
+      { name: "failureReason", description: "Provider failure reason", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "admin",
+    category: "commerce",
+    eventCode: "commerce.return_refund_failed",
+  },
+
   // ═══ Digest ══════════════════════════════════════════════════════════════════
+
+  // ═══ Shipping (Tier 1.3 — auto-seeded when v2Enabled) ═══════════════════════
+
+  {
+    slug: "shipping_picked_up",
+    name: "Shipment Picked Up",
+    description: "Sent when a carrier picks up a shipment",
+    subjectTemplate: "Your order {order_number} is on its way",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Your order is on the move</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Hi {recipient_name}, your order <strong>{order_number}</strong> has been picked up by {carrier} and is in transit.
+      </p>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Tracking number: <strong>{tracking_number}</strong>
+      </p>
+    `),
+    preheaderText: "Your order has been picked up by the carrier",
+    availableVariables: [
+      { name: "recipient_name", description: "Customer name", required: false, defaultValue: "there" },
+      { name: "order_number", description: "Order number", required: true },
+      { name: "tracking_number", description: "Carrier tracking number", required: false },
+      { name: "carrier", description: "Carrier name (UPS, FedEx, etc.)", required: false },
+      { name: "status_description", description: "Free-form carrier status text", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "shipping",
+    eventCode: "shipping.tracking_updated",
+  },
+
+  {
+    slug: "shipping_out_for_delivery",
+    name: "Out for Delivery",
+    description: "Sent when a shipment is out for final-mile delivery",
+    subjectTemplate: "Your order {order_number} is out for delivery today",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Out for delivery</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Hi {recipient_name}, your order <strong>{order_number}</strong> is on the truck for delivery today.
+      </p>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Tracking number: <strong>{tracking_number}</strong>
+      </p>
+    `),
+    preheaderText: "Your shipment is out for delivery today",
+    availableVariables: [
+      { name: "recipient_name", description: "Customer name", required: false, defaultValue: "there" },
+      { name: "order_number", description: "Order number", required: true },
+      { name: "tracking_number", description: "Carrier tracking number", required: false },
+      { name: "carrier", description: "Carrier name", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "shipping",
+    eventCode: "shipping.tracking_updated",
+  },
+
+  {
+    slug: "shipping_delivered",
+    name: "Shipment Delivered",
+    description: "Sent when a shipment is confirmed delivered",
+    subjectTemplate: "Your order {order_number} has been delivered",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Delivered!</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Hi {recipient_name}, your order <strong>{order_number}</strong> has been delivered.
+      </p>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Carrier: {carrier} · Tracking: {tracking_number}
+      </p>
+      <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">
+        Didn't receive your package? Reply to this email for help.
+      </p>
+    `),
+    preheaderText: "Your order has been delivered",
+    availableVariables: [
+      { name: "recipient_name", description: "Customer name", required: false, defaultValue: "there" },
+      { name: "order_number", description: "Order number", required: true },
+      { name: "tracking_number", description: "Carrier tracking number", required: false },
+      { name: "carrier", description: "Carrier name", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "shipping",
+    eventCode: "shipping.tracking_delivered",
+  },
+
+  {
+    slug: "shipping_exception",
+    name: "Shipment Exception",
+    description: "Sent when a carrier reports a delivery exception (delay, address issue, etc.)",
+    subjectTemplate: "Issue with your order {order_number} delivery",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Delivery exception</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Hi {recipient_name}, the carrier has reported an issue with your order <strong>{order_number}</strong>.
+      </p>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Status: {status_description}<br/>
+        Tracking: {tracking_number}
+      </p>
+      <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">
+        We're monitoring the situation. If we need anything from you, we'll be in touch.
+      </p>
+    `),
+    preheaderText: "There's an issue with your shipment",
+    availableVariables: [
+      { name: "recipient_name", description: "Customer name", required: false, defaultValue: "there" },
+      { name: "order_number", description: "Order number", required: true },
+      { name: "tracking_number", description: "Carrier tracking number", required: false },
+      { name: "carrier", description: "Carrier name", required: false },
+      { name: "status_description", description: "Free-form carrier status text", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "shipping",
+    eventCode: "shipping.tracking_exception",
+  },
+
+  {
+    slug: "shipping_returned",
+    name: "Shipment Returned",
+    description: "Sent when a shipment is returned to sender",
+    subjectTemplate: "Your order {order_number} was returned",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Shipment returned</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Hi {recipient_name}, your order <strong>{order_number}</strong> was returned to us by the carrier.
+      </p>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Tracking: {tracking_number}<br/>
+        Reason: {status_description}
+      </p>
+      <p style="margin:24px 0 0;font-size:14px;color:#6b7280;">
+        We'll reach out shortly to figure out next steps.
+      </p>
+    `),
+    preheaderText: "Your shipment was returned to sender",
+    availableVariables: [
+      { name: "recipient_name", description: "Customer name", required: false, defaultValue: "there" },
+      { name: "order_number", description: "Order number", required: true },
+      { name: "tracking_number", description: "Carrier tracking number", required: false },
+      { name: "status_description", description: "Free-form carrier status text", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "shipping",
+    eventCode: "shipping.tracking_returned",
+  },
 
   {
     slug: "weekly-content-digest",

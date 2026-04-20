@@ -3,7 +3,8 @@ import { ConvexError, v } from "convex/values";
 
 import { mutation, internalMutation } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
-import { requireCommerceEnabled } from "../commerce/helpers";
+import { requireCommerceDigitalEnabled } from "../commerce/helpers";
+import { requirePluginEnabled } from "../helpers/plugins";
 
 // Helper to generate random hex string using Web Crypto API
 function generateRandomHex(bytes: number): string {
@@ -36,7 +37,8 @@ export const uploadFile = mutation({
     sortOrder: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await requirePluginEnabled(ctx, "commerceDigital");
+    await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     // Verify product exists
@@ -108,7 +110,8 @@ export const updateFile = mutation({
     sortOrder: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await requirePluginEnabled(ctx, "commerceDigital");
+    await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const { fileId, ...updates } = args;
@@ -137,7 +140,8 @@ export const updateFile = mutation({
 export const deleteFile = mutation({
   args: { fileId: v.id("commerce_digital_files") },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await requirePluginEnabled(ctx, "commerceDigital");
+    await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const file = await ctx.db.get(args.fileId);
@@ -194,7 +198,8 @@ export const recordDownload = mutation({
     userAgent: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await requirePluginEnabled(ctx, "commerceDigital");
+    await requireCommerceDigitalEnabled(ctx);
 
     const tokenRecord = await ctx.db
       .query("commerce_download_tokens")
@@ -278,6 +283,7 @@ export const generateDownloadToken = internalMutation({
     expiryDays: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceDigital");
     const file = await ctx.db.get(args.digitalFileId);
     if (!file) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Digital file not found" });
@@ -320,6 +326,7 @@ export const generateOrderDownloadTokens = internalMutation({
     orderId: v.id("commerce_orders"),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceDigital");
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Order not found" });
@@ -391,6 +398,9 @@ export const recordDownloadInternal = internalMutation({
     userAgent: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceDigital");
+    await requireCommerceDigitalEnabled(ctx);
+
     const tokenRecord = await ctx.db
       .query("commerce_download_tokens")
       .withIndex("by_token", (q: any) => q.eq("token", args.token))
@@ -479,7 +489,8 @@ export const generateLicenseKeys = mutation({
     prefix: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await requirePluginEnabled(ctx, "commerceDigital");
+    await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const product = await ctx.db.get(args.productId);
@@ -536,7 +547,8 @@ export const importLicenseKeys = mutation({
     expiresAt: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await requirePluginEnabled(ctx, "commerceDigital");
+    await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const product = await ctx.db.get(args.productId);
@@ -590,6 +602,7 @@ export const assignLicenseKey = internalMutation({
     userId: v.optional(v.id("users")),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceDigital");
     // Find an available key
     const availableKey = await ctx.db
       .query("commerce_license_keys")
@@ -630,7 +643,8 @@ export const revokeLicenseKey = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await requirePluginEnabled(ctx, "commerceDigital");
+    await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const key = await ctx.db.get(args.keyId);
@@ -686,7 +700,8 @@ export const activateLicense = mutation({
     ipAddress: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await requirePluginEnabled(ctx, "commerceDigital");
+    await requireCommerceDigitalEnabled(ctx);
 
     // Find the license key
     const key = await ctx.db
@@ -789,7 +804,8 @@ export const deactivateLicense = mutation({
     deviceId: v.string(),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await requirePluginEnabled(ctx, "commerceDigital");
+    await requireCommerceDigitalEnabled(ctx);
 
     const key = await ctx.db
       .query("commerce_license_keys")

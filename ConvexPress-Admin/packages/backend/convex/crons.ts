@@ -174,6 +174,15 @@ crons.daily(
   internal.media.internals.cleanupExpiredMedia,
 );
 
+// Daily: empty the media trash — permanently delete items that have been
+// trashed beyond the retention window (default 30 days, configurable via
+// settings.media.trashRetentionDays). Reference-safe.
+crons.daily(
+  "media-empty-trash",
+  { hourUTC: 6, minuteUTC: 15 },
+  internal.media.internals.emptyTrashCron,
+);
+
 // ─── WordPress Sync System ──────────────────────────────────────────────────
 // Hourly: check for stale running jobs (no progress for >1 hour) and mark as failed
 // Added by: WordPress Sync System
@@ -276,6 +285,95 @@ crons.daily(
   "support:cleanupOldLogs",
   { hourUTC: 3, minuteUTC: 30 },
   internal.support.internals.cleanupOldLogs,
+  {},
+);
+
+// ─── Shipping (PRD A5/D2/D3) ─────────────────────────────────────────────────
+// Address validation cache cleanup — remove expired entries daily.
+crons.daily(
+  "shipping:address-validation-purge",
+  { hourUTC: 4, minuteUTC: 15 },
+  (internal as any).shipping.addressValidation.mutations.purgeExpired,
+  {},
+);
+
+// Tracking sync — poll carrier APIs for in-flight shipments every 4 hours.
+// Webhooks are preferred but this guarantees coverage.
+crons.interval(
+  "shipping:tracking-sync",
+  { hours: 4 },
+  (internal as any).shipping.tracking.actions.syncTracking,
+  {},
+);
+
+// Manifest auto-close — runs hourly, closes any pending manifest past its
+// carrier's local-time cutoff (USPS 5pm, UPS 6pm, FedEx 7pm).
+crons.hourly(
+  "shipping:manifest-auto-close",
+  { minuteUTC: 5 },
+  (internal as any).shipping.manifests.actions.autoCloseDueManifests,
+  {},
+);
+
+// Tier 1.1 — purge expired OAuth token cache rows daily.
+crons.daily(
+  "shipping:oauth-token-purge",
+  { hourUTC: 4, minuteUTC: 30 },
+  (internal as any).shipping.providers._shared.tokenCache.purgeExpiredTokens,
+  {},
+);
+
+// Tier 4.2 — purge expired webhook dedup rows daily (7-day TTL).
+crons.daily(
+  "shipping:webhook-dedup-purge",
+  { hourUTC: 4, minuteUTC: 45 },
+  (internal as any).shipping.webhookDedup.purgeExpired,
+  {},
+);
+
+// ─── Commerce Inventory ─────────────────────────────────────────────────────
+// Release expired checkout stock reservations so abandoned checkouts do not
+// hold inventory indefinitely.
+crons.interval(
+  "commerce:release-expired-stock-reservations",
+  { minutes: 15 },
+  internal.commerce.inventory.releaseExpiredReservations,
+  {},
+);
+
+// Remove abandoned configurable bundle selections that were never converted
+// into order items.
+crons.daily(
+  "commerce:cleanup-stale-bundle-selections",
+  { hourUTC: 3, minuteUTC: 10 },
+  (internal as any).commerceBundles.internals.cleanupStaleBundleSelections,
+  {},
+);
+
+// ─── Commerce Subscriptions ─────────────────────────────────────────────────
+// Create and charge due subscription invoices. Payment failures move into the
+// dunning flow, so this must run without an admin opening the dashboard.
+crons.hourly(
+  "commerce:subscription-renewals",
+  { minuteUTC: 10 },
+  (internal as any).commerceSubscriptions.actions.processRenewals,
+  {},
+);
+
+// Retry failed subscription invoices that are due for another collection
+// attempt according to the subscription dunning settings.
+crons.hourly(
+  "commerce:subscription-dunning-retries",
+  { minuteUTC: 40 },
+  (internal as any).commerceSubscriptions.actions.processDunningRetries,
+  {},
+);
+
+// Finalize subscriptions whose pending cancellation period has elapsed.
+crons.daily(
+  "commerce:subscription-expirations",
+  { hourUTC: 2, minuteUTC: 45 },
+  (internal as any).commerceSubscriptions.actions.processExpiredSubscriptions,
   {},
 );
 

@@ -19,12 +19,14 @@ import {
   removeTemplateArgs,
   getTemplateByIdArgs,
 } from "./validators";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -42,6 +44,7 @@ export const list = query({
 export const getById = query({
   args: getTemplateByIdArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -56,6 +59,7 @@ export const getById = query({
 export const create = mutation({
   args: createTemplateArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTemplates");
 
     const name = args.name.trim();
@@ -102,6 +106,7 @@ export const create = mutation({
 export const update = mutation({
   args: updateTemplateArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTemplates");
 
     const template = await ctx.db.get("kb_templates", args.templateId);
@@ -151,6 +156,7 @@ export const update = mutation({
 export const remove = mutation({
   args: removeTemplateArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTemplates");
 
     const template = await ctx.db.get("kb_templates", args.templateId);

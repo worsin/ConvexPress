@@ -28,15 +28,20 @@
 import { ConvexError, v } from "convex/values";
 
 import { mutation } from "../_generated/server";
-import { internal } from "../_generated/api";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
 import {
   commerceSubscriptionStatusValidator,
   commerceSubscriptionEntitlementStatusValidator,
+  commerceSubscriptionSourceChannelValidator,
 } from "../schema/commerceSubscriptions";
 import { subscriptionIntervalValidator } from "./validators";
+import { requirePluginEnabled } from "../helpers/plugins";
+import {
+  buildSubscriptionPricingSnapshot,
+  hasExplicitSubscriptionEnablement,
+} from "./pricing";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES & CONSTANTS
@@ -112,19 +117,18 @@ async function getProductOverride(ctx: any, productId: any) {
     .first();
 }
 
-async function resolveEffectiveConfig(ctx: any, product: any, explicitTemplateId?: any) {
+async function resolveEffectiveConfig(
+  ctx: any,
+  product: any,
+  explicitTemplateId?: any,
+  variant?: any,
+) {
   const override = await getProductOverride(ctx, product._id);
   const configuredTemplateId = explicitTemplateId ?? override?.templateId ?? undefined;
 
   let template: any = null;
   if (configuredTemplateId) {
     template = await ctx.db.get(configuredTemplateId);
-  }
-  if (!template) {
-    template = await ctx.db
-      .query("commerce_subscription_templates")
-      .withIndex("by_status", (q: any) => q.eq("status", "active"))
-      .first();
   }
 
   const billingInterval: BillingInterval =
@@ -137,16 +141,20 @@ async function resolveEffectiveConfig(ctx: any, product: any, explicitTemplateId
   const pausable = override?.overridePausable ?? template?.pausable ?? true;
   const cancelAtPeriodEndDefault = template?.cancelAtPeriodEndDefault ?? true;
 
-  const unitPrice = override?.overridePriceAmount ?? product.basePrice ?? 0;
-  const currencyCode = override?.overrideCurrencyCode ?? product.currencyCode ?? "USD";
+  const pricing = buildSubscriptionPricingSnapshot({
+    product,
+    variant,
+    override,
+    quantity: 1,
+  });
 
   return {
-    isSubscriptionEnabled: override?.isSubscriptionEnabled ?? Boolean(template),
+    isSubscriptionEnabled: hasExplicitSubscriptionEnablement(override),
     allowOneTimePurchase: override?.allowOneTimePurchase ?? true,
     templateId: template?._id,
     templateVersion: template?.version,
-    unitPrice,
-    currencyCode,
+    unitPrice: pricing.unitAmount,
+    currencyCode: pricing.currencyCode,
     billingInterval,
     billingIntervalCount,
     trialDays,
@@ -345,7 +353,7 @@ async function transitionSubscription(ctx: any, args: any) {
   });
 
   // Sync entitlements
-  const product = await ctx.db.get(updated.productId);
+  const product = updated.productId ? await ctx.db.get(updated.productId) : null;
   if (product) {
     const config = await resolveEffectiveConfig(ctx, product, updated.templateId);
     await syncEntitlementsForStatus(ctx, updated, now, config.gracePeriodDays ?? 3);
@@ -390,8 +398,9 @@ export const createTemplate = mutation({
     dunningPolicyCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);
-    const actor = await requireCan(ctx, "manage_options");
+    await requireCan(ctx, "manage_options");
     const now = Date.now();
 
     // Check slug uniqueness and determine version
@@ -443,6 +452,7 @@ export const updateTemplate = mutation({
     dunningPolicyCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -503,6 +513,7 @@ export const setProductOverride = mutation({
     overridePausable: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -561,6 +572,7 @@ export const removeProductOverride = mutation({
     productId: v.id("commerce_products"),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -582,22 +594,39 @@ export const removeProductOverride = mutation({
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Create a subscription.
- * Supports idempotency, template resolution, entitlement creation, and history tracking.
+ * Admin/manual subscription provisioning.
+ * Client checkout and public forms must create intents; they must not call this
+ * mutation to activate a paid subscription directly.
  */
 export const create = mutation({
   args: {
     customerId: v.optional(v.id("commerce_customer_profiles")),
     userId: v.optional(v.id("users")),
     productId: v.id("commerce_products"),
+    variantId: v.optional(v.id("commerce_product_variants")),
     orderId: v.optional(v.id("commerce_orders")),
     orderItemId: v.optional(v.id("commerce_order_items")),
+    sourceChannel: v.optional(commerceSubscriptionSourceChannelValidator),
+    sourceCheckoutIntentId: v.optional(
+      v.id("commerce_subscription_checkout_intents"),
+    ),
+    sourceFormSubmissionId: v.optional(
+      v.id("commerce_subscription_form_submissions"),
+    ),
     templateId: v.optional(v.id("commerce_subscription_templates")),
     quantity: v.optional(v.number()),
+    setupFeeAmount: v.optional(v.number()),
+    paymentProvider: v.optional(v.string()),
+    paymentTransactionId: v.optional(v.string()),
+    defaultPaymentMethodId: v.optional(v.string()),
+    manualBilling: v.optional(v.boolean()),
+    sourceMetadata: v.optional(v.any()),
     idempotencyKey: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);
+    const actor = await requireCan(ctx, "manage_options");
 
     const correlationId = createCorrelationId();
     const idempotency = await claimIdempotencyKey(
@@ -612,32 +641,7 @@ export const create = mutation({
     try {
       const now = Date.now();
       const quantity = Math.max(1, args.quantity ?? 1);
-      const actor = await getCurrentUser(ctx);
-
-      let isAdmin = false;
-      try {
-        await requireCan(ctx, "manage_options");
-        isAdmin = true;
-      } catch {
-        // Not admin
-      }
-
-      // Determine userId: use provided or current user
-      let userId = args.userId;
-      if (!userId) {
-        if (!actor) {
-          throw new ConvexError({
-            code: "UNAUTHORIZED",
-            message: "Authentication required to create a subscription.",
-          });
-        }
-        userId = actor._id;
-      } else if (!isAdmin) {
-        throw new ConvexError({
-          code: "FORBIDDEN",
-          message: "Admin required to create subscriptions for other users.",
-        });
-      }
+      const userId = args.userId ?? actor._id;
 
       const product = await ctx.db.get(args.productId);
       if (!product) {
@@ -647,13 +651,36 @@ export const create = mutation({
         });
       }
 
-      const config = await resolveEffectiveConfig(ctx, product, args.templateId);
+      let variant: any = null;
+      if (args.variantId) {
+        variant = await ctx.db.get(args.variantId);
+        if (!variant || variant.productId !== product._id) {
+          throw new ConvexError({
+            code: "NOT_FOUND",
+            message: "Variant not found for product.",
+          });
+        }
+      }
+
+      const config = await resolveEffectiveConfig(
+        ctx,
+        product,
+        args.templateId,
+        variant,
+      );
       if (!config.isSubscriptionEnabled) {
         throw new ConvexError({
           code: "VALIDATION_ERROR",
-          message: "Product is not configured for subscriptions.",
+          message:
+            "Product must have an explicit subscription override before it can be provisioned.",
         });
       }
+      const pricing = buildSubscriptionPricingSnapshot({
+        product,
+        variant,
+        override: await getProductOverride(ctx, product._id),
+        quantity,
+      });
 
       const trialDays = config.trialDays ?? 0;
       const status: SubscriptionStatus = trialDays > 0 ? "trialing" : "active";
@@ -662,22 +689,55 @@ export const create = mutation({
         trialDays > 0
           ? addDays(now, trialDays)
           : addBillingPeriod(now, config.billingInterval, config.billingIntervalCount);
+      const sourceChannel = args.sourceChannel ?? "admin";
+      const setupFeeAmount = args.setupFeeAmount ?? 0;
+      const manualBilling =
+        args.manualBilling ??
+        !(args.defaultPaymentMethodId || args.paymentProvider);
+      const pricingSnapshot = {
+        ...pricing,
+        setupFeeAmount,
+        billingInterval: config.billingInterval,
+        billingIntervalCount: config.billingIntervalCount,
+        trialDays,
+        templateId: config.templateId,
+        templateVersion: config.templateVersion,
+      };
 
       const subscriptionId = await ctx.db.insert("commerce_subscriptions", {
         customerId: args.customerId,
         userId,
+        sourceChannel,
+        sourceCheckoutIntentId: args.sourceCheckoutIntentId,
+        sourceOrderId: args.orderId,
+        sourceFormSubmissionId: args.sourceFormSubmissionId,
         productId: args.productId,
         orderId: args.orderId,
         orderItemId: args.orderItemId,
         templateId: config.templateId,
+        templateVersion: config.templateVersion,
         status,
-        currencyCode: config.currencyCode,
-        recurringAmount: config.unitPrice * quantity,
+        currencyCode: pricing.currencyCode,
+        recurringAmount: pricing.recurringAmount,
+        setupFeeAmount,
+        billingInterval: config.billingInterval,
+        billingIntervalCount: config.billingIntervalCount,
         nextBillingAt: currentPeriodEndAt,
         currentPeriodStartAt,
         currentPeriodEndAt,
         trialEndsAt: trialDays > 0 ? currentPeriodEndAt : undefined,
+        cancelAtPeriodEnd: false,
+        cancelScheduledAt: undefined,
         cancelledAt: undefined,
+        pausedAt: undefined,
+        gracePeriodEndsAt: undefined,
+        defaultPaymentMethodId: args.defaultPaymentMethodId,
+        paymentProvider: args.paymentProvider,
+        paymentTransactionId: args.paymentTransactionId,
+        lastInvoiceId: undefined,
+        manualBilling,
+        pricingSnapshot,
+        sourceMetadata: args.sourceMetadata,
         createdAt: now,
         updatedAt: now,
       });
@@ -686,10 +746,26 @@ export const create = mutation({
       await ctx.db.insert("commerce_subscription_items", {
         subscriptionId,
         productId: args.productId,
-        variantId: undefined,
+        variantId: args.variantId,
+        bundleId: undefined,
+        titleSnapshot: variant?.title ?? product.title ?? product.name,
         quantity,
-        unitAmount: config.unitPrice,
-        currencyCode: config.currencyCode,
+        unitAmount: pricing.unitAmount,
+        unitRecurringAmount: pricing.unitAmount,
+        unitSetupFeeAmount: setupFeeAmount,
+        currencyCode: pricing.currencyCode,
+        status: "active",
+        startsAt: now,
+        currentPeriodEndAt,
+        cancelAtPeriodEnd: false,
+        cancelledAt: undefined,
+        entitlementCodes: [`product:${args.productId}`],
+        priceSnapshot: pricingSnapshot,
+        metadata: {
+          productId: args.productId,
+          variantId: args.variantId,
+          sourceChannel,
+        },
         createdAt: now,
         updatedAt: now,
       });
@@ -708,7 +784,15 @@ export const create = mutation({
         data: {
           templateId: config.templateId,
           templateVersion: config.templateVersion,
-          unitPrice: config.unitPrice,
+          unitPrice: pricing.unitAmount,
+          recurringAmount: pricing.recurringAmount,
+          currencyCode: pricing.currencyCode,
+          variantId: args.variantId,
+          sourceChannel,
+          sourceCheckoutIntentId: args.sourceCheckoutIntentId,
+          sourceFormSubmissionId: args.sourceFormSubmissionId,
+          setupFeeAmount,
+          manualBilling,
           quantity,
           trialDays,
           orderId: args.orderId,
@@ -722,10 +806,12 @@ export const create = mutation({
           subscriptionId,
           userId,
           productId: args.productId,
+          variantId: args.variantId,
+          sourceChannel,
           status,
           billingInterval: config.billingInterval,
           billingIntervalCount: config.billingIntervalCount,
-          recurringAmount: config.unitPrice * quantity,
+          recurringAmount: pricing.recurringAmount,
         });
       } catch {
         // Event emission is best-effort
@@ -765,6 +851,7 @@ export const pause = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -804,7 +891,7 @@ export const pause = mutation({
       actorUserId: user._id,
       reason: args.reason,
       correlationId: createCorrelationId(),
-      patch: {},
+      patch: { pausedAt: Date.now() },
     });
   },
 });
@@ -817,6 +904,7 @@ export const resume = mutation({
     subscriptionId: v.id("commerce_subscriptions"),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -869,6 +957,9 @@ export const resume = mutation({
       patch: {
         currentPeriodEndAt: nextBillingAt,
         nextBillingAt,
+        pausedAt: undefined,
+        cancelAtPeriodEnd: false,
+        cancelScheduledAt: undefined,
       },
     });
   },
@@ -883,6 +974,7 @@ export const scheduleCancel = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -922,7 +1014,10 @@ export const scheduleCancel = mutation({
       actorUserId: user._id,
       reason: args.reason,
       correlationId: createCorrelationId(),
-      patch: {},
+      patch: {
+        cancelAtPeriodEnd: true,
+        cancelScheduledAt: Date.now(),
+      },
     });
   },
 });
@@ -936,6 +1031,7 @@ export const cancelNow = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -975,7 +1071,7 @@ export const cancelNow = mutation({
       actorUserId: user._id,
       reason: args.reason,
       correlationId: createCorrelationId(),
-      patch: {},
+      patch: { cancelAtPeriodEnd: false },
     });
   },
 });
@@ -991,6 +1087,7 @@ export const updateSubscription = mutation({
     nextBillingAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);
     const actor = await requireCan(ctx, "manage_options");
 
@@ -1038,6 +1135,7 @@ export const grantEntitlement = mutation({
     metadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -1078,6 +1176,7 @@ export const revokeEntitlement = mutation({
     entitlementId: v.id("commerce_subscription_entitlements"),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 

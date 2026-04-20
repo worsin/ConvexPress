@@ -40,6 +40,7 @@ import {
   normalizeStoredReturnItems,
   shouldRestockReturnItem,
 } from "./itemState";
+import { requirePluginEnabled } from "../helpers/plugins";
 
 type ReturnRequestDoc = Doc<"commerce_return_requests">;
 type ReturnItemDoc = Doc<"commerce_return_items">;
@@ -273,6 +274,7 @@ export const requestReturn = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceReturns");
     await requireCommerceReturnsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -478,6 +480,7 @@ export const approveReturn = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceReturns");
     const admin = await requireCan(ctx, "commerce.returns.review");
     await requireCommerceReturnsEnabled(ctx);
 
@@ -606,6 +609,7 @@ export const rejectReturn = mutation({
     reason: v.string(),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceReturns");
     const admin = await requireCan(ctx, "commerce.returns.review");
     await requireCommerceReturnsEnabled(ctx);
 
@@ -690,6 +694,7 @@ export const markReceived = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceReturns");
     const admin = await requireCan(ctx, "commerce.returns.receive");
     await requireCommerceReturnsEnabled(ctx);
 
@@ -798,6 +803,7 @@ export const processRefund = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceReturns");
     const admin = await requireCan(ctx, "commerce.returns.refund");
     await requireCommerceReturnsEnabled(ctx);
 
@@ -1058,6 +1064,7 @@ export const completeReturn = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceReturns");
     const admin = await requireCan(ctx, "commerce.returns.manage");
     await requireCommerceReturnsEnabled(ctx);
 
@@ -1235,6 +1242,7 @@ export const addShippingLabel = mutation({
     carrier: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceReturns");
     const admin = await requireCan(ctx, "commerce.returns.manage");
     await requireCommerceReturnsEnabled(ctx);
 
@@ -1330,6 +1338,7 @@ export const updateNotes = mutation({
     notes: v.string(),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceReturns");
     const admin = await requireCan(ctx, "commerce.returns.view");
     await requireCommerceReturnsEnabled(ctx);
 
@@ -1377,6 +1386,7 @@ export const retryStuckRefund = mutation({
     returnId: v.id("commerce_return_requests"),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceReturns");
     const admin = await requireCan(ctx, "commerce.returns.refund");
     await requireCommerceReturnsEnabled(ctx);
 

@@ -73,7 +73,7 @@ function CreateTicketPage() {
       navigate({
         to: "/support/tickets/$ticketId",
         params: { ticketId: result.ticketId },
-      });
+      } as any);
     } catch (error: unknown) {
       toast.error((error as { data?: { message?: string } })?.data?.message ?? "Failed to create ticket");
     } finally {

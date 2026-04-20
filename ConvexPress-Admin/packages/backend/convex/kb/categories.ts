@@ -23,12 +23,14 @@ import {
   removeCategoryArgs,
   getCategoryBySlugArgs,
 } from "./validators";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -48,6 +50,7 @@ export const list = query({
 export const listPublished = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const categories = await ctx.db
       .query("kb_categories")
       .withIndex("by_published_order", (q) => q.eq("isPublished", true))
@@ -62,6 +65,7 @@ export const listPublished = query({
 export const getBySlug = query({
   args: getCategoryBySlugArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const category = await ctx.db
       .query("kb_categories")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
@@ -77,6 +81,7 @@ export const getBySlug = query({
 export const getHierarchy = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const categories = await ctx.db
       .query("kb_categories")
       .withIndex("by_published_order", (q) => q.eq("isPublished", true))
@@ -114,6 +119,7 @@ export const getHierarchy = query({
 export const create = mutation({
   args: createCategoryArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCategories");
 
     const name = args.name.trim();
@@ -155,6 +161,7 @@ export const create = mutation({
 export const update = mutation({
   args: updateCategoryArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCategories");
 
     const category = await ctx.db.get("kb_categories", args.categoryId);
@@ -207,6 +214,7 @@ export const update = mutation({
 export const reorder = mutation({
   args: reorderCategoryArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCategories");
 
     const category = await ctx.db.get("kb_categories", args.categoryId);
@@ -228,6 +236,7 @@ export const reorder = mutation({
 export const remove = mutation({
   args: removeCategoryArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCategories");
 
     const category = await ctx.db.get("kb_categories", args.categoryId);

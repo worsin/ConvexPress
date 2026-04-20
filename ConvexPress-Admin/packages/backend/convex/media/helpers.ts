@@ -314,6 +314,50 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
+// ─── Attachment Tracking ────────────────────────────────────────────────────
+
+/**
+ * Set `media.attachedTo` to `postId` — but only when the media is not
+ * already attached. WordPress semantics: first-use wins. Call sites
+ * (post featured-image set, structured content image assignment, etc.)
+ * can invoke this freely; it's a no-op when the media is already
+ * attached or the id is missing.
+ */
+export async function setMediaAttachment(
+  ctx: { db: any },
+  mediaId: Id<"media"> | string | undefined | null,
+  postId: Id<"posts"> | string,
+): Promise<void> {
+  if (!mediaId) return;
+  const media = await ctx.db.get(mediaId);
+  if (!media) return;
+  if (media.attachedTo) return; // first-use wins
+  if (media.status === "trashed") return;
+  await ctx.db.patch(mediaId, {
+    attachedTo: postId,
+    updatedAt: Date.now(),
+  });
+}
+
+/**
+ * Batch version: attach every media ID in the list that isn't already
+ * attached to `postId`. Used for galleries / structured content arrays.
+ */
+export async function setMediaAttachmentBatch(
+  ctx: { db: any },
+  mediaIds: Array<Id<"media"> | string | undefined | null>,
+  postId: Id<"posts"> | string,
+): Promise<void> {
+  const seen = new Set<string>();
+  for (const id of mediaIds) {
+    if (!id) continue;
+    const key = id as string;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    await setMediaAttachment(ctx, id, postId);
+  }
+}
+
 // ─── Media Settings Integration ──────────────────────────────────────────────
 
 /**

@@ -14,11 +14,11 @@ import {
   Monitor,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
 } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
+import { useSettings } from "@/contexts/SettingsContext";
 
 export const Route = createFileRoute("/dashboard/downloads")({
   head: () => ({
@@ -399,9 +399,11 @@ function LicenseKeyCard({
 // ─── Main Page ────────────────────────────────────────────────────────────
 
 function DashboardDownloadsPage() {
+  const settings = useSettings();
+  const digitalEnabled = settings?.plugins?.commerceDigitalEnabled === true;
   const downloads = useQuery(
     (api as any).commerceDigital.queries.getMyDownloads,
-    {},
+    digitalEnabled ? {} : "skip",
   ) as
     | Array<{
         _id: string;
@@ -433,7 +435,7 @@ function DashboardDownloadsPage() {
 
   const licenseKeys = useQuery(
     (api as any).commerceDigital.queries.getMyLicenseKeys,
-    {},
+    digitalEnabled ? {} : "skip",
   ) as
     | Array<{
         _id: string;

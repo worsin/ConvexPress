@@ -33,6 +33,7 @@ import {
   MAX_CANNED_SHORTCUT_LENGTH,
   MAX_CANNED_CONTENT_LENGTH,
 } from "./validators";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── list ───────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,7 @@ import {
 export const list = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");
     if (!canManage) return null;
 
@@ -59,6 +61,7 @@ export const list = query({
 export const listByCategory = query({
   args: { category: v.string() },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");
     if (!canManage) return null;
 
@@ -81,6 +84,7 @@ export const listByCategory = query({
 export const getByShortcut = query({
   args: { shortcut: v.string() },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");
     if (!canManage) return null;
 
@@ -100,6 +104,7 @@ export const getByShortcut = query({
 export const search = query({
   args: searchCannedResponsesArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");
     if (!canManage) return null;
 
@@ -136,6 +141,7 @@ export const search = query({
 export const applyTemplate = mutation({
   args: applyTemplateArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     await requireCan(ctx, "ticket.respond");
 
     const template = await ctx.db.get("ticket_cannedResponses", args.id);
@@ -169,6 +175,7 @@ export const applyTemplate = mutation({
 export const create = mutation({
   args: createCannedResponseArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.manageCannedResponses");
 
     // Validate lengths
@@ -228,6 +235,7 @@ export const create = mutation({
 export const update = mutation({
   args: updateCannedResponseArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.manageCannedResponses");
 
     const existing = await ctx.db.get("ticket_cannedResponses", args.id);
@@ -299,6 +307,7 @@ export const update = mutation({
 export const remove = mutation({
   args: removeCannedResponseArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.manageCannedResponses");
 
     const existing = await ctx.db.get("ticket_cannedResponses", args.id);
@@ -322,6 +331,7 @@ export const remove = mutation({
 export const incrementUsage = mutation({
   args: { id: v.id("ticket_cannedResponses") },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     await requireCan(ctx, "ticket.respond");
 
     const response = await ctx.db.get("ticket_cannedResponses", args.id);
@@ -341,6 +351,7 @@ export const incrementUsage = mutation({
 export const getCategories = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");
     if (!canManage) return null;
 

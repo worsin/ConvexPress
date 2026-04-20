@@ -26,12 +26,14 @@ import {
   getCommentCountArgs,
 } from "./validators";
 import { enrichUser } from "./helpers/enrichUser";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── List By Article (Public, threaded) ─────────────────────────────────────
 
 export const listByArticle = query({
   args: listCommentsByArticleArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return [];
     const comments = await ctx.db
       .query("kb_comments")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
@@ -69,6 +71,7 @@ export const listByArticle = query({
 export const create = mutation({
   args: createCommentArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -126,6 +129,7 @@ export const create = mutation({
 export const update = mutation({
   args: updateCommentArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -161,6 +165,7 @@ export const update = mutation({
 export const deleteComment = mutation({
   args: deleteCommentArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -191,6 +196,7 @@ export const deleteComment = mutation({
 export const vote = mutation({
   args: voteCommentArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -267,6 +273,7 @@ export const vote = mutation({
 export const removeVote = mutation({
   args: removeVoteArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -304,6 +311,7 @@ export const removeVote = mutation({
 export const getCount = query({
   args: getCommentCountArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const comments = await ctx.db
       .query("kb_comments")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))

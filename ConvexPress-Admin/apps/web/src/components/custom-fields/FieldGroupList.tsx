@@ -36,6 +36,16 @@ type FieldGroupSearchParams = {
   search?: string;
 };
 
+type FieldGroupListItem = {
+  _id: string;
+  title: string;
+  key: string;
+  fieldCount: number;
+  locationRules: { param: string; operator: string; value: string }[][];
+  isActive: boolean;
+  menuOrder: number;
+};
+
 export function FieldGroupList() {
   const navigate = useNavigate();
   const searchParams = useSearch({
@@ -147,7 +157,7 @@ export function FieldGroupList() {
       if (prev.size === groups.length) {
         return new Set();
       }
-      return new Set(groups.map((g) => g._id));
+      return new Set((groups as FieldGroupListItem[]).map((g) => g._id));
     });
   }, [groups]);
 
@@ -415,8 +425,7 @@ export function FieldGroupList() {
         <div className="ml-auto">
           <SearchBox
             value={searchValue}
-            onChange={setSearchValue}
-            onSearch={handleSearch}
+            onChange={handleSearch}
             placeholder="Search field groups..."
           />
         </div>
@@ -488,7 +497,7 @@ export function FieldGroupList() {
                 </tr>
               ))
             ) : groups && groups.length > 0 ? (
-              groups.map((group) => (
+              (groups as FieldGroupListItem[]).map((group) => (
                 <tr
                   key={group._id}
                   className="group/row border-b border-border hover:bg-muted/20 transition-colors"

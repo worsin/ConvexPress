@@ -31,6 +31,7 @@ import {
   TICKET_SLA_DEFAULTS,
 } from "../settings/defaults";
 import { computeChanges } from "../settings/helpers";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── getTicketSettings ───────────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ import { computeChanges } from "../settings/helpers";
 export const getTicketSettings = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canView = await currentUserCan(ctx, "ticket.viewAll");
     if (!canView) return null;
 
@@ -108,6 +110,7 @@ export const updateTicketSettings = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "manage_options");
     const now = Date.now();
     const updatedSections: string[] = [];

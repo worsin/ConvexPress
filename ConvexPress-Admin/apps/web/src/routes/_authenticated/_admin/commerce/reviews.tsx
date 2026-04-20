@@ -15,12 +15,21 @@ import {
   Filter,
 } from "lucide-react";
 import { api } from "@backend/convex/_generated/api";
+import { PluginGuard } from "@/components/plugins/PluginGuard";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/commerce/reviews",
 )({
-  component: CommerceReviewsPage,
+  component: CommerceReviewsRoute,
 });
+
+function CommerceReviewsRoute() {
+  return (
+    <PluginGuard pluginId="commerceReviews">
+      <CommerceReviewsPage />
+    </PluginGuard>
+  );
+}
 
 // ─── Formatters ────────────────────────────────────────────────────────────
 

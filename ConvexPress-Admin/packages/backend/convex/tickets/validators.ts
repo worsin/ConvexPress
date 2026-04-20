@@ -305,9 +305,8 @@ export const getTicketWithRepliesArgs = {
   includeInternal: v.optional(v.boolean()),
 };
 
-/** Arguments for the admin ticket queue with filters (Convex-native paginated). */
+/** Arguments for the admin ticket queue with filters (offset paginated). */
 export const getQueueArgs = {
-  paginationOpts: paginationOptsValidator,
   status: v.optional(ticketStatusValidator),
   priority: v.optional(ticketPriorityValidator),
   category: v.optional(ticketCategoryValidator),
@@ -323,6 +322,8 @@ export const getQueueArgs = {
     ),
   ),
   orderDir: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+  page: v.optional(v.number()),
+  perPage: v.optional(v.number()),
 };
 
 /** Arguments for getting messages by ticket. */

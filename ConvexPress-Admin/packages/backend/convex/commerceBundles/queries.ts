@@ -38,6 +38,7 @@ import {
   resolveBundlePricingPreview,
   resolveBundleAvailability,
 } from "./runtime";
+import { isPluginEnabled } from "../helpers/plugins";
 
 // ============================================
 // ADMIN QUERIES
@@ -52,6 +53,7 @@ export const list = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.view");
 
@@ -91,6 +93,7 @@ export const list = query({
 export const get = query({
   args: { id: v.id("commerce_bundles") },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.view");
 
@@ -104,6 +107,7 @@ export const get = query({
 export const getComponents = query({
   args: { bundleId: v.id("commerce_bundles") },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.view");
 
@@ -147,6 +151,7 @@ export const listActive = query({
     categoryId: v.optional(v.id("commerce_product_categories")),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
 
     const bundles = await ctx.db
@@ -199,6 +204,7 @@ export const listActive = query({
 export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
 
     const bundle = await ctx.db
@@ -271,6 +277,7 @@ export const calculatePrice = query({
     ),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
 
     const bundle = await ctx.db.get(args.bundleId);
@@ -317,6 +324,7 @@ export const checkAvailability = query({
     ),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
 
     const bundle = await ctx.db.get(args.bundleId);
@@ -365,6 +373,7 @@ export const checkAvailability = query({
 export const getBundlesForProduct = query({
   args: { productId: v.id("commerce_products") },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
 
     const components = await ctx.db
@@ -411,6 +420,7 @@ export const getBundlesForProduct = query({
 export const getStats = query({
   args: {},
   handler: async (ctx: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceBundles"))) return { total: 0, active: 0, draft: 0, archived: 0, unlinked: 0, draftsBlocked: 0 };
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -458,6 +468,7 @@ export const getStats = query({
 export const getLowStock = query({
   args: { threshold: v.optional(v.number()) },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -492,6 +503,7 @@ export const getLowStock = query({
 export const getSelectionByCartItem = query({
   args: { cartItemId: v.id("commerce_cart_items") },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceBundles"))) return null;
     await requireCommerceBundlesEnabled(ctx);
 
     return await ctx.db

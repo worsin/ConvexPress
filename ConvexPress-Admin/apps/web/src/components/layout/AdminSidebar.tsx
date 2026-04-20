@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useAdminShell } from "@/hooks/layout/useAdminShell";
 import { useActiveSection } from "@/hooks/layout/useActiveSection";
 import { usePendingCommentCount } from "@/hooks/layout/usePendingCommentCount";
+import { usePluginSettings } from "@/hooks/usePluginSettings";
 import { ADMIN_NAV_SECTIONS } from "@/lib/admin-shell/nav-config";
 import { filterNavSections } from "@/lib/admin-shell/capabilities";
 import { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_TRANSITION_MS } from "@/lib/admin-shell/constants";
@@ -23,14 +24,32 @@ export function AdminSidebar() {
   const { role } = useAuth();
   const activeSectionId = useActiveSection();
   const pendingCommentCount = usePendingCommentCount();
+  const { isEnabled: isPluginEnabled } = usePluginSettings();
 
-  // Filter nav sections by user capabilities
+  // Filter nav sections by user capabilities + plugin enablement
   const filteredSections = useMemo(() => {
     // Get capabilities from the role, or use admin-level fallback
     const capabilities = role?.capabilities ?? [];
 
     // Filter sections by capabilities
     let sections = filterNavSections(ADMIN_NAV_SECTIONS, capabilities);
+
+    // Hide sections whose owning plugin is disabled
+    sections = sections.filter(
+      (section) => !section.pluginId || isPluginEnabled(section.pluginId),
+    );
+
+    // Also prune individual children whose plugin is disabled
+    sections = sections.map((section) =>
+      section.children
+        ? {
+            ...section,
+            children: section.children.filter(
+              (child) => !child.pluginId || isPluginEnabled(child.pluginId),
+            ),
+          }
+        : section,
+    );
 
     // Inject dynamic badge counts
     sections = sections.map((section) => {
@@ -41,7 +60,7 @@ export function AdminSidebar() {
     });
 
     return sections;
-  }, [role, pendingCommentCount]);
+  }, [role, pendingCommentCount, isPluginEnabled]);
 
   // Auto-expand the active section on mount and route changes
   useEffect(() => {

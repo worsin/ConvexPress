@@ -1,5 +1,7 @@
 # Phase 1: Schema Foundation
 
+> **Legacy note:** This file was written for the older cart-first/VexCart-style plan. Use `00-OVERVIEW.md` and `.codex/docs/COMMERCE-SUBSCRIPTIONS-PLUGIN-IMPLEMENTATION-CHECKLIST.md` as the canonical implementation instructions. Keep examples from this file only when they do not conflict with the multi-channel offer/form/contract model.
+
 > **Duration:** 1-2 days
 > **Prerequisites:** None
 > **Blocks:** Phase 2, Phase 3

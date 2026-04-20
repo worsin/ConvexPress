@@ -48,6 +48,18 @@ export const settingsTables = {
       v.literal("layout"),
       v.literal("header"),
       v.literal("footer"),
+      // Commerce & Shipping sections
+      v.literal("commerce.general"),
+      v.literal("commerce.payments"),
+      v.literal("integrations.shipping"),
+      v.literal("integrations.shipping.shipstation"),
+      v.literal("integrations.shipping.ups"),
+      v.literal("integrations.shipping.usps"),
+      v.literal("integrations.shipping.fedex"),
+      v.literal("integrations.shipping.dhl"),
+      v.literal("integrations.clerk"),
+      v.literal("integrations.google"),
+      v.literal("analytics.ga4"),
     ),
 
     /**

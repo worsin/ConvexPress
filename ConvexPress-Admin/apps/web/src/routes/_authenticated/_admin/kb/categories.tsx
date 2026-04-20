@@ -53,7 +53,16 @@ function KBCategoriesPage() {
 
 function KBCategoriesContent() {
   const categoriesResult = useQuery(api.kb.categories.list);
-  const categories = categoriesResult ?? [];
+  const categories = (categoriesResult ?? []) as Array<{
+    _id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    icon?: string;
+    articleCount?: number;
+    isActive?: boolean;
+    isPublished?: boolean;
+  }>;
   const createCategory = useMutation(api.kb.categories.create);
   const updateCategory = useMutation(api.kb.categories.update);
   const removeCategory = useMutation(api.kb.categories.remove);
@@ -239,7 +248,7 @@ function KBCategoriesContent() {
             ) : (
               categories.map((cat) => (
                 <tr key={cat._id} className="hover:bg-muted/30 transition-colors">
-                  {editing?.id === cat._id ? (
+                  {editing && editing.id === cat._id ? (
                     <>
                       <td className="px-4 py-2" colSpan={4}>
                         <div className="flex items-center gap-2">

@@ -109,6 +109,7 @@ export function SyncJobCard({ siteId, siteName, siteUrl }: SyncJobCardProps) {
 
   const isPaused = activeJob.status === "paused";
   const isRunning = activeJob.status === "running";
+  const isPending = activeJob.status === "pending";
 
   return (
     <Card className="border-primary/20 bg-primary/5">
@@ -135,7 +136,12 @@ export function SyncJobCard({ siteId, siteName, siteUrl }: SyncJobCardProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            {isPaused ? (
+            {isPending ? (
+              <Button size="sm" variant="outline" disabled>
+                <Loader2Icon className="h-3 w-3 mr-1 animate-spin" />
+                Pending
+              </Button>
+            ) : isPaused ? (
               <Button size="sm" variant="outline" onClick={handleResume}>
                 <PlayIcon className="h-3 w-3 mr-1" />
                 Resume

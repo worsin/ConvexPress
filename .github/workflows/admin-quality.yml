@@ -1,0 +1,39 @@
+name: Admin Quality
+
+on:
+  pull_request:
+    paths:
+      - "ConvexPress-Admin/**"
+      - ".github/workflows/admin-quality.yml"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "ConvexPress-Admin/**"
+      - ".github/workflows/admin-quality.yml"
+
+jobs:
+  admin-quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ConvexPress-Admin/apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ConvexPress-Admin/.bun-version
+
+      - name: Install workspace dependencies
+        working-directory: ConvexPress-Admin
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        # TODO: Remove continue-on-error once the ~150+ existing TS errors are fixed
+        continue-on-error: true
+        run: bun run check-types
+
+      - name: Build
+        run: bun run build

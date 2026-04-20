@@ -17,6 +17,7 @@ import {
   getTopDeflectingArticlesArgs,
   getCommonUnansweredArgs,
 } from "./validators";
+import { isPluginEnabled } from "../helpers/plugins";
 
 // ─── getDeflectionStats ────────────────────────────────────────────────────────
 
@@ -34,6 +35,7 @@ import {
 export const getDeflectionStats = query({
   args: getDeflectionStatsArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canView = await currentUserCan(ctx, "ticket.viewAll");
     if (!canView) return null;
 
@@ -100,6 +102,7 @@ export const getDeflectionStats = query({
 export const getTopDeflectingArticles = query({
   args: getTopDeflectingArticlesArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return [];
     const canView = await currentUserCan(ctx, "ticket.viewAll");
     if (!canView) return null;
 
@@ -164,6 +167,7 @@ export const getTopDeflectingArticles = query({
 export const getCommonUnanswered = query({
   args: getCommonUnansweredArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canView = await currentUserCan(ctx, "ticket.viewAll");
     if (!canView) return null;
 

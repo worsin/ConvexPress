@@ -23,6 +23,7 @@ import { action } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
+import { requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -197,6 +198,7 @@ async function generateEmbedding(
 export const ingestArticle = action({
   args: { articleId: v.id("kb_articles") },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -281,6 +283,7 @@ export const searchRag = action({
     topK: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required for search" });

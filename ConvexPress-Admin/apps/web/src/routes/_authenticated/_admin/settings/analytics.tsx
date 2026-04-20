@@ -49,18 +49,6 @@ function AnalyticsSettingsPage() {
   // Disconnect confirmation
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
-  // Loading
-  if (connectionStatus === undefined) {
-    return (
-      <div className="mx-auto max-w-3xl p-6">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 w-48 rounded bg-muted" />
-          <div className="h-32 rounded bg-muted" />
-        </div>
-      </div>
-    );
-  }
-
   const isConnected = connectionStatus?.connected ?? false;
 
   // ─── Handle Test & Connect ───────────────────────────────────────────
@@ -150,6 +138,18 @@ function AnalyticsSettingsPage() {
     },
     [],
   );
+
+  // Loading gate AFTER all hooks so hook order stays stable across renders.
+  if (connectionStatus === undefined) {
+    return (
+      <div className="mx-auto max-w-3xl p-6">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 w-48 rounded bg-muted" />
+          <div className="h-32 rounded bg-muted" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl p-6">

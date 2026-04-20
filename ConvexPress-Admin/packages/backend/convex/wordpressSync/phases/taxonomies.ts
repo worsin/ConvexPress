@@ -7,14 +7,14 @@
  * Categories are hierarchical (have parentId), tags are flat.
  */
 
-import { internalAction, internalMutation } from "../../_generated/server";
+import { internalAction, internalMutation, type ActionCtx } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { fetchWPCategories, fetchWPTags, type WPCategory, type WPTag } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
-import type { SyncError, PhaseProgress } from "../validators";
-import { WP_BATCH_SIZE, createDefaultImportConfig, FINDING_CODES } from "../validators";
+import type { SyncError, PhaseProgress, SiteCredentials } from "../validators";
+import { WP_BATCH_SIZE, normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 import { createFinding } from "../helpers/idMapping";
 
 
@@ -30,8 +30,9 @@ export const importBatch = internalAction({
   args: {
     jobId: v.id("wordpressSyncJobs"),
     siteId: v.id("wordpressSites"),
+    credentials: siteCredentialsValidator,
   },
-  handler: async (ctx, { jobId, siteId }): Promise<PhaseResult> => {
+  handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
 
     // Get job and site
@@ -47,14 +48,8 @@ export const importBatch = internalAction({
     }
 
     // Get import config
-    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const importConfig = normalizeImportConfig(job?.importConfig);
     const isDryRun = importConfig.behavior.dryRun;
-
-    const credentials = {
-      siteUrl: site.siteUrl,
-      username: site.username,
-      applicationPassword: site.applicationPassword,
-    };
 
     // We process categories first, then tags
     const categoriesProgress = { ...job.progress.categories };
@@ -75,6 +70,16 @@ export const importBatch = internalAction({
       }
     }
 
+    if (
+      !isDryRun &&
+      categoriesProgress.total > 0 &&
+      categoriesProgress.imported + categoriesProgress.failed >= categoriesProgress.total &&
+      tagsProgress.imported === 0 &&
+      tagsProgress.failed === 0
+    ) {
+      await repairCategoryHierarchy(ctx, siteId, credentials);
+    }
+
     // Process tags
     const tagsResult = await importTags(ctx, siteId, jobId, credentials, tagsProgress, isDryRun, importConfig);
     errors.push(...tagsResult.errors);
@@ -92,10 +97,10 @@ export const importBatch = internalAction({
 // ─── Category Import ───────────────────────────────────────────────────────
 
 async function importCategories(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   siteId: Id<"wordpressSites">,
   jobId: Id<"wordpressSyncJobs">,
-  credentials: { siteUrl: string; username: string; applicationPassword: string },
+  credentials: SiteCredentials,
   progress: PhaseProgress,
   isDryRun: boolean,
   importConfig: any
@@ -105,13 +110,26 @@ async function importCategories(
   let updated = 0;
   let skipped = 0;
   const cursor = progress.cursor || 0;
+  const entityLimit =
+    typeof importConfig.filters.entityLimit === "number"
+      ? importConfig.filters.entityLimit
+      : undefined;
+  if (entityLimit !== undefined && cursor >= entityLimit) {
+    progress.total = Math.min(progress.total || entityLimit, entityLimit);
+    return { progress, errors, hasMore: false };
+  }
   const page = Math.floor(cursor / WP_BATCH_SIZE) + 1;
 
   // Fetch categories
-  const { data: categories, total } = await fetchWPCategories(credentials, page, WP_BATCH_SIZE);
+  const { data: fetchedCategories, total } = await fetchWPCategories(credentials, page, WP_BATCH_SIZE);
+  const categories =
+    entityLimit !== undefined
+      ? fetchedCategories.slice(0, Math.max(0, entityLimit - cursor))
+      : fetchedCategories;
+  const effectiveTotal = entityLimit !== undefined ? Math.min(total, entityLimit) : total;
 
-  if (progress.total === 0 && total > 0) {
-    progress.total = total;
+  if (progress.total === 0 && effectiveTotal > 0) {
+    progress.total = effectiveTotal;
   }
 
   // Sort by parent to ensure parents are created first
@@ -136,8 +154,18 @@ async function importCategories(
         internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
         { siteId, objectType: "category", wpId: wpCategory.id }
       );
+      const existingTermId = existingMapping?.convexId;
 
       if (existingMapping) {
+        if (!isDryRun) {
+          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+            siteId,
+            objectType: "category",
+            wpId: wpCategory.id,
+            jobId,
+          });
+        }
+
         if (existingMapping.sourceHash === sourceHash) {
           skipped++;
           progress.imported++;
@@ -156,17 +184,15 @@ async function importCategories(
           progress.imported++;
           continue;
         }
-
-        updated++;
-        progress.imported++;
-        continue;
       }
 
       // No existing mapping - check for slug collision
-      const existingBySlug = await ctx.runQuery(
-        internal.wordpressSync.internals.findTermBySlug,
-        { slug: wpCategory.slug, taxonomy: "category" }
-      );
+      const existingBySlug = existingMapping
+        ? null
+        : await ctx.runQuery(
+            internal.wordpressSync.internals.findTermBySlug,
+            { slug: wpCategory.slug, taxonomy: "category" }
+          );
 
       if (existingBySlug) {
         await createFinding(ctx, {
@@ -193,6 +219,7 @@ async function importCategories(
 
         // Create term
         const termId = await ctx.runMutation(internal.wordpressSync.phases.taxonomiesCreateTerm, {
+          existingId: existingTermId,
           wpTerm: {
             id: wpCategory.id,
             name: wpCategory.name,
@@ -206,17 +233,24 @@ async function importCategories(
           siteId,
         });
 
-        // Create ID mapping with sourceHash
-        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-          siteId,
-          objectType: "category",
-          wpId: wpCategory.id,
-          convexId: termId,
-          sourceHash,
-        });
+        if (!existingTermId) {
+          // Create ID mapping with sourceHash
+          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+            siteId,
+            objectType: "category",
+            wpId: wpCategory.id,
+            convexId: termId,
+            sourceHash,
+            jobId,
+          });
+        }
       }
 
-      created++;
+      if (existingTermId) {
+        updated++;
+      } else {
+        created++;
+      }
       progress.imported++;
     } catch (error) {
       errors.push({
@@ -247,10 +281,10 @@ async function importCategories(
 // ─── Tag Import ────────────────────────────────────────────────────────────
 
 async function importTags(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   siteId: Id<"wordpressSites">,
   jobId: Id<"wordpressSyncJobs">,
-  credentials: { siteUrl: string; username: string; applicationPassword: string },
+  credentials: SiteCredentials,
   progress: PhaseProgress,
   isDryRun: boolean,
   importConfig: any
@@ -260,13 +294,26 @@ async function importTags(
   let updated = 0;
   let skipped = 0;
   const cursor = progress.cursor || 0;
+  const entityLimit =
+    typeof importConfig.filters.entityLimit === "number"
+      ? importConfig.filters.entityLimit
+      : undefined;
+  if (entityLimit !== undefined && cursor >= entityLimit) {
+    progress.total = Math.min(progress.total || entityLimit, entityLimit);
+    return { progress, errors, hasMore: false };
+  }
   const page = Math.floor(cursor / WP_BATCH_SIZE) + 1;
 
   // Fetch tags
-  const { data: tags, total } = await fetchWPTags(credentials, page, WP_BATCH_SIZE);
+  const { data: fetchedTags, total } = await fetchWPTags(credentials, page, WP_BATCH_SIZE);
+  const tags =
+    entityLimit !== undefined
+      ? fetchedTags.slice(0, Math.max(0, entityLimit - cursor))
+      : fetchedTags;
+  const effectiveTotal = entityLimit !== undefined ? Math.min(total, entityLimit) : total;
 
-  if (progress.total === 0 && total > 0) {
-    progress.total = total;
+  if (progress.total === 0 && effectiveTotal > 0) {
+    progress.total = effectiveTotal;
   }
 
   for (const wpTag of tags) {
@@ -283,8 +330,18 @@ async function importTags(
         internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
         { siteId, objectType: "tag", wpId: wpTag.id }
       );
+      const existingTermId = existingMapping?.convexId;
 
       if (existingMapping) {
+        if (!isDryRun) {
+          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+            siteId,
+            objectType: "tag",
+            wpId: wpTag.id,
+            jobId,
+          });
+        }
+
         if (existingMapping.sourceHash === sourceHash) {
           skipped++;
           progress.imported++;
@@ -303,17 +360,15 @@ async function importTags(
           progress.imported++;
           continue;
         }
-
-        updated++;
-        progress.imported++;
-        continue;
       }
 
       // No existing mapping - check for slug collision
-      const existingBySlug = await ctx.runQuery(
-        internal.wordpressSync.internals.findTermBySlug,
-        { slug: wpTag.slug, taxonomy: "post_tag" }
-      );
+      const existingBySlug = existingMapping
+        ? null
+        : await ctx.runQuery(
+            internal.wordpressSync.internals.findTermBySlug,
+            { slug: wpTag.slug, taxonomy: "post_tag" }
+          );
 
       if (existingBySlug) {
         await createFinding(ctx, {
@@ -330,6 +385,7 @@ async function importTags(
       if (!isDryRun) {
         // Create term
         const termId = await ctx.runMutation(internal.wordpressSync.phases.taxonomiesCreateTerm, {
+          existingId: existingTermId,
           wpTerm: {
             id: wpTag.id,
             name: wpTag.name,
@@ -343,17 +399,24 @@ async function importTags(
           siteId,
         });
 
-        // Create ID mapping with sourceHash
-        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-          siteId,
-          objectType: "tag",
-          wpId: wpTag.id,
-          convexId: termId,
-          sourceHash,
-        });
+        if (!existingTermId) {
+          // Create ID mapping with sourceHash
+          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+            siteId,
+            objectType: "tag",
+            wpId: wpTag.id,
+            convexId: termId,
+            sourceHash,
+            jobId,
+          });
+        }
       }
 
-      created++;
+      if (existingTermId) {
+        updated++;
+      } else {
+        created++;
+      }
       progress.imported++;
     } catch (error) {
       errors.push({
@@ -381,10 +444,48 @@ async function importTags(
   };
 }
 
+async function repairCategoryHierarchy(
+  ctx: ActionCtx,
+  siteId: Id<"wordpressSites">,
+  credentials: SiteCredentials
+) {
+  let page = 1;
+
+  while (true) {
+    const { data: categories, total } = await fetchWPCategories(credentials, page, WP_BATCH_SIZE);
+
+    for (const wpCategory of categories) {
+      const termId = await ctx.runQuery(
+        internal.wordpressSync.helpers.idMapping.getByWpId,
+        { siteId, objectType: "category", wpId: wpCategory.id }
+      );
+
+      if (!termId) continue;
+
+      let parentId: string | undefined;
+      if (wpCategory.parent > 0) {
+        parentId = await ctx.runQuery(
+          internal.wordpressSync.helpers.idMapping.getByWpId,
+          { siteId, objectType: "category", wpId: wpCategory.parent }
+        ) ?? undefined;
+      }
+
+      await ctx.runMutation(internal.wordpressSync.phases.taxonomiesSetParent, {
+        termId,
+        parentId,
+      });
+    }
+
+    if (page * WP_BATCH_SIZE >= total || categories.length === 0) break;
+    page++;
+  }
+}
+
 // ─── Term Creation Mutation ────────────────────────────────────────────────
 
 export const taxonomiesCreateTerm = internalMutation({
   args: {
+    existingId: v.optional(v.string()),
     wpTerm: v.object({
       id: v.number(),
       name: v.string(),
@@ -397,8 +498,25 @@ export const taxonomiesCreateTerm = internalMutation({
     parentId: v.optional(v.string()),
     siteId: v.id("wordpressSites"),
   },
-  handler: async (ctx, { wpTerm, taxonomy, parentId, siteId }) => {
+  handler: async (ctx, { existingId, wpTerm, taxonomy, parentId, siteId }) => {
     const now = Date.now();
+
+    const fields = {
+      name: wpTerm.name,
+      slug: wpTerm.slug,
+      taxonomy,
+      parentId: parentId ? (parentId as Id<"terms">) : undefined,
+      description: wpTerm.description || undefined,
+      count: wpTerm.count,
+      wpTermId: wpTerm.id,
+      wpSourceSiteId: siteId,
+      updatedAt: now,
+    };
+
+    if (existingId) {
+      await ctx.db.patch(existingId as Id<"terms">, fields);
+      return existingId;
+    }
 
     // Check if term with same slug exists in this taxonomy
     const existing = await ctx.db
@@ -407,32 +525,30 @@ export const taxonomiesCreateTerm = internalMutation({
       .first();
 
     if (existing) {
-      // Update with WP reference if not set
-      if (!existing.wpTermId) {
-        await ctx.db.patch(existing._id, {
-          wpTermId: wpTerm.id,
-          wpSourceSiteId: siteId,
-          updatedAt: now,
-        });
-      }
+      await ctx.db.patch(existing._id, fields);
       return existing._id;
     }
 
     // Create term
     const termId = await ctx.db.insert("terms", {
-      name: wpTerm.name,
-      slug: wpTerm.slug,
-      taxonomy,
-      parentId: parentId ? (parentId as Id<"terms">) : undefined,
-      description: wpTerm.description || undefined,
-      count: wpTerm.count,
+      ...fields,
       isDefault: false,
-      wpTermId: wpTerm.id,
-      wpSourceSiteId: siteId,
       createdAt: now,
-      updatedAt: now,
     });
 
     return termId;
+  },
+});
+
+export const taxonomiesSetParent = internalMutation({
+  args: {
+    termId: v.string(),
+    parentId: v.optional(v.string()),
+  },
+  handler: async (ctx, { termId, parentId }) => {
+    await ctx.db.patch(termId as Id<"terms">, {
+      parentId: parentId ? (parentId as Id<"terms">) : undefined,
+      updatedAt: Date.now(),
+    });
   },
 });

@@ -36,6 +36,7 @@ import type { Id } from "../_generated/dataModel";
 import { requireCan , getUserIdentifier } from "../helpers/permissions";
 import { sanitizeTipTapContent } from "../helpers/sanitize";
 import { emitEvent } from "../helpers/events";
+import { setMediaAttachment, setMediaAttachmentBatch } from "../media/helpers";
 import { PAGE_EVENTS, SYSTEM } from "../events/constants";
 import {
   createPageArgs,
@@ -166,6 +167,19 @@ export const create = mutation({
     // the runtime schema. The validator in createPageArgs ensures type safety
     // at the argument level.
     const pageId = await ctx.db.insert("posts", pageData as any);
+
+    // ── Auto-attach media to this page (WP-style first-use wins) ─────────
+    await setMediaAttachment(ctx, args.featuredImageId, pageId);
+    if (args.hero?.imageId) {
+      await setMediaAttachment(ctx, args.hero.imageId, pageId);
+    }
+    if (Array.isArray(args.topics)) {
+      await setMediaAttachmentBatch(
+        ctx,
+        args.topics.map((t: any) => t?.imageId).filter(Boolean),
+        pageId,
+      );
+    }
 
     // ── Schedule auto-publish for future-dated pages ──────────────────────
     if (status === "future" && args.scheduledAt) {
@@ -447,6 +461,21 @@ export const update = mutation({
     // ── Apply patch ───────────────────────────────────────────────────────
     if (changes.length > 0 || Object.keys(patch).length > 1) {
       await ctx.db.patch("posts", args.pageId, patch);
+    }
+
+    // ── Auto-attach newly-assigned media (first-use wins) ────────────────
+    if (args.featuredImageId !== undefined && args.featuredImageId) {
+      await setMediaAttachment(ctx, args.featuredImageId, args.pageId);
+    }
+    if (args.hero?.imageId) {
+      await setMediaAttachment(ctx, args.hero.imageId, args.pageId);
+    }
+    if (Array.isArray(args.topics)) {
+      await setMediaAttachmentBatch(
+        ctx,
+        args.topics.map((t: any) => t?.imageId).filter(Boolean),
+        args.pageId,
+      );
     }
 
     // ── Recompute paths if slug changed (and parent didn't already handle it)

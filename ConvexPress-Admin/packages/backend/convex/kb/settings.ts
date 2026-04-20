@@ -25,6 +25,7 @@ import {
   KB_SEARCH_DEFAULTS,
 } from "../settings/defaults";
 import { computeChanges } from "../settings/helpers";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── getKbSettings ───────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ import { computeChanges } from "../settings/helpers";
 export const getKbSettings = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await currentUserCan(ctx, "manage_options");
     if (!user) return null;
 
@@ -136,6 +138,7 @@ export const updateKbSettings = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "manage_options");
     const now = Date.now();
     const updatedSections: string[] = [];

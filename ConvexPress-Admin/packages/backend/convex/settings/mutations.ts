@@ -29,6 +29,13 @@ import {
 } from "./defaults";
 import { computeChanges } from "./helpers";
 import { validateSectionValues } from "./validation";
+import { runBootstrapShippingTemplates } from "../shipping/bootstrap";
+import {
+  SECRET_SENTINEL,
+  encryptSettingSecret,
+  isSecretFieldName,
+  redactSettingSecrets,
+} from "../helpers/settingsSecret";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -72,6 +79,18 @@ const SECTION_CAPABILITY_MAP: Record<
   layout: "manage_options",
   header: "manage_options",
   footer: "manage_options",
+  // Commerce / integrations
+  "commerce.general": "manage_options",
+  "commerce.payments": "manage_options",
+  "integrations.shipping": "manage_options",
+  "integrations.shipping.shipstation": "manage_options",
+  "integrations.shipping.ups": "manage_options",
+  "integrations.shipping.usps": "manage_options",
+  "integrations.shipping.fedex": "manage_options",
+  "integrations.shipping.dhl": "manage_options",
+  "integrations.clerk": "manage_options",
+  "integrations.google": "manage_options",
+  "analytics.ga4": "manage_options",
 };
 
 // ─── updateSection ───────────────────────────────────────────────────────────
@@ -138,8 +157,27 @@ export const updateSection = mutation({
       ? { ...defaults, ...(existingDoc.values as Record<string, unknown>) }
       : { ...defaults };
 
-    // 7. Compute diff
-    const changes = computeChanges(oldValues, newValues);
+    // Secret-field handling:
+    //   - If UI sent SECRET_SENTINEL for a secret field, user didn't change
+    //     it — keep the existing stored (encrypted) value.
+    //   - If UI sent a new plaintext value, encrypt it before writing.
+    //   - Empty string means clear (user explicitly removed the key).
+    for (const [k, v] of Object.entries(newValues)) {
+      if (!isSecretFieldName(k)) continue;
+      if (v === SECRET_SENTINEL) {
+        // Keep whatever was already stored.
+        newValues[k] = (existingDoc?.values as any)?.[k] ?? "";
+      } else if (typeof v === "string" && v.length > 0) {
+        newValues[k] = await encryptSettingSecret(v);
+      }
+    }
+
+    // 7. Compute diff — use redacted view so the event payload never
+    // carries plaintext secrets.
+    const changes = computeChanges(
+      redactSettingSecrets(oldValues) as any,
+      redactSettingSecrets(newValues) as any,
+    );
 
     // 8. Skip if no changes detected
     if (changes.length === 0) {
@@ -163,7 +201,15 @@ export const updateSection = mutation({
       });
     }
 
-    // 10. Emit event
+    // 10. Side-effect hooks by section.
+    // Any time integrations.shipping is saved, ensure the 5 shipping email
+    // templates exist. Idempotent — runs a presence check per slug before
+    // inserting, so repeated saves are free.
+    if (section === "integrations.shipping") {
+      await runBootstrapShippingTemplates(ctx, now);
+    }
+
+    // 11. Emit event
     // Permalinks section emits settings.permalinks_changed (distinct event)
     // so the Routing System, Sitemap System, etc. can listen specifically.
     // All other sections emit settings.updated.

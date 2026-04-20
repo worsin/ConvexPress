@@ -73,7 +73,15 @@ function KBCollectionsPage() {
 
 function KBCollectionsContent() {
   const collectionsResult = useQuery(api.kb.collections.list);
-  const collections = collectionsResult ?? [];
+  const collections = (collectionsResult ?? []) as Array<{
+    _id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    type: CollectionType;
+    articleCount?: number;
+    isPublic: boolean;
+  }>;
   const createCollection = useMutation(api.kb.collections.create);
   const updateCollection = useMutation(api.kb.collections.update);
   const removeCollection = useMutation(api.kb.collections.remove);
@@ -257,7 +265,7 @@ function KBCollectionsContent() {
             ) : (
               collections.map((col) => (
                 <tr key={col._id} className="hover:bg-muted/30 transition-colors">
-                  {editing?.id === col._id ? (
+                  {editing && editing.id === col._id ? (
                     <>
                       <td className="px-4 py-2" colSpan={4}>
                         <div className="flex items-center gap-2 flex-wrap">

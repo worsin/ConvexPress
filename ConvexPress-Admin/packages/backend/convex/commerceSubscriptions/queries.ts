@@ -28,6 +28,11 @@ import {
   commerceSubscriptionStatusValidator,
   commerceSubscriptionInvoiceStatusValidator,
 } from "../schema/commerceSubscriptions";
+import { isPluginEnabled } from "../helpers/plugins";
+import {
+  buildSubscriptionPricingSnapshot,
+  hasExplicitSubscriptionEnablement,
+} from "./pricing";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER: Resolve effective subscription config for a product
@@ -48,21 +53,18 @@ async function getProductOverride(ctx: any, productId: any) {
     .first();
 }
 
-async function resolveEffectiveConfig(ctx: any, product: any, explicitTemplateId?: any) {
+async function resolveEffectiveConfig(
+  ctx: any,
+  product: any,
+  explicitTemplateId?: any,
+  variant?: any,
+) {
   const override = await getProductOverride(ctx, product._id);
   const configuredTemplateId = explicitTemplateId ?? override?.templateId ?? undefined;
 
   let template: any = null;
   if (configuredTemplateId) {
     template = await ctx.db.get(configuredTemplateId);
-  }
-  if (!template) {
-    // Try to find an active template as default
-    const templates = await ctx.db
-      .query("commerce_subscription_templates")
-      .withIndex("by_status", (q: any) => q.eq("status", "active"))
-      .first();
-    template = templates;
   }
 
   const billingInterval: BillingInterval =
@@ -74,15 +76,20 @@ async function resolveEffectiveConfig(ctx: any, product: any, explicitTemplateId
   const pausable = override?.overridePausable ?? template?.pausable ?? true;
   const cancelAtPeriodEndDefault = template?.cancelAtPeriodEndDefault ?? true;
 
-  const unitPrice = override?.overridePriceAmount ?? product.basePrice ?? 0;
+  const pricing = buildSubscriptionPricingSnapshot({
+    product,
+    variant,
+    override,
+    quantity: 1,
+  });
 
   return {
-    isSubscriptionEnabled: override?.isSubscriptionEnabled ?? Boolean(template),
+    isSubscriptionEnabled: hasExplicitSubscriptionEnablement(override),
     allowOneTimePurchase: override?.allowOneTimePurchase ?? true,
     templateId: template?._id,
     templateVersion: template?.version,
-    unitPrice,
-    currencyCode: override?.overrideCurrencyCode ?? product.currencyCode ?? "USD",
+    unitPrice: pricing.unitAmount,
+    currencyCode: pricing.currencyCode,
     billingInterval,
     billingIntervalCount,
     trialDays,
@@ -107,6 +114,7 @@ export const listTemplates = query({
     ),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -129,6 +137,7 @@ export const getTemplate = query({
     templateId: v.id("commerce_subscription_templates"),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
     return ctx.db.get(args.templateId);
   },
@@ -141,20 +150,37 @@ export const getTemplate = query({
 export const resolveProductConfig = query({
   args: {
     productId: v.id("commerce_products"),
+    variantId: v.optional(v.id("commerce_product_variants")),
     templateId: v.optional(v.id("commerce_subscription_templates")),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
 
     const product = await ctx.db.get(args.productId);
     if (!product) throw new Error("Product not found");
 
+    let variant: any = null;
+    if (args.variantId) {
+      variant = await ctx.db.get(args.variantId);
+      if (!variant || variant.productId !== product._id) {
+        throw new Error("Variant not found for product");
+      }
+    }
+
     const override = await getProductOverride(ctx, product._id);
-    const config = await resolveEffectiveConfig(ctx, product, args.templateId);
+    const config = await resolveEffectiveConfig(
+      ctx,
+      product,
+      args.templateId,
+      variant,
+    );
 
     return {
       productId: product._id,
+      variantId: variant?._id,
       productTitle: product.title ?? product.name,
+      variantTitle: variant?.title,
       templateId: config.templateId,
       templateVersion: config.templateVersion,
       config,
@@ -175,6 +201,7 @@ export const listMySubscriptions = query({
     status: v.optional(commerceSubscriptionStatusValidator),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
     const user = await getCurrentUser(ctx);
     if (!user) return [];
@@ -190,7 +217,9 @@ export const listMySubscriptions = query({
 
     return Promise.all(
       subscriptions.map(async (subscription: any) => {
-        const product = await ctx.db.get(subscription.productId);
+        const product = subscription.productId
+          ? await ctx.db.get(subscription.productId)
+          : null;
         const entitlements = await ctx.db
           .query("commerce_subscription_entitlements")
           .withIndex("by_subscription", (q: any) =>
@@ -225,6 +254,7 @@ export const list = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -263,7 +293,9 @@ export const list = query({
         const customer = subscription.customerId
           ? await ctx.db.get(subscription.customerId)
           : null;
-        const product = await ctx.db.get(subscription.productId);
+        const product = subscription.productId
+          ? await ctx.db.get(subscription.productId)
+          : null;
         return {
           ...subscription,
           customer: customer
@@ -296,6 +328,7 @@ export const getById = query({
     subscriptionId: v.id("commerce_subscriptions"),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
 
     const subscription = await ctx.db.get(args.subscriptionId);
@@ -345,7 +378,9 @@ export const getById = query({
       )
       .collect();
 
-    const product = await ctx.db.get(subscription.productId);
+    const product = subscription.productId
+      ? await ctx.db.get(subscription.productId)
+      : null;
     const template = subscription.templateId
       ? await ctx.db.get(subscription.templateId)
       : null;
@@ -372,6 +407,7 @@ export const getById = query({
 export const getMetrics = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return { total: 0, active: 0, paused: 0, pastDue: 0, cancelled: 0, mrr: 0, arr: 0, startedLast30: 0, cancelledLast30: 0, churnRate30d: 0 };
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -439,6 +475,7 @@ export const listInvoices = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
     await requireCommerceSubscriptionsEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -493,6 +530,7 @@ export const getInvoice = query({
     invoiceId: v.id("commerce_subscription_invoices"),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     await requireCommerceSubscriptionsEnabled(ctx);
 
     const invoice = await ctx.db.get(args.invoiceId);
@@ -545,11 +583,27 @@ export const listEntitlements = query({
     ),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
     await requireCommerceSubscriptionsEnabled(ctx);
+
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    let isAdmin = false;
+    try {
+      await requireCan(ctx, "manage_options");
+      isAdmin = true;
+    } catch {
+      // Non-admin users may only read their own entitlement data.
+    }
 
     let entitlements: any[] = [];
 
     if (args.subscriptionId) {
+      const subscription = await ctx.db.get(args.subscriptionId);
+      if (!subscription) return [];
+      if (!isAdmin && subscription.userId !== user._id) return [];
+
       entitlements = await ctx.db
         .query("commerce_subscription_entitlements")
         .withIndex("by_subscription", (q: any) =>
@@ -557,6 +611,7 @@ export const listEntitlements = query({
         )
         .collect();
     } else if (args.userId && args.status) {
+      if (!isAdmin && args.userId !== user._id) return [];
       entitlements = await ctx.db
         .query("commerce_subscription_entitlements")
         .withIndex("by_user_status", (q: any) =>
@@ -564,6 +619,7 @@ export const listEntitlements = query({
         )
         .collect();
     } else if (args.userId) {
+      if (!isAdmin && args.userId !== user._id) return [];
       // Collect all statuses for user
       const statuses = ["active", "grace", "revoked", "expired"] as const;
       for (const s of statuses) {
@@ -576,9 +632,22 @@ export const listEntitlements = query({
         entitlements.push(...batch);
       }
     } else {
-      entitlements = await ctx.db
-        .query("commerce_subscription_entitlements")
-        .collect();
+      if (isAdmin) {
+        entitlements = await ctx.db
+          .query("commerce_subscription_entitlements")
+          .collect();
+      } else {
+        const statuses = ["active", "grace", "revoked", "expired"] as const;
+        for (const s of statuses) {
+          const batch = await ctx.db
+            .query("commerce_subscription_entitlements")
+            .withIndex("by_user_status", (q: any) =>
+              q.eq("userId", user._id).eq("status", s),
+            )
+            .collect();
+          entitlements.push(...batch);
+        }
+      }
     }
 
     if (args.status && !args.userId) {
@@ -599,7 +668,27 @@ export const checkEntitlement = query({
     entitlementCode: v.string(),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) {
+      return { hasEntitlement: false, entitlement: null };
+    }
     await requireCommerceSubscriptionsEnabled(ctx);
+
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      return { hasEntitlement: false, entitlement: null };
+    }
+
+    let isAdmin = false;
+    try {
+      await requireCan(ctx, "manage_options");
+      isAdmin = true;
+    } catch {
+      // Non-admin users may only check their own entitlement state.
+    }
+
+    if (!isAdmin && args.userId !== user._id) {
+      return { hasEntitlement: false, entitlement: null };
+    }
 
     const activeEntitlements = await ctx.db
       .query("commerce_subscription_entitlements")

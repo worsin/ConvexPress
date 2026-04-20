@@ -22,12 +22,14 @@ import {
   getSearchAnalyticsArgs,
   PAGE_VIEW_DEDUP_WINDOW_MS,
 } from "./validators";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Track Page View ────────────────────────────────────────────────────────
 
 export const trackPageView = mutation({
   args: trackPageViewArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     // Validate sessionId
     if (!args.sessionId || args.sessionId.length > 128) {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Invalid session ID" });
@@ -85,6 +87,7 @@ export const trackPageView = mutation({
 export const updateDuration = mutation({
   args: updateDurationArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     // Validate duration range
     if (args.duration < 0 || args.duration > 3600) {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Duration must be between 0 and 3600 seconds" });
@@ -104,6 +107,7 @@ export const updateDuration = mutation({
 export const trackSearch = mutation({
   args: trackSearchArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     // Validate query
     if (!args.query || args.query.trim().length === 0 || args.query.length > 500) {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Query must be non-empty and at most 500 characters" });
@@ -133,6 +137,7 @@ export const trackSearch = mutation({
 export const getDashboardStats = query({
   args: getDashboardStatsArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await requireCan(ctx, "kb.viewAnalytics");
 
     const now = Date.now();
@@ -199,6 +204,7 @@ export const getDashboardStats = query({
 export const getArticleStats = query({
   args: getArticleAnalyticsArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await requireCan(ctx, "kb.viewAnalytics");
 
     const views = await ctx.db
@@ -238,6 +244,7 @@ export const getArticleStats = query({
 export const getSearchAnalytics = query({
   args: getSearchAnalyticsArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await requireCan(ctx, "kb.viewAnalytics");
 
     const now = Date.now();

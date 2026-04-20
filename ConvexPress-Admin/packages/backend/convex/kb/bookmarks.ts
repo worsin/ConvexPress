@@ -11,12 +11,14 @@ import { ConvexError } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
 import { toggleBookmarkArgs, isBookmarkedArgs } from "./validators";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── List ───────────────────────────────────────────────────────────────────
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return [];
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -55,6 +57,7 @@ export const list = query({
 export const isBookmarked = query({
   args: isBookmarkedArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) return false;
 
@@ -74,6 +77,7 @@ export const isBookmarked = query({
 export const toggle = mutation({
   args: toggleBookmarkArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });

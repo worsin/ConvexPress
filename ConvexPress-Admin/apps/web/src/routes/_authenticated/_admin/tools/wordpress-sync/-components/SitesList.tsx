@@ -74,7 +74,6 @@ function SiteCard({ site }: { site: Site }) {
   const testConnection = useAction(
     api.wordpressSync.actions.testSiteConnection,
   );
-  const startSync = useAction(api.wordpressSync.actions.startSync);
   const deleteSite = useMutation(api.wordpressSync.mutations.deleteSite);
 
   const handleTestConnection = async () => {
@@ -90,15 +89,6 @@ function SiteCard({ site }: { site: Site }) {
       toast.error("Failed to test connection");
     } finally {
       setIsTestingConnection(false);
-    }
-  };
-
-  const handleStartSync = async () => {
-    try {
-      await startSync({ siteId: site._id });
-      toast.success("Import started");
-    } catch (error) {
-      toast.error("Failed to start import");
     }
   };
 
@@ -235,16 +225,21 @@ function SiteCard({ site }: { site: Site }) {
                 </Button>
               </Link>
             ) : (
-              <Button
-                variant="default"
-                size="sm"
+              <Link
+                to="/tools/website-import/$siteId"
+                params={{ siteId: site._id }}
                 className="flex-1"
-                onClick={handleStartSync}
-                disabled={site.status === "error"}
               >
-                <PlayIcon className="mr-2 h-3 w-3" />
-                Start Import
-              </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full"
+                  disabled={site.status === "error"}
+                >
+                  <PlayIcon className="mr-2 h-3 w-3" />
+                  Configure Import
+                </Button>
+              </Link>
             )}
             <Button
               variant="outline"

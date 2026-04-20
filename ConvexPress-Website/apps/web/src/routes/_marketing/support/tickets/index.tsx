@@ -30,6 +30,16 @@ const STATUS_LABELS: Record<string, string> = {
   closed: "Closed",
 };
 
+type TicketListItem = {
+  _id: string;
+  ticketNumber: string;
+  subject: string;
+  status: string;
+  messageCount: number;
+  createdAt: number;
+  lastMessageAt?: number;
+};
+
 function MyTicketsPage() {
   const { isSignedIn, isLoaded } = useAuth();
   const search = Route.useSearch();
@@ -50,7 +60,7 @@ function MyTicketsPage() {
           page: search.page,
         }
       : "skip",
-  );
+  ) as { tickets: TicketListItem[] } | null | undefined;
 
   if (!isSignedIn) {
     return (

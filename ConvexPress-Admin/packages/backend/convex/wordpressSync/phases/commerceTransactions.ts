@@ -12,7 +12,7 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { PhaseResult } from "../internals";
 import type { PhaseProgress, SyncError } from "../validators";
-import { createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 import { createFinding } from "../helpers/idMapping";
 
 
@@ -38,22 +38,36 @@ import {
 
 const TRANSACTION_BATCH_SIZE = 25;
 
+function getOrderDateWindow(importConfig: any, site: any, job: any) {
+  const afterMs =
+    typeof importConfig.filters?.dateRangeStart === "number"
+      ? importConfig.filters.dateRangeStart
+      : importConfig.behavior.importHistoricalOrders
+        ? undefined
+        : site.lastSyncAt ?? job.createdAt ?? Date.now();
+  const beforeMs =
+    typeof importConfig.filters?.dateRangeEnd === "number"
+      ? importConfig.filters.dateRangeEnd
+      : undefined;
+
+  return {
+    after: typeof afterMs === "number" ? new Date(afterMs).toISOString() : undefined,
+    before: typeof beforeMs === "number" ? new Date(beforeMs).toISOString() : undefined,
+  };
+}
+
 export const importBatch = internalAction({
   args: {
     jobId: v.id("wordpressSyncJobs"),
     siteId: v.id("wordpressSites"),
-    credentials: v.object({
-      siteUrl: v.string(),
-      username: v.string(),
-      applicationPassword: v.string(),
-    }),
+    credentials: siteCredentialsValidator,
   },
   handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
 
     // Get import config
-    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const importConfig = normalizeImportConfig(job?.importConfig);
     const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
@@ -79,17 +93,38 @@ export const importBatch = internalAction({
       };
     }
 
+    const orderDateWindow = getOrderDateWindow(importConfig, site, job);
     const [customerCountResult, orderCountResult, couponCountResult, reviewCountResult] = await Promise.all([
       fetchWooCustomers(credentials, 1, 1).catch(() => ({ total: 0 })),
-      fetchWooOrders(credentials, 1, 1).catch(() => ({ total: 0 })),
+      fetchWooOrders(credentials, 1, 1, orderDateWindow).catch(() => ({ total: 0 })),
       fetchWooCoupons(credentials, 1, 1).catch(() => ({ total: 0 })),
       fetchWooProductReviews(credentials, 1, 1).catch(() => ({ total: 0 })),
     ]);
 
-    const customerTotal = customerCountResult.total ?? 0;
-    const orderTotal = orderCountResult.total ?? 0;
-    const couponTotal = couponCountResult.total ?? 0;
-    const reviewTotal = reviewCountResult.total ?? 0;
+    const entityLimit =
+      typeof importConfig.filters.entityLimit === "number"
+        ? importConfig.filters.entityLimit
+        : undefined;
+    const customerTotal = importConfig.scope.wooCustomers
+      ? entityLimit !== undefined
+        ? Math.min(customerCountResult.total ?? 0, entityLimit)
+        : (customerCountResult.total ?? 0)
+      : 0;
+    const orderTotal = importConfig.scope.wooOrders
+      ? entityLimit !== undefined
+        ? Math.min(orderCountResult.total ?? 0, entityLimit)
+        : (orderCountResult.total ?? 0)
+      : 0;
+    const couponTotal = importConfig.scope.wooCoupons && importConfig.behavior.importCoupons
+      ? entityLimit !== undefined
+        ? Math.min(couponCountResult.total ?? 0, entityLimit)
+        : (couponCountResult.total ?? 0)
+      : 0;
+    const reviewTotal = importConfig.scope.wooReviews && importConfig.behavior.importReviews
+      ? entityLimit !== undefined
+        ? Math.min(reviewCountResult.total ?? 0, entityLimit)
+        : (reviewCountResult.total ?? 0)
+      : 0;
     if (progress.total < customerTotal + orderTotal + couponTotal + reviewTotal) {
       progress.total = customerTotal + orderTotal + couponTotal + reviewTotal;
     }
@@ -103,6 +138,8 @@ export const importBatch = internalAction({
         progress,
         customerTotal,
         isDryRun,
+        importConfig,
+        orderDateWindow,
       });
     }
 
@@ -115,6 +152,8 @@ export const importBatch = internalAction({
         orderTotal,
         customerTotal,
         isDryRun,
+        importConfig,
+        orderDateWindow,
       });
     }
 
@@ -128,11 +167,13 @@ export const importBatch = internalAction({
         orderTotal,
         couponTotal,
         isDryRun,
+        importConfig,
       });
     }
 
     return await importReviewBatch(ctx, {
       siteId,
+      jobId,
       credentials,
       progress,
       customerTotal,
@@ -140,6 +181,7 @@ export const importBatch = internalAction({
       couponTotal,
       reviewTotal,
       isDryRun,
+      importConfig,
     });
   },
 });
@@ -153,6 +195,8 @@ async function importCustomerBatch(
     progress: PhaseProgress;
     customerTotal: number;
     isDryRun: boolean;
+    importConfig: any;
+    orderDateWindow: { after?: string; before?: string };
   }
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
@@ -161,24 +205,58 @@ async function importCustomerBatch(
   let skipped = 0;
   const cursor = args.progress.cursor || 0;
   const page = Math.floor(cursor / TRANSACTION_BATCH_SIZE) + 1;
-  const { data: customers } = await fetchWooCustomers(
+  const { data: fetchedCustomers } = await fetchWooCustomers(
     args.credentials,
     page,
     TRANSACTION_BATCH_SIZE
   );
+  const customers = fetchedCustomers.slice(
+    0,
+    Math.max(0, args.customerTotal - cursor),
+  );
 
   for (const customer of customers) {
     try {
+      const sourceHash = computeSourceHashCT({
+        email: customer.email,
+        first_name: customer.first_name,
+        last_name: customer.last_name,
+        billing: customer.billing,
+        shipping: customer.shipping,
+      });
+      const existingMapping = await ctx.runQuery(
+        internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
+        { siteId: args.siteId, objectType: "commerceCustomer", wpId: customer.id }
+      );
+
+      if (existingMapping && !args.isDryRun) {
+        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+          siteId: args.siteId,
+          objectType: "commerceCustomer",
+          wpId: customer.id,
+          jobId: args.jobId,
+        });
+      }
+
+      if (existingMapping?.sourceHash === sourceHash && !args.importConfig.behavior.importRefunds) {
+        skipped++;
+        args.progress.imported++;
+        continue;
+      }
+
+      if (existingMapping && !args.importConfig.behavior.updateExisting) {
+        skipped++;
+        args.progress.imported++;
+        continue;
+      }
+
       // Email collision detection for customers
       const customerEmail = customer.email?.trim().toLowerCase();
+      let existingByEmail: any = null;
       if (customerEmail && args.jobId) {
-        const existingByEmail = await ctx.runQuery(
+        existingByEmail = await ctx.runQuery(
           internal.wordpressSync.internals.findCustomerByEmail,
           { email: customerEmail }
-        );
-        const existingMapping = await ctx.runQuery(
-          internal.wordpressSync.helpers.idMapping.getByWpId,
-          { siteId: args.siteId, objectType: "commerceCustomer", wpId: customer.id }
         );
         if (existingByEmail && !existingMapping) {
           await createFinding(ctx, {
@@ -190,16 +268,21 @@ async function importCustomerBatch(
             destinationTable: "commerce_customer_profiles", wpId: customer.id,
             convexId: existingByEmail._id,
           });
-          // The upsertCustomerProfile mutation handles merging
+          if (!args.importConfig.behavior.updateExisting) {
+            skipped++;
+            args.progress.imported++;
+            continue;
+          }
         }
       }
 
       if (!args.isDryRun) {
-        const customerId = await importCustomerProfile(ctx, args.siteId, customer);
+        const customerId = await importCustomerProfile(ctx, args.siteId, customer, sourceHash, args.jobId);
         await importCustomerDefaultAddress(ctx, customerId, "billing", customer.billing);
         await importCustomerDefaultAddress(ctx, customerId, "shipping", customer.shipping);
       }
-      created++;
+      if (existingMapping || existingByEmail) updated++;
+      else created++;
       args.progress.imported++;
     } catch (error) {
       errors.push({
@@ -237,6 +320,8 @@ async function importOrderBatch(
     orderTotal: number;
     customerTotal: number;
     isDryRun: boolean;
+    importConfig: any;
+    orderDateWindow: { after?: string; before?: string };
   }
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
@@ -246,20 +331,49 @@ async function importOrderBatch(
   const cursor = args.progress.cursor || 0;
   const orderCursor = Math.max(0, cursor - args.customerTotal);
   const page = Math.floor(orderCursor / TRANSACTION_BATCH_SIZE) + 1;
-  const { data: orders } = await fetchWooOrders(
+  const { data: fetchedOrders } = await fetchWooOrders(
     args.credentials,
     page,
-    TRANSACTION_BATCH_SIZE
+    TRANSACTION_BATCH_SIZE,
+    args.orderDateWindow
+  );
+  const orders = fetchedOrders.slice(
+    0,
+    Math.max(0, args.orderTotal - orderCursor),
   );
 
   for (const order of orders) {
     try {
+      const sourceHash = computeOrderSourceHash(order);
       // Order number collision detection
       const orderNumber = buildImportedOrderNumber(args.siteId, order);
       const existingMapping = await ctx.runQuery(
-        internal.wordpressSync.helpers.idMapping.getByWpId,
+        internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
         { siteId: args.siteId, objectType: "commerceOrder", wpId: order.id }
       );
+
+      if (existingMapping && !args.isDryRun) {
+        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+          siteId: args.siteId,
+          objectType: "commerceOrder",
+          wpId: order.id,
+          jobId: args.jobId,
+        });
+      }
+
+      if (existingMapping?.sourceHash === sourceHash) {
+        skipped++;
+        args.progress.imported++;
+        continue;
+      }
+
+      if (existingMapping && !args.importConfig.behavior.updateExisting) {
+        skipped++;
+        args.progress.imported++;
+        continue;
+      }
+
+      let forcedExistingId: string | undefined;
       if (!existingMapping) {
         const existingByNumber = await ctx.runQuery(
           internal.wordpressSync.internals.findOrderByNumber,
@@ -275,14 +389,26 @@ async function importOrderBatch(
             destinationTable: "commerce_orders", wpId: order.id,
             convexId: existingByNumber._id,
           });
-          // The upsertOrder mutation handles merging
+          if (args.importConfig.behavior.updateExisting) {
+            forcedExistingId = existingByNumber._id;
+          } else {
+            skipped++;
+            args.progress.imported++;
+            continue;
+          }
         }
       }
 
       if (!args.isDryRun) {
-        await importSingleOrder(ctx, args.siteId, args.credentials, order);
+        await importSingleOrder(ctx, args.siteId, args.credentials, order, {
+          existingId: forcedExistingId ?? existingMapping?.convexId,
+          sourceHash,
+          importRefunds: args.importConfig.behavior.importRefunds,
+          jobId: args.jobId,
+        });
       }
-      created++;
+      if (existingMapping || forcedExistingId) updated++;
+      else created++;
       args.progress.imported++;
     } catch (error) {
       errors.push({
@@ -321,6 +447,7 @@ async function importCouponBatch(
     orderTotal: number;
     couponTotal: number;
     isDryRun: boolean;
+    importConfig: any;
   }
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
@@ -330,21 +457,56 @@ async function importCouponBatch(
   const cursor = args.progress.cursor || 0;
   const couponCursor = Math.max(0, cursor - args.customerTotal - args.orderTotal);
   const page = Math.floor(couponCursor / TRANSACTION_BATCH_SIZE) + 1;
-  const { data: coupons } = await fetchWooCoupons(
+  const { data: fetchedCoupons } = await fetchWooCoupons(
     args.credentials,
     page,
     TRANSACTION_BATCH_SIZE
   );
+  const coupons = fetchedCoupons.slice(
+    0,
+    Math.max(0, args.couponTotal - couponCursor),
+  );
 
   for (const coupon of coupons) {
     try {
-      const existingId = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
+      const sourceHash = computeSourceHashCT({
+        code: coupon.code,
+        amount: coupon.amount,
+        discount_type: coupon.discount_type,
+        description: coupon.description,
+        date_expires: coupon.date_expires,
+        usage_limit: coupon.usage_limit,
+        usage_count: coupon.usage_count,
+        product_ids: coupon.product_ids,
+        excluded_product_ids: coupon.excluded_product_ids,
+        product_categories: coupon.product_categories,
+        excluded_product_categories: coupon.excluded_product_categories,
+        email_restrictions: coupon.email_restrictions,
+        meta_data: coupon.meta_data,
+      });
+      const existingMapping = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getFullMappingByWpId, {
         siteId: args.siteId,
         objectType: "commerceDiscount",
         wpId: coupon.id,
       });
+      const existingId = existingMapping?.convexId;
 
-      if (existingId) {
+      if (existingMapping && !args.isDryRun) {
+        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+          siteId: args.siteId,
+          objectType: "commerceDiscount",
+          wpId: coupon.id,
+          jobId: args.jobId,
+        });
+      }
+
+      if (existingMapping?.sourceHash === sourceHash) {
+        skipped++;
+        args.progress.imported++;
+        continue;
+      }
+
+      if (existingMapping && !args.importConfig.behavior.updateExisting) {
         skipped++;
         args.progress.imported++;
         continue;
@@ -366,7 +528,11 @@ async function importCouponBatch(
           destinationTable: "commerce_discount_codes", wpId: coupon.id,
           convexId: existingByCode._id,
         });
-        // The upsertDiscountCode mutation handles merging
+        if (!existingMapping && !args.importConfig.behavior.updateExisting) {
+          skipped++;
+          args.progress.imported++;
+          continue;
+        }
       }
 
       if (!args.isDryRun) {
@@ -418,10 +584,13 @@ async function importCouponBatch(
           objectType: "commerceDiscount",
           wpId: coupon.id,
           convexId: discountId,
+          sourceHash,
+          jobId: args.jobId,
         });
       }
 
-      created++;
+      if (existingId) updated++;
+      else created++;
       args.progress.imported++;
     } catch (error) {
       errors.push({
@@ -453,6 +622,7 @@ async function importReviewBatch(
   ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
   args: {
     siteId: Id<"wordpressSites">;
+    jobId: Id<"wordpressSyncJobs">;
     credentials: { siteUrl: string; username: string; applicationPassword: string };
     progress: PhaseProgress;
     customerTotal: number;
@@ -460,6 +630,7 @@ async function importReviewBatch(
     couponTotal: number;
     reviewTotal: number;
     isDryRun: boolean;
+    importConfig: any;
   }
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
@@ -472,21 +643,51 @@ async function importReviewBatch(
     cursor - args.customerTotal - args.orderTotal - args.couponTotal
   );
   const page = Math.floor(reviewCursor / TRANSACTION_BATCH_SIZE) + 1;
-  const { data: reviews } = await fetchWooProductReviews(
+  const { data: fetchedReviews } = await fetchWooProductReviews(
     args.credentials,
     page,
     TRANSACTION_BATCH_SIZE
   );
+  const reviews = fetchedReviews.slice(
+    0,
+    Math.max(0, args.reviewTotal - reviewCursor),
+  );
 
   for (const review of reviews) {
     try {
-      const existingId = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
+      const sourceHash = computeSourceHashCT({
+        product_id: review.product_id,
+        reviewer: review.reviewer,
+        reviewer_email: review.reviewer_email,
+        review: review.review,
+        rating: review.rating,
+        verified: review.verified,
+        status: review.status,
+        date_created: review.date_created,
+      });
+      const existingMapping = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getFullMappingByWpId, {
         siteId: args.siteId,
         objectType: "commerceReview",
         wpId: review.id,
       });
+      const existingId = existingMapping?.convexId;
 
-      if (existingId) {
+      if (existingMapping && !args.isDryRun) {
+        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+          siteId: args.siteId,
+          objectType: "commerceReview",
+          wpId: review.id,
+          jobId: args.jobId,
+        });
+      }
+
+      if (existingMapping?.sourceHash === sourceHash) {
+        skipped++;
+        args.progress.imported++;
+        continue;
+      }
+
+      if (existingMapping && !args.importConfig.behavior.updateExisting) {
         skipped++;
         args.progress.imported++;
         continue;
@@ -536,10 +737,13 @@ async function importReviewBatch(
           objectType: "commerceReview",
           wpId: review.id,
           convexId: reviewId,
+          sourceHash,
+          jobId: args.jobId,
         });
       }
 
-      created++;
+      if (existingId) updated++;
+      else created++;
       args.progress.imported++;
     } catch (error) {
       errors.push({
@@ -572,6 +776,8 @@ async function importCustomerProfile(
   ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
   siteId: Id<"wordpressSites">,
   customer: WooCustomer,
+  sourceHash?: string,
+  jobId?: Id<"wordpressSyncJobs">,
 ): Promise<Id<"commerce_customer_profiles">> {
   const existingMapping = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
     siteId,
@@ -611,6 +817,8 @@ async function importCustomerProfile(
     objectType: "commerceCustomer",
     wpId: customer.id,
     convexId: customerId,
+    sourceHash,
+    jobId,
   });
 
   return customerId as Id<"commerce_customer_profiles">;
@@ -621,17 +829,14 @@ async function importSingleOrder(
   siteId: Id<"wordpressSites">,
   credentials: { siteUrl: string; username: string; applicationPassword: string },
   order: WooOrder,
+  options: {
+    existingId?: string;
+    sourceHash: string;
+    importRefunds: boolean;
+    jobId: Id<"wordpressSyncJobs">;
+  },
 ): Promise<void> {
-  const existingMapping = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
-    siteId,
-    objectType: "commerceOrder",
-    wpId: order.id,
-  });
-
-  const customerId =
-    order.customer_id && order.customer_id > 0
-      ? await ensureOrderCustomer(ctx, siteId, order)
-      : undefined;
+  const customerId = await ensureOrderCustomer(ctx, siteId, order, options.jobId);
 
   const linkedUserId =
     order.customer_id && order.customer_id > 0
@@ -646,7 +851,7 @@ async function importSingleOrder(
   const orderId = await ctx.runMutation(
     internal.wordpressSync.phases.commerceTransactions.upsertOrder,
     {
-      existingId: existingMapping ?? undefined,
+      existingId: options.existingId,
       order: {
         orderNumber: buildImportedOrderNumber(siteId, order),
         trackingToken: buildTrackingToken(siteId, order),
@@ -654,7 +859,7 @@ async function importSingleOrder(
         userId: linkedUserId ?? undefined,
         status: normalizedStatus.status,
         currencyCode: (order.currency || "USD").toUpperCase(),
-        email: normalizeEmail(order.billing?.email, undefined),
+        email: normalizeOrderEmail(siteId, order),
         billingAddress: normalizeAddress(order.billing),
         shippingAddress: hasMeaningfulAddress(order.shipping)
           ? normalizeAddress(order.shipping)
@@ -684,13 +889,16 @@ async function importSingleOrder(
     objectType: "commerceOrder",
     wpId: order.id,
     convexId: orderId,
+    sourceHash: options.sourceHash,
+    jobId: options.jobId,
   });
 
   const transactionId = await importOrderPaymentTransaction(
     ctx,
     siteId,
     order,
-    orderId as Id<"commerce_orders">
+    orderId as Id<"commerce_orders">,
+    options.jobId
   );
 
   for (const lineItem of order.line_items ?? []) {
@@ -750,17 +958,21 @@ async function importSingleOrder(
       objectType: "commerceOrderItem",
       wpId: lineItem.id,
       convexId: orderItemId,
+      jobId: options.jobId,
     });
   }
 
-  await importOrderRefunds(
-    ctx,
-    siteId,
-    credentials,
-    order,
-    orderId as Id<"commerce_orders">,
-    transactionId
-  );
+  if (options.importRefunds) {
+    await importOrderRefunds(
+      ctx,
+      siteId,
+      credentials,
+      order,
+      orderId as Id<"commerce_orders">,
+      transactionId,
+      options.jobId
+    );
+  }
 
   if (customerId) {
     await ctx.runMutation(
@@ -777,6 +989,7 @@ async function importOrderPaymentTransaction(
   siteId: Id<"wordpressSites">,
   order: WooOrder,
   orderId: Id<"commerce_orders">,
+  jobId?: Id<"wordpressSyncJobs">,
 ): Promise<Id<"commerce_payment_transactions"> | undefined> {
   const status = mapWooPaymentTransactionStatus(order.status);
   if (!status) return undefined;
@@ -822,6 +1035,7 @@ async function importOrderPaymentTransaction(
     objectType: "commercePaymentTransaction",
     wpId: order.id,
     convexId: transactionId,
+    jobId,
   });
 
   return transactionId as Id<"commerce_payment_transactions">;
@@ -834,6 +1048,7 @@ async function importOrderRefunds(
   order: WooOrder,
   orderId: Id<"commerce_orders">,
   transactionId: Id<"commerce_payment_transactions"> | undefined,
+  jobId?: Id<"wordpressSyncJobs">,
 ): Promise<void> {
   const refunds: WooOrderRefund[] = [];
   let page = 1;
@@ -895,6 +1110,7 @@ async function importOrderRefunds(
       objectType: "commerceRefund",
       wpId: refund.id,
       convexId: refundId,
+      jobId,
     });
   }
 
@@ -908,50 +1124,81 @@ async function ensureOrderCustomer(
   ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
   siteId: Id<"wordpressSites">,
   order: WooOrder,
+  jobId?: Id<"wordpressSyncJobs">,
 ): Promise<string | undefined> {
-  if (!order.customer_id || order.customer_id <= 0) return undefined;
+  const sourceCustomerId = order.customer_id && order.customer_id > 0 ? order.customer_id : undefined;
+  const billingEmail = normalizeOptionalEmail(order.billing?.email);
 
-  const existingCustomerId = await ctx.runQuery(
-    internal.wordpressSync.helpers.idMapping.getByWpId,
-    {
-      siteId,
-      objectType: "commerceCustomer",
-      wpId: order.customer_id,
+  if (sourceCustomerId) {
+    const existingCustomerId = await ctx.runQuery(
+      internal.wordpressSync.helpers.idMapping.getByWpId,
+      {
+        siteId,
+        objectType: "commerceCustomer",
+        wpId: sourceCustomerId,
+      }
+    );
+
+    if (existingCustomerId) {
+      return existingCustomerId;
     }
-  );
-
-  if (existingCustomerId) {
-    return existingCustomerId;
   }
+
+  if (!billingEmail) {
+    return undefined;
+  }
+
+  const existingByEmail = await ctx.runQuery(
+    internal.wordpressSync.internals.findCustomerByEmail,
+    { email: billingEmail }
+  );
+  if (existingByEmail) {
+    if (sourceCustomerId) {
+      await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+        siteId,
+        objectType: "commerceCustomer",
+        wpId: sourceCustomerId,
+        convexId: existingByEmail._id,
+        jobId,
+      });
+    }
+    return existingByEmail._id;
+  }
+
+  const linkedUserId = sourceCustomerId
+    ? await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
+        siteId,
+        objectType: "user",
+        wpId: sourceCustomerId,
+      })
+    : (await ctx.runQuery(internal.wordpressSync.internals.findUserByEmail, { email: billingEmail }))?._id;
 
   const customerId = await ctx.runMutation(
     internal.wordpressSync.phases.commerceTransactions.upsertCustomerProfile,
     {
       customer: {
-        email: normalizeEmail(order.billing?.email, undefined),
+        email: billingEmail,
         phone: normalizePhone(order.billing?.phone),
         firstName: order.billing?.first_name?.trim() || undefined,
         lastName: order.billing?.last_name?.trim() || undefined,
-        isGuest: true,  // Created from order billing, not a registered customer
+        isGuest: !sourceCustomerId,
         totalOrders: 0,
         totalSpentAmount: 0,
         currencyCode: (order.currency || "USD").toUpperCase(),
-        userId:
-          (await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
-            siteId,
-            objectType: "user",
-            wpId: order.customer_id,
-          })) ?? undefined,
+        userId: linkedUserId ?? undefined,
       },
     }
   );
 
-  await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-    siteId,
-    objectType: "commerceCustomer",
-    wpId: order.customer_id,
-    convexId: customerId,
-  });
+  if (sourceCustomerId) {
+    await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+      siteId,
+      objectType: "commerceCustomer",
+      wpId: sourceCustomerId,
+      convexId: customerId,
+      jobId,
+    });
+  }
 
   await importCustomerDefaultAddress(ctx, customerId as Id<"commerce_customer_profiles">, "billing", order.billing);
   await importCustomerDefaultAddress(ctx, customerId as Id<"commerce_customer_profiles">, "shipping", order.shipping);
@@ -1013,6 +1260,19 @@ function normalizeEmail(primary: string | undefined, fallback: string | undefine
   return email;
 }
 
+function normalizeOptionalEmail(email: string | undefined) {
+  const normalized = email?.trim().toLowerCase();
+  return normalized || undefined;
+}
+
+function normalizeOrderEmail(siteId: Id<"wordpressSites">, order: WooOrder) {
+  const email = normalizeOptionalEmail(order.billing?.email);
+  if (email) return email;
+
+  const sitePart = siteId.toString().slice(-8).toLowerCase();
+  return `woo-order-${sitePart}-${order.id}@missing-email.wp-import.local`;
+}
+
 function normalizePhone(phone: string | undefined) {
   return phone?.trim() || undefined;
 }
@@ -1048,6 +1308,30 @@ function sumLineSubtotal(lineItems: WooOrderLineItem[] | undefined) {
     const subtotal = Number.parseFloat((item.subtotal || "0").toString());
     return sum + (Number.isFinite(subtotal) ? subtotal : 0);
   }, 0);
+}
+
+function computeOrderSourceHash(order: WooOrder) {
+  return computeSourceHashCT({
+    number: order.number,
+    status: order.status,
+    currency: order.currency,
+    customer_id: order.customer_id,
+    billing: order.billing,
+    shipping: order.shipping,
+    line_items: order.line_items,
+    shipping_lines: order.shipping_lines,
+    coupon_lines: order.coupon_lines,
+    discount_total: order.discount_total,
+    shipping_total: order.shipping_total,
+    total_tax: order.total_tax,
+    cart_tax: order.cart_tax,
+    total: order.total,
+    payment_method: order.payment_method,
+    transaction_id: order.transaction_id,
+    date_paid: order.date_paid,
+    date_created: order.date_created,
+    customer_note: order.customer_note,
+  });
 }
 
 function resolveUnitPrice(item: WooOrderLineItem, currency: string | undefined) {

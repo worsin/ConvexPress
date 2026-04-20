@@ -25,6 +25,7 @@ import { query } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { requireCommerceReviewsEnabled } from "./helpers";
 import { commerceReviewStatusValidator } from "../schema/commerceReviews";
+import { isPluginEnabled } from "../helpers/plugins";
 
 // ============================================
 // PUBLIC QUERIES (Website)
@@ -49,6 +50,7 @@ export const getByProduct = query({
     ),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceReviews"))) return null;
     await requireCommerceReviewsEnabled(ctx);
 
     const limit = args.limit || 10;
@@ -116,6 +118,7 @@ export const getByProduct = query({
 export const getProductRating = query({
   args: { productId: v.id("commerce_products") },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceReviews"))) return null;
     await requireCommerceReviewsEnabled(ctx);
 
     const reviews = await ctx.db
@@ -155,6 +158,7 @@ export const getProductRating = query({
 export const getMyReviews = query({
   args: {},
   handler: async (ctx: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceReviews"))) return null;
     await requireCommerceReviewsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -190,6 +194,7 @@ export const getMyReviews = query({
 export const canReview = query({
   args: { productId: v.id("commerce_products") },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceReviews"))) return null;
     await requireCommerceReviewsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -247,6 +252,7 @@ export const canReview = query({
 export const hasVoted = query({
   args: { reviewId: v.id("commerce_review_items") },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceReviews"))) return null;
     await requireCommerceReviewsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -278,6 +284,7 @@ export const getPendingReviews = query({
     offset: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceReviews"))) return null;
     await requireCommerceReviewsEnabled(ctx);
     await requireCan(ctx, "commerce.reviews.moderate");
 
@@ -335,6 +342,7 @@ export const listAll = query({
     offset: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceReviews"))) return null;
     await requireCommerceReviewsEnabled(ctx);
     await requireCan(ctx, "commerce.reviews.view");
 
@@ -399,6 +407,7 @@ export const listAll = query({
 export const getStats = query({
   args: {},
   handler: async (ctx: any) => {
+    if (!(await isPluginEnabled(ctx, "commerceReviews"))) return null;
     await requireCommerceReviewsEnabled(ctx);
     await requireCan(ctx, "commerce.reviews.view");
 

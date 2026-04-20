@@ -11,12 +11,14 @@ import { ConvexError } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
 import { getProgressArgs, trackProgressArgs } from "./validators";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Get Progress ───────────────────────────────────────────────────────────
 
 export const getProgress = query({
   args: getProgressArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 
@@ -34,6 +36,7 @@ export const getProgress = query({
 export const trackProgress = mutation({
   args: trackProgressArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -94,6 +97,7 @@ export const trackProgress = mutation({
 export const getUserHistory = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return [];
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });

@@ -12,7 +12,7 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { PhaseResult } from "../internals";
 import type { PhaseProgress, SyncError } from "../validators";
-import { createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 import { createFinding } from "../helpers/idMapping";
 
 
@@ -38,18 +38,14 @@ export const importBatch = internalAction({
   args: {
     jobId: v.id("wordpressSyncJobs"),
     siteId: v.id("wordpressSites"),
-    credentials: v.object({
-      siteUrl: v.string(),
-      username: v.string(),
-      applicationPassword: v.string(),
-    }),
+    credentials: siteCredentialsValidator,
   },
   handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
 
     // Get import config
-    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const importConfig = normalizeImportConfig(job?.importConfig);
     const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
@@ -81,8 +77,18 @@ export const importBatch = internalAction({
       fetchWooProducts(credentials, 1, 1).catch(() => ({ total: 0 })),
     ]);
 
-    const categoryTotal = categoryCountResult.total ?? 0;
-    const productTotal = productCountResult.total ?? 0;
+    const entityLimit =
+      typeof importConfig.filters.entityLimit === "number"
+        ? importConfig.filters.entityLimit
+        : undefined;
+    const categoryTotal =
+      entityLimit !== undefined
+        ? Math.min(categoryCountResult.total ?? 0, entityLimit)
+        : (categoryCountResult.total ?? 0);
+    const productTotal =
+      entityLimit !== undefined
+        ? Math.min(productCountResult.total ?? 0, entityLimit)
+        : (productCountResult.total ?? 0);
     if (progress.total < categoryTotal + productTotal) {
       progress.total = categoryTotal + productTotal;
     }
@@ -91,11 +97,16 @@ export const importBatch = internalAction({
     if (cursor < categoryTotal) {
       const result = await importCategoryBatch(ctx, {
         siteId,
+        jobId,
         credentials,
         progress,
         categoryTotal,
         isDryRun,
+        importConfig,
       });
+      if (!result.hasMore && !isDryRun) {
+        await repairCommerceCategoryHierarchy(ctx, siteId, credentials);
+      }
       return result;
     }
 
@@ -108,6 +119,7 @@ export const importBatch = internalAction({
       categoryTotal,
       productTotal,
       isDryRun,
+      importConfig,
     });
     errors.push(...result.errors);
 
@@ -123,10 +135,12 @@ async function importCategoryBatch(
   ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
   args: {
     siteId: Id<"wordpressSites">;
+    jobId: Id<"wordpressSyncJobs">;
     credentials: { siteUrl: string; username: string; applicationPassword: string };
     progress: PhaseProgress;
     categoryTotal: number;
     isDryRun: boolean;
+    importConfig: any;
   }
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
@@ -135,10 +149,14 @@ async function importCategoryBatch(
   let skipped = 0;
   const cursor = args.progress.cursor || 0;
   const page = Math.floor(cursor / COMMERCE_BATCH_SIZE) + 1;
-  const { data: categories } = await fetchWooProductCategories(
+  const { data: fetchedCategories } = await fetchWooProductCategories(
     args.credentials,
     page,
     COMMERCE_BATCH_SIZE
+  );
+  const categories = fetchedCategories.slice(
+    0,
+    Math.max(0, args.categoryTotal - cursor),
   );
 
   const sortedCategories = [...categories].sort((a, b) => {
@@ -149,11 +167,41 @@ async function importCategoryBatch(
 
   for (const category of sortedCategories) {
     try {
-      const existingId = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
+      const sourceHash = computeSourceHashCC({
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        parent: category.parent,
+        image: category.image?.id,
+        count: category.count,
+      });
+      const existingMapping = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getFullMappingByWpId, {
         siteId: args.siteId,
         objectType: "commerceCategory",
         wpId: category.id,
       });
+      const existingId = existingMapping?.convexId;
+
+      if (existingMapping && !args.isDryRun) {
+        await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+          siteId: args.siteId,
+          objectType: "commerceCategory",
+          wpId: category.id,
+          jobId: args.jobId,
+        });
+      }
+
+      if (existingMapping?.sourceHash === sourceHash) {
+        skipped++;
+        args.progress.imported++;
+        continue;
+      }
+
+      if (existingMapping && !args.importConfig.behavior.updateExisting) {
+        skipped++;
+        args.progress.imported++;
+        continue;
+      }
 
       if (!args.isDryRun) {
         let parentId: string | undefined;
@@ -192,6 +240,15 @@ async function importCategoryBatch(
             objectType: "commerceCategory",
             wpId: category.id,
             convexId: categoryId,
+            sourceHash,
+            jobId: args.jobId,
+          });
+        } else {
+          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.updateSourceHash, {
+            siteId: args.siteId,
+            objectType: "commerceCategory",
+            wpId: category.id,
+            sourceHash,
           });
         }
       }
@@ -236,6 +293,7 @@ async function importProductBatch(
     categoryTotal: number;
     productTotal: number;
     isDryRun: boolean;
+    importConfig: any;
   }
 ): Promise<PhaseResult> {
   const errors: SyncError[] = [];
@@ -245,12 +303,22 @@ async function importProductBatch(
   const cursor = args.progress.cursor || 0;
   const productCursor = Math.max(0, cursor - args.categoryTotal);
   const page = Math.floor(productCursor / COMMERCE_BATCH_SIZE) + 1;
-  const { data: products } = await fetchWooProducts(args.credentials, page, COMMERCE_BATCH_SIZE);
+  const { data: fetchedProducts } = await fetchWooProducts(args.credentials, page, COMMERCE_BATCH_SIZE);
+  const products = fetchedProducts.slice(
+    0,
+    Math.max(0, args.productTotal - productCursor),
+  );
 
   for (let index = 0; index < products.length; index++) {
     const product = products[index];
 
     try {
+      let forcedExistingId: string | undefined;
+      const existingProductMapping = await ctx.runQuery(
+        internal.wordpressSync.helpers.idMapping.getByWpId,
+        { siteId: args.siteId, objectType: "commerceProduct", wpId: product.id }
+      );
+
       // SKU collision detection for products with SKUs
       if (product.sku && args.jobId) {
         const existingBySku = await ctx.runQuery(
@@ -258,12 +326,7 @@ async function importProductBatch(
           { sku: product.sku }
         );
         if (existingBySku) {
-          // Check if this product is already mapped
-          const existingMapping = await ctx.runQuery(
-            internal.wordpressSync.helpers.idMapping.getByWpId,
-            { siteId: args.siteId, objectType: "commerceProduct", wpId: product.id }
-          );
-          if (!existingMapping) {
+          if (!existingProductMapping) {
             await createFinding(ctx, {
               siteId: args.siteId, jobId: args.jobId, severity: "warning",
               phase: "commerceCatalog",
@@ -273,16 +336,36 @@ async function importProductBatch(
               destinationTable: "commerce_products", wpId: product.id,
               convexId: existingBySku._id,
             });
+
+            if (args.importConfig.behavior.updateExisting) {
+              forcedExistingId = existingBySku._id;
+            } else {
+              skipped++;
+              args.progress.imported++;
+              continue;
+            }
           }
         }
       }
 
       if (!args.isDryRun) {
-        const productId = await importSingleProduct(ctx, {
+        const productResult = await importSingleProduct(ctx, {
           siteId: args.siteId,
           siteCreatedBy: args.siteCreatedBy,
           product,
+          forcedExistingId,
+          importConfig: args.importConfig,
+          jobId: args.jobId,
         });
+        const productId = productResult.productId;
+
+        if (productResult.status === "skipped") {
+          skipped++;
+          args.progress.imported++;
+          continue;
+        }
+        if (productResult.status === "updated") updated++;
+        else created++;
 
         if (product.type === "variable") {
           const variationResult = await importProductVariations(ctx, {
@@ -290,16 +373,21 @@ async function importProductBatch(
             credentials: args.credentials,
             product,
             productId,
+            importConfig: args.importConfig,
+            jobId: args.jobId,
           });
           args.progress.total += variationResult.discoveredTotal;
           args.progress.imported += variationResult.imported;
           args.progress.failed += variationResult.failed;
-          created += variationResult.imported;
+          created += variationResult.created;
+          updated += variationResult.updated;
+          skipped += variationResult.skipped;
           errors.push(...variationResult.errors);
         }
+      } else {
+        created++;
       }
 
-      created++;
       args.progress.imported++;
     } catch (error) {
       errors.push({
@@ -333,14 +421,20 @@ async function importSingleProduct(
     siteId: Id<"wordpressSites">;
     siteCreatedBy: Id<"users">;
     product: WooProduct;
+    forcedExistingId?: string;
+    importConfig: any;
+    jobId: Id<"wordpressSyncJobs">;
   }
-): Promise<string> {
+): Promise<{ productId: string; status: "created" | "updated" | "skipped" }> {
   // Compute source hash for change detection
   const productSourceHash = computeSourceHashCC({
     name: args.product.name,
     slug: args.product.slug,
     sku: args.product.sku,
     status: args.product.status,
+    type: args.product.type,
+    description: args.product.description,
+    short_description: args.product.short_description,
     price: args.product.price,
     regular_price: args.product.regular_price,
     sale_price: args.product.sale_price,
@@ -349,13 +443,41 @@ async function importSingleProduct(
     weight: args.product.weight,
     dimensions: args.product.dimensions,
     stock_quantity: args.product.stock_quantity,
+    manage_stock: args.product.manage_stock,
+    backorders: args.product.backorders,
+    virtual: args.product.virtual,
+    downloadable: args.product.downloadable,
+    categories: args.product.categories?.map((category) => category.id),
+    images: args.product.images?.map((image) => image.id),
+    attributes: args.product.attributes,
+    upsell_ids: args.product.upsell_ids,
+    cross_sell_ids: args.product.cross_sell_ids,
   });
 
-  const existingId = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
+  const existingMapping = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getFullMappingByWpId, {
     siteId: args.siteId,
     objectType: "commerceProduct",
     wpId: args.product.id,
   });
+  const mappedExistingId = existingMapping?.convexId;
+  const existingId = args.forcedExistingId ?? mappedExistingId;
+
+  if (existingMapping) {
+    await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+      siteId: args.siteId,
+      objectType: "commerceProduct",
+      wpId: args.product.id,
+      jobId: args.jobId,
+    });
+  }
+
+  if (existingMapping?.sourceHash === productSourceHash) {
+    return { productId: existingMapping.convexId, status: "skipped" };
+  }
+
+  if (existingMapping && !args.importConfig.behavior.updateExisting) {
+    return { productId: existingMapping.convexId, status: "skipped" };
+  }
 
   const categoryIds = await resolveCommerceCategoryIds(
     ctx,
@@ -426,9 +548,10 @@ async function importSingleProduct(
     wpId: args.product.id,
     convexId: productId,
     sourceHash: productSourceHash,
+    jobId: args.jobId,
   });
 
-  return productId;
+  return { productId, status: existingId ? "updated" : "created" };
 }
 
 async function importProductVariations(
@@ -438,10 +561,15 @@ async function importProductVariations(
     credentials: { siteUrl: string; username: string; applicationPassword: string };
     product: WooProduct;
     productId: string;
+    importConfig: any;
+    jobId: Id<"wordpressSyncJobs">;
   }
-): Promise<{ imported: number; failed: number; discoveredTotal: number; errors: SyncError[] }> {
+): Promise<{ imported: number; created: number; updated: number; skipped: number; failed: number; discoveredTotal: number; errors: SyncError[] }> {
   const errors: SyncError[] = [];
   let imported = 0;
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
   let failed = 0;
   let discoveredTotal = 0;
   let page = 1;
@@ -464,11 +592,48 @@ async function importProductVariations(
       const variation = result.data[index];
 
       try {
-        const existingId = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
+        const sourceHash = computeSourceHashCC({
+          sku: variation.sku,
+          price: variation.price,
+          regular_price: variation.regular_price,
+          sale_price: variation.sale_price,
+          attributes: variation.attributes,
+          stock_quantity: variation.stock_quantity,
+          manage_stock: variation.manage_stock,
+          stock_status: variation.stock_status,
+          backorders: variation.backorders,
+          image: variation.image?.id,
+          dimensions: variation.dimensions,
+          status: variation.status,
+          menu_order: variation.menu_order,
+        });
+        const existingMapping = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getFullMappingByWpId, {
           siteId: args.siteId,
           objectType: "commerceProductVariant",
           wpId: variation.id,
         });
+        const existingId = existingMapping?.convexId;
+
+        if (existingMapping) {
+          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+            siteId: args.siteId,
+            objectType: "commerceProductVariant",
+            wpId: variation.id,
+            jobId: args.jobId,
+          });
+        }
+
+        if (existingMapping?.sourceHash === sourceHash) {
+          skipped++;
+          imported++;
+          continue;
+        }
+
+        if (existingMapping && !args.importConfig.behavior.updateExisting) {
+          skipped++;
+          imported++;
+          continue;
+        }
 
         const selections = buildVariantSelections(
           args.product.attributes,
@@ -503,6 +668,26 @@ async function importProductVariations(
               stockQuantity: normalizeStockQuantity(variation.stock_quantity),
               featuredMediaId: variantMediaIds[0],
               isDefault: Boolean(!existingId && page === 1 && index === 0),
+              description: variation.description || undefined,
+              globalUniqueId: variation.global_unique_id || undefined,
+              salePriceFrom: variation.date_on_sale_from ? new Date(variation.date_on_sale_from).getTime() : undefined,
+              salePriceTo: variation.date_on_sale_to ? new Date(variation.date_on_sale_to).getTime() : undefined,
+              manageStock: variation.manage_stock === true ? "yes" : variation.manage_stock === "parent" ? "parent" : variation.manage_stock === false ? "no" : undefined,
+              stockStatus: variation.stock_status || undefined,
+              backorders: variation.backorders || undefined,
+              lowStockAmount: variation.low_stock_amount ?? undefined,
+              weight: variation.weight || undefined,
+              shippingLengthIn: variation.dimensions?.length || undefined,
+              shippingWidthIn: variation.dimensions?.width || undefined,
+              shippingHeightIn: variation.dimensions?.height || undefined,
+              shippingClassId: variation.shipping_class_id ? String(variation.shipping_class_id) : undefined,
+              taxClass: variation.tax_class || undefined,
+              isVirtual: variation.virtual ?? undefined,
+              isDownloadable: variation.downloadable ?? undefined,
+              downloadLimit: variation.download_limit ?? undefined,
+              downloadExpiry: variation.download_expiry ?? undefined,
+              status: variation.status || undefined,
+              menuOrder: variation.menu_order ?? undefined,
             },
           }
         );
@@ -511,8 +696,12 @@ async function importProductVariations(
           siteId: args.siteId,
           objectType: "commerceProductVariant",
           wpId: variation.id,
-          convexId: variantId,
-        });
+            convexId: variantId,
+            sourceHash,
+            jobId: args.jobId,
+          });
+        if (existingId) updated++;
+        else created++;
 
         imported++;
       } catch (error) {
@@ -533,7 +722,7 @@ async function importProductVariations(
     page++;
   }
 
-  return { imported, failed, discoveredTotal, errors };
+  return { imported, created, updated, skipped, failed, discoveredTotal, errors };
 }
 
 async function resolveCommerceCategoryIds(
@@ -553,6 +742,44 @@ async function resolveCommerceCategoryIds(
   }
 
   return resolved;
+}
+
+async function repairCommerceCategoryHierarchy(
+  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  siteId: Id<"wordpressSites">,
+  credentials: { siteUrl: string; username: string; applicationPassword: string },
+) {
+  let page = 1;
+
+  while (true) {
+    const { data: categories, total } = await fetchWooProductCategories(credentials, page, COMMERCE_BATCH_SIZE);
+
+    for (const category of categories) {
+      const categoryId = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
+        siteId,
+        objectType: "commerceCategory",
+        wpId: category.id,
+      });
+      if (!categoryId) continue;
+
+      let parentId: string | undefined;
+      if (category.parent > 0) {
+        parentId = (await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
+          siteId,
+          objectType: "commerceCategory",
+          wpId: category.parent,
+        })) ?? undefined;
+      }
+
+      await ctx.runMutation(internal.wordpressSync.phases.commerceCatalog.setCategoryParent, {
+        categoryId,
+        parentId,
+      });
+    }
+
+    if (page * COMMERCE_BATCH_SIZE >= total || categories.length === 0) break;
+    page++;
+  }
 }
 
 async function resolveCommerceMediaIds(
@@ -816,6 +1043,19 @@ export const upsertCategory = internalMutation({
   },
 });
 
+export const setCategoryParent = internalMutation({
+  args: {
+    categoryId: v.string(),
+    parentId: v.optional(v.string()),
+  },
+  handler: async (ctx, { categoryId, parentId }) => {
+    await ctx.db.patch(categoryId as Id<"commerce_product_categories">, {
+      parentId: parentId ? (parentId as Id<"commerce_product_categories">) : undefined,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 export const upsertProduct = internalMutation({
   args: {
     existingId: v.optional(v.string()),
@@ -940,6 +1180,26 @@ export const upsertVariant = internalMutation({
       stockQuantity: v.optional(v.number()),
       featuredMediaId: v.optional(v.string()),
       isDefault: v.boolean(),
+      description: v.optional(v.string()),
+      globalUniqueId: v.optional(v.string()),
+      salePriceFrom: v.optional(v.number()),
+      salePriceTo: v.optional(v.number()),
+      manageStock: v.optional(v.string()),
+      stockStatus: v.optional(v.string()),
+      backorders: v.optional(v.string()),
+      lowStockAmount: v.optional(v.number()),
+      weight: v.optional(v.string()),
+      shippingLengthIn: v.optional(v.string()),
+      shippingWidthIn: v.optional(v.string()),
+      shippingHeightIn: v.optional(v.string()),
+      shippingClassId: v.optional(v.string()),
+      taxClass: v.optional(v.string()),
+      isVirtual: v.optional(v.boolean()),
+      isDownloadable: v.optional(v.boolean()),
+      downloadLimit: v.optional(v.number()),
+      downloadExpiry: v.optional(v.number()),
+      status: v.optional(v.string()),
+      menuOrder: v.optional(v.number()),
     }),
   },
   handler: async (ctx, { existingId, productId, variant }) => {
@@ -1000,6 +1260,26 @@ export const upsertVariant = internalMutation({
         ? (variant.featuredMediaId as Id<"media">)
         : undefined,
       isDefault: variant.isDefault,
+      description: variant.description,
+      globalUniqueId: variant.globalUniqueId,
+      salePriceFrom: variant.salePriceFrom,
+      salePriceTo: variant.salePriceTo,
+      manageStock: variant.manageStock,
+      stockStatus: variant.stockStatus,
+      backorders: variant.backorders,
+      lowStockAmount: variant.lowStockAmount,
+      weight: variant.weight,
+      shippingLengthIn: variant.shippingLengthIn,
+      shippingWidthIn: variant.shippingWidthIn,
+      shippingHeightIn: variant.shippingHeightIn,
+      shippingClassId: variant.shippingClassId,
+      taxClass: variant.taxClass,
+      isVirtual: variant.isVirtual,
+      isDownloadable: variant.isDownloadable,
+      downloadLimit: variant.downloadLimit,
+      downloadExpiry: variant.downloadExpiry,
+      status: variant.status,
+      menuOrder: variant.menuOrder,
       updatedAt: now,
     };
 

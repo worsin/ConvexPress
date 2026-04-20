@@ -37,6 +37,7 @@ import {
   resolveBundlePricingPreview,
   resolveBundleSelectionSnapshot,
 } from "./runtime";
+import { requirePluginEnabled } from "../helpers/plugins";
 
 // ============================================
 // HELPER: Recalculate and update bundle price
@@ -204,6 +205,7 @@ export const create = mutation({
     metaDescription: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     const actor = await requireCan(ctx, "commerce.bundles.create");
     if (args.status === "active") {
@@ -319,6 +321,7 @@ export const update = mutation({
     metaDescription: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     const actor = await requireCan(ctx, "commerce.bundles.edit");
 
@@ -437,6 +440,7 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("commerce_bundles") },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.delete");
 
@@ -504,6 +508,7 @@ export const addComponent = mutation({
     label: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.edit");
 
@@ -595,6 +600,7 @@ export const updateComponent = mutation({
     sortOrder: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.edit");
 
@@ -663,6 +669,7 @@ export const updateComponent = mutation({
 export const removeComponent = mutation({
   args: { componentId: v.id("commerce_bundle_components") },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.edit");
 
@@ -716,6 +723,7 @@ export const reorderComponents = mutation({
     componentIds: v.array(v.id("commerce_bundle_components")),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.edit");
 
@@ -757,6 +765,7 @@ export const saveSelection = mutation({
     ),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     await requireCan(ctx, "commerce.bundles.edit");
 
@@ -805,6 +814,7 @@ export const saveSelection = mutation({
 export const backfillOwningProducts = mutation({
   args: {},
   handler: async (ctx: any) => {
+    await requirePluginEnabled(ctx, "commerceBundles");
     await requireCommerceBundlesEnabled(ctx);
     const actor = await requireCan(ctx, "commerce.bundles.edit");
 

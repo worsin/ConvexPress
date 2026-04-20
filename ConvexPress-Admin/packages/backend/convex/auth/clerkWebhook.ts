@@ -3,7 +3,13 @@ import { internal } from "../_generated/api";
 import { Webhook } from "svix";
 
 export const clerkWebhookHandler = httpAction(async (ctx, request) => {
-  const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
+  const { getServiceKeyFromAction } = await import("../helpers/serviceKeys");
+  const webhookSecret = await getServiceKeyFromAction(
+    ctx,
+    "integrations.clerk",
+    "clerkWebhookSecret",
+    "CLERK_WEBHOOK_SECRET",
+  );
   if (!webhookSecret) {
     return new Response("Webhook secret not configured", { status: 500 });
   }

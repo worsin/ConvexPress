@@ -88,14 +88,34 @@ export interface WooProduct {
 export interface WooProductVariation {
   id: number;
   sku?: string;
+  global_unique_id?: string;
   description?: string;
   image?: WooProductImage | null;
   price?: string;
   regular_price?: string;
   sale_price?: string;
-  manage_stock?: boolean;
+  date_on_sale_from?: string | null;
+  date_on_sale_to?: string | null;
+  on_sale?: boolean;
+  manage_stock?: boolean | "parent";
   stock_quantity?: number | null;
+  stock_status?: "instock" | "outofstock" | "onbackorder";
+  backorders?: "no" | "notify" | "yes";
+  backorders_allowed?: boolean;
+  low_stock_amount?: number | null;
+  weight?: string;
+  dimensions?: { length?: string; width?: string; height?: string };
+  shipping_class?: string;
+  shipping_class_id?: number;
+  virtual?: boolean;
+  downloadable?: boolean;
+  downloads?: Array<{ id: string; name: string; file: string }>;
+  download_limit?: number;
+  download_expiry?: number;
+  tax_class?: string;
+  tax_status?: string;
   status?: string;
+  menu_order?: number;
   date_created?: string;
   date_modified?: string;
   attributes?: WooProductAttribute[];
@@ -285,15 +305,21 @@ export function fetchWooCustomers(
 export function fetchWooOrders(
   config: WPClientConfig,
   page: number,
-  perPage = 100
+  perPage = 100,
+  options: { after?: string; before?: string } = {}
 ): Promise<WPFetchResult<WooOrder[]>> {
-  return fetchWPJsonEndpoint<WooOrder[]>(config, "/wc/v3/orders", {
+  const params: Record<string, string | number> = {
     page,
     per_page: perPage,
     orderby: "id",
     order: "asc",
     status: "any",
-  });
+  };
+
+  if (options.after) params.after = options.after;
+  if (options.before) params.before = options.before;
+
+  return fetchWPJsonEndpoint<WooOrder[]>(config, "/wc/v3/orders", params);
 }
 
 export function fetchWooOrderRefunds(

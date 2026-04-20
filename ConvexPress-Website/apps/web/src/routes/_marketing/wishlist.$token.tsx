@@ -126,11 +126,13 @@ function SharedItemCard({
 function SharedWishlistPage() {
   const { token } = Route.useParams();
   const settings = useSettings();
+  const wishlistsEnabled =
+    settings?.plugins?.commerceWishlistsEnabled === true;
   const currencyCode = settings?.commerceConfig?.currencyCode || "USD";
 
   const wishlist = useQuery(
     (api as any).commerceWishlists.queries.getSharedWishlist,
-    { shareToken: token },
+    wishlistsEnabled ? { shareToken: token } : "skip",
   ) as
     | {
         _id: string;

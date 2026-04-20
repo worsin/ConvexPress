@@ -2,6 +2,7 @@ import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 type KbCategory = {
   _id: string;
@@ -29,6 +30,14 @@ export const Route = createFileRoute("/_marketing/help/$categorySlug/")({
   component: CategoryPage,
   errorComponent: ErrorComponent,
   loader: async ({ context: { queryClient }, params }) => {
+    const publicSettings = await queryClient.ensureQueryData(
+      convexQuery(api.settings.queries.getPublic, {}),
+    );
+
+    if (!isPublicPluginEnabled("kb", publicSettings)) {
+      return;
+    }
+
     const category = await queryClient.ensureQueryData(
       convexQuery(api.kb.categories.getBySlug, { slug: params.categorySlug }),
     );

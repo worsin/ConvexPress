@@ -257,8 +257,15 @@ export const wordpressSyncTables = {
     convexId: v.string(),
     // Source URL for media/content reference tracking
     sourceUrl: v.optional(v.string()),
+    // All source URLs that should rewrite to this mapping. Media imports use
+    // this for WordPress image size variants in addition to the original URL.
+    sourceUrls: v.optional(v.array(v.string())),
     // Hash of the source content for change detection
     sourceHash: v.optional(v.string()),
+    // Last import job that fetched this source object. Used by tombstone
+    // detection to distinguish deleted source objects from out-of-scope ones.
+    lastSeenJobId: v.optional(v.id("wordpressSyncJobs")),
+    lastSeenAt: v.optional(v.number()),
     // When this mapping was created
     createdAt: v.number(),
   })

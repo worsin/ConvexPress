@@ -514,6 +514,86 @@ export function getRetentionMs(eventCode: string): number {
   return RETENTION.DEFAULT_MS;
 }
 
+// ─── Commerce Returns events (8) ───────────────────────────────────────────
+// 2-segment format: "system.action". Used by commerceReturns mutations.
+
+export const RETURN_EVENTS = {
+  REQUESTED: "return.requested",
+  APPROVED: "return.approved",
+  REJECTED: "return.rejected",
+  RECEIVED: "return.received",
+  REFUNDED: "return.refunded",
+  REFUND_FAILED: "return.refund_failed",
+  COMPLETED: "return.completed",
+  LABEL_ADDED: "return.label_added",
+} as const;
+
+// ─── Shipping events (PRDs A1-D3) ───────────────────────────────────────────
+// 2-segment format. PRDs originally specified 3-segment names; flattened here
+// to satisfy the dispatcher contract while preserving semantic meaning.
+
+export const SHIPPING_EVENTS = {
+  // Zones (A1)
+  ZONE_CREATED: "shipping.zone_created",
+  ZONE_UPDATED: "shipping.zone_updated",
+  ZONE_DELETED: "shipping.zone_deleted",
+  ZONE_REORDERED: "shipping.zones_reordered",
+  // Classes (A2)
+  CLASS_CREATED: "shipping.class_created",
+  CLASS_UPDATED: "shipping.class_updated",
+  CLASS_DELETED: "shipping.class_deleted",
+  CLASS_ASSIGNED: "shipping.class_assigned",
+  // Packages (A3)
+  PACKAGE_CREATED: "shipping.package_created",
+  PACKAGE_UPDATED: "shipping.package_updated",
+  PACKAGE_DELETED: "shipping.package_deleted",
+  // Ship-from locations (A4)
+  LOCATION_CREATED: "shipping.location_created",
+  LOCATION_UPDATED: "shipping.location_updated",
+  LOCATION_ARCHIVED: "shipping.location_archived",
+  LOCATION_DEFAULT_CHANGED: "shipping.location_default_changed",
+  // Address validation (A5)
+  ADDRESS_VALIDATED: "shipping.address_validated",
+  // Rules (A6)
+  RULE_CREATED: "shipping.rule_created",
+  RULE_UPDATED: "shipping.rule_updated",
+  RULE_DELETED: "shipping.rule_deleted",
+  // Pipeline (A7)
+  RATES_CALCULATED: "shipping.rates_calculated",
+  RATES_FAILED: "shipping.rates_failed",
+  RATES_FELL_BACK_TO_MANUAL: "shipping.rates_fell_back_to_manual",
+  // Methods (B1-B10)
+  METHOD_CREATED: "shipping.method_created",
+  METHOD_UPDATED: "shipping.method_updated",
+  METHOD_DELETED: "shipping.method_deleted",
+  // Providers (C1-C5)
+  PROVIDER_RATES_REQUESTED: "shipping.provider_rates_requested",
+  PROVIDER_RATES_RECEIVED: "shipping.provider_rates_received",
+  PROVIDER_RATES_FAILED: "shipping.provider_rates_failed",
+  PROVIDER_CONNECTION_HEALTHY: "shipping.provider_connection_healthy",
+  PROVIDER_CONNECTION_DEGRADED: "shipping.provider_connection_degraded",
+  PROVIDER_CONNECTION_ERROR: "shipping.provider_connection_error",
+  // Labels (D1)
+  LABEL_PURCHASED: "shipping.label_purchased",
+  LABEL_VOID_REQUESTED: "shipping.label_void_requested",
+  LABEL_VOIDED: "shipping.label_voided",
+  LABEL_REPRINTED: "shipping.label_reprinted",
+  LABEL_REFUND_REQUESTED: "shipping.label_refund_requested",
+  LABEL_REFUND_COMPLETED: "shipping.label_refund_completed",
+  // Tracking (D2)
+  TRACKING_UPDATED: "shipping.tracking_updated",
+  TRACKING_DELIVERED: "shipping.tracking_delivered",
+  TRACKING_EXCEPTION: "shipping.tracking_exception",
+  TRACKING_RETURNED: "shipping.tracking_returned",
+  // Manifests (D3)
+  MANIFEST_CREATED: "shipping.manifest_created",
+  MANIFEST_LABEL_ADDED: "shipping.manifest_label_added",
+  MANIFEST_SUBMITTED: "shipping.manifest_submitted",
+  MANIFEST_CLOSED: "shipping.manifest_closed",
+  MANIFEST_FAILED: "shipping.manifest_failed",
+  MANIFEST_AUTO_CLOSED: "shipping.manifest_auto_closed",
+} as const;
+
 // ─── Default Listener Settings ─────────────────────────────────────────────
 
 export const LISTENER_DEFAULTS = {

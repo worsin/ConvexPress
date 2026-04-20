@@ -23,6 +23,7 @@
  */
 
 import type { QueryCtx } from "../_generated/server";
+import { decryptSettingSecret } from "./settingsSecret";
 
 // ─── For Query / Mutation Contexts ──────────────────────────────────────────
 
@@ -54,7 +55,13 @@ export async function getServiceKey(
     const values = doc.values as Record<string, unknown> | undefined;
     const value = values?.[settingsKey];
     if (typeof value === "string" && value.trim()) {
-      return value.trim();
+      // Decrypt if the value is a stored ciphertext (enc:... or b64:...).
+      // Plain strings pass through unchanged for backwards compatibility.
+      const raw = value.trim();
+      if (raw.startsWith("enc:") || raw.startsWith("b64:")) {
+        return (await decryptSettingSecret(raw)) || undefined;
+      }
+      return raw;
     }
   }
 
@@ -83,9 +90,48 @@ export function resolveServiceKey(
   if (settingsValues) {
     const value = settingsValues[settingsKey];
     if (typeof value === "string" && value.trim()) {
-      return value.trim();
+      // Synchronous API — callers that pass ALREADY-DECRYPTED values
+      // (from an action that called decryptSettingSecret first) get the
+      // plaintext back. Ciphertext tokens returned as-is signal the
+      // caller should have used the async variant.
+      const raw = value.trim();
+      if (raw.startsWith("enc:") || raw.startsWith("b64:")) {
+        // Leave decryption to the caller's action; return sentinel prefix.
+        return raw;
+      }
+      return raw;
     }
   }
 
+  return process.env[envVarName] || undefined;
+}
+
+/**
+ * Async variant for action contexts: fetches settings internally,
+ * transparently decrypts stored ciphertext, falls back to env.
+ *
+ * Usage inside an action:
+ *   const key = await getServiceKeyFromAction(ctx, "commerce.payments",
+ *     "stripeSecretKey", "STRIPE_SECRET_KEY");
+ */
+export async function getServiceKeyFromAction(
+  ctx: { runQuery: (...args: any[]) => Promise<any> },
+  section: string,
+  settingsKey: string,
+  envVarName: string,
+): Promise<string | undefined> {
+  const { internal } = await import("../_generated/api");
+  const doc: any = await ctx.runQuery(
+    (internal as any).settings.httpInternals.getBySectionInternal,
+    { section },
+  );
+  const value = doc?.[settingsKey];
+  if (typeof value === "string" && value.trim()) {
+    const raw = value.trim();
+    if (raw.startsWith("enc:") || raw.startsWith("b64:")) {
+      return (await decryptSettingSecret(raw)) || undefined;
+    }
+    return raw;
+  }
   return process.env[envVarName] || undefined;
 }

@@ -492,13 +492,15 @@ function WishlistCard({
 
 function DashboardWishlistPage() {
   const settings = useSettings();
+  const wishlistsEnabled =
+    settings?.plugins?.commerceWishlistsEnabled === true;
   const currencyCode = settings?.commerceConfig?.currencyCode || "USD";
 
   const [showCreate, setShowCreate] = useState(false);
 
   const wishlists = useQuery(
     (api as any).commerceWishlists.queries.getMyWishlists,
-    {},
+    wishlistsEnabled ? {} : "skip",
   ) as
     | Array<{
         _id: string;

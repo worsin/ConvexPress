@@ -1,0 +1,49 @@
+name: Website Quality
+
+on:
+  pull_request:
+    paths:
+      - "ConvexPress-Website/**"
+      - ".github/workflows/website-quality.yml"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "ConvexPress-Website/**"
+      - ".github/workflows/website-quality.yml"
+
+jobs:
+  website-quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ConvexPress-Website/apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ConvexPress-Website/.bun-version
+
+      - name: Install workspace dependencies
+        working-directory: ConvexPress-Website
+        run: bun install --frozen-lockfile
+
+      - name: Lint baseline
+        run: bun run lint
+
+      - name: Type check
+        run: bun run check-types
+
+      - name: Build
+        run: bun run build
+
+      - name: Check SEO route conventions
+        run: bun run check:seo
+
+      - name: Check bundle budgets
+        run: bun run check:bundle
+
+      - name: SSR smoke tests
+        run: bun run smoke:ssr

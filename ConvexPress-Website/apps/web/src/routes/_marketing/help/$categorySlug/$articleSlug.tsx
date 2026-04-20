@@ -5,6 +5,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import type React from "react";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export const Route = createFileRoute(
   "/_marketing/help/$categorySlug/$articleSlug",
@@ -12,6 +13,14 @@ export const Route = createFileRoute(
   component: ArticleReader,
   errorComponent: ErrorComponent,
   loader: async ({ context: { queryClient }, params }) => {
+    const publicSettings = await queryClient.ensureQueryData(
+      convexQuery(api.settings.queries.getPublic, {}),
+    );
+
+    if (!isPublicPluginEnabled("kb", publicSettings)) {
+      return;
+    }
+
     await queryClient.ensureQueryData(
       convexQuery(api.kb.queries.getBySlug, { slug: params.articleSlug }),
     );
@@ -58,7 +67,11 @@ function renderTipTapNodes(nodes: any[]): React.ReactNode[] {
       case "paragraph":
         return <p key={i}>{renderInlineContent(node.content)}</p>;
       case "heading": {
-        const Tag = `h${node.attrs?.level ?? 2}` as keyof JSX.IntrinsicElements;
+        const level = Math.min(
+          6,
+          Math.max(1, Number(node.attrs?.level ?? 2)),
+        ) as 1 | 2 | 3 | 4 | 5 | 6;
+        const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
         return <Tag key={i}>{renderInlineContent(node.content)}</Tag>;
       }
       case "bulletList":
@@ -236,7 +249,7 @@ function ArticleReader() {
     });
   }
 
-  if (!article) {
+  if (!art) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 text-center">
         <h1 className="text-2xl font-bold">Article not found</h1>

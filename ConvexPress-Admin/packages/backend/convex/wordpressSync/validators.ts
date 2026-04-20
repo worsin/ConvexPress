@@ -154,12 +154,18 @@ export const siteCredentialsValidator = v.object({
   siteUrl: v.string(),
   username: v.string(),
   applicationPassword: v.string(),
+  wooConsumerKey: v.optional(v.string()),
+  wooConsumerSecret: v.optional(v.string()),
+  wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
 });
 
 export interface SiteCredentials {
   siteUrl: string;
   username: string;
   applicationPassword: string;
+  wooConsumerKey?: string;
+  wooConsumerSecret?: string;
+  wooAuthMode?: "shared" | "separate";
 }
 
 // ─── Import Config ────────────────────────────────────────────────────────
@@ -220,6 +226,73 @@ export function createDefaultImportConfig(): ImportConfig {
     },
     filters: {},
   };
+}
+
+function pickBooleans<T extends object>(
+  defaults: T,
+  input: unknown,
+): T {
+  const source = input && typeof input === "object" ? input as Record<string, unknown> : {};
+  const result = { ...defaults } as T;
+  for (const key of Object.keys(defaults) as Array<keyof T>) {
+    const value = source[key as string];
+    if (
+      typeof (defaults as Record<string, unknown>)[key as string] === "boolean" &&
+      typeof value === "boolean"
+    ) {
+      result[key] = value as T[typeof key];
+    }
+  }
+  return result;
+}
+
+export function normalizeImportConfig(input: unknown): ImportConfig {
+  const defaults = createDefaultImportConfig();
+  if (!input || typeof input !== "object") {
+    return defaults;
+  }
+
+  const source = input as Record<string, unknown>;
+  const behaviorSource =
+    source.behavior && typeof source.behavior === "object"
+      ? source.behavior as Record<string, unknown>
+      : {};
+  const filtersSource =
+    source.filters && typeof source.filters === "object"
+      ? source.filters as Record<string, unknown>
+      : {};
+
+  const tombstoneMode = behaviorSource.tombstoneMode;
+  const normalized: ImportConfig = {
+    scope: pickBooleans(defaults.scope, source.scope),
+    behavior: {
+      ...pickBooleans(defaults.behavior, behaviorSource),
+      tombstoneMode:
+        tombstoneMode === "mark_stale" ||
+        tombstoneMode === "soft_delete" ||
+        tombstoneMode === "hard_delete" ||
+        tombstoneMode === "never"
+          ? tombstoneMode
+          : defaults.behavior.tombstoneMode,
+      destructiveDelete:
+        typeof behaviorSource.destructiveDelete === "boolean"
+          ? behaviorSource.destructiveDelete
+          : defaults.behavior.destructiveDelete,
+    },
+    filters: {},
+  };
+
+  if (typeof filtersSource.dateRangeStart === "number") {
+    normalized.filters.dateRangeStart = filtersSource.dateRangeStart;
+  }
+  if (typeof filtersSource.dateRangeEnd === "number") {
+    normalized.filters.dateRangeEnd = filtersSource.dateRangeEnd;
+  }
+  if (typeof filtersSource.entityLimit === "number") {
+    normalized.filters.entityLimit = filtersSource.entityLimit;
+  }
+
+  return normalized;
 }
 
 /**

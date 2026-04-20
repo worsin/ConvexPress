@@ -27,6 +27,15 @@ function formatDate(ms: number): string {
   });
 }
 
+type TicketMessage = {
+  _id: string;
+  senderType: "user" | "admin" | "system";
+  senderName?: string;
+  content: string;
+  createdAt: number;
+  isInternal?: boolean;
+};
+
 function TicketThreadPage() {
   const { ticketId } = Route.useParams();
   const { isSignedIn, isLoaded } = useAuth();
@@ -88,7 +97,16 @@ function TicketThreadPage() {
     );
   }
 
-  const { ticket, messages } = data;
+  const { ticket, messages } = data as {
+    ticket: {
+      subject: string;
+      ticketNumber: string;
+      category: string;
+      status: string;
+      rating?: number;
+    };
+    messages: TicketMessage[];
+  };
 
   async function handleReply() {
     if (!replyContent.trim()) return;

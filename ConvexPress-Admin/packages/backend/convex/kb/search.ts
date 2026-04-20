@@ -9,12 +9,14 @@
 
 import { query } from "../_generated/server";
 import { searchArticlesArgs } from "./validators";
+import { isPluginEnabled } from "../helpers/plugins";
 
 // ─── Search ─────────────────────────────────────────────────────────────────
 
 export const search = query({
   args: searchArticlesArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const limit = Math.min(args.limit ?? 20, 100);
 
     if (!args.query.trim()) return { results: [], total: 0 };

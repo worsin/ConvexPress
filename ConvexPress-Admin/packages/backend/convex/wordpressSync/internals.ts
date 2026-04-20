@@ -18,17 +18,64 @@ import {
   PHASE_ORDER,
   getNextPhase,
   shouldRunPhase,
-  createDefaultImportConfig,
+  normalizeImportConfig,
   BATCH_DELAY_MS,
   MAX_PHASE_ERRORS,
+  FINDING_CODES,
   syncPhaseValidator,
   phaseProgressValidator,
   syncErrorValidator,
+  type SiteCredentials,
 } from "./validators";
-import type { WPClientConfig } from "./helpers/wpClient";
 
 // Environment variable for decrypting application passwords
 const WP_ENCRYPTION_KEY = process.env.WP_SYNC_ENCRYPTION_KEY;
+const ARTIFACT_DELETE_BATCH_SIZE = 500;
+
+async function decryptStoredSecret(secret: string | undefined): Promise<string | undefined> {
+  if (!secret) return undefined;
+  if (WP_ENCRYPTION_KEY && secret.includes(":")) {
+    try {
+      return await decryptSecret(secret, WP_ENCRYPTION_KEY);
+    } catch (error) {
+      console.warn("[WP Sync] Failed to decrypt stored secret, using as-is:", error);
+    }
+  }
+  return secret;
+}
+
+async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
+  let reportsDeleted = 0;
+  let findingsDeleted = 0;
+  let reportBatch;
+  let findingBatch;
+
+  do {
+    reportBatch = await ctx.db
+      .query("wordpressSyncReports")
+      .withIndex("by_job", (q: any) => q.eq("jobId", jobId))
+      .take(ARTIFACT_DELETE_BATCH_SIZE);
+
+    for (const report of reportBatch) {
+      await ctx.db.delete(report._id);
+      reportsDeleted++;
+    }
+  } while (reportBatch.length === ARTIFACT_DELETE_BATCH_SIZE);
+
+  do {
+    findingBatch = await ctx.db
+      .query("wordpressSyncReconciliationFindings")
+      .withIndex("by_job_created", (q: any) => q.eq("jobId", jobId))
+      .take(ARTIFACT_DELETE_BATCH_SIZE);
+
+    for (const finding of findingBatch) {
+      await ctx.db.delete(finding._id);
+      findingsDeleted++;
+    }
+  } while (findingBatch.length === ARTIFACT_DELETE_BATCH_SIZE);
+
+  return { reportsDeleted, findingsDeleted };
+}
 
 // ─── Internal Queries ──────────────────────────────────────────────────────
 
@@ -64,7 +111,7 @@ export const countFindings = internalQuery({
   handler: async (ctx, { jobId, limit }) => {
     return await ctx.db
       .query("wordpressSyncReconciliationFindings")
-      .withIndex("by_job_created", (q) => q.eq("jobId", jobId))
+      .withIndex("by_job_created", (q: any) => q.eq("jobId", jobId))
       .take(limit);
   },
 });
@@ -82,7 +129,7 @@ export const getMappingsBatch = internalQuery({
   handler: async (ctx, { siteId, objectType, afterWpId, limit }) => {
     return await ctx.db
       .query("wpIdMappings")
-      .withIndex("by_wp_id", (q) =>
+      .withIndex("by_wp_id", (q: any) =>
         q.eq("siteId", siteId).eq("objectType", objectType as any).gt("wpId", afterWpId)
       )
       .take(limit);
@@ -97,15 +144,12 @@ export const getMappingsBatch = internalQuery({
 export const findPostBySlug = internalQuery({
   args: { slug: v.string(), type: v.optional(v.string()) },
   handler: async (ctx, { slug, type }) => {
-    const result = await ctx.db
+    return await ctx.db
       .query("posts")
-      .filter((q) =>
-        type
-          ? q.and(q.eq(q.field("slug"), slug), q.eq(q.field("type"), type))
-          : q.eq(q.field("slug"), slug)
+      .withIndex("by_slug", (q: any) =>
+        type ? q.eq("slug", slug).eq("type", type) : q.eq("slug", slug)
       )
       .first();
-    return result;
   },
 });
 
@@ -117,7 +161,7 @@ export const findUserByEmail = internalQuery({
   handler: async (ctx, { email }) => {
     return await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("by_email", (q: any) => q.eq("email", email))
       .first();
   },
 });
@@ -130,7 +174,9 @@ export const findTermBySlug = internalQuery({
   handler: async (ctx, { slug, taxonomy }) => {
     return await ctx.db
       .query("terms")
-      .withIndex("by_slug_taxonomy", (q) => q.eq("slug", slug).eq("taxonomy", taxonomy))
+      .withIndex("by_slug_taxonomy", (q: any) =>
+        q.eq("slug", slug).eq("taxonomy", taxonomy)
+      )
       .first();
   },
 });
@@ -143,7 +189,7 @@ export const findMenuBySlug = internalQuery({
   handler: async (ctx, { slug }) => {
     return await ctx.db
       .query("menus")
-      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
       .first();
   },
 });
@@ -154,12 +200,10 @@ export const findMenuBySlug = internalQuery({
 export const findProductBySku = internalQuery({
   args: { sku: v.string() },
   handler: async (ctx, { sku }) => {
-    // commerce_products may have a by_sku index, otherwise filter
-    const result = await ctx.db
+    return await ctx.db
       .query("commerce_products")
-      .filter((q) => q.eq(q.field("sku"), sku))
+      .withIndex("by_sku", (q: any) => q.eq("sku", sku))
       .first();
-    return result;
   },
 });
 
@@ -171,7 +215,7 @@ export const findCustomerByEmail = internalQuery({
   handler: async (ctx, { email }) => {
     return await ctx.db
       .query("commerce_customer_profiles")
-      .filter((q) => q.eq(q.field("email"), email))
+      .withIndex("by_email", (q: any) => q.eq("email", email))
       .first();
   },
 });
@@ -184,7 +228,7 @@ export const findOrderByNumber = internalQuery({
   handler: async (ctx, { orderNumber }) => {
     return await ctx.db
       .query("commerce_orders")
-      .filter((q) => q.eq(q.field("orderNumber"), orderNumber))
+      .withIndex("by_orderNumber", (q: any) => q.eq("orderNumber", orderNumber))
       .first();
   },
 });
@@ -197,7 +241,7 @@ export const findDiscountByCode = internalQuery({
   handler: async (ctx, { code }) => {
     return await ctx.db
       .query("commerce_discount_codes")
-      .filter((q) => q.eq(q.field("code"), code))
+      .withIndex("by_code", (q: any) => q.eq("code", code))
       .first();
   },
 });
@@ -248,9 +292,27 @@ export const getMediaMappingsWithUrls = internalQuery({
   handler: async (ctx, { siteId, limit }) => {
     const all = await ctx.db
       .query("wpIdMappings")
-      .withIndex("by_site", (q) => q.eq("siteId", siteId))
+      .withIndex("by_wp_id", (q: any) =>
+        q.eq("siteId", siteId).eq("objectType", "media")
+      )
       .take(limit);
-    return all.filter((m: any) => m.objectType === "media" && m.sourceUrl);
+    const mediaMappings = all.filter((m: any) =>
+      m.objectType === "media" && (m.sourceUrl || (Array.isArray(m.sourceUrls) && m.sourceUrls.length > 0))
+    );
+
+    const result = [];
+    for (const mapping of mediaMappings) {
+      const media = await ctx.db.get(mapping.convexId as Id<"media">);
+      if (!media) continue;
+      result.push({
+        convexId: mapping.convexId,
+        sourceUrl: mapping.sourceUrl,
+        sourceUrls: mapping.sourceUrls,
+        url: media.url,
+      });
+    }
+
+    return result;
   },
 });
 
@@ -420,7 +482,7 @@ export const upsertReport = internalMutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("wordpressSyncReports")
-      .withIndex("by_job", (q) => q.eq("jobId", args.jobId))
+      .withIndex("by_job", (q: any) => q.eq("jobId", args.jobId))
       .first();
 
     if (existing) {
@@ -495,6 +557,8 @@ export const failJob = internalMutation({
       completedAt: now,
       updatedAt: now,
     });
+
+    await ctx.scheduler.runAfter(0, internal.wordpressSync.internals.generateFinalReport, { jobId });
   },
 });
 
@@ -536,28 +600,24 @@ export const runSyncPhase = internalAction({
       return;
     }
 
-    // Decrypt the application password if encryption is enabled
-    let decryptedPassword = site.applicationPassword;
-    if (WP_ENCRYPTION_KEY && site.applicationPassword.includes(":")) {
-      // Encrypted format is "iv:authTag:ciphertext"
-      try {
-        decryptedPassword = await decryptSecret(site.applicationPassword, WP_ENCRYPTION_KEY);
-      } catch (error) {
-        console.warn("[WP Sync] Failed to decrypt password, using as-is:", error);
-      }
-    }
+    const decryptedPassword = await decryptStoredSecret(site.applicationPassword) ?? site.applicationPassword;
+    const decryptedWooKey = await decryptStoredSecret(site.wooConsumerKey);
+    const decryptedWooSecret = await decryptStoredSecret(site.wooConsumerSecret);
 
-    const credentials: WPClientConfig = {
+    const credentials: SiteCredentials = {
       siteUrl: site.siteUrl,
       username: site.username,
       applicationPassword: decryptedPassword,
+      wooConsumerKey: decryptedWooKey,
+      wooConsumerSecret: decryptedWooSecret,
+      wooAuthMode: site.wooAuthMode ?? "shared",
     };
 
     const phase = job.currentPhase;
     console.log(`[WP Sync] Running phase: ${phase} for job ${jobId}`);
 
     // Get import config (default to all-enabled if not set)
-    const importConfig = job.importConfig ?? createDefaultImportConfig();
+    const importConfig = normalizeImportConfig(job.importConfig);
 
     // Skip phases not in scope
     if (!shouldRunPhase(phase, importConfig.scope)) {
@@ -581,6 +641,7 @@ export const runSyncPhase = internalAction({
           result = await ctx.runAction(internal.wordpressSync.phases.users.importBatch, {
             jobId,
             siteId: job.siteId,
+            credentials,
           });
           break;
 
@@ -588,6 +649,7 @@ export const runSyncPhase = internalAction({
           result = await ctx.runAction(internal.wordpressSync.phases.taxonomies.importBatch, {
             jobId,
             siteId: job.siteId,
+            credentials,
           });
           break;
 
@@ -595,6 +657,7 @@ export const runSyncPhase = internalAction({
           result = await ctx.runAction(internal.wordpressSync.phases.media.importBatch, {
             jobId,
             siteId: job.siteId,
+            credentials,
           });
           break;
 
@@ -602,6 +665,7 @@ export const runSyncPhase = internalAction({
           result = await ctx.runAction(internal.wordpressSync.phases.posts.importBatch, {
             jobId,
             siteId: job.siteId,
+            credentials,
           });
           break;
 
@@ -609,6 +673,7 @@ export const runSyncPhase = internalAction({
           result = await ctx.runAction(internal.wordpressSync.phases.pages.importBatch, {
             jobId,
             siteId: job.siteId,
+            credentials,
           });
           break;
 
@@ -616,6 +681,7 @@ export const runSyncPhase = internalAction({
           result = await ctx.runAction(internal.wordpressSync.phases.comments.importBatch, {
             jobId,
             siteId: job.siteId,
+            credentials,
           });
           break;
 
@@ -623,7 +689,22 @@ export const runSyncPhase = internalAction({
           result = await ctx.runAction(internal.wordpressSync.phases.menus.importBatch, {
             jobId,
             siteId: job.siteId,
+            credentials,
           });
+          break;
+
+        case "commerceCatalog":
+          result = await ctx.runAction(
+            internal.wordpressSync.phases.commerceCatalog.importBatch,
+            { jobId, siteId: job.siteId, credentials }
+          );
+          break;
+
+        case "commerceTransactions":
+          result = await ctx.runAction(
+            internal.wordpressSync.phases.commerceTransactions.importBatch,
+            { jobId, siteId: job.siteId, credentials }
+          );
           break;
 
         case "reconciliation":
@@ -724,16 +805,109 @@ async function runCleanup(
   ctx: { runMutation: typeof internalAction.prototype.handler },
   job: Doc<"wordpressSyncJobs">
 ): Promise<PhaseResult> {
-  // Cleanup phase is a no-op for now
-  // Could be used for:
-  // - Verifying all relationships are intact
-  // - Updating post counts
-  // - Clearing temporary data
+  const tableForType: Record<string, string> = {
+    user: "users",
+    post: "posts",
+    page: "posts",
+    category: "terms",
+    tag: "terms",
+    media: "media",
+    comment: "comments",
+    menu: "menus",
+    menuItem: "menuItems",
+    commerceCategory: "commerce_product_categories",
+    commerceProduct: "commerce_products",
+    commerceProductVariant: "commerce_product_variants",
+    commerceCustomer: "commerce_customer_profiles",
+    commerceOrder: "commerce_orders",
+    commerceOrderItem: "commerce_order_items",
+    commercePaymentTransaction: "commerce_payment_transactions",
+    commerceDiscount: "commerce_discount_codes",
+    commerceReview: "commerce_review_items",
+    commerceRefund: "commerce_payment_refunds",
+  };
+
+  const objectTypes = Object.keys(tableForType);
+  const cursorBucket = 100_000_000;
+  const batchSize = 100;
+  const progress = { ...job.progress.cleanup };
+  const cursor = progress.cursor ?? -1;
+  const typeIndex = cursor < 0 ? 0 : Math.floor(cursor / cursorBucket);
+  const innerWpId = cursor < 0 ? -1 : cursor % cursorBucket;
+
+  if (typeIndex >= objectTypes.length) {
+    progress.total = Math.max(progress.total, progress.imported + progress.failed);
+    return { progress, errors: [], hasMore: false };
+  }
+
+  const objectType = objectTypes[typeIndex];
+  const mappings = await (ctx as any).runQuery(
+    internal.wordpressSync.internals.getMappingsBatch,
+    {
+      siteId: job.siteId,
+      objectType,
+      afterWpId: innerWpId,
+      limit: batchSize,
+    },
+  );
+
+  let checked = 0;
+  let missing = 0;
+
+  for (const mapping of mappings) {
+    const table = tableForType[mapping.objectType];
+    if (!table) continue;
+    checked++;
+
+    const entity = await (ctx as any).runQuery(internal.wordpressSync.internals.getEntityById, {
+      table,
+      id: mapping.convexId,
+    });
+
+    if (!entity) {
+      missing++;
+      await (ctx as any).runMutation(internal.wordpressSync.internals.insertFinding, {
+        siteId: job.siteId,
+        jobId: job._id,
+        severity: "warning",
+        phase: "cleanup",
+        code: FINDING_CODES.SOURCE_OBJECT_MISSING,
+        message: `Mapping for ${mapping.objectType} WP#${mapping.wpId} points to missing ${table} row ${mapping.convexId}`,
+        sourceType: mapping.objectType,
+        sourceId: String(mapping.wpId),
+        destinationTable: table,
+        wpId: mapping.wpId,
+        objectType: mapping.objectType,
+        convexId: mapping.convexId,
+        createdAt: Date.now(),
+      });
+    }
+  }
+
+  let nextTypeIndex = typeIndex;
+  let nextInnerWpId = innerWpId;
+  if (mappings.length < batchSize) {
+    nextTypeIndex++;
+    nextInnerWpId = -1;
+  } else {
+    nextInnerWpId = mappings[mappings.length - 1].wpId;
+  }
+
+  const hasMore = nextTypeIndex < objectTypes.length;
+  progress.imported += checked - missing;
+  progress.failed += missing;
+  progress.cursor = hasMore
+    ? nextTypeIndex * cursorBucket + Math.max(0, nextInnerWpId)
+    : cursor;
+  progress.total = Math.max(
+    progress.total,
+    progress.imported + progress.failed + (hasMore ? 1 : 0),
+  );
 
   return {
-    progress: { total: 1, imported: 1, failed: 0 },
+    progress,
     errors: [],
-    hasMore: false,
+    hasMore,
   };
 }
 
@@ -755,7 +929,7 @@ export const generateFinalReport = internalAction({
     // Count findings by severity and code
     const findingCounts: Record<string, number> = { error: 0, warning: 0, info: 0 };
     const codeCounts: Record<string, number> = {};
-    const SCAN_LIMIT = 1000;
+    const SCAN_LIMIT = 10000;
 
     const findings = await ctx.runQuery(internal.wordpressSync.internals.countFindings, {
       jobId, limit: SCAN_LIMIT,
@@ -777,7 +951,7 @@ export const generateFinalReport = internalAction({
       totalFailed += (p as PhaseProgress).failed || 0;
     }
 
-    const importConfig = job.importConfig ?? createDefaultImportConfig();
+    const importConfig = normalizeImportConfig(job.importConfig);
     const isDryRun = importConfig.behavior.dryRun;
 
     const summary = isDryRun
@@ -834,11 +1008,12 @@ export const cleanupOldJobs = internalMutation({
     // Find old completed jobs
     const oldJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q) => q.eq("status", "completed"))
+      .withIndex("by_status", (q: any) => q.eq("status", "completed"))
       .take(BATCH_SIZE);
 
     for (const job of oldJobs) {
       if (job.completedAt && job.completedAt < cutoff) {
+        await deleteImportArtifactsForJob(ctx, job._id);
         await ctx.db.delete(job._id);
         deleted++;
       }
@@ -847,11 +1022,12 @@ export const cleanupOldJobs = internalMutation({
     // Find old failed jobs
     const failedJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q) => q.eq("status", "failed"))
+      .withIndex("by_status", (q: any) => q.eq("status", "failed"))
       .take(BATCH_SIZE);
 
     for (const job of failedJobs) {
       if (job.completedAt && job.completedAt < cutoff) {
+        await deleteImportArtifactsForJob(ctx, job._id);
         await ctx.db.delete(job._id);
         deleted++;
       }
@@ -860,11 +1036,12 @@ export const cleanupOldJobs = internalMutation({
     // Find old cancelled jobs
     const cancelledJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q) => q.eq("status", "cancelled"))
+      .withIndex("by_status", (q: any) => q.eq("status", "cancelled"))
       .take(BATCH_SIZE);
 
     for (const job of cancelledJobs) {
       if (job.completedAt && job.completedAt < cutoff) {
+        await deleteImportArtifactsForJob(ctx, job._id);
         await ctx.db.delete(job._id);
         deleted++;
       }
@@ -888,7 +1065,7 @@ export const cleanupOrphanedMappings = internalMutation({
 
     // Get all site IDs
     const sites = await ctx.db.query("wordpressSites").take(1000);
-    const siteIds = new Set(sites.map((s) => s._id));
+    const siteIds = new Set(sites.map((s: any) => s._id));
 
     // Find mappings and check if their site still exists
     const mappings = await ctx.db.query("wpIdMappings").take(BATCH_SIZE);
@@ -919,7 +1096,7 @@ export const checkStaleJobs = internalMutation({
 
     const runningJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q) => q.eq("status", "running"))
+      .withIndex("by_status", (q: any) => q.eq("status", "running"))
       .take(50);
 
     for (const job of runningJobs) {
@@ -937,6 +1114,9 @@ export const checkStaleJobs = internalMutation({
           ],
           completedAt: Date.now(),
           updatedAt: Date.now(),
+        });
+        await ctx.scheduler.runAfter(0, internal.wordpressSync.internals.generateFinalReport, {
+          jobId: job._id,
         });
         marked++;
       }

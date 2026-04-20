@@ -378,17 +378,37 @@ http.route({
     const body = await request.text();
     const signature = request.headers.get("stripe-signature");
 
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    // Settings-first, env-fallback. Keys live in commerce.payments section
+    // (admin UI at /settings/integrations/stripe).
+    const { getServiceKeyFromAction } = await import("./helpers/serviceKeys");
+    const webhookSecret = await getServiceKeyFromAction(
+      ctx,
+      "commerce.payments",
+      "stripeWebhookSecret",
+      "STRIPE_WEBHOOK_SECRET",
+    );
+    const stripeSecretKey = await getServiceKeyFromAction(
+      ctx,
+      "commerce.payments",
+      "stripeSecretKey",
+      "STRIPE_SECRET_KEY",
+    );
     if (!webhookSecret || !signature) {
       return new Response(
         JSON.stringify({ error: "Missing webhook secret or signature" }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
+    if (!stripeSecretKey) {
+      return new Response(
+        JSON.stringify({ error: "Stripe secret key not configured" }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
 
     // Dynamic import for Stripe SDK (Node.js action context)
     const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+    const stripe = new Stripe(stripeSecretKey);
 
     let webhookEventId: string | undefined;
 
@@ -571,9 +591,18 @@ http.route({
     }
 
     // ── PayPal Signature Verification ──────────────────────────────────────
-    const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+    // Settings-first, env-fallback.
+    const { getServiceKeyFromAction: getPPKey } = await import(
+      "./helpers/serviceKeys"
+    );
+    const webhookId = await getPPKey(
+      ctx,
+      "commerce.payments",
+      "paypalWebhookId",
+      "PAYPAL_WEBHOOK_ID",
+    );
     if (!webhookId) {
-      console.error("[PayPal Webhook] PAYPAL_WEBHOOK_ID not configured");
+      console.error("[PayPal Webhook] paypalWebhookId not configured");
       return new Response(
         JSON.stringify({ error: "Webhook not configured" }),
         { status: 500, headers: { "Content-Type": "application/json" } },
@@ -600,9 +629,21 @@ http.route({
     }
 
     // Verify signature via PayPal API
-    const paypalClientId = process.env.PAYPAL_CLIENT_ID;
-    const paypalClientSecret = process.env.PAYPAL_CLIENT_SECRET;
-    const paypalMode = process.env.PAYPAL_MODE || "sandbox";
+    const paypalClientId = await getPPKey(
+      ctx,
+      "commerce.payments",
+      "paypalClientId",
+      "PAYPAL_CLIENT_ID",
+    );
+    const paypalClientSecret = await getPPKey(
+      ctx,
+      "commerce.payments",
+      "paypalClientSecret",
+      "PAYPAL_CLIENT_SECRET",
+    );
+    const paypalMode =
+      (await getPPKey(ctx, "commerce.payments", "paypalMode", "PAYPAL_MODE")) ||
+      "sandbox";
     const paypalBaseUrl =
       paypalMode === "live"
         ? "https://api-m.paypal.com"

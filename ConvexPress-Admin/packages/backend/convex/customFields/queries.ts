@@ -36,6 +36,7 @@ import {
   getFieldWithValueArgs,
   searchGroupsArgs,
 } from "./validators";
+import { isPluginEnabled } from "../helpers/plugins";
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ import {
 export const listGroups = query({
   args: listGroupsArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // Auth check
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -114,6 +116,7 @@ export const listGroups = query({
 export const getGroup = query({
   args: getGroupArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 
@@ -143,6 +146,7 @@ export const getGroup = query({
 export const getFieldsByGroup = query({
   args: getFieldsByGroupArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
@@ -168,6 +172,7 @@ export const getFieldsByGroup = query({
 export const getGroupsForContext = query({
   args: getGroupsForContextArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
@@ -229,6 +234,7 @@ export const getGroupsForContext = query({
 export const getValue = query({
   args: getValueArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // No auth required - allows anonymous access for public content
 
     let fieldDef;
@@ -294,6 +300,7 @@ export const getValue = query({
 export const getAllValues = query({
   args: getAllValuesArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // No auth required - allows anonymous access for public content
 
     // Get all values for this entity
@@ -335,6 +342,7 @@ export const getAllValues = query({
 export const getFieldWithValue = query({
   args: getFieldWithValueArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // No auth required - allows anonymous access for public content
 
     // Look up field definition by name
@@ -372,6 +380,7 @@ export const getFieldWithValue = query({
 export const searchGroups = query({
   args: searchGroupsArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
@@ -399,6 +408,7 @@ export const searchGroups = query({
 export const counts = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       return { groups: 0, activeGroups: 0, fields: 0 };

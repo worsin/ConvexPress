@@ -57,6 +57,7 @@ import {
   MAX_NAME_LENGTH,
   MAX_INSTRUCTIONS_LENGTH,
 } from "./validators";
+import { requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Validation Helpers (local) ─────────────────────────────────────────────
 
@@ -202,6 +203,7 @@ function validateConditionalLogic(
 export const createGroup = mutation({
   args: createGroupArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     const user = await requireCan(ctx, "custom_field.create_group");
 
@@ -361,6 +363,7 @@ export const createGroup = mutation({
 export const updateGroup = mutation({
   args: updateGroupArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     const user = await requireCan(ctx, "custom_field.update_group");
 
@@ -521,6 +524,7 @@ export const updateGroup = mutation({
 export const deleteGroup = mutation({
   args: deleteGroupArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     const user = await requireCan(ctx, "custom_field.delete_group");
 
@@ -610,6 +614,7 @@ export const deleteGroup = mutation({
 export const createField = mutation({
   args: createFieldArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     await requireCan(ctx, "custom_field.create_group");
 
@@ -726,6 +731,7 @@ export const createField = mutation({
 export const updateField = mutation({
   args: updateFieldArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     await requireCan(ctx, "custom_field.update_group");
 
@@ -836,6 +842,7 @@ export const updateField = mutation({
 export const deleteField = mutation({
   args: deleteFieldArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     await requireCan(ctx, "custom_field.delete_group");
 
@@ -922,6 +929,7 @@ async function deleteSubFieldsRecursive(
 export const reorderFields = mutation({
   args: reorderFieldsArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     await requireCan(ctx, "custom_field.update_group");
 
@@ -977,6 +985,7 @@ export const reorderFields = mutation({
 export const setValue = mutation({
   args: setValueArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     const user = await requireCan(ctx, "custom_field.set_value");
 
@@ -1106,6 +1115,7 @@ export const setValue = mutation({
 export const deleteValue = mutation({
   args: deleteValueArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     await requireCan(ctx, "custom_field.set_value");
 
@@ -1168,6 +1178,7 @@ export const deleteValue = mutation({
 export const setValues = mutation({
   args: setValuesArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     const user = await requireCan(ctx, "custom_field.set_value");
     const now = Date.now();
@@ -1287,6 +1298,7 @@ export const setValues = mutation({
 export const duplicateGroup = mutation({
   args: duplicateGroupArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     const user = await requireCan(ctx, "custom_field.create_group");
 
@@ -1416,6 +1428,7 @@ export const duplicateGroup = mutation({
 export const exportGroup = mutation({
   args: exportGroupArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     await requireCan(ctx, "custom_field.create_group");
 
@@ -1483,6 +1496,7 @@ export const exportGroup = mutation({
 export const importGroup = mutation({
   args: importGroupArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     const user = await requireCan(ctx, "custom_field.create_group");
 

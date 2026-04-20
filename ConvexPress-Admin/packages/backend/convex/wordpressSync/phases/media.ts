@@ -7,14 +7,14 @@
  * Uses smaller batch sizes due to file download overhead.
  */
 
-import { internalAction, internalMutation } from "../../_generated/server";
+import { internalAction, internalMutation, type ActionCtx, type MutationCtx } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { fetchWPMedia, type WPMedia } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { MEDIA_BATCH_SIZE, createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { MEDIA_BATCH_SIZE, normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 import { createFinding } from "../helpers/idMapping";
 
 
@@ -30,8 +30,9 @@ export const importBatch = internalAction({
   args: {
     jobId: v.id("wordpressSyncJobs"),
     siteId: v.id("wordpressSites"),
+    credentials: siteCredentialsValidator,
   },
-  handler: async (ctx, { jobId, siteId }): Promise<PhaseResult> => {
+  handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
     let created = 0;
     let updated = 0;
@@ -42,7 +43,7 @@ export const importBatch = internalAction({
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
 
     // Get import config
-    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const importConfig = normalizeImportConfig(job?.importConfig);
     const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
@@ -53,21 +54,31 @@ export const importBatch = internalAction({
       };
     }
 
-    const credentials = {
-      siteUrl: site.siteUrl,
-      username: site.username,
-      applicationPassword: site.applicationPassword,
-    };
-
     const progress: PhaseProgress = { ...job.progress.media };
     const cursor = progress.cursor || 0;
+    const entityLimit =
+      typeof importConfig.filters.entityLimit === "number"
+        ? importConfig.filters.entityLimit
+        : undefined;
+    if (entityLimit !== undefined && cursor >= entityLimit) {
+      progress.total = Math.min(progress.total || entityLimit, entityLimit);
+      return { progress, errors, hasMore: false };
+    }
     const page = Math.floor(cursor / MEDIA_BATCH_SIZE) + 1;
 
     // Fetch media from WordPress
-    const { data: mediaItems, total } = await fetchWPMedia(credentials, page, MEDIA_BATCH_SIZE);
+    const { data: fetchedMediaItems, total } = await fetchWPMedia(credentials, page, MEDIA_BATCH_SIZE, {
+      dateRangeStart: importConfig.filters.dateRangeStart,
+      dateRangeEnd: importConfig.filters.dateRangeEnd,
+    });
+    const mediaItems =
+      entityLimit !== undefined
+        ? fetchedMediaItems.slice(0, Math.max(0, entityLimit - cursor))
+        : fetchedMediaItems;
+    const effectiveTotal = entityLimit !== undefined ? Math.min(total, entityLimit) : total;
 
-    if (progress.total === 0 && total > 0) {
-      progress.total = total;
+    if (progress.total === 0 && effectiveTotal > 0) {
+      progress.total = effectiveTotal;
     }
 
     // Process each media item
@@ -79,15 +90,34 @@ export const importBatch = internalAction({
           source_url: wpMedia.source_url,
           mime_type: wpMedia.mime_type,
           slug: wpMedia.slug,
+          alt_text: wpMedia.alt_text,
+          caption: wpMedia.caption?.rendered,
+          description: wpMedia.description?.rendered,
+          file: wpMedia.media_details?.file,
+          width: wpMedia.media_details?.width,
+          height: wpMedia.media_details?.height,
+          filesize: wpMedia.media_details?.filesize,
+          sizes: wpMedia.media_details?.sizes,
         });
+        const sourceUrls = extractMediaSourceUrls(wpMedia);
 
         // Check if already imported (full mapping for sourceHash)
         const existingMapping = await ctx.runQuery(
           internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
           { siteId, objectType: "media", wpId: wpMedia.id }
         );
+        const existingMediaId = existingMapping?.convexId;
 
         if (existingMapping) {
+          if (!isDryRun) {
+            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+              siteId,
+              objectType: "media",
+              wpId: wpMedia.id,
+              jobId,
+            });
+          }
+
           // Source hash comparison - skip if unchanged
           if (existingMapping.sourceHash === sourceHash) {
             skipped++;
@@ -106,6 +136,35 @@ export const importBatch = internalAction({
             skipped++;
             progress.imported++;
             continue;
+          }
+
+          if (!isDryRun) {
+            const sourceChanged = existingMapping.sourceUrl !== wpMedia.source_url;
+            const result = sourceChanged
+              ? await downloadAndUpload(ctx, wpMedia, siteId, existingMediaId)
+              : await updateExistingMedia(ctx, wpMedia, siteId, existingMediaId);
+
+            if (!result.success || !result.mediaId) {
+              errors.push({
+                phase: "media",
+                wpId: wpMedia.id,
+                message: result.error || "Failed to update media",
+                timestamp: Date.now(),
+              });
+              progress.failed++;
+              continue;
+            }
+
+            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+              siteId,
+              objectType: "media",
+              wpId: wpMedia.id,
+              convexId: result.mediaId,
+              sourceUrl: wpMedia.source_url,
+              sourceUrls,
+              sourceHash,
+              jobId,
+            });
           }
 
           updated++;
@@ -128,7 +187,9 @@ export const importBatch = internalAction({
               wpId: wpMedia.id,
               convexId: result.mediaId,
               sourceUrl: wpMedia.source_url,
+              sourceUrls,
               sourceHash,
+              jobId,
             });
 
             created++;
@@ -178,16 +239,19 @@ export const importBatch = internalAction({
 // ─── Download and Upload Helper ────────────────────────────────────────────
 
 async function downloadAndUpload(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   wpMedia: WPMedia,
-  siteId: Id<"wordpressSites">
+  siteId: Id<"wordpressSites">,
+  existingId?: string,
 ): Promise<{ success: boolean; mediaId?: string; error?: string }> {
   try {
     // Check if media with same source URL already exists
-    const existingByUrl = await ctx.runQuery(
-      internal.wordpressSync.phases.mediaFindBySourceUrl,
-      { sourceUrl: wpMedia.source_url }
-    );
+    const existingByUrl = existingId
+      ? null
+      : await ctx.runQuery(
+          internal.wordpressSync.phases.mediaFindBySourceUrl,
+          { sourceUrl: wpMedia.source_url }
+        );
 
     if (existingByUrl) {
       // Media already exists, just return the ID
@@ -233,6 +297,7 @@ async function downloadAndUpload(
 
     // Create media record
     const mediaId = await ctx.runMutation(internal.wordpressSync.phases.mediaCreate, {
+      existingId,
       wpMedia: {
         id: wpMedia.id,
         title: wpMedia.title?.rendered || wpMedia.slug,
@@ -248,6 +313,7 @@ async function downloadAndUpload(
         height: wpMedia.media_details?.height,
         sourceUrl: wpMedia.source_url,
         authorWpId: wpMedia.author,
+        sizes: extractWpMediaSizes(wpMedia),
       },
       storageId,
       url,
@@ -261,6 +327,68 @@ async function downloadAndUpload(
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
+}
+
+async function updateExistingMedia(
+  ctx: ActionCtx,
+  wpMedia: WPMedia,
+  siteId: Id<"wordpressSites">,
+  existingId: string | undefined,
+): Promise<{ success: boolean; mediaId?: string; error?: string }> {
+  if (!existingId) {
+    return { success: false, error: "Existing media mapping is missing a destination ID" };
+  }
+
+  try {
+    const mediaId = await ctx.runMutation(internal.wordpressSync.phases.mediaUpdateMetadata, {
+      mediaId: existingId,
+      wpMedia: {
+        id: wpMedia.id,
+        title: wpMedia.title?.rendered || wpMedia.slug,
+        slug: wpMedia.slug,
+        fileName: wpMedia.media_details?.file || wpMedia.slug,
+        description: wpMedia.description?.rendered,
+        caption: wpMedia.caption?.rendered,
+        altText: wpMedia.alt_text,
+        mimeType: wpMedia.mime_type,
+        mediaType: determineMediaType(wpMedia.mime_type),
+        fileSize: wpMedia.media_details?.filesize || 0,
+        width: wpMedia.media_details?.width,
+        height: wpMedia.media_details?.height,
+        sourceUrl: wpMedia.source_url,
+        authorWpId: wpMedia.author,
+        sizes: extractWpMediaSizes(wpMedia),
+      },
+      siteId,
+    });
+    return { success: true, mediaId };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+function extractMediaSourceUrls(wpMedia: WPMedia): string[] {
+  const urls = new Set<string>();
+  if (wpMedia.source_url) urls.add(wpMedia.source_url);
+
+  for (const size of Object.values(wpMedia.media_details?.sizes ?? {})) {
+    if (size.source_url) urls.add(size.source_url);
+  }
+
+  return Array.from(urls);
+}
+
+function extractWpMediaSizes(wpMedia: WPMedia) {
+  return Object.entries(wpMedia.media_details?.sizes ?? {}).map(([name, size]) => ({
+    name,
+    width: size.width,
+    height: size.height,
+    fileSize: wpMedia.media_details?.filesize || 0,
+    mimeType: size.mime_type || wpMedia.mime_type,
+  }));
 }
 
 // ─── Media Type Detection ──────────────────────────────────────────────────
@@ -314,6 +442,7 @@ export const mediaFindBySourceUrl = internalMutation({
 
 export const mediaCreate = internalMutation({
   args: {
+    existingId: v.optional(v.string()),
     wpMedia: v.object({
       id: v.number(),
       title: v.string(),
@@ -336,12 +465,19 @@ export const mediaCreate = internalMutation({
       height: v.optional(v.number()),
       sourceUrl: v.string(),
       authorWpId: v.number(),
+      sizes: v.optional(v.array(v.object({
+        name: v.string(),
+        width: v.number(),
+        height: v.number(),
+        fileSize: v.number(),
+        mimeType: v.string(),
+      }))),
     }),
     storageId: v.id("_storage"),
     url: v.string(),
     siteId: v.id("wordpressSites"),
   },
-  handler: async (ctx, { wpMedia, storageId, url, siteId }) => {
+  handler: async (ctx, { existingId, wpMedia, storageId, url, siteId }) => {
     const now = Date.now();
 
     // Try to find the author (imported earlier)
@@ -388,8 +524,7 @@ export const mediaCreate = internalMutation({
     const description = wpMedia.description ? stripHtml(wpMedia.description) : undefined;
     const caption = wpMedia.caption ? stripHtml(wpMedia.caption) : undefined;
 
-    // Create media record
-    const mediaId = await ctx.db.insert("media", {
+    const fields = {
       title: stripHtml(wpMedia.title),
       fileName: wpMedia.fileName,
       slug: wpMedia.slug,
@@ -403,18 +538,139 @@ export const mediaCreate = internalMutation({
       mediaType: wpMedia.mediaType,
       width: wpMedia.width,
       height: wpMedia.height,
-      status: "active",
+      status: "active" as const,
       uploadedBy: uploaderId,
+      uploadPath: wpMedia.fileName,
       wpAttachmentId: wpMedia.id,
       wpSourceUrl: wpMedia.sourceUrl,
       wpSourceSiteId: siteId,
-      createdAt: now,
       updatedAt: now,
+    };
+
+    if (existingId) {
+      await ctx.db.patch(existingId as Id<"media">, fields);
+      await replaceImportedMediaSizes(ctx, existingId as Id<"media">, storageId, url, wpMedia);
+      return existingId;
+    }
+
+    // Create media record
+    const mediaId = await ctx.db.insert("media", {
+      ...fields,
+      createdAt: now,
+    });
+
+    await replaceImportedMediaSizes(ctx, mediaId, storageId, url, wpMedia);
+
+    return mediaId;
+  },
+});
+
+export const mediaUpdateMetadata = internalMutation({
+  args: {
+    mediaId: v.string(),
+    wpMedia: v.object({
+      id: v.number(),
+      title: v.string(),
+      slug: v.string(),
+      fileName: v.string(),
+      description: v.optional(v.string()),
+      caption: v.optional(v.string()),
+      altText: v.optional(v.string()),
+      mimeType: v.string(),
+      mediaType: v.union(
+        v.literal("image"),
+        v.literal("video"),
+        v.literal("audio"),
+        v.literal("document"),
+        v.literal("archive"),
+        v.literal("other")
+      ),
+      fileSize: v.number(),
+      width: v.optional(v.number()),
+      height: v.optional(v.number()),
+      sourceUrl: v.string(),
+      authorWpId: v.number(),
+      sizes: v.optional(v.array(v.object({
+        name: v.string(),
+        width: v.number(),
+        height: v.number(),
+        fileSize: v.number(),
+        mimeType: v.string(),
+      }))),
+    }),
+    siteId: v.id("wordpressSites"),
+  },
+  handler: async (ctx, { mediaId, wpMedia, siteId }) => {
+    const existing = await ctx.db.get(mediaId as Id<"media">);
+    if (!existing) {
+      throw new Error("Existing media not found");
+    }
+
+    const description = wpMedia.description ? stripHtml(wpMedia.description) : undefined;
+    const caption = wpMedia.caption ? stripHtml(wpMedia.caption) : undefined;
+
+    await ctx.db.patch(existing._id, {
+      title: stripHtml(wpMedia.title),
+      fileName: wpMedia.fileName,
+      slug: wpMedia.slug,
+      description,
+      caption,
+      altText: wpMedia.altText || undefined,
+      mimeType: wpMedia.mimeType,
+      fileSize: wpMedia.fileSize || existing.fileSize,
+      mediaType: wpMedia.mediaType,
+      width: wpMedia.width,
+      height: wpMedia.height,
+      uploadPath: wpMedia.fileName,
+      wpAttachmentId: wpMedia.id,
+      wpSourceUrl: wpMedia.sourceUrl,
+      wpSourceSiteId: siteId,
+      updatedAt: Date.now(),
+    });
+
+    await replaceImportedMediaSizes(ctx, existing._id, existing.storageId, existing.url, {
+      ...wpMedia,
+      fileSize: wpMedia.fileSize || existing.fileSize,
     });
 
     return mediaId;
   },
 });
+
+async function replaceImportedMediaSizes(
+  ctx: MutationCtx,
+  mediaId: Id<"media">,
+  storageId: Id<"_storage">,
+  url: string,
+  wpMedia: {
+    mimeType: string;
+    fileSize: number;
+    sizes?: Array<{ name: string; width: number; height: number; fileSize: number; mimeType: string }>;
+  },
+) {
+  const existingSizes = await ctx.db
+    .query("mediaSizes")
+    .withIndex("by_media", (q: any) => q.eq("mediaId", mediaId))
+    .collect();
+
+  for (const size of existingSizes) {
+    await ctx.db.delete(size._id);
+  }
+
+  for (const size of wpMedia.sizes ?? []) {
+    await ctx.db.insert("mediaSizes", {
+      mediaId,
+      sizeName: size.name,
+      storageId,
+      url,
+      width: size.width,
+      height: size.height,
+      fileSize: size.fileSize || wpMedia.fileSize,
+      mimeType: size.mimeType || wpMedia.mimeType,
+      crop: size.name === "thumbnail",
+    });
+  }
+}
 
 // ─── Utility Functions ─────────────────────────────────────────────────────
 

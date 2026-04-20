@@ -25,12 +25,14 @@ import {
   rejectStepArgs,
 } from "./validators";
 import { v } from "convex/values";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -45,6 +47,7 @@ export const list = query({
 export const get = query({
   args: { workflowId: v.id("kb_workflows") },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -59,6 +62,7 @@ export const get = query({
 export const getDefault = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -76,6 +80,7 @@ export const getDefault = query({
 export const create = mutation({
   args: createWorkflowArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageWorkflows");
 
     const name = args.name.trim();
@@ -119,6 +124,7 @@ export const create = mutation({
 export const update = mutation({
   args: updateWorkflowArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageWorkflows");
 
     const workflow = await ctx.db.get("kb_workflows", args.workflowId);
@@ -168,6 +174,7 @@ export const update = mutation({
 export const remove = mutation({
   args: removeWorkflowArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageWorkflows");
 
     const workflow = await ctx.db.get("kb_workflows", args.workflowId);
@@ -194,6 +201,7 @@ export const remove = mutation({
 export const startWorkflow = mutation({
   args: startWorkflowArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -264,6 +272,7 @@ export const startWorkflow = mutation({
 export const approveStep = mutation({
   args: approveStepArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.publish");
 
     const articleWorkflow = await ctx.db.get("kb_articleWorkflows", args.articleWorkflowId);
@@ -363,6 +372,7 @@ export const approveStep = mutation({
 export const rejectStep = mutation({
   args: rejectStepArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.publish");
 
     const articleWorkflow = await ctx.db.get("kb_articleWorkflows", args.articleWorkflowId);

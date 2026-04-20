@@ -8,6 +8,7 @@
 import { action } from "../_generated/server";
 import { v, ConvexError } from "convex/values";
 import { internal, api } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import { testConnection, getContentCounts } from "./helpers/wpClient";
 import { decryptSecret } from "../api/crypto_helpers";
 import { WPAdapter } from "./helpers/adapters/wpAdapter";
@@ -19,17 +20,22 @@ const WP_ENCRYPTION_KEY = process.env.WP_SYNC_ENCRYPTION_KEY;
 /**
  * Helper to decrypt application password if encrypted.
  */
-async function decryptPassword(encryptedPassword: string): Promise<string> {
-  if (WP_ENCRYPTION_KEY && encryptedPassword.includes(":")) {
+async function decryptStoredSecret(secret: string | undefined): Promise<string | undefined> {
+  if (!secret) return undefined;
+  if (WP_ENCRYPTION_KEY && secret.includes(":")) {
     // Encrypted format is "iv:authTag:ciphertext"
     try {
-      return await decryptSecret(encryptedPassword, WP_ENCRYPTION_KEY);
+      return await decryptSecret(secret, WP_ENCRYPTION_KEY);
     } catch (error) {
-      console.warn("[WP Sync] Failed to decrypt password, using as-is");
-      return encryptedPassword;
+      console.warn("[WP Sync] Failed to decrypt stored secret, using as-is");
+      return secret;
     }
   }
-  return encryptedPassword;
+  return secret;
+}
+
+async function decryptPassword(encryptedPassword: string): Promise<string> {
+  return (await decryptStoredSecret(encryptedPassword)) ?? encryptedPassword;
 }
 
 // ─── Site Actions ──────────────────────────────────────────────────────────
@@ -106,12 +112,17 @@ export const testSiteConnection = action({
         );
 
         const metaEndpointPath = site?.metaEndpointPath;
+        const wooKey = await decryptStoredSecret(site?.wooConsumerKey);
+        const wooSecret = await decryptStoredSecret(site?.wooConsumerSecret);
+        const wooAuthMode = (site?.wooAuthMode ?? "shared") as "shared" | "separate";
 
         const adapterConfig = {
           siteUrl: credentials.siteUrl,
           username: credentials.username,
           password: credentials.applicationPassword,
-          wooAuthMode: "shared" as const,
+          wooAuthMode,
+          wooKey,
+          wooSecret,
           metaEndpointPath: metaEndpointPath,
         };
 
@@ -203,20 +214,25 @@ export const startSync = action({
       siteId,
     });
 
-    let jobId: typeof activeJob._id;
+    let jobId: Id<"wordpressSyncJobs">;
 
     if (activeJob) {
       if (activeJob.status === "running") {
-        throw new ConvexError("A sync job is already running");
+        throw new ConvexError("An import is already running for this site");
       }
-      jobId = activeJob._id;
-    } else {
-      // Create a new job
-      jobId = await ctx.runMutation(api.wordpressSync.mutations.createJob, {
-        siteId,
-        importConfig: importConfig ?? undefined,
-      });
+      if (activeJob.status === "paused") {
+        throw new ConvexError("A paused import already exists. Resume or cancel it before starting a new import.");
+      }
+      if (activeJob.status === "pending") {
+        throw new ConvexError("A pending import already exists. Cancel it before starting a new import.");
+      }
     }
+
+    // Create a new job so the submitted importConfig is snapshotted for this run.
+    jobId = await ctx.runMutation(api.wordpressSync.mutations.createJob, {
+      siteId,
+      importConfig: importConfig ?? undefined,
+    });
 
     // Start the job
     await ctx.runMutation(api.wordpressSync.mutations.startJob, {

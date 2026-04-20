@@ -19,12 +19,14 @@ import {
   getArticleFeedbackStatsArgs,
   getUserFeedbackArgs,
 } from "./validators";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Submit Helpful ─────────────────────────────────────────────────────────
 
 export const submitHelpful = mutation({
   args: submitHelpfulArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
 
     const article = await ctx.db.get("kb_articles", args.articleId);
@@ -111,6 +113,7 @@ export const submitHelpful = mutation({
 export const submitRating = mutation({
   args: submitRatingArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
 
     const article = await ctx.db.get("kb_articles", args.articleId);
@@ -197,6 +200,7 @@ export const submitRating = mutation({
 export const getArticleStats = query({
   args: getArticleFeedbackStatsArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     // Safety-bounded with .take(5000) — use denormalized article counts for basic stats
     const feedback = await ctx.db
       .query("kb_articleFeedback")
@@ -226,6 +230,7 @@ export const getArticleStats = query({
 export const getUserFeedback = query({
   args: getUserFeedbackArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
       .query("kb_articleFeedback")
       .withIndex("by_session_article", (q) =>

@@ -62,12 +62,23 @@ export interface ParagraphBlock {
 export interface ImageBlock {
   type: "image";
   attrs: {
-    src: string;
+    /** Legacy / fallback URL. Optional when `mediaId` is provided. */
+    src?: string;
+    /** Media library reference. When present, render via MediaImage. */
+    mediaId?: string;
     alt?: string;
     title?: string;
     width?: number;
     height?: number;
     caption?: string;
+    /** WP-style alignment. Default "none". */
+    align?: "none" | "left" | "center" | "right" | "wide" | "full";
+    /** WP-style link target. Default "none". */
+    linkTo?: "none" | "media" | "attachment" | "custom";
+    /** Custom URL when `linkTo === "custom"`. */
+    linkUrl?: string;
+    /** Which registered size variant to render. Default "large". */
+    sizeSlug?: "thumbnail" | "medium" | "medium_large" | "large" | "full";
   };
 }
 

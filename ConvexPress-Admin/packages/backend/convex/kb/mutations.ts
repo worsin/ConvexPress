@@ -45,12 +45,14 @@ import {
   MAX_KB_EXCERPT_LENGTH,
   MAX_KEYWORDS,
 } from "./validators";
+import { requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Create ─────────────────────────────────────────────────────────────────
 
 export const create = mutation({
   args: createArticleArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.create");
 
     const title = (args.title ?? "").trim();
@@ -161,6 +163,7 @@ export const create = mutation({
 export const update = mutation({
   args: updateArticleArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -279,6 +282,7 @@ export const update = mutation({
 export const publish = mutation({
   args: publishArticleArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.publish");
 
     const article = await ctx.db.get("kb_articles", args.articleId);
@@ -346,6 +350,7 @@ export const publish = mutation({
 export const unpublish = mutation({
   args: unpublishArticleArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.publish");
 
     const article = await ctx.db.get("kb_articles", args.articleId);
@@ -391,6 +396,7 @@ export const unpublish = mutation({
 export const archive = mutation({
   args: archiveArticleArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.delete");
 
     const article = await ctx.db.get("kb_articles", args.articleId);
@@ -434,6 +440,7 @@ export const archive = mutation({
 export const remove = mutation({
   args: removeArticleArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.delete");
 
     const article = await ctx.db.get("kb_articles", args.articleId);
@@ -564,6 +571,7 @@ export const remove = mutation({
 export const toggleFeatured = mutation({
   args: toggleFeaturedArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.publish");
 
     const article = await ctx.db.get("kb_articles", args.articleId);
@@ -585,6 +593,7 @@ export const toggleFeatured = mutation({
 export const createVersion = mutation({
   args: createVersionArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });

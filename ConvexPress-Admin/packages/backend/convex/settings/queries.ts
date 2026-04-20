@@ -24,8 +24,9 @@
  *   const publicSettings = useQuery(api.settings.queries.getPublic);
  */
 
-import { query } from "../_generated/server";
+import { query, type QueryCtx } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
+import { redactSettingSecrets } from "../helpers/settingsSecret";
 import { getSectionArgs } from "./validators";
 import {
   getDefaults,
@@ -33,6 +34,19 @@ import {
   SECTION_NAMES,
   type SettingsSection,
 } from "./defaults";
+
+async function getMergedSettingsSection(
+  ctx: QueryCtx,
+  section: SettingsSection,
+) {
+  const defaults = getDefaults(section);
+  const doc = await ctx.db
+    .query("settings")
+    .withIndex("by_section", (q) => q.eq("section", section))
+    .unique();
+
+  return doc ? { ...defaults, ...(doc.values as Record<string, unknown>) } : { ...defaults };
+}
 
 // ─── get ─────────────────────────────────────────────────────────────────────
 
@@ -55,7 +69,11 @@ export const get = query({
       .withIndex("by_section", (q) => q.eq("section", args.section))
       .unique();
 
-    return doc;
+    if (!doc) return null;
+    return {
+      ...doc,
+      values: redactSettingSecrets(doc.values as Record<string, any>),
+    };
   },
 });
 
@@ -96,8 +114,13 @@ export const getBySection = query({
       ? { ...defaults, ...(doc.values as Record<string, unknown>) }
       : { ...defaults };
 
+    // Redact any field whose name suggests it's a secret. The admin UI
+    // sees `__set__` as a sentinel and renders a masked display; the real
+    // plaintext only leaves the backend via internal decryption helpers.
+    const redacted = redactSettingSecrets(values);
+
     return {
-      ...values,
+      ...(redacted as any),
       _id: doc?._id ?? null,
       updatedAt: doc?.updatedAt ?? null,
       updatedBy: doc?.updatedBy ?? null,
@@ -158,16 +181,7 @@ export const getPublic = query({
     const sections: Record<string, Record<string, unknown>> = {};
 
     for (const section of AUTOLOADED_SECTIONS) {
-      const defaults = getDefaults(section);
-
-      const doc = await ctx.db
-        .query("settings")
-        .withIndex("by_section", (q) => q.eq("section", section))
-        .unique();
-
-      sections[section] = doc
-        ? { ...defaults, ...(doc.values as Record<string, unknown>) }
-        : { ...defaults };
+      sections[section] = await getMergedSettingsSection(ctx, section);
     }
 
     // Build the public-safe result by picking specific values
@@ -178,6 +192,9 @@ export const getPublic = query({
     const privacy = sections.privacy ?? {};
     const header = sections.header ?? {};
     const footer = sections.footer ?? {};
+    const plugins = await getMergedSettingsSection(ctx, "plugins");
+    const commerce = await getMergedSettingsSection(ctx, "commerce.general");
+    const shipping = await getMergedSettingsSection(ctx, "integrations.shipping");
 
     return {
       // General (excluding adminEmail)
@@ -226,6 +243,47 @@ export const getPublic = query({
 
       // Website Appearance - Footer config (all fields are safe for public)
       footerConfig: footer,
+
+      // Public plugin flags. These are feature visibility controls, not secrets.
+      plugins: {
+        commerceEnabled: plugins.commerceEnabled,
+        commerceSubscriptionsEnabled: plugins.commerceSubscriptionsEnabled,
+        commerceDigitalEnabled: plugins.commerceDigitalEnabled,
+        commerceReviewsEnabled: plugins.commerceReviewsEnabled,
+        commerceWishlistsEnabled: plugins.commerceWishlistsEnabled,
+        commerceBundlesEnabled: plugins.commerceBundlesEnabled,
+        commerceReturnsEnabled: plugins.commerceReturnsEnabled,
+        membershipEnabled: plugins.membershipEnabled,
+        knowledgeBaseEnabled: plugins.knowledgeBaseEnabled,
+        ticketsEnabled: plugins.ticketsEnabled,
+        customFieldsEnabled: plugins.customFieldsEnabled,
+        recipesEnabled: plugins.recipesEnabled,
+        galleryEnabled: plugins.galleryEnabled,
+      },
+
+      // Commerce runtime settings used by the public cart and checkout UI.
+      commerceConfig: {
+        storeName: commerce.storeName,
+        storeEmail: commerce.storeEmail,
+        currencyCode: commerce.currencyCode,
+        currencySymbol: commerce.currencySymbol,
+        pricesIncludeTax: commerce.pricesIncludeTax,
+        taxRateBasis: commerce.taxRateBasis,
+        defaultCountryCode: commerce.defaultCountryCode,
+        defaultState: commerce.defaultState,
+        checkoutRequiresPhone: commerce.checkoutRequiresPhone,
+        allowGuestCheckout: commerce.allowGuestCheckout,
+        shippingEnabled: commerce.shippingEnabled,
+        shippingMethods: commerce.shippingMethods,
+        paymentMethods: commerce.paymentMethods,
+        preferredProvider: shipping.preferredProvider,
+        liveRatesEnabled: shipping.liveRatesEnabled,
+        fallbackToManualRates: shipping.fallbackToManualRates,
+        fallbackMessage: shipping.fallbackMessage,
+        cheapestBadgeLabel: shipping.cheapestBadgeLabel,
+        fastestBadgeLabel: shipping.fastestBadgeLabel,
+        bestOptionBadgeLabel: shipping.bestOptionBadgeLabel,
+      },
     };
   },
 });
@@ -260,9 +318,12 @@ export const exportAll = query({
         .withIndex("by_section", (q) => q.eq("section", section))
         .unique();
 
-      settings[section] = doc
+      const merged = doc
         ? { ...defaults, ...(doc.values as Record<string, unknown>) }
         : { ...defaults };
+      // Exports include secrets as redacted sentinels — never plaintext.
+      // Operators re-enter keys on a restored install.
+      settings[section] = redactSettingSecrets(merged as any) as any;
     }
 
     return {

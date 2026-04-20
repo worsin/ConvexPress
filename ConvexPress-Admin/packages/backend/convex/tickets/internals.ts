@@ -15,6 +15,7 @@ import { internal } from "../_generated/api";
 import { emitEvent } from "../helpers/events";
 import { TICKET_EVENTS, SYSTEM } from "../events/constants";
 import { v } from "convex/values";
+import { requirePluginEnabled } from "../helpers/plugins";
 
 // ─── autoCloseResolved ──────────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ import { v } from "convex/values";
 export const autoCloseResolved = internalMutation({
   args: { batchSize: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const batchSize = args.batchSize ?? 100;
 
     // Read auto-close setting
@@ -122,6 +124,7 @@ export const autoCloseResolved = internalMutation({
 export const cleanupAll = internalMutation({
   args: {},
   handler: async (ctx) => {
+    await requirePluginEnabled(ctx, "tickets");
     // Schedule session cleanup
     await ctx.scheduler.runAfter(
       0,

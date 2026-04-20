@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { AdminPluginId } from "@/lib/plugins/registry";
 
 /**
  * Represents a single navigation item in the admin sidebar.
@@ -14,6 +15,8 @@ export interface AdminNavItem {
   icon?: LucideIcon;
   /** Capability required to see this item (e.g., "edit_posts") */
   capability?: string;
+  /** Plugin that owns this item — hidden when that plugin is disabled */
+  pluginId?: AdminPluginId;
   /** Badge count (e.g., pending comments count) */
   badge?: number;
   /** Whether this is the "Add New" action link (styled differently) */
@@ -37,6 +40,8 @@ export interface AdminNavSection {
   icon: LucideIcon;
   /** Capability required to see this section */
   capability?: string;
+  /** Plugin that owns this section — hidden when that plugin is disabled */
+  pluginId?: AdminPluginId;
   /** Badge count on the parent item */
   badge?: number;
   /** Child navigation items */

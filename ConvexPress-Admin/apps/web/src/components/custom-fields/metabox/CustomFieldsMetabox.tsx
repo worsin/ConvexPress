@@ -48,6 +48,29 @@ interface CustomFieldsMetaboxProps {
   position: "normal" | "side" | "after_title";
 }
 
+type MatchingFieldGroup = {
+  _id: string;
+  title: string;
+  key: string;
+  style?: string;
+  labelPlacement?: string;
+  instructionPlacement?: string;
+  position?: string;
+  fields: Array<{
+    _id: string;
+    label: string;
+    name: string;
+    key: string;
+    type: string;
+    instructions?: string;
+    required: boolean;
+    defaultValue?: string;
+    settings: string;
+    parentFieldId?: string;
+    conditionalLogic?: string;
+  }>;
+};
+
 export function CustomFieldsMetabox({ context, position }: CustomFieldsMetaboxProps) {
   // Fetch field groups matching this editor context
   const matchingGroups = useQuery(api.customFields.queries.getGroupsForContext, {
@@ -68,7 +91,7 @@ export function CustomFieldsMetabox({ context, position }: CustomFieldsMetaboxPr
   }
 
   // Filter groups to only those matching the requested position
-  const groupsForPosition = matchingGroups.filter(
+  const groupsForPosition = (matchingGroups as MatchingFieldGroup[]).filter(
     (group) => (group.position ?? "normal") === position
   );
 

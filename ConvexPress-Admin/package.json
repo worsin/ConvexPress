@@ -10,7 +10,7 @@
       "dotenv": "^17.2.2",
       "zod": "^4.1.13",
       "typescript": "^5",
-      "convex": "^1.31.2"
+      "convex": "^1.35.1"
     }
   },
   "type": "module",
@@ -29,11 +29,13 @@
     "@tiptap/extension-superscript": "^3.19.0",
     "dotenv": "catalog:",
     "lowlight": "^3.3.0",
+    "sharp": "^0.34.5",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@convexpress-admin/config": "workspace:*",
     "@types/node": "^22.13.14",
+    "convex": "^1.35.1",
     "turbo": "^2.6.3",
     "typescript": "catalog:"
   },

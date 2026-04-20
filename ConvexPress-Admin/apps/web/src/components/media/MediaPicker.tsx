@@ -86,54 +86,88 @@ export function MediaPicker({
     }
   }, [pendingId, onSelect]);
 
+  // Upload one file. Returns the new mediaId or throws.
+  const uploadOne = useCallback(
+    async (file: File): Promise<Id<"media">> => {
+      const uploadUrl = await generateUploadUrl();
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!result.ok) throw new Error("Upload failed");
+      const { storageId } = await result.json();
+
+      let width: number | undefined;
+      let height: number | undefined;
+      if (file.type.startsWith("image/")) {
+        try {
+          const dims = await getImageDimensions(file);
+          width = dims.width;
+          height = dims.height;
+        } catch {
+          // Continue without dimensions
+        }
+      }
+
+      return (await createMedia({
+        storageId,
+        fileName: file.name,
+        mimeType: file.type,
+        fileSize: file.size,
+        width,
+        height,
+      })) as Id<"media">;
+    },
+    [generateUploadUrl, createMedia],
+  );
+
+  // Upload one or many files with bounded parallelism. The last successful
+  // upload wins the selection slot.
   const handleUpload = useCallback(
-    async (files: FileList | null) => {
-      if (!files || files.length === 0) return;
-      const file = files[0];
+    async (files: FileList | File[] | null) => {
+      if (!files) return;
+      const fileList = Array.from(files);
+      if (fileList.length === 0) return;
 
-      try {
-        const uploadUrl = await generateUploadUrl();
-        const result = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": file.type },
-          body: file,
-        });
+      const CONCURRENCY = 3;
+      let lastSuccessId: Id<"media"> | null = null;
+      let successCount = 0;
+      let failCount = 0;
 
-        if (!result.ok) throw new Error("Upload failed");
-        const { storageId } = await result.json();
-
-        // Get dimensions for images
-        let width: number | undefined;
-        let height: number | undefined;
-        if (file.type.startsWith("image/")) {
+      // Simple bounded-parallel worker pool.
+      const queue = [...fileList];
+      const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
+        while (queue.length > 0) {
+          const file = queue.shift();
+          if (!file) break;
           try {
-            const dims = await getImageDimensions(file);
-            width = dims.width;
-            height = dims.height;
-          } catch {
-            // Continue without dimensions
+            const id = await uploadOne(file);
+            lastSuccessId = id;
+            successCount++;
+          } catch (err) {
+            failCount++;
+            toast.error(
+              `"${file.name}": ${err instanceof Error ? err.message : "upload failed"}`,
+            );
           }
         }
+      });
+      await Promise.all(workers);
 
-        const mediaId = await createMedia({
-          storageId,
-          fileName: file.name,
-          mimeType: file.type,
-          fileSize: file.size,
-          width,
-          height,
-        });
-
-        setPendingId(mediaId);
+      if (lastSuccessId) {
+        setPendingId(lastSuccessId);
         setActiveTab("library");
-        toast.success(`"${file.name}" uploaded.`);
-      } catch (err) {
-        toast.error(
-          `Upload failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+      }
+      if (successCount > 0) {
+        toast.success(
+          successCount === 1
+            ? "Upload complete."
+            : `Uploaded ${successCount} file${failCount > 0 ? ` (${failCount} failed)` : ""}.`,
         );
       }
     },
-    [generateUploadUrl, createMedia],
+    [uploadOne],
   );
 
   const items = mediaResult?.page ?? [];
@@ -330,14 +364,36 @@ export function MediaPicker({
               <div
                 className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border p-6 cursor-pointer hover:border-muted-foreground hover:bg-muted/30 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.currentTarget.classList.add("border-primary", "bg-primary/5");
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.currentTarget.classList.remove("border-primary", "bg-primary/5");
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.currentTarget.classList.remove("border-primary", "bg-primary/5");
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleUpload(e.dataTransfer.files);
+                  }
+                }}
               >
                 <UploadCloudIcon className="size-8 text-muted-foreground" />
                 <p className="text-xs text-muted-foreground">
-                  Click to select a file
+                  Click to select files, or drop them here
+                </p>
+                <p className="text-[10px] text-muted-foreground/70">
+                  Multiple files supported
                 </p>
                 <input
                   ref={fileInputRef}
                   type="file"
+                  multiple
                   className="hidden"
                   accept={
                     allowedTypes

@@ -32,6 +32,7 @@ import {
   MESSAGE_EDIT_WINDOW_MS,
   MAX_ATTACHMENTS,
 } from "./validators";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── getByTicket ────────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ import {
 export const getByTicket = query({
   args: getMessagesByTicketArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({
@@ -85,6 +87,7 @@ export const getByTicket = query({
 export const getPublicByTicket = query({
   args: getPublicMessagesByTicketArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({
@@ -119,6 +122,7 @@ export const getPublicByTicket = query({
 export const getCount = query({
   args: getMessageCountArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 
@@ -163,6 +167,7 @@ export const getCount = query({
 export const edit = mutation({
   args: editMessageArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireAuth(ctx);
 
     const message = await ctx.db.get("ticket_messages", args.messageId);
@@ -223,6 +228,7 @@ export const edit = mutation({
 export const remove = mutation({
   args: removeMessageArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
 
     const message = await ctx.db.get("ticket_messages", args.messageId);
@@ -260,6 +266,7 @@ export const remove = mutation({
 export const addInternalNote = mutation({
   args: addInternalNoteArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.viewInternalNotes");
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
@@ -332,6 +339,7 @@ export const addInternalNote = mutation({
 export const addSystemMessage = internalMutation({
   args: addSystemMessageArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
 
     const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
     if (!ticket) {

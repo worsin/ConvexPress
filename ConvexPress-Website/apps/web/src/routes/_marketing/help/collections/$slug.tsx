@@ -2,11 +2,20 @@ import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export const Route = createFileRoute("/_marketing/help/collections/$slug")({
   component: CollectionView,
   errorComponent: ErrorComponent,
   loader: async ({ context: { queryClient }, params }) => {
+    const publicSettings = await queryClient.ensureQueryData(
+      convexQuery(api.settings.queries.getPublic, {}),
+    );
+
+    if (!isPublicPluginEnabled("kb", publicSettings)) {
+      return;
+    }
+
     await queryClient.ensureQueryData(
       convexQuery(api.kb.collections.getBySlug, { slug: params.slug }),
     );

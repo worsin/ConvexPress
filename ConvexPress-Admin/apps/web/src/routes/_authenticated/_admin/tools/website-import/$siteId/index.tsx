@@ -36,7 +36,10 @@ import { cn, formatDate, formatDateTime } from "@/lib/utils";
 import { SyncProgress } from "../../wordpress-sync/-components/SyncProgress";
 import { JobHistory } from "../../wordpress-sync/-components/JobHistory";
 import { ErrorLog } from "../../wordpress-sync/-components/ErrorLog";
-import { ImportConfigPanel } from "../../wordpress-sync/-components/ImportConfigPanel";
+import {
+  ImportConfigPanel,
+  type ImportConfig,
+} from "../../wordpress-sync/-components/ImportConfigPanel";
 import { CapabilitiesCard } from "../../wordpress-sync/-components/CapabilitiesCard";
 import { PhaseSummaryCard } from "../../wordpress-sync/-components/PhaseSummaryCard";
 import { FindingsSummaryCard } from "../../wordpress-sync/-components/FindingsSummaryCard";
@@ -102,11 +105,7 @@ function WebsiteImportSiteDetail() {
     );
   }
 
-  const handleStartSync = async (importConfig?: {
-    scope: Record<string, boolean>;
-    behavior: Record<string, boolean>;
-    filters: Record<string, unknown>;
-  }) => {
+  const handleStartSync = async (importConfig?: ImportConfig) => {
     try {
       await startSync({ siteId: site._id, importConfig });
       toast.success("Import started");
@@ -173,8 +172,9 @@ function WebsiteImportSiteDetail() {
     }
   };
 
-  const hasActiveJob = activeJob && ["running", "paused"].includes(activeJob.status);
+  const hasActiveJob = activeJob && ["running", "paused", "pending"].includes(activeJob.status);
   const isPaused = activeJob?.status === "paused";
+  const isPending = activeJob?.status === "pending";
 
   return (
     <div className="space-y-6">
@@ -243,7 +243,12 @@ function WebsiteImportSiteDetail() {
 
           {hasActiveJob ? (
             <>
-              {isPaused ? (
+              {isPending ? (
+                <Button disabled>
+                  <RefreshCcwIcon className="h-4 w-4 mr-2 animate-spin" />
+                  Pending
+                </Button>
+              ) : isPaused ? (
                 <Button onClick={handleResumeSync}>
                   <PlayIcon className="h-4 w-4 mr-2" />
                   Resume Import

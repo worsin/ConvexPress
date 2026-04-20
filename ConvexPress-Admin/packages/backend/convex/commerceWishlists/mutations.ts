@@ -22,6 +22,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { requireCommerceWishlistsEnabled } from "./helpers";
+import { requirePluginEnabled } from "../helpers/plugins";
 
 // ============================================
 // HELPER: Generate share token
@@ -46,6 +47,7 @@ export const createWishlist = mutation({
     isPublic: v.optional(v.boolean()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -82,6 +84,7 @@ export const updateWishlist = mutation({
     isPublic: v.optional(v.boolean()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -124,6 +127,7 @@ export const updateWishlist = mutation({
 export const deleteWishlist = mutation({
   args: { wishlistId: v.id("commerce_wishlists") },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -179,6 +183,7 @@ export const addItem = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -263,6 +268,7 @@ export const addItem = mutation({
 export const removeItem = mutation({
   args: { itemId: v.id("commerce_wishlist_items") },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -312,6 +318,7 @@ export const moveToCart = mutation({
     quantity: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 
     const item = await ctx.db.get(args.itemId);
@@ -398,6 +405,7 @@ export const moveToCart = mutation({
 export const toggleShare = mutation({
   args: { wishlistId: v.id("commerce_wishlists") },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -449,6 +457,7 @@ export const mergeGuestWishlist = mutation({
     guestProductIds: v.array(v.id("commerce_products")),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);

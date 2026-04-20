@@ -24,6 +24,7 @@ import {
   RATE_LIMIT_WINDOWS,
   RATE_LIMIT_MAX,
 } from "./validators";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── checkAndRecord ─────────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ import {
 export const checkAndRecord = mutation({
   args: checkRateLimitArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const now = Date.now();
     const windowMs = RATE_LIMIT_WINDOWS[args.action];
     const maxRequests = RATE_LIMIT_MAX[args.action];
@@ -89,6 +91,7 @@ export const checkAndRecord = mutation({
 export const getStatus = query({
   args: getRateLimitStatusArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const now = Date.now();
     const windowMs = RATE_LIMIT_WINDOWS[args.action];
     const maxRequests = RATE_LIMIT_MAX[args.action];
@@ -123,6 +126,7 @@ export const getStatus = query({
 export const cleanup = internalMutation({
   args: { batchSize: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const batchSize = args.batchSize ?? 500;
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
@@ -156,6 +160,7 @@ export const cleanup = internalMutation({
 export const getGlobalStats = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canView = await currentUserCan(ctx, "ticket.viewAnalytics");
     if (!canView) return null;
 

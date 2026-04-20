@@ -1,11 +1,51 @@
 # PRD: Subscription Products
 
-> **Status:** DRAFT - Upgraded to Template-Driven Container Model
+> **Status:** DRAFT - Updated for Multi-Channel Subscription Acquisition
 > **System Code:** CAT-SUB
 > **Phase:** 4 of 6 (Checkout & Orders)
 > **Priority:** P1 - High
 > **Complexity:** Complex
 > **Airtable Record:** recVGRWbekNydvuH4
+> **ConvexPress Alignment Updated:** 2026-04-20
+
+---
+
+## 0. 2026-04-20 Architecture Alignment
+
+This PRD is now aligned with the ConvexPress `commerceSubscriptions` plugin direction in `.codex/docs/COMMERCE-SUBSCRIPTIONS-PLUGIN-PRD.md`.
+
+The subscription system must not be limited to cart checkout. Cart checkout remains a supported acquisition channel, but direct form-driven subscription signup is now a first-class requirement.
+
+Canonical acquisition model:
+
+```text
+Commerce Product / Variant / Bundle
+        |
+Subscription Offer
+        |
+Acquisition Channel
+  - cart checkout
+  - direct subscription order form
+  - admin/manual/API provisioning
+        |
+Trusted payment, approval, or provisioning event
+        |
+Subscription Contract
+        |
+Subscription Items
+        |
+Invoices, Entitlements, Renewals, Dunning
+```
+
+Key updates to the original draft:
+
+- Subscription contracts remain durable billing containers with item-level lifecycle.
+- Subscription offers are the sellable package layer and may be product-backed, variant-backed, bundle-backed, or custom service-backed.
+- Direct order forms support SaaS-style plan selection, onboarding fields, payment method capture, and activation without cart sessions.
+- Cart checkout is one acquisition path, not the required foundation for all subscriptions.
+- Admin/manual/API provisioning must use the same internal activation path as cart and direct forms.
+- Client-facing code may create form submissions, checkout intents, or payment sessions, but must not create active paid subscriptions directly.
+- Monthly packages are a primary use case, but the ConvexPress plugin should preserve interval flexibility unless a specific template/offer chooses monthly-only behavior.
 
 ---
 
@@ -13,13 +53,15 @@
 
 ### 1.1 Purpose
 
-The Subscription Products system enables selling products as recurring subscriptions through a **template-driven, multi-item container model**. Designed for Virtual Overseer's virtual employee service, this system treats subscriptions as billing containers that hold multiple line items (subscription items), each representing a product or service that bills together on a unified monthly cycle.
+The Subscription Products system enables selling products, packages, bundles, and service offers as recurring subscriptions through a **template-driven, multi-item container model**. Designed for ConvexPress commerce and SaaS-style onboarding flows, this system treats subscriptions as billing containers that hold multiple line items, each representing a product, variant, bundle component, service, or entitlement that bills together on a unified contract.
 
 **Key Design Principles:**
 - **One subscription, one invoice** - Customers receive a single monthly charge regardless of how many items they subscribe to
 - **Items individually manageable** - Add or cancel items without affecting other items in the subscription
 - **Template-driven configuration** - Centralized billing templates reduce complexity and ensure consistency
-- **Monthly billing only** - Simplified model eliminates weekly/quarterly/annual complexity
+- **Multi-channel acquisition** - Subscriptions can start from cart checkout, direct order forms, or admin/API provisioning
+- **Direct form signup** - SaaS pricing pages and onboarding forms can start subscriptions without cart UI
+- **Offer-driven packaging** - Subscription offers sit between products/bundles and the contract engine
 - **Future-ready** - Credit system placeholders prepared for usage tracking
 
 ### 1.2 Architectural Model
@@ -51,9 +93,11 @@ SUBSCRIPTION (billing container)
 
 **In Scope:**
 - Subscription templates (centralized billing configurations)
+- Subscription offers as the sellable package layer
+- Direct subscription order forms for cartless signup
 - Multi-item subscription containers
 - Item-level add/cancel management
-- Monthly billing cycle (first of month)
+- Monthly billing cycle support, with template-level interval flexibility preserved for ConvexPress
 - Setup fees (one-time, first invoice)
 - Trial periods per template
 - Proration for mid-cycle changes
@@ -66,9 +110,8 @@ SUBSCRIPTION (billing container)
 - Credit system placeholders (future-ready)
 
 **Out of Scope:**
-- Weekly/quarterly/annual billing cycles (monthly only)
 - Usage-based/metered billing (future enhancement)
-- Multi-currency subscriptions (single currency per subscription)
+- Multi-currency within one subscription contract; each contract has one currency
 - Subscription gifting
 - B2B multi-seat licensing with user provisioning
 

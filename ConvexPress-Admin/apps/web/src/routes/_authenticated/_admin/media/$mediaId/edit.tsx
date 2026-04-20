@@ -150,8 +150,22 @@ function EditMediaPage() {
   const isVideo = media.mediaType === "video";
   const isAudio = media.mediaType === "audio";
 
+  const missingAltText = isImage && !media.altText?.trim();
+
   return (
     <div>
+      {/* Accessibility warning: images should have alt text */}
+      {missingAltText && (
+        <div className="mb-4 border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 rounded-none">
+          <p className="font-medium">Alt text missing.</p>
+          <p className="mt-1 text-xs">
+            Images without alt text are invisible to screen readers and hurt
+            SEO. Add descriptive alt text in the field on the right to
+            describe what the image shows.
+          </p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

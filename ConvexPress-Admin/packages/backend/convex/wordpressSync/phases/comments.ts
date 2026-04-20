@@ -15,7 +15,7 @@ import type { Id } from "../../_generated/dataModel";
 import { fetchWPComments, type WPComment } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { WP_BATCH_SIZE, createDefaultImportConfig } from "../validators";
+import { WP_BATCH_SIZE, normalizeImportConfig, siteCredentialsValidator } from "../validators";
 
 
 // ─── Source Hash Helper ───────────────────────────────────────────────────
@@ -30,8 +30,9 @@ export const importBatch = internalAction({
   args: {
     jobId: v.id("wordpressSyncJobs"),
     siteId: v.id("wordpressSites"),
+    credentials: siteCredentialsValidator,
   },
-  handler: async (ctx, { jobId, siteId }): Promise<PhaseResult> => {
+  handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
     let created = 0;
     let updated = 0;
@@ -42,7 +43,7 @@ export const importBatch = internalAction({
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
 
     // Get import config
-    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const importConfig = normalizeImportConfig(job?.importConfig);
     const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
@@ -53,21 +54,31 @@ export const importBatch = internalAction({
       };
     }
 
-    const credentials = {
-      siteUrl: site.siteUrl,
-      username: site.username,
-      applicationPassword: site.applicationPassword,
-    };
-
     const progress: PhaseProgress = { ...job.progress.comments };
     const cursor = progress.cursor || 0;
+    const entityLimit =
+      typeof importConfig.filters.entityLimit === "number"
+        ? importConfig.filters.entityLimit
+        : undefined;
+    if (entityLimit !== undefined && cursor >= entityLimit) {
+      progress.total = Math.min(progress.total || entityLimit, entityLimit);
+      return { progress, errors, hasMore: false };
+    }
     const page = Math.floor(cursor / WP_BATCH_SIZE) + 1;
 
     // Fetch comments from WordPress
-    const { data: comments, total } = await fetchWPComments(credentials, page, WP_BATCH_SIZE);
+    const { data: fetchedComments, total } = await fetchWPComments(credentials, page, WP_BATCH_SIZE, {
+      dateRangeStart: importConfig.filters.dateRangeStart,
+      dateRangeEnd: importConfig.filters.dateRangeEnd,
+    });
+    const comments =
+      entityLimit !== undefined
+        ? fetchedComments.slice(0, Math.max(0, entityLimit - cursor))
+        : fetchedComments;
+    const effectiveTotal = entityLimit !== undefined ? Math.min(total, entityLimit) : total;
 
-    if (progress.total === 0 && total > 0) {
-      progress.total = total;
+    if (progress.total === 0 && effectiveTotal > 0) {
+      progress.total = effectiveTotal;
     }
 
     // Sort by parent to ensure parents are created first
@@ -93,8 +104,18 @@ export const importBatch = internalAction({
           internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
           { siteId, objectType: "comment", wpId: wpComment.id }
         );
+        const existingCommentId = existingMapping?.convexId;
 
         if (existingMapping) {
+          if (!isDryRun) {
+            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+              siteId,
+              objectType: "comment",
+              wpId: wpComment.id,
+              jobId,
+            });
+          }
+
           // Source hash comparison - skip if unchanged
           if (existingMapping.sourceHash === sourceHash) {
             skipped++;
@@ -115,10 +136,6 @@ export const importBatch = internalAction({
             progress.imported++;
             continue;
           }
-
-          updated++;
-          progress.imported++;
-          continue;
         }
 
         // Resolve post ID
@@ -168,6 +185,7 @@ export const importBatch = internalAction({
 
           // Create comment
           const commentId = await ctx.runMutation(internal.wordpressSync.phases.commentsCreate, {
+            existingId: existingCommentId,
             wpComment: {
               id: wpComment.id,
               postId: resolvedPostId,
@@ -183,17 +201,24 @@ export const importBatch = internalAction({
             siteId,
           });
 
-          // Create ID mapping with sourceHash
-          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-            siteId,
-            objectType: "comment",
-            wpId: wpComment.id,
-            convexId: commentId,
-            sourceHash,
-          });
+          if (!existingCommentId) {
+            // Create ID mapping with sourceHash
+            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+              siteId,
+              objectType: "comment",
+              wpId: wpComment.id,
+              convexId: commentId,
+              sourceHash,
+              jobId,
+            });
+          }
         }
 
-        created++;
+        if (existingCommentId) {
+          updated++;
+        } else {
+          created++;
+        }
         progress.imported++;
       } catch (error) {
         errors.push({
@@ -260,6 +285,7 @@ function stripHtml(html: string): string {
 
 export const commentsCreate = internalMutation({
   args: {
+    existingId: v.optional(v.string()),
     wpComment: v.object({
       id: v.number(),
       postId: v.string(),
@@ -279,7 +305,7 @@ export const commentsCreate = internalMutation({
     }),
     siteId: v.id("wordpressSites"),
   },
-  handler: async (ctx, { wpComment, siteId }) => {
+  handler: async (ctx, { existingId, wpComment, siteId }) => {
     const now = Date.now();
 
     // Calculate depth
@@ -303,8 +329,7 @@ export const commentsCreate = internalMutation({
       }
     }
 
-    // Create comment
-    const commentId = await ctx.db.insert("comments", {
+    const fields = {
       postId: wpComment.postId as Id<"posts">,
       content: stripHtml(wpComment.content),
       status: wpComment.status,
@@ -318,8 +343,36 @@ export const commentsCreate = internalMutation({
       isEdited: false,
       wpCommentId: wpComment.id,
       wpSourceSiteId: siteId,
-      createdAt: wpComment.createdAt,
       updatedAt: now,
+    };
+
+    if (existingId) {
+      const existing = await ctx.db.get(existingId as Id<"comments">);
+      await ctx.db.patch(existingId as Id<"comments">, fields);
+
+      if (existing && existing.postId !== fields.postId) {
+        const oldPost = await ctx.db.get(existing.postId);
+        if (oldPost) {
+          await ctx.db.patch(oldPost._id, {
+            commentCount: Math.max(0, (oldPost.commentCount || 0) - 1),
+          });
+        }
+
+        const newPost = await ctx.db.get(fields.postId);
+        if (newPost) {
+          await ctx.db.patch(newPost._id, {
+            commentCount: (newPost.commentCount || 0) + 1,
+          });
+        }
+      }
+
+      return existingId;
+    }
+
+    // Create comment
+    const commentId = await ctx.db.insert("comments", {
+      ...fields,
+      createdAt: wpComment.createdAt,
     });
 
     // Update post comment count

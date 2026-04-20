@@ -14,6 +14,7 @@
 import { ConvexError, v } from "convex/values";
 
 import { internalMutation } from "../_generated/server";
+import { requirePluginEnabled } from "../helpers/plugins";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // expireGrants
@@ -30,6 +31,7 @@ import { internalMutation } from "../_generated/server";
 export const expireGrants = internalMutation({
   args: {},
   handler: async (ctx: any) => {
+    await requirePluginEnabled(ctx, "membership");
     const now = Date.now();
     let expiredCount = 0;
 
@@ -104,6 +106,7 @@ export const grantFromSubscription = internalMutation({
     endsAt: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "membership");
     const now = Date.now();
     const grantedPlanIds: string[] = [];
 
@@ -196,6 +199,7 @@ export const revokeFromSubscription = internalMutation({
     gracePeriodDays: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "membership");
     const now = Date.now();
     const gracePeriodDays = args.gracePeriodDays ?? 0;
     let revokedCount = 0;

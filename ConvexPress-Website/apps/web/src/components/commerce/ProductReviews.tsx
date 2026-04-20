@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
 
+import { useSettings } from "@/contexts/SettingsContext";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
+
 // ─── Star Rating Display ─────────────────────────────────────────────────
 
 function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "md" | "lg" }) {
@@ -392,12 +395,14 @@ function WriteReviewForm({
 // ─── Main Component ──────────────────────────────────────────────────────
 
 export function ProductReviews({ productId }: { productId: string }) {
+  const settings = useSettings();
+  const reviewsEnabled = isPublicPluginEnabled("commerceReviews", settings);
   const [sortBy, setSortBy] = useState<string>("newest");
   const [showForm, setShowForm] = useState(false);
 
   const canReviewResult = useQuery(
     (api as any).commerceReviews.queries.canReview,
-    { productId: productId as any },
+    reviewsEnabled ? { productId: productId as any } : "skip",
   ) as
     | {
         canReview: boolean;
@@ -409,11 +414,13 @@ export function ProductReviews({ productId }: { productId: string }) {
 
   const reviewsData = useQuery(
     (api as any).commerceReviews.queries.getByProduct,
-    {
-      productId: productId as any,
-      sortBy,
-      limit: 20,
-    },
+    reviewsEnabled
+      ? {
+          productId: productId as any,
+          sortBy,
+          limit: 20,
+        }
+      : "skip",
   ) as
     | {
         reviews: Array<{
@@ -431,6 +438,10 @@ export function ProductReviews({ productId }: { productId: string }) {
         hasMore: boolean;
       }
     | undefined;
+
+  if (!reviewsEnabled) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">

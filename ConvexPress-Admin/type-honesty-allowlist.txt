@@ -1,0 +1,37 @@
+# Generated files
+apps/web/src/routeTree.gen.ts
+
+# Deferred frontend domains
+apps/web/src/components/admin/SearchAnalyticsDashboard.tsx
+apps/web/src/components/admin/SynonymManager.tsx
+apps/web/src/components/analytics/**
+apps/web/src/components/custom-fields/**
+apps/web/src/components/recipes/**
+apps/web/src/components/shared/AirtableSyncButton.tsx
+apps/web/src/routes/_authenticated/_admin/kb/**
+apps/web/src/routes/_authenticated/_admin/support/**
+apps/web/src/routes/_authenticated/_admin/tickets/**
+
+# Deferred backend domains
+packages/backend/convex/airtableSync/**
+packages/backend/convex/analytics/**
+packages/backend/convex/api/**
+packages/backend/convex/auditLogs/**
+packages/backend/convex/authTracking/**
+packages/backend/convex/bootstrap/registerListeners.ts
+packages/backend/convex/commerce/checkout.ts
+packages/backend/convex/customFields/**
+packages/backend/convex/demoSeed/**
+packages/backend/convex/emails/**
+packages/backend/convex/events/**
+packages/backend/convex/feeds/**
+packages/backend/convex/http/resendWebhook.ts
+packages/backend/convex/kb/**
+packages/backend/convex/layouts/**
+packages/backend/convex/notifications/**
+packages/backend/convex/password/actions.ts
+packages/backend/convex/shipping/queries.ts
+packages/backend/convex/sitemaps/**
+packages/backend/convex/support/**
+packages/backend/convex/tickets/**
+packages/backend/convex/wordpressSync/**

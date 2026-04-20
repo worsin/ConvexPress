@@ -11,13 +11,6 @@ import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { useSettings } from "@/contexts/SettingsContext";
 
 export const Route = createFileRoute("/_marketing/bundles/$slug")({
-  loader: async ({ context: { queryClient }, params }) => {
-    await queryClient.ensureQueryData(
-      convexQuery((api as any).commerceBundles.queries.getBySlug, {
-        slug: params.slug,
-      }),
-    );
-  },
   head: ({ params }) => ({
     meta: [{ title: `${params.slug} - Bundle - ConvexPress` }],
   }),

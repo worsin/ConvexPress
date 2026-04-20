@@ -421,7 +421,7 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
                   <Star
                     key={star}
                     className={`h-4 w-4 ${
-                      star <= ticket.rating
+                      star <= (ticket.rating ?? 0)
                         ? "fill-warning text-warning"
                         : "text-foreground/15"
                     }`}

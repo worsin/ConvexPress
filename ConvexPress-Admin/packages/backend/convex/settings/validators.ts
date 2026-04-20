@@ -43,6 +43,18 @@ export const sectionValidator = v.union(
   v.literal("layout"),
   v.literal("header"),
   v.literal("footer"),
+  // Commerce & Shipping sections
+  v.literal("commerce.general"),
+  v.literal("commerce.payments"),
+  v.literal("integrations.shipping"),
+  v.literal("integrations.shipping.shipstation"),
+  v.literal("integrations.shipping.ups"),
+  v.literal("integrations.shipping.usps"),
+  v.literal("integrations.shipping.fedex"),
+  v.literal("integrations.shipping.dhl"),
+  v.literal("integrations.clerk"),
+  v.literal("integrations.google"),
+  v.literal("analytics.ga4"),
 );
 
 // ─── Per-Section Value Validators ────────────────────────────────────────────
@@ -156,8 +168,19 @@ export const permalinkValuesValidator = v.object({
 });
 
 export const pluginsValuesValidator = v.object({
+  commerceEnabled: v.boolean(),
+  commerceSubscriptionsEnabled: v.boolean(),
+  commerceDigitalEnabled: v.boolean(),
+  commerceReviewsEnabled: v.boolean(),
+  commerceWishlistsEnabled: v.boolean(),
+  commerceBundlesEnabled: v.boolean(),
+  commerceReturnsEnabled: v.boolean(),
+  membershipEnabled: v.boolean(),
   knowledgeBaseEnabled: v.boolean(),
   ticketsEnabled: v.boolean(),
+  customFieldsEnabled: v.boolean(),
+  recipesEnabled: v.boolean(),
+  galleryEnabled: v.boolean(),
 });
 
 /**

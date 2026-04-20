@@ -33,6 +33,7 @@ import { requireCan, currentUserCan } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { SYSTEM, SETTINGS_EVENTS } from "../events/constants";
 import { computeChanges } from "../settings/helpers";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -79,6 +80,7 @@ export const SUPPORT_AI_DEFAULTS: {
 export const getSupportSettings = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canView = await currentUserCan(ctx, "manage_options");
     if (!canView) return null;
 
@@ -161,6 +163,7 @@ export const updateSupportSettings = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "manage_options");
     const now = Date.now();
     const updatedSections: string[] = [];

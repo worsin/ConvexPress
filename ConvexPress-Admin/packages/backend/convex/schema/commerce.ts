@@ -16,6 +16,7 @@ export const commerceProductTypeValidator = v.union(
 
 export const commerceCartStatusValidator = v.union(
   v.literal("active"),
+  v.literal("pending_payment"),
   v.literal("abandoned"),
   v.literal("converted"),
 );
@@ -25,6 +26,7 @@ export const commerceCheckoutStatusValidator = v.union(
   v.literal("collecting_shipping"),
   v.literal("collecting_payment"),
   v.literal("ready_for_review"),
+  v.literal("payment_pending"),
   v.literal("completed"),
   v.literal("abandoned"),
   v.literal("failed"),
@@ -113,6 +115,14 @@ export const commerceTables = {
     rawSourceMeta: v.optional(v.string()),
     isDownloadable: v.boolean(),
     isNonReturnable: v.optional(v.boolean()),
+    optionTypes: v.optional(v.any()),
+    productAttributes: v.optional(v.any()),
+    defaultAttributes: v.optional(v.any()),
+    // Shipping class (PRD A2). undefined = no class (method default rate).
+    shippingClassId: v.optional(v.id("commerce_shipping_classes")),
+    // PRD A3 per-product package overrides.
+    preferredPackageId: v.optional(v.id("commerce_shipping_packages")),
+    shipsInOwnBox: v.optional(v.boolean()),
     publishedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -120,6 +130,7 @@ export const commerceTables = {
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
     .index("by_author", ["authorId"])
+    .index("by_shipping_class", ["shippingClassId"])
     .searchIndex("search_commerce_products", {
       searchField: "title",
       filterFields: ["status", "authorId"],
@@ -129,6 +140,7 @@ export const commerceTables = {
     productId: v.id("commerce_products"),
     title: v.string(),
     sku: v.optional(v.string()),
+    globalUniqueId: v.optional(v.string()),
     optionSummary: v.string(),
     selections: v.optional(
       v.array(
@@ -142,18 +154,60 @@ export const commerceTables = {
       ),
     ),
     selectionKey: v.optional(v.string()),
+    description: v.optional(v.string()),
     price: commerceMoneyValidator,
     salePrice: v.optional(commerceMoneyValidator),
+    salePriceFrom: v.optional(v.number()),
+    salePriceTo: v.optional(v.number()),
+    manageStock: v.optional(
+      v.union(v.literal("yes"), v.literal("no"), v.literal("parent")),
+    ),
     stockQuantity: v.optional(v.number()),
+    stockStatus: v.optional(
+      v.union(
+        v.literal("instock"),
+        v.literal("outofstock"),
+        v.literal("onbackorder"),
+      ),
+    ),
+    backorders: v.optional(
+      v.union(v.literal("yes"), v.literal("no"), v.literal("notify")),
+    ),
+    lowStockAmount: v.optional(v.number()),
+    weight: v.optional(v.string()),
+    shippingLengthIn: v.optional(v.string()),
+    shippingWidthIn: v.optional(v.string()),
+    shippingHeightIn: v.optional(v.string()),
+    taxClass: v.optional(v.string()),
+    isVirtual: v.optional(v.boolean()),
+    isDownloadable: v.optional(v.boolean()),
+    downloadLimit: v.optional(v.number()),
+    downloadExpiry: v.optional(v.number()),
     featuredMediaId: v.optional(v.id("media")),
+    galleryMediaIds: v.optional(v.array(v.id("media"))),
+    status: v.optional(
+      v.union(v.literal("publish"), v.literal("private"), v.literal("draft")),
+    ),
+    menuOrder: v.optional(v.number()),
     isDefault: v.boolean(),
+    // Shipping class (PRD A2). undefined = inherit from parent product.
+    // Distinct from product.shippingClassId (undefined = no class on product).
+    shippingClassId: v.optional(v.id("commerce_shipping_classes")),
+    // Explicit-null marker for "this variant has NO class" (overrides parent).
+    // Convex optional fields can't distinguish absent vs null, so we use a
+    // sibling boolean flag. When true, shippingClassId is ignored and the
+    // variant resolves to "no class" regardless of parent.
+    shippingClassOverrideNone: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_product", ["productId"])
     .index("by_product_default", ["productId", "isDefault"])
     .index("by_product_selection_key", ["productId", "selectionKey"])
-    .index("by_sku", ["sku"]),
+    .index("by_sku", ["sku"])
+    .index("by_product_status", ["productId", "status"])
+    .index("by_product_menu_order", ["productId", "menuOrder"])
+    .index("by_shipping_class", ["shippingClassId"]),
 
   commerce_carts: defineTable({
     userId: v.optional(v.id("users")),
@@ -266,6 +320,42 @@ export const commerceTables = {
     shippingServiceCode: v.optional(v.string()),
     shippingServiceName: v.optional(v.string()),
     shippingQuoteRaw: v.optional(v.any()),
+    // PRD A5 §4.3 — address validation snapshot at order-finalize.
+    shippingAddressValidatedAt: v.optional(v.number()),
+    shippingAddressValidationProvider: v.optional(v.string()),
+    shippingAddressValidationStatus: v.optional(v.string()),
+    shippingAddressValidationFingerprint: v.optional(v.string()),
+    shippingAddressIsResidential: v.optional(v.boolean()),
+    shippingAddressNormalized: v.optional(v.any()),
+    // PRD D1 §6.10 — rate reconfirmation fingerprints snapshot at order-finalize.
+    // Label purchase compares these to the current address+cart fingerprints
+    // and throws STALE_SHIPPING_RATE on mismatch.
+    shippingQuoteAddressKey: v.optional(v.string()),
+    shippingQuoteCartKey: v.optional(v.string()),
+    shippingQuoteExpiresAt: v.optional(v.number()),
+    shippingQuoteProvider: v.optional(v.string()),
+    shippingQuoteAccountId: v.optional(v.string()),
+    // PRD §79 — full selected-quote provenance snapshot at finalize.
+    shippingQuoteProof: v.optional(
+      v.object({
+        quoteKey: v.optional(v.string()),
+        amount: v.optional(v.number()),
+        currency: v.optional(v.string()),
+        provider: v.optional(v.string()),
+        carrierCode: v.optional(v.string()),
+        serviceCode: v.optional(v.string()),
+        accountId: v.optional(v.string()),
+        packages: v.optional(v.any()),
+        fingerprintAddressKey: v.optional(v.string()),
+        fingerprintCartKey: v.optional(v.string()),
+        expiresAt: v.optional(v.number()),
+        origin: v.optional(v.any()),
+        rateSource: v.optional(v.string()),
+        snapshotAt: v.optional(v.number()),
+      }),
+    ),
+    // PRD A4 — origin snapshot at order finalize for label routing + audit.
+    shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
     selectedShippingMethodCode: v.optional(v.string()),
     selectedShippingMethodLabel: v.optional(v.string()),
     selectedPaymentMethodCode: v.optional(v.string()),
@@ -281,6 +371,7 @@ export const commerceTables = {
     fulfillmentStatus: v.string(),
     inventoryCommittedAt: v.optional(v.number()),
     inventoryReleasedAt: v.optional(v.number()),
+    discountUsageCountedAt: v.optional(v.number()),
     notes: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -334,6 +425,9 @@ export const commerceTables = {
     labelFormat: v.optional(v.string()),
     labelPurchasedAt: v.optional(v.number()),
     voidedAt: v.optional(v.number()),
+    // PRD A4 — which ship-from location fulfilled this shipment. Required
+    // for D3 manifest routing (each manifest is per-location).
+    shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
     items: v.array(
       v.object({
         orderItemId: v.id("commerce_order_items"),
@@ -349,7 +443,8 @@ export const commerceTables = {
   })
     .index("by_order", ["orderId"])
     .index("by_status", ["status"])
-    .index("by_tracking", ["trackingNumber"]),
+    .index("by_tracking", ["trackingNumber"])
+    .index("by_ship_from_location", ["shipFromLocationId"]),
 
   commerce_discount_codes: defineTable({
     code: v.string(),
@@ -441,6 +536,7 @@ export const commerceTables = {
   commerce_inventory_adjustments: defineTable({
     productId: v.id("commerce_products"),
     variantId: v.optional(v.id("commerce_product_variants")),
+    orderId: v.optional(v.id("commerce_orders")),
     adjustmentType: v.string(),
     quantityDelta: v.number(),
     reason: v.optional(v.string()),
@@ -448,7 +544,26 @@ export const commerceTables = {
     createdAt: v.number(),
   })
     .index("by_product", ["productId"])
-    .index("by_variant", ["variantId"]),
+    .index("by_variant", ["variantId"])
+    .index("by_type", ["adjustmentType"])
+    .index("by_date", ["createdAt"]),
+
+  commerce_low_stock_alerts: defineTable({
+    productId: v.id("commerce_products"),
+    stockQuantity: v.number(),
+    threshold: v.number(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("acknowledged"),
+      v.literal("resolved"),
+    ),
+    acknowledgedBy: v.optional(v.id("users")),
+    acknowledgedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_product", ["productId"])
+    .index("by_status", ["status"]),
 
   commerce_stock_reservations: defineTable({
     checkoutSessionId: v.id("commerce_checkout_sessions"),

@@ -18,9 +18,10 @@ import { fetchWPPages, fetchWPPostMeta, type WPPage, type WPMeta } from "../help
 import { parseElementorData, extractTextFromElementor, isElementorData } from "../helpers/elementor";
 import { parseACFFields, hasACFFields, acfToPostMeta } from "../helpers/acfParser";
 import { parseYoastMeta, hasYoastMeta, yoastToSEOMeta } from "../helpers/yoastParser";
+import { selectWpPostMetaForPreservation } from "../fieldPolicy";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { WP_BATCH_SIZE, createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { WP_BATCH_SIZE, normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 import { createFinding } from "../helpers/idMapping";
 
 
@@ -36,8 +37,9 @@ export const importBatch = internalAction({
   args: {
     jobId: v.id("wordpressSyncJobs"),
     siteId: v.id("wordpressSites"),
+    credentials: siteCredentialsValidator,
   },
-  handler: async (ctx, { jobId, siteId }): Promise<PhaseResult> => {
+  handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
     let created = 0;
     let updated = 0;
@@ -48,7 +50,7 @@ export const importBatch = internalAction({
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
 
     // Get import config
-    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const importConfig = normalizeImportConfig(job?.importConfig);
     const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
@@ -59,21 +61,38 @@ export const importBatch = internalAction({
       };
     }
 
-    const credentials = {
-      siteUrl: site.siteUrl,
-      username: site.username,
-      applicationPassword: site.applicationPassword,
-    };
-
     const progress: PhaseProgress = { ...job.progress.pages };
     const cursor = progress.cursor || 0;
+    const entityLimit =
+      typeof importConfig.filters.entityLimit === "number"
+        ? importConfig.filters.entityLimit
+        : undefined;
+    if (entityLimit !== undefined && cursor >= entityLimit) {
+      progress.total = Math.min(progress.total || entityLimit, entityLimit);
+      progress.cursor = cursor;
+      return {
+        progress,
+        errors,
+        hasMore: false,
+      };
+    }
+
     const page = Math.floor(cursor / WP_BATCH_SIZE) + 1;
 
     // Fetch pages from WordPress
-    const { data: pages, total } = await fetchWPPages(credentials, page, WP_BATCH_SIZE);
+    const { data: fetchedPages, total } = await fetchWPPages(credentials, page, WP_BATCH_SIZE, {
+      importDrafts: importConfig.behavior.importDrafts,
+      dateRangeStart: importConfig.filters.dateRangeStart,
+      dateRangeEnd: importConfig.filters.dateRangeEnd,
+    });
+    const pages =
+      entityLimit !== undefined
+        ? fetchedPages.slice(0, Math.max(0, entityLimit - cursor))
+        : fetchedPages;
 
-    if (progress.total === 0 && total > 0) {
-      progress.total = total;
+    const effectiveTotal = entityLimit !== undefined ? Math.min(total, entityLimit) : total;
+    if (progress.total === 0 && effectiveTotal > 0) {
+      progress.total = effectiveTotal;
     }
 
     // Sort by parent to ensure parents are created first
@@ -99,8 +118,18 @@ export const importBatch = internalAction({
           internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
           { siteId, objectType: "page", wpId: wpPage.id }
         );
+        const existingPageId = existingMapping?.convexId;
 
         if (existingMapping) {
+          if (!isDryRun) {
+            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+              siteId,
+              objectType: "page",
+              wpId: wpPage.id,
+              jobId,
+            });
+          }
+
           // Source hash comparison - skip if unchanged
           if (existingMapping.sourceHash === sourceHash) {
             skipped++;
@@ -143,16 +172,16 @@ export const importBatch = internalAction({
             continue;
           }
 
-          updated++;
-          progress.imported++;
-          continue;
+          // Continue into the shared write path below to patch the mapped page.
         }
 
         // No existing mapping - check for slug collision
-        const existingBySlug = await ctx.runQuery(
-          internal.wordpressSync.internals.findPostBySlug,
-          { slug: wpPage.slug, type: "page" }
-        );
+        const existingBySlug = existingMapping
+          ? null
+          : await ctx.runQuery(
+              internal.wordpressSync.internals.findPostBySlug,
+              { slug: wpPage.slug, type: "page" }
+            );
 
         if (existingBySlug) {
           await createFinding(ctx, {
@@ -173,10 +202,12 @@ export const importBatch = internalAction({
         if (!isDryRun) {
           // Fetch post meta (for Elementor - very important for pages!)
           let pageMeta: WPMeta[] = [];
-          try {
-            pageMeta = await fetchWPPostMeta(credentials, wpPage.id);
-          } catch {
-            // Continue without meta if fetch fails
+          if (importConfig.scope.elementor) {
+            try {
+              pageMeta = await fetchWPPostMeta(credentials, wpPage.id);
+            } catch {
+              // Continue without meta if fetch fails
+            }
           }
 
           // Process content and meta
@@ -208,6 +239,7 @@ export const importBatch = internalAction({
 
           // Create the page
           const pageId = await ctx.runMutation(internal.wordpressSync.phases.pagesCreate, {
+            existingId: existingPageId,
             wpPage: {
               id: wpPage.id,
               title: wpPage.title?.rendered || "",
@@ -241,15 +273,15 @@ export const importBatch = internalAction({
               key: "_elementor_edit_mode",
               value: "builder",
             });
+          }
 
-            // Store original rendered HTML
-            if (wpPage.content?.rendered) {
-              await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
-                postId: pageId,
-                key: "_wp_content_rendered",
-                value: wpPage.content.rendered,
-              });
-            }
+          // Store original rendered HTML for reference and future re-rendering.
+          if (wpPage.content?.rendered) {
+            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+              postId: pageId,
+              key: "_wp_content_rendered",
+              value: wpPage.content.rendered,
+            });
           }
 
           // Store ACF data
@@ -270,17 +302,40 @@ export const importBatch = internalAction({
             });
           }
 
-          // Create ID mapping with sourceHash
-          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-            siteId,
-            objectType: "page",
-            wpId: wpPage.id,
-            convexId: pageId,
-            sourceHash,
-          });
+          const storedMetaKeys = new Set([
+            "_elementor_data",
+            "_elementor_edit_mode",
+            "_wp_content_rendered",
+            ...processedContent.acfMeta.map((item) => item.key),
+            ...processedContent.seoMeta.map((item) => item.key),
+          ]);
+
+          for (const sourceMeta of selectWpPostMetaForPreservation(pageMeta, storedMetaKeys)) {
+            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+              postId: pageId,
+              key: sourceMeta.key,
+              value: sourceMeta.value,
+            });
+          }
+
+          if (!existingPageId) {
+            // Create ID mapping with sourceHash
+            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+              siteId,
+              objectType: "page",
+              wpId: wpPage.id,
+              convexId: pageId,
+              sourceHash,
+              jobId,
+            });
+          }
         }
 
-        created++;
+        if (existingPageId) {
+          updated++;
+        } else {
+          created++;
+        }
         progress.imported++;
       } catch (error) {
         errors.push({
@@ -338,14 +393,16 @@ async function processPageContent(
     if (parsed) {
       // Store the raw Elementor JSON (preserves all layout/design)
       result.elementorData = elementorValue;
-      // Extract plain text for searchability and fallback display
-      result.content = extractTextFromElementor(parsed);
+      // Prefer rendered HTML for display; Elementor JSON remains in postMeta.
+      result.content = wpPage.content?.rendered
+        ? createHtmlBlockDocument(wpPage.content.rendered)
+        : createParagraphDocument(extractTextFromElementor(parsed));
     }
   }
 
-  // If no Elementor content, use rendered HTML stripped of tags
+  // If no Elementor content, preserve rendered WordPress HTML as an HTML block.
   if (!result.content && wpPage.content?.rendered) {
-    result.content = stripHtml(wpPage.content.rendered);
+    result.content = createHtmlBlockDocument(wpPage.content.rendered);
   }
 
   // Process ACF fields
@@ -407,6 +464,32 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+function createHtmlBlockDocument(html: string): string {
+  return JSON.stringify({
+    type: "doc",
+    content: [
+      {
+        type: "html",
+        attrs: { content: html },
+      },
+    ],
+  });
+}
+
+function createParagraphDocument(text: string): string {
+  return JSON.stringify({
+    type: "doc",
+    content: text
+      ? [
+          {
+            type: "paragraph",
+            content: [{ type: "text", text }],
+          },
+        ]
+      : [],
+  });
+}
+
 function calculatePagePath(slug: string, parentPath?: string): string {
   if (!parentPath) {
     return `/${slug}`;
@@ -424,6 +507,7 @@ function calculateDepth(parentId?: string): number {
 
 export const pagesCreate = internalMutation({
   args: {
+    existingId: v.optional(v.string()),
     wpPage: v.object({
       id: v.number(),
       title: v.string(),
@@ -450,7 +534,7 @@ export const pagesCreate = internalMutation({
     parentId: v.optional(v.string()),
     siteId: v.id("wordpressSites"),
   },
-  handler: async (ctx, { wpPage, authorId, featuredImageId, parentId, siteId }) => {
+  handler: async (ctx, { existingId, wpPage, authorId, featuredImageId, parentId, siteId }) => {
     const now = Date.now();
 
     // Get a fallback author if needed
@@ -496,15 +580,14 @@ export const pagesCreate = internalMutation({
       }
     }
 
-    // Create page
-    const pageId = await ctx.db.insert("posts", {
-      type: "page",
+    const fields = {
+      type: "page" as const,
       title: stripHtml(wpPage.title),
       slug: wpPage.slug,
       content: wpPage.content,
       excerpt: stripHtml(wpPage.excerpt) || undefined,
       status: wpPage.status,
-      visibility: wpPage.status === "private" ? "private" : "public",
+      visibility: (wpPage.status === "private" ? "private" : "public") as "private" | "public",
       authorId: finalAuthorId,
       featuredImageId: featuredImageId ? (featuredImageId as Id<"media">) : undefined,
       commentStatus: wpPage.commentStatus,
@@ -517,8 +600,18 @@ export const pagesCreate = internalMutation({
       wpPostId: wpPage.id,
       wpGuid: wpPage.guid,
       wpSourceSiteId: siteId,
-      createdAt: now,
       updatedAt: now,
+    };
+
+    if (existingId) {
+      await ctx.db.patch(existingId as Id<"posts">, fields);
+      return existingId;
+    }
+
+    // Create page
+    const pageId = await ctx.db.insert("posts", {
+      ...fields,
+      createdAt: now,
     });
 
     return pageId;

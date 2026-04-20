@@ -112,6 +112,12 @@ export const postTables = {
     parentId: v.optional(v.id("posts")), // Parent page (pages only)
     menuOrder: v.optional(v.number()), // Manual sort order (pages only)
     pageTemplate: v.optional(v.string()), // Page template key (pages only)
+    // Section composer payload for template-driven layouts (pages only).
+    // Stored as v.any() because section schemas vary by type (hero, feature-grid,
+    // story-split, testimonial-band, cta-band, etc.) and the template-aware
+    // editor handles per-section validation. Existing seeded rows already
+    // populate this field.
+    pageSections: v.optional(v.any()),
 
     // ── Layout Override Fields ───────────────────────────────────────────
     layoutId: v.optional(v.string()),       // Per-post/page layout override (layout _id)

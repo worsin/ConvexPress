@@ -29,9 +29,12 @@ import {
   createMediaArgs,
   updateMediaArgs,
   removeMediaArgs,
+  restoreMediaArgs,
+  permanentlyDeleteMediaArgs,
   addSizeArgs,
   updateStatusArgs,
   bulkDeleteArgs,
+  bulkUpdateArgs,
 } from "./validators";
 import {
   categorizeMediaType,
@@ -42,6 +45,7 @@ import {
   validateFileType,
 } from "./helpers";
 import { checkMediaCapability, getUserRoleLevel } from "./mediaAuth";
+import { findMediaReferences, clearMediaReferences } from "./references";
 
 // ─── Default allowed MIME types ──────────────────────────────────────────────
 // SECURITY DECISION: SVG (`image/svg+xml`) is intentionally excluded from the
@@ -248,6 +252,15 @@ export const create = mutation({
 
     // ── Insert media record ──────────────────────────────────────────────
     const now = Date.now();
+
+    // WP-style logical upload path: "YYYY/MM/slug.ext"
+    const nowDate = new Date(now);
+    const yearPart = String(nowDate.getUTCFullYear());
+    const monthPart = String(nowDate.getUTCMonth() + 1).padStart(2, "0");
+    const extMatch = /\.[A-Za-z0-9]+$/.exec(fileName);
+    const ext = extMatch ? extMatch[0].toLowerCase() : "";
+    const uploadPath = `${yearPart}/${monthPart}/${slug}${ext}`;
+
     const mediaId = await ctx.db.insert("media", {
       title,
       fileName,
@@ -264,6 +277,7 @@ export const create = mutation({
       height: args.height,
       status,
       uploadedBy: user._id,
+      uploadPath,
       createdAt: now,
       updatedAt: now,
     });
@@ -279,12 +293,18 @@ export const create = mutation({
     });
 
     // ── Schedule image processing ─────────────────────────────────────────
-    // For images: schedule the processImageAction to extract dimensions,
-    // EXIF data, and register WordPress-standard size variants.
+    // For images: schedule the sharp-based pipeline. It:
+    //   1. Auto-rotates based on EXIF orientation
+    //   2. Scales down images over the big-image threshold
+    //   3. Generates real thumbnail/medium/medium_large/large variants
+    //   4. Transitions status to "active"
+    //
+    // On failure, the action marks the record as "failed" with an error
+    // message. The admin UI can show it and offer retry via regenerate.
     if (mediaType === "image") {
       await ctx.scheduler.runAfter(
         0,
-        internal.media.internals.processImageAction,
+        internal.media.imageProcessing.processImageWithSharp,
         { mediaId },
       );
     }
@@ -458,7 +478,6 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "media.delete");
 
-    // ── Fetch existing media ─────────────────────────────────────────────
     const media = await ctx.db.get("media", args.mediaId);
     if (!media) {
       throw new ConvexError({
@@ -467,73 +486,192 @@ export const remove = mutation({
       });
     }
 
-    // ── Ownership check ──────────────────────────────────────────────────
+    // Idempotency: already trashed?
+    if (media.status === "trashed") {
+      return { success: true, alreadyTrashed: true };
+    }
+
     await checkMediaCapability(ctx, user, media, "delete");
 
-    // ── Delete original storage file ─────────────────────────────────────
+    // Reference check. Refuse to trash referenced media unless force:true +
+    // Editor-level role (force sweeps references across all systems).
+    const references = await findMediaReferences(ctx, args.mediaId);
+    if (references.length > 0 && !args.force) {
+      throw new ConvexError({
+        code: "MEDIA_IN_USE",
+        message: `This media is referenced by ${references.length} document(s). Remove the references first, or pass force: true.`,
+        data: { references },
+      });
+    }
+    if (references.length > 0 && args.force) {
+      const level = await getUserRoleLevel(ctx, user);
+      if (level < 80) {
+        throw new ConvexError({
+          code: "FORBIDDEN",
+          message: "Force-trashing referenced media requires Editor-level role or higher.",
+          data: { references },
+        });
+      }
+      await clearMediaReferences(ctx, args.mediaId, references);
+    }
+
+    // Soft-delete: flip status to "trashed", preserve storage + record.
+    const now = Date.now();
+    await ctx.db.patch("media", args.mediaId, {
+      status: "trashed" as const,
+      previousStatus: media.status,
+      trashedAt: now,
+      trashedBy: user._id,
+      updatedAt: now,
+    });
+
+    await emitEvent(ctx, MEDIA_EVENTS.DELETED, SYSTEM.MEDIA, {
+      mediaId: args.mediaId,
+      fileName: media.fileName,
+      deletedBy: getUserIdentifier(user),
+      mediaType: media.mediaType,
+      fileSize: media.fileSize,
+      trashed: true,
+    });
+
+    return { success: true, trashed: true };
+  },
+});
+
+// ─── Restore ────────────────────────────────────────────────────────────────
+
+/**
+ * Restore a trashed media item back to its previous status.
+ */
+export const restore = mutation({
+  args: restoreMediaArgs,
+  handler: async (ctx, args) => {
+    const user = await requireCan(ctx, "media.delete");
+
+    const media = await ctx.db.get("media", args.mediaId);
+    if (!media) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Media item not found",
+      });
+    }
+    if (media.status !== "trashed") {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Only trashed media can be restored.",
+      });
+    }
+
+    await checkMediaCapability(ctx, user, media, "delete");
+
+    const restoredStatus = (media.previousStatus ?? "active") as
+      | "processing"
+      | "active"
+      | "failed";
+    const now = Date.now();
+    await ctx.db.patch("media", args.mediaId, {
+      status: restoredStatus,
+      previousStatus: undefined,
+      trashedAt: undefined,
+      trashedBy: undefined,
+      updatedAt: now,
+    });
+
+    await emitEvent(ctx, MEDIA_EVENTS.UPDATED, SYSTEM.MEDIA, {
+      mediaId: args.mediaId,
+      changes: [{ field: "status", oldValue: "trashed", newValue: restoredStatus }],
+      restored: true,
+    });
+
+    return { success: true, restoredStatus };
+  },
+});
+
+// ─── Permanently Delete ─────────────────────────────────────────────────────
+
+/**
+ * Hard-delete a media item. Removes storage, sizes, meta, and record.
+ * Works on any status (trashed, active, etc.). Reference-check still
+ * applies; force: true sweeps and requires Editor-level role.
+ */
+export const permanentlyDelete = mutation({
+  args: permanentlyDeleteMediaArgs,
+  handler: async (ctx, args) => {
+    const user = await requireCan(ctx, "media.delete");
+
+    const media = await ctx.db.get("media", args.mediaId);
+    if (!media) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Media item not found",
+      });
+    }
+
+    await checkMediaCapability(ctx, user, media, "delete");
+
+    const references = await findMediaReferences(ctx, args.mediaId);
+    if (references.length > 0 && !args.force) {
+      throw new ConvexError({
+        code: "MEDIA_IN_USE",
+        message: `This media is referenced by ${references.length} document(s). Pass force: true to clear references.`,
+        data: { references },
+      });
+    }
+    if (references.length > 0 && args.force) {
+      const level = await getUserRoleLevel(ctx, user);
+      if (level < 80) {
+        throw new ConvexError({
+          code: "FORBIDDEN",
+          message: "Force-deleting referenced media requires Editor-level role or higher.",
+          data: { references },
+        });
+      }
+      await clearMediaReferences(ctx, args.mediaId, references);
+    }
+
+    // Delete original storage blob
     try {
       await ctx.storage.delete(media.storageId);
     } catch {
-      // Storage file may already be gone (orphaned). Continue cleanup.
+      // Orphaned; continue
     }
 
-    // ── Delete all generated sizes and their storage files ───────────────
+    // Delete all sub-size storage blobs + records
     const sizes = await ctx.db
       .query("mediaSizes")
       .withIndex("by_media", (q) => q.eq("mediaId", args.mediaId))
       .collect();
-
     for (const size of sizes) {
       try {
         await ctx.storage.delete(size.storageId);
       } catch {
-        // Orphaned storage file, continue cleanup
+        // Orphaned
       }
       await ctx.db.delete("mediaSizes", size._id);
     }
 
-    // ── Delete all mediaMeta records ─────────────────────────────────────
+    // Delete all meta rows
     const metaRecords = await ctx.db
       .query("mediaMeta")
       .withIndex("by_media", (q) => q.eq("mediaId", args.mediaId))
       .collect();
-
     for (const meta of metaRecords) {
       await ctx.db.delete("mediaMeta", meta._id);
     }
 
-    // ── Clear featuredImageId from posts/pages referencing this media ──
-    // Both posts and pages live in the "posts" table (distinguished by `type`).
-    // Query all posts/pages that use this media as their featured image and
-    // clear the reference before deleting the media record.
-    const postsWithFeaturedImage = await ctx.db
-      .query("posts")
-      .filter((q) => q.eq(q.field("featuredImageId"), args.mediaId))
-      .collect();
-
-    for (const post of postsWithFeaturedImage) {
-      await ctx.db.patch("posts", post._id, {
-        featuredImageId: undefined,
-        updatedAt: Date.now(),
-      });
-    }
-
-    // ── Capture data for event before deleting record ────────────────────
     const eventPayload = {
       mediaId: args.mediaId,
       fileName: media.fileName,
       deletedBy: getUserIdentifier(user),
       mediaType: media.mediaType,
       fileSize: media.fileSize,
+      permanent: true,
     };
 
-    // ── Delete media record ──────────────────────────────────────────────
     await ctx.db.delete("media", args.mediaId);
-
-    // ── Emit event ───────────────────────────────────────────────────────
     await emitEvent(ctx, MEDIA_EVENTS.DELETED, SYSTEM.MEDIA, eventPayload);
 
-    return { success: true };
+    return { success: true, permanent: true };
   },
 });
 
@@ -697,8 +835,258 @@ export const bulkDelete = mutation({
       });
     }
 
-    let deleted = 0;
+    let trashed = 0;
+    const errors: Array<{ mediaId: string; error: string; references?: unknown }> = [];
+    const now = Date.now();
+
+    for (const mediaId of args.mediaIds) {
+      try {
+        const media = await ctx.db.get("media", mediaId);
+        if (!media) {
+          errors.push({ mediaId: mediaId as string, error: "Not found" });
+          continue;
+        }
+        if (media.status === "trashed") {
+          trashed++;
+          continue;
+        }
+
+        const references = await findMediaReferences(ctx, mediaId);
+        if (references.length > 0 && !args.force) {
+          errors.push({
+            mediaId: mediaId as string,
+            error: `In use by ${references.length} document(s)`,
+            references,
+          });
+          continue;
+        }
+        if (references.length > 0 && args.force) {
+          await clearMediaReferences(ctx, mediaId, references);
+        }
+
+        await ctx.db.patch("media", mediaId, {
+          status: "trashed" as const,
+          previousStatus: media.status,
+          trashedAt: now,
+          trashedBy: user._id,
+          updatedAt: now,
+        });
+
+        await emitEvent(ctx, MEDIA_EVENTS.DELETED, SYSTEM.MEDIA, {
+          mediaId,
+          fileName: media.fileName,
+          deletedBy: getUserIdentifier(user),
+          mediaType: media.mediaType,
+          fileSize: media.fileSize,
+          trashed: true,
+        });
+
+        trashed++;
+      } catch (err) {
+        errors.push({
+          mediaId: mediaId as string,
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    }
+
+    return { trashed, errors };
+  },
+});
+
+// ─── Bulk Restore ───────────────────────────────────────────────────────────
+
+export const bulkRestore = mutation({
+  args: bulkDeleteArgs,
+  handler: async (ctx, args) => {
+    const user = await requireCan(ctx, "media.delete");
+
+    if (args.mediaIds.length === 0 || args.mediaIds.length > 100) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Restore between 1 and 100 items at once",
+      });
+    }
+    const level = await getUserRoleLevel(ctx, user);
+    if (level < 80) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Bulk restore requires Editor or Administrator role",
+      });
+    }
+
+    let restored = 0;
     const errors: Array<{ mediaId: string; error: string }> = [];
+    const now = Date.now();
+    for (const mediaId of args.mediaIds) {
+      try {
+        const media = await ctx.db.get("media", mediaId);
+        if (!media) {
+          errors.push({ mediaId: mediaId as string, error: "Not found" });
+          continue;
+        }
+        if (media.status !== "trashed") continue;
+        const restoredStatus = (media.previousStatus ?? "active") as
+          | "processing"
+          | "active"
+          | "failed";
+        await ctx.db.patch("media", mediaId, {
+          status: restoredStatus,
+          previousStatus: undefined,
+          trashedAt: undefined,
+          trashedBy: undefined,
+          updatedAt: now,
+        });
+        await emitEvent(ctx, MEDIA_EVENTS.UPDATED, SYSTEM.MEDIA, {
+          mediaId,
+          changes: [{ field: "status", oldValue: "trashed", newValue: restoredStatus }],
+          restored: true,
+        });
+        restored++;
+      } catch (err) {
+        errors.push({
+          mediaId: mediaId as string,
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    }
+    return { restored, errors };
+  },
+});
+
+// ─── Bulk Permanently Delete ────────────────────────────────────────────────
+
+export const bulkPermanentlyDelete = mutation({
+  args: bulkDeleteArgs,
+  handler: async (ctx, args) => {
+    const user = await requireCan(ctx, "media.delete");
+
+    if (args.mediaIds.length === 0 || args.mediaIds.length > 100) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Delete between 1 and 100 items at once",
+      });
+    }
+    const level = await getUserRoleLevel(ctx, user);
+    if (level < 80) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Bulk permanent delete requires Editor or Administrator role",
+      });
+    }
+
+    let deleted = 0;
+    const errors: Array<{ mediaId: string; error: string; references?: unknown }> = [];
+
+    for (const mediaId of args.mediaIds) {
+      try {
+        const media = await ctx.db.get("media", mediaId);
+        if (!media) {
+          errors.push({ mediaId: mediaId as string, error: "Not found" });
+          continue;
+        }
+        const references = await findMediaReferences(ctx, mediaId);
+        if (references.length > 0 && !args.force) {
+          errors.push({
+            mediaId: mediaId as string,
+            error: `In use by ${references.length} document(s)`,
+            references,
+          });
+          continue;
+        }
+        if (references.length > 0 && args.force) {
+          await clearMediaReferences(ctx, mediaId, references);
+        }
+
+        try { await ctx.storage.delete(media.storageId); } catch { /* orphaned */ }
+
+        const sizes = await ctx.db
+          .query("mediaSizes")
+          .withIndex("by_media", (q) => q.eq("mediaId", mediaId))
+          .collect();
+        for (const size of sizes) {
+          try { await ctx.storage.delete(size.storageId); } catch { /* orphaned */ }
+          await ctx.db.delete("mediaSizes", size._id);
+        }
+
+        const metaRecords = await ctx.db
+          .query("mediaMeta")
+          .withIndex("by_media", (q) => q.eq("mediaId", mediaId))
+          .collect();
+        for (const meta of metaRecords) {
+          await ctx.db.delete("mediaMeta", meta._id);
+        }
+
+        await ctx.db.delete("media", mediaId);
+        await emitEvent(ctx, MEDIA_EVENTS.DELETED, SYSTEM.MEDIA, {
+          mediaId,
+          fileName: media.fileName,
+          deletedBy: getUserIdentifier(user),
+          mediaType: media.mediaType,
+          fileSize: media.fileSize,
+          permanent: true,
+        });
+        deleted++;
+      } catch (err) {
+        errors.push({
+          mediaId: mediaId as string,
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    }
+    return { deleted, errors };
+  },
+});
+
+// ─── Bulk Update (metadata) ─────────────────────────────────────────────────
+
+/**
+ * Bulk-edit metadata on up to 100 media items. Any field left undefined
+ * is untouched; an explicit empty string clears the field (WP's
+ * bulk-edit behavior). Ownership/capability check runs per-item so a
+ * Contributor can bulk-edit only their own uploads.
+ */
+export const bulkUpdate = mutation({
+  args: bulkUpdateArgs,
+  handler: async (ctx, args) => {
+    const user = await requireCan(ctx, "media.update");
+
+    if (args.mediaIds.length === 0 || args.mediaIds.length > 100) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Edit between 1 and 100 items at once",
+      });
+    }
+
+    let updated = 0;
+    const errors: Array<{ mediaId: string; error: string }> = [];
+    const now = Date.now();
+
+    // Length caps — match the single-item `update` constraints.
+    if (args.title !== undefined && args.title.length > 500) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Title must be 500 characters or fewer",
+      });
+    }
+    if (args.altText !== undefined && args.altText.length > 500) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Alt text must be 500 characters or fewer",
+      });
+    }
+    if (args.caption !== undefined && args.caption.length > 1000) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Caption must be 1000 characters or fewer",
+      });
+    }
+    if (args.description !== undefined && args.description.length > 5000) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Description must be 5000 characters or fewer",
+      });
+    }
 
     for (const mediaId of args.mediaIds) {
       try {
@@ -708,67 +1096,27 @@ export const bulkDelete = mutation({
           continue;
         }
 
-        // Delete original storage file
-        try {
-          await ctx.storage.delete(media.storageId);
-        } catch {
-          // Orphaned storage file, continue cleanup
+        await checkMediaCapability(ctx, user, media, "update");
+
+        const patch: Record<string, unknown> = { updatedAt: now };
+        if (args.title !== undefined) {
+          patch.title = args.title.trim() || media.title;
+        }
+        if (args.altText !== undefined) {
+          patch.altText = args.altText.trim() || undefined;
+        }
+        if (args.caption !== undefined) {
+          patch.caption = args.caption.trim() || undefined;
+        }
+        if (args.description !== undefined) {
+          patch.description = args.description.trim() || undefined;
         }
 
-        // Delete all generated sizes and their storage files
-        const sizes = await ctx.db
-          .query("mediaSizes")
-          .withIndex("by_media", (q) => q.eq("mediaId", mediaId))
-          .collect();
+        // Skip if only updatedAt would change
+        if (Object.keys(patch).length === 1) continue;
 
-        for (const size of sizes) {
-          try {
-            await ctx.storage.delete(size.storageId);
-          } catch {
-            // Orphaned
-          }
-          await ctx.db.delete("mediaSizes", size._id);
-        }
-
-        // Delete all mediaMeta records
-        const metaRecords = await ctx.db
-          .query("mediaMeta")
-          .withIndex("by_media", (q) => q.eq("mediaId", mediaId))
-          .collect();
-
-        for (const meta of metaRecords) {
-          await ctx.db.delete("mediaMeta", meta._id);
-        }
-
-        // Clear featuredImageId from posts/pages referencing this media
-        const postsWithFeatured = await ctx.db
-          .query("posts")
-          .filter((q) => q.eq(q.field("featuredImageId"), mediaId))
-          .collect();
-
-        for (const post of postsWithFeatured) {
-          await ctx.db.patch("posts", post._id, {
-            featuredImageId: undefined,
-            updatedAt: Date.now(),
-          });
-        }
-
-        // Capture data for event
-        const eventPayload = {
-          mediaId,
-          fileName: media.fileName,
-          deletedBy: getUserIdentifier(user),
-          mediaType: media.mediaType,
-          fileSize: media.fileSize,
-        };
-
-        // Delete media record
-        await ctx.db.delete("media", mediaId);
-
-        // Emit event per item
-        await emitEvent(ctx, MEDIA_EVENTS.DELETED, SYSTEM.MEDIA, eventPayload);
-
-        deleted++;
+        await ctx.db.patch("media", mediaId, patch);
+        updated++;
       } catch (err) {
         errors.push({
           mediaId: mediaId as string,
@@ -777,6 +1125,6 @@ export const bulkDelete = mutation({
       }
     }
 
-    return { deleted, errors };
+    return { updated, errors };
   },
 });

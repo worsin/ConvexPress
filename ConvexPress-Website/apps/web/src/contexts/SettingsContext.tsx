@@ -80,6 +80,47 @@ export interface PublicSettings {
   // Website Appearance - Header & Footer configs
   headerConfig: Record<string, unknown> | null;
   footerConfig: Record<string, unknown> | null;
+
+  // Public plugin flags
+  plugins: {
+    commerceEnabled?: boolean;
+    commerceSubscriptionsEnabled?: boolean;
+    commerceDigitalEnabled?: boolean;
+    commerceReviewsEnabled?: boolean;
+    commerceWishlistsEnabled?: boolean;
+    commerceBundlesEnabled?: boolean;
+    commerceReturnsEnabled?: boolean;
+    membershipEnabled?: boolean;
+    knowledgeBaseEnabled?: boolean;
+    ticketsEnabled?: boolean;
+    customFieldsEnabled?: boolean;
+    recipesEnabled?: boolean;
+    galleryEnabled?: boolean;
+  };
+
+  // Commerce runtime config (currency, tax, shipping toggles, etc.)
+  commerceConfig: {
+    storeName?: string;
+    storeEmail?: string;
+    currencyCode?: string;
+    currencySymbol?: string;
+    pricesIncludeTax?: boolean;
+    defaultCountryCode?: string;
+    defaultState?: string;
+    checkoutRequiresPhone?: boolean;
+    allowGuestCheckout?: boolean;
+    shippingEnabled?: boolean;
+    shippingMethods?: Array<{ code: string; label: string }>;
+    paymentMethods?: Array<{ code: string; label: string; enabled: boolean }>;
+    preferredProvider?: string;
+    liveRatesEnabled?: boolean;
+    fallbackToManualRates?: boolean;
+    fallbackMessage?: string;
+    cheapestBadgeLabel?: string;
+    fastestBadgeLabel?: string;
+    bestOptionBadgeLabel?: string;
+    [key: string]: unknown;
+  } | null;
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────

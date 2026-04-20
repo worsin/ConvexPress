@@ -75,6 +75,20 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+type TicketQueueItem = {
+  _id: string;
+  subject: string;
+  ticketNumber: string;
+  userNameSnapshot?: string;
+  status: string;
+  priority: string;
+  category: string;
+  assigneeName?: string;
+  createdAt: number;
+  messageCount: number;
+  lastMessageAt?: number;
+};
+
 // ─── Badges ──────────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
@@ -299,7 +313,7 @@ function TicketListTable() {
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-border/50">
-            {result.tickets.map((ticket) => (
+            {result.tickets.map((ticket: TicketQueueItem) => (
               <tr
                 key={ticket._id}
                 onClick={() =>

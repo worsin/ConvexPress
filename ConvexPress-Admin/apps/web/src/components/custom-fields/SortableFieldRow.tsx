@@ -115,10 +115,10 @@ export function SortableFieldRow({
         <button
           type="button"
           className="text-muted-foreground/50 hover:text-muted-foreground cursor-grab active:cursor-grabbing p-0.5 -ml-1 shrink-0"
-          aria-roledescription="sortable"
-          aria-label={`Reorder ${field.label}`}
           {...attributes}
           {...listeners}
+          aria-roledescription="sortable"
+          aria-label={`Reorder ${field.label}`}
         >
           <GripVerticalIcon className="size-3.5" />
         </button>

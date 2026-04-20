@@ -6,11 +6,16 @@
  */
 
 import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { PluginGuard } from "@/components/plugins/PluginGuard";
 
 export const Route = createFileRoute("/_authenticated/_admin/custom-fields")({
   component: CustomFieldsLayout,
 });
 
 function CustomFieldsLayout() {
-  return <Outlet />;
+  return (
+    <PluginGuard pluginId="customFields">
+      <Outlet />
+    </PluginGuard>
+  );
 }

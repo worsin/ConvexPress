@@ -150,6 +150,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     to: "/custom-fields",
     icon: SlidersHorizontal,
     capability: "manage_options",
+    pluginId: "customFields",
     children: [
       {
         id: "custom-fields-all",

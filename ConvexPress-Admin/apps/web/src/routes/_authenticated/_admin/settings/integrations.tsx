@@ -22,6 +22,11 @@ import {
   CheckCircle2,
   XCircle,
   ChevronRight,
+  CreditCard,
+  Wallet,
+  ShieldCheck,
+  Truck,
+  MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -106,6 +111,18 @@ function IntegrationsOverviewPage() {
     section: "email",
   });
 
+  // All useQuery hooks must run before any early return so hook order stays
+  // stable across renders (React rules-of-hooks).
+  const paymentsSettings = useQuery(api.settings.queries.getBySection, {
+    section: "commerce.payments" as any,
+  }) as any;
+  const clerkSettings = useQuery(api.settings.queries.getBySection, {
+    section: "integrations.clerk" as any,
+  }) as any;
+  const googleSettings = useQuery(api.settings.queries.getBySection, {
+    section: "integrations.google" as any,
+  }) as any;
+
   // Loading state
   if (aiSettings === undefined || ga4Status === undefined || emailSettings === undefined) {
     return (
@@ -126,6 +143,21 @@ function IntegrationsOverviewPage() {
   const aiConnected = !!(aiSettings as any)?.apiKey;
   const ga4Connected = ga4Status?.connected ?? false;
   const emailEnabled = (emailSettings as any)?.enabled ?? false;
+
+  const stripeConnected = Boolean(
+    paymentsSettings?.stripeSecretKey &&
+      paymentsSettings.stripeSecretKey !== "",
+  );
+  const paypalConnected = Boolean(
+    paymentsSettings?.paypalClientSecret &&
+      paymentsSettings.paypalClientSecret !== "",
+  );
+  const clerkConnected = Boolean(
+    clerkSettings?.secretKey && clerkSettings.secretKey !== "",
+  );
+  const googleConnected = Boolean(
+    googleSettings?.placesApiKey && googleSettings.placesApiKey !== "",
+  );
 
   return (
     <div className="mx-auto max-w-3xl p-6">
@@ -174,6 +206,54 @@ function IntegrationsOverviewPage() {
           to="/settings/search"
           connected={false}
           statusLabel="Not connected"
+        />
+
+        {/* Payments */}
+        <IntegrationCard
+          title="Stripe"
+          description="Credit card payments. Secret key, publishable key, and webhook signing secret."
+          icon={CreditCard}
+          to="/settings/integrations/stripe"
+          connected={stripeConnected}
+          statusLabel={stripeConnected ? "Configured" : "Not configured"}
+        />
+        <IntegrationCard
+          title="PayPal"
+          description="PayPal Checkout. Client ID, secret, webhook ID, and mode."
+          icon={Wallet}
+          to="/settings/integrations/paypal"
+          connected={paypalConnected}
+          statusLabel={paypalConnected ? "Configured" : "Not configured"}
+        />
+
+        {/* Auth */}
+        <IntegrationCard
+          title="Clerk"
+          description="Clerk authentication — secret key and webhook signing secret."
+          icon={ShieldCheck}
+          to="/settings/integrations/clerk"
+          connected={clerkConnected}
+          statusLabel={clerkConnected ? "Configured" : "Not configured"}
+        />
+
+        {/* Shipping */}
+        <IntegrationCard
+          title="Shipping carriers"
+          description="ShipStation, UPS, USPS, FedEx, DHL — connect carriers for live rates, labels, and tracking."
+          icon={Truck}
+          to="/settings/integrations/shipping"
+          connected={false}
+          statusLabel="Configure carriers"
+        />
+
+        {/* Google */}
+        <IntegrationCard
+          title="Google Places"
+          description="Address autocomplete + geocoding at checkout. Places API key + optional Geocode key."
+          icon={MapPin}
+          to="/settings/integrations/google"
+          connected={googleConnected}
+          statusLabel={googleConnected ? "Configured" : "Not configured"}
         />
       </div>
     </div>

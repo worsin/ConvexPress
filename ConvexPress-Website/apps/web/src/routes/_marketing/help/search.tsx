@@ -3,6 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, ErrorComponent } from "@tanstack/react-router";
 import { z } from "zod";
 import { api } from "@convexpress-website/backend/generated/api";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 const searchSchema = z.object({
   q: z.string().optional(),
@@ -14,6 +15,14 @@ export const Route = createFileRoute("/_marketing/help/search")({
   errorComponent: ErrorComponent,
   loaderDeps: ({ search }) => ({ q: search.q }),
   loader: async ({ context: { queryClient }, deps }) => {
+    const publicSettings = await queryClient.ensureQueryData(
+      convexQuery(api.settings.queries.getPublic, {}),
+    );
+
+    if (!isPublicPluginEnabled("kb", publicSettings)) {
+      return;
+    }
+
     if (deps.q?.trim()) {
       await queryClient.ensureQueryData(
         convexQuery(api.kb.search.search, {
@@ -23,12 +32,10 @@ export const Route = createFileRoute("/_marketing/help/search")({
       );
     }
   },
-  head: ({ search }) => ({
+  head: () => ({
     meta: [
       {
-        title: search.q
-          ? `Search: ${search.q} - Help Center - ConvexPress`
-          : "Search - Help Center - ConvexPress",
+        title: "Search - Help Center - ConvexPress",
       },
     ],
   }),
@@ -64,7 +71,10 @@ function KbSearchResults() {
   function handleSearchSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const query = new FormData(e.currentTarget).get("q") as string;
-    navigate({ to: "/help/search", search: { q: query.trim() || undefined } });
+    navigate({
+      to: "/help/search",
+      search: { q: query.trim() || undefined },
+    } as any);
   }
 
   const results = data?.results ?? [];

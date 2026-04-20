@@ -7,6 +7,7 @@
 
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { ErrorTemplate } from "@/templates/ErrorTemplate";
+import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 
 export const Route = createFileRoute("/_marketing/help")({
   component: HelpLayout,
@@ -14,5 +15,9 @@ export const Route = createFileRoute("/_marketing/help")({
 });
 
 function HelpLayout() {
-  return <Outlet />;
+  return (
+    <PublicPluginGate pluginId="kb">
+      <Outlet />
+    </PublicPluginGate>
+  );
 }

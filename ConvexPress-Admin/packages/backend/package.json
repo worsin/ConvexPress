@@ -16,6 +16,7 @@
     "dotenv": "catalog:",
     "googleapis": "^171.4.0",
     "jose": "^6.2.2",
+    "sharp": "^0.33.5",
     "svix": "^1.89.0",
     "zod": "catalog:"
   },
@@ -24,5 +25,9 @@
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^24.3.0",
     "typescript": "catalog:"
+  },
+  "optionalDependencies": {
+    "@img/sharp-libvips-linux-arm64": "^1.2.4",
+    "@img/sharp-linux-arm64": "^0.34.5"
   }
 }

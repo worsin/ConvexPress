@@ -10,7 +10,7 @@
  *   - Yoast SEO data
  */
 
-import { internalAction, internalMutation } from "../../_generated/server";
+import { internalAction, internalMutation, type ActionCtx } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
@@ -18,9 +18,10 @@ import { fetchWPPosts, fetchWPPostMeta, type WPPost, type WPMeta } from "../help
 import { parseElementorData, extractTextFromElementor, isElementorData } from "../helpers/elementor";
 import { parseACFFields, hasACFFields, acfToPostMeta } from "../helpers/acfParser";
 import { parseYoastMeta, hasYoastMeta, yoastToSEOMeta } from "../helpers/yoastParser";
+import { selectWpPostMetaForPreservation } from "../fieldPolicy";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { WP_BATCH_SIZE, createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { WP_BATCH_SIZE, normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 import { createFinding } from "../helpers/idMapping";
 
 
@@ -36,8 +37,9 @@ export const importBatch = internalAction({
   args: {
     jobId: v.id("wordpressSyncJobs"),
     siteId: v.id("wordpressSites"),
+    credentials: siteCredentialsValidator,
   },
-  handler: async (ctx, { jobId, siteId }): Promise<PhaseResult> => {
+  handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
     let created = 0;
     let updated = 0;
@@ -48,7 +50,7 @@ export const importBatch = internalAction({
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
 
     // Get import config
-    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const importConfig = normalizeImportConfig(job?.importConfig);
     const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
@@ -59,21 +61,38 @@ export const importBatch = internalAction({
       };
     }
 
-    const credentials = {
-      siteUrl: site.siteUrl,
-      username: site.username,
-      applicationPassword: site.applicationPassword,
-    };
-
     const progress: PhaseProgress = { ...job.progress.posts };
     const cursor = progress.cursor || 0;
+    const entityLimit =
+      typeof importConfig.filters.entityLimit === "number"
+        ? importConfig.filters.entityLimit
+        : undefined;
+    if (entityLimit !== undefined && cursor >= entityLimit) {
+      progress.total = Math.min(progress.total || entityLimit, entityLimit);
+      progress.cursor = cursor;
+      return {
+        progress,
+        errors,
+        hasMore: false,
+      };
+    }
+
     const page = Math.floor(cursor / WP_BATCH_SIZE) + 1;
 
     // Fetch posts from WordPress
-    const { data: posts, total } = await fetchWPPosts(credentials, page, WP_BATCH_SIZE);
+    const { data: fetchedPosts, total } = await fetchWPPosts(credentials, page, WP_BATCH_SIZE, {
+      importDrafts: importConfig.behavior.importDrafts,
+      dateRangeStart: importConfig.filters.dateRangeStart,
+      dateRangeEnd: importConfig.filters.dateRangeEnd,
+    });
+    const posts =
+      entityLimit !== undefined
+        ? fetchedPosts.slice(0, Math.max(0, entityLimit - cursor))
+        : fetchedPosts;
 
-    if (progress.total === 0 && total > 0) {
-      progress.total = total;
+    const effectiveTotal = entityLimit !== undefined ? Math.min(total, entityLimit) : total;
+    if (progress.total === 0 && effectiveTotal > 0) {
+      progress.total = effectiveTotal;
     }
 
     // Process each post
@@ -92,8 +111,18 @@ export const importBatch = internalAction({
           internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
           { siteId, objectType: "post", wpId: wpPost.id }
         );
+        const existingPostId = existingMapping?.convexId;
 
         if (existingMapping) {
+          if (!isDryRun) {
+            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+              siteId,
+              objectType: "post",
+              wpId: wpPost.id,
+              jobId,
+            });
+          }
+
           // Source hash comparison - skip if unchanged
           if (existingMapping.sourceHash === sourceHash) {
             skipped++;
@@ -137,17 +166,16 @@ export const importBatch = internalAction({
             continue;
           }
 
-          // Otherwise fall through to re-import (update)
-          updated++;
-          progress.imported++;
-          continue;
+          // Continue into the shared write path below to patch the mapped post.
         }
 
         // No existing mapping - check for slug collision
-        const existingBySlug = await ctx.runQuery(
-          internal.wordpressSync.internals.findPostBySlug,
-          { slug: wpPost.slug, type: "post" }
-        );
+        const existingBySlug = existingMapping
+          ? null
+          : await ctx.runQuery(
+              internal.wordpressSync.internals.findPostBySlug,
+              { slug: wpPost.slug, type: "post" }
+            );
 
         if (existingBySlug) {
           await createFinding(ctx, {
@@ -168,10 +196,12 @@ export const importBatch = internalAction({
         if (!isDryRun) {
           // Fetch post meta (for Elementor, ACF, Yoast)
           let postMeta: WPMeta[] = [];
-          try {
-            postMeta = await fetchWPPostMeta(credentials, wpPost.id);
-          } catch {
-            // Continue without meta if fetch fails
+          if (importConfig.scope.elementor) {
+            try {
+              postMeta = await fetchWPPostMeta(credentials, wpPost.id);
+            } catch {
+              // Continue without meta if fetch fails
+            }
           }
 
           // Process content and meta
@@ -198,6 +228,7 @@ export const importBatch = internalAction({
 
           // Create the post
           const postId = await ctx.runMutation(internal.wordpressSync.phases.postsCreate, {
+            existingId: existingPostId,
             wpPost: {
               id: wpPost.id,
               title: wpPost.title?.rendered || "",
@@ -222,15 +253,15 @@ export const importBatch = internalAction({
               key: "_elementor_data",
               value: processedContent.elementorData,
             });
+          }
 
-            // Also store original rendered HTML for reference
-            if (wpPost.content?.rendered) {
-              await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
-                postId,
-                key: "_wp_content_rendered",
-                value: wpPost.content.rendered,
-              });
-            }
+          // Store original rendered HTML for reference and future re-rendering.
+          if (wpPost.content?.rendered) {
+            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+              postId,
+              key: "_wp_content_rendered",
+              value: wpPost.content.rendered,
+            });
           }
 
           // Store ACF data
@@ -251,6 +282,21 @@ export const importBatch = internalAction({
             });
           }
 
+          const storedMetaKeys = new Set([
+            "_elementor_data",
+            "_wp_content_rendered",
+            ...processedContent.acfMeta.map((item) => item.key),
+            ...processedContent.seoMeta.map((item) => item.key),
+          ]);
+
+          for (const sourceMeta of selectWpPostMetaForPreservation(postMeta, storedMetaKeys)) {
+            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+              postId,
+              key: sourceMeta.key,
+              value: sourceMeta.value,
+            });
+          }
+
           // Create term relationships
           for (const termId of [...categoryIds, ...tagIds]) {
             await ctx.runMutation(internal.wordpressSync.phases.postsCreateTermRelationship, {
@@ -259,17 +305,24 @@ export const importBatch = internalAction({
             });
           }
 
-          // Create ID mapping with sourceHash
-          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-            siteId,
-            objectType: "post",
-            wpId: wpPost.id,
-            convexId: postId,
-            sourceHash,
-          });
+          if (!existingPostId) {
+            // Create ID mapping with sourceHash
+            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+              siteId,
+              objectType: "post",
+              wpId: wpPost.id,
+              convexId: postId,
+              sourceHash,
+              jobId,
+            });
+          }
         }
 
-        created++;
+        if (existingPostId) {
+          updated++;
+        } else {
+          created++;
+        }
         progress.imported++;
       } catch (error) {
         errors.push({
@@ -327,14 +380,16 @@ async function processPostContent(
     if (parsed) {
       // Store the raw Elementor JSON
       result.elementorData = elementorValue;
-      // Extract plain text for searchability
-      result.content = extractTextFromElementor(parsed);
+      // Prefer rendered HTML for display; Elementor JSON remains in postMeta.
+      result.content = wpPost.content?.rendered
+        ? createHtmlBlockDocument(wpPost.content.rendered)
+        : createParagraphDocument(extractTextFromElementor(parsed));
     }
   }
 
-  // If no Elementor content, use rendered HTML stripped of tags
+  // If no Elementor content, preserve rendered WordPress HTML as an HTML block.
   if (!result.content && wpPost.content?.rendered) {
-    result.content = stripHtml(wpPost.content.rendered);
+    result.content = createHtmlBlockDocument(wpPost.content.rendered);
   }
 
   // Process ACF fields
@@ -360,7 +415,7 @@ async function processPostContent(
 // ─── Helper Functions ──────────────────────────────────────────────────────
 
 async function resolveTermIds(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   siteId: Id<"wordpressSites">,
   wpIds: number[],
   objectType: "category" | "tag"
@@ -417,10 +472,37 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+function createHtmlBlockDocument(html: string): string {
+  return JSON.stringify({
+    type: "doc",
+    content: [
+      {
+        type: "html",
+        attrs: { content: html },
+      },
+    ],
+  });
+}
+
+function createParagraphDocument(text: string): string {
+  return JSON.stringify({
+    type: "doc",
+    content: text
+      ? [
+          {
+            type: "paragraph",
+            content: [{ type: "text", text }],
+          },
+        ]
+      : [],
+  });
+}
+
 // ─── Post Creation Mutations ───────────────────────────────────────────────
 
 export const postsCreate = internalMutation({
   args: {
+    existingId: v.optional(v.string()),
     wpPost: v.object({
       id: v.number(),
       title: v.string(),
@@ -445,7 +527,7 @@ export const postsCreate = internalMutation({
     featuredImageId: v.optional(v.string()),
     siteId: v.id("wordpressSites"),
   },
-  handler: async (ctx, { wpPost, authorId, featuredImageId, siteId }) => {
+  handler: async (ctx, { existingId, wpPost, authorId, featuredImageId, siteId }) => {
     const now = Date.now();
 
     // Get a fallback author if needed
@@ -480,15 +562,14 @@ export const postsCreate = internalMutation({
       }
     }
 
-    // Create post
-    const postId = await ctx.db.insert("posts", {
-      type: "post",
+    const fields = {
+      type: "post" as const,
       title: stripHtml(wpPost.title),
       slug: wpPost.slug,
       content: wpPost.content,
       excerpt: stripHtml(wpPost.excerpt) || undefined,
       status: wpPost.status,
-      visibility: wpPost.status === "private" ? "private" : "public",
+      visibility: (wpPost.status === "private" ? "private" : "public") as "private" | "public",
       authorId: finalAuthorId,
       featuredImageId: featuredImageId ? (featuredImageId as Id<"media">) : undefined,
       commentStatus: wpPost.commentStatus,
@@ -497,8 +578,18 @@ export const postsCreate = internalMutation({
       wpPostId: wpPost.id,
       wpGuid: wpPost.guid,
       wpSourceSiteId: siteId,
-      createdAt: now,
       updatedAt: now,
+    };
+
+    if (existingId) {
+      await ctx.db.patch(existingId as Id<"posts">, fields);
+      return existingId;
+    }
+
+    // Create post
+    const postId = await ctx.db.insert("posts", {
+      ...fields,
+      createdAt: now,
     });
 
     return postId;
@@ -512,6 +603,18 @@ export const postsCreateMeta = internalMutation({
     value: v.string(),
   },
   handler: async (ctx, { postId, key, value }) => {
+    const existing = await ctx.db
+      .query("postMeta")
+      .withIndex("by_post_key", (q) =>
+        q.eq("postId", postId as Id<"posts">).eq("key", key)
+      )
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { value });
+      return;
+    }
+
     await ctx.db.insert("postMeta", {
       postId: postId as Id<"posts">,
       key,

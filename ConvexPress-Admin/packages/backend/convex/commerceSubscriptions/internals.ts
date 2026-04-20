@@ -15,10 +15,10 @@
  *   - processScheduledDunning     Process a single scheduled dunning attempt
  */
 
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../_generated/server";
-import { internal } from "../_generated/api";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS (duplicated for internal module isolation)
@@ -92,12 +92,6 @@ async function resolveEffectiveConfig(ctx: any, product: any, templateId?: any) 
   const configuredTemplateId = templateId ?? override?.templateId ?? undefined;
   if (configuredTemplateId) {
     template = await ctx.db.get(configuredTemplateId);
-  }
-  if (!template) {
-    template = await ctx.db
-      .query("commerce_subscription_templates")
-      .withIndex("by_status", (q: any) => q.eq("status", "active"))
-      .first();
   }
 
   return {
@@ -194,7 +188,7 @@ async function transitionSubscription(ctx: any, args: any) {
     correlationId: args.correlationId,
   });
 
-  const product = await ctx.db.get(updated.productId);
+  const product = updated.productId ? await ctx.db.get(updated.productId) : null;
   if (product) {
     const config = await resolveEffectiveConfig(ctx, product, updated.templateId);
     await syncEntitlementsForStatus(ctx, updated, now, config.gracePeriodDays ?? 3);
@@ -215,6 +209,7 @@ export const getDueSubscriptions = internalQuery({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
     const now = Date.now();
     const limit = args.limit ?? 50;
 
@@ -241,6 +236,7 @@ export const getRetryableInvoices = internalQuery({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     const now = Date.now();
     const limit = args.limit ?? 100;
 
@@ -252,6 +248,53 @@ export const getRetryableInvoices = internalQuery({
     return failedInvoices
       .filter((inv: any) => inv.dueAt !== undefined && inv.dueAt <= now)
       .slice(0, limit);
+  },
+});
+
+export const checkEntitlementForUser = internalQuery({
+  args: {
+    userId: v.id("users"),
+    entitlementCode: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) {
+      return { hasEntitlement: false, entitlement: null };
+    }
+
+    const activeEntitlements = await ctx.db
+      .query("commerce_subscription_entitlements")
+      .withIndex("by_user_status", (q: any) =>
+        q.eq("userId", args.userId).eq("status", "active"),
+      )
+      .collect();
+
+    const active = activeEntitlements.find(
+      (e: any) => e.entitlementCode === args.entitlementCode,
+    );
+    if (active) {
+      return { hasEntitlement: true, entitlement: active };
+    }
+
+    const graceEntitlements = await ctx.db
+      .query("commerce_subscription_entitlements")
+      .withIndex("by_user_status", (q: any) =>
+        q.eq("userId", args.userId).eq("status", "grace"),
+      )
+      .collect();
+
+    const grace = graceEntitlements.find(
+      (e: any) => e.entitlementCode === args.entitlementCode,
+    );
+    if (!grace) {
+      return { hasEntitlement: false, entitlement: null };
+    }
+
+    const stillInGrace = !grace.graceEndsAt || grace.graceEndsAt > Date.now();
+    return {
+      hasEntitlement: stillInGrace,
+      inGracePeriod: true,
+      entitlement: grace,
+    };
   },
 });
 
@@ -268,6 +311,7 @@ export const createDueInvoices = internalMutation({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     const now = Date.now();
     const limit = args.limit ?? 50;
 
@@ -305,11 +349,17 @@ export const createDueInvoices = internalMutation({
 
       const invoiceId = await ctx.db.insert("commerce_subscription_invoices", {
         subscriptionId: subscription._id,
+        checkoutIntentId: subscription.sourceCheckoutIntentId,
+        sourceChannel: subscription.sourceChannel,
         status: "open",
         currencyCode: subscription.currencyCode,
         subtotalAmount,
         taxAmount,
         totalAmount,
+        paymentProvider: subscription.paymentProvider,
+        paymentTransactionId: undefined,
+        savedPaymentMethodId: subscription.defaultPaymentMethodId,
+        manualBilling: subscription.manualBilling,
         dueAt: now,
         paidAt: undefined,
         createdAt: now,
@@ -331,7 +381,16 @@ export const createDueInvoices = internalMutation({
           description: "Recurring subscription charge",
           quantity: item.quantity,
           unitAmount: item.unitAmount,
+          lineType: "recurring",
+          currencyCode: item.currencyCode,
           lineTotalAmount: item.unitAmount * item.quantity,
+          metadata: {
+            sourceOfferId: item.sourceOfferId,
+            sourceOfferItemId: item.sourceOfferItemId,
+            productId: item.productId,
+            variantId: item.variantId,
+            bundleId: item.bundleId,
+          },
           createdAt: now,
         });
       }
@@ -364,6 +423,7 @@ export const handleInvoicePaymentResult = internalMutation({
     correlationId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     const now = Date.now();
     const correlationId = args.correlationId ?? createCorrelationId();
 
@@ -423,7 +483,7 @@ export const handleInvoicePaymentResult = internalMutation({
       // Sync entitlements to active
       const updated = await ctx.db.get(subscription._id);
       if (updated) {
-        const product = await ctx.db.get(updated.productId);
+        const product = updated.productId ? await ctx.db.get(updated.productId) : null;
         if (product) {
           const config = await resolveEffectiveConfig(ctx, product, updated.templateId);
           await syncEntitlementsForStatus(ctx, updated, now, config.gracePeriodDays ?? 3);
@@ -444,7 +504,9 @@ export const handleInvoicePaymentResult = internalMutation({
       });
     } else {
       // === FAILURE PATH ===
-      const product = await ctx.db.get(subscription.productId);
+      const product = subscription.productId
+        ? await ctx.db.get(subscription.productId)
+        : null;
       const config = product
         ? await resolveEffectiveConfig(ctx, product, subscription.templateId)
         : { gracePeriodDays: 3, dunningPolicy: DEFAULT_DUNNING_POLICY };
@@ -545,6 +607,7 @@ export const runDunningSweep = internalMutation({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     const now = Date.now();
     const limit = args.limit ?? 100;
 
@@ -599,6 +662,7 @@ export const expirePendingCancellations = internalMutation({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     const now = Date.now();
     const limit = args.limit ?? 100;
 
@@ -640,6 +704,7 @@ export const processScheduledDunning = internalMutation({
     dunningAttemptId: v.id("commerce_subscription_dunning_attempts"),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
     const now = Date.now();
     const attempt = await ctx.db.get(args.dunningAttemptId);
     if (!attempt || attempt.status !== "scheduled") {

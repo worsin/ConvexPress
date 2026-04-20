@@ -19,31 +19,79 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as MarketingRouteImport } from './routes/_marketing'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
+import { Route as DashboardWishlistRouteImport } from './routes/dashboard/wishlist'
+import { Route as DashboardSubscriptionsRouteImport } from './routes/dashboard/subscriptions'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
 import { Route as DashboardSecurityRouteImport } from './routes/dashboard/security'
+import { Route as DashboardReviewsRouteImport } from './routes/dashboard/reviews'
+import { Route as DashboardReturnsRouteImport } from './routes/dashboard/returns'
 import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile'
 import { Route as DashboardPostsRouteImport } from './routes/dashboard/posts'
+import { Route as DashboardOrdersRouteImport } from './routes/dashboard/orders'
 import { Route as DashboardNotificationsRouteImport } from './routes/dashboard/notifications'
+import { Route as DashboardMembershipRouteImport } from './routes/dashboard/membership'
+import { Route as DashboardDownloadsRouteImport } from './routes/dashboard/downloads'
 import { Route as DashboardCommentsRouteImport } from './routes/dashboard/comments'
+import { Route as DashboardAddressesRouteImport } from './routes/dashboard/addresses'
 import { Route as ApiRobotsRouteImport } from './routes/api/robots'
+import { Route as MarketingSupportRouteImport } from './routes/_marketing/support'
+import { Route as MarketingShopRouteImport } from './routes/_marketing/shop'
 import { Route as MarketingSearchRouteImport } from './routes/_marketing/search'
+import { Route as MarketingRecipesRouteImport } from './routes/_marketing/recipes'
+import { Route as MarketingProductsRouteImport } from './routes/_marketing/products'
+import { Route as MarketingHelpRouteImport } from './routes/_marketing/help'
+import { Route as MarketingGalleryRouteImport } from './routes/_marketing/gallery'
+import { Route as MarketingCheckoutRouteImport } from './routes/_marketing/checkout'
+import { Route as MarketingCartRouteImport } from './routes/_marketing/cart'
+import { Route as MarketingBundlesRouteImport } from './routes/_marketing/bundles'
 import { Route as MarketingArchiveRouteImport } from './routes/_marketing/archive'
 import { Route as ApiFeedIndexRouteImport } from './routes/api/feed/index'
+import { Route as MarketingSupportIndexRouteImport } from './routes/_marketing/support/index'
+import { Route as MarketingRecipesIndexRouteImport } from './routes/_marketing/recipes/index'
+import { Route as MarketingProductsIndexRouteImport } from './routes/_marketing/products/index'
+import { Route as MarketingHelpIndexRouteImport } from './routes/_marketing/help/index'
+import { Route as MarketingGalleryIndexRouteImport } from './routes/_marketing/gallery/index'
+import { Route as MarketingCheckoutIndexRouteImport } from './routes/_marketing/checkout/index'
+import { Route as MarketingBundlesIndexRouteImport } from './routes/_marketing/bundles/index'
 import { Route as MarketingBlogIndexRouteImport } from './routes/_marketing/blog/index'
+import { Route as DashboardSubscriptionsSubscriptionIdRouteImport } from './routes/dashboard/subscriptions.$subscriptionId'
+import { Route as DashboardReturnsReturnIdRouteImport } from './routes/dashboard/returns.$returnId'
+import { Route as DashboardOrdersOrderIdRouteImport } from './routes/dashboard/orders.$orderId'
 import { Route as ApiSitemapXmlRouteImport } from './routes/api/sitemap.xml'
 import { Route as ApiSitemapStyleXslRouteImport } from './routes/api/sitemap-style.xsl'
 import { Route as ApiSitemapTypePageXmlRouteImport } from './routes/api/sitemap-$type-$page.xml'
 import { Route as ApiFeedRss2RouteImport } from './routes/api/feed/rss2'
 import { Route as ApiFeedAtomRouteImport } from './routes/api/feed/atom'
 import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth/callback'
+import { Route as MarketingWishlistTokenRouteImport } from './routes/_marketing/wishlist.$token'
+import { Route as MarketingTrackTokenRouteImport } from './routes/_marketing/track.$token'
 import { Route as MarketingTagSlugRouteImport } from './routes/_marketing/tag/$slug'
+import { Route as MarketingSupportNewRouteImport } from './routes/_marketing/support/new'
+import { Route as MarketingRecipesSlugRouteImport } from './routes/_marketing/recipes/$slug'
+import { Route as MarketingProductsSlugRouteImport } from './routes/_marketing/products/$slug'
 import { Route as MarketingPageSplatRouteImport } from './routes/_marketing/page/$'
+import { Route as MarketingHelpSearchRouteImport } from './routes/_marketing/help/search'
+import { Route as MarketingHelpCategorySlugRouteImport } from './routes/_marketing/help/$categorySlug'
+import { Route as MarketingGallerySlugRouteImport } from './routes/_marketing/gallery/$slug'
+import { Route as MarketingCheckoutShippingRouteImport } from './routes/_marketing/checkout/shipping'
+import { Route as MarketingCheckoutReviewRouteImport } from './routes/_marketing/checkout/review'
+import { Route as MarketingCheckoutPaymentRouteImport } from './routes/_marketing/checkout/payment'
 import { Route as MarketingCategorySlugRouteImport } from './routes/_marketing/category/$slug'
+import { Route as MarketingBundlesSlugRouteImport } from './routes/_marketing/bundles/$slug'
 import { Route as MarketingBlogSlugRouteImport } from './routes/_marketing/blog/$slug'
 import { Route as MarketingAuthorSlugRouteImport } from './routes/_marketing/author/$slug'
 import { Route as MarketingArchivesIdRouteImport } from './routes/_marketing/archives/$id'
 import { Route as ApiCommentsFeedIndexRouteImport } from './routes/api/comments/feed/index'
+import { Route as MarketingSupportTicketsIndexRouteImport } from './routes/_marketing/support/tickets/index'
+import { Route as MarketingHelpCategorySlugIndexRouteImport } from './routes/_marketing/help/$categorySlug/index'
+import { Route as DashboardOrdersOrderIdReturnRouteImport } from './routes/dashboard/orders.$orderId.return'
 import { Route as ApiCommentsFeedAtomRouteImport } from './routes/api/comments/feed/atom'
+import { Route as MarketingSupportTicketsTicketIdRouteImport } from './routes/_marketing/support/tickets/$ticketId'
+import { Route as MarketingRecipesCategorySlugRouteImport } from './routes/_marketing/recipes/category/$slug'
+import { Route as MarketingHelpCollectionsSlugRouteImport } from './routes/_marketing/help/collections/$slug'
+import { Route as MarketingHelpCategorySlugArticleSlugRouteImport } from './routes/_marketing/help/$categorySlug/$articleSlug'
+import { Route as MarketingGalleryCategorySlugRouteImport } from './routes/_marketing/gallery/category/$slug'
+import { Route as MarketingCheckoutConfirmationOrderIdRouteImport } from './routes/_marketing/checkout/confirmation_.$orderId'
 import { Route as ApiTagSlugFeedIndexRouteImport } from './routes/api/tag/$slug/feed/index'
 import { Route as ApiCategorySlugFeedIndexRouteImport } from './routes/api/category/$slug/feed/index'
 import { Route as ApiBlogSlugFeedIndexRouteImport } from './routes/api/blog/$slug/feed/index'
@@ -104,6 +152,16 @@ const MarketingIndexRoute = MarketingIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MarketingRoute,
 } as any)
+const DashboardWishlistRoute = DashboardWishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardSubscriptionsRoute = DashboardSubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -112,6 +170,16 @@ const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
 const DashboardSecurityRoute = DashboardSecurityRouteImport.update({
   id: '/security',
   path: '/security',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardReviewsRoute = DashboardReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardReturnsRoute = DashboardReturnsRouteImport.update({
+  id: '/returns',
+  path: '/returns',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardProfileRoute = DashboardProfileRouteImport.update({
@@ -124,9 +192,24 @@ const DashboardPostsRoute = DashboardPostsRouteImport.update({
   path: '/posts',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardOrdersRoute = DashboardOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardNotificationsRoute = DashboardNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardMembershipRoute = DashboardMembershipRouteImport.update({
+  id: '/membership',
+  path: '/membership',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardDownloadsRoute = DashboardDownloadsRouteImport.update({
+  id: '/downloads',
+  path: '/downloads',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardCommentsRoute = DashboardCommentsRouteImport.update({
@@ -134,14 +217,64 @@ const DashboardCommentsRoute = DashboardCommentsRouteImport.update({
   path: '/comments',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardAddressesRoute = DashboardAddressesRouteImport.update({
+  id: '/addresses',
+  path: '/addresses',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const ApiRobotsRoute = ApiRobotsRouteImport.update({
   id: '/api/robots',
   path: '/api/robots',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingSupportRoute = MarketingSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingShopRoute = MarketingShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => MarketingRoute,
+} as any)
 const MarketingSearchRoute = MarketingSearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingRecipesRoute = MarketingRecipesRouteImport.update({
+  id: '/recipes',
+  path: '/recipes',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingProductsRoute = MarketingProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingHelpRoute = MarketingHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingGalleryRoute = MarketingGalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingCheckoutRoute = MarketingCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingCartRoute = MarketingCartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingBundlesRoute = MarketingBundlesRouteImport.update({
+  id: '/bundles',
+  path: '/bundles',
   getParentRoute: () => MarketingRoute,
 } as any)
 const MarketingArchiveRoute = MarketingArchiveRouteImport.update({
@@ -154,10 +287,62 @@ const ApiFeedIndexRoute = ApiFeedIndexRouteImport.update({
   path: '/api/feed/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingSupportIndexRoute = MarketingSupportIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MarketingSupportRoute,
+} as any)
+const MarketingRecipesIndexRoute = MarketingRecipesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MarketingRecipesRoute,
+} as any)
+const MarketingProductsIndexRoute = MarketingProductsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MarketingProductsRoute,
+} as any)
+const MarketingHelpIndexRoute = MarketingHelpIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MarketingHelpRoute,
+} as any)
+const MarketingGalleryIndexRoute = MarketingGalleryIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MarketingGalleryRoute,
+} as any)
+const MarketingCheckoutIndexRoute = MarketingCheckoutIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MarketingCheckoutRoute,
+} as any)
+const MarketingBundlesIndexRoute = MarketingBundlesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MarketingBundlesRoute,
+} as any)
 const MarketingBlogIndexRoute = MarketingBlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
   getParentRoute: () => MarketingRoute,
+} as any)
+const DashboardSubscriptionsSubscriptionIdRoute =
+  DashboardSubscriptionsSubscriptionIdRouteImport.update({
+    id: '/$subscriptionId',
+    path: '/$subscriptionId',
+    getParentRoute: () => DashboardSubscriptionsRoute,
+  } as any)
+const DashboardReturnsReturnIdRoute =
+  DashboardReturnsReturnIdRouteImport.update({
+    id: '/$returnId',
+    path: '/$returnId',
+    getParentRoute: () => DashboardReturnsRoute,
+  } as any)
+const DashboardOrdersOrderIdRoute = DashboardOrdersOrderIdRouteImport.update({
+  id: '/$orderId',
+  path: '/$orderId',
+  getParentRoute: () => DashboardOrdersRoute,
 } as any)
 const ApiSitemapXmlRoute = ApiSitemapXmlRouteImport.update({
   id: '/api/sitemap/xml',
@@ -189,20 +374,83 @@ const ApiAuthCallbackRoute = ApiAuthCallbackRouteImport.update({
   path: '/api/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingWishlistTokenRoute = MarketingWishlistTokenRouteImport.update({
+  id: '/wishlist/$token',
+  path: '/wishlist/$token',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingTrackTokenRoute = MarketingTrackTokenRouteImport.update({
+  id: '/track/$token',
+  path: '/track/$token',
+  getParentRoute: () => MarketingRoute,
+} as any)
 const MarketingTagSlugRoute = MarketingTagSlugRouteImport.update({
   id: '/tag/$slug',
   path: '/tag/$slug',
   getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingSupportNewRoute = MarketingSupportNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => MarketingSupportRoute,
+} as any)
+const MarketingRecipesSlugRoute = MarketingRecipesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => MarketingRecipesRoute,
+} as any)
+const MarketingProductsSlugRoute = MarketingProductsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => MarketingProductsRoute,
 } as any)
 const MarketingPageSplatRoute = MarketingPageSplatRouteImport.update({
   id: '/page/$',
   path: '/page/$',
   getParentRoute: () => MarketingRoute,
 } as any)
+const MarketingHelpSearchRoute = MarketingHelpSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => MarketingHelpRoute,
+} as any)
+const MarketingHelpCategorySlugRoute =
+  MarketingHelpCategorySlugRouteImport.update({
+    id: '/$categorySlug',
+    path: '/$categorySlug',
+    getParentRoute: () => MarketingHelpRoute,
+  } as any)
+const MarketingGallerySlugRoute = MarketingGallerySlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => MarketingGalleryRoute,
+} as any)
+const MarketingCheckoutShippingRoute =
+  MarketingCheckoutShippingRouteImport.update({
+    id: '/shipping',
+    path: '/shipping',
+    getParentRoute: () => MarketingCheckoutRoute,
+  } as any)
+const MarketingCheckoutReviewRoute = MarketingCheckoutReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => MarketingCheckoutRoute,
+} as any)
+const MarketingCheckoutPaymentRoute =
+  MarketingCheckoutPaymentRouteImport.update({
+    id: '/payment',
+    path: '/payment',
+    getParentRoute: () => MarketingCheckoutRoute,
+  } as any)
 const MarketingCategorySlugRoute = MarketingCategorySlugRouteImport.update({
   id: '/category/$slug',
   path: '/category/$slug',
   getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingBundlesSlugRoute = MarketingBundlesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => MarketingBundlesRoute,
 } as any)
 const MarketingBlogSlugRoute = MarketingBlogSlugRouteImport.update({
   id: '/blog/$slug',
@@ -224,11 +472,65 @@ const ApiCommentsFeedIndexRoute = ApiCommentsFeedIndexRouteImport.update({
   path: '/api/comments/feed/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingSupportTicketsIndexRoute =
+  MarketingSupportTicketsIndexRouteImport.update({
+    id: '/tickets/',
+    path: '/tickets/',
+    getParentRoute: () => MarketingSupportRoute,
+  } as any)
+const MarketingHelpCategorySlugIndexRoute =
+  MarketingHelpCategorySlugIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => MarketingHelpCategorySlugRoute,
+  } as any)
+const DashboardOrdersOrderIdReturnRoute =
+  DashboardOrdersOrderIdReturnRouteImport.update({
+    id: '/return',
+    path: '/return',
+    getParentRoute: () => DashboardOrdersOrderIdRoute,
+  } as any)
 const ApiCommentsFeedAtomRoute = ApiCommentsFeedAtomRouteImport.update({
   id: '/api/comments/feed/atom',
   path: '/api/comments/feed/atom',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingSupportTicketsTicketIdRoute =
+  MarketingSupportTicketsTicketIdRouteImport.update({
+    id: '/tickets/$ticketId',
+    path: '/tickets/$ticketId',
+    getParentRoute: () => MarketingSupportRoute,
+  } as any)
+const MarketingRecipesCategorySlugRoute =
+  MarketingRecipesCategorySlugRouteImport.update({
+    id: '/category/$slug',
+    path: '/category/$slug',
+    getParentRoute: () => MarketingRecipesRoute,
+  } as any)
+const MarketingHelpCollectionsSlugRoute =
+  MarketingHelpCollectionsSlugRouteImport.update({
+    id: '/collections/$slug',
+    path: '/collections/$slug',
+    getParentRoute: () => MarketingHelpRoute,
+  } as any)
+const MarketingHelpCategorySlugArticleSlugRoute =
+  MarketingHelpCategorySlugArticleSlugRouteImport.update({
+    id: '/$articleSlug',
+    path: '/$articleSlug',
+    getParentRoute: () => MarketingHelpCategorySlugRoute,
+  } as any)
+const MarketingGalleryCategorySlugRoute =
+  MarketingGalleryCategorySlugRouteImport.update({
+    id: '/category/$slug',
+    path: '/category/$slug',
+    getParentRoute: () => MarketingGalleryRoute,
+  } as any)
+const MarketingCheckoutConfirmationOrderIdRoute =
+  MarketingCheckoutConfirmationOrderIdRouteImport.update({
+    id: '/confirmation_/$orderId',
+    path: '/confirmation/$orderId',
+    getParentRoute: () => MarketingCheckoutRoute,
+  } as any)
 const ApiTagSlugFeedIndexRoute = ApiTagSlugFeedIndexRouteImport.update({
   id: '/api/tag/$slug/feed/',
   path: '/api/tag/$slug/feed/',
@@ -293,30 +595,78 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/archive': typeof MarketingArchiveRoute
+  '/bundles': typeof MarketingBundlesRouteWithChildren
+  '/cart': typeof MarketingCartRoute
+  '/checkout': typeof MarketingCheckoutRouteWithChildren
+  '/gallery': typeof MarketingGalleryRouteWithChildren
+  '/help': typeof MarketingHelpRouteWithChildren
+  '/products': typeof MarketingProductsRouteWithChildren
+  '/recipes': typeof MarketingRecipesRouteWithChildren
   '/search': typeof MarketingSearchRoute
+  '/shop': typeof MarketingShopRoute
+  '/support': typeof MarketingSupportRouteWithChildren
   '/api/robots': typeof ApiRobotsRoute
+  '/dashboard/addresses': typeof DashboardAddressesRoute
   '/dashboard/comments': typeof DashboardCommentsRoute
+  '/dashboard/downloads': typeof DashboardDownloadsRoute
+  '/dashboard/membership': typeof DashboardMembershipRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
+  '/dashboard/orders': typeof DashboardOrdersRouteWithChildren
   '/dashboard/posts': typeof DashboardPostsRoute
   '/dashboard/profile': typeof DashboardProfileRoute
+  '/dashboard/returns': typeof DashboardReturnsRouteWithChildren
+  '/dashboard/reviews': typeof DashboardReviewsRoute
   '/dashboard/security': typeof DashboardSecurityRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/subscriptions': typeof DashboardSubscriptionsRouteWithChildren
+  '/dashboard/wishlist': typeof DashboardWishlistRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/archives/$id': typeof MarketingArchivesIdRoute
   '/author/$slug': typeof MarketingAuthorSlugRoute
   '/blog/$slug': typeof MarketingBlogSlugRoute
+  '/bundles/$slug': typeof MarketingBundlesSlugRoute
   '/category/$slug': typeof MarketingCategorySlugRoute
+  '/checkout/payment': typeof MarketingCheckoutPaymentRoute
+  '/checkout/review': typeof MarketingCheckoutReviewRoute
+  '/checkout/shipping': typeof MarketingCheckoutShippingRoute
+  '/gallery/$slug': typeof MarketingGallerySlugRoute
+  '/help/$categorySlug': typeof MarketingHelpCategorySlugRouteWithChildren
+  '/help/search': typeof MarketingHelpSearchRoute
   '/page/$': typeof MarketingPageSplatRoute
+  '/products/$slug': typeof MarketingProductsSlugRoute
+  '/recipes/$slug': typeof MarketingRecipesSlugRoute
+  '/support/new': typeof MarketingSupportNewRoute
   '/tag/$slug': typeof MarketingTagSlugRoute
+  '/track/$token': typeof MarketingTrackTokenRoute
+  '/wishlist/$token': typeof MarketingWishlistTokenRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/feed/atom': typeof ApiFeedAtomRoute
   '/api/feed/rss2': typeof ApiFeedRss2Route
   '/api/sitemap-$type-$page/xml': typeof ApiSitemapTypePageXmlRoute
   '/api/sitemap-style/xsl': typeof ApiSitemapStyleXslRoute
   '/api/sitemap/xml': typeof ApiSitemapXmlRoute
+  '/dashboard/orders/$orderId': typeof DashboardOrdersOrderIdRouteWithChildren
+  '/dashboard/returns/$returnId': typeof DashboardReturnsReturnIdRoute
+  '/dashboard/subscriptions/$subscriptionId': typeof DashboardSubscriptionsSubscriptionIdRoute
   '/blog/': typeof MarketingBlogIndexRoute
+  '/bundles/': typeof MarketingBundlesIndexRoute
+  '/checkout/': typeof MarketingCheckoutIndexRoute
+  '/gallery/': typeof MarketingGalleryIndexRoute
+  '/help/': typeof MarketingHelpIndexRoute
+  '/products/': typeof MarketingProductsIndexRoute
+  '/recipes/': typeof MarketingRecipesIndexRoute
+  '/support/': typeof MarketingSupportIndexRoute
   '/api/feed/': typeof ApiFeedIndexRoute
+  '/checkout/confirmation/$orderId': typeof MarketingCheckoutConfirmationOrderIdRoute
+  '/gallery/category/$slug': typeof MarketingGalleryCategorySlugRoute
+  '/help/$categorySlug/$articleSlug': typeof MarketingHelpCategorySlugArticleSlugRoute
+  '/help/collections/$slug': typeof MarketingHelpCollectionsSlugRoute
+  '/recipes/category/$slug': typeof MarketingRecipesCategorySlugRoute
+  '/support/tickets/$ticketId': typeof MarketingSupportTicketsTicketIdRoute
   '/api/comments/feed/atom': typeof ApiCommentsFeedAtomRoute
+  '/dashboard/orders/$orderId/return': typeof DashboardOrdersOrderIdReturnRoute
+  '/help/$categorySlug/': typeof MarketingHelpCategorySlugIndexRoute
+  '/support/tickets/': typeof MarketingSupportTicketsIndexRoute
   '/api/comments/feed/': typeof ApiCommentsFeedIndexRoute
   '/blog/$year/$month/$slug': typeof MarketingBlogYearMonthSlugRoute
   '/api/author/$slug/feed/atom': typeof ApiAuthorSlugFeedAtomRoute
@@ -337,31 +687,71 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/archive': typeof MarketingArchiveRoute
+  '/cart': typeof MarketingCartRoute
   '/search': typeof MarketingSearchRoute
+  '/shop': typeof MarketingShopRoute
   '/api/robots': typeof ApiRobotsRoute
+  '/dashboard/addresses': typeof DashboardAddressesRoute
   '/dashboard/comments': typeof DashboardCommentsRoute
+  '/dashboard/downloads': typeof DashboardDownloadsRoute
+  '/dashboard/membership': typeof DashboardMembershipRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
+  '/dashboard/orders': typeof DashboardOrdersRouteWithChildren
   '/dashboard/posts': typeof DashboardPostsRoute
   '/dashboard/profile': typeof DashboardProfileRoute
+  '/dashboard/returns': typeof DashboardReturnsRouteWithChildren
+  '/dashboard/reviews': typeof DashboardReviewsRoute
   '/dashboard/security': typeof DashboardSecurityRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/subscriptions': typeof DashboardSubscriptionsRouteWithChildren
+  '/dashboard/wishlist': typeof DashboardWishlistRoute
   '/': typeof MarketingIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/archives/$id': typeof MarketingArchivesIdRoute
   '/author/$slug': typeof MarketingAuthorSlugRoute
   '/blog/$slug': typeof MarketingBlogSlugRoute
+  '/bundles/$slug': typeof MarketingBundlesSlugRoute
   '/category/$slug': typeof MarketingCategorySlugRoute
+  '/checkout/payment': typeof MarketingCheckoutPaymentRoute
+  '/checkout/review': typeof MarketingCheckoutReviewRoute
+  '/checkout/shipping': typeof MarketingCheckoutShippingRoute
+  '/gallery/$slug': typeof MarketingGallerySlugRoute
+  '/help/search': typeof MarketingHelpSearchRoute
   '/page/$': typeof MarketingPageSplatRoute
+  '/products/$slug': typeof MarketingProductsSlugRoute
+  '/recipes/$slug': typeof MarketingRecipesSlugRoute
+  '/support/new': typeof MarketingSupportNewRoute
   '/tag/$slug': typeof MarketingTagSlugRoute
+  '/track/$token': typeof MarketingTrackTokenRoute
+  '/wishlist/$token': typeof MarketingWishlistTokenRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/feed/atom': typeof ApiFeedAtomRoute
   '/api/feed/rss2': typeof ApiFeedRss2Route
   '/api/sitemap-$type-$page/xml': typeof ApiSitemapTypePageXmlRoute
   '/api/sitemap-style/xsl': typeof ApiSitemapStyleXslRoute
   '/api/sitemap/xml': typeof ApiSitemapXmlRoute
+  '/dashboard/orders/$orderId': typeof DashboardOrdersOrderIdRouteWithChildren
+  '/dashboard/returns/$returnId': typeof DashboardReturnsReturnIdRoute
+  '/dashboard/subscriptions/$subscriptionId': typeof DashboardSubscriptionsSubscriptionIdRoute
   '/blog': typeof MarketingBlogIndexRoute
+  '/bundles': typeof MarketingBundlesIndexRoute
+  '/checkout': typeof MarketingCheckoutIndexRoute
+  '/gallery': typeof MarketingGalleryIndexRoute
+  '/help': typeof MarketingHelpIndexRoute
+  '/products': typeof MarketingProductsIndexRoute
+  '/recipes': typeof MarketingRecipesIndexRoute
+  '/support': typeof MarketingSupportIndexRoute
   '/api/feed': typeof ApiFeedIndexRoute
+  '/checkout/confirmation/$orderId': typeof MarketingCheckoutConfirmationOrderIdRoute
+  '/gallery/category/$slug': typeof MarketingGalleryCategorySlugRoute
+  '/help/$categorySlug/$articleSlug': typeof MarketingHelpCategorySlugArticleSlugRoute
+  '/help/collections/$slug': typeof MarketingHelpCollectionsSlugRoute
+  '/recipes/category/$slug': typeof MarketingRecipesCategorySlugRoute
+  '/support/tickets/$ticketId': typeof MarketingSupportTicketsTicketIdRoute
   '/api/comments/feed/atom': typeof ApiCommentsFeedAtomRoute
+  '/dashboard/orders/$orderId/return': typeof DashboardOrdersOrderIdReturnRoute
+  '/help/$categorySlug': typeof MarketingHelpCategorySlugIndexRoute
+  '/support/tickets': typeof MarketingSupportTicketsIndexRoute
   '/api/comments/feed': typeof ApiCommentsFeedIndexRoute
   '/blog/$year/$month/$slug': typeof MarketingBlogYearMonthSlugRoute
   '/api/author/$slug/feed/atom': typeof ApiAuthorSlugFeedAtomRoute
@@ -385,31 +775,79 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/_marketing/archive': typeof MarketingArchiveRoute
+  '/_marketing/bundles': typeof MarketingBundlesRouteWithChildren
+  '/_marketing/cart': typeof MarketingCartRoute
+  '/_marketing/checkout': typeof MarketingCheckoutRouteWithChildren
+  '/_marketing/gallery': typeof MarketingGalleryRouteWithChildren
+  '/_marketing/help': typeof MarketingHelpRouteWithChildren
+  '/_marketing/products': typeof MarketingProductsRouteWithChildren
+  '/_marketing/recipes': typeof MarketingRecipesRouteWithChildren
   '/_marketing/search': typeof MarketingSearchRoute
+  '/_marketing/shop': typeof MarketingShopRoute
+  '/_marketing/support': typeof MarketingSupportRouteWithChildren
   '/api/robots': typeof ApiRobotsRoute
+  '/dashboard/addresses': typeof DashboardAddressesRoute
   '/dashboard/comments': typeof DashboardCommentsRoute
+  '/dashboard/downloads': typeof DashboardDownloadsRoute
+  '/dashboard/membership': typeof DashboardMembershipRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
+  '/dashboard/orders': typeof DashboardOrdersRouteWithChildren
   '/dashboard/posts': typeof DashboardPostsRoute
   '/dashboard/profile': typeof DashboardProfileRoute
+  '/dashboard/returns': typeof DashboardReturnsRouteWithChildren
+  '/dashboard/reviews': typeof DashboardReviewsRoute
   '/dashboard/security': typeof DashboardSecurityRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/subscriptions': typeof DashboardSubscriptionsRouteWithChildren
+  '/dashboard/wishlist': typeof DashboardWishlistRoute
   '/_marketing/': typeof MarketingIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/_marketing/archives/$id': typeof MarketingArchivesIdRoute
   '/_marketing/author/$slug': typeof MarketingAuthorSlugRoute
   '/_marketing/blog/$slug': typeof MarketingBlogSlugRoute
+  '/_marketing/bundles/$slug': typeof MarketingBundlesSlugRoute
   '/_marketing/category/$slug': typeof MarketingCategorySlugRoute
+  '/_marketing/checkout/payment': typeof MarketingCheckoutPaymentRoute
+  '/_marketing/checkout/review': typeof MarketingCheckoutReviewRoute
+  '/_marketing/checkout/shipping': typeof MarketingCheckoutShippingRoute
+  '/_marketing/gallery/$slug': typeof MarketingGallerySlugRoute
+  '/_marketing/help/$categorySlug': typeof MarketingHelpCategorySlugRouteWithChildren
+  '/_marketing/help/search': typeof MarketingHelpSearchRoute
   '/_marketing/page/$': typeof MarketingPageSplatRoute
+  '/_marketing/products/$slug': typeof MarketingProductsSlugRoute
+  '/_marketing/recipes/$slug': typeof MarketingRecipesSlugRoute
+  '/_marketing/support/new': typeof MarketingSupportNewRoute
   '/_marketing/tag/$slug': typeof MarketingTagSlugRoute
+  '/_marketing/track/$token': typeof MarketingTrackTokenRoute
+  '/_marketing/wishlist/$token': typeof MarketingWishlistTokenRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/feed/atom': typeof ApiFeedAtomRoute
   '/api/feed/rss2': typeof ApiFeedRss2Route
   '/api/sitemap-$type-$page/xml': typeof ApiSitemapTypePageXmlRoute
   '/api/sitemap-style/xsl': typeof ApiSitemapStyleXslRoute
   '/api/sitemap/xml': typeof ApiSitemapXmlRoute
+  '/dashboard/orders/$orderId': typeof DashboardOrdersOrderIdRouteWithChildren
+  '/dashboard/returns/$returnId': typeof DashboardReturnsReturnIdRoute
+  '/dashboard/subscriptions/$subscriptionId': typeof DashboardSubscriptionsSubscriptionIdRoute
   '/_marketing/blog/': typeof MarketingBlogIndexRoute
+  '/_marketing/bundles/': typeof MarketingBundlesIndexRoute
+  '/_marketing/checkout/': typeof MarketingCheckoutIndexRoute
+  '/_marketing/gallery/': typeof MarketingGalleryIndexRoute
+  '/_marketing/help/': typeof MarketingHelpIndexRoute
+  '/_marketing/products/': typeof MarketingProductsIndexRoute
+  '/_marketing/recipes/': typeof MarketingRecipesIndexRoute
+  '/_marketing/support/': typeof MarketingSupportIndexRoute
   '/api/feed/': typeof ApiFeedIndexRoute
+  '/_marketing/checkout/confirmation_/$orderId': typeof MarketingCheckoutConfirmationOrderIdRoute
+  '/_marketing/gallery/category/$slug': typeof MarketingGalleryCategorySlugRoute
+  '/_marketing/help/$categorySlug/$articleSlug': typeof MarketingHelpCategorySlugArticleSlugRoute
+  '/_marketing/help/collections/$slug': typeof MarketingHelpCollectionsSlugRoute
+  '/_marketing/recipes/category/$slug': typeof MarketingRecipesCategorySlugRoute
+  '/_marketing/support/tickets/$ticketId': typeof MarketingSupportTicketsTicketIdRoute
   '/api/comments/feed/atom': typeof ApiCommentsFeedAtomRoute
+  '/dashboard/orders/$orderId/return': typeof DashboardOrdersOrderIdReturnRoute
+  '/_marketing/help/$categorySlug/': typeof MarketingHelpCategorySlugIndexRoute
+  '/_marketing/support/tickets/': typeof MarketingSupportTicketsIndexRoute
   '/api/comments/feed/': typeof ApiCommentsFeedIndexRoute
   '/_marketing/blog/$year/$month/$slug': typeof MarketingBlogYearMonthSlugRoute
   '/api/author/$slug/feed/atom': typeof ApiAuthorSlugFeedAtomRoute
@@ -434,30 +872,78 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/verify-email'
     | '/archive'
+    | '/bundles'
+    | '/cart'
+    | '/checkout'
+    | '/gallery'
+    | '/help'
+    | '/products'
+    | '/recipes'
     | '/search'
+    | '/shop'
+    | '/support'
     | '/api/robots'
+    | '/dashboard/addresses'
     | '/dashboard/comments'
+    | '/dashboard/downloads'
+    | '/dashboard/membership'
     | '/dashboard/notifications'
+    | '/dashboard/orders'
     | '/dashboard/posts'
     | '/dashboard/profile'
+    | '/dashboard/returns'
+    | '/dashboard/reviews'
     | '/dashboard/security'
     | '/dashboard/settings'
+    | '/dashboard/subscriptions'
+    | '/dashboard/wishlist'
     | '/dashboard/'
     | '/archives/$id'
     | '/author/$slug'
     | '/blog/$slug'
+    | '/bundles/$slug'
     | '/category/$slug'
+    | '/checkout/payment'
+    | '/checkout/review'
+    | '/checkout/shipping'
+    | '/gallery/$slug'
+    | '/help/$categorySlug'
+    | '/help/search'
     | '/page/$'
+    | '/products/$slug'
+    | '/recipes/$slug'
+    | '/support/new'
     | '/tag/$slug'
+    | '/track/$token'
+    | '/wishlist/$token'
     | '/api/auth/callback'
     | '/api/feed/atom'
     | '/api/feed/rss2'
     | '/api/sitemap-$type-$page/xml'
     | '/api/sitemap-style/xsl'
     | '/api/sitemap/xml'
+    | '/dashboard/orders/$orderId'
+    | '/dashboard/returns/$returnId'
+    | '/dashboard/subscriptions/$subscriptionId'
     | '/blog/'
+    | '/bundles/'
+    | '/checkout/'
+    | '/gallery/'
+    | '/help/'
+    | '/products/'
+    | '/recipes/'
+    | '/support/'
     | '/api/feed/'
+    | '/checkout/confirmation/$orderId'
+    | '/gallery/category/$slug'
+    | '/help/$categorySlug/$articleSlug'
+    | '/help/collections/$slug'
+    | '/recipes/category/$slug'
+    | '/support/tickets/$ticketId'
     | '/api/comments/feed/atom'
+    | '/dashboard/orders/$orderId/return'
+    | '/help/$categorySlug/'
+    | '/support/tickets/'
     | '/api/comments/feed/'
     | '/blog/$year/$month/$slug'
     | '/api/author/$slug/feed/atom'
@@ -478,31 +964,71 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/verify-email'
     | '/archive'
+    | '/cart'
     | '/search'
+    | '/shop'
     | '/api/robots'
+    | '/dashboard/addresses'
     | '/dashboard/comments'
+    | '/dashboard/downloads'
+    | '/dashboard/membership'
     | '/dashboard/notifications'
+    | '/dashboard/orders'
     | '/dashboard/posts'
     | '/dashboard/profile'
+    | '/dashboard/returns'
+    | '/dashboard/reviews'
     | '/dashboard/security'
     | '/dashboard/settings'
+    | '/dashboard/subscriptions'
+    | '/dashboard/wishlist'
     | '/'
     | '/dashboard'
     | '/archives/$id'
     | '/author/$slug'
     | '/blog/$slug'
+    | '/bundles/$slug'
     | '/category/$slug'
+    | '/checkout/payment'
+    | '/checkout/review'
+    | '/checkout/shipping'
+    | '/gallery/$slug'
+    | '/help/search'
     | '/page/$'
+    | '/products/$slug'
+    | '/recipes/$slug'
+    | '/support/new'
     | '/tag/$slug'
+    | '/track/$token'
+    | '/wishlist/$token'
     | '/api/auth/callback'
     | '/api/feed/atom'
     | '/api/feed/rss2'
     | '/api/sitemap-$type-$page/xml'
     | '/api/sitemap-style/xsl'
     | '/api/sitemap/xml'
+    | '/dashboard/orders/$orderId'
+    | '/dashboard/returns/$returnId'
+    | '/dashboard/subscriptions/$subscriptionId'
     | '/blog'
+    | '/bundles'
+    | '/checkout'
+    | '/gallery'
+    | '/help'
+    | '/products'
+    | '/recipes'
+    | '/support'
     | '/api/feed'
+    | '/checkout/confirmation/$orderId'
+    | '/gallery/category/$slug'
+    | '/help/$categorySlug/$articleSlug'
+    | '/help/collections/$slug'
+    | '/recipes/category/$slug'
+    | '/support/tickets/$ticketId'
     | '/api/comments/feed/atom'
+    | '/dashboard/orders/$orderId/return'
+    | '/help/$categorySlug'
+    | '/support/tickets'
     | '/api/comments/feed'
     | '/blog/$year/$month/$slug'
     | '/api/author/$slug/feed/atom'
@@ -525,31 +1051,79 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/verify-email'
     | '/_marketing/archive'
+    | '/_marketing/bundles'
+    | '/_marketing/cart'
+    | '/_marketing/checkout'
+    | '/_marketing/gallery'
+    | '/_marketing/help'
+    | '/_marketing/products'
+    | '/_marketing/recipes'
     | '/_marketing/search'
+    | '/_marketing/shop'
+    | '/_marketing/support'
     | '/api/robots'
+    | '/dashboard/addresses'
     | '/dashboard/comments'
+    | '/dashboard/downloads'
+    | '/dashboard/membership'
     | '/dashboard/notifications'
+    | '/dashboard/orders'
     | '/dashboard/posts'
     | '/dashboard/profile'
+    | '/dashboard/returns'
+    | '/dashboard/reviews'
     | '/dashboard/security'
     | '/dashboard/settings'
+    | '/dashboard/subscriptions'
+    | '/dashboard/wishlist'
     | '/_marketing/'
     | '/dashboard/'
     | '/_marketing/archives/$id'
     | '/_marketing/author/$slug'
     | '/_marketing/blog/$slug'
+    | '/_marketing/bundles/$slug'
     | '/_marketing/category/$slug'
+    | '/_marketing/checkout/payment'
+    | '/_marketing/checkout/review'
+    | '/_marketing/checkout/shipping'
+    | '/_marketing/gallery/$slug'
+    | '/_marketing/help/$categorySlug'
+    | '/_marketing/help/search'
     | '/_marketing/page/$'
+    | '/_marketing/products/$slug'
+    | '/_marketing/recipes/$slug'
+    | '/_marketing/support/new'
     | '/_marketing/tag/$slug'
+    | '/_marketing/track/$token'
+    | '/_marketing/wishlist/$token'
     | '/api/auth/callback'
     | '/api/feed/atom'
     | '/api/feed/rss2'
     | '/api/sitemap-$type-$page/xml'
     | '/api/sitemap-style/xsl'
     | '/api/sitemap/xml'
+    | '/dashboard/orders/$orderId'
+    | '/dashboard/returns/$returnId'
+    | '/dashboard/subscriptions/$subscriptionId'
     | '/_marketing/blog/'
+    | '/_marketing/bundles/'
+    | '/_marketing/checkout/'
+    | '/_marketing/gallery/'
+    | '/_marketing/help/'
+    | '/_marketing/products/'
+    | '/_marketing/recipes/'
+    | '/_marketing/support/'
     | '/api/feed/'
+    | '/_marketing/checkout/confirmation_/$orderId'
+    | '/_marketing/gallery/category/$slug'
+    | '/_marketing/help/$categorySlug/$articleSlug'
+    | '/_marketing/help/collections/$slug'
+    | '/_marketing/recipes/category/$slug'
+    | '/_marketing/support/tickets/$ticketId'
     | '/api/comments/feed/atom'
+    | '/dashboard/orders/$orderId/return'
+    | '/_marketing/help/$categorySlug/'
+    | '/_marketing/support/tickets/'
     | '/api/comments/feed/'
     | '/_marketing/blog/$year/$month/$slug'
     | '/api/author/$slug/feed/atom'
@@ -664,6 +1238,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingIndexRouteImport
       parentRoute: typeof MarketingRoute
     }
+    '/dashboard/wishlist': {
+      id: '/dashboard/wishlist'
+      path: '/wishlist'
+      fullPath: '/dashboard/wishlist'
+      preLoaderRoute: typeof DashboardWishlistRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/subscriptions': {
+      id: '/dashboard/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/dashboard/subscriptions'
+      preLoaderRoute: typeof DashboardSubscriptionsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/settings': {
       id: '/dashboard/settings'
       path: '/settings'
@@ -676,6 +1264,20 @@ declare module '@tanstack/react-router' {
       path: '/security'
       fullPath: '/dashboard/security'
       preLoaderRoute: typeof DashboardSecurityRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/reviews': {
+      id: '/dashboard/reviews'
+      path: '/reviews'
+      fullPath: '/dashboard/reviews'
+      preLoaderRoute: typeof DashboardReviewsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/returns': {
+      id: '/dashboard/returns'
+      path: '/returns'
+      fullPath: '/dashboard/returns'
+      preLoaderRoute: typeof DashboardReturnsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/profile': {
@@ -692,11 +1294,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardPostsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/orders': {
+      id: '/dashboard/orders'
+      path: '/orders'
+      fullPath: '/dashboard/orders'
+      preLoaderRoute: typeof DashboardOrdersRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/notifications': {
       id: '/dashboard/notifications'
       path: '/notifications'
       fullPath: '/dashboard/notifications'
       preLoaderRoute: typeof DashboardNotificationsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/membership': {
+      id: '/dashboard/membership'
+      path: '/membership'
+      fullPath: '/dashboard/membership'
+      preLoaderRoute: typeof DashboardMembershipRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/downloads': {
+      id: '/dashboard/downloads'
+      path: '/downloads'
+      fullPath: '/dashboard/downloads'
+      preLoaderRoute: typeof DashboardDownloadsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/comments': {
@@ -706,6 +1329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardCommentsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/addresses': {
+      id: '/dashboard/addresses'
+      path: '/addresses'
+      fullPath: '/dashboard/addresses'
+      preLoaderRoute: typeof DashboardAddressesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/api/robots': {
       id: '/api/robots'
       path: '/api/robots'
@@ -713,11 +1343,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRobotsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_marketing/support': {
+      id: '/_marketing/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof MarketingSupportRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/shop': {
+      id: '/_marketing/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof MarketingShopRouteImport
+      parentRoute: typeof MarketingRoute
+    }
     '/_marketing/search': {
       id: '/_marketing/search'
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof MarketingSearchRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/recipes': {
+      id: '/_marketing/recipes'
+      path: '/recipes'
+      fullPath: '/recipes'
+      preLoaderRoute: typeof MarketingRecipesRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/products': {
+      id: '/_marketing/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof MarketingProductsRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/help': {
+      id: '/_marketing/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof MarketingHelpRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/gallery': {
+      id: '/_marketing/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof MarketingGalleryRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/checkout': {
+      id: '/_marketing/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof MarketingCheckoutRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/cart': {
+      id: '/_marketing/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof MarketingCartRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/bundles': {
+      id: '/_marketing/bundles'
+      path: '/bundles'
+      fullPath: '/bundles'
+      preLoaderRoute: typeof MarketingBundlesRouteImport
       parentRoute: typeof MarketingRoute
     }
     '/_marketing/archive': {
@@ -734,12 +1427,82 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFeedIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_marketing/support/': {
+      id: '/_marketing/support/'
+      path: '/'
+      fullPath: '/support/'
+      preLoaderRoute: typeof MarketingSupportIndexRouteImport
+      parentRoute: typeof MarketingSupportRoute
+    }
+    '/_marketing/recipes/': {
+      id: '/_marketing/recipes/'
+      path: '/'
+      fullPath: '/recipes/'
+      preLoaderRoute: typeof MarketingRecipesIndexRouteImport
+      parentRoute: typeof MarketingRecipesRoute
+    }
+    '/_marketing/products/': {
+      id: '/_marketing/products/'
+      path: '/'
+      fullPath: '/products/'
+      preLoaderRoute: typeof MarketingProductsIndexRouteImport
+      parentRoute: typeof MarketingProductsRoute
+    }
+    '/_marketing/help/': {
+      id: '/_marketing/help/'
+      path: '/'
+      fullPath: '/help/'
+      preLoaderRoute: typeof MarketingHelpIndexRouteImport
+      parentRoute: typeof MarketingHelpRoute
+    }
+    '/_marketing/gallery/': {
+      id: '/_marketing/gallery/'
+      path: '/'
+      fullPath: '/gallery/'
+      preLoaderRoute: typeof MarketingGalleryIndexRouteImport
+      parentRoute: typeof MarketingGalleryRoute
+    }
+    '/_marketing/checkout/': {
+      id: '/_marketing/checkout/'
+      path: '/'
+      fullPath: '/checkout/'
+      preLoaderRoute: typeof MarketingCheckoutIndexRouteImport
+      parentRoute: typeof MarketingCheckoutRoute
+    }
+    '/_marketing/bundles/': {
+      id: '/_marketing/bundles/'
+      path: '/'
+      fullPath: '/bundles/'
+      preLoaderRoute: typeof MarketingBundlesIndexRouteImport
+      parentRoute: typeof MarketingBundlesRoute
+    }
     '/_marketing/blog/': {
       id: '/_marketing/blog/'
       path: '/blog'
       fullPath: '/blog/'
       preLoaderRoute: typeof MarketingBlogIndexRouteImport
       parentRoute: typeof MarketingRoute
+    }
+    '/dashboard/subscriptions/$subscriptionId': {
+      id: '/dashboard/subscriptions/$subscriptionId'
+      path: '/$subscriptionId'
+      fullPath: '/dashboard/subscriptions/$subscriptionId'
+      preLoaderRoute: typeof DashboardSubscriptionsSubscriptionIdRouteImport
+      parentRoute: typeof DashboardSubscriptionsRoute
+    }
+    '/dashboard/returns/$returnId': {
+      id: '/dashboard/returns/$returnId'
+      path: '/$returnId'
+      fullPath: '/dashboard/returns/$returnId'
+      preLoaderRoute: typeof DashboardReturnsReturnIdRouteImport
+      parentRoute: typeof DashboardReturnsRoute
+    }
+    '/dashboard/orders/$orderId': {
+      id: '/dashboard/orders/$orderId'
+      path: '/$orderId'
+      fullPath: '/dashboard/orders/$orderId'
+      preLoaderRoute: typeof DashboardOrdersOrderIdRouteImport
+      parentRoute: typeof DashboardOrdersRoute
     }
     '/api/sitemap/xml': {
       id: '/api/sitemap/xml'
@@ -783,12 +1546,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_marketing/wishlist/$token': {
+      id: '/_marketing/wishlist/$token'
+      path: '/wishlist/$token'
+      fullPath: '/wishlist/$token'
+      preLoaderRoute: typeof MarketingWishlistTokenRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/track/$token': {
+      id: '/_marketing/track/$token'
+      path: '/track/$token'
+      fullPath: '/track/$token'
+      preLoaderRoute: typeof MarketingTrackTokenRouteImport
+      parentRoute: typeof MarketingRoute
+    }
     '/_marketing/tag/$slug': {
       id: '/_marketing/tag/$slug'
       path: '/tag/$slug'
       fullPath: '/tag/$slug'
       preLoaderRoute: typeof MarketingTagSlugRouteImport
       parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/support/new': {
+      id: '/_marketing/support/new'
+      path: '/new'
+      fullPath: '/support/new'
+      preLoaderRoute: typeof MarketingSupportNewRouteImport
+      parentRoute: typeof MarketingSupportRoute
+    }
+    '/_marketing/recipes/$slug': {
+      id: '/_marketing/recipes/$slug'
+      path: '/$slug'
+      fullPath: '/recipes/$slug'
+      preLoaderRoute: typeof MarketingRecipesSlugRouteImport
+      parentRoute: typeof MarketingRecipesRoute
+    }
+    '/_marketing/products/$slug': {
+      id: '/_marketing/products/$slug'
+      path: '/$slug'
+      fullPath: '/products/$slug'
+      preLoaderRoute: typeof MarketingProductsSlugRouteImport
+      parentRoute: typeof MarketingProductsRoute
     }
     '/_marketing/page/$': {
       id: '/_marketing/page/$'
@@ -797,12 +1595,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingPageSplatRouteImport
       parentRoute: typeof MarketingRoute
     }
+    '/_marketing/help/search': {
+      id: '/_marketing/help/search'
+      path: '/search'
+      fullPath: '/help/search'
+      preLoaderRoute: typeof MarketingHelpSearchRouteImport
+      parentRoute: typeof MarketingHelpRoute
+    }
+    '/_marketing/help/$categorySlug': {
+      id: '/_marketing/help/$categorySlug'
+      path: '/$categorySlug'
+      fullPath: '/help/$categorySlug'
+      preLoaderRoute: typeof MarketingHelpCategorySlugRouteImport
+      parentRoute: typeof MarketingHelpRoute
+    }
+    '/_marketing/gallery/$slug': {
+      id: '/_marketing/gallery/$slug'
+      path: '/$slug'
+      fullPath: '/gallery/$slug'
+      preLoaderRoute: typeof MarketingGallerySlugRouteImport
+      parentRoute: typeof MarketingGalleryRoute
+    }
+    '/_marketing/checkout/shipping': {
+      id: '/_marketing/checkout/shipping'
+      path: '/shipping'
+      fullPath: '/checkout/shipping'
+      preLoaderRoute: typeof MarketingCheckoutShippingRouteImport
+      parentRoute: typeof MarketingCheckoutRoute
+    }
+    '/_marketing/checkout/review': {
+      id: '/_marketing/checkout/review'
+      path: '/review'
+      fullPath: '/checkout/review'
+      preLoaderRoute: typeof MarketingCheckoutReviewRouteImport
+      parentRoute: typeof MarketingCheckoutRoute
+    }
+    '/_marketing/checkout/payment': {
+      id: '/_marketing/checkout/payment'
+      path: '/payment'
+      fullPath: '/checkout/payment'
+      preLoaderRoute: typeof MarketingCheckoutPaymentRouteImport
+      parentRoute: typeof MarketingCheckoutRoute
+    }
     '/_marketing/category/$slug': {
       id: '/_marketing/category/$slug'
       path: '/category/$slug'
       fullPath: '/category/$slug'
       preLoaderRoute: typeof MarketingCategorySlugRouteImport
       parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/bundles/$slug': {
+      id: '/_marketing/bundles/$slug'
+      path: '/$slug'
+      fullPath: '/bundles/$slug'
+      preLoaderRoute: typeof MarketingBundlesSlugRouteImport
+      parentRoute: typeof MarketingBundlesRoute
     }
     '/_marketing/blog/$slug': {
       id: '/_marketing/blog/$slug'
@@ -832,12 +1679,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCommentsFeedIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_marketing/support/tickets/': {
+      id: '/_marketing/support/tickets/'
+      path: '/tickets'
+      fullPath: '/support/tickets/'
+      preLoaderRoute: typeof MarketingSupportTicketsIndexRouteImport
+      parentRoute: typeof MarketingSupportRoute
+    }
+    '/_marketing/help/$categorySlug/': {
+      id: '/_marketing/help/$categorySlug/'
+      path: '/'
+      fullPath: '/help/$categorySlug/'
+      preLoaderRoute: typeof MarketingHelpCategorySlugIndexRouteImport
+      parentRoute: typeof MarketingHelpCategorySlugRoute
+    }
+    '/dashboard/orders/$orderId/return': {
+      id: '/dashboard/orders/$orderId/return'
+      path: '/return'
+      fullPath: '/dashboard/orders/$orderId/return'
+      preLoaderRoute: typeof DashboardOrdersOrderIdReturnRouteImport
+      parentRoute: typeof DashboardOrdersOrderIdRoute
+    }
     '/api/comments/feed/atom': {
       id: '/api/comments/feed/atom'
       path: '/api/comments/feed/atom'
       fullPath: '/api/comments/feed/atom'
       preLoaderRoute: typeof ApiCommentsFeedAtomRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_marketing/support/tickets/$ticketId': {
+      id: '/_marketing/support/tickets/$ticketId'
+      path: '/tickets/$ticketId'
+      fullPath: '/support/tickets/$ticketId'
+      preLoaderRoute: typeof MarketingSupportTicketsTicketIdRouteImport
+      parentRoute: typeof MarketingSupportRoute
+    }
+    '/_marketing/recipes/category/$slug': {
+      id: '/_marketing/recipes/category/$slug'
+      path: '/category/$slug'
+      fullPath: '/recipes/category/$slug'
+      preLoaderRoute: typeof MarketingRecipesCategorySlugRouteImport
+      parentRoute: typeof MarketingRecipesRoute
+    }
+    '/_marketing/help/collections/$slug': {
+      id: '/_marketing/help/collections/$slug'
+      path: '/collections/$slug'
+      fullPath: '/help/collections/$slug'
+      preLoaderRoute: typeof MarketingHelpCollectionsSlugRouteImport
+      parentRoute: typeof MarketingHelpRoute
+    }
+    '/_marketing/help/$categorySlug/$articleSlug': {
+      id: '/_marketing/help/$categorySlug/$articleSlug'
+      path: '/$articleSlug'
+      fullPath: '/help/$categorySlug/$articleSlug'
+      preLoaderRoute: typeof MarketingHelpCategorySlugArticleSlugRouteImport
+      parentRoute: typeof MarketingHelpCategorySlugRoute
+    }
+    '/_marketing/gallery/category/$slug': {
+      id: '/_marketing/gallery/category/$slug'
+      path: '/category/$slug'
+      fullPath: '/gallery/category/$slug'
+      preLoaderRoute: typeof MarketingGalleryCategorySlugRouteImport
+      parentRoute: typeof MarketingGalleryRoute
+    }
+    '/_marketing/checkout/confirmation_/$orderId': {
+      id: '/_marketing/checkout/confirmation_/$orderId'
+      path: '/confirmation/$orderId'
+      fullPath: '/checkout/confirmation/$orderId'
+      preLoaderRoute: typeof MarketingCheckoutConfirmationOrderIdRouteImport
+      parentRoute: typeof MarketingCheckoutRoute
     }
     '/api/tag/$slug/feed/': {
       id: '/api/tag/$slug/feed/'
@@ -912,9 +1822,146 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface MarketingBundlesRouteChildren {
+  MarketingBundlesSlugRoute: typeof MarketingBundlesSlugRoute
+  MarketingBundlesIndexRoute: typeof MarketingBundlesIndexRoute
+}
+
+const MarketingBundlesRouteChildren: MarketingBundlesRouteChildren = {
+  MarketingBundlesSlugRoute: MarketingBundlesSlugRoute,
+  MarketingBundlesIndexRoute: MarketingBundlesIndexRoute,
+}
+
+const MarketingBundlesRouteWithChildren =
+  MarketingBundlesRoute._addFileChildren(MarketingBundlesRouteChildren)
+
+interface MarketingCheckoutRouteChildren {
+  MarketingCheckoutPaymentRoute: typeof MarketingCheckoutPaymentRoute
+  MarketingCheckoutReviewRoute: typeof MarketingCheckoutReviewRoute
+  MarketingCheckoutShippingRoute: typeof MarketingCheckoutShippingRoute
+  MarketingCheckoutIndexRoute: typeof MarketingCheckoutIndexRoute
+  MarketingCheckoutConfirmationOrderIdRoute: typeof MarketingCheckoutConfirmationOrderIdRoute
+}
+
+const MarketingCheckoutRouteChildren: MarketingCheckoutRouteChildren = {
+  MarketingCheckoutPaymentRoute: MarketingCheckoutPaymentRoute,
+  MarketingCheckoutReviewRoute: MarketingCheckoutReviewRoute,
+  MarketingCheckoutShippingRoute: MarketingCheckoutShippingRoute,
+  MarketingCheckoutIndexRoute: MarketingCheckoutIndexRoute,
+  MarketingCheckoutConfirmationOrderIdRoute:
+    MarketingCheckoutConfirmationOrderIdRoute,
+}
+
+const MarketingCheckoutRouteWithChildren =
+  MarketingCheckoutRoute._addFileChildren(MarketingCheckoutRouteChildren)
+
+interface MarketingGalleryRouteChildren {
+  MarketingGallerySlugRoute: typeof MarketingGallerySlugRoute
+  MarketingGalleryIndexRoute: typeof MarketingGalleryIndexRoute
+  MarketingGalleryCategorySlugRoute: typeof MarketingGalleryCategorySlugRoute
+}
+
+const MarketingGalleryRouteChildren: MarketingGalleryRouteChildren = {
+  MarketingGallerySlugRoute: MarketingGallerySlugRoute,
+  MarketingGalleryIndexRoute: MarketingGalleryIndexRoute,
+  MarketingGalleryCategorySlugRoute: MarketingGalleryCategorySlugRoute,
+}
+
+const MarketingGalleryRouteWithChildren =
+  MarketingGalleryRoute._addFileChildren(MarketingGalleryRouteChildren)
+
+interface MarketingHelpCategorySlugRouteChildren {
+  MarketingHelpCategorySlugArticleSlugRoute: typeof MarketingHelpCategorySlugArticleSlugRoute
+  MarketingHelpCategorySlugIndexRoute: typeof MarketingHelpCategorySlugIndexRoute
+}
+
+const MarketingHelpCategorySlugRouteChildren: MarketingHelpCategorySlugRouteChildren =
+  {
+    MarketingHelpCategorySlugArticleSlugRoute:
+      MarketingHelpCategorySlugArticleSlugRoute,
+    MarketingHelpCategorySlugIndexRoute: MarketingHelpCategorySlugIndexRoute,
+  }
+
+const MarketingHelpCategorySlugRouteWithChildren =
+  MarketingHelpCategorySlugRoute._addFileChildren(
+    MarketingHelpCategorySlugRouteChildren,
+  )
+
+interface MarketingHelpRouteChildren {
+  MarketingHelpCategorySlugRoute: typeof MarketingHelpCategorySlugRouteWithChildren
+  MarketingHelpSearchRoute: typeof MarketingHelpSearchRoute
+  MarketingHelpIndexRoute: typeof MarketingHelpIndexRoute
+  MarketingHelpCollectionsSlugRoute: typeof MarketingHelpCollectionsSlugRoute
+}
+
+const MarketingHelpRouteChildren: MarketingHelpRouteChildren = {
+  MarketingHelpCategorySlugRoute: MarketingHelpCategorySlugRouteWithChildren,
+  MarketingHelpSearchRoute: MarketingHelpSearchRoute,
+  MarketingHelpIndexRoute: MarketingHelpIndexRoute,
+  MarketingHelpCollectionsSlugRoute: MarketingHelpCollectionsSlugRoute,
+}
+
+const MarketingHelpRouteWithChildren = MarketingHelpRoute._addFileChildren(
+  MarketingHelpRouteChildren,
+)
+
+interface MarketingProductsRouteChildren {
+  MarketingProductsSlugRoute: typeof MarketingProductsSlugRoute
+  MarketingProductsIndexRoute: typeof MarketingProductsIndexRoute
+}
+
+const MarketingProductsRouteChildren: MarketingProductsRouteChildren = {
+  MarketingProductsSlugRoute: MarketingProductsSlugRoute,
+  MarketingProductsIndexRoute: MarketingProductsIndexRoute,
+}
+
+const MarketingProductsRouteWithChildren =
+  MarketingProductsRoute._addFileChildren(MarketingProductsRouteChildren)
+
+interface MarketingRecipesRouteChildren {
+  MarketingRecipesSlugRoute: typeof MarketingRecipesSlugRoute
+  MarketingRecipesIndexRoute: typeof MarketingRecipesIndexRoute
+  MarketingRecipesCategorySlugRoute: typeof MarketingRecipesCategorySlugRoute
+}
+
+const MarketingRecipesRouteChildren: MarketingRecipesRouteChildren = {
+  MarketingRecipesSlugRoute: MarketingRecipesSlugRoute,
+  MarketingRecipesIndexRoute: MarketingRecipesIndexRoute,
+  MarketingRecipesCategorySlugRoute: MarketingRecipesCategorySlugRoute,
+}
+
+const MarketingRecipesRouteWithChildren =
+  MarketingRecipesRoute._addFileChildren(MarketingRecipesRouteChildren)
+
+interface MarketingSupportRouteChildren {
+  MarketingSupportNewRoute: typeof MarketingSupportNewRoute
+  MarketingSupportIndexRoute: typeof MarketingSupportIndexRoute
+  MarketingSupportTicketsTicketIdRoute: typeof MarketingSupportTicketsTicketIdRoute
+  MarketingSupportTicketsIndexRoute: typeof MarketingSupportTicketsIndexRoute
+}
+
+const MarketingSupportRouteChildren: MarketingSupportRouteChildren = {
+  MarketingSupportNewRoute: MarketingSupportNewRoute,
+  MarketingSupportIndexRoute: MarketingSupportIndexRoute,
+  MarketingSupportTicketsTicketIdRoute: MarketingSupportTicketsTicketIdRoute,
+  MarketingSupportTicketsIndexRoute: MarketingSupportTicketsIndexRoute,
+}
+
+const MarketingSupportRouteWithChildren =
+  MarketingSupportRoute._addFileChildren(MarketingSupportRouteChildren)
+
 interface MarketingRouteChildren {
   MarketingArchiveRoute: typeof MarketingArchiveRoute
+  MarketingBundlesRoute: typeof MarketingBundlesRouteWithChildren
+  MarketingCartRoute: typeof MarketingCartRoute
+  MarketingCheckoutRoute: typeof MarketingCheckoutRouteWithChildren
+  MarketingGalleryRoute: typeof MarketingGalleryRouteWithChildren
+  MarketingHelpRoute: typeof MarketingHelpRouteWithChildren
+  MarketingProductsRoute: typeof MarketingProductsRouteWithChildren
+  MarketingRecipesRoute: typeof MarketingRecipesRouteWithChildren
   MarketingSearchRoute: typeof MarketingSearchRoute
+  MarketingShopRoute: typeof MarketingShopRoute
+  MarketingSupportRoute: typeof MarketingSupportRouteWithChildren
   MarketingIndexRoute: typeof MarketingIndexRoute
   MarketingArchivesIdRoute: typeof MarketingArchivesIdRoute
   MarketingAuthorSlugRoute: typeof MarketingAuthorSlugRoute
@@ -922,6 +1969,8 @@ interface MarketingRouteChildren {
   MarketingCategorySlugRoute: typeof MarketingCategorySlugRoute
   MarketingPageSplatRoute: typeof MarketingPageSplatRoute
   MarketingTagSlugRoute: typeof MarketingTagSlugRoute
+  MarketingTrackTokenRoute: typeof MarketingTrackTokenRoute
+  MarketingWishlistTokenRoute: typeof MarketingWishlistTokenRoute
   MarketingBlogIndexRoute: typeof MarketingBlogIndexRoute
   MarketingBlogYearMonthSlugRoute: typeof MarketingBlogYearMonthSlugRoute
   MarketingBlogYearMonthDaySlugRoute: typeof MarketingBlogYearMonthDaySlugRoute
@@ -929,7 +1978,16 @@ interface MarketingRouteChildren {
 
 const MarketingRouteChildren: MarketingRouteChildren = {
   MarketingArchiveRoute: MarketingArchiveRoute,
+  MarketingBundlesRoute: MarketingBundlesRouteWithChildren,
+  MarketingCartRoute: MarketingCartRoute,
+  MarketingCheckoutRoute: MarketingCheckoutRouteWithChildren,
+  MarketingGalleryRoute: MarketingGalleryRouteWithChildren,
+  MarketingHelpRoute: MarketingHelpRouteWithChildren,
+  MarketingProductsRoute: MarketingProductsRouteWithChildren,
+  MarketingRecipesRoute: MarketingRecipesRouteWithChildren,
   MarketingSearchRoute: MarketingSearchRoute,
+  MarketingShopRoute: MarketingShopRoute,
+  MarketingSupportRoute: MarketingSupportRouteWithChildren,
   MarketingIndexRoute: MarketingIndexRoute,
   MarketingArchivesIdRoute: MarketingArchivesIdRoute,
   MarketingAuthorSlugRoute: MarketingAuthorSlugRoute,
@@ -937,6 +1995,8 @@ const MarketingRouteChildren: MarketingRouteChildren = {
   MarketingCategorySlugRoute: MarketingCategorySlugRoute,
   MarketingPageSplatRoute: MarketingPageSplatRoute,
   MarketingTagSlugRoute: MarketingTagSlugRoute,
+  MarketingTrackTokenRoute: MarketingTrackTokenRoute,
+  MarketingWishlistTokenRoute: MarketingWishlistTokenRoute,
   MarketingBlogIndexRoute: MarketingBlogIndexRoute,
   MarketingBlogYearMonthSlugRoute: MarketingBlogYearMonthSlugRoute,
   MarketingBlogYearMonthDaySlugRoute: MarketingBlogYearMonthDaySlugRoute,
@@ -946,23 +2006,91 @@ const MarketingRouteWithChildren = MarketingRoute._addFileChildren(
   MarketingRouteChildren,
 )
 
+interface DashboardOrdersOrderIdRouteChildren {
+  DashboardOrdersOrderIdReturnRoute: typeof DashboardOrdersOrderIdReturnRoute
+}
+
+const DashboardOrdersOrderIdRouteChildren: DashboardOrdersOrderIdRouteChildren =
+  {
+    DashboardOrdersOrderIdReturnRoute: DashboardOrdersOrderIdReturnRoute,
+  }
+
+const DashboardOrdersOrderIdRouteWithChildren =
+  DashboardOrdersOrderIdRoute._addFileChildren(
+    DashboardOrdersOrderIdRouteChildren,
+  )
+
+interface DashboardOrdersRouteChildren {
+  DashboardOrdersOrderIdRoute: typeof DashboardOrdersOrderIdRouteWithChildren
+}
+
+const DashboardOrdersRouteChildren: DashboardOrdersRouteChildren = {
+  DashboardOrdersOrderIdRoute: DashboardOrdersOrderIdRouteWithChildren,
+}
+
+const DashboardOrdersRouteWithChildren = DashboardOrdersRoute._addFileChildren(
+  DashboardOrdersRouteChildren,
+)
+
+interface DashboardReturnsRouteChildren {
+  DashboardReturnsReturnIdRoute: typeof DashboardReturnsReturnIdRoute
+}
+
+const DashboardReturnsRouteChildren: DashboardReturnsRouteChildren = {
+  DashboardReturnsReturnIdRoute: DashboardReturnsReturnIdRoute,
+}
+
+const DashboardReturnsRouteWithChildren =
+  DashboardReturnsRoute._addFileChildren(DashboardReturnsRouteChildren)
+
+interface DashboardSubscriptionsRouteChildren {
+  DashboardSubscriptionsSubscriptionIdRoute: typeof DashboardSubscriptionsSubscriptionIdRoute
+}
+
+const DashboardSubscriptionsRouteChildren: DashboardSubscriptionsRouteChildren =
+  {
+    DashboardSubscriptionsSubscriptionIdRoute:
+      DashboardSubscriptionsSubscriptionIdRoute,
+  }
+
+const DashboardSubscriptionsRouteWithChildren =
+  DashboardSubscriptionsRoute._addFileChildren(
+    DashboardSubscriptionsRouteChildren,
+  )
+
 interface DashboardRouteChildren {
+  DashboardAddressesRoute: typeof DashboardAddressesRoute
   DashboardCommentsRoute: typeof DashboardCommentsRoute
+  DashboardDownloadsRoute: typeof DashboardDownloadsRoute
+  DashboardMembershipRoute: typeof DashboardMembershipRoute
   DashboardNotificationsRoute: typeof DashboardNotificationsRoute
+  DashboardOrdersRoute: typeof DashboardOrdersRouteWithChildren
   DashboardPostsRoute: typeof DashboardPostsRoute
   DashboardProfileRoute: typeof DashboardProfileRoute
+  DashboardReturnsRoute: typeof DashboardReturnsRouteWithChildren
+  DashboardReviewsRoute: typeof DashboardReviewsRoute
   DashboardSecurityRoute: typeof DashboardSecurityRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardSubscriptionsRoute: typeof DashboardSubscriptionsRouteWithChildren
+  DashboardWishlistRoute: typeof DashboardWishlistRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardAddressesRoute: DashboardAddressesRoute,
   DashboardCommentsRoute: DashboardCommentsRoute,
+  DashboardDownloadsRoute: DashboardDownloadsRoute,
+  DashboardMembershipRoute: DashboardMembershipRoute,
   DashboardNotificationsRoute: DashboardNotificationsRoute,
+  DashboardOrdersRoute: DashboardOrdersRouteWithChildren,
   DashboardPostsRoute: DashboardPostsRoute,
   DashboardProfileRoute: DashboardProfileRoute,
+  DashboardReturnsRoute: DashboardReturnsRouteWithChildren,
+  DashboardReviewsRoute: DashboardReviewsRoute,
   DashboardSecurityRoute: DashboardSecurityRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardSubscriptionsRoute: DashboardSubscriptionsRouteWithChildren,
+  DashboardWishlistRoute: DashboardWishlistRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 
@@ -1001,13 +2129,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

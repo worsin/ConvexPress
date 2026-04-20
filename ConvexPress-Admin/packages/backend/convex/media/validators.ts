@@ -52,10 +52,32 @@ export const updateMediaArgs = {
 };
 
 /**
- * Arguments for deleting a single media item.
+ * Arguments for deleting a single media item (soft-delete to trash).
+ *
+ * By default the mutation refuses to trash media that is still referenced
+ * by other documents. Pass `force: true` to sweep every reference across
+ * all systems before trashing. `force: true` also requires Editor-level role.
  */
 export const removeMediaArgs = {
   mediaId: v.id("media"),
+  force: v.optional(v.boolean()),
+};
+
+/**
+ * Arguments for restoring a trashed media item back to its previous status.
+ */
+export const restoreMediaArgs = {
+  mediaId: v.id("media"),
+};
+
+/**
+ * Arguments for permanently deleting a media item (bypassing trash, or
+ * hard-deleting an already-trashed item). Reference-check still applies
+ * unless `force: true`.
+ */
+export const permanentlyDeleteMediaArgs = {
+  mediaId: v.id("media"),
+  force: v.optional(v.boolean()),
 };
 
 /**
@@ -111,6 +133,13 @@ export const listMediaArgs = {
   orderDir: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
   /** If true, only return media items that are NOT attached to a post */
   unattached: v.optional(v.boolean()),
+  /**
+   * Trash scope. "active" (default) hides trashed items — matches WP's
+   * library view. "only" shows just the trash bin. "all" shows both.
+   */
+  trashView: v.optional(
+    v.union(v.literal("active"), v.literal("only"), v.literal("all")),
+  ),
   paginationOpts: v.object({
     numItems: v.number(),
     cursor: v.union(v.string(), v.null()),
@@ -153,4 +182,18 @@ export const getSrcSetArgs = {
  */
 export const bulkDeleteArgs = {
   mediaIds: v.array(v.id("media")),
+  force: v.optional(v.boolean()),
+};
+
+/**
+ * Arguments for bulk-editing media metadata. Each provided field is
+ * applied to every selected item. Fields left undefined are untouched.
+ * An explicit empty string clears the field (WP's bulk-edit behavior).
+ */
+export const bulkUpdateArgs = {
+  mediaIds: v.array(v.id("media")),
+  title: v.optional(v.string()),
+  altText: v.optional(v.string()),
+  caption: v.optional(v.string()),
+  description: v.optional(v.string()),
 };

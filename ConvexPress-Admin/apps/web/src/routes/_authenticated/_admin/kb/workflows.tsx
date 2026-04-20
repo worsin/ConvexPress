@@ -34,6 +34,19 @@ type FormState = {
   steps: WorkflowStep[];
 };
 
+type KBWorkflow = {
+  _id: string;
+  name: string;
+  description?: string;
+  isDefault: boolean;
+  isActive: boolean;
+  steps: Array<{
+    name: string;
+    requiredApprovals: number;
+    assigneeId?: string;
+  }>;
+};
+
 function createStep(): WorkflowStep {
   return { id: crypto.randomUUID(), name: "", requiredApprovals: 1 };
 }
@@ -57,7 +70,7 @@ function KBWorkflowsPage() {
 
 function KBWorkflowsContent() {
   const workflowsResult = useQuery(api.kb.workflows.list);
-  const workflows = workflowsResult ?? [];
+  const workflows = (workflowsResult ?? []) as KBWorkflow[];
   const createWorkflow = useMutation(api.kb.workflows.create);
   const updateWorkflow = useMutation(api.kb.workflows.update);
   const removeWorkflow = useMutation(api.kb.workflows.remove);

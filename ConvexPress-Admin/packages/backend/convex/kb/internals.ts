@@ -14,12 +14,14 @@ import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { emitEvent } from "../helpers/events";
 import { KB_EVENTS, SYSTEM } from "../events/constants";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Publish Scheduled ──────────────────────────────────────────────────────
 
 export const publishScheduled = internalMutation({
   args: { articleId: v.id("kb_articles") },
   handler: async (ctx, { articleId }) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const article = await ctx.db.get("kb_articles", articleId);
     if (!article || article.status !== "draft" || !article.scheduledAt) return;
 
@@ -66,6 +68,7 @@ export const publishScheduled = internalMutation({
 export const publishScheduledBatch = internalMutation({
   args: {},
   handler: async (ctx) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const now = Date.now();
 
     // Use by_scheduled index with range bounds to only load articles due now.
@@ -123,6 +126,7 @@ export const publishScheduledBatch = internalMutation({
 export const cleanupPageViews = internalMutation({
   args: {},
   handler: async (ctx) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
 
     const oldViews = await ctx.db
@@ -150,6 +154,7 @@ export const cleanupPageViews = internalMutation({
 export const getUnsyncedForMeilisearch = internalQuery({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
       .query("kb_articles")
       .withIndex("by_meilisearch_sync", (q) => q.eq("meilisearchSynced", false))
@@ -160,6 +165,7 @@ export const getUnsyncedForMeilisearch = internalQuery({
 export const getUnsyncedForRag = internalQuery({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
       .query("kb_articles")
       .withIndex("by_rag_sync", (q) => q.eq("ragSynced", false))
@@ -176,6 +182,7 @@ export const getUnsyncedForRag = internalQuery({
 export const getArticleForSync = internalQuery({
   args: { articleId: v.id("kb_articles") },
   handler: async (ctx, { articleId }) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const article = await ctx.db.get("kb_articles", articleId);
     if (!article) return null;
 
@@ -207,6 +214,7 @@ export const getArticleForSync = internalQuery({
 export const markMeilisearchSynced = internalMutation({
   args: { articleId: v.id("kb_articles") },
   handler: async (ctx, { articleId }) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     await ctx.db.patch("kb_articles", articleId, {
       meilisearchSynced: true,
       meilisearchSyncedAt: Date.now(),
@@ -219,6 +227,7 @@ export const markMeilisearchSynced = internalMutation({
 export const markRagSynced = internalMutation({
   args: { articleId: v.id("kb_articles") },
   handler: async (ctx, { articleId }) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     await ctx.db.patch("kb_articles", articleId, {
       ragSynced: true,
       ragSyncedAt: Date.now(),
@@ -243,6 +252,7 @@ export const insertRagChunk = internalMutation({
     now: v.number(),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     return ctx.db.insert("kb_ragChunks", {
       articleId: args.articleId,
       articleSlug: args.articleSlug,
@@ -271,6 +281,7 @@ export const insertRagChunk = internalMutation({
 export const removeArticleChunks = internalMutation({
   args: { articleId: v.id("kb_articles") },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const chunks = await ctx.db
       .query("kb_ragChunks")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
@@ -296,6 +307,7 @@ export const removeArticleChunks = internalMutation({
 export const getAllRagChunks = internalQuery({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db.query("kb_ragChunks").take(5000);
   },
 });

@@ -2,11 +2,20 @@ import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export const Route = createFileRoute("/_marketing/help/")({
   component: HelpCenter,
   errorComponent: ErrorComponent,
   loader: async ({ context: { queryClient } }) => {
+    const publicSettings = await queryClient.ensureQueryData(
+      convexQuery(api.settings.queries.getPublic, {}),
+    );
+
+    if (!isPublicPluginEnabled("kb", publicSettings)) {
+      return;
+    }
+
     await Promise.all([
       queryClient.ensureQueryData(
         convexQuery(api.kb.categories.listPublished, {}),
@@ -66,7 +75,7 @@ function HelpCenter() {
     e.preventDefault();
     const query = new FormData(e.currentTarget).get("q") as string;
     if (query.trim()) {
-      navigate({ to: "/help/search", search: { q: query.trim() } });
+      navigate({ to: "/help/search", search: { q: query.trim() } } as any);
     }
   }
 

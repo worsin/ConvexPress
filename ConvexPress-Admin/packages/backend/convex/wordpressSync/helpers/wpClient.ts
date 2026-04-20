@@ -232,6 +232,32 @@ export interface WPClientConfig {
   siteUrl: string;
   username: string;
   applicationPassword: string;
+  wooConsumerKey?: string;
+  wooConsumerSecret?: string;
+  wooAuthMode?: "shared" | "separate";
+  retryCount?: number;
+  timeoutMs?: number;
+}
+
+export interface WPContentFetchOptions {
+  importDrafts?: boolean;
+  dateRangeStart?: number;
+  dateRangeEnd?: number;
+}
+
+function contentStatusParam(options?: WPContentFetchOptions): string {
+  return options?.importDrafts === false ? "publish,private" : "any";
+}
+
+function contentDateParams(options?: WPContentFetchOptions): Record<string, string> {
+  const params: Record<string, string> = {};
+  if (typeof options?.dateRangeStart === "number") {
+    params.after = new Date(options.dateRangeStart).toISOString();
+  }
+  if (typeof options?.dateRangeEnd === "number") {
+    params.before = new Date(options.dateRangeEnd).toISOString();
+  }
+  return params;
 }
 
 export interface WPFetchResult<T> {
@@ -252,6 +278,120 @@ export class WPApiError extends Error {
     super(message);
     this.name = "WPApiError";
   }
+}
+
+const DEFAULT_RETRY_COUNT = 3;
+const DEFAULT_TIMEOUT_MS = 30_000;
+const BASE_RETRY_DELAY_MS = 500;
+const MAX_RETRY_DELAY_MS = 10_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 0 || status === 408 || status === 429 || status >= 500;
+}
+
+function getRetryDelayMs(response: Response | null, attempt: number): number {
+  const retryAfter = response?.headers.get("Retry-After");
+  if (retryAfter) {
+    const retryAfterSeconds = Number.parseInt(retryAfter, 10);
+    if (Number.isFinite(retryAfterSeconds)) {
+      return Math.min(retryAfterSeconds * 1000, MAX_RETRY_DELAY_MS);
+    }
+
+    const retryAfterDate = Date.parse(retryAfter);
+    if (Number.isFinite(retryAfterDate)) {
+      return Math.min(
+        Math.max(retryAfterDate - Date.now(), BASE_RETRY_DELAY_MS),
+        MAX_RETRY_DELAY_MS,
+      );
+    }
+  }
+
+  return Math.min(BASE_RETRY_DELAY_MS * 2 ** attempt, MAX_RETRY_DELAY_MS);
+}
+
+function toWPApiError(error: unknown): WPApiError {
+  if (error instanceof WPApiError) {
+    return error;
+  }
+
+  if (error instanceof Error && error.name === "AbortError") {
+    return new WPApiError("Request timeout", 408, "TIMEOUT");
+  }
+
+  return new WPApiError(
+    error instanceof Error ? error.message : "Unknown error",
+    0,
+    "NETWORK_ERROR",
+  );
+}
+
+async function fetchJsonWithRetry<T>(
+  url: URL,
+  headers: Record<string, string>,
+  config: WPClientConfig,
+): Promise<WPFetchResult<T>> {
+  const retryCount = config.retryCount ?? DEFAULT_RETRY_COUNT;
+  const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+
+  for (let attempt = 0; attempt <= retryCount; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        let errorData: unknown;
+        try {
+          errorData = await response.json();
+        } catch {
+          // Ignore JSON parse errors.
+        }
+
+        const wpError = errorData as { code?: string; message?: string } | undefined;
+        const apiError = new WPApiError(
+          wpError?.message ||
+            `WordPress API error: ${response.status} ${response.statusText}`,
+          response.status,
+          wpError?.code,
+          errorData,
+        );
+
+        if (attempt < retryCount && isRetryableStatus(response.status)) {
+          await sleep(getRetryDelayMs(response, attempt));
+          continue;
+        }
+
+        throw apiError;
+      }
+
+      const data = (await response.json()) as T;
+      return {
+        data,
+        totalPages: parseInt(response.headers.get("X-WP-TotalPages") || "1", 10),
+        total: parseInt(response.headers.get("X-WP-Total") || "0", 10),
+      };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      const apiError = toWPApiError(error);
+      if (attempt < retryCount && isRetryableStatus(apiError.status)) {
+        await sleep(getRetryDelayMs(null, attempt));
+        continue;
+      }
+      throw apiError;
+    }
+  }
+
+  throw new WPApiError("WordPress API request failed", 0, "NETWORK_ERROR");
 }
 
 // ─── Core Fetch Function ───────────────────────────────────────────────────
@@ -281,63 +421,59 @@ export async function fetchWPEndpoint<T>(
   // The password is space-separated 4-character groups, but we use it as-is
   const credentials = btoa(`${config.username}:${config.applicationPassword}`);
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+  return fetchJsonWithRetry<T>(
+    url,
+    {
+      Authorization: `Basic ${credentials}`,
+      Accept: "application/json",
+      "User-Agent": "ConvexPress-CMS/1.0",
+    },
+    config,
+  );
+}
 
-  try {
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        Accept: "application/json",
-        "User-Agent": "ConvexPress-CMS/1.0",
-      },
-      signal: controller.signal,
-    });
+/**
+ * Like fetchWPEndpoint, but takes a custom JSON path (e.g. "/wc/v3/products")
+ * instead of hardcoding "/wp-json/wp/v2/". Used by the WooCommerce client to
+ * hit Woo's REST namespace.
+ */
+export async function fetchWPJsonEndpoint<T>(
+  config: WPClientConfig,
+  jsonPath: string,
+  params?: Record<string, string | number | boolean>,
+): Promise<WPFetchResult<T>> {
+  const baseUrl = config.siteUrl.replace(/\/$/, "");
+  const normalized = jsonPath.startsWith("/") ? jsonPath : `/${jsonPath}`;
+  const url = new URL(`${baseUrl}/wp-json${normalized}`);
+  const usesSeparateWooAuth =
+    normalized.startsWith("/wc/") &&
+    config.wooAuthMode === "separate" &&
+    Boolean(config.wooConsumerKey && config.wooConsumerSecret);
 
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      let errorData: unknown;
-      try {
-        errorData = await response.json();
-      } catch {
-        // Ignore JSON parse errors
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.set(key, String(value));
       }
-
-      const wpError = errorData as { code?: string; message?: string } | undefined;
-      throw new WPApiError(
-        wpError?.message || `WordPress API error: ${response.status} ${response.statusText}`,
-        response.status,
-        wpError?.code,
-        errorData
-      );
-    }
-
-    const data = (await response.json()) as T;
-
-    return {
-      data,
-      totalPages: parseInt(response.headers.get("X-WP-TotalPages") || "1", 10),
-      total: parseInt(response.headers.get("X-WP-Total") || "0", 10),
-    };
-  } catch (error) {
-    clearTimeout(timeoutId);
-
-    if (error instanceof WPApiError) {
-      throw error;
-    }
-
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new WPApiError("Request timeout", 408, "TIMEOUT");
-    }
-
-    throw new WPApiError(
-      error instanceof Error ? error.message : "Unknown error",
-      0,
-      "NETWORK_ERROR"
-    );
+    });
   }
+
+  if (usesSeparateWooAuth) {
+    url.searchParams.set("consumer_key", config.wooConsumerKey!);
+    url.searchParams.set("consumer_secret", config.wooConsumerSecret!);
+  }
+
+  const credentials = btoa(`${config.username}:${config.applicationPassword}`);
+
+  return fetchJsonWithRetry<T>(
+    url,
+    {
+      ...(usesSeparateWooAuth ? {} : { Authorization: `Basic ${credentials}` }),
+      Accept: "application/json",
+      "User-Agent": "ConvexPress-CMS/1.0",
+    },
+    config,
+  );
 }
 
 // ─── Specialized Fetchers ──────────────────────────────────────────────────
@@ -383,15 +519,17 @@ export async function testConnection(
 export function fetchWPPosts(
   config: WPClientConfig,
   page: number,
-  perPage = 100
+  perPage = 100,
+  options?: WPContentFetchOptions,
 ): Promise<WPFetchResult<WPPost[]>> {
   return fetchWPEndpoint<WPPost[]>(config, "posts", {
     page,
     per_page: perPage,
     _embed: "1",
-    status: "any",
+    status: contentStatusParam(options),
     orderby: "id",
     order: "asc",
+    ...contentDateParams(options),
   });
 }
 
@@ -401,15 +539,17 @@ export function fetchWPPosts(
 export function fetchWPPages(
   config: WPClientConfig,
   page: number,
-  perPage = 100
+  perPage = 100,
+  options?: WPContentFetchOptions,
 ): Promise<WPFetchResult<WPPage[]>> {
   return fetchWPEndpoint<WPPage[]>(config, "pages", {
     page,
     per_page: perPage,
     _embed: "1",
-    status: "any",
+    status: contentStatusParam(options),
     orderby: "id",
     order: "asc",
+    ...contentDateParams(options),
   });
 }
 
@@ -436,7 +576,8 @@ export function fetchWPUsers(
 export function fetchWPMedia(
   config: WPClientConfig,
   page: number,
-  perPage = 100
+  perPage = 100,
+  options?: WPContentFetchOptions,
 ): Promise<WPFetchResult<WPMedia[]>> {
   return fetchWPEndpoint<WPMedia[]>(config, "media", {
     page,
@@ -444,6 +585,7 @@ export function fetchWPMedia(
     status: "any",
     orderby: "id",
     order: "asc",
+    ...contentDateParams(options),
   });
 }
 
@@ -487,7 +629,8 @@ export function fetchWPTags(
 export function fetchWPComments(
   config: WPClientConfig,
   page: number,
-  perPage = 100
+  perPage = 100,
+  options?: WPContentFetchOptions,
 ): Promise<WPFetchResult<WPComment[]>> {
   return fetchWPEndpoint<WPComment[]>(config, "comments", {
     page,
@@ -495,6 +638,7 @@ export function fetchWPComments(
     status: "all",
     orderby: "id",
     order: "asc",
+    ...contentDateParams(options),
   });
 }
 

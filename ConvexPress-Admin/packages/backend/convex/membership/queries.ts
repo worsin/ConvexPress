@@ -27,6 +27,7 @@ import {
   membershipPlanStatusValidator,
   membershipGrantStatusValidator,
 } from "../schema/membership";
+import { isPluginEnabled } from "../helpers/plugins";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PLAN QUERIES
@@ -41,6 +42,7 @@ export const listPlans = query({
     status: v.optional(membershipPlanStatusValidator),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return null;
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -92,6 +94,7 @@ export const listPlans = query({
 export const listPublicPlans = query({
   args: {},
   handler: async (ctx: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return null;
     await requireMembershipEnabled(ctx);
 
     const plans = await ctx.db
@@ -136,6 +139,7 @@ export const getPlan = query({
     planId: v.id("membership_plans"),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return null;
     await requireMembershipEnabled(ctx);
 
     const plan = await ctx.db.get(args.planId);
@@ -182,6 +186,7 @@ export const listGrants = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return [];
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -250,6 +255,7 @@ export const listGrants = query({
 export const getMyMembership = query({
   args: {},
   handler: async (ctx: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return null;
     await requireMembershipEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -346,6 +352,7 @@ export const getMember = query({
     userId: v.id("users"),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return null;
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -417,6 +424,7 @@ export const listRestrictions = query({
     ),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return null;
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -484,6 +492,7 @@ export const checkAccess = query({
     resourceIdOrKey: v.string(),
   },
   handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return { allowed: false, reason: "", teaserMode: null, customMessage: null, matchingPlanIds: null };
     await requireMembershipEnabled(ctx);
 
     // Look up restriction rules for this resource
@@ -648,6 +657,7 @@ export const checkAccess = query({
 export const getStats = query({
   args: {},
   handler: async (ctx: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return null;
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
 

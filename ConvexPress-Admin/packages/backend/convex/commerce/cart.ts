@@ -28,6 +28,105 @@ async function findDiscountByCode(ctx: any, code: string) {
     .unique();
 }
 
+async function assertCanMutateCart(cart: any, sessionToken?: string, userId?: any) {
+  if (!cart || cart.status !== "active") {
+    throw new ConvexError({
+      code: "NOT_FOUND",
+      message: "Active cart not found.",
+    });
+  }
+
+  const normalizedSessionToken = sessionToken?.trim();
+  const sessionMatches =
+    normalizedSessionToken && cart.sessionToken === normalizedSessionToken;
+  const userMatches =
+    userId && cart.userId && cart.userId.toString() === userId.toString();
+
+  if (!sessionMatches && !userMatches) {
+    throw new ConvexError({
+      code: "FORBIDDEN",
+      message: "You do not have permission to update this cart.",
+    });
+  }
+}
+
+async function resolveCartItemForMutation(
+  ctx: any,
+  cartItemId: any,
+  sessionToken?: string,
+) {
+  const user = await getCurrentUser(ctx);
+  const item = await ctx.db.get(cartItemId);
+  if (!item) return { item: null, cart: null, user };
+
+  const cart = await ctx.db.get(item.cartId);
+  await assertCanMutateCart(cart, sessionToken, user?._id);
+  return { item, cart, user };
+}
+
+function isVariantPublic(variant: any) {
+  return !variant.status || variant.status === "publish";
+}
+
+async function resolvePurchasableProductAndVariant(
+  ctx: any,
+  productId: any,
+  variantId?: any,
+) {
+  const product = await ctx.db.get(productId);
+
+  if (!product || product.status !== "publish") {
+    throw new ConvexError({
+      code: "NOT_FOUND",
+      message: "Product not found.",
+    });
+  }
+
+  const variant = variantId ? await ctx.db.get(variantId) : null;
+  if (product.productType === "variable" && !variant) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "Choose a product option before adding this item.",
+    });
+  }
+
+  if (variant) {
+    if (
+      variant.productId.toString() !== productId.toString() ||
+      !isVariantPublic(variant)
+    ) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Selected product option is unavailable.",
+      });
+    }
+  }
+
+  return { product, variant };
+}
+
+function assertSufficientStock(product: any, variant: any, quantity: number) {
+  if (!product.trackInventory) return;
+
+  const useParentStock = variant?.manageStock === "parent";
+  const stock =
+    variant && !useParentStock
+      ? (variant.stockQuantity ?? 0)
+      : (product.stockQuantity ?? 0);
+  const variantAllowsBackorders =
+    variant?.backorders === "yes" || variant?.backorders === "notify";
+  const allowBackorders = variant
+    ? variantAllowsBackorders
+    : !!product.allowBackorders;
+
+  if (!allowBackorders && stock < quantity) {
+    throw new ConvexError({
+      code: "INSUFFICIENT_STOCK",
+      message: `Only ${stock} available in stock.`,
+    });
+  }
+}
+
 function computeDiscountAmount(discount: any, items: any[], subtotalAmount: number) {
   if (!discount || subtotalAmount <= 0) return 0;
 
@@ -113,6 +212,37 @@ async function recalculateCart(ctx: any, cartId: any) {
   });
 }
 
+/**
+ * Resolve the active price for a variant, respecting scheduled sale dates.
+ * Falls back to the regular price when no sale is active or dates are outside range.
+ */
+function resolveVariantActivePrice(variant: any): number {
+  const now = Date.now();
+  if (
+    variant.salePrice?.amount &&
+    (!variant.salePriceFrom || variant.salePriceFrom <= now) &&
+    (!variant.salePriceTo || variant.salePriceTo >= now)
+  ) {
+    return variant.salePrice.amount;
+  }
+  return variant.price.amount;
+}
+
+/**
+ * Resolve the active price for a product, respecting scheduled sale dates.
+ */
+function resolveProductActivePrice(product: any): number {
+  const now = Date.now();
+  if (
+    product.salePrice?.amount &&
+    (!product.salePriceFrom || product.salePriceFrom <= now) &&
+    (!product.salePriceTo || product.salePriceTo >= now)
+  ) {
+    return product.salePrice.amount;
+  }
+  return product.basePrice.amount;
+}
+
 async function ensureCart(ctx: any, sessionToken: string, userId?: any) {
   let cart = await findCartBySession(ctx, sessionToken);
   if (cart) return cart;
@@ -188,17 +318,15 @@ export const addItem = mutation({
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
-    const product = await ctx.db.get(args.productId);
-
-    if (!product || product.status !== "publish") {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Product not found.",
-      });
-    }
+    const { product, variant } = await resolvePurchasableProductAndVariant(
+      ctx,
+      args.productId,
+      args.variantId,
+    );
 
     const quantity = Math.max(1, args.quantity);
     const cart = await ensureCart(ctx, args.sessionToken, user?._id);
+    await assertCanMutateCart(cart, args.sessionToken, user?._id);
 
     const existing = (
       await ctx.db
@@ -213,7 +341,15 @@ export const addItem = mutation({
         (args.variantId?.toString() ?? null),
     );
 
-    const unitPriceAmount = (product.salePrice ?? product.basePrice).amount;
+    // Resolve active price with scheduled sale date awareness
+    const unitPriceAmount = variant
+      ? resolveVariantActivePrice(variant)
+      : resolveProductActivePrice(product);
+
+    // Stock validation — respect variant-level manageStock and backorders
+    const desiredQty = (existing?.quantity ?? 0) + quantity;
+    assertSufficientStock(product, variant, desiredQty);
+
     const now = Date.now();
 
     if (existing) {
@@ -245,7 +381,11 @@ export const updateItemQuantity = mutation({
   args: updateCartItemArgs,
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
-    const item = await ctx.db.get(args.cartItemId);
+    const { item } = await resolveCartItemForMutation(
+      ctx,
+      args.cartItemId,
+      args.sessionToken,
+    );
     if (!item) return null;
 
     if (args.quantity <= 0) {
@@ -254,9 +394,24 @@ export const updateItemQuantity = mutation({
       return null;
     }
 
+    // Refresh pricing from source of truth (variant or product)
+    const { product, variant } = await resolvePurchasableProductAndVariant(
+      ctx,
+      item.productId,
+      item.variantId,
+    );
+
+    const refreshedPrice = variant
+      ? resolveVariantActivePrice(variant)
+      : resolveProductActivePrice(product);
+
+    // Stock validation — respect variant-level manageStock and backorders
+    assertSufficientStock(product, variant, args.quantity);
+
     await ctx.db.patch(args.cartItemId, {
       quantity: args.quantity,
-      lineTotalAmount: args.quantity * item.unitPriceAmount,
+      unitPriceAmount: refreshedPrice,
+      lineTotalAmount: args.quantity * refreshedPrice,
       updatedAt: Date.now(),
     });
     await recalculateCart(ctx, item.cartId);
@@ -268,7 +423,11 @@ export const removeItem = mutation({
   args: removeCartItemArgs,
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
-    const item = await ctx.db.get(args.cartItemId);
+    const { item } = await resolveCartItemForMutation(
+      ctx,
+      args.cartItemId,
+      args.sessionToken,
+    );
     if (!item) return null;
 
     await ctx.db.delete(args.cartItemId);

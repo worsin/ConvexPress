@@ -50,7 +50,10 @@ type KBArticle = {
 
 function ArticleEditor({ articleId }: { articleId: string }) {
   const article = useQuery(api.kb.queries.getById, { articleId: articleId as Id<"kb_articles"> });
-  const categories = useQuery(api.kb.categories.list) ?? [];
+  const categories = (useQuery(api.kb.categories.list) ?? []) as Array<{
+    _id: string;
+    name: string;
+  }>;
   const updateArticle = useMutation(api.kb.mutations.update);
   const publishArticle = useMutation(api.kb.mutations.publish);
   const unpublishArticle = useMutation(api.kb.mutations.unpublish);

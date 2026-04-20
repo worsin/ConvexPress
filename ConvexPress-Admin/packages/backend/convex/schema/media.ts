@@ -31,6 +31,7 @@ export const mediaStatusValidator = v.union(
   v.literal("processing"),
   v.literal("active"),
   v.literal("failed"),
+  v.literal("trashed"),
 );
 
 export const mediaTypeValidator = v.union(
@@ -81,6 +82,24 @@ export const mediaTables = {
 
     // ── Attachment ────────────────────────────────────────────────────────
     attachedTo: v.optional(v.id("posts")),
+
+    // ── Logical upload path ──────────────────────────────────────────────
+    /**
+     * WP-style year/month path: "2026/04/my-image-slug.jpg". Convex storage
+     * itself is flat and uses opaque IDs, but we persist this logical path
+     * for admin readability, export/migration parity, and for naming
+     * sub-size records consistently (e.g., "2026/04/my-image-slug-medium.jpg").
+     * Set on create from `createdAt`.
+     */
+    uploadPath: v.optional(v.string()),
+
+    // ── Trash ────────────────────────────────────────────────────────────
+    /** Timestamp when the media was moved to trash. Present iff status === "trashed". */
+    trashedAt: v.optional(v.number()),
+    /** Status before trashing, used to restore back to the correct state. */
+    previousStatus: v.optional(v.string()),
+    /** User who performed the trash action. */
+    trashedBy: v.optional(v.id("users")),
 
     // ── Timestamps ───────────────────────────────────────────────────────
     createdAt: v.number(),

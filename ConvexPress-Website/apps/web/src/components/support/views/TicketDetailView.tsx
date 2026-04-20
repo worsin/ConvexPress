@@ -17,12 +17,19 @@ interface TicketDetailViewProps {
   ticketId: string;
 }
 
+type TicketMessage = {
+  _id: string;
+  senderType: "user" | "staff" | "system" | string;
+  content: string;
+  createdAt: number;
+};
+
 export function TicketDetailView({
   ticketId,
 }: TicketDetailViewProps) {
   const messages = useQuery(api.tickets.messages.getByTicket, {
     ticketId: ticketId as Id<"ticket_tickets">,
-  });
+  }) as TicketMessage[] | null | undefined;
   const replyToTicket = useMutation(api.tickets.mutations.reply);
 
   const [replyContent, setReplyContent] = useState("");

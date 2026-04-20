@@ -12,6 +12,7 @@ import {
   captureOrderPaymentArgs,
   createShipmentArgs,
   createOrderRefundArgs,
+  getOrderByCheckoutSessionArgs,
   getOrderArgs,
   getOrderByTrackingTokenArgs,
   listOrdersArgs,
@@ -315,6 +316,27 @@ export const getMineById = query({
     if (!order) return null;
 
     if (order.userId?.toString() !== user._id.toString()) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "You cannot access this order.",
+      });
+    }
+
+    return enrichOrder(ctx, order);
+  },
+});
+
+export const getByCheckoutSession = query({
+  args: getOrderByCheckoutSessionArgs,
+  handler: async (ctx, args) => {
+    await requireCommerceEnabled(ctx);
+    const order = await ctx.db.get(args.orderId);
+    if (!order) return null;
+
+    const session = order.checkoutSessionId
+      ? await ctx.db.get(order.checkoutSessionId)
+      : null;
+    if (!session || session.sessionToken !== args.sessionToken.trim()) {
       throw new ConvexError({
         code: "FORBIDDEN",
         message: "You cannot access this order.",
@@ -773,6 +795,18 @@ export const createShipment = mutation({
 
     const now = Date.now();
     const status = args.status ?? "label_created";
+    // PRD A4 — snapshot the ship-from location on every manual shipment so
+    // downstream D3 manifest routing works. Prefer the order's stored
+    // shipFromLocationId (set at checkout finalize); fall back to the
+    // default location.
+    let manualShipFromLocationId: any = (order as any).shipFromLocationId;
+    if (!manualShipFromLocationId) {
+      const defaultLoc: any = await ctx.db
+        .query("commerce_ship_from_locations")
+        .withIndex("by_default", (q: any) => q.eq("isDefault", true))
+        .first();
+      manualShipFromLocationId = defaultLoc?._id;
+    }
     const shipmentId = await ctx.db.insert("commerce_shipments", {
       orderId: order._id,
       shipmentNumber: buildShipmentNumber(),
@@ -781,6 +815,7 @@ export const createShipment = mutation({
       carrier: args.carrier?.trim() || undefined,
       trackingNumber: args.trackingNumber?.trim() || undefined,
       trackingUrl: args.trackingUrl?.trim() || undefined,
+      shipFromLocationId: manualShipFromLocationId,
       items: requestedItems as any,
       note: args.note?.trim() || undefined,
       shippedAt: status === "shipped" || status === "delivered" ? now : undefined,

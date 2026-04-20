@@ -29,8 +29,16 @@ function NewKBArticlePage() {
 
 function NewKBArticleForm() {
   const navigate = useNavigate();
-  const templates = useQuery(api.kb.templates.list) ?? [];
-  const categories = useQuery(api.kb.categories.list) ?? [];
+  const templates = (useQuery(api.kb.templates.list) ?? []) as Array<{
+    _id: string;
+    name: string;
+    isDefault?: boolean;
+    category?: string;
+  }>;
+  const categories = (useQuery(api.kb.categories.list) ?? []) as Array<{
+    _id: string;
+    name: string;
+  }>;
   const createArticle = useMutation(api.kb.mutations.create);
 
   const [title, setTitle] = useState("");

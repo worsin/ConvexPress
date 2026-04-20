@@ -23,12 +23,14 @@ import {
   removeTagFromArticleArgs,
   getTagBySlugArgs,
 } from "./validators";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── List (Public) ──────────────────────────────────────────────────────────
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db.query("kb_tags").take(500);
   },
 });
@@ -38,6 +40,7 @@ export const list = query({
 export const getBySlug = query({
   args: getTagBySlugArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
       .query("kb_tags")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
@@ -50,6 +53,7 @@ export const getBySlug = query({
 export const create = mutation({
   args: createTagArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTags");
 
     const name = args.name.trim();
@@ -79,6 +83,7 @@ export const create = mutation({
 export const update = mutation({
   args: updateTagArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTags");
 
     const tag = await ctx.db.get("kb_tags", args.tagId);
@@ -110,6 +115,7 @@ export const update = mutation({
 export const remove = mutation({
   args: removeTagArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTags");
 
     const tag = await ctx.db.get("kb_tags", args.tagId);
@@ -136,6 +142,7 @@ export const remove = mutation({
 export const addToArticle = mutation({
   args: addTagToArticleArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -175,6 +182,7 @@ export const addToArticle = mutation({
 export const removeFromArticle = mutation({
   args: removeTagFromArticleArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });

@@ -26,12 +26,14 @@ import {
   getVersionsArgs,
 } from "./validators";
 import { enrichUser } from "./helpers/enrichUser";
+import { isPluginEnabled } from "../helpers/plugins";
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
 export const list = query({
   args: listArticlesArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return { page: [], isDone: true, continueCursor: "" };
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -121,6 +123,7 @@ export const list = query({
 export const getById = query({
   args: getArticleByIdArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -155,6 +158,7 @@ export const getById = query({
 export const getBySlug = query({
   args: getArticleBySlugArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const article = await ctx.db
       .query("kb_articles")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
@@ -207,6 +211,7 @@ export const getBySlug = query({
 export const listPublished = query({
   args: listPublishedArticlesArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return { page: [], isDone: true, continueCursor: "" };
     // When filtering by category we use the by_category index; status is then
     // checked as an in-memory filter on each page after pagination.
     // Without a category we use by_status to only load published records.
@@ -253,6 +258,7 @@ export const listPublished = query({
 export const getPopular = query({
   args: getPopularArticlesArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const limit = args.limit ?? 10;
 
     // by_status index ensures only published records are loaded.
@@ -282,6 +288,7 @@ export const getPopular = query({
 export const getRecent = query({
   args: getRecentArticlesArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const limit = args.limit ?? 10;
 
     // by_status index ensures only published records are loaded.
@@ -310,6 +317,7 @@ export const getRecent = query({
 export const getFeatured = query({
   args: getFeaturedArticlesArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const limit = args.limit ?? 6;
 
     // by_featured index scopes to isFeatured=true records only.
@@ -340,6 +348,7 @@ export const getFeatured = query({
 export const getVersions = query({
   args: getVersionsArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return [];
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });

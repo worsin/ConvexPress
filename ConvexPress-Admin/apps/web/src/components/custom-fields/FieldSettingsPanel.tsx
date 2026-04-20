@@ -547,7 +547,7 @@ function TypeSpecificSettings({
             <textarea
               value={
                 (settings.choices ?? [])
-                  .map((c) =>
+                  .map((c: { label: string; value: string }) =>
                     c.label !== c.value ? `${c.value} : ${c.label}` : c.value,
                   )
                   .join("\n") ?? ""

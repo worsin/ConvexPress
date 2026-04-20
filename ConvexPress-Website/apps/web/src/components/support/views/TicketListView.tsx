@@ -24,6 +24,15 @@ interface TicketListViewProps {
   onNewTicket: () => void;
 }
 
+type RecentTicket = {
+  _id: string;
+  ticketNumber: string;
+  status: string;
+  subject: string;
+  messageCount: number;
+  lastMessageAt?: number;
+};
+
 const STATUS_CONFIG: Record<
   string,
   { label: string; icon: typeof Clock; className: string }
@@ -63,7 +72,7 @@ export function TicketListView({
   const tickets = useQuery(
     api.support.widget.getRecentTickets,
     isAuthenticated ? { limit: 10 } : "skip",
-  );
+  ) as RecentTicket[] | undefined;
 
   if (isAuthLoading) {
     return (
@@ -166,4 +175,3 @@ export function TicketListView({
     </div>
   );
 }
-

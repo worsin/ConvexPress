@@ -48,7 +48,16 @@ function KBTemplatesPage() {
 
 function KBTemplatesContent() {
   const templatesResult = useQuery(api.kb.templates.list);
-  const templates = templatesResult ?? [];
+  const templates = (templatesResult ?? []) as Array<{
+    _id: string;
+    name: string;
+    description?: string;
+    content?: string;
+    category?: string;
+    isDefault: boolean;
+    isActive: boolean;
+    usageCount?: number;
+  }>;
   const createTemplate = useMutation(api.kb.templates.create);
   const updateTemplate = useMutation(api.kb.templates.update);
   const removeTemplate = useMutation(api.kb.templates.remove);

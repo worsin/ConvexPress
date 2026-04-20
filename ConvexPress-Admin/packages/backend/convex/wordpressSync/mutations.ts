@@ -6,18 +6,95 @@
  */
 
 import { mutation } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { requireCan } from "../helpers/permissions";
 import { encryptSecret } from "../api/crypto_helpers";
 import {
   siteStatusValidator,
   createInitialProgress,
+  normalizeImportConfig,
   normalizeSiteUrl,
   validateSiteUrl,
 } from "./validators";
 
 // Environment variable for encrypting application passwords
 const WP_ENCRYPTION_KEY = process.env.WP_SYNC_ENCRYPTION_KEY;
+const ARTIFACT_DELETE_BATCH_SIZE = 500;
+
+async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
+  let reportsDeleted = 0;
+  let findingsDeleted = 0;
+  let reportBatch;
+  let findingBatch;
+
+  do {
+    reportBatch = await ctx.db
+      .query("wordpressSyncReports")
+      .withIndex("by_job", (q: any) => q.eq("jobId", jobId))
+      .take(ARTIFACT_DELETE_BATCH_SIZE);
+
+    for (const report of reportBatch) {
+      await ctx.db.delete(report._id);
+      reportsDeleted++;
+    }
+  } while (reportBatch.length === ARTIFACT_DELETE_BATCH_SIZE);
+
+  do {
+    findingBatch = await ctx.db
+      .query("wordpressSyncReconciliationFindings")
+      .withIndex("by_job_created", (q: any) => q.eq("jobId", jobId))
+      .take(ARTIFACT_DELETE_BATCH_SIZE);
+
+    for (const finding of findingBatch) {
+      await ctx.db.delete(finding._id);
+      findingsDeleted++;
+    }
+  } while (findingBatch.length === ARTIFACT_DELETE_BATCH_SIZE);
+
+  return { reportsDeleted, findingsDeleted };
+}
+
+async function deleteImportArtifactsForSite(ctx: any, siteId: any) {
+  let reportsDeleted = 0;
+  let findingsDeleted = 0;
+  let reportBatch;
+  let findingBatch;
+
+  do {
+    reportBatch = await ctx.db
+      .query("wordpressSyncReports")
+      .withIndex("by_site_created", (q: any) => q.eq("siteId", siteId))
+      .take(ARTIFACT_DELETE_BATCH_SIZE);
+
+    for (const report of reportBatch) {
+      await ctx.db.delete(report._id);
+      reportsDeleted++;
+    }
+  } while (reportBatch.length === ARTIFACT_DELETE_BATCH_SIZE);
+
+  do {
+    findingBatch = await ctx.db
+      .query("wordpressSyncReconciliationFindings")
+      .withIndex("by_site_created", (q: any) => q.eq("siteId", siteId))
+      .take(ARTIFACT_DELETE_BATCH_SIZE);
+
+    for (const finding of findingBatch) {
+      await ctx.db.delete(finding._id);
+      findingsDeleted++;
+    }
+  } while (findingBatch.length === ARTIFACT_DELETE_BATCH_SIZE);
+
+  return { reportsDeleted, findingsDeleted };
+}
+
+async function encryptWpSyncSecret(secret: string): Promise<string> {
+  if (!WP_ENCRYPTION_KEY) {
+    throw new ConvexError("WP_SYNC_ENCRYPTION_KEY must be configured before storing WordPress or WooCommerce credentials");
+  }
+
+  return await encryptSecret(secret.trim(), WP_ENCRYPTION_KEY);
+}
 
 // ─── Site Mutations ────────────────────────────────────────────────────────
 
@@ -72,34 +149,16 @@ export const createSite = mutation({
     }
 
     // Encrypt the application password
-    let encryptedPassword: string;
-    if (WP_ENCRYPTION_KEY) {
-      encryptedPassword = await encryptSecret(applicationPassword.trim(), WP_ENCRYPTION_KEY);
-    } else {
-      // Fallback: store as-is if encryption key not configured (dev mode)
-      // In production, this should throw an error
-      console.warn("[WP Sync] WP_SYNC_ENCRYPTION_KEY not set - storing password unencrypted");
-      encryptedPassword = applicationPassword.trim();
-    }
+    const encryptedPassword = await encryptWpSyncSecret(applicationPassword);
 
     // Encrypt WooCommerce credentials if provided
     let encryptedWooKey: string | undefined;
     let encryptedWooSecret: string | undefined;
     if (wooConsumerKey?.trim()) {
-      if (WP_ENCRYPTION_KEY) {
-        encryptedWooKey = await encryptSecret(wooConsumerKey.trim(), WP_ENCRYPTION_KEY);
-      } else {
-        console.warn("[WP Sync] WP_SYNC_ENCRYPTION_KEY not set - storing Woo key unencrypted");
-        encryptedWooKey = wooConsumerKey.trim();
-      }
+      encryptedWooKey = await encryptWpSyncSecret(wooConsumerKey);
     }
     if (wooConsumerSecret?.trim()) {
-      if (WP_ENCRYPTION_KEY) {
-        encryptedWooSecret = await encryptSecret(wooConsumerSecret.trim(), WP_ENCRYPTION_KEY);
-      } else {
-        console.warn("[WP Sync] WP_SYNC_ENCRYPTION_KEY not set - storing Woo secret unencrypted");
-        encryptedWooSecret = wooConsumerSecret.trim();
-      }
+      encryptedWooSecret = await encryptWpSyncSecret(wooConsumerSecret);
     }
 
     const now = Date.now();
@@ -167,13 +226,7 @@ export const updateSite = mutation({
       if (!applicationPassword.trim()) {
         throw new ConvexError("Application password cannot be empty");
       }
-      // Encrypt the new password
-      if (WP_ENCRYPTION_KEY) {
-        updates.applicationPassword = await encryptSecret(applicationPassword.trim(), WP_ENCRYPTION_KEY);
-      } else {
-        console.warn("[WP Sync] WP_SYNC_ENCRYPTION_KEY not set - storing password unencrypted");
-        updates.applicationPassword = applicationPassword.trim();
-      }
+      updates.applicationPassword = await encryptWpSyncSecret(applicationPassword);
     }
 
     if (status !== undefined) {
@@ -182,12 +235,7 @@ export const updateSite = mutation({
 
     if (wooConsumerKey !== undefined) {
       if (wooConsumerKey.trim()) {
-        if (WP_ENCRYPTION_KEY) {
-          updates.wooConsumerKey = await encryptSecret(wooConsumerKey.trim(), WP_ENCRYPTION_KEY);
-        } else {
-          console.warn("[WP Sync] WP_SYNC_ENCRYPTION_KEY not set - storing Woo key unencrypted");
-          updates.wooConsumerKey = wooConsumerKey.trim();
-        }
+        updates.wooConsumerKey = await encryptWpSyncSecret(wooConsumerKey);
       } else {
         // Allow clearing the key by passing empty string
         updates.wooConsumerKey = undefined;
@@ -196,12 +244,7 @@ export const updateSite = mutation({
 
     if (wooConsumerSecret !== undefined) {
       if (wooConsumerSecret.trim()) {
-        if (WP_ENCRYPTION_KEY) {
-          updates.wooConsumerSecret = await encryptSecret(wooConsumerSecret.trim(), WP_ENCRYPTION_KEY);
-        } else {
-          console.warn("[WP Sync] WP_SYNC_ENCRYPTION_KEY not set - storing Woo secret unencrypted");
-          updates.wooConsumerSecret = wooConsumerSecret.trim();
-        }
+        updates.wooConsumerSecret = await encryptWpSyncSecret(wooConsumerSecret);
       } else {
         updates.wooConsumerSecret = undefined;
       }
@@ -242,6 +285,8 @@ export const deleteSite = mutation({
       throw new ConvexError("Cannot delete site with a running sync job. Cancel the job first.");
     }
 
+    const artifactsDeleted = await deleteImportArtifactsForSite(ctx, siteId);
+
     // Delete all jobs for this site (batched to avoid memory issues)
     const DELETE_BATCH_SIZE = 500;
     let jobsDeleted = 0;
@@ -278,7 +323,7 @@ export const deleteSite = mutation({
     // Delete the site
     await ctx.db.delete(siteId);
 
-    return { deleted: true, jobsDeleted, mappingsDeleted };
+    return { deleted: true, jobsDeleted, mappingsDeleted, ...artifactsDeleted };
   },
 });
 
@@ -344,7 +389,7 @@ export const createJob = mutation({
       throw new ConvexError("Site not found");
     }
 
-    // Check for existing running or pending jobs
+    // Check for existing active jobs
     const existingJob = await ctx.db
       .query("wordpressSyncJobs")
       .withIndex("by_site", (q) => q.eq("siteId", siteId).eq("status", "running"))
@@ -363,7 +408,17 @@ export const createJob = mutation({
       throw new ConvexError("A sync job is already pending for this site");
     }
 
+    const pausedJob = await ctx.db
+      .query("wordpressSyncJobs")
+      .withIndex("by_site", (q) => q.eq("siteId", siteId).eq("status", "paused"))
+      .first();
+
+    if (pausedJob) {
+      throw new ConvexError("A sync job is paused for this site. Resume or cancel it first.");
+    }
+
     const now = Date.now();
+    const normalizedImportConfig = normalizeImportConfig(importConfig);
 
     // Create the job
     const jobId = await ctx.db.insert("wordpressSyncJobs", {
@@ -371,7 +426,7 @@ export const createJob = mutation({
       status: "pending",
       currentPhase: "users",
       progress: createInitialProgress(),
-      importConfig: importConfig,
+      importConfig: normalizedImportConfig,
       errors: [],
       createdBy: user._id,
       createdAt: now,
@@ -460,11 +515,15 @@ export const cancelJob = mutation({
       throw new ConvexError(`Cannot cancel job in ${job.status} status`);
     }
 
+    const now = Date.now();
+
     await ctx.db.patch(jobId, {
       status: "cancelled",
-      completedAt: Date.now(),
-      updatedAt: Date.now(),
+      completedAt: now,
+      updatedAt: now,
     });
+
+    await ctx.scheduler.runAfter(0, internal.wordpressSync.internals.generateFinalReport, { jobId });
 
     return jobId;
   },
@@ -490,8 +549,10 @@ export const deleteJob = mutation({
       throw new ConvexError("Cannot delete an active job. Cancel it first.");
     }
 
+    const artifactsDeleted = await deleteImportArtifactsForJob(ctx, jobId);
+
     await ctx.db.delete(jobId);
-    return { deleted: true };
+    return { deleted: true, ...artifactsDeleted };
   },
 });
 

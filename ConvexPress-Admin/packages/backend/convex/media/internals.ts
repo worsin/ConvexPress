@@ -25,9 +25,12 @@
  * marks the media as active (used for non-image types or if the action fails to schedule).
  */
 
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { internalMutation, internalAction, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { findMediaReferences } from "./references";
+import { requireCan } from "../helpers/permissions";
+import { getUserRoleLevel } from "./mediaAuth";
 
 // ─── EXIF Parsing Helpers (Pure JS, no native dependencies) ─────────────────
 
@@ -845,6 +848,25 @@ export const deleteMediaInternal = internalMutation({
  *
  * Returns the user's identifier on success. Throws on failure.
  */
+/**
+ * Assert the current user has Editor-level role (>= 80). Used by the
+ * regeneration admin action where the operation is library-wide rather
+ * than per-item. Throws on failure.
+ */
+export const assertEditorLevel = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireCan(ctx, "media.update");
+    const level = await getUserRoleLevel(ctx, user);
+    if (level < 80) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Editor-level role required.",
+      });
+    }
+  },
+});
+
 export const checkEditCapability = internalMutation({
   args: {
     mediaId: v.id("media"),
@@ -1187,6 +1209,7 @@ export const updateStorageId = internalMutation({
     url: v.string(),
     width: v.optional(v.number()),
     height: v.optional(v.number()),
+    fileSize: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const media = await ctx.db.get("media", args.mediaId);
@@ -1199,6 +1222,7 @@ export const updateStorageId = internalMutation({
     };
     if (args.width !== undefined) patch.width = args.width;
     if (args.height !== undefined) patch.height = args.height;
+    if (args.fileSize !== undefined) patch.fileSize = args.fileSize;
 
     await ctx.db.patch("media", args.mediaId, patch);
   },
@@ -1349,5 +1373,120 @@ export const cleanupExpiredMedia = internalMutation({
     }
 
     return { markedFailed, cleaned };
+  },
+});
+
+// ─── Regeneration Helpers ───────────────────────────────────────────────────
+
+/**
+ * List active images for the regeneration tool. Returns a paginated batch
+ * with a cursor so the tool can walk the library in chunks.
+ */
+export const listImagesForRegeneration = internalQuery({
+  args: {
+    cursor: v.union(v.string(), v.null()),
+    numItems: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("media")
+      .withIndex("by_type", (q) => q.eq("mediaType", "image"))
+      .paginate({ cursor: args.cursor ?? null, numItems: args.numItems });
+  },
+});
+
+/**
+ * Delete every mediaSizes row for a given mediaId and remove the backing
+ * storage blobs. Used before re-running the sharp pipeline so we don't
+ * accumulate orphan variants.
+ */
+export const wipeMediaSizes = internalMutation({
+  args: { mediaId: v.id("media") },
+  handler: async (ctx, args) => {
+    const sizes = await ctx.db
+      .query("mediaSizes")
+      .withIndex("by_media", (q) => q.eq("mediaId", args.mediaId))
+      .collect();
+    for (const size of sizes) {
+      try {
+        await ctx.storage.delete(size.storageId);
+      } catch {
+        // Orphaned; ignore
+      }
+      await ctx.db.delete("mediaSizes", size._id);
+    }
+  },
+});
+
+// ─── Empty Trash (daily cron) ───────────────────────────────────────────────
+
+/**
+ * Permanently delete media items that have been in trash longer than the
+ * retention window (default 30 days, capped at 365). Reference-safe: items
+ * that got re-referenced since trashing are skipped.
+ */
+export const emptyTrashCron = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+
+    const settings = await ctx.db.query("settings").take(50);
+    const mediaSettings = settings.find((s: any) => s.section === "media") as any;
+    const rawDays =
+      mediaSettings?.values?.trashRetentionDays ??
+      mediaSettings?.values?.trash_retention_days;
+    const retentionDays =
+      typeof rawDays === "number" && rawDays > 0 ? Math.min(rawDays, 365) : 30;
+    const threshold = now - retentionDays * 24 * 60 * 60 * 1000;
+
+    const trashed = await ctx.db
+      .query("media")
+      .withIndex("by_status", (q) => q.eq("status", "trashed"))
+      .take(200);
+
+    let deleted = 0;
+    let skippedReferenced = 0;
+    let skippedTooNew = 0;
+
+    for (const item of trashed) {
+      if (deleted >= 50) break;
+      const trashedAt = (item as any).trashedAt ?? item.updatedAt;
+      if (trashedAt >= threshold) {
+        skippedTooNew++;
+        continue;
+      }
+
+      const references = await findMediaReferences(ctx, item._id);
+      if (references.length > 0) {
+        skippedReferenced++;
+        continue;
+      }
+
+      try { await ctx.storage.delete(item.storageId); } catch { /* orphaned */ }
+
+      const sizes = await ctx.db
+        .query("mediaSizes")
+        .withIndex("by_media", (q) => q.eq("mediaId", item._id))
+        .collect();
+      for (const size of sizes) {
+        if (size.storageId !== item.storageId) {
+          try { await ctx.storage.delete(size.storageId); } catch { /* orphaned */ }
+        }
+        await ctx.db.delete("mediaSizes", size._id);
+      }
+
+      const metaRecords = await ctx.db
+        .query("mediaMeta")
+        .withIndex("by_media", (q) => q.eq("mediaId", item._id))
+        .collect();
+      for (const meta of metaRecords) {
+        await ctx.db.delete("mediaMeta", meta._id);
+      }
+
+      await ctx.db.delete("media", item._id);
+      deleted++;
+    }
+
+    return { deleted, skippedReferenced, skippedTooNew, retentionDays };
   },
 });

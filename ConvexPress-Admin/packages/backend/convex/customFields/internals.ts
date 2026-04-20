@@ -15,6 +15,7 @@
 import { internalMutation, internalQuery } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { v } from "convex/values";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Cleanup Functions ──────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ export const deleteFieldValuesForEntity = internalMutation({
     entityId: v.string(),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     // Get all field values for this entity
     const values = await ctx.db
       .query("fieldValues")
@@ -91,6 +93,7 @@ export const deletePostMetaForField = internalMutation({
     fieldName: v.string(),
   },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "customFields");
     try {
       const metaEntries = await ctx.db
         .query("postMeta")
@@ -128,6 +131,7 @@ export const getGroupsForEntityType = internalQuery({
     entityType: v.string(),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // Fetch all active groups
     const activeGroups = await ctx.db
       .query("fieldGroups")
@@ -164,6 +168,7 @@ export const getFieldDefinitionByKey = internalQuery({
     fieldKey: v.string(),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const field = await ctx.db
       .query("fieldDefinitions")
       .withIndex("by_key", (q) => q.eq("key", args.fieldKey))
@@ -184,6 +189,7 @@ export const getFieldDefinitionsForGroup = internalQuery({
     groupId: v.id("fieldGroups"),
   },
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const fields = await ctx.db
       .query("fieldDefinitions")
       .withIndex("by_group", (q) => q.eq("groupId", args.groupId))

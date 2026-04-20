@@ -26,6 +26,7 @@ import {
   MAX_DEFLECTION_ARTICLES,
   MAX_DEFLECTION_QUERY_LENGTH,
 } from "./validators";
+import { requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Source Article Type ──────────────────────────────────────────────────────
 
@@ -62,6 +63,7 @@ export const generateAnswer = action({
     usedAi: boolean;
     responseLatencyMs: number;
   }> => {
+    await requirePluginEnabled(ctx, "tickets");
     const startTime = Date.now();
 
     // Truncate query to max length
@@ -197,6 +199,7 @@ export const generateAnswer = action({
 export const logInteraction = mutation({
   args: logInteractionArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     // Validate input lengths
     if (args.query.length > 2000) {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Query too long" });

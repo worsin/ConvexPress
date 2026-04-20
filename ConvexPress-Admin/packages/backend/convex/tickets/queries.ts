@@ -32,6 +32,7 @@ import {
   getRecentArgs,
   getAwaitingFirstResponseArgs,
 } from "./validators";
+import { isPluginEnabled } from "../helpers/plugins";
 
 // ─── getMyTickets ───────────────────────────────────────────────────────────
 
@@ -42,6 +43,7 @@ import {
 export const getMyTickets = query({
   args: getMyTicketsArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return { page: [], isDone: true, continueCursor: "" };
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({
@@ -90,6 +92,7 @@ export const getMyTickets = query({
 export const getByTicketNumber = query({
   args: getByTicketNumberArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({
@@ -126,6 +129,7 @@ export const getByTicketNumber = query({
 export const getById = query({
   args: getByIdArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({
@@ -157,6 +161,7 @@ export const getById = query({
 export const getTicketWithReplies = query({
   args: getTicketWithRepliesArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({
@@ -225,71 +230,71 @@ export const getTicketWithReplies = query({
 export const getQueue = query({
   args: getQueueArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return { total: 0, page: 1, perPage: 0, totalPages: 0, tickets: [] };
     const canViewAll = await currentUserCan(ctx, "ticket.viewAll");
     if (!canViewAll) return null;
 
     const orderDir = args.orderDir ?? "desc";
+    const page = Math.max(1, args.page ?? 1);
+    const perPage = Math.min(100, Math.max(1, args.perPage ?? 25));
 
-    // ── Fetch a page of tickets using the best available index ──────────
-    //
-    // When secondary filters (unassigned, search, orderBy) are in play,
-    // Convex pagination cannot guarantee a full page after in-memory
-    // filtering. The caller should be aware that result.page.length may
-    // be less than numItems when such filters are active.
+    // Bound the in-memory result set. With filtering + sort done after the
+    // index scan, we collect up to MAX_SCAN rows and slice for the page.
+    const MAX_SCAN = 5000;
 
-    let result;
+    let scanned;
 
     if (args.status && args.priority) {
-      result = await ctx.db
+      scanned = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_status_priority", (q) =>
           q.eq("status", args.status!).eq("priority", args.priority!),
         )
         .order(orderDir === "desc" ? "desc" : "asc")
-        .paginate(args.paginationOpts);
+        .take(MAX_SCAN);
     } else if (args.assignedTo && args.status) {
-      result = await ctx.db
+      scanned = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_assigned_status", (q) =>
           q.eq("assignedTo", args.assignedTo!).eq("status", args.status!),
         )
         .order(orderDir === "desc" ? "desc" : "asc")
-        .paginate(args.paginationOpts);
+        .take(MAX_SCAN);
     } else if (args.status) {
-      result = await ctx.db
+      scanned = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_status", (q) => q.eq("status", args.status!))
         .order(orderDir === "desc" ? "desc" : "asc")
-        .paginate(args.paginationOpts);
+        .take(MAX_SCAN);
     } else if (args.priority) {
-      result = await ctx.db
+      scanned = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_priority", (q) => q.eq("priority", args.priority!))
         .order(orderDir === "desc" ? "desc" : "asc")
-        .paginate(args.paginationOpts);
+        .take(MAX_SCAN);
     } else if (args.assignedTo) {
-      result = await ctx.db
+      scanned = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_assigned", (q) => q.eq("assignedTo", args.assignedTo!))
         .order(orderDir === "desc" ? "desc" : "asc")
-        .paginate(args.paginationOpts);
+        .take(MAX_SCAN);
     } else if (args.category) {
-      result = await ctx.db
+      scanned = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_category", (q) => q.eq("category", args.category!))
         .order(orderDir === "desc" ? "desc" : "asc")
-        .paginate(args.paginationOpts);
+        .take(MAX_SCAN);
     } else {
-      result = await ctx.db
+      scanned = await ctx.db
         .query("ticket_tickets")
         .withIndex("by_created")
         .order("desc")
-        .paginate(args.paginationOpts);
+        .take(MAX_SCAN);
     }
 
-    // ── In-memory filters on the current page ───────────────────────────
+    // ── In-memory filters across the full scanned set ───────────────────
 
-    let tickets = result.page;
+    let tickets = scanned;
 
     if (args.unassigned) {
       tickets = tickets.filter((t) => !t.assignedTo);
@@ -328,17 +333,23 @@ export const getQueue = query({
       });
     }
 
-    // ── Resolve assignee names ──────────────────────────────────────────
+    // ── Slice for the requested page ────────────────────────────────────
+    const total = tickets.length;
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    const start = (page - 1) * perPage;
+    const pageTickets = tickets.slice(start, start + perPage);
+
+    // ── Resolve assignee names (only for the visible page) ──────────────
     const assigneeIds = [
       ...new Set(
-        tickets
+        pageTickets
           .map((t) => t.assignedTo)
           .filter((id): id is NonNullable<typeof id> => id != null),
       ),
     ];
     const assigneeMap = new Map<string, string>();
     for (const id of assigneeIds) {
-      const assignee = await ctx.db.get("users", id);
+      const assignee = await ctx.db.get(id);
       if (assignee) {
         assigneeMap.set(
           id,
@@ -350,8 +361,11 @@ export const getQueue = query({
     }
 
     return {
-      ...result,
-      page: tickets.map((t) => ({
+      total,
+      page,
+      perPage,
+      totalPages,
+      tickets: pageTickets.map((t) => ({
         _id: t._id,
         ticketNumber: t.ticketNumber,
         subject: t.subject,
@@ -385,6 +399,7 @@ export const getQueue = query({
 export const getStats = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canViewAll = await currentUserCan(ctx, "ticket.viewAnalytics");
     if (!canViewAll) return null;
 
@@ -496,6 +511,7 @@ export const getStats = query({
 export const getRecent = query({
   args: getRecentArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return [];
     const canViewAll = await currentUserCan(ctx, "ticket.viewAll");
     if (!canViewAll) return null;
 
@@ -529,6 +545,7 @@ export const getRecent = query({
 export const getAwaitingFirstResponse = query({
   args: getAwaitingFirstResponseArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return [];
     const canViewAll = await currentUserCan(ctx, "ticket.viewAll");
     if (!canViewAll) return null;
 

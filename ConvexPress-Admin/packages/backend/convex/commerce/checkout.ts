@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { ConvexError } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
@@ -84,6 +83,109 @@ async function getCartItemsWithProducts(ctx: any, cartId: any) {
   return enrichedItems;
 }
 
+function itemAllowsBackorders(item: any) {
+  if (!item.variant) return !!item.product?.allowBackorders;
+  return item.variant.backorders === "yes" || item.variant.backorders === "notify";
+}
+
+function itemInventoryTarget(item: any) {
+  if (!item.product?.trackInventory || itemAllowsBackorders(item)) return null;
+  const usesVariantStock =
+    item.variant && item.variant.manageStock !== "parent";
+  return {
+    productId: item.product._id,
+    variantId: usesVariantStock ? item.variant._id : undefined,
+    patchId: usesVariantStock ? item.variant._id : item.product._id,
+    stockQuantity: usesVariantStock
+      ? (item.variant.stockQuantity ?? 0)
+      : (item.product.stockQuantity ?? 0),
+  };
+}
+
+async function reserveCheckoutInventory(ctx: any, session: any, items: any[]) {
+  const existingReservations = await ctx.db
+    .query("commerce_stock_reservations")
+    .withIndex("by_checkout", (q: any) => q.eq("checkoutSessionId", session._id))
+    .filter((q: any) => q.eq(q.field("status"), "active"))
+    .collect();
+  if (existingReservations.length > 0) return;
+
+  const now = Date.now();
+  for (const item of items) {
+    const target = itemInventoryTarget(item);
+    if (!target) continue;
+
+    const activeReservations = await ctx.db
+      .query("commerce_stock_reservations")
+      .withIndex("by_product_status", (q: any) =>
+        q.eq("productId", target.productId).eq("status", "active"),
+      )
+      .collect();
+    const reservedCount = activeReservations
+      .filter(
+        (reservation: any) =>
+          (reservation.variantId?.toString() ?? null) ===
+          (target.variantId?.toString() ?? null),
+      )
+      .reduce((sum: number, reservation: any) => sum + reservation.quantity, 0);
+    const available = target.stockQuantity - reservedCount;
+
+    if (available < item.quantity) {
+      throw new ConvexError({
+        code: "INSUFFICIENT_STOCK",
+        message: `Only ${available} available in stock for ${item.product.title}.`,
+      });
+    }
+
+    await ctx.db.insert("commerce_stock_reservations", {
+      checkoutSessionId: session._id,
+      productId: target.productId,
+      variantId: target.variantId,
+      quantity: item.quantity,
+      status: "active",
+      expiresAt: now + 15 * 60 * 1000,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+}
+
+async function commitCheckoutInventory(ctx: any, session: any, orderId: any) {
+  const reservations = await ctx.db
+    .query("commerce_stock_reservations")
+    .withIndex("by_checkout", (q: any) => q.eq("checkoutSessionId", session._id))
+    .filter((q: any) => q.eq(q.field("status"), "active"))
+    .collect();
+
+  const now = Date.now();
+  for (const reservation of reservations) {
+    const product = await ctx.db.get(reservation.productId);
+    const variant = reservation.variantId
+      ? await ctx.db.get(reservation.variantId)
+      : null;
+    const target = variant ?? product;
+    if (!target) continue;
+
+    await ctx.db.patch(target._id, {
+      stockQuantity: Math.max(0, (target.stockQuantity ?? 0) - reservation.quantity),
+      updatedAt: now,
+    });
+    await ctx.db.patch(reservation._id, {
+      status: "converted",
+      updatedAt: now,
+    });
+    await ctx.db.insert("commerce_inventory_adjustments", {
+      productId: reservation.productId,
+      variantId: reservation.variantId,
+      orderId,
+      adjustmentType: "sale",
+      quantityDelta: -reservation.quantity,
+      reason: "Stock committed for order",
+      createdAt: now,
+    });
+  }
+}
+
 async function upsertCustomerProfile(
   ctx: any,
   args: {
@@ -149,12 +251,27 @@ export const createSession = mutation({
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
+    const settings = await getCommerceSettings(ctx);
     const cart = await getCartBySession(ctx, args.sessionToken);
 
     if (!cart) {
       throw new ConvexError({
         code: "NOT_FOUND",
         message: "Cart not found.",
+      });
+    }
+
+    if (cart.status !== "active") {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "This cart can no longer be checked out.",
+      });
+    }
+
+    if (!user && settings.allowGuestCheckout === false) {
+      throw new ConvexError({
+        code: "AUTH_REQUIRED",
+        message: "Sign in before checking out.",
       });
     }
 
@@ -353,6 +470,7 @@ export const complete = mutation({
   args: completeCheckoutArgs,
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
+    const user = await getCurrentUser(ctx);
     const session = await getCheckoutBySession(ctx, args.sessionToken);
     const cart = await getCartBySession(ctx, args.sessionToken);
     const settings = await getCommerceSettings(ctx);
@@ -361,6 +479,20 @@ export const complete = mutation({
       throw new ConvexError({
         code: "NOT_FOUND",
         message: "Checkout session not found.",
+      });
+    }
+
+    if (cart.status !== "active") {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "This cart can no longer be checked out.",
+      });
+    }
+
+    if (!user && !session.userId && settings.allowGuestCheckout === false) {
+      throw new ConvexError({
+        code: "AUTH_REQUIRED",
+        message: "Sign in before checking out.",
       });
     }
 
@@ -502,6 +634,7 @@ export const complete = mutation({
       completionTaxableAmount +
       Number(cart.shippingAmount ?? 0) +
       finalTaxAmount;
+    await reserveCheckoutInventory(ctx, session, items);
 
     const now = Date.now();
     const orderNumber = `CP-${new Date(now).getFullYear()}-${String(now).slice(-6)}`;
@@ -530,6 +663,48 @@ export const complete = mutation({
       shippingServiceCode: selectedShippingQuote?.serviceCode,
       shippingServiceName: selectedShippingQuote?.serviceName,
       shippingQuoteRaw: selectedShippingQuote?.rawQuote,
+      // PRD A5 §4.3 — snapshot the latest validation outcome so the order
+      // preserves the address classification at purchase time.
+      shippingAddressValidatedAt: (() => {
+        const cached = (session as any).shippingAddressValidation;
+        return typeof cached?.validatedAt === "number" ? cached.validatedAt : undefined;
+      })(),
+      shippingAddressValidationProvider: (session as any).shippingAddressValidation?.provider,
+      shippingAddressValidationStatus: (session as any).shippingAddressValidation?.status,
+      shippingAddressValidationFingerprint: (session as any).shippingAddressValidation?.fingerprint,
+      shippingAddressIsResidential: (session as any).shippingAddressValidation?.isResidential,
+      shippingAddressNormalized: (session as any).shippingAddressValidation?.normalizedAddress,
+      // PRD D1 §6.10 — snapshot fingerprints so label purchase can
+      // detect stale rates when address/cart change post-order.
+      shippingQuoteAddressKey: selectedShippingQuote
+        ? computeAddressKey(session.shippingAddress)
+        : undefined,
+      shippingQuoteCartKey: selectedShippingQuote
+        ? computeCartKey(items)
+        : undefined,
+      shippingQuoteExpiresAt: selectedShippingQuote?.expiresAt,
+      shippingQuoteProvider: selectedShippingQuote?.provider,
+      shippingQuoteAccountId: selectedShippingQuote?.accountId,
+      shippingQuoteProof: selectedShippingQuote
+        ? {
+            quoteKey: selectedShippingQuote.quoteKey,
+            amount: selectedShippingQuote.amount,
+            currency: selectedShippingQuote.currency,
+            provider: selectedShippingQuote.provider,
+            carrierCode: selectedShippingQuote.carrierCode,
+            serviceCode: selectedShippingQuote.serviceCode,
+            accountId: (selectedShippingQuote as any).accountId,
+            packages: (selectedShippingQuote as any).packages,
+            fingerprintAddressKey: computeAddressKey(session.shippingAddress),
+            fingerprintCartKey: computeCartKey(items),
+            expiresAt: selectedShippingQuote.expiresAt,
+            origin: (selectedShippingQuote as any).origin,
+            rateSource: selectedShippingQuote.provider === "manual"
+              ? "manual"
+              : "live",
+            snapshotAt: Date.now(),
+          }
+        : undefined,
       selectedShippingMethodCode: selectedShippingMethod?.code,
       selectedShippingMethodLabel: selectedShippingMethod?.label,
       selectedPaymentMethodCode: selectedPaymentMethod.code,
@@ -585,8 +760,9 @@ export const complete = mutation({
       createdAt: now,
     });
 
+    const isExternalCardPayment = selectedPaymentMethod.code === "card";
     await ctx.db.patch(session._id, {
-      status: "completed",
+      status: isExternalCardPayment ? "payment_pending" : "completed",
       appliedDiscountCode: cart.appliedDiscountCode,
       appliedDiscountDescription: cart.appliedDiscountDescription,
       subtotalAmount: cart.subtotalAmount,
@@ -594,17 +770,17 @@ export const complete = mutation({
       shippingAmount: cart.shippingAmount,
       taxAmount: finalTaxAmount,
       totalAmount: finalTotalAmount,
-      completedAt: now,
+      completedAt: isExternalCardPayment ? undefined : now,
       updatedAt: now,
     });
 
     await ctx.db.patch(cart._id, {
-      status: "converted",
+      status: isExternalCardPayment ? "pending_payment" : "converted",
       updatedAt: now,
       lastActiveAt: now,
     });
 
-    if (cart.appliedDiscountCode) {
+    if (!isExternalCardPayment && cart.appliedDiscountCode) {
       const discount = await ctx.db
         .query("commerce_discount_codes")
         .withIndex("by_code", (q: any) => q.eq("code", cart.appliedDiscountCode))
@@ -615,6 +791,10 @@ export const complete = mutation({
           updatedAt: now,
         });
       }
+    }
+
+    if (!isExternalCardPayment) {
+      await commitCheckoutInventory(ctx, session, orderId);
     }
 
     return orderId;

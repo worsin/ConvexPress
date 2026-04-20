@@ -25,6 +25,18 @@ import type {
   TaskListBlock,
 } from "@/lib/blog/types";
 import { cn } from "@/lib/utils";
+import { MediaImage } from "../media/MediaImage";
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
+
+/** Map our align attr to Tailwind classes matching WP semantics. */
+const ALIGN_CLASS: Record<NonNullable<ImageBlock["attrs"]["align"]>, string> = {
+  none: "",
+  left: "float-left mr-4 mb-2",
+  right: "float-right ml-4 mb-2",
+  center: "mx-auto",
+  wide: "mx-[-2rem] md:mx-[-4rem]",
+  full: "mx-[calc(50%-50vw)] w-screen",
+};
 
 interface BlockContentRendererProps {
   content: BlockDocument | null;
@@ -217,17 +229,63 @@ function RenderParagraph({ block }: { block: ParagraphBlock }) {
 }
 
 function RenderImage({ block }: { block: ImageBlock }) {
+  const align = block.attrs.align ?? "none";
+  const sizeSlug = block.attrs.sizeSlug ?? "large";
+  const linkTo = block.attrs.linkTo ?? "none";
+
+  // Build the image element — MediaImage when we have a mediaId, raw <img>
+  // as legacy fallback.
+  const inner = block.attrs.mediaId ? (
+    <MediaImage
+      mediaId={block.attrs.mediaId as Id<"media">}
+      alt={block.attrs.alt ?? ""}
+      className="w-full rounded-none"
+      loading="lazy"
+      preferredSize={sizeSlug === "full" ? undefined : sizeSlug}
+      sizes="100vw"
+      width={block.attrs.width}
+      height={block.attrs.height}
+    />
+  ) : block.attrs.src ? (
+    <img
+      src={block.attrs.src}
+      alt={block.attrs.alt ?? ""}
+      title={block.attrs.title}
+      width={block.attrs.width}
+      height={block.attrs.height}
+      className="w-full rounded-none"
+      loading="lazy"
+    />
+  ) : null;
+
+  // Apply WP-style link wrapping.
+  let rendered: React.ReactNode = inner;
+  if (linkTo === "custom" && block.attrs.linkUrl) {
+    rendered = (
+      <a href={block.attrs.linkUrl} target="_blank" rel="noopener noreferrer">
+        {inner}
+      </a>
+    );
+  } else if (linkTo === "media" && (block.attrs.src || block.attrs.mediaId)) {
+    // "media" = link to the full-size asset. If we only have mediaId we
+    // can't resolve a full URL on the server-rendered page; fall back to
+    // wrapping with the provided src when present.
+    if (block.attrs.src) {
+      rendered = (
+        <a href={block.attrs.src} target="_blank" rel="noopener noreferrer">
+          {inner}
+        </a>
+      );
+    }
+  }
+
   return (
-    <figure data-slot="block-image">
-      <img
-        src={block.attrs.src}
-        alt={block.attrs.alt ?? ""}
-        title={block.attrs.title}
-        width={block.attrs.width}
-        height={block.attrs.height}
-        className="w-full rounded-none"
-        loading="lazy"
-      />
+    <figure
+      data-slot="block-image"
+      data-align={align}
+      className={cn("block-image", ALIGN_CLASS[align])}
+    >
+      {rendered}
       {block.attrs.caption && (
         <figcaption className="mt-2 text-center text-xs text-muted-foreground">
           {block.attrs.caption}
@@ -248,14 +306,25 @@ function RenderGallery({ block }: { block: GalleryBlock }) {
         gridTemplateColumns: `repeat(${Math.min(columns, 4)}, minmax(0, 1fr))`,
       }}
     >
-      {block.content.map((image, _index) => (
-        <figure key={image.attrs.src}>
-          <img
-            src={image.attrs.src}
-            alt={image.attrs.alt ?? ""}
-            className="aspect-square w-full rounded-none object-cover"
-            loading="lazy"
-          />
+      {block.content.map((image, index) => (
+        <figure key={image.attrs.mediaId ?? image.attrs.src ?? index}>
+          {image.attrs.mediaId ? (
+            <MediaImage
+              mediaId={image.attrs.mediaId as Id<"media">}
+              alt={image.attrs.alt ?? ""}
+              className="aspect-square w-full rounded-none object-cover"
+              loading="lazy"
+              preferredSize="medium"
+              sizes={`${Math.round(100 / Math.min(columns, 4))}vw`}
+            />
+          ) : image.attrs.src ? (
+            <img
+              src={image.attrs.src}
+              alt={image.attrs.alt ?? ""}
+              className="aspect-square w-full rounded-none object-cover"
+              loading="lazy"
+            />
+          ) : null}
         </figure>
       ))}
     </div>

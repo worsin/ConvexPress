@@ -176,13 +176,12 @@ export const getAllForSite = internalQuery({
   },
   handler: async (ctx, { siteId, objectType }) => {
     if (objectType) {
-      const mappings = await ctx.db
+      return await ctx.db
         .query("wpIdMappings")
-        .withIndex("by_site", (q) => q.eq("siteId", siteId))
-        .filter((q) => q.eq(q.field("objectType"), objectType))
+        .withIndex("by_wp_id", (q) =>
+          q.eq("siteId", siteId).eq("objectType", objectType)
+        )
         .collect();
-
-      return mappings;
     }
 
     return await ctx.db
@@ -226,9 +225,13 @@ export const create = internalMutation({
     wpId: v.number(),
     convexId: v.string(),
     sourceUrl: v.optional(v.string()),
+    sourceUrls: v.optional(v.array(v.string())),
     sourceHash: v.optional(v.string()),
+    jobId: v.optional(v.id("wordpressSyncJobs")),
   },
-  handler: async (ctx, { siteId, objectType, wpId, convexId, sourceUrl, sourceHash }) => {
+  handler: async (ctx, { siteId, objectType, wpId, convexId, sourceUrl, sourceUrls, sourceHash, jobId }) => {
+    const now = Date.now();
+
     // Check for existing mapping to prevent duplicates
     const existing = await ctx.db
       .query("wpIdMappings")
@@ -246,8 +249,15 @@ export const create = internalMutation({
       if (sourceUrl && existing.sourceUrl !== sourceUrl) {
         patch.sourceUrl = sourceUrl;
       }
+      if (sourceUrls && JSON.stringify(existing.sourceUrls ?? []) !== JSON.stringify(sourceUrls)) {
+        patch.sourceUrls = sourceUrls;
+      }
       if (sourceHash && existing.sourceHash !== sourceHash) {
         patch.sourceHash = sourceHash;
+      }
+      if (jobId) {
+        patch.lastSeenJobId = jobId;
+        patch.lastSeenAt = now;
       }
       if (Object.keys(patch).length > 0) {
         await ctx.db.patch(existing._id, patch);
@@ -262,8 +272,11 @@ export const create = internalMutation({
       wpId,
       convexId,
       sourceUrl,
+      sourceUrls,
       sourceHash,
-      createdAt: Date.now(),
+      lastSeenJobId: jobId,
+      lastSeenAt: jobId ? now : undefined,
+      createdAt: now,
     });
   },
 });
@@ -279,10 +292,13 @@ export const createBatch = internalMutation({
         objectType: objectTypeValidator,
         wpId: v.number(),
         convexId: v.string(),
+        sourceUrl: v.optional(v.string()),
+        sourceUrls: v.optional(v.array(v.string())),
       })
     ),
+    jobId: v.optional(v.id("wordpressSyncJobs")),
   },
-  handler: async (ctx, { siteId, mappings }) => {
+  handler: async (ctx, { siteId, mappings, jobId }) => {
     const createdIds: Id<"wpIdMappings">[] = [];
     const now = Date.now();
 
@@ -299,8 +315,22 @@ export const createBatch = internalMutation({
         .first();
 
       if (existing) {
+        const patch: Record<string, unknown> = {};
         if (existing.convexId !== mapping.convexId) {
-          await ctx.db.patch(existing._id, { convexId: mapping.convexId });
+          patch.convexId = mapping.convexId;
+        }
+        if (mapping.sourceUrl && existing.sourceUrl !== mapping.sourceUrl) {
+          patch.sourceUrl = mapping.sourceUrl;
+        }
+        if (mapping.sourceUrls && JSON.stringify(existing.sourceUrls ?? []) !== JSON.stringify(mapping.sourceUrls)) {
+          patch.sourceUrls = mapping.sourceUrls;
+        }
+        if (jobId) {
+          patch.lastSeenJobId = jobId;
+          patch.lastSeenAt = now;
+        }
+        if (Object.keys(patch).length > 0) {
+          await ctx.db.patch(existing._id, patch);
         }
         createdIds.push(existing._id);
       } else {
@@ -309,6 +339,10 @@ export const createBatch = internalMutation({
           objectType: mapping.objectType,
           wpId: mapping.wpId,
           convexId: mapping.convexId,
+          sourceUrl: mapping.sourceUrl,
+          sourceUrls: mapping.sourceUrls,
+          lastSeenJobId: jobId,
+          lastSeenAt: jobId ? now : undefined,
           createdAt: now,
         });
         createdIds.push(id);
@@ -365,6 +399,37 @@ export const deleteByType = internalMutation({
     }
 
     return deleted;
+  },
+});
+
+/**
+ * Mark a mapping as observed by the current import job without changing its
+ * source hash. This keeps dry-run-free tombstone detection scoped to what the
+ * job actually fetched.
+ */
+export const touch = internalMutation({
+  args: {
+    siteId: v.id("wordpressSites"),
+    objectType: objectTypeValidator,
+    wpId: v.number(),
+    jobId: v.id("wordpressSyncJobs"),
+  },
+  handler: async (ctx, { siteId, objectType, wpId, jobId }) => {
+    const mapping = await ctx.db
+      .query("wpIdMappings")
+      .withIndex("by_wp_id", (q) =>
+        q.eq("siteId", siteId).eq("objectType", objectType).eq("wpId", wpId)
+      )
+      .first();
+
+    if (!mapping) return null;
+
+    await ctx.db.patch(mapping._id, {
+      lastSeenJobId: jobId,
+      lastSeenAt: Date.now(),
+    });
+
+    return mapping._id;
   },
 });
 

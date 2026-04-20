@@ -65,3 +65,4 @@ Thumbs.db
 
 # Claude
 .claude/memory/
+.claude/worktrees/

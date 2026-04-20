@@ -22,10 +22,37 @@ interface Capabilities {
   mediaAccessible: boolean;
 }
 
-interface ImportConfig {
+type TombstoneMode = "never" | "mark_stale";
+
+interface ImportBehavior {
+  dryRun: boolean;
+  updateExisting: boolean;
+  preserveLocalEdits: boolean;
+  importDrafts: boolean;
+  importHistoricalOrders: boolean;
+  importRefunds: boolean;
+  importReviews: boolean;
+  importCoupons: boolean;
+  tombstoneMode: TombstoneMode;
+  destructiveDelete: false;
+}
+
+interface ImportFilters {
+  dateRangeStart?: number;
+  dateRangeEnd?: number;
+  entityLimit?: number;
+}
+
+interface FilterInputs {
+  dateRangeStart: string;
+  dateRangeEnd: string;
+  entityLimit: string;
+}
+
+export interface ImportConfig {
   scope: Record<string, boolean>;
-  behavior: Record<string, boolean>;
-  filters: Record<string, unknown>;
+  behavior: ImportBehavior;
+  filters: ImportFilters;
 }
 
 interface ImportConfigPanelProps {
@@ -111,6 +138,16 @@ function getDisabledReason(key: string, capabilities: Capabilities | null): stri
   }
 }
 
+function getSanitizedScope(
+  scope: Record<ScopeKey, boolean>,
+  capabilities: Capabilities | null,
+): Record<ScopeKey, boolean> {
+  return SCOPE_ITEMS.reduce((result, { key }) => {
+    result[key] = !isScopeDisabled(key, capabilities) && Boolean(scope[key]);
+    return result;
+  }, {} as Record<ScopeKey, boolean>);
+}
+
 export function ImportConfigPanel({
   capabilities,
   onStart,
@@ -121,26 +158,86 @@ export function ImportConfigPanel({
     getDefaultScope(capabilities),
   );
 
-  const [behavior, setBehavior] = useState({
+  const [behavior, setBehavior] = useState<ImportBehavior>({
     dryRun: false,
     updateExisting: true,
     preserveLocalEdits: false,
     importDrafts: true,
+    importHistoricalOrders: true,
+    importRefunds: true,
+    importReviews: true,
+    importCoupons: true,
+    tombstoneMode: "never" as TombstoneMode,
+    destructiveDelete: false,
   });
+  const [filterInputs, setFilterInputs] = useState<FilterInputs>({
+    dateRangeStart: "",
+    dateRangeEnd: "",
+    entityLimit: "",
+  });
+  const [confirmLiveImport, setConfirmLiveImport] = useState(false);
 
   const toggleScope = (key: ScopeKey) => {
     setScope((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const toggleBehavior = (key: keyof typeof behavior) => {
+  const toggleBehavior = (
+    key: Exclude<keyof ImportBehavior, "tombstoneMode" | "destructiveDelete">,
+  ) => {
     setBehavior((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleStart = () => {
-    onStart({ scope, behavior, filters: {} });
+  const setTombstoneMode = (tombstoneMode: TombstoneMode) => {
+    setBehavior((prev) => ({
+      ...prev,
+      tombstoneMode,
+      destructiveDelete: false,
+    }));
   };
 
-  const hasAnyScope = Object.values(scope).some(Boolean);
+  const updateFilter = (key: keyof FilterInputs, value: string) => {
+    setFilterInputs((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const buildFilters = (): ImportFilters => {
+    const filters: ImportFilters = {};
+    const limit = Number.parseInt(filterInputs.entityLimit, 10);
+
+    if (Number.isFinite(limit) && limit > 0) {
+      filters.entityLimit = limit;
+    }
+    if (filterInputs.dateRangeStart) {
+      filters.dateRangeStart = new Date(`${filterInputs.dateRangeStart}T00:00:00`).getTime();
+    }
+    if (filterInputs.dateRangeEnd) {
+      filters.dateRangeEnd = new Date(`${filterInputs.dateRangeEnd}T23:59:59.999`).getTime();
+    }
+
+    return filters;
+  };
+
+  const handleStart = () => {
+    onStart({
+      scope: getSanitizedScope(scope, capabilities),
+      behavior,
+      filters: buildFilters(),
+    });
+  };
+
+  const sanitizedScope = getSanitizedScope(scope, capabilities);
+  const hasAnyScope = Object.values(sanitizedScope).some(Boolean);
+  const hasRequiredConnection =
+    !capabilities || (capabilities.wpRest && capabilities.wpAuthValid);
+  const requiresLiveConfirmation = !behavior.dryRun;
+  const canStart =
+    hasAnyScope &&
+    hasRequiredConnection &&
+    (!requiresLiveConfirmation || confirmLiveImport);
+  const commerceEnabled =
+    sanitizedScope.wooCustomers ||
+    sanitizedScope.wooOrders ||
+    sanitizedScope.wooCoupons ||
+    sanitizedScope.wooReviews;
 
   return (
     <Card>
@@ -170,7 +267,7 @@ export function ImportConfigPanel({
                 >
                   <input
                     type="checkbox"
-                    checked={scope[key]}
+                    checked={sanitizedScope[key]}
                     disabled={disabled}
                     onChange={() => toggleScope(key)}
                     className="rounded border-border"
@@ -230,11 +327,160 @@ export function ImportConfigPanel({
           </div>
         </div>
 
+        {/* Filters */}
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-3">
+            Filters
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label className="block text-sm">
+              <span className="block mb-1.5 text-muted-foreground">
+                Start date
+              </span>
+              <input
+                type="date"
+                value={filterInputs.dateRangeStart}
+                onChange={(event) => updateFilter("dateRangeStart", event.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="block mb-1.5 text-muted-foreground">
+                End date
+              </span>
+              <input
+                type="date"
+                value={filterInputs.dateRangeEnd}
+                onChange={(event) => updateFilter("dateRangeEnd", event.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="block mb-1.5 text-muted-foreground">
+                Entity limit
+              </span>
+              <input
+                type="number"
+                min={1}
+                value={filterInputs.entityLimit}
+                onChange={(event) => updateFilter("entityLimit", event.target.value)}
+                placeholder="No limit"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
+        </div>
+
+        {/* Commerce Behavior */}
+        {commerceEnabled && (
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">
+              Commerce Behavior
+            </h3>
+            <div className="space-y-1">
+              <label className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm cursor-pointer hover:bg-muted/50">
+                <input
+                  type="checkbox"
+                  checked={sanitizedScope.wooOrders && behavior.importHistoricalOrders}
+                  disabled={!sanitizedScope.wooOrders}
+                  onChange={() => toggleBehavior("importHistoricalOrders")}
+                  className="rounded border-border"
+                />
+                <span>Import historical orders</span>
+              </label>
+              <label className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm cursor-pointer hover:bg-muted/50">
+                <input
+                  type="checkbox"
+                  checked={sanitizedScope.wooOrders && behavior.importRefunds}
+                  disabled={!sanitizedScope.wooOrders}
+                  onChange={() => toggleBehavior("importRefunds")}
+                  className="rounded border-border"
+                />
+                <span>Import order refunds</span>
+              </label>
+              <label className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm cursor-pointer hover:bg-muted/50">
+                <input
+                  type="checkbox"
+                  checked={sanitizedScope.wooCoupons && behavior.importCoupons}
+                  disabled={!sanitizedScope.wooCoupons}
+                  onChange={() => toggleBehavior("importCoupons")}
+                  className="rounded border-border"
+                />
+                <span>Import coupons</span>
+              </label>
+              <label className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm cursor-pointer hover:bg-muted/50">
+                <input
+                  type="checkbox"
+                  checked={sanitizedScope.wooReviews && behavior.importReviews}
+                  disabled={!sanitizedScope.wooReviews}
+                  onChange={() => toggleBehavior("importReviews")}
+                  className="rounded border-border"
+                />
+                <span>Import product reviews</span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* Reconciliation */}
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-3">
+            Reconciliation
+          </h3>
+          <label className="block px-3 py-2 rounded-md text-sm">
+            <span className="block mb-1.5 text-muted-foreground">
+              Missing mapped entities
+            </span>
+            <select
+              value={behavior.tombstoneMode}
+              onChange={(event) =>
+                setTombstoneMode(event.target.value as TombstoneMode)
+              }
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="never">Do not check for stale mappings</option>
+              <option value="mark_stale">
+                Report stale or orphaned mappings
+              </option>
+            </select>
+          </label>
+        </div>
+
+        {!hasRequiredConnection && (
+          <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+            WordPress REST authentication must pass before an import can start.
+          </div>
+        )}
+
+        {!behavior.dryRun && behavior.updateExisting && !behavior.preserveLocalEdits && (
+          <div className="flex gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+            <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+            Live import will update existing mapped content, products, customers,
+            orders, coupons, and reviews when source hashes change.
+          </div>
+        )}
+
+        {!behavior.dryRun && (
+          <label className="flex items-start gap-2.5 px-3 py-2 rounded-md text-sm cursor-pointer hover:bg-muted/50">
+            <input
+              type="checkbox"
+              checked={confirmLiveImport}
+              onChange={() => setConfirmLiveImport((value) => !value)}
+              className="mt-0.5 rounded border-border"
+            />
+            <span>
+              I understand this import will write data to ConvexPress using the
+              selected scope and behavior.
+            </span>
+          </label>
+        )}
+
         {/* Actions */}
         <div className="flex items-center gap-3 pt-2 border-t border-border">
           <Button
             onClick={handleStart}
-            disabled={isLoading || !hasAnyScope}
+            disabled={isLoading || !canStart}
           >
             {behavior.dryRun ? (
               <EyeIcon className="h-4 w-4 mr-2" />

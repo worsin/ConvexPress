@@ -50,12 +50,11 @@ function SupportAnalyticsDashboard() {
   // Date range (default: last 30 days)
   const [days, setDays] = useState(30);
   const dateRange = useMemo(() => {
-    const end = new Date();
-    const start = new Date();
-    start.setUTCDate(start.getUTCDate() - days);
+    const end = Date.now();
+    const start = end - days * 24 * 60 * 60 * 1000;
     return {
-      startDate: start.toISOString().slice(0, 10),
-      endDate: end.toISOString().slice(0, 10),
+      startDate: start,
+      endDate: end,
     };
   }, [days]);
 
@@ -64,6 +63,13 @@ function SupportAnalyticsDashboard() {
     api.support.analytics.getTopDeflectingArticles,
     dateRange,
   );
+  type TopDeflectingArticle = {
+    articleId: string;
+    title: string;
+    helpfulAppearances: number;
+    deflectionRate: number;
+  };
+  type UnansweredQuery = { query: string; count: number };
 
   if (stats === undefined || topArticles === undefined) {
     return (
@@ -193,7 +199,7 @@ function SupportAnalyticsDashboard() {
           </h2>
           {topArticles && topArticles.length > 0 ? (
             <div className="flex flex-col gap-2">
-              {topArticles.slice(0, 10).map((article, index) => (
+              {(topArticles as TopDeflectingArticle[]).slice(0, 10).map((article, index) => (
                 <div
                   key={article.articleId}
                   className="flex items-center gap-3 rounded-md px-2 py-1.5"
@@ -232,7 +238,7 @@ function SupportAnalyticsDashboard() {
           </p>
           {stats.commonUnansweredQueries.length > 0 ? (
             <div className="flex flex-col gap-1.5">
-              {stats.commonUnansweredQueries.map((item) => (
+              {(stats.commonUnansweredQueries as UnansweredQuery[]).map((item) => (
                 <div
                   key={item.query}
                   className="flex items-center justify-between rounded-md px-2 py-1.5"

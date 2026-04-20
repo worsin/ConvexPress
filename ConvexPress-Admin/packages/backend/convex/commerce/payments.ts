@@ -424,6 +424,46 @@ export const confirmPaymentSuccess = internalMutation({
 					updatedAt: now,
 				});
 
+				const checkoutSession = order.checkoutSessionId
+					? await ctx.db.get(order.checkoutSessionId)
+					: null;
+				if (checkoutSession) {
+					await ctx.db.patch(checkoutSession._id, {
+						status: "completed",
+						completedAt: now,
+						updatedAt: now,
+					});
+
+					const cart = checkoutSession.cartId
+						? await ctx.db.get(checkoutSession.cartId)
+						: null;
+					if (cart) {
+						await ctx.db.patch(cart._id, {
+							status: "converted",
+							updatedAt: now,
+							lastActiveAt: now,
+						});
+					}
+				}
+
+				if (order.appliedDiscountCode && !order.discountUsageCountedAt) {
+					const discount = await ctx.db
+						.query("commerce_discount_codes")
+						.withIndex("by_code", (q) =>
+							q.eq("code", order.appliedDiscountCode),
+						)
+						.unique();
+					if (discount) {
+						await ctx.db.patch(discount._id, {
+							usageCount: discount.usageCount + 1,
+							updatedAt: now,
+						});
+						await ctx.db.patch(order._id, {
+							discountUsageCountedAt: now,
+						});
+					}
+				}
+
 				// Commit inventory for paid order
 				const orderItems = await ctx.db
 					.query("commerce_order_items")
@@ -520,6 +560,22 @@ export const confirmPaymentSuccess = internalMutation({
 						}
 					}
 
+					if (order.checkoutSessionId) {
+						const reservations = await ctx.db
+							.query("commerce_stock_reservations")
+							.withIndex("by_checkout", (q: any) =>
+								q.eq("checkoutSessionId", order.checkoutSessionId),
+							)
+							.filter((q: any) => q.eq(q.field("status"), "active"))
+							.collect();
+						for (const reservation of reservations) {
+							await ctx.db.patch(reservation._id, {
+								status: "converted",
+								updatedAt: now,
+							});
+						}
+					}
+
 					await ctx.db.patch(order._id, { inventoryCommittedAt: now });
 				}
 
@@ -591,13 +647,13 @@ export const confirmPaymentFailure = internalMutation({
 			updatedAt: now,
 		});
 
-		// Update the order's paymentStatus to "failed"
+		// Keep the order payable so the customer can retry with a new transaction.
 		if (transaction.orderId) {
 			const order = await ctx.db.get(transaction.orderId);
 			if (order) {
 				await ctx.db.patch(transaction.orderId, {
-					paymentStatus: "failed",
-					status: "failed",
+					paymentStatus: "pending",
+					status: "pending",
 					updatedAt: now,
 				});
 

@@ -27,6 +27,7 @@ import { mutation } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { requireCommerceReviewsEnabled } from "./helpers";
 import { commerceReviewStatusValidator } from "../schema/commerceReviews";
+import { requirePluginEnabled } from "../helpers/plugins";
 
 // ============================================
 // HELPER: Update product aggregate rating stats
@@ -66,6 +67,7 @@ export const submit = mutation({
     content: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -154,6 +156,7 @@ export const update = mutation({
     content: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -208,6 +211,7 @@ export const update = mutation({
 export const remove = mutation({
   args: { reviewId: v.id("commerce_review_items") },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -259,6 +263,7 @@ export const remove = mutation({
 export const voteHelpful = mutation({
   args: { reviewId: v.id("commerce_review_items") },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
@@ -317,6 +322,7 @@ export const voteHelpful = mutation({
 export const approve = mutation({
   args: { reviewId: v.id("commerce_review_items") },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     const moderator = await requireCan(ctx, "commerce.reviews.moderate");
 
@@ -353,6 +359,7 @@ export const reject = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     const moderator = await requireCan(ctx, "commerce.reviews.moderate");
 
@@ -386,6 +393,7 @@ export const reject = mutation({
 export const markSpam = mutation({
   args: { reviewId: v.id("commerce_review_items") },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     const moderator = await requireCan(ctx, "commerce.reviews.moderate");
 
@@ -418,6 +426,7 @@ export const markSpam = mutation({
 export const bulkApprove = mutation({
   args: { reviewIds: v.array(v.id("commerce_review_items")) },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     const moderator = await requireCan(ctx, "commerce.reviews.moderate");
 
@@ -456,6 +465,7 @@ export const bulkReject = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     const moderator = await requireCan(ctx, "commerce.reviews.moderate");
 
@@ -491,6 +501,7 @@ export const bulkReject = mutation({
 export const adminDelete = mutation({
   args: { reviewId: v.id("commerce_review_items") },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     await requireCan(ctx, "commerce.reviews.delete");
 

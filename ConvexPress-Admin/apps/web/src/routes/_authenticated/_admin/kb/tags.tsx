@@ -38,7 +38,14 @@ function KBTagsPage() {
 
 function KBTagsContent() {
   const tagsResult = useQuery(api.kb.tags.list);
-  const tags = tagsResult ?? [];
+  const tags = (tagsResult ?? []) as Array<{
+    _id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    color?: string;
+    articleCount?: number;
+  }>;
   const createTag = useMutation(api.kb.tags.create);
   const updateTag = useMutation(api.kb.tags.update);
   const removeTag = useMutation(api.kb.tags.remove);
@@ -211,7 +218,7 @@ function KBTagsContent() {
             ) : (
               tags.map((tag) => (
                 <tr key={tag._id} className="hover:bg-muted/30 transition-colors">
-                  {editing?.id === tag._id ? (
+                  {editing && editing.id === tag._id ? (
                     <>
                       <td className="px-4 py-2" colSpan={3}>
                         <div className="flex items-center gap-2">

@@ -157,7 +157,7 @@ export const fetchTrafficData = action({
   },
   handler: async (ctx, args) => {
     // Read credentials from env var
-    const serviceAccountJson = process.env.GA4_SERVICE_ACCOUNT_JSON;
+    const { getServiceKeyFromAction } = await import("../helpers/serviceKeys"); const serviceAccountJson = await getServiceKeyFromAction(ctx, "analytics.ga4", "ga4ServiceAccountJson", "GA4_SERVICE_ACCOUNT_JSON");
     if (!serviceAccountJson) {
       throw new Error("GA4_SERVICE_ACCOUNT_JSON environment variable not set");
     }
@@ -318,7 +318,7 @@ export const fetchEngagementData = action({
   },
   handler: async (ctx, args) => {
     // Read credentials from env var
-    const serviceAccountJson = process.env.GA4_SERVICE_ACCOUNT_JSON;
+    const { getServiceKeyFromAction } = await import("../helpers/serviceKeys"); const serviceAccountJson = await getServiceKeyFromAction(ctx, "analytics.ga4", "ga4ServiceAccountJson", "GA4_SERVICE_ACCOUNT_JSON");
     if (!serviceAccountJson) {
       throw new Error("GA4_SERVICE_ACCOUNT_JSON environment variable not set");
     }

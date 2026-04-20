@@ -14,6 +14,7 @@ import { query } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
 import { getConfigArgs, getRecentTicketsArgs } from "./validators";
 import { SUPPORT_WIDGET_DEFAULTS } from "./settings";
+import { isPluginEnabled } from "../helpers/plugins";
 
 // ─── getConfig ────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ import { SUPPORT_WIDGET_DEFAULTS } from "./settings";
 export const getConfig = query({
   args: getConfigArgs,
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     // Additional widget-display-only defaults (not persisted in settings)
     const WIDGET_DISPLAY_DEFAULTS = {
       position: "bottomRight",
@@ -73,6 +75,7 @@ export const getConfig = query({
 export const getRecentTickets = query({
   args: getRecentTicketsArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return [];
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 

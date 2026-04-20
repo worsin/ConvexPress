@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useAdminShell } from "@/hooks/layout/useAdminShell";
 import { useActiveSection } from "@/hooks/layout/useActiveSection";
 import { usePendingCommentCount } from "@/hooks/layout/usePendingCommentCount";
+import { usePluginSettings } from "@/hooks/usePluginSettings";
 import { ADMIN_NAV_SECTIONS } from "@/lib/admin-shell/nav-config";
 import { filterNavSections } from "@/lib/admin-shell/capabilities";
 import { useAuth } from "@/lib/auth-context";
@@ -25,12 +26,28 @@ export function MobileSidebarOverlay() {
   const { role } = useAuth();
   const activeSectionId = useActiveSection();
   const pendingCommentCount = usePendingCommentCount();
+  const { isEnabled: isPluginEnabled } = usePluginSettings();
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Filter nav sections by user capabilities (same as desktop sidebar)
+  // Filter nav sections by user capabilities + plugin enablement (same as desktop sidebar)
   const filteredSections = useMemo(() => {
     const capabilities = role?.capabilities ?? [];
     let sections = filterNavSections(ADMIN_NAV_SECTIONS, capabilities);
+
+    sections = sections.filter(
+      (section) => !section.pluginId || isPluginEnabled(section.pluginId),
+    );
+
+    sections = sections.map((section) =>
+      section.children
+        ? {
+            ...section,
+            children: section.children.filter(
+              (child) => !child.pluginId || isPluginEnabled(child.pluginId),
+            ),
+          }
+        : section,
+    );
 
     // Inject dynamic badge counts
     sections = sections.map((section) => {
@@ -41,7 +58,7 @@ export function MobileSidebarOverlay() {
     });
 
     return sections;
-  }, [role, pendingCommentCount]);
+  }, [role, pendingCommentCount, isPluginEnabled]);
 
   // Close on Escape key
   useEffect(() => {

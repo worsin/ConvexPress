@@ -18,7 +18,7 @@ import type { Id } from "../../_generated/dataModel";
 import { fetchWPUsers, type WPUser } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { WP_BATCH_SIZE, createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { WP_BATCH_SIZE, normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 import { createFinding } from "../helpers/idMapping";
 
 
@@ -34,8 +34,9 @@ export const importBatch = internalAction({
   args: {
     jobId: v.id("wordpressSyncJobs"),
     siteId: v.id("wordpressSites"),
+    credentials: siteCredentialsValidator,
   },
-  handler: async (ctx, { jobId, siteId }): Promise<PhaseResult> => {
+  handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
     let created = 0;
     let updated = 0;
@@ -46,7 +47,7 @@ export const importBatch = internalAction({
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
 
     // Get import config
-    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const importConfig = normalizeImportConfig(job?.importConfig);
     const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
@@ -59,22 +60,27 @@ export const importBatch = internalAction({
 
     const progress: PhaseProgress = { ...job.progress.users };
     const cursor = progress.cursor || 0;
+    const entityLimit =
+      typeof importConfig.filters.entityLimit === "number"
+        ? importConfig.filters.entityLimit
+        : undefined;
+    if (entityLimit !== undefined && cursor >= entityLimit) {
+      progress.total = Math.min(progress.total || entityLimit, entityLimit);
+      return { progress, errors, hasMore: false };
+    }
     const page = Math.floor(cursor / WP_BATCH_SIZE) + 1;
 
     // Fetch users from WordPress
-    const { data: wpUsers, total } = await fetchWPUsers(
-      {
-        siteUrl: site.siteUrl,
-        username: site.username,
-        applicationPassword: site.applicationPassword,
-      },
-      page,
-      WP_BATCH_SIZE
-    );
+    const { data: fetchedUsers, total } = await fetchWPUsers(credentials, page, WP_BATCH_SIZE);
+    const wpUsers =
+      entityLimit !== undefined
+        ? fetchedUsers.slice(0, Math.max(0, entityLimit - cursor))
+        : fetchedUsers;
+    const effectiveTotal = entityLimit !== undefined ? Math.min(total, entityLimit) : total;
 
     // Update total if not set
-    if (progress.total === 0 && total > 0) {
-      progress.total = total;
+    if (progress.total === 0 && effectiveTotal > 0) {
+      progress.total = effectiveTotal;
     }
 
     // Process each user
@@ -95,6 +101,15 @@ export const importBatch = internalAction({
         );
 
         if (existingMapping) {
+          if (!isDryRun) {
+            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+              siteId,
+              objectType: "user",
+              wpId: wpUser.id,
+              jobId,
+            });
+          }
+
           // Source hash comparison - skip if unchanged
           if (existingMapping.sourceHash === sourceHash) {
             skipped++;
@@ -169,6 +184,7 @@ export const importBatch = internalAction({
             wpId: wpUser.id,
             convexId: userId,
             sourceHash,
+            jobId,
           });
         }
 

@@ -15,6 +15,7 @@ import {
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
+import { useSettings } from "@/contexts/SettingsContext";
 
 export const Route = createFileRoute("/dashboard/reviews")({
   head: () => ({
@@ -393,9 +394,11 @@ function ReviewCard({
 // ─── Main Page ───────────────────────────────────────────────────────────
 
 function DashboardReviewsPage() {
+  const settings = useSettings();
+  const reviewsEnabled = settings?.plugins?.commerceReviewsEnabled === true;
   const reviews = useQuery(
     (api as any).commerceReviews.queries.getMyReviews,
-    {},
+    reviewsEnabled ? {} : "skip",
   ) as
     | Array<{
         _id: string;
@@ -417,7 +420,7 @@ function DashboardReviewsPage() {
     reviews?.filter((r) => r.status === "approved").length ?? 0;
 
   return (
-    <PublicPluginGate pluginId="commerce">
+    <PublicPluginGate pluginId="commerceReviews">
       <div className="space-y-6">
         {/* Header */}
         <div>

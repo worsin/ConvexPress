@@ -30,6 +30,7 @@ import {
   membershipPlanStatusValidator,
   membershipRestrictionModeValidator,
 } from "../schema/membership";
+import { requirePluginEnabled } from "../helpers/plugins";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PLAN CRUD
@@ -65,6 +66,7 @@ export const createPlan = mutation({
     ),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -151,6 +153,7 @@ export const updatePlan = mutation({
     ),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -234,6 +237,7 @@ export const deletePlan = mutation({
     planId: v.id("membership_plans"),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -330,6 +334,7 @@ export const grantMembership = mutation({
     metadata: v.optional(v.any()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -405,6 +410,7 @@ export const revokeMembership = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -475,6 +481,7 @@ export const createRestrictionRule = mutation({
     loginRequired: v.boolean(),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -538,6 +545,7 @@ export const updateRestrictionRule = mutation({
     loginRequired: v.optional(v.boolean()),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
@@ -592,6 +600,7 @@ export const deleteRestrictionRule = mutation({
     ruleId: v.id("membership_restriction_rules"),
   },
   handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
 

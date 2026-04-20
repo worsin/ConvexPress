@@ -22,12 +22,21 @@ import {
   Import,
 } from "lucide-react";
 import { api } from "@backend/convex/_generated/api";
+import { PluginGuard } from "@/components/plugins/PluginGuard";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/commerce/digital",
 )({
-  component: CommerceDigitalPage,
+  component: CommerceDigitalRoute,
 });
+
+function CommerceDigitalRoute() {
+  return (
+    <PluginGuard pluginId="commerceDigital">
+      <CommerceDigitalPage />
+    </PluginGuard>
+  );
+}
 
 // ─── Formatters ────────────────────────────────────────────────────────────
 

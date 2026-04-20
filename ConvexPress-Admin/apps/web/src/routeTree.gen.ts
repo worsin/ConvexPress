@@ -17,10 +17,15 @@ import { Route as AuthenticatedAdminToolsRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminTicketsRouteImport } from './routes/_authenticated/_admin/tickets'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/_admin/settings'
 import { Route as AuthenticatedAdminSeoRouteImport } from './routes/_authenticated/_admin/seo'
+import { Route as AuthenticatedAdminRecipesRouteImport } from './routes/_authenticated/_admin/recipes'
 import { Route as AuthenticatedAdminProfileRouteImport } from './routes/_authenticated/_admin/profile'
+import { Route as AuthenticatedAdminPluginsRouteImport } from './routes/_authenticated/_admin/plugins'
+import { Route as AuthenticatedAdminMembershipRouteImport } from './routes/_authenticated/_admin/membership'
 import { Route as AuthenticatedAdminKbRouteImport } from './routes/_authenticated/_admin/kb'
+import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/_admin/gallery'
 import { Route as AuthenticatedAdminDashboardRouteImport } from './routes/_authenticated/_admin/dashboard'
 import { Route as AuthenticatedAdminCustomFieldsRouteImport } from './routes/_authenticated/_admin/custom-fields'
+import { Route as AuthenticatedAdminCommerceRouteImport } from './routes/_authenticated/_admin/commerce'
 import { Route as AuthenticatedAdminAppearanceRouteImport } from './routes/_authenticated/_admin/appearance'
 import { Route as AuthenticatedAdminWebhooksIndexRouteImport } from './routes/_authenticated/_admin/webhooks/index'
 import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_authenticated/_admin/users/index'
@@ -29,12 +34,17 @@ import { Route as AuthenticatedAdminTicketsIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminSettingsIndexRouteImport } from './routes/_authenticated/_admin/settings/index'
 import { Route as AuthenticatedAdminSeoIndexRouteImport } from './routes/_authenticated/_admin/seo/index'
 import { Route as AuthenticatedAdminRolesIndexRouteImport } from './routes/_authenticated/_admin/roles/index'
+import { Route as AuthenticatedAdminRecipesIndexRouteImport } from './routes/_authenticated/_admin/recipes/index'
 import { Route as AuthenticatedAdminPostsIndexRouteImport } from './routes/_authenticated/_admin/posts/index'
 import { Route as AuthenticatedAdminPagesIndexRouteImport } from './routes/_authenticated/_admin/pages/index'
 import { Route as AuthenticatedAdminMenusIndexRouteImport } from './routes/_authenticated/_admin/menus/index'
+import { Route as AuthenticatedAdminMembershipIndexRouteImport } from './routes/_authenticated/_admin/membership/index'
 import { Route as AuthenticatedAdminMediaIndexRouteImport } from './routes/_authenticated/_admin/media/index'
+import { Route as AuthenticatedAdminLayoutsIndexRouteImport } from './routes/_authenticated/_admin/layouts/index'
 import { Route as AuthenticatedAdminKbIndexRouteImport } from './routes/_authenticated/_admin/kb/index'
+import { Route as AuthenticatedAdminGalleryIndexRouteImport } from './routes/_authenticated/_admin/gallery/index'
 import { Route as AuthenticatedAdminCustomFieldsIndexRouteImport } from './routes/_authenticated/_admin/custom-fields/index'
+import { Route as AuthenticatedAdminCommerceIndexRouteImport } from './routes/_authenticated/_admin/commerce/index'
 import { Route as AuthenticatedAdminCommentsIndexRouteImport } from './routes/_authenticated/_admin/comments/index'
 import { Route as AuthenticatedAdminAppearanceIndexRouteImport } from './routes/_authenticated/_admin/appearance/index'
 import { Route as AuthenticatedAdminApiKeysIndexRouteImport } from './routes/_authenticated/_admin/api-keys/index'
@@ -69,6 +79,8 @@ import { Route as AuthenticatedAdminSettingsAiRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminSeoSitemapRouteImport } from './routes/_authenticated/_admin/seo/sitemap'
 import { Route as AuthenticatedAdminSeoSettingsRouteImport } from './routes/_authenticated/_admin/seo/settings'
 import { Route as AuthenticatedAdminRolesNewRouteImport } from './routes/_authenticated/_admin/roles/new'
+import { Route as AuthenticatedAdminRecipesNewRouteImport } from './routes/_authenticated/_admin/recipes/new'
+import { Route as AuthenticatedAdminRecipesCategoriesRouteImport } from './routes/_authenticated/_admin/recipes/categories'
 import { Route as AuthenticatedAdminPostsTagsRouteImport } from './routes/_authenticated/_admin/posts/tags'
 import { Route as AuthenticatedAdminPostsNewRouteImport } from './routes/_authenticated/_admin/posts/new'
 import { Route as AuthenticatedAdminPostsCategoriesRouteImport } from './routes/_authenticated/_admin/posts/categories'
@@ -76,7 +88,14 @@ import { Route as AuthenticatedAdminPostsPostIdRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminPagesNewRouteImport } from './routes/_authenticated/_admin/pages/new'
 import { Route as AuthenticatedAdminPagesPageIdRouteImport } from './routes/_authenticated/_admin/pages/$pageId'
 import { Route as AuthenticatedAdminMenusLocationsRouteImport } from './routes/_authenticated/_admin/menus/locations'
+import { Route as AuthenticatedAdminMembershipSettingsRouteImport } from './routes/_authenticated/_admin/membership/settings'
+import { Route as AuthenticatedAdminMembershipRestrictionsRouteImport } from './routes/_authenticated/_admin/membership/restrictions'
+import { Route as AuthenticatedAdminMembershipPlansRouteImport } from './routes/_authenticated/_admin/membership/plans'
+import { Route as AuthenticatedAdminMembershipGrantsRouteImport } from './routes/_authenticated/_admin/membership/grants'
 import { Route as AuthenticatedAdminMediaUploadRouteImport } from './routes/_authenticated/_admin/media/upload'
+import { Route as AuthenticatedAdminLayoutsNewRouteImport } from './routes/_authenticated/_admin/layouts/new'
+import { Route as AuthenticatedAdminLayoutsAssignRouteImport } from './routes/_authenticated/_admin/layouts/assign'
+import { Route as AuthenticatedAdminLayoutsLayoutIdRouteImport } from './routes/_authenticated/_admin/layouts/$layoutId'
 import { Route as AuthenticatedAdminKbWorkflowsRouteImport } from './routes/_authenticated/_admin/kb/workflows'
 import { Route as AuthenticatedAdminKbTemplatesRouteImport } from './routes/_authenticated/_admin/kb/templates'
 import { Route as AuthenticatedAdminKbTagsRouteImport } from './routes/_authenticated/_admin/kb/tags'
@@ -86,16 +105,45 @@ import { Route as AuthenticatedAdminKbCollectionsRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminKbCategoriesRouteImport } from './routes/_authenticated/_admin/kb/categories'
 import { Route as AuthenticatedAdminKbAnalyticsRouteImport } from './routes/_authenticated/_admin/kb/analytics'
 import { Route as AuthenticatedAdminKbArticleIdRouteImport } from './routes/_authenticated/_admin/kb/$articleId'
+import { Route as AuthenticatedAdminGallerySettingsRouteImport } from './routes/_authenticated/_admin/gallery/settings'
+import { Route as AuthenticatedAdminGalleryNewRouteImport } from './routes/_authenticated/_admin/gallery/new'
+import { Route as AuthenticatedAdminGalleryCategoriesRouteImport } from './routes/_authenticated/_admin/gallery/categories'
 import { Route as AuthenticatedAdminCustomFieldsNewRouteImport } from './routes/_authenticated/_admin/custom-fields/new'
+import { Route as AuthenticatedAdminCommerceWishlistsRouteImport } from './routes/_authenticated/_admin/commerce/wishlists'
+import { Route as AuthenticatedAdminCommerceSubscriptionsRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions'
+import { Route as AuthenticatedAdminCommerceSettingsRouteImport } from './routes/_authenticated/_admin/commerce/settings'
+import { Route as AuthenticatedAdminCommerceReviewsRouteImport } from './routes/_authenticated/_admin/commerce/reviews'
+import { Route as AuthenticatedAdminCommerceReturnsRouteImport } from './routes/_authenticated/_admin/commerce/returns'
+import { Route as AuthenticatedAdminCommerceProductsRouteImport } from './routes/_authenticated/_admin/commerce/products'
+import { Route as AuthenticatedAdminCommercePaymentsRouteImport } from './routes/_authenticated/_admin/commerce/payments'
+import { Route as AuthenticatedAdminCommerceOrdersRouteImport } from './routes/_authenticated/_admin/commerce/orders'
+import { Route as AuthenticatedAdminCommerceDiscountsRouteImport } from './routes/_authenticated/_admin/commerce/discounts'
+import { Route as AuthenticatedAdminCommerceDigitalRouteImport } from './routes/_authenticated/_admin/commerce/digital'
+import { Route as AuthenticatedAdminCommerceCustomersRouteImport } from './routes/_authenticated/_admin/commerce/customers'
+import { Route as AuthenticatedAdminCommerceCategoriesRouteImport } from './routes/_authenticated/_admin/commerce/categories'
+import { Route as AuthenticatedAdminCommerceBundlesRouteImport } from './routes/_authenticated/_admin/commerce/bundles'
+import { Route as AuthenticatedAdminCommerceAttributesRouteImport } from './routes/_authenticated/_admin/commerce/attributes'
 import { Route as AuthenticatedAdminCommentsPendingRouteImport } from './routes/_authenticated/_admin/comments/pending'
+import { Route as AuthenticatedAdminAppearanceThemesRouteImport } from './routes/_authenticated/_admin/appearance/themes'
+import { Route as AuthenticatedAdminAppearanceHeaderRouteImport } from './routes/_authenticated/_admin/appearance/header'
+import { Route as AuthenticatedAdminAppearanceFooterRouteImport } from './routes/_authenticated/_admin/appearance/footer'
 import { Route as AuthenticatedAdminAppearanceColorsRouteImport } from './routes/_authenticated/_admin/appearance/colors'
 import { Route as AuthenticatedAdminToolsWordpressSyncIndexRouteImport } from './routes/_authenticated/_admin/tools/wordpress-sync/index'
+import { Route as AuthenticatedAdminToolsWebsiteImportIndexRouteImport } from './routes/_authenticated/_admin/tools/website-import/index'
 import { Route as AuthenticatedAdminToolsRedirectsIndexRouteImport } from './routes/_authenticated/_admin/tools/redirects/index'
 import { Route as AuthenticatedAdminToolsAuditLogIndexRouteImport } from './routes/_authenticated/_admin/tools/audit-log/index'
+import { Route as AuthenticatedAdminCommerceSubscriptionsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/index'
 import { Route as AuthenticatedAdminUsersUserIdEditRouteImport } from './routes/_authenticated/_admin/users/$userId/edit'
 import { Route as AuthenticatedAdminToolsRedirectsNewRouteImport } from './routes/_authenticated/_admin/tools/redirects/new'
 import { Route as AuthenticatedAdminToolsAuditLogEntryIdRouteImport } from './routes/_authenticated/_admin/tools/audit-log/$entryId'
+import { Route as AuthenticatedAdminSettingsIntegrationsStripeRouteImport } from './routes/_authenticated/_admin/settings/integrations.stripe'
+import { Route as AuthenticatedAdminSettingsIntegrationsShippingRouteImport } from './routes/_authenticated/_admin/settings/integrations.shipping'
+import { Route as AuthenticatedAdminSettingsIntegrationsPaypalRouteImport } from './routes/_authenticated/_admin/settings/integrations.paypal'
+import { Route as AuthenticatedAdminSettingsIntegrationsGoogleRouteImport } from './routes/_authenticated/_admin/settings/integrations.google'
+import { Route as AuthenticatedAdminSettingsIntegrationsClerkRouteImport } from './routes/_authenticated/_admin/settings/integrations.clerk'
+import { Route as AuthenticatedAdminSettingsAnalyticsGa4RouteImport } from './routes/_authenticated/_admin/settings/analytics.ga4'
 import { Route as AuthenticatedAdminRolesRoleIdEditRouteImport } from './routes/_authenticated/_admin/roles/$roleId/edit'
+import { Route as AuthenticatedAdminRecipesRecipeIdEditRouteImport } from './routes/_authenticated/_admin/recipes/$recipeId/edit'
 import { Route as AuthenticatedAdminPostsPostIdTrafficRouteImport } from './routes/_authenticated/_admin/posts/$postId/traffic'
 import { Route as AuthenticatedAdminPostsPostIdSeoRouteImport } from './routes/_authenticated/_admin/posts/$postId/seo'
 import { Route as AuthenticatedAdminPostsPostIdRevisionsRouteImport } from './routes/_authenticated/_admin/posts/$postId/revisions'
@@ -109,12 +157,38 @@ import { Route as AuthenticatedAdminPagesPageIdEditRouteImport } from './routes/
 import { Route as AuthenticatedAdminMenusMenuIdEditRouteImport } from './routes/_authenticated/_admin/menus/$menuId/edit'
 import { Route as AuthenticatedAdminMediaMediaIdEditRouteImport } from './routes/_authenticated/_admin/media/$mediaId/edit'
 import { Route as AuthenticatedAdminKbArticleIdEditRouteImport } from './routes/_authenticated/_admin/kb/$articleId/edit'
+import { Route as AuthenticatedAdminGalleryAlbumIdEditRouteImport } from './routes/_authenticated/_admin/gallery/$albumId/edit'
 import { Route as AuthenticatedAdminCustomFieldsGroupIdEditRouteImport } from './routes/_authenticated/_admin/custom-fields/$groupId/edit'
+import { Route as AuthenticatedAdminCommerceShippingTrackingRouteImport } from './routes/_authenticated/_admin/commerce/shipping.tracking'
+import { Route as AuthenticatedAdminCommerceShippingManifestsRouteImport } from './routes/_authenticated/_admin/commerce/shipping.manifests'
+import { Route as AuthenticatedAdminCommerceSettingsTaxRouteImport } from './routes/_authenticated/_admin/commerce/settings.tax'
+import { Route as AuthenticatedAdminCommerceSettingsShippingRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping'
+import { Route as AuthenticatedAdminCommerceReturnsSettingsRouteImport } from './routes/_authenticated/_admin/commerce/returns.settings'
+import { Route as AuthenticatedAdminCommerceReturnsReturnIdRouteImport } from './routes/_authenticated/_admin/commerce/returns.$returnId'
+import { Route as AuthenticatedAdminCommerceProductsNewRouteImport } from './routes/_authenticated/_admin/commerce/products.new'
+import { Route as AuthenticatedAdminCommerceProductsProductIdRouteImport } from './routes/_authenticated/_admin/commerce/products.$productId'
+import { Route as AuthenticatedAdminCommerceOrdersAbandonedRouteImport } from './routes/_authenticated/_admin/commerce/orders.abandoned'
+import { Route as AuthenticatedAdminCommerceOrdersOrderIdRouteImport } from './routes/_authenticated/_admin/commerce/orders.$orderId'
+import { Route as AuthenticatedAdminCommerceAttributesAttributeIdRouteImport } from './routes/_authenticated/_admin/commerce/attributes.$attributeId'
 import { Route as AuthenticatedAdminCommentsCommentIdEditRouteImport } from './routes/_authenticated/_admin/comments/$commentId/edit'
 import { Route as AuthenticatedAdminToolsWordpressSyncSiteIdIndexRouteImport } from './routes/_authenticated/_admin/tools/wordpress-sync/$siteId/index'
+import { Route as AuthenticatedAdminToolsWebsiteImportSiteIdIndexRouteImport } from './routes/_authenticated/_admin/tools/website-import/$siteId/index'
 import { Route as AuthenticatedAdminToolsRedirectsRedirectIdEditRouteImport } from './routes/_authenticated/_admin/tools/redirects/$redirectId/edit'
+import { Route as AuthenticatedAdminSettingsIntegrationsShippingUspsRouteImport } from './routes/_authenticated/_admin/settings/integrations.shipping.usps'
+import { Route as AuthenticatedAdminSettingsIntegrationsShippingUpsRouteImport } from './routes/_authenticated/_admin/settings/integrations.shipping.ups'
+import { Route as AuthenticatedAdminSettingsIntegrationsShippingShipstationRouteImport } from './routes/_authenticated/_admin/settings/integrations.shipping.shipstation'
+import { Route as AuthenticatedAdminSettingsIntegrationsShippingFedexRouteImport } from './routes/_authenticated/_admin/settings/integrations.shipping.fedex'
+import { Route as AuthenticatedAdminSettingsIntegrationsShippingDhlRouteImport } from './routes/_authenticated/_admin/settings/integrations.shipping.dhl'
 import { Route as AuthenticatedAdminSettingsEmailTemplatesTemplateSlugRouteImport } from './routes/_authenticated/_admin/settings/email_/templates.$templateSlug'
 import { Route as AuthenticatedAdminSettingsEmailQueueQueueIdRouteImport } from './routes/_authenticated/_admin/settings/email_/queue.$queueId'
+import { Route as AuthenticatedAdminCommerceSettingsShippingZonesRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.zones'
+import { Route as AuthenticatedAdminCommerceSettingsShippingTestRatesRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.test-rates'
+import { Route as AuthenticatedAdminCommerceSettingsShippingRulesRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.rules'
+import { Route as AuthenticatedAdminCommerceSettingsShippingPackagesRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.packages'
+import { Route as AuthenticatedAdminCommerceSettingsShippingLocationsRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.locations'
+import { Route as AuthenticatedAdminCommerceSettingsShippingClassesRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.classes'
+import { Route as AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.zones_.$zoneId'
+import { Route as AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.zones_.$zoneId.methods_.$methodType.$methodId'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -157,10 +231,28 @@ const AuthenticatedAdminSeoRoute = AuthenticatedAdminSeoRouteImport.update({
   path: '/seo',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminRecipesRoute =
+  AuthenticatedAdminRecipesRouteImport.update({
+    id: '/recipes',
+    path: '/recipes',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminProfileRoute =
   AuthenticatedAdminProfileRouteImport.update({
     id: '/profile',
     path: '/profile',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPluginsRoute =
+  AuthenticatedAdminPluginsRouteImport.update({
+    id: '/plugins',
+    path: '/plugins',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminMembershipRoute =
+  AuthenticatedAdminMembershipRouteImport.update({
+    id: '/membership',
+    path: '/membership',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminKbRoute = AuthenticatedAdminKbRouteImport.update({
@@ -168,6 +260,12 @@ const AuthenticatedAdminKbRoute = AuthenticatedAdminKbRouteImport.update({
   path: '/kb',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminGalleryRoute =
+  AuthenticatedAdminGalleryRouteImport.update({
+    id: '/gallery',
+    path: '/gallery',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminDashboardRoute =
   AuthenticatedAdminDashboardRouteImport.update({
     id: '/dashboard',
@@ -182,6 +280,12 @@ const AuthenticatedAdminCustomFieldsRoute =
   AuthenticatedAdminCustomFieldsRouteImport.update({
     id: '/custom-fields',
     path: '/custom-fields',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCommerceRoute =
+  AuthenticatedAdminCommerceRouteImport.update({
+    id: '/commerce',
+    path: '/commerce',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminAppearanceRoute =
@@ -232,6 +336,12 @@ const AuthenticatedAdminRolesIndexRoute =
     path: '/roles/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminRecipesIndexRoute =
+  AuthenticatedAdminRecipesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminRecipesRoute,
+  } as any)
 const AuthenticatedAdminPostsIndexRoute =
   AuthenticatedAdminPostsIndexRouteImport.update({
     id: '/posts/',
@@ -250,10 +360,22 @@ const AuthenticatedAdminMenusIndexRoute =
     path: '/menus/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminMembershipIndexRoute =
+  AuthenticatedAdminMembershipIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminMembershipRoute,
+  } as any)
 const AuthenticatedAdminMediaIndexRoute =
   AuthenticatedAdminMediaIndexRouteImport.update({
     id: '/media/',
     path: '/media/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminLayoutsIndexRoute =
+  AuthenticatedAdminLayoutsIndexRouteImport.update({
+    id: '/layouts/',
+    path: '/layouts/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminKbIndexRoute =
@@ -262,11 +384,23 @@ const AuthenticatedAdminKbIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminKbRoute,
   } as any)
+const AuthenticatedAdminGalleryIndexRoute =
+  AuthenticatedAdminGalleryIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminGalleryRoute,
+  } as any)
 const AuthenticatedAdminCustomFieldsIndexRoute =
   AuthenticatedAdminCustomFieldsIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedAdminCustomFieldsRoute,
+  } as any)
+const AuthenticatedAdminCommerceIndexRoute =
+  AuthenticatedAdminCommerceIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
   } as any)
 const AuthenticatedAdminCommentsIndexRoute =
   AuthenticatedAdminCommentsIndexRouteImport.update({
@@ -472,6 +606,18 @@ const AuthenticatedAdminRolesNewRoute =
     path: '/roles/new',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminRecipesNewRoute =
+  AuthenticatedAdminRecipesNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedAdminRecipesRoute,
+  } as any)
+const AuthenticatedAdminRecipesCategoriesRoute =
+  AuthenticatedAdminRecipesCategoriesRouteImport.update({
+    id: '/categories',
+    path: '/categories',
+    getParentRoute: () => AuthenticatedAdminRecipesRoute,
+  } as any)
 const AuthenticatedAdminPostsTagsRoute =
   AuthenticatedAdminPostsTagsRouteImport.update({
     id: '/posts/tags',
@@ -522,10 +668,52 @@ const AuthenticatedAdminMenusLocationsRoute =
     path: '/menus/locations',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminMembershipSettingsRoute =
+  AuthenticatedAdminMembershipSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminMembershipRoute,
+  } as any)
+const AuthenticatedAdminMembershipRestrictionsRoute =
+  AuthenticatedAdminMembershipRestrictionsRouteImport.update({
+    id: '/restrictions',
+    path: '/restrictions',
+    getParentRoute: () => AuthenticatedAdminMembershipRoute,
+  } as any)
+const AuthenticatedAdminMembershipPlansRoute =
+  AuthenticatedAdminMembershipPlansRouteImport.update({
+    id: '/plans',
+    path: '/plans',
+    getParentRoute: () => AuthenticatedAdminMembershipRoute,
+  } as any)
+const AuthenticatedAdminMembershipGrantsRoute =
+  AuthenticatedAdminMembershipGrantsRouteImport.update({
+    id: '/grants',
+    path: '/grants',
+    getParentRoute: () => AuthenticatedAdminMembershipRoute,
+  } as any)
 const AuthenticatedAdminMediaUploadRoute =
   AuthenticatedAdminMediaUploadRouteImport.update({
     id: '/media/upload',
     path: '/media/upload',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminLayoutsNewRoute =
+  AuthenticatedAdminLayoutsNewRouteImport.update({
+    id: '/layouts/new',
+    path: '/layouts/new',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminLayoutsAssignRoute =
+  AuthenticatedAdminLayoutsAssignRouteImport.update({
+    id: '/layouts/assign',
+    path: '/layouts/assign',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminLayoutsLayoutIdRoute =
+  AuthenticatedAdminLayoutsLayoutIdRouteImport.update({
+    id: '/layouts/$layoutId',
+    path: '/layouts/$layoutId',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminKbWorkflowsRoute =
@@ -581,17 +769,137 @@ const AuthenticatedAdminKbArticleIdRoute =
     path: '/$articleId',
     getParentRoute: () => AuthenticatedAdminKbRoute,
   } as any)
+const AuthenticatedAdminGallerySettingsRoute =
+  AuthenticatedAdminGallerySettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminGalleryRoute,
+  } as any)
+const AuthenticatedAdminGalleryNewRoute =
+  AuthenticatedAdminGalleryNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedAdminGalleryRoute,
+  } as any)
+const AuthenticatedAdminGalleryCategoriesRoute =
+  AuthenticatedAdminGalleryCategoriesRouteImport.update({
+    id: '/categories',
+    path: '/categories',
+    getParentRoute: () => AuthenticatedAdminGalleryRoute,
+  } as any)
 const AuthenticatedAdminCustomFieldsNewRoute =
   AuthenticatedAdminCustomFieldsNewRouteImport.update({
     id: '/new',
     path: '/new',
     getParentRoute: () => AuthenticatedAdminCustomFieldsRoute,
   } as any)
+const AuthenticatedAdminCommerceWishlistsRoute =
+  AuthenticatedAdminCommerceWishlistsRouteImport.update({
+    id: '/wishlists',
+    path: '/wishlists',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsRoute =
+  AuthenticatedAdminCommerceSubscriptionsRouteImport.update({
+    id: '/subscriptions',
+    path: '/subscriptions',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceSettingsRoute =
+  AuthenticatedAdminCommerceSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceReviewsRoute =
+  AuthenticatedAdminCommerceReviewsRouteImport.update({
+    id: '/reviews',
+    path: '/reviews',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceReturnsRoute =
+  AuthenticatedAdminCommerceReturnsRouteImport.update({
+    id: '/returns',
+    path: '/returns',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceProductsRoute =
+  AuthenticatedAdminCommerceProductsRouteImport.update({
+    id: '/products',
+    path: '/products',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommercePaymentsRoute =
+  AuthenticatedAdminCommercePaymentsRouteImport.update({
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceOrdersRoute =
+  AuthenticatedAdminCommerceOrdersRouteImport.update({
+    id: '/orders',
+    path: '/orders',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceDiscountsRoute =
+  AuthenticatedAdminCommerceDiscountsRouteImport.update({
+    id: '/discounts',
+    path: '/discounts',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceDigitalRoute =
+  AuthenticatedAdminCommerceDigitalRouteImport.update({
+    id: '/digital',
+    path: '/digital',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceCustomersRoute =
+  AuthenticatedAdminCommerceCustomersRouteImport.update({
+    id: '/customers',
+    path: '/customers',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceCategoriesRoute =
+  AuthenticatedAdminCommerceCategoriesRouteImport.update({
+    id: '/categories',
+    path: '/categories',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceBundlesRoute =
+  AuthenticatedAdminCommerceBundlesRouteImport.update({
+    id: '/bundles',
+    path: '/bundles',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceAttributesRoute =
+  AuthenticatedAdminCommerceAttributesRouteImport.update({
+    id: '/attributes',
+    path: '/attributes',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
 const AuthenticatedAdminCommentsPendingRoute =
   AuthenticatedAdminCommentsPendingRouteImport.update({
     id: '/comments/pending',
     path: '/comments/pending',
     getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminAppearanceThemesRoute =
+  AuthenticatedAdminAppearanceThemesRouteImport.update({
+    id: '/themes',
+    path: '/themes',
+    getParentRoute: () => AuthenticatedAdminAppearanceRoute,
+  } as any)
+const AuthenticatedAdminAppearanceHeaderRoute =
+  AuthenticatedAdminAppearanceHeaderRouteImport.update({
+    id: '/header',
+    path: '/header',
+    getParentRoute: () => AuthenticatedAdminAppearanceRoute,
+  } as any)
+const AuthenticatedAdminAppearanceFooterRoute =
+  AuthenticatedAdminAppearanceFooterRouteImport.update({
+    id: '/footer',
+    path: '/footer',
+    getParentRoute: () => AuthenticatedAdminAppearanceRoute,
   } as any)
 const AuthenticatedAdminAppearanceColorsRoute =
   AuthenticatedAdminAppearanceColorsRouteImport.update({
@@ -605,6 +913,12 @@ const AuthenticatedAdminToolsWordpressSyncIndexRoute =
     path: '/wordpress-sync/',
     getParentRoute: () => AuthenticatedAdminToolsRoute,
   } as any)
+const AuthenticatedAdminToolsWebsiteImportIndexRoute =
+  AuthenticatedAdminToolsWebsiteImportIndexRouteImport.update({
+    id: '/website-import/',
+    path: '/website-import/',
+    getParentRoute: () => AuthenticatedAdminToolsRoute,
+  } as any)
 const AuthenticatedAdminToolsRedirectsIndexRoute =
   AuthenticatedAdminToolsRedirectsIndexRouteImport.update({
     id: '/redirects/',
@@ -616,6 +930,12 @@ const AuthenticatedAdminToolsAuditLogIndexRoute =
     id: '/audit-log/',
     path: '/audit-log/',
     getParentRoute: () => AuthenticatedAdminToolsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsIndexRoute =
+  AuthenticatedAdminCommerceSubscriptionsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
   } as any)
 const AuthenticatedAdminUsersUserIdEditRoute =
   AuthenticatedAdminUsersUserIdEditRouteImport.update({
@@ -635,11 +955,53 @@ const AuthenticatedAdminToolsAuditLogEntryIdRoute =
     path: '/audit-log/$entryId',
     getParentRoute: () => AuthenticatedAdminToolsRoute,
   } as any)
+const AuthenticatedAdminSettingsIntegrationsStripeRoute =
+  AuthenticatedAdminSettingsIntegrationsStripeRouteImport.update({
+    id: '/stripe',
+    path: '/stripe',
+    getParentRoute: () => AuthenticatedAdminSettingsIntegrationsRoute,
+  } as any)
+const AuthenticatedAdminSettingsIntegrationsShippingRoute =
+  AuthenticatedAdminSettingsIntegrationsShippingRouteImport.update({
+    id: '/shipping',
+    path: '/shipping',
+    getParentRoute: () => AuthenticatedAdminSettingsIntegrationsRoute,
+  } as any)
+const AuthenticatedAdminSettingsIntegrationsPaypalRoute =
+  AuthenticatedAdminSettingsIntegrationsPaypalRouteImport.update({
+    id: '/paypal',
+    path: '/paypal',
+    getParentRoute: () => AuthenticatedAdminSettingsIntegrationsRoute,
+  } as any)
+const AuthenticatedAdminSettingsIntegrationsGoogleRoute =
+  AuthenticatedAdminSettingsIntegrationsGoogleRouteImport.update({
+    id: '/google',
+    path: '/google',
+    getParentRoute: () => AuthenticatedAdminSettingsIntegrationsRoute,
+  } as any)
+const AuthenticatedAdminSettingsIntegrationsClerkRoute =
+  AuthenticatedAdminSettingsIntegrationsClerkRouteImport.update({
+    id: '/clerk',
+    path: '/clerk',
+    getParentRoute: () => AuthenticatedAdminSettingsIntegrationsRoute,
+  } as any)
+const AuthenticatedAdminSettingsAnalyticsGa4Route =
+  AuthenticatedAdminSettingsAnalyticsGa4RouteImport.update({
+    id: '/ga4',
+    path: '/ga4',
+    getParentRoute: () => AuthenticatedAdminSettingsAnalyticsRoute,
+  } as any)
 const AuthenticatedAdminRolesRoleIdEditRoute =
   AuthenticatedAdminRolesRoleIdEditRouteImport.update({
     id: '/roles/$roleId/edit',
     path: '/roles/$roleId/edit',
     getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminRecipesRecipeIdEditRoute =
+  AuthenticatedAdminRecipesRecipeIdEditRouteImport.update({
+    id: '/$recipeId/edit',
+    path: '/$recipeId/edit',
+    getParentRoute: () => AuthenticatedAdminRecipesRoute,
   } as any)
 const AuthenticatedAdminPostsPostIdTrafficRoute =
   AuthenticatedAdminPostsPostIdTrafficRouteImport.update({
@@ -755,6 +1117,12 @@ const AuthenticatedAdminKbArticleIdEditRoute =
     path: '/edit',
     getParentRoute: () => AuthenticatedAdminKbArticleIdRoute,
   } as any)
+const AuthenticatedAdminGalleryAlbumIdEditRoute =
+  AuthenticatedAdminGalleryAlbumIdEditRouteImport.update({
+    id: '/$albumId/edit',
+    path: '/$albumId/edit',
+    getParentRoute: () => AuthenticatedAdminGalleryRoute,
+  } as any)
 const AuthenticatedAdminCustomFieldsGroupIdEditRoute =
   AuthenticatedAdminCustomFieldsGroupIdEditRouteImport.update({
     id: '/$groupId/edit',
@@ -765,6 +1133,72 @@ const AuthenticatedAdminCustomFieldsGroupIdEditRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedAdminCommerceShippingTrackingRoute =
+  AuthenticatedAdminCommerceShippingTrackingRouteImport.update({
+    id: '/shipping/tracking',
+    path: '/shipping/tracking',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceShippingManifestsRoute =
+  AuthenticatedAdminCommerceShippingManifestsRouteImport.update({
+    id: '/shipping/manifests',
+    path: '/shipping/manifests',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
+const AuthenticatedAdminCommerceSettingsTaxRoute =
+  AuthenticatedAdminCommerceSettingsTaxRouteImport.update({
+    id: '/tax',
+    path: '/tax',
+    getParentRoute: () => AuthenticatedAdminCommerceSettingsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSettingsShippingRoute =
+  AuthenticatedAdminCommerceSettingsShippingRouteImport.update({
+    id: '/shipping',
+    path: '/shipping',
+    getParentRoute: () => AuthenticatedAdminCommerceSettingsRoute,
+  } as any)
+const AuthenticatedAdminCommerceReturnsSettingsRoute =
+  AuthenticatedAdminCommerceReturnsSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminCommerceReturnsRoute,
+  } as any)
+const AuthenticatedAdminCommerceReturnsReturnIdRoute =
+  AuthenticatedAdminCommerceReturnsReturnIdRouteImport.update({
+    id: '/$returnId',
+    path: '/$returnId',
+    getParentRoute: () => AuthenticatedAdminCommerceReturnsRoute,
+  } as any)
+const AuthenticatedAdminCommerceProductsNewRoute =
+  AuthenticatedAdminCommerceProductsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedAdminCommerceProductsRoute,
+  } as any)
+const AuthenticatedAdminCommerceProductsProductIdRoute =
+  AuthenticatedAdminCommerceProductsProductIdRouteImport.update({
+    id: '/$productId',
+    path: '/$productId',
+    getParentRoute: () => AuthenticatedAdminCommerceProductsRoute,
+  } as any)
+const AuthenticatedAdminCommerceOrdersAbandonedRoute =
+  AuthenticatedAdminCommerceOrdersAbandonedRouteImport.update({
+    id: '/abandoned',
+    path: '/abandoned',
+    getParentRoute: () => AuthenticatedAdminCommerceOrdersRoute,
+  } as any)
+const AuthenticatedAdminCommerceOrdersOrderIdRoute =
+  AuthenticatedAdminCommerceOrdersOrderIdRouteImport.update({
+    id: '/$orderId',
+    path: '/$orderId',
+    getParentRoute: () => AuthenticatedAdminCommerceOrdersRoute,
+  } as any)
+const AuthenticatedAdminCommerceAttributesAttributeIdRoute =
+  AuthenticatedAdminCommerceAttributesAttributeIdRouteImport.update({
+    id: '/$attributeId',
+    path: '/$attributeId',
+    getParentRoute: () => AuthenticatedAdminCommerceAttributesRoute,
+  } as any)
 const AuthenticatedAdminCommentsCommentIdEditRoute =
   AuthenticatedAdminCommentsCommentIdEditRouteImport.update({
     id: '/comments/$commentId/edit',
@@ -777,11 +1211,47 @@ const AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute =
     path: '/wordpress-sync/$siteId/',
     getParentRoute: () => AuthenticatedAdminToolsRoute,
   } as any)
+const AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute =
+  AuthenticatedAdminToolsWebsiteImportSiteIdIndexRouteImport.update({
+    id: '/website-import/$siteId/',
+    path: '/website-import/$siteId/',
+    getParentRoute: () => AuthenticatedAdminToolsRoute,
+  } as any)
 const AuthenticatedAdminToolsRedirectsRedirectIdEditRoute =
   AuthenticatedAdminToolsRedirectsRedirectIdEditRouteImport.update({
     id: '/redirects/$redirectId/edit',
     path: '/redirects/$redirectId/edit',
     getParentRoute: () => AuthenticatedAdminToolsRoute,
+  } as any)
+const AuthenticatedAdminSettingsIntegrationsShippingUspsRoute =
+  AuthenticatedAdminSettingsIntegrationsShippingUspsRouteImport.update({
+    id: '/usps',
+    path: '/usps',
+    getParentRoute: () => AuthenticatedAdminSettingsIntegrationsShippingRoute,
+  } as any)
+const AuthenticatedAdminSettingsIntegrationsShippingUpsRoute =
+  AuthenticatedAdminSettingsIntegrationsShippingUpsRouteImport.update({
+    id: '/ups',
+    path: '/ups',
+    getParentRoute: () => AuthenticatedAdminSettingsIntegrationsShippingRoute,
+  } as any)
+const AuthenticatedAdminSettingsIntegrationsShippingShipstationRoute =
+  AuthenticatedAdminSettingsIntegrationsShippingShipstationRouteImport.update({
+    id: '/shipstation',
+    path: '/shipstation',
+    getParentRoute: () => AuthenticatedAdminSettingsIntegrationsShippingRoute,
+  } as any)
+const AuthenticatedAdminSettingsIntegrationsShippingFedexRoute =
+  AuthenticatedAdminSettingsIntegrationsShippingFedexRouteImport.update({
+    id: '/fedex',
+    path: '/fedex',
+    getParentRoute: () => AuthenticatedAdminSettingsIntegrationsShippingRoute,
+  } as any)
+const AuthenticatedAdminSettingsIntegrationsShippingDhlRoute =
+  AuthenticatedAdminSettingsIntegrationsShippingDhlRouteImport.update({
+    id: '/dhl',
+    path: '/dhl',
+    getParentRoute: () => AuthenticatedAdminSettingsIntegrationsShippingRoute,
   } as any)
 const AuthenticatedAdminSettingsEmailTemplatesTemplateSlugRoute =
   AuthenticatedAdminSettingsEmailTemplatesTemplateSlugRouteImport.update({
@@ -795,22 +1265,98 @@ const AuthenticatedAdminSettingsEmailQueueQueueIdRoute =
     path: '/email/queue/$queueId',
     getParentRoute: () => AuthenticatedAdminSettingsRoute,
   } as any)
+const AuthenticatedAdminCommerceSettingsShippingZonesRoute =
+  AuthenticatedAdminCommerceSettingsShippingZonesRouteImport.update({
+    id: '/zones',
+    path: '/zones',
+    getParentRoute: () => AuthenticatedAdminCommerceSettingsShippingRoute,
+  } as any)
+const AuthenticatedAdminCommerceSettingsShippingTestRatesRoute =
+  AuthenticatedAdminCommerceSettingsShippingTestRatesRouteImport.update({
+    id: '/test-rates',
+    path: '/test-rates',
+    getParentRoute: () => AuthenticatedAdminCommerceSettingsShippingRoute,
+  } as any)
+const AuthenticatedAdminCommerceSettingsShippingRulesRoute =
+  AuthenticatedAdminCommerceSettingsShippingRulesRouteImport.update({
+    id: '/rules',
+    path: '/rules',
+    getParentRoute: () => AuthenticatedAdminCommerceSettingsShippingRoute,
+  } as any)
+const AuthenticatedAdminCommerceSettingsShippingPackagesRoute =
+  AuthenticatedAdminCommerceSettingsShippingPackagesRouteImport.update({
+    id: '/packages',
+    path: '/packages',
+    getParentRoute: () => AuthenticatedAdminCommerceSettingsShippingRoute,
+  } as any)
+const AuthenticatedAdminCommerceSettingsShippingLocationsRoute =
+  AuthenticatedAdminCommerceSettingsShippingLocationsRouteImport.update({
+    id: '/locations',
+    path: '/locations',
+    getParentRoute: () => AuthenticatedAdminCommerceSettingsShippingRoute,
+  } as any)
+const AuthenticatedAdminCommerceSettingsShippingClassesRoute =
+  AuthenticatedAdminCommerceSettingsShippingClassesRouteImport.update({
+    id: '/classes',
+    path: '/classes',
+    getParentRoute: () => AuthenticatedAdminCommerceSettingsShippingRoute,
+  } as any)
+const AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRoute =
+  AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteImport.update({
+    id: '/zones_/$zoneId',
+    path: '/zones/$zoneId',
+    getParentRoute: () => AuthenticatedAdminCommerceSettingsShippingRoute,
+  } as any)
+const AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute =
+  AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRouteImport.update(
+    {
+      id: '/methods_/$methodType/$methodId',
+      path: '/methods/$methodType/$methodId',
+      getParentRoute: () =>
+        AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRoute,
+    } as any,
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/appearance': typeof AuthenticatedAdminAppearanceRouteWithChildren
+  '/commerce': typeof AuthenticatedAdminCommerceRouteWithChildren
   '/custom-fields': typeof AuthenticatedAdminCustomFieldsRouteWithChildren
   '/dashboard': typeof AuthenticatedAdminDashboardRoute
+  '/gallery': typeof AuthenticatedAdminGalleryRouteWithChildren
   '/kb': typeof AuthenticatedAdminKbRouteWithChildren
+  '/membership': typeof AuthenticatedAdminMembershipRouteWithChildren
+  '/plugins': typeof AuthenticatedAdminPluginsRoute
   '/profile': typeof AuthenticatedAdminProfileRoute
+  '/recipes': typeof AuthenticatedAdminRecipesRouteWithChildren
   '/seo': typeof AuthenticatedAdminSeoRouteWithChildren
   '/settings': typeof AuthenticatedAdminSettingsRouteWithChildren
   '/tickets': typeof AuthenticatedAdminTicketsRouteWithChildren
   '/tools': typeof AuthenticatedAdminToolsRouteWithChildren
   '/updates': typeof AuthenticatedAdminUpdatesRoute
   '/appearance/colors': typeof AuthenticatedAdminAppearanceColorsRoute
+  '/appearance/footer': typeof AuthenticatedAdminAppearanceFooterRoute
+  '/appearance/header': typeof AuthenticatedAdminAppearanceHeaderRoute
+  '/appearance/themes': typeof AuthenticatedAdminAppearanceThemesRoute
   '/comments/pending': typeof AuthenticatedAdminCommentsPendingRoute
+  '/commerce/attributes': typeof AuthenticatedAdminCommerceAttributesRouteWithChildren
+  '/commerce/bundles': typeof AuthenticatedAdminCommerceBundlesRoute
+  '/commerce/categories': typeof AuthenticatedAdminCommerceCategoriesRoute
+  '/commerce/customers': typeof AuthenticatedAdminCommerceCustomersRoute
+  '/commerce/digital': typeof AuthenticatedAdminCommerceDigitalRoute
+  '/commerce/discounts': typeof AuthenticatedAdminCommerceDiscountsRoute
+  '/commerce/orders': typeof AuthenticatedAdminCommerceOrdersRouteWithChildren
+  '/commerce/payments': typeof AuthenticatedAdminCommercePaymentsRoute
+  '/commerce/products': typeof AuthenticatedAdminCommerceProductsRouteWithChildren
+  '/commerce/returns': typeof AuthenticatedAdminCommerceReturnsRouteWithChildren
+  '/commerce/reviews': typeof AuthenticatedAdminCommerceReviewsRoute
+  '/commerce/settings': typeof AuthenticatedAdminCommerceSettingsRouteWithChildren
+  '/commerce/subscriptions': typeof AuthenticatedAdminCommerceSubscriptionsRouteWithChildren
+  '/commerce/wishlists': typeof AuthenticatedAdminCommerceWishlistsRoute
   '/custom-fields/new': typeof AuthenticatedAdminCustomFieldsNewRoute
+  '/gallery/categories': typeof AuthenticatedAdminGalleryCategoriesRoute
+  '/gallery/new': typeof AuthenticatedAdminGalleryNewRoute
+  '/gallery/settings': typeof AuthenticatedAdminGallerySettingsRoute
   '/kb/$articleId': typeof AuthenticatedAdminKbArticleIdRouteWithChildren
   '/kb/analytics': typeof AuthenticatedAdminKbAnalyticsRoute
   '/kb/categories': typeof AuthenticatedAdminKbCategoriesRoute
@@ -820,7 +1366,14 @@ export interface FileRoutesByFullPath {
   '/kb/tags': typeof AuthenticatedAdminKbTagsRoute
   '/kb/templates': typeof AuthenticatedAdminKbTemplatesRoute
   '/kb/workflows': typeof AuthenticatedAdminKbWorkflowsRoute
+  '/layouts/$layoutId': typeof AuthenticatedAdminLayoutsLayoutIdRoute
+  '/layouts/assign': typeof AuthenticatedAdminLayoutsAssignRoute
+  '/layouts/new': typeof AuthenticatedAdminLayoutsNewRoute
   '/media/upload': typeof AuthenticatedAdminMediaUploadRoute
+  '/membership/grants': typeof AuthenticatedAdminMembershipGrantsRoute
+  '/membership/plans': typeof AuthenticatedAdminMembershipPlansRoute
+  '/membership/restrictions': typeof AuthenticatedAdminMembershipRestrictionsRoute
+  '/membership/settings': typeof AuthenticatedAdminMembershipSettingsRoute
   '/menus/locations': typeof AuthenticatedAdminMenusLocationsRoute
   '/pages/$pageId': typeof AuthenticatedAdminPagesPageIdRouteWithChildren
   '/pages/new': typeof AuthenticatedAdminPagesNewRoute
@@ -828,15 +1381,17 @@ export interface FileRoutesByFullPath {
   '/posts/categories': typeof AuthenticatedAdminPostsCategoriesRoute
   '/posts/new': typeof AuthenticatedAdminPostsNewRoute
   '/posts/tags': typeof AuthenticatedAdminPostsTagsRoute
+  '/recipes/categories': typeof AuthenticatedAdminRecipesCategoriesRoute
+  '/recipes/new': typeof AuthenticatedAdminRecipesNewRoute
   '/roles/new': typeof AuthenticatedAdminRolesNewRoute
   '/seo/settings': typeof AuthenticatedAdminSeoSettingsRoute
   '/seo/sitemap': typeof AuthenticatedAdminSeoSitemapRoute
   '/settings/ai': typeof AuthenticatedAdminSettingsAiRoute
-  '/settings/analytics': typeof AuthenticatedAdminSettingsAnalyticsRoute
+  '/settings/analytics': typeof AuthenticatedAdminSettingsAnalyticsRouteWithChildren
   '/settings/discussion': typeof AuthenticatedAdminSettingsDiscussionRoute
   '/settings/email': typeof AuthenticatedAdminSettingsEmailRoute
   '/settings/general': typeof AuthenticatedAdminSettingsGeneralRoute
-  '/settings/integrations': typeof AuthenticatedAdminSettingsIntegrationsRoute
+  '/settings/integrations': typeof AuthenticatedAdminSettingsIntegrationsRouteWithChildren
   '/settings/media': typeof AuthenticatedAdminSettingsMediaRoute
   '/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/settings/permalinks': typeof AuthenticatedAdminSettingsPermalinksRoute
@@ -862,12 +1417,17 @@ export interface FileRoutesByFullPath {
   '/api-keys/': typeof AuthenticatedAdminApiKeysIndexRoute
   '/appearance/': typeof AuthenticatedAdminAppearanceIndexRoute
   '/comments/': typeof AuthenticatedAdminCommentsIndexRoute
+  '/commerce/': typeof AuthenticatedAdminCommerceIndexRoute
   '/custom-fields/': typeof AuthenticatedAdminCustomFieldsIndexRoute
+  '/gallery/': typeof AuthenticatedAdminGalleryIndexRoute
   '/kb/': typeof AuthenticatedAdminKbIndexRoute
+  '/layouts/': typeof AuthenticatedAdminLayoutsIndexRoute
   '/media/': typeof AuthenticatedAdminMediaIndexRoute
+  '/membership/': typeof AuthenticatedAdminMembershipIndexRoute
   '/menus/': typeof AuthenticatedAdminMenusIndexRoute
   '/pages/': typeof AuthenticatedAdminPagesIndexRoute
   '/posts/': typeof AuthenticatedAdminPostsIndexRoute
+  '/recipes/': typeof AuthenticatedAdminRecipesIndexRoute
   '/roles/': typeof AuthenticatedAdminRolesIndexRoute
   '/seo/': typeof AuthenticatedAdminSeoIndexRoute
   '/settings/': typeof AuthenticatedAdminSettingsIndexRoute
@@ -876,7 +1436,19 @@ export interface FileRoutesByFullPath {
   '/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/webhooks/': typeof AuthenticatedAdminWebhooksIndexRoute
   '/comments/$commentId/edit': typeof AuthenticatedAdminCommentsCommentIdEditRoute
+  '/commerce/attributes/$attributeId': typeof AuthenticatedAdminCommerceAttributesAttributeIdRoute
+  '/commerce/orders/$orderId': typeof AuthenticatedAdminCommerceOrdersOrderIdRoute
+  '/commerce/orders/abandoned': typeof AuthenticatedAdminCommerceOrdersAbandonedRoute
+  '/commerce/products/$productId': typeof AuthenticatedAdminCommerceProductsProductIdRoute
+  '/commerce/products/new': typeof AuthenticatedAdminCommerceProductsNewRoute
+  '/commerce/returns/$returnId': typeof AuthenticatedAdminCommerceReturnsReturnIdRoute
+  '/commerce/returns/settings': typeof AuthenticatedAdminCommerceReturnsSettingsRoute
+  '/commerce/settings/shipping': typeof AuthenticatedAdminCommerceSettingsShippingRouteWithChildren
+  '/commerce/settings/tax': typeof AuthenticatedAdminCommerceSettingsTaxRoute
+  '/commerce/shipping/manifests': typeof AuthenticatedAdminCommerceShippingManifestsRoute
+  '/commerce/shipping/tracking': typeof AuthenticatedAdminCommerceShippingTrackingRoute
   '/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
+  '/gallery/$albumId/edit': typeof AuthenticatedAdminGalleryAlbumIdEditRoute
   '/kb/$articleId/edit': typeof AuthenticatedAdminKbArticleIdEditRoute
   '/media/$mediaId/edit': typeof AuthenticatedAdminMediaMediaIdEditRoute
   '/menus/$menuId/edit': typeof AuthenticatedAdminMenusMenuIdEditRoute
@@ -890,26 +1462,69 @@ export interface FileRoutesByFullPath {
   '/posts/$postId/revisions': typeof AuthenticatedAdminPostsPostIdRevisionsRoute
   '/posts/$postId/seo': typeof AuthenticatedAdminPostsPostIdSeoRoute
   '/posts/$postId/traffic': typeof AuthenticatedAdminPostsPostIdTrafficRoute
+  '/recipes/$recipeId/edit': typeof AuthenticatedAdminRecipesRecipeIdEditRoute
   '/roles/$roleId/edit': typeof AuthenticatedAdminRolesRoleIdEditRoute
+  '/settings/analytics/ga4': typeof AuthenticatedAdminSettingsAnalyticsGa4Route
+  '/settings/integrations/clerk': typeof AuthenticatedAdminSettingsIntegrationsClerkRoute
+  '/settings/integrations/google': typeof AuthenticatedAdminSettingsIntegrationsGoogleRoute
+  '/settings/integrations/paypal': typeof AuthenticatedAdminSettingsIntegrationsPaypalRoute
+  '/settings/integrations/shipping': typeof AuthenticatedAdminSettingsIntegrationsShippingRouteWithChildren
+  '/settings/integrations/stripe': typeof AuthenticatedAdminSettingsIntegrationsStripeRoute
   '/tools/audit-log/$entryId': typeof AuthenticatedAdminToolsAuditLogEntryIdRoute
   '/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
+  '/commerce/subscriptions/': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
   '/tools/audit-log/': typeof AuthenticatedAdminToolsAuditLogIndexRoute
   '/tools/redirects/': typeof AuthenticatedAdminToolsRedirectsIndexRoute
+  '/tools/website-import/': typeof AuthenticatedAdminToolsWebsiteImportIndexRoute
   '/tools/wordpress-sync/': typeof AuthenticatedAdminToolsWordpressSyncIndexRoute
+  '/commerce/settings/shipping/classes': typeof AuthenticatedAdminCommerceSettingsShippingClassesRoute
+  '/commerce/settings/shipping/locations': typeof AuthenticatedAdminCommerceSettingsShippingLocationsRoute
+  '/commerce/settings/shipping/packages': typeof AuthenticatedAdminCommerceSettingsShippingPackagesRoute
+  '/commerce/settings/shipping/rules': typeof AuthenticatedAdminCommerceSettingsShippingRulesRoute
+  '/commerce/settings/shipping/test-rates': typeof AuthenticatedAdminCommerceSettingsShippingTestRatesRoute
+  '/commerce/settings/shipping/zones': typeof AuthenticatedAdminCommerceSettingsShippingZonesRoute
   '/settings/email/queue/$queueId': typeof AuthenticatedAdminSettingsEmailQueueQueueIdRoute
   '/settings/email/templates/$templateSlug': typeof AuthenticatedAdminSettingsEmailTemplatesTemplateSlugRoute
+  '/settings/integrations/shipping/dhl': typeof AuthenticatedAdminSettingsIntegrationsShippingDhlRoute
+  '/settings/integrations/shipping/fedex': typeof AuthenticatedAdminSettingsIntegrationsShippingFedexRoute
+  '/settings/integrations/shipping/shipstation': typeof AuthenticatedAdminSettingsIntegrationsShippingShipstationRoute
+  '/settings/integrations/shipping/ups': typeof AuthenticatedAdminSettingsIntegrationsShippingUpsRoute
+  '/settings/integrations/shipping/usps': typeof AuthenticatedAdminSettingsIntegrationsShippingUspsRoute
   '/tools/redirects/$redirectId/edit': typeof AuthenticatedAdminToolsRedirectsRedirectIdEditRoute
+  '/tools/website-import/$siteId/': typeof AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute
   '/tools/wordpress-sync/$siteId/': typeof AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute
+  '/commerce/settings/shipping/zones/$zoneId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteWithChildren
+  '/commerce/settings/shipping/zones/$zoneId/methods/$methodType/$methodId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthenticatedAdminDashboardRoute
+  '/plugins': typeof AuthenticatedAdminPluginsRoute
   '/profile': typeof AuthenticatedAdminProfileRoute
   '/updates': typeof AuthenticatedAdminUpdatesRoute
   '/appearance/colors': typeof AuthenticatedAdminAppearanceColorsRoute
+  '/appearance/footer': typeof AuthenticatedAdminAppearanceFooterRoute
+  '/appearance/header': typeof AuthenticatedAdminAppearanceHeaderRoute
+  '/appearance/themes': typeof AuthenticatedAdminAppearanceThemesRoute
   '/comments/pending': typeof AuthenticatedAdminCommentsPendingRoute
+  '/commerce/attributes': typeof AuthenticatedAdminCommerceAttributesRouteWithChildren
+  '/commerce/bundles': typeof AuthenticatedAdminCommerceBundlesRoute
+  '/commerce/categories': typeof AuthenticatedAdminCommerceCategoriesRoute
+  '/commerce/customers': typeof AuthenticatedAdminCommerceCustomersRoute
+  '/commerce/digital': typeof AuthenticatedAdminCommerceDigitalRoute
+  '/commerce/discounts': typeof AuthenticatedAdminCommerceDiscountsRoute
+  '/commerce/orders': typeof AuthenticatedAdminCommerceOrdersRouteWithChildren
+  '/commerce/payments': typeof AuthenticatedAdminCommercePaymentsRoute
+  '/commerce/products': typeof AuthenticatedAdminCommerceProductsRouteWithChildren
+  '/commerce/returns': typeof AuthenticatedAdminCommerceReturnsRouteWithChildren
+  '/commerce/reviews': typeof AuthenticatedAdminCommerceReviewsRoute
+  '/commerce/settings': typeof AuthenticatedAdminCommerceSettingsRouteWithChildren
+  '/commerce/wishlists': typeof AuthenticatedAdminCommerceWishlistsRoute
   '/custom-fields/new': typeof AuthenticatedAdminCustomFieldsNewRoute
+  '/gallery/categories': typeof AuthenticatedAdminGalleryCategoriesRoute
+  '/gallery/new': typeof AuthenticatedAdminGalleryNewRoute
+  '/gallery/settings': typeof AuthenticatedAdminGallerySettingsRoute
   '/kb/$articleId': typeof AuthenticatedAdminKbArticleIdRouteWithChildren
   '/kb/analytics': typeof AuthenticatedAdminKbAnalyticsRoute
   '/kb/categories': typeof AuthenticatedAdminKbCategoriesRoute
@@ -919,7 +1534,14 @@ export interface FileRoutesByTo {
   '/kb/tags': typeof AuthenticatedAdminKbTagsRoute
   '/kb/templates': typeof AuthenticatedAdminKbTemplatesRoute
   '/kb/workflows': typeof AuthenticatedAdminKbWorkflowsRoute
+  '/layouts/$layoutId': typeof AuthenticatedAdminLayoutsLayoutIdRoute
+  '/layouts/assign': typeof AuthenticatedAdminLayoutsAssignRoute
+  '/layouts/new': typeof AuthenticatedAdminLayoutsNewRoute
   '/media/upload': typeof AuthenticatedAdminMediaUploadRoute
+  '/membership/grants': typeof AuthenticatedAdminMembershipGrantsRoute
+  '/membership/plans': typeof AuthenticatedAdminMembershipPlansRoute
+  '/membership/restrictions': typeof AuthenticatedAdminMembershipRestrictionsRoute
+  '/membership/settings': typeof AuthenticatedAdminMembershipSettingsRoute
   '/menus/locations': typeof AuthenticatedAdminMenusLocationsRoute
   '/pages/$pageId': typeof AuthenticatedAdminPagesPageIdRouteWithChildren
   '/pages/new': typeof AuthenticatedAdminPagesNewRoute
@@ -927,15 +1549,17 @@ export interface FileRoutesByTo {
   '/posts/categories': typeof AuthenticatedAdminPostsCategoriesRoute
   '/posts/new': typeof AuthenticatedAdminPostsNewRoute
   '/posts/tags': typeof AuthenticatedAdminPostsTagsRoute
+  '/recipes/categories': typeof AuthenticatedAdminRecipesCategoriesRoute
+  '/recipes/new': typeof AuthenticatedAdminRecipesNewRoute
   '/roles/new': typeof AuthenticatedAdminRolesNewRoute
   '/seo/settings': typeof AuthenticatedAdminSeoSettingsRoute
   '/seo/sitemap': typeof AuthenticatedAdminSeoSitemapRoute
   '/settings/ai': typeof AuthenticatedAdminSettingsAiRoute
-  '/settings/analytics': typeof AuthenticatedAdminSettingsAnalyticsRoute
+  '/settings/analytics': typeof AuthenticatedAdminSettingsAnalyticsRouteWithChildren
   '/settings/discussion': typeof AuthenticatedAdminSettingsDiscussionRoute
   '/settings/email': typeof AuthenticatedAdminSettingsEmailRoute
   '/settings/general': typeof AuthenticatedAdminSettingsGeneralRoute
-  '/settings/integrations': typeof AuthenticatedAdminSettingsIntegrationsRoute
+  '/settings/integrations': typeof AuthenticatedAdminSettingsIntegrationsRouteWithChildren
   '/settings/media': typeof AuthenticatedAdminSettingsMediaRoute
   '/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/settings/permalinks': typeof AuthenticatedAdminSettingsPermalinksRoute
@@ -961,12 +1585,17 @@ export interface FileRoutesByTo {
   '/api-keys': typeof AuthenticatedAdminApiKeysIndexRoute
   '/appearance': typeof AuthenticatedAdminAppearanceIndexRoute
   '/comments': typeof AuthenticatedAdminCommentsIndexRoute
+  '/commerce': typeof AuthenticatedAdminCommerceIndexRoute
   '/custom-fields': typeof AuthenticatedAdminCustomFieldsIndexRoute
+  '/gallery': typeof AuthenticatedAdminGalleryIndexRoute
   '/kb': typeof AuthenticatedAdminKbIndexRoute
+  '/layouts': typeof AuthenticatedAdminLayoutsIndexRoute
   '/media': typeof AuthenticatedAdminMediaIndexRoute
+  '/membership': typeof AuthenticatedAdminMembershipIndexRoute
   '/menus': typeof AuthenticatedAdminMenusIndexRoute
   '/pages': typeof AuthenticatedAdminPagesIndexRoute
   '/posts': typeof AuthenticatedAdminPostsIndexRoute
+  '/recipes': typeof AuthenticatedAdminRecipesIndexRoute
   '/roles': typeof AuthenticatedAdminRolesIndexRoute
   '/seo': typeof AuthenticatedAdminSeoIndexRoute
   '/settings': typeof AuthenticatedAdminSettingsIndexRoute
@@ -975,7 +1604,19 @@ export interface FileRoutesByTo {
   '/users': typeof AuthenticatedAdminUsersIndexRoute
   '/webhooks': typeof AuthenticatedAdminWebhooksIndexRoute
   '/comments/$commentId/edit': typeof AuthenticatedAdminCommentsCommentIdEditRoute
+  '/commerce/attributes/$attributeId': typeof AuthenticatedAdminCommerceAttributesAttributeIdRoute
+  '/commerce/orders/$orderId': typeof AuthenticatedAdminCommerceOrdersOrderIdRoute
+  '/commerce/orders/abandoned': typeof AuthenticatedAdminCommerceOrdersAbandonedRoute
+  '/commerce/products/$productId': typeof AuthenticatedAdminCommerceProductsProductIdRoute
+  '/commerce/products/new': typeof AuthenticatedAdminCommerceProductsNewRoute
+  '/commerce/returns/$returnId': typeof AuthenticatedAdminCommerceReturnsReturnIdRoute
+  '/commerce/returns/settings': typeof AuthenticatedAdminCommerceReturnsSettingsRoute
+  '/commerce/settings/shipping': typeof AuthenticatedAdminCommerceSettingsShippingRouteWithChildren
+  '/commerce/settings/tax': typeof AuthenticatedAdminCommerceSettingsTaxRoute
+  '/commerce/shipping/manifests': typeof AuthenticatedAdminCommerceShippingManifestsRoute
+  '/commerce/shipping/tracking': typeof AuthenticatedAdminCommerceShippingTrackingRoute
   '/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
+  '/gallery/$albumId/edit': typeof AuthenticatedAdminGalleryAlbumIdEditRoute
   '/kb/$articleId/edit': typeof AuthenticatedAdminKbArticleIdEditRoute
   '/media/$mediaId/edit': typeof AuthenticatedAdminMediaMediaIdEditRoute
   '/menus/$menuId/edit': typeof AuthenticatedAdminMenusMenuIdEditRoute
@@ -989,17 +1630,40 @@ export interface FileRoutesByTo {
   '/posts/$postId/revisions': typeof AuthenticatedAdminPostsPostIdRevisionsRoute
   '/posts/$postId/seo': typeof AuthenticatedAdminPostsPostIdSeoRoute
   '/posts/$postId/traffic': typeof AuthenticatedAdminPostsPostIdTrafficRoute
+  '/recipes/$recipeId/edit': typeof AuthenticatedAdminRecipesRecipeIdEditRoute
   '/roles/$roleId/edit': typeof AuthenticatedAdminRolesRoleIdEditRoute
+  '/settings/analytics/ga4': typeof AuthenticatedAdminSettingsAnalyticsGa4Route
+  '/settings/integrations/clerk': typeof AuthenticatedAdminSettingsIntegrationsClerkRoute
+  '/settings/integrations/google': typeof AuthenticatedAdminSettingsIntegrationsGoogleRoute
+  '/settings/integrations/paypal': typeof AuthenticatedAdminSettingsIntegrationsPaypalRoute
+  '/settings/integrations/shipping': typeof AuthenticatedAdminSettingsIntegrationsShippingRouteWithChildren
+  '/settings/integrations/stripe': typeof AuthenticatedAdminSettingsIntegrationsStripeRoute
   '/tools/audit-log/$entryId': typeof AuthenticatedAdminToolsAuditLogEntryIdRoute
   '/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
+  '/commerce/subscriptions': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
   '/tools/audit-log': typeof AuthenticatedAdminToolsAuditLogIndexRoute
   '/tools/redirects': typeof AuthenticatedAdminToolsRedirectsIndexRoute
+  '/tools/website-import': typeof AuthenticatedAdminToolsWebsiteImportIndexRoute
   '/tools/wordpress-sync': typeof AuthenticatedAdminToolsWordpressSyncIndexRoute
+  '/commerce/settings/shipping/classes': typeof AuthenticatedAdminCommerceSettingsShippingClassesRoute
+  '/commerce/settings/shipping/locations': typeof AuthenticatedAdminCommerceSettingsShippingLocationsRoute
+  '/commerce/settings/shipping/packages': typeof AuthenticatedAdminCommerceSettingsShippingPackagesRoute
+  '/commerce/settings/shipping/rules': typeof AuthenticatedAdminCommerceSettingsShippingRulesRoute
+  '/commerce/settings/shipping/test-rates': typeof AuthenticatedAdminCommerceSettingsShippingTestRatesRoute
+  '/commerce/settings/shipping/zones': typeof AuthenticatedAdminCommerceSettingsShippingZonesRoute
   '/settings/email/queue/$queueId': typeof AuthenticatedAdminSettingsEmailQueueQueueIdRoute
   '/settings/email/templates/$templateSlug': typeof AuthenticatedAdminSettingsEmailTemplatesTemplateSlugRoute
+  '/settings/integrations/shipping/dhl': typeof AuthenticatedAdminSettingsIntegrationsShippingDhlRoute
+  '/settings/integrations/shipping/fedex': typeof AuthenticatedAdminSettingsIntegrationsShippingFedexRoute
+  '/settings/integrations/shipping/shipstation': typeof AuthenticatedAdminSettingsIntegrationsShippingShipstationRoute
+  '/settings/integrations/shipping/ups': typeof AuthenticatedAdminSettingsIntegrationsShippingUpsRoute
+  '/settings/integrations/shipping/usps': typeof AuthenticatedAdminSettingsIntegrationsShippingUspsRoute
   '/tools/redirects/$redirectId/edit': typeof AuthenticatedAdminToolsRedirectsRedirectIdEditRoute
+  '/tools/website-import/$siteId': typeof AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute
   '/tools/wordpress-sync/$siteId': typeof AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute
+  '/commerce/settings/shipping/zones/$zoneId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteWithChildren
+  '/commerce/settings/shipping/zones/$zoneId/methods/$methodType/$methodId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1007,18 +1671,43 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_authenticated/_admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/_admin/appearance': typeof AuthenticatedAdminAppearanceRouteWithChildren
+  '/_authenticated/_admin/commerce': typeof AuthenticatedAdminCommerceRouteWithChildren
   '/_authenticated/_admin/custom-fields': typeof AuthenticatedAdminCustomFieldsRouteWithChildren
   '/_authenticated/_admin/dashboard': typeof AuthenticatedAdminDashboardRoute
+  '/_authenticated/_admin/gallery': typeof AuthenticatedAdminGalleryRouteWithChildren
   '/_authenticated/_admin/kb': typeof AuthenticatedAdminKbRouteWithChildren
+  '/_authenticated/_admin/membership': typeof AuthenticatedAdminMembershipRouteWithChildren
+  '/_authenticated/_admin/plugins': typeof AuthenticatedAdminPluginsRoute
   '/_authenticated/_admin/profile': typeof AuthenticatedAdminProfileRoute
+  '/_authenticated/_admin/recipes': typeof AuthenticatedAdminRecipesRouteWithChildren
   '/_authenticated/_admin/seo': typeof AuthenticatedAdminSeoRouteWithChildren
   '/_authenticated/_admin/settings': typeof AuthenticatedAdminSettingsRouteWithChildren
   '/_authenticated/_admin/tickets': typeof AuthenticatedAdminTicketsRouteWithChildren
   '/_authenticated/_admin/tools': typeof AuthenticatedAdminToolsRouteWithChildren
   '/_authenticated/_admin/updates': typeof AuthenticatedAdminUpdatesRoute
   '/_authenticated/_admin/appearance/colors': typeof AuthenticatedAdminAppearanceColorsRoute
+  '/_authenticated/_admin/appearance/footer': typeof AuthenticatedAdminAppearanceFooterRoute
+  '/_authenticated/_admin/appearance/header': typeof AuthenticatedAdminAppearanceHeaderRoute
+  '/_authenticated/_admin/appearance/themes': typeof AuthenticatedAdminAppearanceThemesRoute
   '/_authenticated/_admin/comments/pending': typeof AuthenticatedAdminCommentsPendingRoute
+  '/_authenticated/_admin/commerce/attributes': typeof AuthenticatedAdminCommerceAttributesRouteWithChildren
+  '/_authenticated/_admin/commerce/bundles': typeof AuthenticatedAdminCommerceBundlesRoute
+  '/_authenticated/_admin/commerce/categories': typeof AuthenticatedAdminCommerceCategoriesRoute
+  '/_authenticated/_admin/commerce/customers': typeof AuthenticatedAdminCommerceCustomersRoute
+  '/_authenticated/_admin/commerce/digital': typeof AuthenticatedAdminCommerceDigitalRoute
+  '/_authenticated/_admin/commerce/discounts': typeof AuthenticatedAdminCommerceDiscountsRoute
+  '/_authenticated/_admin/commerce/orders': typeof AuthenticatedAdminCommerceOrdersRouteWithChildren
+  '/_authenticated/_admin/commerce/payments': typeof AuthenticatedAdminCommercePaymentsRoute
+  '/_authenticated/_admin/commerce/products': typeof AuthenticatedAdminCommerceProductsRouteWithChildren
+  '/_authenticated/_admin/commerce/returns': typeof AuthenticatedAdminCommerceReturnsRouteWithChildren
+  '/_authenticated/_admin/commerce/reviews': typeof AuthenticatedAdminCommerceReviewsRoute
+  '/_authenticated/_admin/commerce/settings': typeof AuthenticatedAdminCommerceSettingsRouteWithChildren
+  '/_authenticated/_admin/commerce/subscriptions': typeof AuthenticatedAdminCommerceSubscriptionsRouteWithChildren
+  '/_authenticated/_admin/commerce/wishlists': typeof AuthenticatedAdminCommerceWishlistsRoute
   '/_authenticated/_admin/custom-fields/new': typeof AuthenticatedAdminCustomFieldsNewRoute
+  '/_authenticated/_admin/gallery/categories': typeof AuthenticatedAdminGalleryCategoriesRoute
+  '/_authenticated/_admin/gallery/new': typeof AuthenticatedAdminGalleryNewRoute
+  '/_authenticated/_admin/gallery/settings': typeof AuthenticatedAdminGallerySettingsRoute
   '/_authenticated/_admin/kb/$articleId': typeof AuthenticatedAdminKbArticleIdRouteWithChildren
   '/_authenticated/_admin/kb/analytics': typeof AuthenticatedAdminKbAnalyticsRoute
   '/_authenticated/_admin/kb/categories': typeof AuthenticatedAdminKbCategoriesRoute
@@ -1028,7 +1717,14 @@ export interface FileRoutesById {
   '/_authenticated/_admin/kb/tags': typeof AuthenticatedAdminKbTagsRoute
   '/_authenticated/_admin/kb/templates': typeof AuthenticatedAdminKbTemplatesRoute
   '/_authenticated/_admin/kb/workflows': typeof AuthenticatedAdminKbWorkflowsRoute
+  '/_authenticated/_admin/layouts/$layoutId': typeof AuthenticatedAdminLayoutsLayoutIdRoute
+  '/_authenticated/_admin/layouts/assign': typeof AuthenticatedAdminLayoutsAssignRoute
+  '/_authenticated/_admin/layouts/new': typeof AuthenticatedAdminLayoutsNewRoute
   '/_authenticated/_admin/media/upload': typeof AuthenticatedAdminMediaUploadRoute
+  '/_authenticated/_admin/membership/grants': typeof AuthenticatedAdminMembershipGrantsRoute
+  '/_authenticated/_admin/membership/plans': typeof AuthenticatedAdminMembershipPlansRoute
+  '/_authenticated/_admin/membership/restrictions': typeof AuthenticatedAdminMembershipRestrictionsRoute
+  '/_authenticated/_admin/membership/settings': typeof AuthenticatedAdminMembershipSettingsRoute
   '/_authenticated/_admin/menus/locations': typeof AuthenticatedAdminMenusLocationsRoute
   '/_authenticated/_admin/pages/$pageId': typeof AuthenticatedAdminPagesPageIdRouteWithChildren
   '/_authenticated/_admin/pages/new': typeof AuthenticatedAdminPagesNewRoute
@@ -1036,15 +1732,17 @@ export interface FileRoutesById {
   '/_authenticated/_admin/posts/categories': typeof AuthenticatedAdminPostsCategoriesRoute
   '/_authenticated/_admin/posts/new': typeof AuthenticatedAdminPostsNewRoute
   '/_authenticated/_admin/posts/tags': typeof AuthenticatedAdminPostsTagsRoute
+  '/_authenticated/_admin/recipes/categories': typeof AuthenticatedAdminRecipesCategoriesRoute
+  '/_authenticated/_admin/recipes/new': typeof AuthenticatedAdminRecipesNewRoute
   '/_authenticated/_admin/roles/new': typeof AuthenticatedAdminRolesNewRoute
   '/_authenticated/_admin/seo/settings': typeof AuthenticatedAdminSeoSettingsRoute
   '/_authenticated/_admin/seo/sitemap': typeof AuthenticatedAdminSeoSitemapRoute
   '/_authenticated/_admin/settings/ai': typeof AuthenticatedAdminSettingsAiRoute
-  '/_authenticated/_admin/settings/analytics': typeof AuthenticatedAdminSettingsAnalyticsRoute
+  '/_authenticated/_admin/settings/analytics': typeof AuthenticatedAdminSettingsAnalyticsRouteWithChildren
   '/_authenticated/_admin/settings/discussion': typeof AuthenticatedAdminSettingsDiscussionRoute
   '/_authenticated/_admin/settings/email': typeof AuthenticatedAdminSettingsEmailRoute
   '/_authenticated/_admin/settings/general': typeof AuthenticatedAdminSettingsGeneralRoute
-  '/_authenticated/_admin/settings/integrations': typeof AuthenticatedAdminSettingsIntegrationsRoute
+  '/_authenticated/_admin/settings/integrations': typeof AuthenticatedAdminSettingsIntegrationsRouteWithChildren
   '/_authenticated/_admin/settings/media': typeof AuthenticatedAdminSettingsMediaRoute
   '/_authenticated/_admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/_authenticated/_admin/settings/permalinks': typeof AuthenticatedAdminSettingsPermalinksRoute
@@ -1070,12 +1768,17 @@ export interface FileRoutesById {
   '/_authenticated/_admin/api-keys/': typeof AuthenticatedAdminApiKeysIndexRoute
   '/_authenticated/_admin/appearance/': typeof AuthenticatedAdminAppearanceIndexRoute
   '/_authenticated/_admin/comments/': typeof AuthenticatedAdminCommentsIndexRoute
+  '/_authenticated/_admin/commerce/': typeof AuthenticatedAdminCommerceIndexRoute
   '/_authenticated/_admin/custom-fields/': typeof AuthenticatedAdminCustomFieldsIndexRoute
+  '/_authenticated/_admin/gallery/': typeof AuthenticatedAdminGalleryIndexRoute
   '/_authenticated/_admin/kb/': typeof AuthenticatedAdminKbIndexRoute
+  '/_authenticated/_admin/layouts/': typeof AuthenticatedAdminLayoutsIndexRoute
   '/_authenticated/_admin/media/': typeof AuthenticatedAdminMediaIndexRoute
+  '/_authenticated/_admin/membership/': typeof AuthenticatedAdminMembershipIndexRoute
   '/_authenticated/_admin/menus/': typeof AuthenticatedAdminMenusIndexRoute
   '/_authenticated/_admin/pages/': typeof AuthenticatedAdminPagesIndexRoute
   '/_authenticated/_admin/posts/': typeof AuthenticatedAdminPostsIndexRoute
+  '/_authenticated/_admin/recipes/': typeof AuthenticatedAdminRecipesIndexRoute
   '/_authenticated/_admin/roles/': typeof AuthenticatedAdminRolesIndexRoute
   '/_authenticated/_admin/seo/': typeof AuthenticatedAdminSeoIndexRoute
   '/_authenticated/_admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
@@ -1084,7 +1787,19 @@ export interface FileRoutesById {
   '/_authenticated/_admin/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/_authenticated/_admin/webhooks/': typeof AuthenticatedAdminWebhooksIndexRoute
   '/_authenticated/_admin/comments/$commentId/edit': typeof AuthenticatedAdminCommentsCommentIdEditRoute
+  '/_authenticated/_admin/commerce/attributes/$attributeId': typeof AuthenticatedAdminCommerceAttributesAttributeIdRoute
+  '/_authenticated/_admin/commerce/orders/$orderId': typeof AuthenticatedAdminCommerceOrdersOrderIdRoute
+  '/_authenticated/_admin/commerce/orders/abandoned': typeof AuthenticatedAdminCommerceOrdersAbandonedRoute
+  '/_authenticated/_admin/commerce/products/$productId': typeof AuthenticatedAdminCommerceProductsProductIdRoute
+  '/_authenticated/_admin/commerce/products/new': typeof AuthenticatedAdminCommerceProductsNewRoute
+  '/_authenticated/_admin/commerce/returns/$returnId': typeof AuthenticatedAdminCommerceReturnsReturnIdRoute
+  '/_authenticated/_admin/commerce/returns/settings': typeof AuthenticatedAdminCommerceReturnsSettingsRoute
+  '/_authenticated/_admin/commerce/settings/shipping': typeof AuthenticatedAdminCommerceSettingsShippingRouteWithChildren
+  '/_authenticated/_admin/commerce/settings/tax': typeof AuthenticatedAdminCommerceSettingsTaxRoute
+  '/_authenticated/_admin/commerce/shipping/manifests': typeof AuthenticatedAdminCommerceShippingManifestsRoute
+  '/_authenticated/_admin/commerce/shipping/tracking': typeof AuthenticatedAdminCommerceShippingTrackingRoute
   '/_authenticated/_admin/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
+  '/_authenticated/_admin/gallery/$albumId/edit': typeof AuthenticatedAdminGalleryAlbumIdEditRoute
   '/_authenticated/_admin/kb/$articleId/edit': typeof AuthenticatedAdminKbArticleIdEditRoute
   '/_authenticated/_admin/media/$mediaId/edit': typeof AuthenticatedAdminMediaMediaIdEditRoute
   '/_authenticated/_admin/menus/$menuId/edit': typeof AuthenticatedAdminMenusMenuIdEditRoute
@@ -1098,35 +1813,83 @@ export interface FileRoutesById {
   '/_authenticated/_admin/posts/$postId/revisions': typeof AuthenticatedAdminPostsPostIdRevisionsRoute
   '/_authenticated/_admin/posts/$postId/seo': typeof AuthenticatedAdminPostsPostIdSeoRoute
   '/_authenticated/_admin/posts/$postId/traffic': typeof AuthenticatedAdminPostsPostIdTrafficRoute
+  '/_authenticated/_admin/recipes/$recipeId/edit': typeof AuthenticatedAdminRecipesRecipeIdEditRoute
   '/_authenticated/_admin/roles/$roleId/edit': typeof AuthenticatedAdminRolesRoleIdEditRoute
+  '/_authenticated/_admin/settings/analytics/ga4': typeof AuthenticatedAdminSettingsAnalyticsGa4Route
+  '/_authenticated/_admin/settings/integrations/clerk': typeof AuthenticatedAdminSettingsIntegrationsClerkRoute
+  '/_authenticated/_admin/settings/integrations/google': typeof AuthenticatedAdminSettingsIntegrationsGoogleRoute
+  '/_authenticated/_admin/settings/integrations/paypal': typeof AuthenticatedAdminSettingsIntegrationsPaypalRoute
+  '/_authenticated/_admin/settings/integrations/shipping': typeof AuthenticatedAdminSettingsIntegrationsShippingRouteWithChildren
+  '/_authenticated/_admin/settings/integrations/stripe': typeof AuthenticatedAdminSettingsIntegrationsStripeRoute
   '/_authenticated/_admin/tools/audit-log/$entryId': typeof AuthenticatedAdminToolsAuditLogEntryIdRoute
   '/_authenticated/_admin/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/_authenticated/_admin/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
+  '/_authenticated/_admin/commerce/subscriptions/': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
   '/_authenticated/_admin/tools/audit-log/': typeof AuthenticatedAdminToolsAuditLogIndexRoute
   '/_authenticated/_admin/tools/redirects/': typeof AuthenticatedAdminToolsRedirectsIndexRoute
+  '/_authenticated/_admin/tools/website-import/': typeof AuthenticatedAdminToolsWebsiteImportIndexRoute
   '/_authenticated/_admin/tools/wordpress-sync/': typeof AuthenticatedAdminToolsWordpressSyncIndexRoute
+  '/_authenticated/_admin/commerce/settings/shipping/classes': typeof AuthenticatedAdminCommerceSettingsShippingClassesRoute
+  '/_authenticated/_admin/commerce/settings/shipping/locations': typeof AuthenticatedAdminCommerceSettingsShippingLocationsRoute
+  '/_authenticated/_admin/commerce/settings/shipping/packages': typeof AuthenticatedAdminCommerceSettingsShippingPackagesRoute
+  '/_authenticated/_admin/commerce/settings/shipping/rules': typeof AuthenticatedAdminCommerceSettingsShippingRulesRoute
+  '/_authenticated/_admin/commerce/settings/shipping/test-rates': typeof AuthenticatedAdminCommerceSettingsShippingTestRatesRoute
+  '/_authenticated/_admin/commerce/settings/shipping/zones': typeof AuthenticatedAdminCommerceSettingsShippingZonesRoute
   '/_authenticated/_admin/settings/email_/queue/$queueId': typeof AuthenticatedAdminSettingsEmailQueueQueueIdRoute
   '/_authenticated/_admin/settings/email_/templates/$templateSlug': typeof AuthenticatedAdminSettingsEmailTemplatesTemplateSlugRoute
+  '/_authenticated/_admin/settings/integrations/shipping/dhl': typeof AuthenticatedAdminSettingsIntegrationsShippingDhlRoute
+  '/_authenticated/_admin/settings/integrations/shipping/fedex': typeof AuthenticatedAdminSettingsIntegrationsShippingFedexRoute
+  '/_authenticated/_admin/settings/integrations/shipping/shipstation': typeof AuthenticatedAdminSettingsIntegrationsShippingShipstationRoute
+  '/_authenticated/_admin/settings/integrations/shipping/ups': typeof AuthenticatedAdminSettingsIntegrationsShippingUpsRoute
+  '/_authenticated/_admin/settings/integrations/shipping/usps': typeof AuthenticatedAdminSettingsIntegrationsShippingUspsRoute
   '/_authenticated/_admin/tools/redirects/$redirectId/edit': typeof AuthenticatedAdminToolsRedirectsRedirectIdEditRoute
+  '/_authenticated/_admin/tools/website-import/$siteId/': typeof AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute
   '/_authenticated/_admin/tools/wordpress-sync/$siteId/': typeof AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute
+  '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteWithChildren
+  '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId/methods_/$methodType/$methodId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/appearance'
+    | '/commerce'
     | '/custom-fields'
     | '/dashboard'
+    | '/gallery'
     | '/kb'
+    | '/membership'
+    | '/plugins'
     | '/profile'
+    | '/recipes'
     | '/seo'
     | '/settings'
     | '/tickets'
     | '/tools'
     | '/updates'
     | '/appearance/colors'
+    | '/appearance/footer'
+    | '/appearance/header'
+    | '/appearance/themes'
     | '/comments/pending'
+    | '/commerce/attributes'
+    | '/commerce/bundles'
+    | '/commerce/categories'
+    | '/commerce/customers'
+    | '/commerce/digital'
+    | '/commerce/discounts'
+    | '/commerce/orders'
+    | '/commerce/payments'
+    | '/commerce/products'
+    | '/commerce/returns'
+    | '/commerce/reviews'
+    | '/commerce/settings'
+    | '/commerce/subscriptions'
+    | '/commerce/wishlists'
     | '/custom-fields/new'
+    | '/gallery/categories'
+    | '/gallery/new'
+    | '/gallery/settings'
     | '/kb/$articleId'
     | '/kb/analytics'
     | '/kb/categories'
@@ -1136,7 +1899,14 @@ export interface FileRouteTypes {
     | '/kb/tags'
     | '/kb/templates'
     | '/kb/workflows'
+    | '/layouts/$layoutId'
+    | '/layouts/assign'
+    | '/layouts/new'
     | '/media/upload'
+    | '/membership/grants'
+    | '/membership/plans'
+    | '/membership/restrictions'
+    | '/membership/settings'
     | '/menus/locations'
     | '/pages/$pageId'
     | '/pages/new'
@@ -1144,6 +1914,8 @@ export interface FileRouteTypes {
     | '/posts/categories'
     | '/posts/new'
     | '/posts/tags'
+    | '/recipes/categories'
+    | '/recipes/new'
     | '/roles/new'
     | '/seo/settings'
     | '/seo/sitemap'
@@ -1178,12 +1950,17 @@ export interface FileRouteTypes {
     | '/api-keys/'
     | '/appearance/'
     | '/comments/'
+    | '/commerce/'
     | '/custom-fields/'
+    | '/gallery/'
     | '/kb/'
+    | '/layouts/'
     | '/media/'
+    | '/membership/'
     | '/menus/'
     | '/pages/'
     | '/posts/'
+    | '/recipes/'
     | '/roles/'
     | '/seo/'
     | '/settings/'
@@ -1192,7 +1969,19 @@ export interface FileRouteTypes {
     | '/users/'
     | '/webhooks/'
     | '/comments/$commentId/edit'
+    | '/commerce/attributes/$attributeId'
+    | '/commerce/orders/$orderId'
+    | '/commerce/orders/abandoned'
+    | '/commerce/products/$productId'
+    | '/commerce/products/new'
+    | '/commerce/returns/$returnId'
+    | '/commerce/returns/settings'
+    | '/commerce/settings/shipping'
+    | '/commerce/settings/tax'
+    | '/commerce/shipping/manifests'
+    | '/commerce/shipping/tracking'
     | '/custom-fields/$groupId/edit'
+    | '/gallery/$albumId/edit'
     | '/kb/$articleId/edit'
     | '/media/$mediaId/edit'
     | '/menus/$menuId/edit'
@@ -1206,26 +1995,69 @@ export interface FileRouteTypes {
     | '/posts/$postId/revisions'
     | '/posts/$postId/seo'
     | '/posts/$postId/traffic'
+    | '/recipes/$recipeId/edit'
     | '/roles/$roleId/edit'
+    | '/settings/analytics/ga4'
+    | '/settings/integrations/clerk'
+    | '/settings/integrations/google'
+    | '/settings/integrations/paypal'
+    | '/settings/integrations/shipping'
+    | '/settings/integrations/stripe'
     | '/tools/audit-log/$entryId'
     | '/tools/redirects/new'
     | '/users/$userId/edit'
+    | '/commerce/subscriptions/'
     | '/tools/audit-log/'
     | '/tools/redirects/'
+    | '/tools/website-import/'
     | '/tools/wordpress-sync/'
+    | '/commerce/settings/shipping/classes'
+    | '/commerce/settings/shipping/locations'
+    | '/commerce/settings/shipping/packages'
+    | '/commerce/settings/shipping/rules'
+    | '/commerce/settings/shipping/test-rates'
+    | '/commerce/settings/shipping/zones'
     | '/settings/email/queue/$queueId'
     | '/settings/email/templates/$templateSlug'
+    | '/settings/integrations/shipping/dhl'
+    | '/settings/integrations/shipping/fedex'
+    | '/settings/integrations/shipping/shipstation'
+    | '/settings/integrations/shipping/ups'
+    | '/settings/integrations/shipping/usps'
     | '/tools/redirects/$redirectId/edit'
+    | '/tools/website-import/$siteId/'
     | '/tools/wordpress-sync/$siteId/'
+    | '/commerce/settings/shipping/zones/$zoneId'
+    | '/commerce/settings/shipping/zones/$zoneId/methods/$methodType/$methodId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/dashboard'
+    | '/plugins'
     | '/profile'
     | '/updates'
     | '/appearance/colors'
+    | '/appearance/footer'
+    | '/appearance/header'
+    | '/appearance/themes'
     | '/comments/pending'
+    | '/commerce/attributes'
+    | '/commerce/bundles'
+    | '/commerce/categories'
+    | '/commerce/customers'
+    | '/commerce/digital'
+    | '/commerce/discounts'
+    | '/commerce/orders'
+    | '/commerce/payments'
+    | '/commerce/products'
+    | '/commerce/returns'
+    | '/commerce/reviews'
+    | '/commerce/settings'
+    | '/commerce/wishlists'
     | '/custom-fields/new'
+    | '/gallery/categories'
+    | '/gallery/new'
+    | '/gallery/settings'
     | '/kb/$articleId'
     | '/kb/analytics'
     | '/kb/categories'
@@ -1235,7 +2067,14 @@ export interface FileRouteTypes {
     | '/kb/tags'
     | '/kb/templates'
     | '/kb/workflows'
+    | '/layouts/$layoutId'
+    | '/layouts/assign'
+    | '/layouts/new'
     | '/media/upload'
+    | '/membership/grants'
+    | '/membership/plans'
+    | '/membership/restrictions'
+    | '/membership/settings'
     | '/menus/locations'
     | '/pages/$pageId'
     | '/pages/new'
@@ -1243,6 +2082,8 @@ export interface FileRouteTypes {
     | '/posts/categories'
     | '/posts/new'
     | '/posts/tags'
+    | '/recipes/categories'
+    | '/recipes/new'
     | '/roles/new'
     | '/seo/settings'
     | '/seo/sitemap'
@@ -1277,12 +2118,17 @@ export interface FileRouteTypes {
     | '/api-keys'
     | '/appearance'
     | '/comments'
+    | '/commerce'
     | '/custom-fields'
+    | '/gallery'
     | '/kb'
+    | '/layouts'
     | '/media'
+    | '/membership'
     | '/menus'
     | '/pages'
     | '/posts'
+    | '/recipes'
     | '/roles'
     | '/seo'
     | '/settings'
@@ -1291,7 +2137,19 @@ export interface FileRouteTypes {
     | '/users'
     | '/webhooks'
     | '/comments/$commentId/edit'
+    | '/commerce/attributes/$attributeId'
+    | '/commerce/orders/$orderId'
+    | '/commerce/orders/abandoned'
+    | '/commerce/products/$productId'
+    | '/commerce/products/new'
+    | '/commerce/returns/$returnId'
+    | '/commerce/returns/settings'
+    | '/commerce/settings/shipping'
+    | '/commerce/settings/tax'
+    | '/commerce/shipping/manifests'
+    | '/commerce/shipping/tracking'
     | '/custom-fields/$groupId/edit'
+    | '/gallery/$albumId/edit'
     | '/kb/$articleId/edit'
     | '/media/$mediaId/edit'
     | '/menus/$menuId/edit'
@@ -1305,35 +2163,83 @@ export interface FileRouteTypes {
     | '/posts/$postId/revisions'
     | '/posts/$postId/seo'
     | '/posts/$postId/traffic'
+    | '/recipes/$recipeId/edit'
     | '/roles/$roleId/edit'
+    | '/settings/analytics/ga4'
+    | '/settings/integrations/clerk'
+    | '/settings/integrations/google'
+    | '/settings/integrations/paypal'
+    | '/settings/integrations/shipping'
+    | '/settings/integrations/stripe'
     | '/tools/audit-log/$entryId'
     | '/tools/redirects/new'
     | '/users/$userId/edit'
+    | '/commerce/subscriptions'
     | '/tools/audit-log'
     | '/tools/redirects'
+    | '/tools/website-import'
     | '/tools/wordpress-sync'
+    | '/commerce/settings/shipping/classes'
+    | '/commerce/settings/shipping/locations'
+    | '/commerce/settings/shipping/packages'
+    | '/commerce/settings/shipping/rules'
+    | '/commerce/settings/shipping/test-rates'
+    | '/commerce/settings/shipping/zones'
     | '/settings/email/queue/$queueId'
     | '/settings/email/templates/$templateSlug'
+    | '/settings/integrations/shipping/dhl'
+    | '/settings/integrations/shipping/fedex'
+    | '/settings/integrations/shipping/shipstation'
+    | '/settings/integrations/shipping/ups'
+    | '/settings/integrations/shipping/usps'
     | '/tools/redirects/$redirectId/edit'
+    | '/tools/website-import/$siteId'
     | '/tools/wordpress-sync/$siteId'
+    | '/commerce/settings/shipping/zones/$zoneId'
+    | '/commerce/settings/shipping/zones/$zoneId/methods/$methodType/$methodId'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/_authenticated/_admin'
     | '/_authenticated/_admin/appearance'
+    | '/_authenticated/_admin/commerce'
     | '/_authenticated/_admin/custom-fields'
     | '/_authenticated/_admin/dashboard'
+    | '/_authenticated/_admin/gallery'
     | '/_authenticated/_admin/kb'
+    | '/_authenticated/_admin/membership'
+    | '/_authenticated/_admin/plugins'
     | '/_authenticated/_admin/profile'
+    | '/_authenticated/_admin/recipes'
     | '/_authenticated/_admin/seo'
     | '/_authenticated/_admin/settings'
     | '/_authenticated/_admin/tickets'
     | '/_authenticated/_admin/tools'
     | '/_authenticated/_admin/updates'
     | '/_authenticated/_admin/appearance/colors'
+    | '/_authenticated/_admin/appearance/footer'
+    | '/_authenticated/_admin/appearance/header'
+    | '/_authenticated/_admin/appearance/themes'
     | '/_authenticated/_admin/comments/pending'
+    | '/_authenticated/_admin/commerce/attributes'
+    | '/_authenticated/_admin/commerce/bundles'
+    | '/_authenticated/_admin/commerce/categories'
+    | '/_authenticated/_admin/commerce/customers'
+    | '/_authenticated/_admin/commerce/digital'
+    | '/_authenticated/_admin/commerce/discounts'
+    | '/_authenticated/_admin/commerce/orders'
+    | '/_authenticated/_admin/commerce/payments'
+    | '/_authenticated/_admin/commerce/products'
+    | '/_authenticated/_admin/commerce/returns'
+    | '/_authenticated/_admin/commerce/reviews'
+    | '/_authenticated/_admin/commerce/settings'
+    | '/_authenticated/_admin/commerce/subscriptions'
+    | '/_authenticated/_admin/commerce/wishlists'
     | '/_authenticated/_admin/custom-fields/new'
+    | '/_authenticated/_admin/gallery/categories'
+    | '/_authenticated/_admin/gallery/new'
+    | '/_authenticated/_admin/gallery/settings'
     | '/_authenticated/_admin/kb/$articleId'
     | '/_authenticated/_admin/kb/analytics'
     | '/_authenticated/_admin/kb/categories'
@@ -1343,7 +2249,14 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/kb/tags'
     | '/_authenticated/_admin/kb/templates'
     | '/_authenticated/_admin/kb/workflows'
+    | '/_authenticated/_admin/layouts/$layoutId'
+    | '/_authenticated/_admin/layouts/assign'
+    | '/_authenticated/_admin/layouts/new'
     | '/_authenticated/_admin/media/upload'
+    | '/_authenticated/_admin/membership/grants'
+    | '/_authenticated/_admin/membership/plans'
+    | '/_authenticated/_admin/membership/restrictions'
+    | '/_authenticated/_admin/membership/settings'
     | '/_authenticated/_admin/menus/locations'
     | '/_authenticated/_admin/pages/$pageId'
     | '/_authenticated/_admin/pages/new'
@@ -1351,6 +2264,8 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/posts/categories'
     | '/_authenticated/_admin/posts/new'
     | '/_authenticated/_admin/posts/tags'
+    | '/_authenticated/_admin/recipes/categories'
+    | '/_authenticated/_admin/recipes/new'
     | '/_authenticated/_admin/roles/new'
     | '/_authenticated/_admin/seo/settings'
     | '/_authenticated/_admin/seo/sitemap'
@@ -1385,12 +2300,17 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/api-keys/'
     | '/_authenticated/_admin/appearance/'
     | '/_authenticated/_admin/comments/'
+    | '/_authenticated/_admin/commerce/'
     | '/_authenticated/_admin/custom-fields/'
+    | '/_authenticated/_admin/gallery/'
     | '/_authenticated/_admin/kb/'
+    | '/_authenticated/_admin/layouts/'
     | '/_authenticated/_admin/media/'
+    | '/_authenticated/_admin/membership/'
     | '/_authenticated/_admin/menus/'
     | '/_authenticated/_admin/pages/'
     | '/_authenticated/_admin/posts/'
+    | '/_authenticated/_admin/recipes/'
     | '/_authenticated/_admin/roles/'
     | '/_authenticated/_admin/seo/'
     | '/_authenticated/_admin/settings/'
@@ -1399,7 +2319,19 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/users/'
     | '/_authenticated/_admin/webhooks/'
     | '/_authenticated/_admin/comments/$commentId/edit'
+    | '/_authenticated/_admin/commerce/attributes/$attributeId'
+    | '/_authenticated/_admin/commerce/orders/$orderId'
+    | '/_authenticated/_admin/commerce/orders/abandoned'
+    | '/_authenticated/_admin/commerce/products/$productId'
+    | '/_authenticated/_admin/commerce/products/new'
+    | '/_authenticated/_admin/commerce/returns/$returnId'
+    | '/_authenticated/_admin/commerce/returns/settings'
+    | '/_authenticated/_admin/commerce/settings/shipping'
+    | '/_authenticated/_admin/commerce/settings/tax'
+    | '/_authenticated/_admin/commerce/shipping/manifests'
+    | '/_authenticated/_admin/commerce/shipping/tracking'
     | '/_authenticated/_admin/custom-fields/$groupId/edit'
+    | '/_authenticated/_admin/gallery/$albumId/edit'
     | '/_authenticated/_admin/kb/$articleId/edit'
     | '/_authenticated/_admin/media/$mediaId/edit'
     | '/_authenticated/_admin/menus/$menuId/edit'
@@ -1413,17 +2345,40 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/posts/$postId/revisions'
     | '/_authenticated/_admin/posts/$postId/seo'
     | '/_authenticated/_admin/posts/$postId/traffic'
+    | '/_authenticated/_admin/recipes/$recipeId/edit'
     | '/_authenticated/_admin/roles/$roleId/edit'
+    | '/_authenticated/_admin/settings/analytics/ga4'
+    | '/_authenticated/_admin/settings/integrations/clerk'
+    | '/_authenticated/_admin/settings/integrations/google'
+    | '/_authenticated/_admin/settings/integrations/paypal'
+    | '/_authenticated/_admin/settings/integrations/shipping'
+    | '/_authenticated/_admin/settings/integrations/stripe'
     | '/_authenticated/_admin/tools/audit-log/$entryId'
     | '/_authenticated/_admin/tools/redirects/new'
     | '/_authenticated/_admin/users/$userId/edit'
+    | '/_authenticated/_admin/commerce/subscriptions/'
     | '/_authenticated/_admin/tools/audit-log/'
     | '/_authenticated/_admin/tools/redirects/'
+    | '/_authenticated/_admin/tools/website-import/'
     | '/_authenticated/_admin/tools/wordpress-sync/'
+    | '/_authenticated/_admin/commerce/settings/shipping/classes'
+    | '/_authenticated/_admin/commerce/settings/shipping/locations'
+    | '/_authenticated/_admin/commerce/settings/shipping/packages'
+    | '/_authenticated/_admin/commerce/settings/shipping/rules'
+    | '/_authenticated/_admin/commerce/settings/shipping/test-rates'
+    | '/_authenticated/_admin/commerce/settings/shipping/zones'
     | '/_authenticated/_admin/settings/email_/queue/$queueId'
     | '/_authenticated/_admin/settings/email_/templates/$templateSlug'
+    | '/_authenticated/_admin/settings/integrations/shipping/dhl'
+    | '/_authenticated/_admin/settings/integrations/shipping/fedex'
+    | '/_authenticated/_admin/settings/integrations/shipping/shipstation'
+    | '/_authenticated/_admin/settings/integrations/shipping/ups'
+    | '/_authenticated/_admin/settings/integrations/shipping/usps'
     | '/_authenticated/_admin/tools/redirects/$redirectId/edit'
+    | '/_authenticated/_admin/tools/website-import/$siteId/'
     | '/_authenticated/_admin/tools/wordpress-sync/$siteId/'
+    | '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId'
+    | '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId/methods_/$methodType/$methodId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1489,6 +2444,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSeoRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/recipes': {
+      id: '/_authenticated/_admin/recipes'
+      path: '/recipes'
+      fullPath: '/recipes'
+      preLoaderRoute: typeof AuthenticatedAdminRecipesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/_admin/profile': {
       id: '/_authenticated/_admin/profile'
       path: '/profile'
@@ -1496,11 +2458,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminProfileRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/plugins': {
+      id: '/_authenticated/_admin/plugins'
+      path: '/plugins'
+      fullPath: '/plugins'
+      preLoaderRoute: typeof AuthenticatedAdminPluginsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/membership': {
+      id: '/_authenticated/_admin/membership'
+      path: '/membership'
+      fullPath: '/membership'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/_admin/kb': {
       id: '/_authenticated/_admin/kb'
       path: '/kb'
       fullPath: '/kb'
       preLoaderRoute: typeof AuthenticatedAdminKbRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/gallery': {
+      id: '/_authenticated/_admin/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof AuthenticatedAdminGalleryRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/dashboard': {
@@ -1515,6 +2498,13 @@ declare module '@tanstack/react-router' {
       path: '/custom-fields'
       fullPath: '/custom-fields'
       preLoaderRoute: typeof AuthenticatedAdminCustomFieldsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/commerce': {
+      id: '/_authenticated/_admin/commerce'
+      path: '/commerce'
+      fullPath: '/commerce'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/appearance': {
@@ -1573,6 +2563,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRolesIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/recipes/': {
+      id: '/_authenticated/_admin/recipes/'
+      path: '/'
+      fullPath: '/recipes/'
+      preLoaderRoute: typeof AuthenticatedAdminRecipesIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRecipesRoute
+    }
     '/_authenticated/_admin/posts/': {
       id: '/_authenticated/_admin/posts/'
       path: '/posts'
@@ -1594,11 +2591,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMenusIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/membership/': {
+      id: '/_authenticated/_admin/membership/'
+      path: '/'
+      fullPath: '/membership/'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminMembershipRoute
+    }
     '/_authenticated/_admin/media/': {
       id: '/_authenticated/_admin/media/'
       path: '/media'
       fullPath: '/media/'
       preLoaderRoute: typeof AuthenticatedAdminMediaIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/layouts/': {
+      id: '/_authenticated/_admin/layouts/'
+      path: '/layouts'
+      fullPath: '/layouts/'
+      preLoaderRoute: typeof AuthenticatedAdminLayoutsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/kb/': {
@@ -1608,12 +2619,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminKbIndexRouteImport
       parentRoute: typeof AuthenticatedAdminKbRoute
     }
+    '/_authenticated/_admin/gallery/': {
+      id: '/_authenticated/_admin/gallery/'
+      path: '/'
+      fullPath: '/gallery/'
+      preLoaderRoute: typeof AuthenticatedAdminGalleryIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminGalleryRoute
+    }
     '/_authenticated/_admin/custom-fields/': {
       id: '/_authenticated/_admin/custom-fields/'
       path: '/'
       fullPath: '/custom-fields/'
       preLoaderRoute: typeof AuthenticatedAdminCustomFieldsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminCustomFieldsRoute
+    }
+    '/_authenticated/_admin/commerce/': {
+      id: '/_authenticated/_admin/commerce/'
+      path: '/'
+      fullPath: '/commerce/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
     }
     '/_authenticated/_admin/comments/': {
       id: '/_authenticated/_admin/comments/'
@@ -1853,6 +2878,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRolesNewRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/recipes/new': {
+      id: '/_authenticated/_admin/recipes/new'
+      path: '/new'
+      fullPath: '/recipes/new'
+      preLoaderRoute: typeof AuthenticatedAdminRecipesNewRouteImport
+      parentRoute: typeof AuthenticatedAdminRecipesRoute
+    }
+    '/_authenticated/_admin/recipes/categories': {
+      id: '/_authenticated/_admin/recipes/categories'
+      path: '/categories'
+      fullPath: '/recipes/categories'
+      preLoaderRoute: typeof AuthenticatedAdminRecipesCategoriesRouteImport
+      parentRoute: typeof AuthenticatedAdminRecipesRoute
+    }
     '/_authenticated/_admin/posts/tags': {
       id: '/_authenticated/_admin/posts/tags'
       path: '/posts/tags'
@@ -1902,11 +2941,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMenusLocationsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/membership/settings': {
+      id: '/_authenticated/_admin/membership/settings'
+      path: '/settings'
+      fullPath: '/membership/settings'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminMembershipRoute
+    }
+    '/_authenticated/_admin/membership/restrictions': {
+      id: '/_authenticated/_admin/membership/restrictions'
+      path: '/restrictions'
+      fullPath: '/membership/restrictions'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipRestrictionsRouteImport
+      parentRoute: typeof AuthenticatedAdminMembershipRoute
+    }
+    '/_authenticated/_admin/membership/plans': {
+      id: '/_authenticated/_admin/membership/plans'
+      path: '/plans'
+      fullPath: '/membership/plans'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipPlansRouteImport
+      parentRoute: typeof AuthenticatedAdminMembershipRoute
+    }
+    '/_authenticated/_admin/membership/grants': {
+      id: '/_authenticated/_admin/membership/grants'
+      path: '/grants'
+      fullPath: '/membership/grants'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipGrantsRouteImport
+      parentRoute: typeof AuthenticatedAdminMembershipRoute
+    }
     '/_authenticated/_admin/media/upload': {
       id: '/_authenticated/_admin/media/upload'
       path: '/media/upload'
       fullPath: '/media/upload'
       preLoaderRoute: typeof AuthenticatedAdminMediaUploadRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/layouts/new': {
+      id: '/_authenticated/_admin/layouts/new'
+      path: '/layouts/new'
+      fullPath: '/layouts/new'
+      preLoaderRoute: typeof AuthenticatedAdminLayoutsNewRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/layouts/assign': {
+      id: '/_authenticated/_admin/layouts/assign'
+      path: '/layouts/assign'
+      fullPath: '/layouts/assign'
+      preLoaderRoute: typeof AuthenticatedAdminLayoutsAssignRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/layouts/$layoutId': {
+      id: '/_authenticated/_admin/layouts/$layoutId'
+      path: '/layouts/$layoutId'
+      fullPath: '/layouts/$layoutId'
+      preLoaderRoute: typeof AuthenticatedAdminLayoutsLayoutIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/kb/workflows': {
@@ -1972,6 +3060,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminKbArticleIdRouteImport
       parentRoute: typeof AuthenticatedAdminKbRoute
     }
+    '/_authenticated/_admin/gallery/settings': {
+      id: '/_authenticated/_admin/gallery/settings'
+      path: '/settings'
+      fullPath: '/gallery/settings'
+      preLoaderRoute: typeof AuthenticatedAdminGallerySettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminGalleryRoute
+    }
+    '/_authenticated/_admin/gallery/new': {
+      id: '/_authenticated/_admin/gallery/new'
+      path: '/new'
+      fullPath: '/gallery/new'
+      preLoaderRoute: typeof AuthenticatedAdminGalleryNewRouteImport
+      parentRoute: typeof AuthenticatedAdminGalleryRoute
+    }
+    '/_authenticated/_admin/gallery/categories': {
+      id: '/_authenticated/_admin/gallery/categories'
+      path: '/categories'
+      fullPath: '/gallery/categories'
+      preLoaderRoute: typeof AuthenticatedAdminGalleryCategoriesRouteImport
+      parentRoute: typeof AuthenticatedAdminGalleryRoute
+    }
     '/_authenticated/_admin/custom-fields/new': {
       id: '/_authenticated/_admin/custom-fields/new'
       path: '/new'
@@ -1979,12 +3088,131 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCustomFieldsNewRouteImport
       parentRoute: typeof AuthenticatedAdminCustomFieldsRoute
     }
+    '/_authenticated/_admin/commerce/wishlists': {
+      id: '/_authenticated/_admin/commerce/wishlists'
+      path: '/wishlists'
+      fullPath: '/commerce/wishlists'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceWishlistsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions': {
+      id: '/_authenticated/_admin/commerce/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/commerce/subscriptions'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/settings': {
+      id: '/_authenticated/_admin/commerce/settings'
+      path: '/settings'
+      fullPath: '/commerce/settings'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/reviews': {
+      id: '/_authenticated/_admin/commerce/reviews'
+      path: '/reviews'
+      fullPath: '/commerce/reviews'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceReviewsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/returns': {
+      id: '/_authenticated/_admin/commerce/returns'
+      path: '/returns'
+      fullPath: '/commerce/returns'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceReturnsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/products': {
+      id: '/_authenticated/_admin/commerce/products'
+      path: '/products'
+      fullPath: '/commerce/products'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceProductsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/payments': {
+      id: '/_authenticated/_admin/commerce/payments'
+      path: '/payments'
+      fullPath: '/commerce/payments'
+      preLoaderRoute: typeof AuthenticatedAdminCommercePaymentsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/orders': {
+      id: '/_authenticated/_admin/commerce/orders'
+      path: '/orders'
+      fullPath: '/commerce/orders'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceOrdersRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/discounts': {
+      id: '/_authenticated/_admin/commerce/discounts'
+      path: '/discounts'
+      fullPath: '/commerce/discounts'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceDiscountsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/digital': {
+      id: '/_authenticated/_admin/commerce/digital'
+      path: '/digital'
+      fullPath: '/commerce/digital'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceDigitalRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/customers': {
+      id: '/_authenticated/_admin/commerce/customers'
+      path: '/customers'
+      fullPath: '/commerce/customers'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceCustomersRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/categories': {
+      id: '/_authenticated/_admin/commerce/categories'
+      path: '/categories'
+      fullPath: '/commerce/categories'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceCategoriesRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/bundles': {
+      id: '/_authenticated/_admin/commerce/bundles'
+      path: '/bundles'
+      fullPath: '/commerce/bundles'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceBundlesRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/attributes': {
+      id: '/_authenticated/_admin/commerce/attributes'
+      path: '/attributes'
+      fullPath: '/commerce/attributes'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceAttributesRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
     '/_authenticated/_admin/comments/pending': {
       id: '/_authenticated/_admin/comments/pending'
       path: '/comments/pending'
       fullPath: '/comments/pending'
       preLoaderRoute: typeof AuthenticatedAdminCommentsPendingRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/appearance/themes': {
+      id: '/_authenticated/_admin/appearance/themes'
+      path: '/themes'
+      fullPath: '/appearance/themes'
+      preLoaderRoute: typeof AuthenticatedAdminAppearanceThemesRouteImport
+      parentRoute: typeof AuthenticatedAdminAppearanceRoute
+    }
+    '/_authenticated/_admin/appearance/header': {
+      id: '/_authenticated/_admin/appearance/header'
+      path: '/header'
+      fullPath: '/appearance/header'
+      preLoaderRoute: typeof AuthenticatedAdminAppearanceHeaderRouteImport
+      parentRoute: typeof AuthenticatedAdminAppearanceRoute
+    }
+    '/_authenticated/_admin/appearance/footer': {
+      id: '/_authenticated/_admin/appearance/footer'
+      path: '/footer'
+      fullPath: '/appearance/footer'
+      preLoaderRoute: typeof AuthenticatedAdminAppearanceFooterRouteImport
+      parentRoute: typeof AuthenticatedAdminAppearanceRoute
     }
     '/_authenticated/_admin/appearance/colors': {
       id: '/_authenticated/_admin/appearance/colors'
@@ -2000,6 +3228,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminToolsWordpressSyncIndexRouteImport
       parentRoute: typeof AuthenticatedAdminToolsRoute
     }
+    '/_authenticated/_admin/tools/website-import/': {
+      id: '/_authenticated/_admin/tools/website-import/'
+      path: '/website-import'
+      fullPath: '/tools/website-import/'
+      preLoaderRoute: typeof AuthenticatedAdminToolsWebsiteImportIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminToolsRoute
+    }
     '/_authenticated/_admin/tools/redirects/': {
       id: '/_authenticated/_admin/tools/redirects/'
       path: '/redirects'
@@ -2013,6 +3248,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tools/audit-log/'
       preLoaderRoute: typeof AuthenticatedAdminToolsAuditLogIndexRouteImport
       parentRoute: typeof AuthenticatedAdminToolsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/': {
+      id: '/_authenticated/_admin/commerce/subscriptions/'
+      path: '/'
+      fullPath: '/commerce/subscriptions/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
     }
     '/_authenticated/_admin/users/$userId/edit': {
       id: '/_authenticated/_admin/users/$userId/edit'
@@ -2035,12 +3277,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminToolsAuditLogEntryIdRouteImport
       parentRoute: typeof AuthenticatedAdminToolsRoute
     }
+    '/_authenticated/_admin/settings/integrations/stripe': {
+      id: '/_authenticated/_admin/settings/integrations/stripe'
+      path: '/stripe'
+      fullPath: '/settings/integrations/stripe'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsIntegrationsStripeRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsIntegrationsRoute
+    }
+    '/_authenticated/_admin/settings/integrations/shipping': {
+      id: '/_authenticated/_admin/settings/integrations/shipping'
+      path: '/shipping'
+      fullPath: '/settings/integrations/shipping'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsIntegrationsRoute
+    }
+    '/_authenticated/_admin/settings/integrations/paypal': {
+      id: '/_authenticated/_admin/settings/integrations/paypal'
+      path: '/paypal'
+      fullPath: '/settings/integrations/paypal'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsIntegrationsPaypalRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsIntegrationsRoute
+    }
+    '/_authenticated/_admin/settings/integrations/google': {
+      id: '/_authenticated/_admin/settings/integrations/google'
+      path: '/google'
+      fullPath: '/settings/integrations/google'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsIntegrationsGoogleRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsIntegrationsRoute
+    }
+    '/_authenticated/_admin/settings/integrations/clerk': {
+      id: '/_authenticated/_admin/settings/integrations/clerk'
+      path: '/clerk'
+      fullPath: '/settings/integrations/clerk'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsIntegrationsClerkRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsIntegrationsRoute
+    }
+    '/_authenticated/_admin/settings/analytics/ga4': {
+      id: '/_authenticated/_admin/settings/analytics/ga4'
+      path: '/ga4'
+      fullPath: '/settings/analytics/ga4'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsAnalyticsGa4RouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsAnalyticsRoute
+    }
     '/_authenticated/_admin/roles/$roleId/edit': {
       id: '/_authenticated/_admin/roles/$roleId/edit'
       path: '/roles/$roleId/edit'
       fullPath: '/roles/$roleId/edit'
       preLoaderRoute: typeof AuthenticatedAdminRolesRoleIdEditRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/recipes/$recipeId/edit': {
+      id: '/_authenticated/_admin/recipes/$recipeId/edit'
+      path: '/$recipeId/edit'
+      fullPath: '/recipes/$recipeId/edit'
+      preLoaderRoute: typeof AuthenticatedAdminRecipesRecipeIdEditRouteImport
+      parentRoute: typeof AuthenticatedAdminRecipesRoute
     }
     '/_authenticated/_admin/posts/$postId/traffic': {
       id: '/_authenticated/_admin/posts/$postId/traffic'
@@ -2133,12 +3424,96 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminKbArticleIdEditRouteImport
       parentRoute: typeof AuthenticatedAdminKbArticleIdRoute
     }
+    '/_authenticated/_admin/gallery/$albumId/edit': {
+      id: '/_authenticated/_admin/gallery/$albumId/edit'
+      path: '/$albumId/edit'
+      fullPath: '/gallery/$albumId/edit'
+      preLoaderRoute: typeof AuthenticatedAdminGalleryAlbumIdEditRouteImport
+      parentRoute: typeof AuthenticatedAdminGalleryRoute
+    }
     '/_authenticated/_admin/custom-fields/$groupId/edit': {
       id: '/_authenticated/_admin/custom-fields/$groupId/edit'
       path: '/$groupId/edit'
       fullPath: '/custom-fields/$groupId/edit'
       preLoaderRoute: typeof AuthenticatedAdminCustomFieldsGroupIdEditRouteImport
       parentRoute: typeof AuthenticatedAdminCustomFieldsRoute
+    }
+    '/_authenticated/_admin/commerce/shipping/tracking': {
+      id: '/_authenticated/_admin/commerce/shipping/tracking'
+      path: '/shipping/tracking'
+      fullPath: '/commerce/shipping/tracking'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceShippingTrackingRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/shipping/manifests': {
+      id: '/_authenticated/_admin/commerce/shipping/manifests'
+      path: '/shipping/manifests'
+      fullPath: '/commerce/shipping/manifests'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceShippingManifestsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
+    '/_authenticated/_admin/commerce/settings/tax': {
+      id: '/_authenticated/_admin/commerce/settings/tax'
+      path: '/tax'
+      fullPath: '/commerce/settings/tax'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSettingsTaxRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSettingsRoute
+    }
+    '/_authenticated/_admin/commerce/settings/shipping': {
+      id: '/_authenticated/_admin/commerce/settings/shipping'
+      path: '/shipping'
+      fullPath: '/commerce/settings/shipping'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSettingsShippingRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSettingsRoute
+    }
+    '/_authenticated/_admin/commerce/returns/settings': {
+      id: '/_authenticated/_admin/commerce/returns/settings'
+      path: '/settings'
+      fullPath: '/commerce/returns/settings'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceReturnsSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceReturnsRoute
+    }
+    '/_authenticated/_admin/commerce/returns/$returnId': {
+      id: '/_authenticated/_admin/commerce/returns/$returnId'
+      path: '/$returnId'
+      fullPath: '/commerce/returns/$returnId'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceReturnsReturnIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceReturnsRoute
+    }
+    '/_authenticated/_admin/commerce/products/new': {
+      id: '/_authenticated/_admin/commerce/products/new'
+      path: '/new'
+      fullPath: '/commerce/products/new'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceProductsNewRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceProductsRoute
+    }
+    '/_authenticated/_admin/commerce/products/$productId': {
+      id: '/_authenticated/_admin/commerce/products/$productId'
+      path: '/$productId'
+      fullPath: '/commerce/products/$productId'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceProductsProductIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceProductsRoute
+    }
+    '/_authenticated/_admin/commerce/orders/abandoned': {
+      id: '/_authenticated/_admin/commerce/orders/abandoned'
+      path: '/abandoned'
+      fullPath: '/commerce/orders/abandoned'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceOrdersAbandonedRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceOrdersRoute
+    }
+    '/_authenticated/_admin/commerce/orders/$orderId': {
+      id: '/_authenticated/_admin/commerce/orders/$orderId'
+      path: '/$orderId'
+      fullPath: '/commerce/orders/$orderId'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceOrdersOrderIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceOrdersRoute
+    }
+    '/_authenticated/_admin/commerce/attributes/$attributeId': {
+      id: '/_authenticated/_admin/commerce/attributes/$attributeId'
+      path: '/$attributeId'
+      fullPath: '/commerce/attributes/$attributeId'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceAttributesAttributeIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceAttributesRoute
     }
     '/_authenticated/_admin/comments/$commentId/edit': {
       id: '/_authenticated/_admin/comments/$commentId/edit'
@@ -2154,12 +3529,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminToolsWordpressSyncSiteIdIndexRouteImport
       parentRoute: typeof AuthenticatedAdminToolsRoute
     }
+    '/_authenticated/_admin/tools/website-import/$siteId/': {
+      id: '/_authenticated/_admin/tools/website-import/$siteId/'
+      path: '/website-import/$siteId'
+      fullPath: '/tools/website-import/$siteId/'
+      preLoaderRoute: typeof AuthenticatedAdminToolsWebsiteImportSiteIdIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminToolsRoute
+    }
     '/_authenticated/_admin/tools/redirects/$redirectId/edit': {
       id: '/_authenticated/_admin/tools/redirects/$redirectId/edit'
       path: '/redirects/$redirectId/edit'
       fullPath: '/tools/redirects/$redirectId/edit'
       preLoaderRoute: typeof AuthenticatedAdminToolsRedirectsRedirectIdEditRouteImport
       parentRoute: typeof AuthenticatedAdminToolsRoute
+    }
+    '/_authenticated/_admin/settings/integrations/shipping/usps': {
+      id: '/_authenticated/_admin/settings/integrations/shipping/usps'
+      path: '/usps'
+      fullPath: '/settings/integrations/shipping/usps'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingUspsRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingRoute
+    }
+    '/_authenticated/_admin/settings/integrations/shipping/ups': {
+      id: '/_authenticated/_admin/settings/integrations/shipping/ups'
+      path: '/ups'
+      fullPath: '/settings/integrations/shipping/ups'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingUpsRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingRoute
+    }
+    '/_authenticated/_admin/settings/integrations/shipping/shipstation': {
+      id: '/_authenticated/_admin/settings/integrations/shipping/shipstation'
+      path: '/shipstation'
+      fullPath: '/settings/integrations/shipping/shipstation'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingShipstationRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingRoute
+    }
+    '/_authenticated/_admin/settings/integrations/shipping/fedex': {
+      id: '/_authenticated/_admin/settings/integrations/shipping/fedex'
+      path: '/fedex'
+      fullPath: '/settings/integrations/shipping/fedex'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingFedexRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingRoute
+    }
+    '/_authenticated/_admin/settings/integrations/shipping/dhl': {
+      id: '/_authenticated/_admin/settings/integrations/shipping/dhl'
+      path: '/dhl'
+      fullPath: '/settings/integrations/shipping/dhl'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingDhlRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingRoute
     }
     '/_authenticated/_admin/settings/email_/templates/$templateSlug': {
       id: '/_authenticated/_admin/settings/email_/templates/$templateSlug'
@@ -2175,11 +3592,70 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsEmailQueueQueueIdRouteImport
       parentRoute: typeof AuthenticatedAdminSettingsRoute
     }
+    '/_authenticated/_admin/commerce/settings/shipping/zones': {
+      id: '/_authenticated/_admin/commerce/settings/shipping/zones'
+      path: '/zones'
+      fullPath: '/commerce/settings/shipping/zones'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSettingsShippingZonesRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSettingsShippingRoute
+    }
+    '/_authenticated/_admin/commerce/settings/shipping/test-rates': {
+      id: '/_authenticated/_admin/commerce/settings/shipping/test-rates'
+      path: '/test-rates'
+      fullPath: '/commerce/settings/shipping/test-rates'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSettingsShippingTestRatesRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSettingsShippingRoute
+    }
+    '/_authenticated/_admin/commerce/settings/shipping/rules': {
+      id: '/_authenticated/_admin/commerce/settings/shipping/rules'
+      path: '/rules'
+      fullPath: '/commerce/settings/shipping/rules'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSettingsShippingRulesRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSettingsShippingRoute
+    }
+    '/_authenticated/_admin/commerce/settings/shipping/packages': {
+      id: '/_authenticated/_admin/commerce/settings/shipping/packages'
+      path: '/packages'
+      fullPath: '/commerce/settings/shipping/packages'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSettingsShippingPackagesRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSettingsShippingRoute
+    }
+    '/_authenticated/_admin/commerce/settings/shipping/locations': {
+      id: '/_authenticated/_admin/commerce/settings/shipping/locations'
+      path: '/locations'
+      fullPath: '/commerce/settings/shipping/locations'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSettingsShippingLocationsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSettingsShippingRoute
+    }
+    '/_authenticated/_admin/commerce/settings/shipping/classes': {
+      id: '/_authenticated/_admin/commerce/settings/shipping/classes'
+      path: '/classes'
+      fullPath: '/commerce/settings/shipping/classes'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSettingsShippingClassesRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSettingsShippingRoute
+    }
+    '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId': {
+      id: '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId'
+      path: '/zones/$zoneId'
+      fullPath: '/commerce/settings/shipping/zones/$zoneId'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSettingsShippingRoute
+    }
+    '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId/methods_/$methodType/$methodId': {
+      id: '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId/methods_/$methodType/$methodId'
+      path: '/methods/$methodType/$methodId'
+      fullPath: '/commerce/settings/shipping/zones/$zoneId/methods/$methodType/$methodId'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRoute
+    }
   }
 }
 
 interface AuthenticatedAdminAppearanceRouteChildren {
   AuthenticatedAdminAppearanceColorsRoute: typeof AuthenticatedAdminAppearanceColorsRoute
+  AuthenticatedAdminAppearanceFooterRoute: typeof AuthenticatedAdminAppearanceFooterRoute
+  AuthenticatedAdminAppearanceHeaderRoute: typeof AuthenticatedAdminAppearanceHeaderRoute
+  AuthenticatedAdminAppearanceThemesRoute: typeof AuthenticatedAdminAppearanceThemesRoute
   AuthenticatedAdminAppearanceIndexRoute: typeof AuthenticatedAdminAppearanceIndexRoute
 }
 
@@ -2187,6 +3663,12 @@ const AuthenticatedAdminAppearanceRouteChildren: AuthenticatedAdminAppearanceRou
   {
     AuthenticatedAdminAppearanceColorsRoute:
       AuthenticatedAdminAppearanceColorsRoute,
+    AuthenticatedAdminAppearanceFooterRoute:
+      AuthenticatedAdminAppearanceFooterRoute,
+    AuthenticatedAdminAppearanceHeaderRoute:
+      AuthenticatedAdminAppearanceHeaderRoute,
+    AuthenticatedAdminAppearanceThemesRoute:
+      AuthenticatedAdminAppearanceThemesRoute,
     AuthenticatedAdminAppearanceIndexRoute:
       AuthenticatedAdminAppearanceIndexRoute,
   }
@@ -2194,6 +3676,218 @@ const AuthenticatedAdminAppearanceRouteChildren: AuthenticatedAdminAppearanceRou
 const AuthenticatedAdminAppearanceRouteWithChildren =
   AuthenticatedAdminAppearanceRoute._addFileChildren(
     AuthenticatedAdminAppearanceRouteChildren,
+  )
+
+interface AuthenticatedAdminCommerceAttributesRouteChildren {
+  AuthenticatedAdminCommerceAttributesAttributeIdRoute: typeof AuthenticatedAdminCommerceAttributesAttributeIdRoute
+}
+
+const AuthenticatedAdminCommerceAttributesRouteChildren: AuthenticatedAdminCommerceAttributesRouteChildren =
+  {
+    AuthenticatedAdminCommerceAttributesAttributeIdRoute:
+      AuthenticatedAdminCommerceAttributesAttributeIdRoute,
+  }
+
+const AuthenticatedAdminCommerceAttributesRouteWithChildren =
+  AuthenticatedAdminCommerceAttributesRoute._addFileChildren(
+    AuthenticatedAdminCommerceAttributesRouteChildren,
+  )
+
+interface AuthenticatedAdminCommerceOrdersRouteChildren {
+  AuthenticatedAdminCommerceOrdersOrderIdRoute: typeof AuthenticatedAdminCommerceOrdersOrderIdRoute
+  AuthenticatedAdminCommerceOrdersAbandonedRoute: typeof AuthenticatedAdminCommerceOrdersAbandonedRoute
+}
+
+const AuthenticatedAdminCommerceOrdersRouteChildren: AuthenticatedAdminCommerceOrdersRouteChildren =
+  {
+    AuthenticatedAdminCommerceOrdersOrderIdRoute:
+      AuthenticatedAdminCommerceOrdersOrderIdRoute,
+    AuthenticatedAdminCommerceOrdersAbandonedRoute:
+      AuthenticatedAdminCommerceOrdersAbandonedRoute,
+  }
+
+const AuthenticatedAdminCommerceOrdersRouteWithChildren =
+  AuthenticatedAdminCommerceOrdersRoute._addFileChildren(
+    AuthenticatedAdminCommerceOrdersRouteChildren,
+  )
+
+interface AuthenticatedAdminCommerceProductsRouteChildren {
+  AuthenticatedAdminCommerceProductsProductIdRoute: typeof AuthenticatedAdminCommerceProductsProductIdRoute
+  AuthenticatedAdminCommerceProductsNewRoute: typeof AuthenticatedAdminCommerceProductsNewRoute
+}
+
+const AuthenticatedAdminCommerceProductsRouteChildren: AuthenticatedAdminCommerceProductsRouteChildren =
+  {
+    AuthenticatedAdminCommerceProductsProductIdRoute:
+      AuthenticatedAdminCommerceProductsProductIdRoute,
+    AuthenticatedAdminCommerceProductsNewRoute:
+      AuthenticatedAdminCommerceProductsNewRoute,
+  }
+
+const AuthenticatedAdminCommerceProductsRouteWithChildren =
+  AuthenticatedAdminCommerceProductsRoute._addFileChildren(
+    AuthenticatedAdminCommerceProductsRouteChildren,
+  )
+
+interface AuthenticatedAdminCommerceReturnsRouteChildren {
+  AuthenticatedAdminCommerceReturnsReturnIdRoute: typeof AuthenticatedAdminCommerceReturnsReturnIdRoute
+  AuthenticatedAdminCommerceReturnsSettingsRoute: typeof AuthenticatedAdminCommerceReturnsSettingsRoute
+}
+
+const AuthenticatedAdminCommerceReturnsRouteChildren: AuthenticatedAdminCommerceReturnsRouteChildren =
+  {
+    AuthenticatedAdminCommerceReturnsReturnIdRoute:
+      AuthenticatedAdminCommerceReturnsReturnIdRoute,
+    AuthenticatedAdminCommerceReturnsSettingsRoute:
+      AuthenticatedAdminCommerceReturnsSettingsRoute,
+  }
+
+const AuthenticatedAdminCommerceReturnsRouteWithChildren =
+  AuthenticatedAdminCommerceReturnsRoute._addFileChildren(
+    AuthenticatedAdminCommerceReturnsRouteChildren,
+  )
+
+interface AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteChildren {
+  AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute: typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute
+}
+
+const AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteChildren: AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteChildren =
+  {
+    AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute:
+      AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute,
+  }
+
+const AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteWithChildren =
+  AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRoute._addFileChildren(
+    AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteChildren,
+  )
+
+interface AuthenticatedAdminCommerceSettingsShippingRouteChildren {
+  AuthenticatedAdminCommerceSettingsShippingClassesRoute: typeof AuthenticatedAdminCommerceSettingsShippingClassesRoute
+  AuthenticatedAdminCommerceSettingsShippingLocationsRoute: typeof AuthenticatedAdminCommerceSettingsShippingLocationsRoute
+  AuthenticatedAdminCommerceSettingsShippingPackagesRoute: typeof AuthenticatedAdminCommerceSettingsShippingPackagesRoute
+  AuthenticatedAdminCommerceSettingsShippingRulesRoute: typeof AuthenticatedAdminCommerceSettingsShippingRulesRoute
+  AuthenticatedAdminCommerceSettingsShippingTestRatesRoute: typeof AuthenticatedAdminCommerceSettingsShippingTestRatesRoute
+  AuthenticatedAdminCommerceSettingsShippingZonesRoute: typeof AuthenticatedAdminCommerceSettingsShippingZonesRoute
+  AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRoute: typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteWithChildren
+}
+
+const AuthenticatedAdminCommerceSettingsShippingRouteChildren: AuthenticatedAdminCommerceSettingsShippingRouteChildren =
+  {
+    AuthenticatedAdminCommerceSettingsShippingClassesRoute:
+      AuthenticatedAdminCommerceSettingsShippingClassesRoute,
+    AuthenticatedAdminCommerceSettingsShippingLocationsRoute:
+      AuthenticatedAdminCommerceSettingsShippingLocationsRoute,
+    AuthenticatedAdminCommerceSettingsShippingPackagesRoute:
+      AuthenticatedAdminCommerceSettingsShippingPackagesRoute,
+    AuthenticatedAdminCommerceSettingsShippingRulesRoute:
+      AuthenticatedAdminCommerceSettingsShippingRulesRoute,
+    AuthenticatedAdminCommerceSettingsShippingTestRatesRoute:
+      AuthenticatedAdminCommerceSettingsShippingTestRatesRoute,
+    AuthenticatedAdminCommerceSettingsShippingZonesRoute:
+      AuthenticatedAdminCommerceSettingsShippingZonesRoute,
+    AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRoute:
+      AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteWithChildren,
+  }
+
+const AuthenticatedAdminCommerceSettingsShippingRouteWithChildren =
+  AuthenticatedAdminCommerceSettingsShippingRoute._addFileChildren(
+    AuthenticatedAdminCommerceSettingsShippingRouteChildren,
+  )
+
+interface AuthenticatedAdminCommerceSettingsRouteChildren {
+  AuthenticatedAdminCommerceSettingsShippingRoute: typeof AuthenticatedAdminCommerceSettingsShippingRouteWithChildren
+  AuthenticatedAdminCommerceSettingsTaxRoute: typeof AuthenticatedAdminCommerceSettingsTaxRoute
+}
+
+const AuthenticatedAdminCommerceSettingsRouteChildren: AuthenticatedAdminCommerceSettingsRouteChildren =
+  {
+    AuthenticatedAdminCommerceSettingsShippingRoute:
+      AuthenticatedAdminCommerceSettingsShippingRouteWithChildren,
+    AuthenticatedAdminCommerceSettingsTaxRoute:
+      AuthenticatedAdminCommerceSettingsTaxRoute,
+  }
+
+const AuthenticatedAdminCommerceSettingsRouteWithChildren =
+  AuthenticatedAdminCommerceSettingsRoute._addFileChildren(
+    AuthenticatedAdminCommerceSettingsRouteChildren,
+  )
+
+interface AuthenticatedAdminCommerceSubscriptionsRouteChildren {
+  AuthenticatedAdminCommerceSubscriptionsIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
+}
+
+const AuthenticatedAdminCommerceSubscriptionsRouteChildren: AuthenticatedAdminCommerceSubscriptionsRouteChildren =
+  {
+    AuthenticatedAdminCommerceSubscriptionsIndexRoute:
+      AuthenticatedAdminCommerceSubscriptionsIndexRoute,
+  }
+
+const AuthenticatedAdminCommerceSubscriptionsRouteWithChildren =
+  AuthenticatedAdminCommerceSubscriptionsRoute._addFileChildren(
+    AuthenticatedAdminCommerceSubscriptionsRouteChildren,
+  )
+
+interface AuthenticatedAdminCommerceRouteChildren {
+  AuthenticatedAdminCommerceAttributesRoute: typeof AuthenticatedAdminCommerceAttributesRouteWithChildren
+  AuthenticatedAdminCommerceBundlesRoute: typeof AuthenticatedAdminCommerceBundlesRoute
+  AuthenticatedAdminCommerceCategoriesRoute: typeof AuthenticatedAdminCommerceCategoriesRoute
+  AuthenticatedAdminCommerceCustomersRoute: typeof AuthenticatedAdminCommerceCustomersRoute
+  AuthenticatedAdminCommerceDigitalRoute: typeof AuthenticatedAdminCommerceDigitalRoute
+  AuthenticatedAdminCommerceDiscountsRoute: typeof AuthenticatedAdminCommerceDiscountsRoute
+  AuthenticatedAdminCommerceOrdersRoute: typeof AuthenticatedAdminCommerceOrdersRouteWithChildren
+  AuthenticatedAdminCommercePaymentsRoute: typeof AuthenticatedAdminCommercePaymentsRoute
+  AuthenticatedAdminCommerceProductsRoute: typeof AuthenticatedAdminCommerceProductsRouteWithChildren
+  AuthenticatedAdminCommerceReturnsRoute: typeof AuthenticatedAdminCommerceReturnsRouteWithChildren
+  AuthenticatedAdminCommerceReviewsRoute: typeof AuthenticatedAdminCommerceReviewsRoute
+  AuthenticatedAdminCommerceSettingsRoute: typeof AuthenticatedAdminCommerceSettingsRouteWithChildren
+  AuthenticatedAdminCommerceSubscriptionsRoute: typeof AuthenticatedAdminCommerceSubscriptionsRouteWithChildren
+  AuthenticatedAdminCommerceWishlistsRoute: typeof AuthenticatedAdminCommerceWishlistsRoute
+  AuthenticatedAdminCommerceIndexRoute: typeof AuthenticatedAdminCommerceIndexRoute
+  AuthenticatedAdminCommerceShippingManifestsRoute: typeof AuthenticatedAdminCommerceShippingManifestsRoute
+  AuthenticatedAdminCommerceShippingTrackingRoute: typeof AuthenticatedAdminCommerceShippingTrackingRoute
+}
+
+const AuthenticatedAdminCommerceRouteChildren: AuthenticatedAdminCommerceRouteChildren =
+  {
+    AuthenticatedAdminCommerceAttributesRoute:
+      AuthenticatedAdminCommerceAttributesRouteWithChildren,
+    AuthenticatedAdminCommerceBundlesRoute:
+      AuthenticatedAdminCommerceBundlesRoute,
+    AuthenticatedAdminCommerceCategoriesRoute:
+      AuthenticatedAdminCommerceCategoriesRoute,
+    AuthenticatedAdminCommerceCustomersRoute:
+      AuthenticatedAdminCommerceCustomersRoute,
+    AuthenticatedAdminCommerceDigitalRoute:
+      AuthenticatedAdminCommerceDigitalRoute,
+    AuthenticatedAdminCommerceDiscountsRoute:
+      AuthenticatedAdminCommerceDiscountsRoute,
+    AuthenticatedAdminCommerceOrdersRoute:
+      AuthenticatedAdminCommerceOrdersRouteWithChildren,
+    AuthenticatedAdminCommercePaymentsRoute:
+      AuthenticatedAdminCommercePaymentsRoute,
+    AuthenticatedAdminCommerceProductsRoute:
+      AuthenticatedAdminCommerceProductsRouteWithChildren,
+    AuthenticatedAdminCommerceReturnsRoute:
+      AuthenticatedAdminCommerceReturnsRouteWithChildren,
+    AuthenticatedAdminCommerceReviewsRoute:
+      AuthenticatedAdminCommerceReviewsRoute,
+    AuthenticatedAdminCommerceSettingsRoute:
+      AuthenticatedAdminCommerceSettingsRouteWithChildren,
+    AuthenticatedAdminCommerceSubscriptionsRoute:
+      AuthenticatedAdminCommerceSubscriptionsRouteWithChildren,
+    AuthenticatedAdminCommerceWishlistsRoute:
+      AuthenticatedAdminCommerceWishlistsRoute,
+    AuthenticatedAdminCommerceIndexRoute: AuthenticatedAdminCommerceIndexRoute,
+    AuthenticatedAdminCommerceShippingManifestsRoute:
+      AuthenticatedAdminCommerceShippingManifestsRoute,
+    AuthenticatedAdminCommerceShippingTrackingRoute:
+      AuthenticatedAdminCommerceShippingTrackingRoute,
+  }
+
+const AuthenticatedAdminCommerceRouteWithChildren =
+  AuthenticatedAdminCommerceRoute._addFileChildren(
+    AuthenticatedAdminCommerceRouteChildren,
   )
 
 interface AuthenticatedAdminCustomFieldsRouteChildren {
@@ -2215,6 +3909,31 @@ const AuthenticatedAdminCustomFieldsRouteChildren: AuthenticatedAdminCustomField
 const AuthenticatedAdminCustomFieldsRouteWithChildren =
   AuthenticatedAdminCustomFieldsRoute._addFileChildren(
     AuthenticatedAdminCustomFieldsRouteChildren,
+  )
+
+interface AuthenticatedAdminGalleryRouteChildren {
+  AuthenticatedAdminGalleryCategoriesRoute: typeof AuthenticatedAdminGalleryCategoriesRoute
+  AuthenticatedAdminGalleryNewRoute: typeof AuthenticatedAdminGalleryNewRoute
+  AuthenticatedAdminGallerySettingsRoute: typeof AuthenticatedAdminGallerySettingsRoute
+  AuthenticatedAdminGalleryIndexRoute: typeof AuthenticatedAdminGalleryIndexRoute
+  AuthenticatedAdminGalleryAlbumIdEditRoute: typeof AuthenticatedAdminGalleryAlbumIdEditRoute
+}
+
+const AuthenticatedAdminGalleryRouteChildren: AuthenticatedAdminGalleryRouteChildren =
+  {
+    AuthenticatedAdminGalleryCategoriesRoute:
+      AuthenticatedAdminGalleryCategoriesRoute,
+    AuthenticatedAdminGalleryNewRoute: AuthenticatedAdminGalleryNewRoute,
+    AuthenticatedAdminGallerySettingsRoute:
+      AuthenticatedAdminGallerySettingsRoute,
+    AuthenticatedAdminGalleryIndexRoute: AuthenticatedAdminGalleryIndexRoute,
+    AuthenticatedAdminGalleryAlbumIdEditRoute:
+      AuthenticatedAdminGalleryAlbumIdEditRoute,
+  }
+
+const AuthenticatedAdminGalleryRouteWithChildren =
+  AuthenticatedAdminGalleryRoute._addFileChildren(
+    AuthenticatedAdminGalleryRouteChildren,
   )
 
 interface AuthenticatedAdminKbArticleIdRouteChildren {
@@ -2262,6 +3981,55 @@ const AuthenticatedAdminKbRouteChildren: AuthenticatedAdminKbRouteChildren = {
 const AuthenticatedAdminKbRouteWithChildren =
   AuthenticatedAdminKbRoute._addFileChildren(AuthenticatedAdminKbRouteChildren)
 
+interface AuthenticatedAdminMembershipRouteChildren {
+  AuthenticatedAdminMembershipGrantsRoute: typeof AuthenticatedAdminMembershipGrantsRoute
+  AuthenticatedAdminMembershipPlansRoute: typeof AuthenticatedAdminMembershipPlansRoute
+  AuthenticatedAdminMembershipRestrictionsRoute: typeof AuthenticatedAdminMembershipRestrictionsRoute
+  AuthenticatedAdminMembershipSettingsRoute: typeof AuthenticatedAdminMembershipSettingsRoute
+  AuthenticatedAdminMembershipIndexRoute: typeof AuthenticatedAdminMembershipIndexRoute
+}
+
+const AuthenticatedAdminMembershipRouteChildren: AuthenticatedAdminMembershipRouteChildren =
+  {
+    AuthenticatedAdminMembershipGrantsRoute:
+      AuthenticatedAdminMembershipGrantsRoute,
+    AuthenticatedAdminMembershipPlansRoute:
+      AuthenticatedAdminMembershipPlansRoute,
+    AuthenticatedAdminMembershipRestrictionsRoute:
+      AuthenticatedAdminMembershipRestrictionsRoute,
+    AuthenticatedAdminMembershipSettingsRoute:
+      AuthenticatedAdminMembershipSettingsRoute,
+    AuthenticatedAdminMembershipIndexRoute:
+      AuthenticatedAdminMembershipIndexRoute,
+  }
+
+const AuthenticatedAdminMembershipRouteWithChildren =
+  AuthenticatedAdminMembershipRoute._addFileChildren(
+    AuthenticatedAdminMembershipRouteChildren,
+  )
+
+interface AuthenticatedAdminRecipesRouteChildren {
+  AuthenticatedAdminRecipesCategoriesRoute: typeof AuthenticatedAdminRecipesCategoriesRoute
+  AuthenticatedAdminRecipesNewRoute: typeof AuthenticatedAdminRecipesNewRoute
+  AuthenticatedAdminRecipesIndexRoute: typeof AuthenticatedAdminRecipesIndexRoute
+  AuthenticatedAdminRecipesRecipeIdEditRoute: typeof AuthenticatedAdminRecipesRecipeIdEditRoute
+}
+
+const AuthenticatedAdminRecipesRouteChildren: AuthenticatedAdminRecipesRouteChildren =
+  {
+    AuthenticatedAdminRecipesCategoriesRoute:
+      AuthenticatedAdminRecipesCategoriesRoute,
+    AuthenticatedAdminRecipesNewRoute: AuthenticatedAdminRecipesNewRoute,
+    AuthenticatedAdminRecipesIndexRoute: AuthenticatedAdminRecipesIndexRoute,
+    AuthenticatedAdminRecipesRecipeIdEditRoute:
+      AuthenticatedAdminRecipesRecipeIdEditRoute,
+  }
+
+const AuthenticatedAdminRecipesRouteWithChildren =
+  AuthenticatedAdminRecipesRoute._addFileChildren(
+    AuthenticatedAdminRecipesRouteChildren,
+  )
+
 interface AuthenticatedAdminSeoRouteChildren {
   AuthenticatedAdminSeoSettingsRoute: typeof AuthenticatedAdminSeoSettingsRoute
   AuthenticatedAdminSeoSitemapRoute: typeof AuthenticatedAdminSeoSitemapRoute
@@ -2279,13 +4047,82 @@ const AuthenticatedAdminSeoRouteWithChildren =
     AuthenticatedAdminSeoRouteChildren,
   )
 
+interface AuthenticatedAdminSettingsAnalyticsRouteChildren {
+  AuthenticatedAdminSettingsAnalyticsGa4Route: typeof AuthenticatedAdminSettingsAnalyticsGa4Route
+}
+
+const AuthenticatedAdminSettingsAnalyticsRouteChildren: AuthenticatedAdminSettingsAnalyticsRouteChildren =
+  {
+    AuthenticatedAdminSettingsAnalyticsGa4Route:
+      AuthenticatedAdminSettingsAnalyticsGa4Route,
+  }
+
+const AuthenticatedAdminSettingsAnalyticsRouteWithChildren =
+  AuthenticatedAdminSettingsAnalyticsRoute._addFileChildren(
+    AuthenticatedAdminSettingsAnalyticsRouteChildren,
+  )
+
+interface AuthenticatedAdminSettingsIntegrationsShippingRouteChildren {
+  AuthenticatedAdminSettingsIntegrationsShippingDhlRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingDhlRoute
+  AuthenticatedAdminSettingsIntegrationsShippingFedexRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingFedexRoute
+  AuthenticatedAdminSettingsIntegrationsShippingShipstationRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingShipstationRoute
+  AuthenticatedAdminSettingsIntegrationsShippingUpsRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingUpsRoute
+  AuthenticatedAdminSettingsIntegrationsShippingUspsRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingUspsRoute
+}
+
+const AuthenticatedAdminSettingsIntegrationsShippingRouteChildren: AuthenticatedAdminSettingsIntegrationsShippingRouteChildren =
+  {
+    AuthenticatedAdminSettingsIntegrationsShippingDhlRoute:
+      AuthenticatedAdminSettingsIntegrationsShippingDhlRoute,
+    AuthenticatedAdminSettingsIntegrationsShippingFedexRoute:
+      AuthenticatedAdminSettingsIntegrationsShippingFedexRoute,
+    AuthenticatedAdminSettingsIntegrationsShippingShipstationRoute:
+      AuthenticatedAdminSettingsIntegrationsShippingShipstationRoute,
+    AuthenticatedAdminSettingsIntegrationsShippingUpsRoute:
+      AuthenticatedAdminSettingsIntegrationsShippingUpsRoute,
+    AuthenticatedAdminSettingsIntegrationsShippingUspsRoute:
+      AuthenticatedAdminSettingsIntegrationsShippingUspsRoute,
+  }
+
+const AuthenticatedAdminSettingsIntegrationsShippingRouteWithChildren =
+  AuthenticatedAdminSettingsIntegrationsShippingRoute._addFileChildren(
+    AuthenticatedAdminSettingsIntegrationsShippingRouteChildren,
+  )
+
+interface AuthenticatedAdminSettingsIntegrationsRouteChildren {
+  AuthenticatedAdminSettingsIntegrationsClerkRoute: typeof AuthenticatedAdminSettingsIntegrationsClerkRoute
+  AuthenticatedAdminSettingsIntegrationsGoogleRoute: typeof AuthenticatedAdminSettingsIntegrationsGoogleRoute
+  AuthenticatedAdminSettingsIntegrationsPaypalRoute: typeof AuthenticatedAdminSettingsIntegrationsPaypalRoute
+  AuthenticatedAdminSettingsIntegrationsShippingRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingRouteWithChildren
+  AuthenticatedAdminSettingsIntegrationsStripeRoute: typeof AuthenticatedAdminSettingsIntegrationsStripeRoute
+}
+
+const AuthenticatedAdminSettingsIntegrationsRouteChildren: AuthenticatedAdminSettingsIntegrationsRouteChildren =
+  {
+    AuthenticatedAdminSettingsIntegrationsClerkRoute:
+      AuthenticatedAdminSettingsIntegrationsClerkRoute,
+    AuthenticatedAdminSettingsIntegrationsGoogleRoute:
+      AuthenticatedAdminSettingsIntegrationsGoogleRoute,
+    AuthenticatedAdminSettingsIntegrationsPaypalRoute:
+      AuthenticatedAdminSettingsIntegrationsPaypalRoute,
+    AuthenticatedAdminSettingsIntegrationsShippingRoute:
+      AuthenticatedAdminSettingsIntegrationsShippingRouteWithChildren,
+    AuthenticatedAdminSettingsIntegrationsStripeRoute:
+      AuthenticatedAdminSettingsIntegrationsStripeRoute,
+  }
+
+const AuthenticatedAdminSettingsIntegrationsRouteWithChildren =
+  AuthenticatedAdminSettingsIntegrationsRoute._addFileChildren(
+    AuthenticatedAdminSettingsIntegrationsRouteChildren,
+  )
+
 interface AuthenticatedAdminSettingsRouteChildren {
   AuthenticatedAdminSettingsAiRoute: typeof AuthenticatedAdminSettingsAiRoute
-  AuthenticatedAdminSettingsAnalyticsRoute: typeof AuthenticatedAdminSettingsAnalyticsRoute
+  AuthenticatedAdminSettingsAnalyticsRoute: typeof AuthenticatedAdminSettingsAnalyticsRouteWithChildren
   AuthenticatedAdminSettingsDiscussionRoute: typeof AuthenticatedAdminSettingsDiscussionRoute
   AuthenticatedAdminSettingsEmailRoute: typeof AuthenticatedAdminSettingsEmailRoute
   AuthenticatedAdminSettingsGeneralRoute: typeof AuthenticatedAdminSettingsGeneralRoute
-  AuthenticatedAdminSettingsIntegrationsRoute: typeof AuthenticatedAdminSettingsIntegrationsRoute
+  AuthenticatedAdminSettingsIntegrationsRoute: typeof AuthenticatedAdminSettingsIntegrationsRouteWithChildren
   AuthenticatedAdminSettingsMediaRoute: typeof AuthenticatedAdminSettingsMediaRoute
   AuthenticatedAdminSettingsNotificationsRoute: typeof AuthenticatedAdminSettingsNotificationsRoute
   AuthenticatedAdminSettingsPermalinksRoute: typeof AuthenticatedAdminSettingsPermalinksRoute
@@ -2303,14 +4140,14 @@ const AuthenticatedAdminSettingsRouteChildren: AuthenticatedAdminSettingsRouteCh
   {
     AuthenticatedAdminSettingsAiRoute: AuthenticatedAdminSettingsAiRoute,
     AuthenticatedAdminSettingsAnalyticsRoute:
-      AuthenticatedAdminSettingsAnalyticsRoute,
+      AuthenticatedAdminSettingsAnalyticsRouteWithChildren,
     AuthenticatedAdminSettingsDiscussionRoute:
       AuthenticatedAdminSettingsDiscussionRoute,
     AuthenticatedAdminSettingsEmailRoute: AuthenticatedAdminSettingsEmailRoute,
     AuthenticatedAdminSettingsGeneralRoute:
       AuthenticatedAdminSettingsGeneralRoute,
     AuthenticatedAdminSettingsIntegrationsRoute:
-      AuthenticatedAdminSettingsIntegrationsRoute,
+      AuthenticatedAdminSettingsIntegrationsRouteWithChildren,
     AuthenticatedAdminSettingsMediaRoute: AuthenticatedAdminSettingsMediaRoute,
     AuthenticatedAdminSettingsNotificationsRoute:
       AuthenticatedAdminSettingsNotificationsRoute,
@@ -2377,8 +4214,10 @@ interface AuthenticatedAdminToolsRouteChildren {
   AuthenticatedAdminToolsRedirectsNewRoute: typeof AuthenticatedAdminToolsRedirectsNewRoute
   AuthenticatedAdminToolsAuditLogIndexRoute: typeof AuthenticatedAdminToolsAuditLogIndexRoute
   AuthenticatedAdminToolsRedirectsIndexRoute: typeof AuthenticatedAdminToolsRedirectsIndexRoute
+  AuthenticatedAdminToolsWebsiteImportIndexRoute: typeof AuthenticatedAdminToolsWebsiteImportIndexRoute
   AuthenticatedAdminToolsWordpressSyncIndexRoute: typeof AuthenticatedAdminToolsWordpressSyncIndexRoute
   AuthenticatedAdminToolsRedirectsRedirectIdEditRoute: typeof AuthenticatedAdminToolsRedirectsRedirectIdEditRoute
+  AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute: typeof AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute
   AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute: typeof AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute
 }
 
@@ -2404,10 +4243,14 @@ const AuthenticatedAdminToolsRouteChildren: AuthenticatedAdminToolsRouteChildren
       AuthenticatedAdminToolsAuditLogIndexRoute,
     AuthenticatedAdminToolsRedirectsIndexRoute:
       AuthenticatedAdminToolsRedirectsIndexRoute,
+    AuthenticatedAdminToolsWebsiteImportIndexRoute:
+      AuthenticatedAdminToolsWebsiteImportIndexRoute,
     AuthenticatedAdminToolsWordpressSyncIndexRoute:
       AuthenticatedAdminToolsWordpressSyncIndexRoute,
     AuthenticatedAdminToolsRedirectsRedirectIdEditRoute:
       AuthenticatedAdminToolsRedirectsRedirectIdEditRoute,
+    AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute:
+      AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute,
     AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute:
       AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute,
   }
@@ -2473,16 +4316,24 @@ const AuthenticatedAdminPostsPostIdRouteWithChildren =
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAppearanceRoute: typeof AuthenticatedAdminAppearanceRouteWithChildren
+  AuthenticatedAdminCommerceRoute: typeof AuthenticatedAdminCommerceRouteWithChildren
   AuthenticatedAdminCustomFieldsRoute: typeof AuthenticatedAdminCustomFieldsRouteWithChildren
   AuthenticatedAdminDashboardRoute: typeof AuthenticatedAdminDashboardRoute
+  AuthenticatedAdminGalleryRoute: typeof AuthenticatedAdminGalleryRouteWithChildren
   AuthenticatedAdminKbRoute: typeof AuthenticatedAdminKbRouteWithChildren
+  AuthenticatedAdminMembershipRoute: typeof AuthenticatedAdminMembershipRouteWithChildren
+  AuthenticatedAdminPluginsRoute: typeof AuthenticatedAdminPluginsRoute
   AuthenticatedAdminProfileRoute: typeof AuthenticatedAdminProfileRoute
+  AuthenticatedAdminRecipesRoute: typeof AuthenticatedAdminRecipesRouteWithChildren
   AuthenticatedAdminSeoRoute: typeof AuthenticatedAdminSeoRouteWithChildren
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRouteWithChildren
   AuthenticatedAdminTicketsRoute: typeof AuthenticatedAdminTicketsRouteWithChildren
   AuthenticatedAdminToolsRoute: typeof AuthenticatedAdminToolsRouteWithChildren
   AuthenticatedAdminUpdatesRoute: typeof AuthenticatedAdminUpdatesRoute
   AuthenticatedAdminCommentsPendingRoute: typeof AuthenticatedAdminCommentsPendingRoute
+  AuthenticatedAdminLayoutsLayoutIdRoute: typeof AuthenticatedAdminLayoutsLayoutIdRoute
+  AuthenticatedAdminLayoutsAssignRoute: typeof AuthenticatedAdminLayoutsAssignRoute
+  AuthenticatedAdminLayoutsNewRoute: typeof AuthenticatedAdminLayoutsNewRoute
   AuthenticatedAdminMediaUploadRoute: typeof AuthenticatedAdminMediaUploadRoute
   AuthenticatedAdminMenusLocationsRoute: typeof AuthenticatedAdminMenusLocationsRoute
   AuthenticatedAdminPagesPageIdRoute: typeof AuthenticatedAdminPagesPageIdRouteWithChildren
@@ -2496,6 +4347,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminUsersNewRoute: typeof AuthenticatedAdminUsersNewRoute
   AuthenticatedAdminApiKeysIndexRoute: typeof AuthenticatedAdminApiKeysIndexRoute
   AuthenticatedAdminCommentsIndexRoute: typeof AuthenticatedAdminCommentsIndexRoute
+  AuthenticatedAdminLayoutsIndexRoute: typeof AuthenticatedAdminLayoutsIndexRoute
   AuthenticatedAdminMediaIndexRoute: typeof AuthenticatedAdminMediaIndexRoute
   AuthenticatedAdminMenusIndexRoute: typeof AuthenticatedAdminMenusIndexRoute
   AuthenticatedAdminPagesIndexRoute: typeof AuthenticatedAdminPagesIndexRoute
@@ -2513,11 +4365,17 @@ interface AuthenticatedAdminRouteChildren {
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAppearanceRoute:
     AuthenticatedAdminAppearanceRouteWithChildren,
+  AuthenticatedAdminCommerceRoute: AuthenticatedAdminCommerceRouteWithChildren,
   AuthenticatedAdminCustomFieldsRoute:
     AuthenticatedAdminCustomFieldsRouteWithChildren,
   AuthenticatedAdminDashboardRoute: AuthenticatedAdminDashboardRoute,
+  AuthenticatedAdminGalleryRoute: AuthenticatedAdminGalleryRouteWithChildren,
   AuthenticatedAdminKbRoute: AuthenticatedAdminKbRouteWithChildren,
+  AuthenticatedAdminMembershipRoute:
+    AuthenticatedAdminMembershipRouteWithChildren,
+  AuthenticatedAdminPluginsRoute: AuthenticatedAdminPluginsRoute,
   AuthenticatedAdminProfileRoute: AuthenticatedAdminProfileRoute,
+  AuthenticatedAdminRecipesRoute: AuthenticatedAdminRecipesRouteWithChildren,
   AuthenticatedAdminSeoRoute: AuthenticatedAdminSeoRouteWithChildren,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRouteWithChildren,
   AuthenticatedAdminTicketsRoute: AuthenticatedAdminTicketsRouteWithChildren,
@@ -2525,6 +4383,10 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminUpdatesRoute: AuthenticatedAdminUpdatesRoute,
   AuthenticatedAdminCommentsPendingRoute:
     AuthenticatedAdminCommentsPendingRoute,
+  AuthenticatedAdminLayoutsLayoutIdRoute:
+    AuthenticatedAdminLayoutsLayoutIdRoute,
+  AuthenticatedAdminLayoutsAssignRoute: AuthenticatedAdminLayoutsAssignRoute,
+  AuthenticatedAdminLayoutsNewRoute: AuthenticatedAdminLayoutsNewRoute,
   AuthenticatedAdminMediaUploadRoute: AuthenticatedAdminMediaUploadRoute,
   AuthenticatedAdminMenusLocationsRoute: AuthenticatedAdminMenusLocationsRoute,
   AuthenticatedAdminPagesPageIdRoute:
@@ -2542,6 +4404,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminUsersNewRoute: AuthenticatedAdminUsersNewRoute,
   AuthenticatedAdminApiKeysIndexRoute: AuthenticatedAdminApiKeysIndexRoute,
   AuthenticatedAdminCommentsIndexRoute: AuthenticatedAdminCommentsIndexRoute,
+  AuthenticatedAdminLayoutsIndexRoute: AuthenticatedAdminLayoutsIndexRoute,
   AuthenticatedAdminMediaIndexRoute: AuthenticatedAdminMediaIndexRoute,
   AuthenticatedAdminMenusIndexRoute: AuthenticatedAdminMenusIndexRoute,
   AuthenticatedAdminPagesIndexRoute: AuthenticatedAdminPagesIndexRoute,

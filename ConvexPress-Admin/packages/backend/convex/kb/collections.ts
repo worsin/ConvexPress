@@ -28,12 +28,14 @@ import {
   getCollectionByIdArgs,
   getCollectionBySlugArgs,
 } from "./validators";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -48,6 +50,7 @@ export const list = query({
 export const listPublic = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
       .query("kb_collections")
       .withIndex("by_public", (q) => q.eq("isPublic", true))
@@ -60,6 +63,7 @@ export const listPublic = query({
 export const getById = query({
   args: getCollectionByIdArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
@@ -92,6 +96,7 @@ export const getById = query({
 export const getBySlug = query({
   args: getCollectionBySlugArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const collection = await ctx.db
       .query("kb_collections")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
@@ -129,6 +134,7 @@ export const getBySlug = query({
 export const create = mutation({
   args: createCollectionArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
 
     const name = args.name.trim();
@@ -161,6 +167,7 @@ export const create = mutation({
 export const update = mutation({
   args: updateCollectionArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
 
     const collection = await ctx.db.get("kb_collections", args.collectionId);
@@ -194,6 +201,7 @@ export const update = mutation({
 export const remove = mutation({
   args: removeCollectionArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
 
     const collection = await ctx.db.get("kb_collections", args.collectionId);
@@ -220,6 +228,7 @@ export const remove = mutation({
 export const addArticle = mutation({
   args: addArticleToCollectionArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
 
     // Check for existing association
@@ -261,6 +270,7 @@ export const addArticle = mutation({
 export const removeArticle = mutation({
   args: removeArticleFromCollectionArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
 
     const collectionArticles = await ctx.db
@@ -291,6 +301,7 @@ export const removeArticle = mutation({
 export const reorderArticles = mutation({
   args: reorderCollectionArticlesArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
 
     const collectionArticles = await ctx.db

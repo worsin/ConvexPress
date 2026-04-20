@@ -11,7 +11,7 @@ import {
 type CommerceCtx = QueryCtx | MutationCtx;
 
 async function getPluginSettings(ctx: CommerceCtx): Promise<PluginsSettings> {
-  const doc = await ctx.db
+  const doc = await (ctx.db as any)
     .query("settings")
     .withIndex("by_section", (q: any) => q.eq("section", "plugins"))
     .unique();
@@ -25,7 +25,7 @@ async function getPluginSettings(ctx: CommerceCtx): Promise<PluginsSettings> {
 export async function getCommerceSettings(
   ctx: CommerceCtx,
 ): Promise<CommerceGeneralSettings> {
-  const doc = await ctx.db
+  const doc = await (ctx.db as any)
     .query("settings")
     .withIndex("by_section", (q: any) => q.eq("section", "commerce.general"))
     .unique();
@@ -62,6 +62,36 @@ export function getEnabledPaymentMethods(
 export async function isCommerceEnabled(ctx: CommerceCtx): Promise<boolean> {
   const settings = await getPluginSettings(ctx);
   return settings.commerceEnabled;
+}
+
+export async function isCommerceReturnsEnabled(
+  ctx: CommerceCtx,
+): Promise<boolean> {
+  const settings = await getPluginSettings(ctx);
+  return Boolean(
+    (settings as any).commerceEnabled &&
+      (settings as any).commerceReturnsEnabled,
+  );
+}
+
+export async function isCommerceDigitalEnabled(
+  ctx: CommerceCtx,
+): Promise<boolean> {
+  const settings = await getPluginSettings(ctx);
+  return settings.commerceEnabled && (settings as any).commerceDigitalEnabled;
+}
+
+export async function requireCommerceDigitalEnabled(
+  ctx: CommerceCtx,
+): Promise<void> {
+  await requireCommerceEnabled(ctx);
+
+  if (!(await isCommerceDigitalEnabled(ctx))) {
+    throw new ConvexError({
+      code: "commerce_digital_disabled",
+      message: "Commerce Digital plugin is disabled.",
+    });
+  }
 }
 
 export async function requireCommerceEnabled(ctx: CommerceCtx): Promise<void> {

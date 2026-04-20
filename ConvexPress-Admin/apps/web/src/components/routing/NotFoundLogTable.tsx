@@ -25,6 +25,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { ListTable } from "@/components/shared/ListTable";
 import { ListTableToolbar } from "@/components/shared/ListTableToolbar";
 import { Pagination } from "@/components/shared/Pagination";
+import { StatusTabs } from "@/components/shared/StatusTabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useListTable } from "@/hooks/useListTable";

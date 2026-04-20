@@ -292,10 +292,67 @@ type CommerceBundlesCapability =
   | "commerce.bundles.edit"
   | "commerce.bundles.delete";
 
+// ─── Commerce Reviews Capabilities (3) ──────────────────────────────────────
+
+type CommerceReviewsCapability =
+  | "commerce.reviews.view"
+  | "commerce.reviews.moderate"
+  | "commerce.reviews.delete";
+
 // ─── Settings Management Capability (1) ─────────────────────────────────────
 // WordPress-standard "manage_options" used by admin-only settings operations.
 
 type SettingsManageCapability = "manage_options";
+
+// ─── Shipping Capabilities ──────────────────────────────────────────────────
+// Covers the shipping subsystem (PRDs A1–D3). Uses the resource-namespace
+// dot convention to match the rest of the capability system.
+
+type ShippingCapability =
+  // Zones (PRD A1)
+  | "shipping.zones.manage"
+  | "shipping.zones.read"
+  // Classes (PRD A2)
+  | "shipping.classes.manage"
+  | "shipping.classes.read"
+  // Packages (PRD A3)
+  | "shipping.packages.manage"
+  | "shipping.packages.read"
+  // Ship-From Locations (PRD A4)
+  | "shipping.locations.manage"
+  | "shipping.locations.read"
+  // Address Validation (PRD A5)
+  | "shipping.address_validation.manage"
+  | "shipping.address_validation.read"
+  // Rules Engine (PRD A6)
+  | "shipping.rules.manage"
+  | "shipping.rules.read"
+  // Rate Pipeline Diagnostics (PRD A7)
+  | "shipping.diagnostics.view"
+  | "shipping.test_rates.run"
+  // Methods (PRDs B1–B10)
+  | "shipping.methods.manage"
+  | "shipping.methods.read"
+  | "shipping.methods.preview"
+  | "shipping.methods.test"
+  | "shipping.methods.quote"
+  // Providers (PRDs C1–C5)
+  | "shipping.providers.manage"
+  | "shipping.providers.read"
+  | "shipping.providers.test"
+  // Labels (PRD D1)
+  | "shipping.labels.purchase"
+  | "shipping.labels.void"
+  | "shipping.labels.reprint"
+  | "shipping.labels.batch"
+  | "shipping.labels.read"
+  // Tracking (PRD D2)
+  | "shipping.tracking.view"
+  | "shipping.tracking.sync"
+  // Manifests (PRD D3)
+  | "shipping.manifests.view"
+  | "shipping.manifests.close"
+  | "shipping.manifests.reprint";
 
 // ─── Meta Capabilities (10) ─────────────────────────────────────────────────
 // These resolve dynamically based on context (resource ownership, etc.)
@@ -348,7 +405,9 @@ export type Capability =
   | TicketCapability
   | CommerceReturnsCapability
   | CommerceBundlesCapability
-  | SettingsManageCapability;
+  | CommerceReviewsCapability
+  | SettingsManageCapability
+  | ShippingCapability;
 
 /**
  * Any capability string that can be passed to permission checks.
@@ -565,8 +624,45 @@ export const ALL_CAPABILITIES: Capability[] = [
   "commerce.bundles.create",
   "commerce.bundles.edit",
   "commerce.bundles.delete",
+  // Commerce Reviews (3)
+  "commerce.reviews.view",
+  "commerce.reviews.moderate",
+  "commerce.reviews.delete",
   // Settings Management (1)
   "manage_options",
+  // Shipping (34) — PRDs A1–D3
+  "shipping.zones.manage",
+  "shipping.zones.read",
+  "shipping.classes.manage",
+  "shipping.classes.read",
+  "shipping.packages.manage",
+  "shipping.packages.read",
+  "shipping.locations.manage",
+  "shipping.locations.read",
+  "shipping.address_validation.manage",
+  "shipping.address_validation.read",
+  "shipping.rules.manage",
+  "shipping.rules.read",
+  "shipping.diagnostics.view",
+  "shipping.test_rates.run",
+  "shipping.methods.manage",
+  "shipping.methods.read",
+  "shipping.methods.preview",
+  "shipping.methods.test",
+  "shipping.methods.quote",
+  "shipping.providers.manage",
+  "shipping.providers.read",
+  "shipping.providers.test",
+  "shipping.labels.purchase",
+  "shipping.labels.void",
+  "shipping.labels.reprint",
+  "shipping.labels.batch",
+  "shipping.labels.read",
+  "shipping.tracking.view",
+  "shipping.tracking.sync",
+  "shipping.manifests.view",
+  "shipping.manifests.close",
+  "shipping.manifests.reprint",
 ] as const;
 
 /**

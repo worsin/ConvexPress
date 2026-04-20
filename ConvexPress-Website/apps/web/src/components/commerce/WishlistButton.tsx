@@ -4,6 +4,9 @@ import { toast } from "sonner";
 import { Heart } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
 
+import { useSettings } from "@/contexts/SettingsContext";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
+
 interface WishlistButtonProps {
   productId: string;
   variantId?: string;
@@ -27,6 +30,12 @@ export function WishlistButton({
   size = "md",
   className,
 }: WishlistButtonProps) {
+  const settings = useSettings();
+  const wishlistsEnabled = isPublicPluginEnabled(
+    "commerceWishlists",
+    settings,
+  );
+
   const addItem = useMutation(
     (api as any).commerceWishlists.mutations.addItem,
   );
@@ -36,10 +45,12 @@ export function WishlistButton({
 
   const wishlistStatus = useQuery(
     (api as any).commerceWishlists.queries.isInWishlist,
-    {
-      productId: productId as any,
-      ...(variantId ? { variantId: variantId as any } : {}),
-    },
+    wishlistsEnabled
+      ? {
+          productId: productId as any,
+          ...(variantId ? { variantId: variantId as any } : {}),
+        }
+      : "skip",
   ) as
     | {
         inWishlist: boolean;
@@ -49,6 +60,10 @@ export function WishlistButton({
     | undefined;
 
   const [busy, setBusy] = useState(false);
+
+  if (!wishlistsEnabled) {
+    return null;
+  }
 
   // Don't render while loading to avoid layout shift
   if (wishlistStatus === undefined) {

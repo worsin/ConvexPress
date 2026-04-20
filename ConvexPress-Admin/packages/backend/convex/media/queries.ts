@@ -107,14 +107,25 @@ export const list = query({
     // ── Determine sort direction ──────────────────────────────────────────
     const sortDir = args.orderDir === "asc" ? "asc" : "desc";
 
-    // ── Helper: post-filter results for date range and unattached ────────
+    // Trash scope. Default "active" hides trashed items (WP behavior).
+    // "only" shows just the trash bin. "all" shows both.
+    const trashView = args.trashView ?? "active";
+
+    // ── Helper: post-filter results for date range, unattached, trash ────
     // Convex index queries don't support range comparisons on non-index
     // fields directly, so we apply date/unattached as post-filters.
-    // For large datasets, dedicated indexes could be added later.
-    const needsPostFilter = args.dateFrom || args.dateTo || args.unattached || args.mimeType;
+    // Trash filtering is applied unconditionally (on "all" it's a no-op).
+    const needsPostFilter =
+      args.dateFrom ||
+      args.dateTo ||
+      args.unattached ||
+      args.mimeType ||
+      trashView !== "all";
 
     const applyPostFilters = (items: Doc<"media">[]): Doc<"media">[] => {
       return items.filter((item) => {
+        if (trashView === "active" && item.status === "trashed") return false;
+        if (trashView === "only" && item.status !== "trashed") return false;
         if (args.dateFrom && item.createdAt < args.dateFrom) return false;
         if (args.dateTo && item.createdAt > args.dateTo) return false;
         if (args.unattached && item.attachedTo) return false;
@@ -359,70 +370,44 @@ export const counts = query({
         documents: 0,
         mine: 0,
         unattached: 0,
+        trashed: 0,
       };
     }
 
-    // Query each type separately using targeted indexes
-    const [imageItems, videoItems, audioItems, docItems, archiveItems, otherItems, mineItems] =
-      await Promise.all([
-        ctx.db
-          .query("media")
-          .withIndex("by_type", (q) => q.eq("mediaType", "image"))
-          .collect(),
-        ctx.db
-          .query("media")
-          .withIndex("by_type", (q) => q.eq("mediaType", "video"))
-          .collect(),
-        ctx.db
-          .query("media")
-          .withIndex("by_type", (q) => q.eq("mediaType", "audio"))
-          .collect(),
-        ctx.db
-          .query("media")
-          .withIndex("by_type", (q) => q.eq("mediaType", "document"))
-          .collect(),
-        ctx.db
-          .query("media")
-          .withIndex("by_type", (q) => q.eq("mediaType", "archive"))
-          .collect(),
-        ctx.db
-          .query("media")
-          .withIndex("by_type", (q) => q.eq("mediaType", "other"))
-          .collect(),
-        ctx.db
-          .query("media")
-          .withIndex("by_uploaded_by", (q) => q.eq("uploadedBy", user._id))
-          .collect(),
-      ]);
+    const [
+      imageItems,
+      videoItems,
+      audioItems,
+      docItems,
+      archiveItems,
+      otherItems,
+      mineItems,
+      trashedItems,
+    ] = await Promise.all([
+      ctx.db.query("media").withIndex("by_type", (q) => q.eq("mediaType", "image")).collect(),
+      ctx.db.query("media").withIndex("by_type", (q) => q.eq("mediaType", "video")).collect(),
+      ctx.db.query("media").withIndex("by_type", (q) => q.eq("mediaType", "audio")).collect(),
+      ctx.db.query("media").withIndex("by_type", (q) => q.eq("mediaType", "document")).collect(),
+      ctx.db.query("media").withIndex("by_type", (q) => q.eq("mediaType", "archive")).collect(),
+      ctx.db.query("media").withIndex("by_type", (q) => q.eq("mediaType", "other")).collect(),
+      ctx.db.query("media").withIndex("by_uploaded_by", (q) => q.eq("uploadedBy", user._id)).collect(),
+      ctx.db.query("media").withIndex("by_status", (q) => q.eq("status", "trashed")).collect(),
+    ]);
 
-    const images = imageItems.length;
-    const video = videoItems.length;
-    const audio = audioItems.length;
-    const documents = docItems.length;
-    const all = images + video + audio + documents + archiveItems.length + otherItems.length;
-    const mine = mineItems.length;
+    // Exclude trashed items from the type/mine/unattached counts (WP behavior).
+    const active = (it: { status: string }) => it.status !== "trashed";
+    const images = imageItems.filter(active).length;
+    const video = videoItems.filter(active).length;
+    const audio = audioItems.filter(active).length;
+    const documents = docItems.filter(active).length;
+    const archive = archiveItems.filter(active).length;
+    const other = otherItems.filter(active).length;
+    const all = images + video + audio + documents + archive + other;
+    const mine = mineItems.filter(active).length;
 
-    // M8: Count unattached media (items without an attachedTo field)
-    // Since there's no index for "attachedTo is undefined", we count from the
-    // already-fetched per-type arrays to avoid another full scan.
     let unattached = 0;
-    for (const item of imageItems) {
-      if (!item.attachedTo) unattached++;
-    }
-    for (const item of videoItems) {
-      if (!item.attachedTo) unattached++;
-    }
-    for (const item of audioItems) {
-      if (!item.attachedTo) unattached++;
-    }
-    for (const item of docItems) {
-      if (!item.attachedTo) unattached++;
-    }
-    for (const item of archiveItems) {
-      if (!item.attachedTo) unattached++;
-    }
-    for (const item of otherItems) {
-      if (!item.attachedTo) unattached++;
+    for (const item of [...imageItems, ...videoItems, ...audioItems, ...docItems, ...archiveItems, ...otherItems]) {
+      if (active(item) && !item.attachedTo) unattached++;
     }
 
     return {
@@ -433,6 +418,7 @@ export const counts = query({
       documents,
       mine,
       unattached,
+      trashed: trashedItems.length,
     };
   },
 });

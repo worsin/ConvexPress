@@ -3,7 +3,8 @@ import { v } from "convex/values";
 
 import { query } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
-import { requireCommerceEnabled } from "../commerce/helpers";
+import { requireCommerceDigitalEnabled } from "../commerce/helpers";
+import { isPluginEnabled } from "../helpers/plugins";
 
 // ============================================
 // DIGITAL FILE QUERIES
@@ -19,7 +20,8 @@ export const getFilesByProduct = query({
     includeAllVersions: v.optional(v.boolean()),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
+    await requireCommerceDigitalEnabled(ctx);
 
     const files = await ctx.db
       .query("commerce_digital_files")
@@ -46,7 +48,8 @@ export const getFilesByProduct = query({
 export const getFile = query({
   args: { fileId: v.id("commerce_digital_files") },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
+    await requireCommerceDigitalEnabled(ctx);
     return await ctx.db.get(args.fileId);
   },
 });
@@ -61,7 +64,8 @@ export const getFile = query({
 export const validateDownloadToken = query({
   args: { token: v.string() },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
+    await requireCommerceDigitalEnabled(ctx);
 
     const tokenRecord = await ctx.db
       .query("commerce_download_tokens")
@@ -113,7 +117,8 @@ export const validateDownloadToken = query({
 export const getDownloadTokensByOrder = query({
   args: { orderId: v.id("commerce_orders") },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
+    await requireCommerceDigitalEnabled(ctx);
 
     const tokens = await ctx.db
       .query("commerce_download_tokens")
@@ -138,7 +143,8 @@ export const getDownloadTokensByOrder = query({
 export const getMyDownloads = query({
   args: {},
   handler: async (ctx: any) => {
-    await requireCommerceEnabled(ctx);
+    if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
+    await requireCommerceDigitalEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
     if (!user) return [];
@@ -178,7 +184,8 @@ export const getMyDownloads = query({
 export const getDownloadHistory = query({
   args: { tokenId: v.id("commerce_download_tokens") },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
+    await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     return await ctx.db
@@ -199,7 +206,8 @@ export const getDownloadHistory = query({
 export const getLicenseKeysByOrder = query({
   args: { orderId: v.id("commerce_orders") },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
+    await requireCommerceDigitalEnabled(ctx);
 
     const keys = await ctx.db
       .query("commerce_license_keys")
@@ -238,7 +246,8 @@ export const getLicenseKeysByOrder = query({
 export const getMyLicenseKeys = query({
   args: {},
   handler: async (ctx: any) => {
-    await requireCommerceEnabled(ctx);
+    if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
+    await requireCommerceDigitalEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
     if (!user) return [];
@@ -280,7 +289,8 @@ export const getAvailableLicenseKeyCount = query({
     variantId: v.optional(v.id("commerce_product_variants")),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
+    await requireCommerceDigitalEnabled(ctx);
 
     const keys = await ctx.db
       .query("commerce_license_keys")
@@ -316,7 +326,8 @@ export const listLicenseKeysByProduct = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
+    await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const keys = await ctx.db
@@ -349,7 +360,8 @@ export const validateLicense = query({
     deviceId: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
+    await requireCommerceDigitalEnabled(ctx);
 
     const key = await ctx.db
       .query("commerce_license_keys")
@@ -410,7 +422,8 @@ export const validateLicense = query({
 export const getLicenseActivations = query({
   args: { keyId: v.id("commerce_license_keys") },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
+    await requireCommerceDigitalEnabled(ctx);
 
     return await ctx.db
       .query("commerce_license_activations")

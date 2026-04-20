@@ -27,6 +27,7 @@ import {
   invalidateSessionArgs,
   SESSION_TTL_MS,
 } from "./validators";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── create ─────────────────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ import {
 export const create = mutation({
   args: createSessionArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     // Validate sessionId format
     if (!args.sessionId || args.sessionId.length > 64 || args.sessionId.length < 16) {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Invalid session ID format" });
@@ -78,6 +80,7 @@ export const create = mutation({
 export const validate = query({
   args: validateSessionArgs,
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const session = await ctx.db
       .query("ticket_sessions")
       .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
@@ -109,6 +112,7 @@ export const validate = query({
 export const touch = mutation({
   args: touchSessionArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const session = await ctx.db
       .query("ticket_sessions")
       .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
@@ -133,6 +137,7 @@ export const touch = mutation({
 export const associateUser = mutation({
   args: associateUserArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     // Verify the caller IS the user being associated
     const currentUser = await getCurrentUser(ctx);
     if (!currentUser) {
@@ -169,6 +174,7 @@ export const associateUser = mutation({
 export const invalidate = mutation({
   args: invalidateSessionArgs,
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const session = await ctx.db
       .query("ticket_sessions")
       .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
@@ -190,6 +196,7 @@ export const invalidate = mutation({
 export const cleanupExpired = internalMutation({
   args: { batchSize: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     const batchSize = args.batchSize ?? 500;
     const now = Date.now();
 

@@ -5,7 +5,8 @@
  * Shows dimensions and file size per variant, with a "View" link.
  */
 
-import { ExternalLinkIcon } from "lucide-react";
+import { CopyIcon, ExternalLinkIcon } from "lucide-react";
+import { toast } from "sonner";
 
 interface SizeRecord {
   _id: string;
@@ -92,15 +93,33 @@ export function ImageSizesPanel({ sizes }: ImageSizesPanelProps) {
                 {formatFileSize(size.fileSize)}
               </td>
               <td className="py-1.5 text-right">
-                <a
-                  href={size.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-primary hover:underline"
-                >
-                  <ExternalLinkIcon className="size-3" />
-                  View
-                </a>
+                <div className="inline-flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(size.url);
+                        toast.success(`${SIZE_LABELS[size.sizeName] || size.sizeName} URL copied.`);
+                      } catch {
+                        toast.error("Failed to copy URL.");
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                    aria-label={`Copy ${size.sizeName} URL`}
+                  >
+                    <CopyIcon className="size-3" />
+                    Copy
+                  </button>
+                  <a
+                    href={size.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    <ExternalLinkIcon className="size-3" />
+                    View
+                  </a>
+                </div>
               </td>
             </tr>
           ))}

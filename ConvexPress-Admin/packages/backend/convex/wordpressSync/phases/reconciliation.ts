@@ -26,7 +26,7 @@
 import { internalAction } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 
 const BATCH_SIZE = 100;
 const PASS_COUNT = 11; // 10 repair passes + 1 tombstone pass
@@ -76,11 +76,7 @@ export const runBatch = internalAction({
   args: {
     jobId: v.id("wordpressSyncJobs"),
     siteId: v.id("wordpressSites"),
-    credentials: v.object({
-      siteUrl: v.string(),
-      username: v.string(),
-      applicationPassword: v.string(),
-    }),
+    credentials: siteCredentialsValidator,
   },
   handler: async (ctx, { jobId, siteId }) => {
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
@@ -92,7 +88,7 @@ export const runBatch = internalAction({
       };
     }
 
-    const importConfig = job.importConfig ?? createDefaultImportConfig();
+    const importConfig = normalizeImportConfig(job.importConfig);
     const previousProgress = job.progress.reconciliation || { total: 0, imported: 0, failed: 0 };
     const { passIndex, innerCursor } = decodeCursor(previousProgress.cursor);
 
@@ -152,6 +148,12 @@ async function runPass(
   cursor: number,
   importConfig: any,
 ): Promise<PassResult> {
+  const isDryRun = importConfig?.behavior?.dryRun === true;
+
+  if (isDryRun && passName !== "media_rewrite" && passName !== "tombstone_detection") {
+    return { repaired: 0, failed: 0, hasMore: false, nextCursor: cursor };
+  }
+
   switch (passName) {
     case "taxonomy_hierarchy":
       return await repairTaxonomyHierarchy(ctx, siteId, jobId, cursor);
@@ -172,7 +174,7 @@ async function runPass(
     case "upsell_crosssell":
       return await repairUpsellCrosssell(ctx, siteId, jobId, cursor);
     case "media_rewrite":
-      return await rewriteMediaUrls(ctx, siteId, jobId, cursor);
+      return await rewriteMediaUrls(ctx, siteId, jobId, cursor, isDryRun);
     case "tombstone_detection":
       return await detectTombstones(ctx, siteId, jobId, cursor, importConfig);
     default:
@@ -987,6 +989,7 @@ async function rewriteMediaUrls(
   siteId: any,
   jobId: any,
   cursor: number,
+  isDryRun: boolean,
 ): Promise<PassResult> {
   const isPagePhase = cursor >= PAGE_CURSOR_OFFSET;
   const objectType = isPagePhase ? "page" : "post";
@@ -1014,11 +1017,17 @@ async function rewriteMediaUrls(
     { siteId, limit: 5000 },
   );
 
-  // Build URL replacement map: sourceUrl -> convexId
-  const urlMap = new Map<string, string>();
+  // Build URL replacement map: every WordPress original/size URL -> local media.
+  const urlMap = new Map<string, MediaRewriteTarget>();
   for (const m of mediaMappings) {
-    if (m.sourceUrl && m.convexId) {
-      urlMap.set(m.sourceUrl, m.convexId);
+    if (!m.convexId || !m.url) continue;
+    const sourceUrls = new Set<string>();
+    if (m.sourceUrl) sourceUrls.add(m.sourceUrl);
+    for (const sourceUrl of m.sourceUrls ?? []) {
+      if (sourceUrl) sourceUrls.add(sourceUrl);
+    }
+    for (const sourceUrl of sourceUrls) {
+      urlMap.set(sourceUrl, { mediaId: m.convexId, url: m.url });
     }
   }
 
@@ -1048,11 +1057,13 @@ async function rewriteMediaUrls(
       const replacementCount = rewriteResult.replacementCount;
 
       if (replacementCount > 0) {
-        await ctx.runMutation(internal.wordpressSync.internals.patchEntity, {
-          table: objectType === "page" ? "pages" : "posts",
-          id: mapping.convexId,
-          fields: { content: newContent },
-        });
+        if (!isDryRun) {
+          await ctx.runMutation(internal.wordpressSync.internals.patchEntity, {
+            table: objectType === "page" ? "pages" : "posts",
+            id: mapping.convexId,
+            fields: { content: newContent },
+          });
+        }
 
         await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
           siteId,
@@ -1060,7 +1071,7 @@ async function rewriteMediaUrls(
           severity: "info",
           phase: "reconciliation",
           code: FINDING_CODES.MEDIA_REWRITE_APPLIED,
-          message: `Rewrote ${replacementCount} media URL(s) in ${objectType} ${mapping.convexId}`,
+          message: `${isDryRun ? "Would rewrite" : "Rewrote"} ${replacementCount} media URL(s) in ${objectType} ${mapping.convexId}`,
           sourceType: objectType,
           sourceId: String(mapping.wpId),
           createdAt: Date.now(),
@@ -1084,7 +1095,7 @@ async function rewriteMediaUrls(
 
 function rewriteMediaReferences(
   content: string,
-  urlMap: Map<string, string>,
+  urlMap: Map<string, MediaRewriteTarget>,
 ): { content: string; replacementCount: number } {
   try {
     const parsed = JSON.parse(content);
@@ -1093,13 +1104,21 @@ function rewriteMediaReferences(
       return { content: JSON.stringify(parsed), replacementCount };
     }
   } catch {
-    // Non-JSON content cannot be safely rewritten into structured media refs here.
+    const rewriteResult = rewriteHtmlString(content, urlMap);
+    if (rewriteResult.replacementCount > 0) {
+      return rewriteResult;
+    }
   }
 
   return { content, replacementCount: 0 };
 }
 
-function rewriteMediaNode(node: unknown, urlMap: Map<string, string>): number {
+interface MediaRewriteTarget {
+  mediaId: string;
+  url: string;
+}
+
+function rewriteMediaNode(node: unknown, urlMap: Map<string, MediaRewriteTarget>): number {
   if (!node || typeof node !== "object") return 0;
 
   let replacementCount = 0;
@@ -1110,10 +1129,25 @@ function rewriteMediaNode(node: unknown, urlMap: Map<string, string>): number {
     const attrRecord = attrs as Record<string, unknown>;
     const src = attrRecord.src;
     if (typeof src === "string") {
-      const mediaId = urlMap.get(src);
-      if (mediaId && attrRecord.mediaId !== mediaId) {
-        attrRecord.mediaId = mediaId;
-        replacementCount++;
+      const target = urlMap.get(src);
+      if (target) {
+        if (attrRecord.mediaId !== target.mediaId) {
+          attrRecord.mediaId = target.mediaId;
+          replacementCount++;
+        }
+        if (attrRecord.src !== target.url) {
+          attrRecord.src = target.url;
+          replacementCount++;
+        }
+      }
+    }
+
+    const htmlContent = attrRecord.content;
+    if (typeof htmlContent === "string") {
+      const rewriteResult = rewriteHtmlString(htmlContent, urlMap);
+      if (rewriteResult.replacementCount > 0) {
+        attrRecord.content = rewriteResult.content;
+        replacementCount += rewriteResult.replacementCount;
       }
     }
   }
@@ -1128,6 +1162,23 @@ function rewriteMediaNode(node: unknown, urlMap: Map<string, string>): number {
   return replacementCount;
 }
 
+function rewriteHtmlString(
+  content: string,
+  urlMap: Map<string, MediaRewriteTarget>,
+): { content: string; replacementCount: number } {
+  let rewritten = content;
+  let replacementCount = 0;
+
+  const entries = Array.from(urlMap.entries()).sort((a, b) => b[0].length - a[0].length);
+  for (const [sourceUrl, target] of entries) {
+    if (!sourceUrl || !rewritten.includes(sourceUrl)) continue;
+    rewritten = rewritten.split(sourceUrl).join(target.url);
+    replacementCount++;
+  }
+
+  return { content: rewritten, replacementCount };
+}
+
 // ─── Pass 10: Tombstone Detection ─────────────────────────────────────────
 
 async function detectTombstones(
@@ -1137,33 +1188,54 @@ async function detectTombstones(
   cursor: number,
   importConfig: any,
 ): Promise<PassResult> {
-  // Tombstone detection: find mapped entities that no longer exist in WordPress.
-  //
-  // TODO: Full tombstone detection requires per-run tracking of which WP IDs
-  // were fetched during this sync run. Without that, we can't distinguish
-  // "entity was deleted from WP" from "entity wasn't in scope for this run."
-  //
-  // For now, when tombstoneMode is "mark_stale", we scan mappings and verify
-  // the local entity still exists. If the local entity has been deleted from
-  // Convex but the mapping remains, we create a SOURCE_OBJECT_MISSING finding.
-
   const tombstoneMode = importConfig.behavior.tombstoneMode ?? "never";
   if (tombstoneMode === "never") {
     return { repaired: 0, failed: 0, hasMore: false, nextCursor: cursor };
   }
 
-  // Process all mapping types in a single pass using the generic by_site index
-  // We paginate using the cursor as an afterWpId for "post" type first
-  const objectTypes = [
-    "post",
-    "page",
-    "category",
-    "tag",
-    "media",
-    "comment",
-    "menu",
-    "menuItem",
-  ] as const;
+  const hasSourceFilters =
+    typeof importConfig.filters?.entityLimit === "number" ||
+    typeof importConfig.filters?.dateRangeStart === "number" ||
+    typeof importConfig.filters?.dateRangeEnd === "number";
+  if (importConfig.behavior.dryRun || hasSourceFilters) {
+    if (cursor <= 0) {
+      await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
+        siteId,
+        jobId,
+        severity: "info",
+        phase: "reconciliation",
+        code: FINDING_CODES.SOURCE_OBJECT_MISSING,
+        message: importConfig.behavior.dryRun
+          ? "Skipped tombstone detection during dry run because source visibility tracking is not written."
+          : "Skipped tombstone detection because date or entity-limit filters make this import a partial source view.",
+        createdAt: Date.now(),
+      });
+    }
+    return { repaired: 0, failed: 0, hasMore: false, nextCursor: cursor };
+  }
+
+  const objectTypes: string[] = [];
+  if (importConfig.scope.wpContent) {
+    objectTypes.push("user", "category", "tag", "post", "page");
+  }
+  if (importConfig.scope.media) objectTypes.push("media");
+  if (importConfig.scope.comments) objectTypes.push("comment");
+  if (importConfig.scope.menus) objectTypes.push("menu");
+  if (importConfig.scope.wooCatalog) objectTypes.push("commerceCategory", "commerceProduct");
+  if (importConfig.scope.wooCustomers) objectTypes.push("commerceCustomer");
+  if (importConfig.scope.wooOrders && importConfig.behavior.importHistoricalOrders) {
+    objectTypes.push("commerceOrder");
+  }
+  if (importConfig.scope.wooCoupons && importConfig.behavior.importCoupons) {
+    objectTypes.push("commerceDiscount");
+  }
+  if (importConfig.scope.wooReviews && importConfig.behavior.importReviews) {
+    objectTypes.push("commerceReview");
+  }
+
+  if (objectTypes.length === 0) {
+    return { repaired: 0, failed: 0, hasMore: false, nextCursor: cursor };
+  }
 
   // Use cursor to track which object type we're on (0-7 = objectTypes index)
   const typeIndex = cursor < 0 ? 0 : Math.floor(cursor / 100_000_000);
@@ -1174,6 +1246,9 @@ async function detectTombstones(
   }
 
   const objectType = objectTypes[typeIndex];
+
+  const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
+  const jobStartedAt = job?.startedAt ?? job?.createdAt ?? 0;
 
   const mappings = await ctx.runQuery(internal.wordpressSync.internals.getMappingsBatch, {
     siteId,
@@ -1194,33 +1269,51 @@ async function detectTombstones(
     comment: "comments",
     menu: "menus",
     menuItem: "menuItems",
+    commerceCategory: "commerce_product_categories",
+    commerceProduct: "commerce_products",
+    commerceCustomer: "commerce_customer_profiles",
+    commerceOrder: "commerce_orders",
+    commerceDiscount: "commerce_discount_codes",
+    commerceReview: "commerce_review_items",
   };
 
   for (const mapping of mappings) {
     try {
+      const seenInCurrentJob =
+        mapping.lastSeenJobId === jobId ||
+        (typeof mapping.createdAt === "number" && mapping.createdAt >= jobStartedAt);
+      if (seenInCurrentJob) {
+        continue;
+      }
+
       const localEntity = await ctx.runQuery(internal.wordpressSync.internals.getEntityById, {
         table: tableForType[objectType] || "posts",
         id: mapping.convexId,
       });
 
-      if (!localEntity) {
-        // Local entity is missing — mapping is orphaned
-        await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
-          siteId,
-          jobId,
-          severity: "warning",
-          phase: "reconciliation",
-          code: FINDING_CODES.SOURCE_OBJECT_MISSING,
-          message: `Mapped ${objectType} WP#${mapping.wpId} -> ${mapping.convexId} but local entity no longer exists`,
-          sourceType: objectType,
-          sourceId: String(mapping.wpId),
-          wpId: mapping.wpId,
-          objectType,
-          convexId: mapping.convexId,
-          createdAt: Date.now(),
-        });
-        failed++;
-      }
+      await ctx.runMutation(internal.wordpressSync.internals.insertFinding, {
+        siteId,
+        jobId,
+        severity: localEntity ? "warning" : "info",
+        phase: "reconciliation",
+        code: FINDING_CODES.SOURCE_OBJECT_MISSING,
+        message: localEntity
+          ? `Mapped ${objectType} WP#${mapping.wpId} was not seen in this import and may have been deleted from WordPress`
+          : `Mapped ${objectType} WP#${mapping.wpId} -> ${mapping.convexId} was not seen in this import and the local entity is also missing`,
+        sourceType: objectType,
+        sourceId: String(mapping.wpId),
+        destinationTable: tableForType[objectType],
+        wpId: mapping.wpId,
+        objectType,
+        convexId: mapping.convexId,
+        metadata: JSON.stringify({
+          tombstoneMode,
+          lastSeenJobId: mapping.lastSeenJobId,
+          lastSeenAt: mapping.lastSeenAt,
+        }),
+        createdAt: Date.now(),
+      });
+      failed++;
     } catch {
       failed++;
     }

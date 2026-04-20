@@ -12,13 +12,14 @@ export function FieldRelationship({ field, value, onChange, labelPlacement, inst
   const max = settings.max ?? 0;
   const selectedIds: string[] = useMemo(() => { try { return JSON.parse(value || "[]"); } catch { return []; } }, [value]);
   const [search, setSearch] = useState("");
+  type RelationshipPost = { _id: string; postType?: string; title: string };
 
   // Fetch posts for selection
   const posts = useQuery(api.posts.queries.list, { status: "publish", limit: 100 });
 
   const filteredPosts = useMemo(() => {
     if (!posts?.posts) return [];
-    return posts.posts.filter((p: { postType?: string; title: string }) => {
+    return (posts.posts as RelationshipPost[]).filter((p) => {
       if (!postTypes.includes(p.postType ?? "post")) return false;
       if (selectedIds.includes(p._id)) return false;
       if (search && !p.title.toLowerCase().includes(search.toLowerCase())) return false;
@@ -28,7 +29,7 @@ export function FieldRelationship({ field, value, onChange, labelPlacement, inst
 
   const selectedPosts = useMemo(() => {
     if (!posts?.posts) return [];
-    return selectedIds.map((id) => posts.posts.find((p: { _id: string }) => p._id === id)).filter(Boolean);
+    return selectedIds.map((id) => (posts.posts as RelationshipPost[]).find((p) => p._id === id)).filter(Boolean);
   }, [posts, selectedIds]);
 
   const addPost = (postId: string) => {
@@ -52,7 +53,7 @@ export function FieldRelationship({ field, value, onChange, labelPlacement, inst
             </div>
           </div>
           <div className="max-h-40 overflow-y-auto">
-            {filteredPosts.map((p: { _id: string; title: string }) => (
+            {filteredPosts.map((p) => (
               <button key={p._id} type="button" onClick={() => addPost(p._id)} className="w-full text-left px-2 py-1 text-xs text-foreground hover:bg-muted border-b border-border last:border-0">
                 {p.title}
               </button>
@@ -72,7 +73,7 @@ export function FieldRelationship({ field, value, onChange, labelPlacement, inst
             </p>
           </div>
           <div className="max-h-40 overflow-y-auto">
-            {selectedPosts.map((p: { _id: string; title: string } | undefined) => p && (
+            {selectedPosts.map((p) => p && (
               <div key={p._id} className="flex items-center justify-between px-2 py-1 border-b border-border last:border-0">
                 <span className="text-xs text-foreground truncate">{p.title}</span>
                 <button type="button" onClick={() => removePost(p._id)} className="text-muted-foreground hover:text-destructive shrink-0">

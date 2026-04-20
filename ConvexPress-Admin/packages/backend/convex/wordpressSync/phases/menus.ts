@@ -10,14 +10,14 @@
  *   - Custom URLs
  */
 
-import { internalAction, internalMutation } from "../../_generated/server";
+import { internalAction, internalMutation, type ActionCtx } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { fetchWPMenus, fetchWPMenuItems, type WPMenu, type WPMenuItem } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
-import { createDefaultImportConfig, FINDING_CODES } from "../validators";
+import { normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 import { createFinding } from "../helpers/idMapping";
 
 
@@ -33,8 +33,9 @@ export const importBatch = internalAction({
   args: {
     jobId: v.id("wordpressSyncJobs"),
     siteId: v.id("wordpressSites"),
+    credentials: siteCredentialsValidator,
   },
-  handler: async (ctx, { jobId, siteId }): Promise<PhaseResult> => {
+  handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
     let created = 0;
     let updated = 0;
@@ -45,7 +46,7 @@ export const importBatch = internalAction({
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
 
     // Get import config
-    const importConfig = job?.importConfig ?? createDefaultImportConfig();
+    const importConfig = normalizeImportConfig(job?.importConfig);
     const isDryRun = importConfig.behavior.dryRun;
 
     if (!job || !site) {
@@ -55,12 +56,6 @@ export const importBatch = internalAction({
         hasMore: false,
       };
     }
-
-    const credentials = {
-      siteUrl: site.siteUrl,
-      username: site.username,
-      applicationPassword: site.applicationPassword,
-    };
 
     const progress: PhaseProgress = { ...job.progress.menus };
 
@@ -103,8 +98,18 @@ export const importBatch = internalAction({
           internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
           { siteId, objectType: "menu", wpId: wpMenu.id }
         );
+        const existingMenuId = existingMapping?.convexId;
 
         if (existingMapping) {
+          if (!isDryRun) {
+            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+              siteId,
+              objectType: "menu",
+              wpId: wpMenu.id,
+              jobId,
+            });
+          }
+
           if (existingMapping.sourceHash === sourceHash) {
             skipped++;
             progress.imported++;
@@ -123,17 +128,15 @@ export const importBatch = internalAction({
             progress.imported++;
             continue;
           }
-
-          updated++;
-          progress.imported++;
-          continue;
         }
 
         // No existing mapping - check for slug collision
-        const existingBySlug = await ctx.runQuery(
-          internal.wordpressSync.internals.findMenuBySlug,
-          { slug: wpMenu.slug }
-        );
+        const existingBySlug = existingMapping
+          ? null
+          : await ctx.runQuery(
+              internal.wordpressSync.internals.findMenuBySlug,
+              { slug: wpMenu.slug }
+            );
 
         if (existingBySlug) {
           await createFinding(ctx, {
@@ -150,6 +153,7 @@ export const importBatch = internalAction({
         if (!isDryRun) {
           // Create the menu
           const menuId = await ctx.runMutation(internal.wordpressSync.phases.menusCreate, {
+            existingId: existingMenuId,
             wpMenu: {
               id: wpMenu.id,
               name: wpMenu.name,
@@ -160,14 +164,17 @@ export const importBatch = internalAction({
             siteId,
           });
 
-          // Create menu ID mapping with sourceHash
-          await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-            siteId,
-            objectType: "menu",
-            wpId: wpMenu.id,
-            convexId: menuId,
-            sourceHash,
-          });
+          if (!existingMenuId) {
+            // Create menu ID mapping with sourceHash
+            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+              siteId,
+              objectType: "menu",
+              wpId: wpMenu.id,
+              convexId: menuId,
+              sourceHash,
+              jobId,
+            });
+          }
 
           // Fetch and import menu items
           try {
@@ -183,6 +190,42 @@ export const importBatch = internalAction({
             // Import each menu item
             for (const wpItem of sorted) {
               try {
+                const itemSourceHash = computeSourceHash({
+                  menuId: wpMenu.id,
+                  parent: wpItem.parent,
+                  title: wpItem.title?.rendered || wpItem.attr_title || "",
+                  url: wpItem.url,
+                  type: wpItem.type,
+                  object: wpItem.object,
+                  objectId: wpItem.object_id,
+                  target: wpItem.target,
+                  cssClasses: wpItem.classes,
+                  position: wpItem.menu_order,
+                  description: wpItem.description,
+                });
+
+                const existingItemMapping = await ctx.runQuery(
+                  internal.wordpressSync.helpers.idMapping.getFullMappingByWpId,
+                  { siteId, objectType: "menuItem", wpId: wpItem.id }
+                );
+
+                if (existingItemMapping) {
+                  await ctx.runMutation(internal.wordpressSync.helpers.idMapping.touch, {
+                    siteId,
+                    objectType: "menuItem",
+                    wpId: wpItem.id,
+                    jobId,
+                  });
+                }
+
+                if (existingItemMapping?.sourceHash === itemSourceHash) {
+                  continue;
+                }
+
+                if (existingItemMapping && !importConfig.behavior.updateExisting) {
+                  continue;
+                }
+
                 // Resolve parent menu item
                 let parentItemId: string | undefined;
                 if (wpItem.parent > 0) {
@@ -197,6 +240,7 @@ export const importBatch = internalAction({
 
                 // Create menu item
                 const itemId = await ctx.runMutation(internal.wordpressSync.phases.menusCreateItem, {
+                  existingId: existingItemMapping?.convexId,
                   wpItem: {
                     id: wpItem.id,
                     menuId,
@@ -213,13 +257,24 @@ export const importBatch = internalAction({
                   siteId,
                 });
 
-                // Create menu item ID mapping
-                await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-                  siteId,
-                  objectType: "menuItem",
-                  wpId: wpItem.id,
-                  convexId: itemId,
-                });
+                if (existingItemMapping) {
+                  await ctx.runMutation(internal.wordpressSync.helpers.idMapping.updateSourceHash, {
+                    siteId,
+                    objectType: "menuItem",
+                    wpId: wpItem.id,
+                    sourceHash: itemSourceHash,
+                  });
+                } else {
+                  // Create menu item ID mapping
+                  await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
+                    siteId,
+                    objectType: "menuItem",
+                    wpId: wpItem.id,
+                    convexId: itemId,
+                    sourceHash: itemSourceHash,
+                    jobId,
+                  });
+                }
               } catch (itemError) {
                 errors.push({
                   phase: "menus",
@@ -245,7 +300,11 @@ export const importBatch = internalAction({
           }
         }
 
-        created++;
+        if (existingMenuId) {
+          updated++;
+        } else {
+          created++;
+        }
         progress.imported++;
       } catch (error) {
         errors.push({
@@ -281,7 +340,7 @@ interface LinkedObject {
 }
 
 async function resolveLinkedObject(
-  ctx: Parameters<typeof internalAction>[0]["handler"] extends (ctx: infer C, ...args: unknown[]) => unknown ? C : never,
+  ctx: ActionCtx,
   siteId: Id<"wordpressSites">,
   wpItem: WPMenuItem
 ): Promise<LinkedObject> {
@@ -355,6 +414,7 @@ async function resolveLinkedObject(
 
 export const menusCreate = internalMutation({
   args: {
+    existingId: v.optional(v.string()),
     wpMenu: v.object({
       id: v.number(),
       name: v.string(),
@@ -364,8 +424,22 @@ export const menusCreate = internalMutation({
     }),
     siteId: v.id("wordpressSites"),
   },
-  handler: async (ctx, { wpMenu, siteId }) => {
+  handler: async (ctx, { existingId, wpMenu, siteId }) => {
     const now = Date.now();
+
+    const fields = {
+      name: wpMenu.name,
+      slug: wpMenu.slug,
+      description: wpMenu.description,
+      wpTermId: wpMenu.id,
+      wpSourceSiteId: siteId,
+      updatedAt: now,
+    };
+
+    if (existingId) {
+      await ctx.db.patch(existingId as Id<"menus">, fields);
+      return existingId;
+    }
 
     // Check if menu with same slug exists
     const existing = await ctx.db
@@ -374,14 +448,7 @@ export const menusCreate = internalMutation({
       .first();
 
     if (existing) {
-      // Update with WP reference
-      if (!existing.wpTermId) {
-        await ctx.db.patch(existing._id, {
-          wpTermId: wpMenu.id,
-          wpSourceSiteId: siteId,
-          updatedAt: now,
-        });
-      }
+      await ctx.db.patch(existing._id, fields);
       return existing._id;
     }
 
@@ -391,15 +458,10 @@ export const menusCreate = internalMutation({
 
     // Create menu
     const menuId = await ctx.db.insert("menus", {
-      name: wpMenu.name,
-      slug: wpMenu.slug,
-      description: wpMenu.description,
+      ...fields,
       itemCount: 0,
       createdBy,
-      wpTermId: wpMenu.id,
-      wpSourceSiteId: siteId,
       createdAt: now,
-      updatedAt: now,
     });
 
     return menuId;
@@ -408,6 +470,7 @@ export const menusCreate = internalMutation({
 
 export const menusCreateItem = internalMutation({
   args: {
+    existingId: v.optional(v.string()),
     wpItem: v.object({
       id: v.number(),
       menuId: v.string(),
@@ -429,7 +492,7 @@ export const menusCreateItem = internalMutation({
     }),
     siteId: v.id("wordpressSites"),
   },
-  handler: async (ctx, { wpItem, siteId }) => {
+  handler: async (ctx, { existingId, wpItem, siteId }) => {
     const now = Date.now();
 
     // Calculate depth
@@ -441,8 +504,7 @@ export const menusCreateItem = internalMutation({
       }
     }
 
-    // Create menu item
-    const itemId = await ctx.db.insert("menuItems", {
+    const fields = {
       menuId: wpItem.menuId as Id<"menus">,
       itemType: wpItem.itemType,
       objectId: wpItem.objectId,
@@ -456,8 +518,18 @@ export const menusCreateItem = internalMutation({
       description: wpItem.description,
       wpPostId: wpItem.id,
       wpSourceSiteId: siteId,
-      createdAt: now,
       updatedAt: now,
+    };
+
+    if (existingId) {
+      await ctx.db.patch(existingId as Id<"menuItems">, fields);
+      return existingId;
+    }
+
+    // Create menu item
+    const itemId = await ctx.db.insert("menuItems", {
+      ...fields,
+      createdAt: now,
     });
 
     return itemId;

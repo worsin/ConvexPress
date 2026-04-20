@@ -658,3 +658,54 @@ export const revert = action({
     };
   },
 });
+
+// ─── Regenerate Thumbnails (admin tool) ─────────────────────────────────────
+
+/**
+ * Admin-callable regeneration step. Re-runs the sharp pipeline on the next
+ * batch of images. Call repeatedly until the returned `done: true`.
+ *
+ * Authorization: requires `media.update` capability and Editor-level role
+ * (regeneration is an Editor-level maintenance action).
+ */
+export const regenerateThumbnails = action({
+  args: {
+    cursor: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    processed: number;
+    failed: number;
+    done: boolean;
+    continueCursor: string | null;
+  }> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Authentication required.",
+      });
+    }
+
+    // Editor-level role required — delegated to an internal mutation that
+    // can resolve the user and inspect their role.
+    await ctx.runMutation(
+      internal.media.internals.assertEditorLevel,
+      {},
+    );
+
+    const result: {
+      processed: number;
+      failed: number;
+      done: boolean;
+      continueCursor: string | null;
+    } = await ctx.runAction(
+      internal.media.imageProcessing.regenerateBatch,
+      { cursor: args.cursor, limit: args.limit },
+    );
+    return result;
+  },
+});

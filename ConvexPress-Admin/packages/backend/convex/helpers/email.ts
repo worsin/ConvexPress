@@ -74,6 +74,14 @@ export const EMAIL_TEMPLATES = {
   SITEMAP_GENERATED: "sitemap-generated",
   WEBHOOK_FAILURE: "webhook-failure-alert",
 
+  // Commerce Returns
+  RETURN_REQUESTED_ADMIN: "commerce-return-requested-admin",
+  RETURN_APPROVED: "commerce-return-approved",
+  RETURN_REJECTED: "commerce-return-rejected",
+  RETURN_LABEL_ADDED: "commerce-return-label-added",
+  RETURN_REFUNDED: "commerce-return-refunded",
+  RETURN_REFUND_FAILED: "commerce-return-refund-failed",
+
   // Digest
   WEEKLY_DIGEST: "weekly-content-digest",
 } as const;

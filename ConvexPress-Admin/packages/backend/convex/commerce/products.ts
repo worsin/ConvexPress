@@ -392,6 +392,7 @@ export const listPublished = query({
     const page = Math.max(1, args.page ?? 1);
     const perPage = Math.min(100, Math.max(1, args.perPage ?? 12));
     const categorySlug = args.categorySlug?.trim().toLowerCase();
+    const search = args.search?.trim().toLowerCase();
 
     const [products, categories] = await Promise.all([
       ctx.db
@@ -407,11 +408,26 @@ export const listPublished = query({
       ? categories.find((entry: any) => entry.slug === categorySlug) ?? null
       : null;
 
-    const filtered = category
+    const categoryFiltered = category
       ? products.filter((product: any) =>
           product.categoryIds.some((id: any) => id.toString() === category._id.toString()),
         )
       : products;
+    const filtered = search
+      ? categoryFiltered.filter((product: any) => {
+          const haystack = [
+            product.title,
+            product.slug,
+            product.sku,
+            product.excerpt,
+            product.description,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(search);
+        })
+      : categoryFiltered;
 
     // Filter out bundle-owned products (they're purchased through bundle pages)
     const bundles = await ctx.db.query("commerce_bundles").collect();
@@ -980,6 +996,36 @@ export const createVariant = mutation({
     stockQuantity: v.optional(v.number()),
     featuredMediaId: v.optional(v.id("media")),
     isDefault: v.optional(v.boolean()),
+    description: v.optional(v.string()),
+    globalUniqueId: v.optional(v.string()),
+    weight: v.optional(v.string()),
+    shippingLengthIn: v.optional(v.string()),
+    shippingWidthIn: v.optional(v.string()),
+    shippingHeightIn: v.optional(v.string()),
+    manageStock: v.optional(
+      v.union(v.literal("yes"), v.literal("no"), v.literal("parent")),
+    ),
+    stockStatus: v.optional(
+      v.union(
+        v.literal("instock"),
+        v.literal("outofstock"),
+        v.literal("onbackorder"),
+      ),
+    ),
+    backorders: v.optional(
+      v.union(v.literal("yes"), v.literal("no"), v.literal("notify")),
+    ),
+    lowStockAmount: v.optional(v.number()),
+    taxClass: v.optional(v.string()),
+    shippingClassId: v.optional(v.string()),
+    isVirtual: v.optional(v.boolean()),
+    isDownloadable: v.optional(v.boolean()),
+    downloadLimit: v.optional(v.number()),
+    downloadExpiry: v.optional(v.number()),
+    status: v.optional(
+      v.union(v.literal("publish"), v.literal("private"), v.literal("draft")),
+    ),
+    menuOrder: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
@@ -1040,6 +1086,24 @@ export const createVariant = mutation({
         : undefined,
       stockQuantity: args.stockQuantity,
       featuredMediaId: args.featuredMediaId,
+      description: args.description,
+      globalUniqueId: args.globalUniqueId,
+      weight: args.weight,
+      shippingLengthIn: args.shippingLengthIn,
+      shippingWidthIn: args.shippingWidthIn,
+      shippingHeightIn: args.shippingHeightIn,
+      manageStock: args.manageStock,
+      stockStatus: args.stockStatus,
+      backorders: args.backorders,
+      lowStockAmount: args.lowStockAmount,
+      taxClass: args.taxClass,
+      shippingClassId: args.shippingClassId,
+      isVirtual: args.isVirtual,
+      isDownloadable: args.isDownloadable,
+      downloadLimit: args.downloadLimit,
+      downloadExpiry: args.downloadExpiry,
+      status: args.status,
+      menuOrder: args.menuOrder,
       isDefault: shouldBeDefault,
       createdAt: now,
       updatedAt: now,
@@ -1079,9 +1143,41 @@ export const updateVariant = mutation({
     ),
     priceAmount: v.optional(v.number()),
     salePriceAmount: v.optional(v.number()),
+    salePriceFrom: v.optional(v.number()),
+    salePriceTo: v.optional(v.number()),
     stockQuantity: v.optional(v.number()),
     featuredMediaId: v.optional(v.id("media")),
     isDefault: v.optional(v.boolean()),
+    description: v.optional(v.string()),
+    globalUniqueId: v.optional(v.string()),
+    weight: v.optional(v.string()),
+    shippingLengthIn: v.optional(v.string()),
+    shippingWidthIn: v.optional(v.string()),
+    shippingHeightIn: v.optional(v.string()),
+    manageStock: v.optional(
+      v.union(v.literal("yes"), v.literal("no"), v.literal("parent")),
+    ),
+    stockStatus: v.optional(
+      v.union(
+        v.literal("instock"),
+        v.literal("outofstock"),
+        v.literal("onbackorder"),
+      ),
+    ),
+    backorders: v.optional(
+      v.union(v.literal("yes"), v.literal("no"), v.literal("notify")),
+    ),
+    lowStockAmount: v.optional(v.number()),
+    taxClass: v.optional(v.string()),
+    shippingClassId: v.optional(v.string()),
+    isVirtual: v.optional(v.boolean()),
+    isDownloadable: v.optional(v.boolean()),
+    downloadLimit: v.optional(v.number()),
+    downloadExpiry: v.optional(v.number()),
+    status: v.optional(
+      v.union(v.literal("publish"), v.literal("private"), v.literal("draft")),
+    ),
+    menuOrder: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
@@ -1128,8 +1224,28 @@ export const updateVariant = mutation({
         ? { amount: args.salePriceAmount, currencyCode: variant.price.currencyCode }
         : undefined;
     }
+    if (args.salePriceFrom !== undefined) updates.salePriceFrom = args.salePriceFrom;
+    if (args.salePriceTo !== undefined) updates.salePriceTo = args.salePriceTo;
     if (args.stockQuantity !== undefined) updates.stockQuantity = args.stockQuantity;
     if (args.featuredMediaId !== undefined) updates.featuredMediaId = args.featuredMediaId;
+    if (args.description !== undefined) updates.description = args.description;
+    if (args.globalUniqueId !== undefined) updates.globalUniqueId = args.globalUniqueId;
+    if (args.weight !== undefined) updates.weight = args.weight;
+    if (args.shippingLengthIn !== undefined) updates.shippingLengthIn = args.shippingLengthIn;
+    if (args.shippingWidthIn !== undefined) updates.shippingWidthIn = args.shippingWidthIn;
+    if (args.shippingHeightIn !== undefined) updates.shippingHeightIn = args.shippingHeightIn;
+    if (args.manageStock !== undefined) updates.manageStock = args.manageStock;
+    if (args.stockStatus !== undefined) updates.stockStatus = args.stockStatus;
+    if (args.backorders !== undefined) updates.backorders = args.backorders;
+    if (args.lowStockAmount !== undefined) updates.lowStockAmount = args.lowStockAmount;
+    if (args.taxClass !== undefined) updates.taxClass = args.taxClass;
+    if (args.shippingClassId !== undefined) updates.shippingClassId = args.shippingClassId;
+    if (args.isVirtual !== undefined) updates.isVirtual = args.isVirtual;
+    if (args.isDownloadable !== undefined) updates.isDownloadable = args.isDownloadable;
+    if (args.downloadLimit !== undefined) updates.downloadLimit = args.downloadLimit;
+    if (args.downloadExpiry !== undefined) updates.downloadExpiry = args.downloadExpiry;
+    if (args.status !== undefined) updates.status = args.status;
+    if (args.menuOrder !== undefined) updates.menuOrder = args.menuOrder;
 
     // If setting as default, unset others
     if (args.isDefault) {

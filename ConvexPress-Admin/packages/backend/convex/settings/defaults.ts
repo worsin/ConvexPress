@@ -38,6 +38,9 @@ export type SettingsSection =
   | "integrations.shipping.usps"
   | "integrations.shipping.fedex"
   | "integrations.shipping.dhl"
+  | "integrations.clerk"
+  | "integrations.google"
+  | "analytics.ga4"
   // Knowledge Base System sections
   | "kb.general"
   | "kb.features"
@@ -77,6 +80,9 @@ export const SECTION_NAMES: SettingsSection[] = [
   "integrations.shipping.usps",
   "integrations.shipping.fedex",
   "integrations.shipping.dhl",
+  "integrations.clerk",
+  "integrations.google",
+  "analytics.ga4",
   // Knowledge Base System sections
   "kb.general",
   "kb.features",
@@ -184,7 +190,9 @@ export interface PluginsSettings {
   commerceEnabled: boolean;
   commerceSubscriptionsEnabled: boolean;
   commerceDigitalEnabled: boolean;
+  commerceReviewsEnabled: boolean;
   commerceWishlistsEnabled: boolean;
+  commerceBundlesEnabled: boolean;
   commerceReturnsEnabled: boolean;
   membershipEnabled: boolean;
   knowledgeBaseEnabled: boolean;
@@ -274,6 +282,39 @@ export interface CommercePaymentsSettings {
   stripePublishableKey: string;
   /** Stripe secret key (server-only, never exposed to client) */
   stripeSecretKey: string;
+  /** Stripe webhook signing secret (verifies incoming events). */
+  stripeWebhookSecret: string;
+  stripeMode: "sandbox" | "production";
+  /** PayPal client id (safe for frontend). */
+  paypalClientId: string;
+  /** PayPal client secret (server-only). */
+  paypalClientSecret: string;
+  /** PayPal webhook id from the PayPal dashboard. */
+  paypalWebhookId: string;
+  paypalMode: "sandbox" | "production";
+}
+
+export interface ClerkIntegrationSettings {
+  /** Clerk Secret Key (starts with sk_). */
+  clerkSecretKey: string;
+  /** Clerk webhook signing secret (starts with whsec_). */
+  clerkWebhookSecret: string;
+  /** Clerk JWT issuer domain (e.g. "clerk.yourdomain.com"). */
+  clerkJwtIssuerDomain: string;
+}
+
+export interface GoogleIntegrationSettings {
+  /** Google Places API key — address autocomplete at checkout. */
+  placesApiKey: string;
+  /** Google Geocode API key — reverse geocoding for local delivery. */
+  geocodeApiKey: string;
+}
+
+export interface AnalyticsGa4Settings {
+  /** GA4 service account JSON (full keyfile), encrypted at rest. */
+  ga4ServiceAccountJson: string;
+  /** GA4 property id (e.g. "properties/123456789"). */
+  ga4PropertyId: string;
 }
 
 export interface CommerceGeneralSettings {
@@ -618,9 +659,31 @@ export const SEARCH_DEFAULTS: SearchSettings = {
   meilisearchApiKey: "",
 };
 
+export const CLERK_INTEGRATION_DEFAULTS: ClerkIntegrationSettings = {
+  clerkSecretKey: "",
+  clerkWebhookSecret: "",
+  clerkJwtIssuerDomain: "",
+};
+
+export const GOOGLE_INTEGRATION_DEFAULTS: GoogleIntegrationSettings = {
+  placesApiKey: "",
+  geocodeApiKey: "",
+};
+
+export const ANALYTICS_GA4_DEFAULTS: AnalyticsGa4Settings = {
+  ga4ServiceAccountJson: "",
+  ga4PropertyId: "",
+};
+
 export const COMMERCE_PAYMENTS_DEFAULTS: CommercePaymentsSettings = {
   stripePublishableKey: "",
   stripeSecretKey: "",
+  stripeWebhookSecret: "",
+  stripeMode: "sandbox",
+  paypalClientId: "",
+  paypalClientSecret: "",
+  paypalWebhookId: "",
+  paypalMode: "sandbox",
 };
 
 export const COMMERCE_GENERAL_DEFAULTS: CommerceGeneralSettings = {
@@ -649,7 +712,7 @@ export const COMMERCE_GENERAL_DEFAULTS: CommerceGeneralSettings = {
 export const SHIPPING_INTEGRATION_DEFAULTS: ShippingIntegrationSettings = {
   preferredProvider: "shipstation",
   liveRatesEnabled: true,
-  fallbackToManualRates: true,
+  fallbackToManualRates: false,
   fallbackMessage: "Live shipping rates are temporarily unavailable. Standard shipping options are shown below.",
   recommendationStrategy: "best_value_weighted",
   cheapestBadgeLabel: "Cheapest",
@@ -751,7 +814,9 @@ export const PLUGINS_DEFAULTS: PluginsSettings = {
   commerceEnabled: false,
   commerceSubscriptionsEnabled: false,
   commerceDigitalEnabled: false,
+  commerceReviewsEnabled: false,
   commerceWishlistsEnabled: false,
+  commerceBundlesEnabled: false,
   commerceReturnsEnabled: false,
   membershipEnabled: false,
   knowledgeBaseEnabled: true,
@@ -844,6 +909,9 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
     displayName: "DHL",
     rateShoppingPriority: 50,
   },
+  "integrations.clerk": CLERK_INTEGRATION_DEFAULTS,
+  "integrations.google": GOOGLE_INTEGRATION_DEFAULTS,
+  "analytics.ga4": ANALYTICS_GA4_DEFAULTS,
   // Knowledge Base System sections
   "kb.general": KB_GENERAL_DEFAULTS,
   "kb.features": KB_FEATURES_DEFAULTS,
