@@ -376,6 +376,78 @@ export const revokeFromSubscription = internalMutation({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// moveGrantToGrace
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Move subscription-sourced grants from active → grace.
+ *
+ * Intended for `past_due` / `paused` subscription transitions where we want
+ * to suspend without hard-revoke. Called by the Commerce Subscriptions
+ * lifecycle bridge.
+ *
+ * Semantics (distinct from revokeFromSubscription with gracePeriodDays):
+ *   - ONLY moves `active` grants into `grace`. Does NOT revoke.
+ *   - Idempotent: already-grace grants are a no-op and keep their existing
+ *     `graceEndsAt`. We do NOT extend the grace window on repeated calls —
+ *     that would let a subscription ping-pong between past_due states and
+ *     extend grace indefinitely, defeating its purpose.
+ *   - Soft no-op when plugin disabled.
+ *
+ * @param userId - The user whose subscription entered past_due/paused
+ * @param subscriptionId - The source subscription reference
+ * @param gracePeriodDays - Days until the grace window closes (default: 3)
+ */
+export const moveGrantToGrace = internalMutation({
+  args: {
+    userId: v.id("users"),
+    subscriptionId: v.string(),
+    gracePeriodDays: v.optional(v.number()),
+  },
+  handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) {
+      return { movedCount: 0, skipped: "plugin_disabled" };
+    }
+
+    const now = Date.now();
+    const gracePeriodDays = args.gracePeriodDays ?? 3;
+
+    const activeGrants = await ctx.db
+      .query("membership_grants")
+      .withIndex("by_user_status", (q: any) =>
+        q.eq("userId", args.userId).eq("status", "active"),
+      )
+      .collect();
+
+    const targetGrants = filterGrantsBySubscription(
+      activeGrants,
+      args.subscriptionId,
+    );
+
+    if (targetGrants.length === 0) {
+      return { movedCount: 0, skipped: "no_active_grants", processedAt: now };
+    }
+
+    let movedCount = 0;
+
+    for (const grant of targetGrants) {
+      const decision = decideMoveToGrace({ grant, gracePeriodDays, now });
+      if (decision.kind === "skip") continue;
+      await ctx.db.patch(decision.grantId, decision.patch);
+      await writeBridgeAccessLog(ctx, {
+        userId: args.userId,
+        planId: grant.planId,
+        grantId: decision.grantId,
+        reason: "bridge_grant_moved_to_grace",
+      });
+      movedCount++;
+    }
+
+    return { movedCount, processedAt: now };
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // recordAccessCheck (access log writer)
 // ═══════════════════════════════════════════════════════════════════════════
 
