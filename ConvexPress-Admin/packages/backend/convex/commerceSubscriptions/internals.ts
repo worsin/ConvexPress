@@ -18,7 +18,9 @@
 import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { decideBridgeCall } from "./bridgeDecisions";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS (duplicated for internal module isolation)
@@ -117,6 +119,35 @@ async function writeHistory(ctx: any, args: any) {
   });
 }
 
+/**
+ * Returns true iff both the commerce-subscriptions and membership plugins are
+ * enabled AND `membership.acceptSubscriptionGrants` is not explicitly false.
+ *
+ * This gates the subscription → membership bridge call in
+ * `syncEntitlementsForStatus`. When this returns false, status transitions
+ * proceed normally but do NOT propagate to membership grants.
+ */
+async function isBridgeEnabled(ctx: any): Promise<boolean> {
+  const commerceOn = await isPluginEnabled(ctx, "commerceSubscriptions");
+  if (!commerceOn) return false;
+  const membershipOn = await isPluginEnabled(ctx, "membership");
+  if (!membershipOn) return false;
+
+  // Check membership.acceptSubscriptionGrants — defaults to true if unset.
+  // If the admin explicitly disabled the auto-grant flow, we silently skip.
+  try {
+    const settingsRow = await ctx.db
+      .query("settings")
+      .withIndex("by_section", (q: any) => q.eq("section", "membership"))
+      .unique();
+    const values = (settingsRow?.values ?? {}) as Record<string, unknown>;
+    if (values.acceptSubscriptionGrants === false) return false;
+  } catch {
+    // Settings read failure should not block bridge; fall through to enabled.
+  }
+  return true;
+}
+
 async function syncEntitlementsForStatus(
   ctx: any,
   subscription: any,
@@ -149,6 +180,68 @@ async function syncEntitlementsForStatus(
         endsAt: now,
         updatedAt: now,
       });
+    }
+  }
+
+  // ── Bridge: propagate status to membership grants ─────────────────────────
+  // Soft-gated by `isBridgeEnabled` — plugin flags + acceptSubscriptionGrants.
+  // Each entitlement's bridge call is isolated: one failure MUST NOT block the
+  // rest of the loop or the status transition itself.
+  const bridgeEnabled = await isBridgeEnabled(ctx);
+  if (!bridgeEnabled) return;
+
+  for (const entitlement of entitlements) {
+    const decision = decideBridgeCall({
+      subscription,
+      entitlement,
+      gracePeriodDays,
+    });
+    if (decision.action === "noop") continue;
+
+    try {
+      if (decision.action === "grant") {
+        await ctx.runMutation(
+          internal.membership.internals.grantFromSubscription,
+          decision.args,
+        );
+      } else if (decision.action === "moveToGrace") {
+        await ctx.runMutation(
+          internal.membership.internals.moveGrantToGrace,
+          decision.args,
+        );
+      } else if (decision.action === "revoke") {
+        await ctx.runMutation(
+          internal.membership.internals.revokeFromSubscription,
+          decision.args,
+        );
+      }
+    } catch (err) {
+      const subscriptionId = String(subscription._id);
+      const code = entitlement.entitlementCode ?? "(no-code)";
+      console.error(
+        `[bridge] membership propagation failed for subscription ${subscriptionId}, ` +
+          `entitlement ${code}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      // Record to subscription history so the failure is auditable without
+      // re-throwing. `writeHistory` does not throw.
+      try {
+        await writeHistory(ctx, {
+          subscriptionId: subscription._id,
+          eventType: "subscription.bridge_failed",
+          message: `Membership bridge call failed for entitlement ${code}`,
+          fromStatus: subscription.status,
+          toStatus: subscription.status,
+          reason: "bridge_error",
+          data: {
+            entitlementCode: code,
+            action: decision.action,
+            error: err instanceof Error ? err.message : String(err),
+          },
+        });
+      } catch {
+        // history write failure is non-fatal
+      }
+      // Continue loop — one entitlement's failure must not block others.
     }
   }
 }
