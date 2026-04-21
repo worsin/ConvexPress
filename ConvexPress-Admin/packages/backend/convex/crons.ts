@@ -377,4 +377,17 @@ crons.daily(
   {},
 );
 
+// ─── Membership Plan System ─────────────────────────────────────────────────
+// Daily sweep of active/grace grants past their end or grace window.
+// Two-step transition: active + past-end + grace window remaining → grace;
+// grace + grace-window past → expired. Plan-level gracePeriodDays is honored
+// when the grant has no graceEndsAt set yet.
+// Added by: Membership Plan System Expert (Wave 2)
+crons.daily(
+  "expireMembershipGrants",
+  { hourUTC: 2, minuteUTC: 15 },
+  internal.membership.internals.expireGrants,
+  {},
+);
+
 export default crons;
