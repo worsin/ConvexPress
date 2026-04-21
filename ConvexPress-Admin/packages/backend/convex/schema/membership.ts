@@ -46,6 +46,7 @@ export const membershipTables = {
     code: v.string(),
     label: v.string(),
     description: v.optional(v.string()),
+    displayAsFeature: v.optional(v.boolean()),
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
