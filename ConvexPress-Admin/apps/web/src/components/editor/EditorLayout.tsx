@@ -32,6 +32,7 @@ import { DiscussionMetabox } from "./DiscussionMetabox";
 import { AuthorSelector } from "./AuthorSelector";
 import { RevisionsMetabox } from "./RevisionsMetabox";
 import { SeoMetabox } from "@/components/seo/SeoMetabox";
+import { RestrictionMetabox } from "@/components/membership/RestrictionMetabox";
 import { PageAttributesMetabox } from "./PageAttributesMetabox";
 import { LayoutMetabox } from "./LayoutMetabox";
 import { PostEditLockNotice } from "./PostEditLockNotice";
@@ -170,9 +171,11 @@ function EditorLayoutInner({
     try {
       const parsed = JSON.parse(content);
       // Extract text recursively from TipTap JSON
-      const extractText = (node: { text?: string; content?: unknown[] }): string => {
-        if (node.text) return node.text;
-        if (node.content) return node.content.map(extractText).join(" ");
+      const extractText = (node: unknown): string => {
+        if (!node || typeof node !== "object") return "";
+        const typedNode = node as { text?: unknown; content?: unknown[] };
+        if (typeof typedNode.text === "string") return typedNode.text;
+        if (typedNode.content) return typedNode.content.map(extractText).join(" ");
         return "";
       };
       plainText = extractText(parsed);
@@ -547,6 +550,14 @@ function EditorLayoutInner({
             onHideFooterChange={(val) => form.setFieldValue("hideFooter", val)}
           />
         );
+      case "restriction":
+        return postId ? (
+          <RestrictionMetabox
+            resourceType={contentType}
+            resourceIdOrKey={postId}
+            resourceLabel={title}
+          />
+        ) : null;
       default:
         return null;
     }

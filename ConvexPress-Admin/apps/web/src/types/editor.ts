@@ -247,6 +247,14 @@ export const DEFAULT_POST_METABOXES: MetaboxConfig[] = [
     isDraggable: true,
     position: "sidebar",
   },
+  {
+    id: "restriction",
+    title: "Access Restriction",
+    isCollapsed: true,
+    isVisible: true,
+    isDraggable: true,
+    position: "sidebar",
+  },
 ];
 
 /** The default metabox ordering for pages */
@@ -326,6 +334,14 @@ export const DEFAULT_PAGE_METABOXES: MetaboxConfig[] = [
   {
     id: "seo",
     title: "SEO",
+    isCollapsed: true,
+    isVisible: true,
+    isDraggable: true,
+    position: "sidebar",
+  },
+  {
+    id: "restriction",
+    title: "Access Restriction",
     isCollapsed: true,
     isVisible: true,
     isDraggable: true,
