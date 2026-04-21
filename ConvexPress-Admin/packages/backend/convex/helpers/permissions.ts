@@ -33,7 +33,7 @@
  */
 
 import { ConvexError } from "convex/values";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import {
   isMetaCapability,
@@ -269,12 +269,14 @@ async function userHasMembershipCapability(
   capability: Capability,
 ): Promise<boolean> {
   // Plugin off → no augmentation. Fail soft.
-  if (!(await isPluginEnabled(ctx, "membership"))) return false;
+  // `isPluginEnabled` types its ctx as `AnyCtx` (QueryCtx|MutationCtx|ActionCtx).
+  // Our narrower `AuthReadCtx` is a structural subset — cast to satisfy the compiler.
+  if (!(await isPluginEnabled(ctx as any, "membership"))) return false;
 
   const now = Date.now();
 
-  let activeGrants: any[] = [];
-  let graceGrants: any[] = [];
+  let activeGrants: Doc<"membership_grants">[] = [];
+  let graceGrants: Doc<"membership_grants">[] = [];
   try {
     activeGrants = await ctx.db
       .query("membership_grants")
@@ -294,7 +296,7 @@ async function userHasMembershipCapability(
     return false;
   }
 
-  const validGrants = [...activeGrants, ...graceGrants].filter((g: any) => {
+  const validGrants = [...activeGrants, ...graceGrants].filter((g) => {
     if (g.status === "grace" && g.graceEndsAt && g.graceEndsAt < now)
       return false;
     if (g.endsAt && g.endsAt < now && g.status !== "grace") return false;
