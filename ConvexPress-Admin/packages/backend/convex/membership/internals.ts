@@ -6,11 +6,12 @@
  * functions (e.g., subscription lifecycle hooks).
  *
  * Functions:
- *   - expireGrants               Expire grants past their end date (two-step)
- *   - grantFromSubscription      Auto-grant membership on active subscription
- *   - revokeFromSubscription     Auto-revoke on subscription cancel/expire
- *   - recordAccessCheck          Write a row to membership_access_log (gated)
- *   - getCapabilitiesForUser     Collect capabilities from active+grace grants
+ *   - expireGrants                         Expire grants past their end date
+ *   - grantFromSubscription                Auto-grant on active subscription
+ *   - revokeFromSubscription               Auto-revoke on subscription cancel
+ *   - recordAccessCheck                    Write a row to membership_access_log
+ *   - getCapabilitiesForUser               Collect caps from active+grace grants
+ *   - getPlansByLinkedSubscriptionCode     Plans matching an entitlement code
  */
 
 import { v } from "convex/values";
@@ -425,5 +426,40 @@ export const getCapabilitiesForUser = internalQuery({
     }
 
     return Array.from(capSet);
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// getPlansByLinkedSubscriptionCode (bridge lookup)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Return every plan whose `linkedSubscriptionCode === code`.
+ *
+ * Used by the Commerce Subscriptions bridge when a subscription entitlement
+ * code needs to resolve to one or more membership plans. The bridge already
+ * filters to active plans with compatible grantMode inside
+ * `grantFromSubscription`, but this helper exposes the raw code → plan[]
+ * mapping for admin diagnostics and for a future reconciliation cron.
+ *
+ * Returns an ARRAY (possibly empty). Never returns null, never throws on a
+ * missing match.
+ *
+ * No-op when the plugin is disabled — returns [] so callers don't branch.
+ */
+export const getPlansByLinkedSubscriptionCode = internalQuery({
+  args: {
+    code: v.string(),
+  },
+  handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return [];
+
+    // No dedicated index on linkedSubscriptionCode — the string is optional
+    // and low-cardinality globally. Full scan is fine at expected volumes;
+    // if this ever grows hot, add .index("by_linkedSubscriptionCode").
+    const allPlans = await ctx.db.query("membership_plans").collect();
+    return allPlans.filter(
+      (plan: any) => plan.linkedSubscriptionCode === args.code,
+    );
   },
 });
