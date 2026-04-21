@@ -7,15 +7,16 @@
  * system's `checkEntitlement` for subscription-linked plans.
  *
  * Functions:
- *   - listPlans        List all membership plans (admin)
- *   - listPublicPlans  List published plans for public display
- *   - getPlan          Single plan detail with benefits
- *   - listGrants       List membership grants (admin, with user enrichment)
- *   - getMember        Single member detail with grants (admin)
- *   - getMyMembership  Current user's active membership
- *   - listRestrictions List content restriction rules (admin)
- *   - checkAccess      Check if user has access to content (by resource type/key)
- *   - getStats         Membership dashboard stats
+ *   - listPlans                    List all membership plans (admin)
+ *   - listPublicPlans              List published plans for public display
+ *   - getPlan                      Single plan detail with benefits
+ *   - listGrants                   List membership grants (admin, with user enrichment)
+ *   - getMember                    Single member detail with grants (admin)
+ *   - getMyMembership              Current user's active membership
+ *   - listRestrictions             List content restriction rules (admin)
+ *   - listRestrictionsByResource   Rules attached to a specific resource (admin)
+ *   - checkAccess                  Pure read: access decision (no writes)
+ *   - getStats                     Membership dashboard stats
  */
 
 import { v } from "convex/values";
@@ -28,6 +29,7 @@ import {
   membershipGrantStatusValidator,
 } from "../schema/membership";
 import { isPluginEnabled } from "../helpers/plugins";
+import { membershipResourceTypeValidator } from "./validators";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PLAN QUERIES
@@ -122,6 +124,7 @@ export const listPublicPlans = query({
             code: b.code,
             label: b.label,
             description: b.description,
+            displayAsFeature: b.displayAsFeature,
           })),
         };
       }),
@@ -322,6 +325,7 @@ export const getMyMembership = query({
             code: b.code,
             label: b.label,
             description: b.description,
+            displayAsFeature: b.displayAsFeature,
           })),
         };
       }),
@@ -467,6 +471,55 @@ export const listRestrictions = query({
   },
 });
 
+/**
+ * List restriction rules attached to a specific resource (admin).
+ *
+ * Returns every rule indexed by (resourceType, resourceIdOrKey). Used by the
+ * post/page metabox to prefill the rule editor and by the rule list to show
+ * per-resource badges. Handles all 5 resource types.
+ */
+export const listRestrictionsByResource = query({
+  args: {
+    resourceType: membershipResourceTypeValidator,
+    resourceIdOrKey: v.string(),
+  },
+  handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return null;
+    await requireMembershipEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    const rules = await ctx.db
+      .query("membership_restriction_rules")
+      .withIndex("by_resource", (q: any) =>
+        q
+          .eq("resourceType", args.resourceType)
+          .eq("resourceIdOrKey", args.resourceIdOrKey),
+      )
+      .collect();
+
+    // Enrich with plan summaries
+    const enriched = await Promise.all(
+      rules.map(async (rule: any) => {
+        const plans = await Promise.all(
+          (rule.planIds ?? []).map(async (pid: any) => {
+            const plan = await ctx.db.get(pid);
+            return plan
+              ? { _id: plan._id, title: plan.title, slug: plan.slug }
+              : null;
+          }),
+        );
+
+        return {
+          ...rule,
+          plans: plans.filter(Boolean),
+        };
+      }),
+    );
+
+    return enriched.sort((a: any, b: any) => a.createdAt - b.createdAt);
+  },
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ACCESS CHECK
 // ═══════════════════════════════════════════════════════════════════════════
@@ -477,6 +530,9 @@ export const listRestrictions = query({
  * Looks up restriction rules for the given resource. If no rules exist,
  * access is allowed by default. If rules exist, checks the user's active
  * membership grants against the required plans.
+ *
+ * Pure read — does NOT write to the access log. Callers that want to record
+ * the check should also dispatch `recordAccessCheck` (internal mutation).
  *
  * Returns an access decision with teaser mode info for gated content.
  */
