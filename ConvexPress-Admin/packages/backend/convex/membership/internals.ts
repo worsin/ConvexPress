@@ -6,15 +6,44 @@
  * functions (e.g., subscription lifecycle hooks).
  *
  * Functions:
- *   - expireGrants             Expire grants past their end date
- *   - grantFromSubscription    Auto-grant membership when subscription entitlement is active
- *   - revokeFromSubscription   Auto-revoke when subscription cancelled/expired
+ *   - expireGrants               Expire grants past their end date (two-step)
+ *   - grantFromSubscription      Auto-grant membership on active subscription
+ *   - revokeFromSubscription     Auto-revoke on subscription cancel/expire
+ *   - recordAccessCheck          Write a row to membership_access_log (gated)
+ *   - getCapabilitiesForUser     Collect capabilities from active+grace grants
  */
 
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 
-import { internalMutation } from "../_generated/server";
-import { requirePluginEnabled } from "../helpers/plugins";
+import { internalMutation, internalQuery } from "../_generated/server";
+import { requirePluginEnabled, isPluginEnabled } from "../helpers/plugins";
+
+// ─── Settings-reader helper (local to internals) ──────────────────────────
+// Returns the membership.general settings object with Wave-2 defaults.
+// Defaults: logAccessChecks=true, accessLogRetentionDays=30.
+async function getMembershipSettings(ctx: any): Promise<{
+  logAccessChecks: boolean;
+  accessLogRetentionDays: number;
+}> {
+  const defaults = {
+    logAccessChecks: true,
+    accessLogRetentionDays: 30,
+  };
+  try {
+    const row = await ctx.db
+      .query("settings")
+      .withIndex("by_section", (q: any) =>
+        q.eq("section", "membership.general"),
+      )
+      .unique();
+    return {
+      ...defaults,
+      ...(row?.values ?? {}),
+    };
+  } catch {
+    return defaults;
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // expireGrants
@@ -23,10 +52,15 @@ import { requirePluginEnabled } from "../helpers/plugins";
 /**
  * Expire membership grants that have passed their end date.
  *
- * Scans active grants and moves them to "expired" if endsAt < now.
- * Also moves grace-period grants to "expired" if graceEndsAt < now.
+ * Two-step transition (respects the status mirror):
+ *   1. active + endsAt past + graceEndsAt future  → grace
+ *   2. active + endsAt past + graceEndsAt past    → expired
+ *   3. active + endsAt past + plan.gracePeriodDays > 0 (no graceEndsAt yet)
+ *      → grace (and set graceEndsAt = now + days)
+ *   4. active + endsAt past + no grace at all     → expired directly
+ *   5. grace  + graceEndsAt past                  → expired
  *
- * Intended to be called by a cron job (e.g., every hour).
+ * Intended to be called by a daily cron.
  */
 export const expireGrants = internalMutation({
   args: {},
@@ -34,51 +68,69 @@ export const expireGrants = internalMutation({
     await requirePluginEnabled(ctx, "membership");
     const now = Date.now();
     let expiredCount = 0;
+    let movedToGraceCount = 0;
 
-    // Find active grants with an endsAt in the past
-    const activeGrants = await ctx.db
-      .query("membership_grants")
-      .collect();
+    // Scan all grants (filter in memory — admin sweeps are daily, low volume).
+    const allGrants = await ctx.db.query("membership_grants").collect();
 
-    for (const grant of activeGrants) {
+    // Cache plans by id to read gracePeriodDays without repeated fetches.
+    const planCache = new Map<string, any>();
+    const getPlan = async (planId: string) => {
+      if (planCache.has(planId)) return planCache.get(planId);
+      const plan = await ctx.db.get(planId);
+      planCache.set(planId, plan);
+      return plan;
+    };
+
+    for (const grant of allGrants) {
+      // Active with past endsAt → expire or move to grace
       if (grant.status === "active" && grant.endsAt && grant.endsAt < now) {
-        // Check if plan has a grace period via graceEndsAt on the grant
         if (grant.graceEndsAt && grant.graceEndsAt > now) {
-          // Move to grace period
-          await ctx.db.patch(grant._id, {
-            status: "grace",
-            updatedAt: now,
-          });
+          // Already has a future grace window — step down to grace.
+          await ctx.db.patch(grant._id, { status: "grace", updatedAt: now });
+          movedToGraceCount++;
         } else if (grant.graceEndsAt && grant.graceEndsAt <= now) {
-          // Grace period also expired
-          await ctx.db.patch(grant._id, {
-            status: "expired",
-            updatedAt: now,
-          });
+          // Existing grace window already passed — expire.
+          await ctx.db.patch(grant._id, { status: "expired", updatedAt: now });
           expiredCount++;
         } else {
-          // No grace period — expire directly
-          await ctx.db.patch(grant._id, {
-            status: "expired",
-            updatedAt: now,
-          });
-          expiredCount++;
+          // No graceEndsAt set yet — consult the plan's per-plan grace window.
+          const plan = await getPlan(grant.planId);
+          const planGraceDays =
+            typeof plan?.gracePeriodDays === "number" && plan.gracePeriodDays > 0
+              ? plan.gracePeriodDays
+              : 0;
+
+          if (planGraceDays > 0) {
+            // Two-step transition: active → grace first.
+            const graceEndsAt = now + planGraceDays * 24 * 60 * 60 * 1000;
+            await ctx.db.patch(grant._id, {
+              status: "grace",
+              graceEndsAt,
+              updatedAt: now,
+            });
+            movedToGraceCount++;
+          } else {
+            // No grace window configured — expire directly.
+            await ctx.db.patch(grant._id, {
+              status: "expired",
+              updatedAt: now,
+            });
+            expiredCount++;
+          }
         }
       } else if (
         grant.status === "grace" &&
         grant.graceEndsAt &&
         grant.graceEndsAt < now
       ) {
-        // Grace period expired
-        await ctx.db.patch(grant._id, {
-          status: "expired",
-          updatedAt: now,
-        });
+        // Grace window closed — expire.
+        await ctx.db.patch(grant._id, { status: "expired", updatedAt: now });
         expiredCount++;
       }
     }
 
-    return { expiredCount, processedAt: now };
+    return { expiredCount, movedToGraceCount, processedAt: now };
   },
 });
 
@@ -264,5 +316,114 @@ export const revokeFromSubscription = internalMutation({
     }
 
     return { revokedCount, processedAt: now };
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// recordAccessCheck (access log writer)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Persist an access decision to `membership_access_log`.
+ *
+ * Writes IFF the plugin setting `logAccessChecks` is true (defaults to true
+ * if the setting is absent). Callers typically invoke this immediately after
+ * `checkAccess` on high-value routes. Low-traffic callers can log every hit;
+ * high-traffic callers may sample client-side before dispatching.
+ *
+ * This internal is a no-op when the membership plugin is disabled so callers
+ * don't need to gate their own dispatch.
+ */
+export const recordAccessCheck = internalMutation({
+  args: {
+    userId: v.optional(v.id("users")),
+    resourceType: v.string(),
+    resourceIdOrKey: v.string(),
+    allowed: v.boolean(),
+    reason: v.optional(v.string()),
+    matchingPlanIds: v.optional(v.array(v.id("membership_plans"))),
+  },
+  handler: async (ctx: any, args: any) => {
+    // Soft no-op when plugin is off.
+    if (!(await isPluginEnabled(ctx, "membership"))) return { logged: false };
+
+    const settings = await getMembershipSettings(ctx);
+    if (!settings.logAccessChecks) return { logged: false };
+
+    const now = Date.now();
+    await ctx.db.insert("membership_access_log", {
+      userId: args.userId,
+      resourceType: args.resourceType,
+      resourceIdOrKey: args.resourceIdOrKey,
+      allowed: args.allowed,
+      reason: args.reason,
+      matchingPlanIds: args.matchingPlanIds ?? [],
+      createdAt: now,
+    });
+    return { logged: true, at: now };
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// getCapabilitiesForUser (capability augmentation feed)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Collect the union of `plan.linkedCapabilities` strings across a user's
+ * ACTIVE and GRACE grants. Expired/revoked grants contribute nothing.
+ *
+ * Used by `helpers/permissions.ts` to augment role-based capability checks
+ * with plan-granted capabilities. Wrap calls in a plugin-enabled guard; this
+ * internal itself returns [] when the plugin is disabled so callers don't
+ * need to gate.
+ *
+ * Grace-period grants still contribute capabilities — they represent a
+ * payment hiccup, not a permission revocation. Cut-off happens when the
+ * expire cron moves the grant to `expired`.
+ */
+export const getCapabilitiesForUser = internalQuery({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return [];
+
+    const now = Date.now();
+
+    const activeGrants = await ctx.db
+      .query("membership_grants")
+      .withIndex("by_user_status", (q: any) =>
+        q.eq("userId", args.userId).eq("status", "active"),
+      )
+      .collect();
+
+    const graceGrants = await ctx.db
+      .query("membership_grants")
+      .withIndex("by_user_status", (q: any) =>
+        q.eq("userId", args.userId).eq("status", "grace"),
+      )
+      .collect();
+
+    const validGrants = [...activeGrants, ...graceGrants].filter((g: any) => {
+      if (g.status === "grace" && g.graceEndsAt && g.graceEndsAt < now)
+        return false;
+      if (g.endsAt && g.endsAt < now && g.status !== "grace") return false;
+      return true;
+    });
+
+    const capSet = new Set<string>();
+    for (const grant of validGrants) {
+      const plan = await ctx.db.get(grant.planId);
+      if (!plan) continue;
+      if (plan.status !== "active") continue;
+      const caps: string[] = Array.isArray(plan.linkedCapabilities)
+        ? plan.linkedCapabilities
+        : [];
+      for (const cap of caps) {
+        if (typeof cap === "string" && cap.length > 0) capSet.add(cap);
+      }
+    }
+
+    return Array.from(capSet);
   },
 });
