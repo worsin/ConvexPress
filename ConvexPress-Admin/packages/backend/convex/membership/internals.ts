@@ -298,6 +298,16 @@ export const grantFromSubscription = internalMutation({
  * Finds active grants sourced from the given subscription and moves them
  * to grace period or revoked, depending on plan configuration.
  *
+ * Idempotency:
+ *   - Only targets grants currently in `active` or `grace` status; already
+ *     `revoked`/`expired` grants are ignored, so calling this twice is safe.
+ *   - Returns `{ revokedCount: 0, skipped: "no_grants" }` when no targets
+ *     match (e.g. subscription has never granted anything, or all prior
+ *     grants have already been revoked).
+ *
+ * Plugin gate:
+ *   - Soft no-op when membership plugin is disabled.
+ *
  * @param userId - The user whose subscription was cancelled
  * @param subscriptionId - The source subscription reference
  * @param gracePeriodDays - Optional grace period (default: 0, immediate revoke)
@@ -309,12 +319,16 @@ export const revokeFromSubscription = internalMutation({
     gracePeriodDays: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
-    await requirePluginEnabled(ctx, "membership");
+    if (!(await isPluginEnabled(ctx, "membership"))) {
+      return { revokedCount: 0, skipped: "plugin_disabled" };
+    }
+
     const now = Date.now();
     const gracePeriodDays = args.gracePeriodDays ?? 0;
-    let revokedCount = 0;
 
-    // Find active grants from this subscription
+    // Find active + grace grants for this user, then narrow to this
+    // subscription's sourceRef. (Already `revoked`/`expired` grants are
+    // excluded by the index predicate — that IS the idempotency guard.)
     const activeGrants = await ctx.db
       .query("membership_grants")
       .withIndex("by_user_status", (q: any) =>
@@ -322,13 +336,6 @@ export const revokeFromSubscription = internalMutation({
       )
       .collect();
 
-    const subscriptionGrants = activeGrants.filter(
-      (g: any) =>
-        g.sourceType === "subscription" &&
-        g.sourceRef === args.subscriptionId,
-    );
-
-    // Also check grace-period grants
     const graceGrants = await ctx.db
       .query("membership_grants")
       .withIndex("by_user_status", (q: any) =>
@@ -336,44 +343,35 @@ export const revokeFromSubscription = internalMutation({
       )
       .collect();
 
-    const graceSubscriptionGrants = graceGrants.filter(
-      (g: any) =>
-        g.sourceType === "subscription" &&
-        g.sourceRef === args.subscriptionId,
-    );
+    const allTargetGrants = [
+      ...filterGrantsBySubscription(activeGrants, args.subscriptionId),
+      ...filterGrantsBySubscription(graceGrants, args.subscriptionId),
+    ];
 
-    const allTargetGrants = [...subscriptionGrants, ...graceSubscriptionGrants];
-
-    for (const grant of allTargetGrants) {
-      if (grant.status === "grace") {
-        // Already in grace — revoke immediately
-        await ctx.db.patch(grant._id, {
-          status: "revoked",
-          revokedAt: now,
-          updatedAt: now,
-        });
-        revokedCount++;
-      } else if (gracePeriodDays > 0) {
-        // Move to grace period
-        const graceEndsAt = now + gracePeriodDays * 24 * 60 * 60 * 1000;
-        await ctx.db.patch(grant._id, {
-          status: "grace",
-          graceEndsAt,
-          updatedAt: now,
-        });
-        revokedCount++;
-      } else {
-        // Immediate revoke
-        await ctx.db.patch(grant._id, {
-          status: "revoked",
-          revokedAt: now,
-          updatedAt: now,
-        });
-        revokedCount++;
-      }
+    if (allTargetGrants.length === 0) {
+      return { revokedCount: 0, skipped: "no_grants", processedAt: now };
     }
 
-    return { revokedCount, processedAt: now };
+    let revokedCount = 0;
+    let movedToGraceCount = 0;
+
+    for (const grant of allTargetGrants) {
+      const decision = decideRevoke({ grant, gracePeriodDays, now });
+      await ctx.db.patch(decision.grantId, decision.patch);
+      await writeBridgeAccessLog(ctx, {
+        userId: args.userId,
+        planId: grant.planId,
+        grantId: decision.grantId,
+        reason:
+          decision.kind === "grace"
+            ? "bridge_grant_moved_to_grace"
+            : "bridge_grant_revoked",
+      });
+      if (decision.kind === "grace") movedToGraceCount++;
+      else revokedCount++;
+    }
+
+    return { revokedCount, movedToGraceCount, processedAt: now };
   },
 });
 
