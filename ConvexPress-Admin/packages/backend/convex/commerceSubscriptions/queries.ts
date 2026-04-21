@@ -33,6 +33,7 @@ import {
   buildSubscriptionPricingSnapshot,
   hasExplicitSubscriptionEnablement,
 } from "./pricing";
+import { computeProration } from "../helpers/proration";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER: Resolve effective subscription config for a product
@@ -728,5 +729,99 @@ export const checkEntitlement = query({
     }
 
     return { hasEntitlement: false, entitlement: null };
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRORATION PREVIEW (Wave 3 — thin read-only wrapper around helpers/proration)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Preview the financial impact of moving a contract from its current offer to
+ * a target offer, using the contract's current cycle bounds. Read-only — no
+ * DB writes. Safe to call on every keystroke in an upgrade/downgrade picker.
+ *
+ * Returns:
+ *   - `unusedOldAmount`   Credit from unused portion of current cycle on old offer
+ *   - `proratedNewAmount` Pro-rated price of new offer for the same unused portion
+ *   - `netCharge`         proratedNewAmount − unusedOldAmount
+ *   - `isUpgrade`         netCharge > 0
+ *   - `effectiveAt`       Now for upgrades, cycleEnd for downgrades
+ *   - `currencyCode`      From the contract
+ *
+ * Auth: admin (manage_options) OR contract owner.
+ *
+ * `@ts-nocheck` carried — matches the file-level pragma. Wave 7 removes.
+ */
+export const previewProration = query({
+  args: {
+    contractId: v.id("commerce_subscriptions"),
+    toOfferId: v.id("commerce_subscription_offers"),
+  },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
+    await requireCommerceSubscriptionsEnabled(ctx);
+
+    const contract = await ctx.db.get(args.contractId);
+    if (!contract) return null;
+
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
+
+    // Admin OR owner
+    let isAdmin = false;
+    try {
+      await requireCan(ctx, "manage_options");
+      isAdmin = true;
+    } catch {
+      // Not admin — check ownership
+    }
+    if (!isAdmin && user._id !== contract.userId) {
+      return null;
+    }
+
+    // Resolve the current offer via the first active item.
+    const items = await ctx.db
+      .query("commerce_subscription_items")
+      .withIndex("by_subscription", (q: any) =>
+        q.eq("subscriptionId", args.contractId),
+      )
+      .collect();
+    const activeItem = items.find(
+      (it: any) => it.status === "active" || it.status === "pending_cancel",
+    );
+    if (!activeItem || !activeItem.sourceOfferId) {
+      return null;
+    }
+    const fromOffer = await ctx.db.get(activeItem.sourceOfferId);
+    const toOffer = await ctx.db.get(args.toOfferId);
+    if (!fromOffer || !toOffer) return null;
+
+    const cycleStart =
+      contract.currentPeriodStartAt ?? contract.createdAt ?? Date.now();
+    const cycleEnd =
+      contract.currentPeriodEndAt ?? cycleStart + 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    const result = computeProration({
+      cycleStart,
+      cycleEnd,
+      now,
+      oldOfferPrice: fromOffer.recurringAmount ?? 0,
+      newOfferPrice: toOffer.recurringAmount ?? 0,
+    });
+
+    const isUpgrade = result.netCharge > 0;
+    const effectiveAt = isUpgrade ? now : cycleEnd;
+
+    return {
+      ...result,
+      isUpgrade,
+      effectiveAt,
+      currencyCode:
+        toOffer.currencyCode ?? contract.currencyCode ?? "USD",
+      fromOfferTitle: fromOffer.title,
+      toOfferTitle: toOffer.title,
+    };
   },
 });
