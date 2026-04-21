@@ -34,17 +34,21 @@
 
 import { ConvexError } from "convex/values";
 import type { Id } from "../_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
 import {
   isMetaCapability,
   META_TO_CONCRETE,
 } from "../types/capabilities";
 import type { AnyCapability, Capability } from "../types/capabilities";
 import { LEGACY_ROLE_MAP } from "../seed/roles";
+import { isPluginEnabled } from "./plugins";
 
 const ADMIN_ISSUER = "https://convexpress-admin.local";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
+
+type DbReadCtx = Pick<QueryCtx, "db">;
+type AuthReadCtx = Pick<QueryCtx, "auth" | "db">;
 
 /** The user document shape as returned from the users table. */
 type UserDoc = {
@@ -149,7 +153,7 @@ type RoleDoc = {
  * @returns User document or null if not authenticated / not found.
  */
 export async function getCurrentUser(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthReadCtx,
 ): Promise<UserDoc | null> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return null;
@@ -180,7 +184,7 @@ export async function getCurrentUser(
  * @returns User ID or null if not authenticated.
  */
 export async function getCurrentUserId(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthReadCtx,
 ): Promise<Id<"users"> | null> {
   const user = await getCurrentUser(ctx);
   return user?._id ?? null;
@@ -197,7 +201,7 @@ export async function getCurrentUserId(
  *   3. null (no role assigned)
  */
 async function resolveUserRole(
-  ctx: QueryCtx | MutationCtx,
+  ctx: DbReadCtx,
   user: Pick<UserDoc, "roleId" | "internalRole">,
 ): Promise<RoleDoc | null> {
   // Path 1: Direct roleId (new system)
@@ -236,7 +240,7 @@ async function resolveUserRole(
  * Get the capabilities array for a user's resolved role.
  */
 async function getUserCapabilities(
-  ctx: QueryCtx | MutationCtx,
+  ctx: DbReadCtx,
   user: Pick<UserDoc, "roleId" | "internalRole">,
 ): Promise<string[]> {
   const role = await resolveUserRole(ctx, user);
@@ -246,8 +250,79 @@ async function getUserCapabilities(
 // ─── Permission Checks ──────────────────────────────────────────────────────
 
 /**
+ * Membership capability augmentation.
+ *
+ * Returns true if the user has any ACTIVE or GRACE grant on an ACTIVE plan
+ * whose `linkedCapabilities` includes the requested capability. Returns
+ * false when the membership plugin is disabled (the caller's existing
+ * role-based decision stands untouched).
+ *
+ * This is a strict augmentation — it never REMOVES a capability the user
+ * already has through their role; it only ADDS plan-granted capabilities
+ * when the role-based check has already returned false.
+ *
+ * @internal — wired into currentUserCan / requireCan below.
+ */
+async function userHasMembershipCapability(
+  ctx: AuthReadCtx,
+  userId: Id<"users">,
+  capability: Capability,
+): Promise<boolean> {
+  // Plugin off → no augmentation. Fail soft.
+  if (!(await isPluginEnabled(ctx, "membership"))) return false;
+
+  const now = Date.now();
+
+  let activeGrants: any[] = [];
+  let graceGrants: any[] = [];
+  try {
+    activeGrants = await ctx.db
+      .query("membership_grants")
+      .withIndex("by_user_status", (q: any) =>
+        q.eq("userId", userId).eq("status", "active"),
+      )
+      .collect();
+
+    graceGrants = await ctx.db
+      .query("membership_grants")
+      .withIndex("by_user_status", (q: any) =>
+        q.eq("userId", userId).eq("status", "grace"),
+      )
+      .collect();
+  } catch {
+    // Table may not exist during early schema bring-up. Fail soft.
+    return false;
+  }
+
+  const validGrants = [...activeGrants, ...graceGrants].filter((g: any) => {
+    if (g.status === "grace" && g.graceEndsAt && g.graceEndsAt < now)
+      return false;
+    if (g.endsAt && g.endsAt < now && g.status !== "grace") return false;
+    return true;
+  });
+
+  for (const grant of validGrants) {
+    const plan = await ctx.db.get(grant.planId);
+    if (!plan) continue;
+    if (plan.status !== "active") continue;
+    const caps: string[] = Array.isArray(plan.linkedCapabilities)
+      ? plan.linkedCapabilities
+      : [];
+    if (caps.includes(capability)) return true;
+  }
+
+  return false;
+}
+
+/**
  * Non-throwing capability check for the current authenticated user.
  * Returns true if the user has the specified capability.
+ *
+ * Resolution order:
+ *   1. Role-based capability check (authoritative).
+ *   2. If the membership plugin is enabled and the role-based check was
+ *      false, attempt membership augmentation — a plan grant may carry the
+ *      capability via `linkedCapabilities`.
  *
  * Use in queries for conditional UI rendering:
  *   const canPublish = await currentUserCan(ctx, "post.publish");
@@ -257,7 +332,7 @@ async function getUserCapabilities(
  * @returns true if user is authenticated, active, and has the capability
  */
 export async function currentUserCan(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthReadCtx,
   capability: Capability,
 ): Promise<boolean> {
   const user = await getCurrentUser(ctx);
@@ -265,7 +340,11 @@ export async function currentUserCan(
   if (user.status !== "active") return false;
 
   const capabilities = await getUserCapabilities(ctx, user);
-  return capabilities.includes(capability);
+  if (capabilities.includes(capability)) return true;
+
+  // Role-based check failed — try membership augmentation. Plugin-gated
+  // inside the helper so membership-off sites return the prior behavior.
+  return await userHasMembershipCapability(ctx, user._id, capability);
 }
 
 /**
@@ -277,7 +356,7 @@ export async function currentUserCan(
  * @returns true if the user exists, is active, and has the capability
  */
 export async function userCan(
-  ctx: QueryCtx | MutationCtx,
+  ctx: DbReadCtx,
   userId: Id<"users">,
   capability: Capability,
 ): Promise<boolean> {
@@ -303,7 +382,7 @@ export async function userCan(
  * @throws ConvexError with code "FORBIDDEN" if user lacks the capability
  */
 export async function requireCan(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthReadCtx,
   capability: Capability,
 ): Promise<UserDoc> {
   const user = await getCurrentUser(ctx);
@@ -324,12 +403,21 @@ export async function requireCan(
   const role = await resolveUserRole(ctx, user);
   const capabilities = role?.capabilities ?? [];
   if (!capabilities.includes(capability)) {
-    // Log details server-side for debugging; return generic message to client
-    console.warn(`Access denied: user=${user._id} capability=${capability} role=${role?.slug ?? "none"}`);
-    throw new ConvexError({
-      code: "FORBIDDEN",
-      message: "Insufficient permissions",
-    });
+    // Role-based check failed. If the membership plugin is enabled, see if
+    // an active/grace plan grant carries the capability via linkedCapabilities.
+    const viaMembership = await userHasMembershipCapability(
+      ctx,
+      user._id,
+      capability,
+    );
+    if (!viaMembership) {
+      // Log details server-side for debugging; return generic message to client
+      console.warn(`Access denied: user=${user._id} capability=${capability} role=${role?.slug ?? "none"}`);
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Insufficient permissions",
+      });
+    }
   }
 
   return user;
@@ -354,10 +442,10 @@ export async function requireCan(
  * @param resourceId - The resource being acted upon (any table)
  */
 export async function mapMetaCap(
-  ctx: QueryCtx | MutationCtx,
+  ctx: DbReadCtx,
   capability: AnyCapability,
   userId: Id<"users">,
-  resourceId?: Id<"posts"> | Id<"pages"> | Id<"media"> | Id<"comments">,
+  resourceId?: Id<"posts"> | Id<"media"> | Id<"comments">,
 ): Promise<Capability | null> {
   // If it's not a meta-capability, return as-is
   if (!isMetaCapability(capability)) {
@@ -373,9 +461,9 @@ export async function mapMetaCap(
   // Determine the table from the capability domain prefix.
   // The meta-capability's domain (e.g., "post" in "post.edit") maps to a table.
   const domain = capability.split(".")[0];
-  const TABLE_MAP: Record<string, "posts" | "pages" | "media" | "comments"> = {
+  const TABLE_MAP: Record<string, "posts" | "media" | "comments"> = {
     post: "posts",
-    page: "pages",
+    page: "posts",
     media: "media",
     comment: "comments",
     seo: "posts", // SEO meta-caps operate on posts
@@ -388,8 +476,6 @@ export async function mapMetaCap(
     let resource: Record<string, unknown> | null = null;
     if (tableName === "posts") {
       resource = await ctx.db.get("posts", resourceId as Id<"posts">);
-    } else if (tableName === "pages") {
-      resource = await ctx.db.get("pages", resourceId as Id<"pages">);
     } else if (tableName === "media") {
       resource = await ctx.db.get("media", resourceId as Id<"media">);
     } else if (tableName === "comments") {
@@ -448,9 +534,9 @@ export async function mapMetaCap(
  * @throws ConvexError with appropriate code on failure
  */
 export async function requireCanOnResource(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthReadCtx,
   capability: AnyCapability,
-  resourceId: Id<"posts"> | Id<"pages"> | Id<"media"> | Id<"comments">,
+  resourceId: Id<"posts"> | Id<"media"> | Id<"comments">,
 ): Promise<UserDoc> {
   const user = await getCurrentUser(ctx);
   if (!user) {
@@ -499,7 +585,7 @@ export async function requireCanOnResource(
  * @returns Role level number, or 0 if not authenticated / no role.
  */
 export async function getCurrentRoleLevel(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthReadCtx,
 ): Promise<number> {
   const user = await getCurrentUser(ctx);
   if (!user) return 0;
@@ -516,7 +602,7 @@ export async function getCurrentRoleLevel(
  * @returns true if user's role level >= minLevel
  */
 export async function hasMinimumRoleLevel(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthReadCtx,
   minLevel: number,
 ): Promise<boolean> {
   const level = await getCurrentRoleLevel(ctx);
@@ -529,7 +615,7 @@ export async function hasMinimumRoleLevel(
  * @throws ConvexError if user doesn't meet the minimum level
  */
 export async function requireMinimumRoleLevel(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthReadCtx,
   minLevel: number,
 ): Promise<UserDoc> {
   const user = await getCurrentUser(ctx);
@@ -560,7 +646,7 @@ export async function requireMinimumRoleLevel(
  * Use when you just need a valid, active user.
  */
 export async function requireAuth(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthReadCtx,
 ): Promise<UserDoc> {
   const user = await getCurrentUser(ctx);
   if (!user) {
@@ -615,7 +701,7 @@ export function getUserIdentifier(
  * @returns User document or null
  */
 export async function lookupUserByIdentifier(
-  ctx: QueryCtx | MutationCtx,
+  ctx: DbReadCtx,
   identifier: string,
 ): Promise<UserDoc | null> {
   // Try clerkUserId
