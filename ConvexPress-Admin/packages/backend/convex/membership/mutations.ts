@@ -14,11 +14,13 @@
  *   Grant Lifecycle:
  *   - grantMembership         Manually grant membership to user (admin)
  *   - revokeMembership        Revoke grant (admin)
+ *   - extendGrant             Extend a grant's expiry with a recorded reason (admin)
  *
  *   Restriction Rules:
- *   - createRestrictionRule   Create content restriction rule (admin)
- *   - updateRestrictionRule   Update rule (admin)
- *   - deleteRestrictionRule   Delete rule (admin)
+ *   - createRestrictionRule              Create content restriction rule (admin)
+ *   - updateRestrictionRule              Update rule (admin)
+ *   - deleteRestrictionRule              Delete rule (admin)
+ *   - upsertRestrictionRuleForResource   Create-or-update a rule scoped to a resource (admin)
  */
 
 import { ConvexError, v } from "convex/values";
@@ -31,6 +33,7 @@ import {
   membershipRestrictionModeValidator,
 } from "../schema/membership";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { membershipResourceTypeValidator } from "./validators";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PLAN CRUD
@@ -60,6 +63,7 @@ export const createPlan = mutation({
           code: v.string(),
           label: v.string(),
           description: v.optional(v.string()),
+          displayAsFeature: v.optional(v.boolean()),
           metadata: v.optional(v.any()),
         }),
       ),
@@ -107,6 +111,7 @@ export const createPlan = mutation({
           code: benefit.code,
           label: benefit.label,
           description: benefit.description,
+          displayAsFeature: benefit.displayAsFeature,
           metadata: benefit.metadata,
           createdAt: now,
           updatedAt: now,
@@ -147,6 +152,7 @@ export const updatePlan = mutation({
           code: v.string(),
           label: v.string(),
           description: v.optional(v.string()),
+          displayAsFeature: v.optional(v.boolean()),
           metadata: v.optional(v.any()),
         }),
       ),
@@ -217,6 +223,7 @@ export const updatePlan = mutation({
           code: benefit.code,
           label: benefit.label,
           description: benefit.description,
+          displayAsFeature: benefit.displayAsFeature,
           metadata: benefit.metadata,
           createdAt: now,
           updatedAt: now,
@@ -444,11 +451,92 @@ export const revokeMembership = mutation({
       metadata: {
         ...(grant.metadata ?? {}),
         revokeReason: args.reason,
+        revokedAt: now,
       },
       updatedAt: now,
     });
 
     return { revoked: true };
+  },
+});
+
+/**
+ * Extend a grant's expiry (admin).
+ *
+ * Pushes `endsAt` forward to `newExpiresAt`, appending an entry to the grant's
+ * metadata history trail. Requires a non-empty reason (accountability).
+ * Refuses to operate on revoked or expired grants — those are terminal states;
+ * create a new grant instead.
+ */
+export const extendGrant = mutation({
+  args: {
+    grantId: v.id("membership_grants"),
+    newExpiresAt: v.number(),
+    reason: v.string(),
+  },
+  handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "membership");
+    await requireMembershipEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    // Reason must be non-empty (trim-aware)
+    if (!args.reason || args.reason.trim().length === 0) {
+      throw new ConvexError({
+        code: "REASON_REQUIRED",
+        message: "A non-empty reason is required when extending a grant.",
+      });
+    }
+
+    const grant = await ctx.db.get(args.grantId);
+    if (!grant) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Membership grant not found.",
+      });
+    }
+
+    if (grant.status === "revoked") {
+      throw new ConvexError({
+        code: "GRANT_REVOKED",
+        message: "Cannot extend a revoked grant.",
+      });
+    }
+
+    if (grant.status === "expired") {
+      throw new ConvexError({
+        code: "GRANT_EXPIRED",
+        message: "Cannot extend an expired grant. Create a new grant instead.",
+      });
+    }
+
+    const now = Date.now();
+    const priorEndsAt = grant.endsAt ?? null;
+
+    // Append to metadata.history (audit trail — never overwrite).
+    const existingHistory = Array.isArray(grant.metadata?.history)
+      ? grant.metadata.history
+      : [];
+
+    const historyEntry = {
+      action: "extend",
+      at: now,
+      priorEndsAt,
+      newEndsAt: args.newExpiresAt,
+      reason: args.reason,
+    };
+
+    await ctx.db.patch(args.grantId, {
+      endsAt: args.newExpiresAt,
+      metadata: {
+        ...(grant.metadata ?? {}),
+        history: [...existingHistory, historyEntry],
+        lastExtendReason: args.reason,
+        lastExtendedAt: now,
+      },
+      updatedAt: now,
+    });
+
+    return { extended: true, grantId: args.grantId, newExpiresAt: args.newExpiresAt };
   },
 });
 
@@ -615,5 +703,89 @@ export const deleteRestrictionRule = mutation({
     await ctx.db.delete(args.ruleId);
 
     return { deleted: true };
+  },
+});
+
+/**
+ * Upsert a restriction rule scoped to a specific resource (admin).
+ *
+ * If any existing rule targets the (resourceType, resourceIdOrKey) pair, it is
+ * patched in place. Otherwise a fresh rule is created. Used by the Wave-3
+ * metabox Save button (post/page right rail) where the UI contract is
+ * "one rule per resource".
+ *
+ * Handles all 5 resource types: page, post, route, product, block.
+ */
+export const upsertRestrictionRuleForResource = mutation({
+  args: {
+    resourceType: membershipResourceTypeValidator,
+    resourceIdOrKey: v.string(),
+    ruleMode: membershipRestrictionModeValidator,
+    planIds: v.array(v.id("membership_plans")),
+    requiredCapabilities: v.optional(v.array(v.string())),
+    teaserMode: v.union(
+      v.literal("hide"),
+      v.literal("excerpt"),
+      v.literal("custom_message"),
+    ),
+    customMessage: v.optional(v.string()),
+    loginRequired: v.boolean(),
+  },
+  handler: async (ctx: any, args: any) => {
+    await requirePluginEnabled(ctx, "membership");
+    await requireMembershipEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    // Validate plan IDs exist
+    for (const planId of args.planIds) {
+      const plan = await ctx.db.get(planId);
+      if (!plan) {
+        throw new ConvexError({
+          code: "NOT_FOUND",
+          message: `Plan ${planId} not found.`,
+        });
+      }
+    }
+
+    const now = Date.now();
+
+    // Look up existing rule for this exact resource (first match wins — the
+    // metabox UI guarantees one rule per resource).
+    const existingRule = await ctx.db
+      .query("membership_restriction_rules")
+      .withIndex("by_resource", (q: any) =>
+        q
+          .eq("resourceType", args.resourceType)
+          .eq("resourceIdOrKey", args.resourceIdOrKey),
+      )
+      .first();
+
+    if (existingRule) {
+      await ctx.db.patch(existingRule._id, {
+        ruleMode: args.ruleMode,
+        planIds: args.planIds,
+        requiredCapabilities: args.requiredCapabilities,
+        teaserMode: args.teaserMode,
+        customMessage: args.customMessage,
+        loginRequired: args.loginRequired,
+        updatedAt: now,
+      });
+      return { ruleId: existingRule._id, created: false };
+    }
+
+    const ruleId = await ctx.db.insert("membership_restriction_rules", {
+      resourceType: args.resourceType,
+      resourceIdOrKey: args.resourceIdOrKey,
+      ruleMode: args.ruleMode,
+      planIds: args.planIds,
+      requiredCapabilities: args.requiredCapabilities,
+      teaserMode: args.teaserMode,
+      customMessage: args.customMessage,
+      loginRequired: args.loginRequired,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { ruleId, created: true };
   },
 });
