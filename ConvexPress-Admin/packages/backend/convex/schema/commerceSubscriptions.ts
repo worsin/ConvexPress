@@ -153,6 +153,19 @@ export const commerceSubscriptionTables = {
     minimumQuantity: v.optional(v.number()),
     maximumQuantity: v.optional(v.number()),
     entitlementCodes: v.optional(v.array(v.string())),
+    features: v.optional(
+      v.array(
+        v.object({
+          text: v.string(),
+          highlighted: v.optional(v.boolean()),
+          icon: v.optional(v.string()),
+        }),
+      ),
+    ),
+    pricingCardVisible: v.optional(v.boolean()),
+    excludedPlanFeatureIds: v.optional(
+      v.array(v.id("membership_plan_benefits")),
+    ),
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -337,6 +350,21 @@ export const commerceSubscriptionTables = {
     manualBilling: v.optional(v.boolean()),
     pricingSnapshot: v.optional(v.any()),
     sourceMetadata: v.optional(v.any()),
+    offerHistory: v.optional(
+      v.array(
+        v.object({
+          offerId: v.id("commerce_subscription_offers"),
+          effectiveAt: v.number(),
+          reason: v.string(),
+        }),
+      ),
+    ),
+    scheduledOfferChange: v.optional(
+      v.object({
+        toOfferId: v.id("commerce_subscription_offers"),
+        effectiveAt: v.number(),
+      }),
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -397,6 +425,9 @@ export const commerceSubscriptionTables = {
     manualBilling: v.optional(v.boolean()),
     dueAt: v.optional(v.number()),
     paidAt: v.optional(v.number()),
+    prorationEventId: v.optional(
+      v.id("commerce_subscription_proration_events"),
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -478,4 +509,68 @@ export const commerceSubscriptionTables = {
   })
     .index("by_scope_key", ["scope", "key"])
     .index("by_status", ["status"]),
+
+  commerce_subscription_coupons: defineTable({
+    code: v.string(),
+    discountType: v.union(v.literal("percent"), v.literal("fixed")),
+    amount: v.number(),
+    duration: v.union(
+      v.literal("once"),
+      v.literal("forever"),
+      v.literal("n_months"),
+    ),
+    durationMonths: v.optional(v.number()),
+    maxRedemptions: v.optional(v.number()),
+    perCustomerLimit: v.optional(v.number()),
+    offerIds: v.optional(v.array(v.id("commerce_subscription_offers"))),
+    startsAt: v.optional(v.number()),
+    expiresAt: v.optional(v.number()),
+    status: v.union(
+      v.literal("active"),
+      v.literal("paused"),
+      v.literal("archived"),
+    ),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_code", ["code"])
+    .index("by_status", ["status"]),
+
+  commerce_subscription_coupon_redemptions: defineTable({
+    contractId: v.id("commerce_subscriptions"),
+    couponId: v.id("commerce_subscription_coupons"),
+    customerId: v.id("users"),
+    redeemedAt: v.number(),
+    remainingApplications: v.number(),
+  })
+    .index("by_contract", ["contractId"])
+    .index("by_coupon", ["couponId"])
+    .index("by_customer_and_coupon", ["customerId", "couponId"]),
+
+  commerce_subscription_proration_events: defineTable({
+    contractId: v.id("commerce_subscriptions"),
+    fromOfferId: v.id("commerce_subscription_offers"),
+    toOfferId: v.id("commerce_subscription_offers"),
+    daysRemaining: v.number(),
+    daysInCycle: v.number(),
+    unusedOldAmount: v.number(),
+    proratedNewAmount: v.number(),
+    netCharge: v.number(),
+    invoiceId: v.optional(v.id("commerce_subscription_invoices")),
+    triggeredBy: v.id("users"),
+    triggeredAt: v.number(),
+  })
+    .index("by_contract", ["contractId"])
+    .index("by_invoice", ["invoiceId"]),
+
+  commerce_subscription_pricing_card_config: defineTable({
+    singletonKey: v.string(),
+    orderedOfferIds: v.array(v.id("commerce_subscription_offers")),
+    headline: v.optional(v.string()),
+    subheadline: v.optional(v.string()),
+    featuredOfferId: v.optional(v.id("commerce_subscription_offers")),
+    templateKey: v.string(),
+    updatedAt: v.number(),
+    updatedBy: v.id("users"),
+  }).index("by_singleton", ["singletonKey"]),
 };
