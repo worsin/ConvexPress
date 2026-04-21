@@ -9,6 +9,7 @@
  *   - expireGrants                         Expire grants past their end date
  *   - grantFromSubscription                Auto-grant on active subscription
  *   - revokeFromSubscription               Auto-revoke on subscription cancel
+ *   - moveGrantToGrace                     Move active grants to grace (past_due/paused)
  *   - recordAccessCheck                    Write a row to membership_access_log
  *   - getCapabilitiesForUser               Collect caps from active+grace grants
  *   - getPlansByLinkedSubscriptionCode     Plans matching an entitlement code
@@ -18,6 +19,13 @@ import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../_generated/server";
 import { requirePluginEnabled, isPluginEnabled } from "../helpers/plugins";
+import {
+  decideGrant,
+  decideMoveToGrace,
+  decideRevoke,
+  filterGrantsBySubscription,
+  selectBridgeablePlans,
+} from "./bridgeLogic";
 
 // ─── Settings-reader helper (local to internals) ──────────────────────────
 // Returns the membership.general settings object with Wave-2 defaults.
@@ -44,6 +52,36 @@ async function getMembershipSettings(ctx: any): Promise<{
   } catch {
     return defaults;
   }
+}
+
+// ─── Bridge-event access log helper (local) ───────────────────────────────
+// Writes a `membership_access_log` entry for a bridge-driven grant mutation
+// (grant_created / grant_refreshed / grant_revoked / grant_moved_to_grace).
+// Honors the `logAccessChecks` setting just like `recordAccessCheck` does.
+async function writeBridgeAccessLog(
+  ctx: any,
+  input: {
+    userId: any;
+    planId: any;
+    grantId: any;
+    reason:
+      | "bridge_grant_created"
+      | "bridge_grant_refreshed"
+      | "bridge_grant_revoked"
+      | "bridge_grant_moved_to_grace";
+  },
+): Promise<void> {
+  const settings = await getMembershipSettings(ctx);
+  if (!settings.logAccessChecks) return;
+  await ctx.db.insert("membership_access_log", {
+    userId: input.userId,
+    resourceType: "grant",
+    resourceIdOrKey: String(input.grantId),
+    allowed: true,
+    reason: input.reason,
+    matchingPlanIds: [input.planId],
+    createdAt: Date.now(),
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -146,6 +184,20 @@ export const expireGrants = internalMutation({
  * Looks up membership plans with a matching linkedSubscriptionCode and grants
  * the user membership on all matching plans.
  *
+ * Idempotency:
+ *   - If an active grant already exists for (userId, planId), the grant is
+ *     REFRESHED (sourceRef + updatedAt always, endsAt only if later) rather
+ *     than a duplicate inserted. This keeps the bridge safe to re-run.
+ *
+ * Plugin gate:
+ *   - Soft no-op when membership plugin is disabled — must NOT throw, or the
+ *     subscription flow breaks. Returns `{ skipped: "plugin_disabled" }`.
+ *
+ * Archived plans:
+ *   - Double-checked at iteration time (defensive against index-visibility
+ *     race where by_status returned a plan that became archived between the
+ *     query and the handler). Skipped silently.
+ *
  * @param userId - The user who has the active entitlement
  * @param entitlementCode - The subscription entitlement code
  * @param subscriptionId - Reference to the source subscription
@@ -159,74 +211,79 @@ export const grantFromSubscription = internalMutation({
     endsAt: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
-    await requirePluginEnabled(ctx, "membership");
+    if (!(await isPluginEnabled(ctx, "membership"))) {
+      return { grantedPlanIds: [], skipped: "plugin_disabled" };
+    }
+
     const now = Date.now();
     const grantedPlanIds: string[] = [];
+    const refreshedPlanIds: string[] = [];
+    const skippedArchivedPlanIds: string[] = [];
 
-    // Find plans linked to this entitlement code
+    // Find plans linked to this entitlement code (active-only index).
     const allPlans = await ctx.db
       .query("membership_plans")
       .withIndex("by_status", (q: any) => q.eq("status", "active"))
       .collect();
 
-    const matchingPlans = allPlans.filter(
-      (plan: any) =>
-        plan.linkedSubscriptionCode === args.entitlementCode &&
-        (plan.grantMode === "subscription" || plan.grantMode === "hybrid"),
-    );
+    const matchingPlans = selectBridgeablePlans(allPlans, args.entitlementCode);
 
     if (matchingPlans.length === 0) {
       return { grantedPlanIds: [], reason: "no_matching_plans" };
     }
 
+    // Fetch active grants once per call; we'll filter per plan in memory.
+    const existingActiveGrants = await ctx.db
+      .query("membership_grants")
+      .withIndex("by_user_status", (q: any) =>
+        q.eq("userId", args.userId).eq("status", "active"),
+      )
+      .collect();
+
     for (const plan of matchingPlans) {
-      // Check if user already has an active grant for this plan
-      const existingGrants = await ctx.db
-        .query("membership_grants")
-        .withIndex("by_user_status", (q: any) =>
-          q.eq("userId", args.userId).eq("status", "active"),
-        )
-        .collect();
-
-      const alreadyGranted = existingGrants.some(
-        (g: any) => g.planId === plan._id,
-      );
-
-      if (alreadyGranted) {
-        // Extend the existing grant's endsAt if the new subscription provides a later date
-        if (args.endsAt) {
-          const existingGrant = existingGrants.find(
-            (g: any) => g.planId === plan._id,
-          );
-          if (existingGrant && (!existingGrant.endsAt || args.endsAt > existingGrant.endsAt)) {
-            await ctx.db.patch(existingGrant._id, {
-              endsAt: args.endsAt,
-              sourceRef: args.subscriptionId,
-              updatedAt: now,
-            });
-          }
-        }
-        grantedPlanIds.push(plan._id);
+      // Race-safe re-read: plan may have been archived between the index
+      // query and this iteration. Skip silently if so.
+      const fresh = await ctx.db.get(plan._id);
+      if (!fresh || fresh.status !== "active") {
+        skippedArchivedPlanIds.push(plan._id);
         continue;
       }
 
-      // Create new grant
-      await ctx.db.insert("membership_grants", {
+      const decision = decideGrant({
+        existingActiveGrantsForUserPlan: existingActiveGrants,
         userId: args.userId,
         planId: plan._id,
-        sourceType: "subscription",
-        sourceRef: args.subscriptionId,
-        status: "active",
-        startsAt: now,
+        subscriptionId: args.subscriptionId,
         endsAt: args.endsAt,
-        createdAt: now,
-        updatedAt: now,
+        now,
       });
 
-      grantedPlanIds.push(plan._id);
+      if (decision.kind === "create") {
+        const grantId = await ctx.db.insert("membership_grants", decision.doc);
+        await writeBridgeAccessLog(ctx, {
+          userId: args.userId,
+          planId: plan._id,
+          grantId,
+          reason: "bridge_grant_created",
+        });
+        grantedPlanIds.push(plan._id);
+      } else {
+        await ctx.db.patch(decision.grantId, decision.patch);
+        await writeBridgeAccessLog(ctx, {
+          userId: args.userId,
+          planId: plan._id,
+          grantId: decision.grantId,
+          reason: "bridge_grant_refreshed",
+        });
+        refreshedPlanIds.push(plan._id);
+      }
     }
 
-    return { grantedPlanIds };
+    return {
+      grantedPlanIds,
+      refreshedPlanIds,
+      skippedArchivedPlanIds,
+    };
   },
 });
 
