@@ -24,6 +24,8 @@
     "@convexpress-website/env": "workspace:*",
     "@fontsource-variable/inter": "^5.2.8",
     "@icons-pack/react-simple-icons": "^13.11.2",
+    "@stripe/react-stripe-js": "^6.2.0",
+    "@stripe/stripe-js": "^9.3.0",
     "@tailwindcss/vite": "^4.1.8",
     "@tanstack/react-form": "^1.23.5",
     "@tanstack/react-query": "^5.80.6",
