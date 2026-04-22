@@ -1,28 +1,34 @@
 # PRD: Analytics & Reporting
 
-> **Origin:** Ported from VexCart on 2026-04-22.
-> **Environment:** ConvexPress CMS + Commerce (WordPress-replacement architecture).
-> **Auth stack:** Admin uses Convex Auth; website uses Clerk. Not VexCart's auth model.
-> **Roles:** WordPress-standard — Administrator / Editor / Author / Contributor / Subscriber.
-> **No themes, widgets, or plugins** in ConvexPress — AI builds custom per-site.
-> **Package manager:** Bun (not npm/pnpm).
-> **See `docs/stripe-integration.md`** for the site-wide Stripe provider architecture; this PRD's payment/tax references should be read through that lens.
->
-> Lexical substitutions (VexCart→ConvexPress names and repo paths) have been
-> applied automatically. Deeper semantic adaptations (capabilities, role
-> naming, event-code conventions) may still reference VexCart-era details
-> verbatim — flag and fix as they're used.
+> **Origin:** Ported from VexCart on 2026-04-22, integrated into ConvexPress.
+> **Project:** ConvexPress — a unified CMS + commerce platform (WordPress + WooCommerce replacement). Commerce is not a separate app; it is a first-class layer inside ConvexPress alongside posts, pages, media, users, and taxonomies. Every commerce feature is either **baked into the commerce core** or **gated as an internal extension** via `ConvexPress-Admin/apps/web/src/lib/plugins/registry.ts` (feature flags, not a third-party marketplace).
+> **Two-app architecture:** `ConvexPress-Admin/` (TanStack Router SPA, Convex Auth) owns the Convex database + all mutations. `ConvexPress-Website/` (TanStack Start SSR, Clerk auth) is a read-only consumer.
+> **Roles (WordPress-standard):** Administrator / Editor / Author / Contributor / Subscriber. Customer-facing UIs serve `Subscriber` + guests.
+> **No third-party plugin/theme marketplace.** AI builds custom per-site. Internally, "extensions" are feature-flagged modules (Bundles, Digital, Returns, Reviews, Wishlists, Subscriptions, Add-Ons, Membership) that live in `convex/commerce<Thing>/` with a `<thing>Enabled` settings flag and a `require<Thing>Enabled(ctx)` gate on every mutation/query.
+> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `docs/stripe-integration.md`).
 
 
 > **Status:** DRAFT - Awaiting Review & Enhancement
-> **System Code:** ADM-RPT
-> **Phase:** 6 of 6 (Admin & Analytics)
-> **Priority:** P2 - Medium
-> **Complexity:** Medium
 > **Airtable Record:** recKkxkne6kBUH3mP
 
 ---
 
+## Integration with ConvexPress
+
+**Positioning:** internal extension (`commerceAnalytics` — separate from site-wide `analytics`).
+**Extension gate:** ``commerce.analytics.analyticsEnabled`` in the Settings system; `requireX(ctx)` helper on every mutation/query. Admin UI hides the nav item when disabled.
+**Code lives at:** `ConvexPress-Admin/packages/backend/convex/analytics/` (site-wide) + `convex/commerce/reports.ts` (commerce-specific)
+
+**Consumes these ConvexPress systems:**
+
+- **Order System** — revenue, AOV, conversion metrics.
+- **Product System** — top products by views, adds, revenue.
+- **Customer System** — LTV, churn, cohort analysis.
+- **GA4 Integration** — optional passthrough for off-site dashboards.
+
+**WooCommerce analog:** WooCommerce Analytics (native) + Google Analytics Enhanced Ecommerce.
+
+---
 ## 1. Overview
 
 ### 1.1 Purpose
@@ -743,7 +749,7 @@ export const generateExport = internalAction({
 ### B. Related Documentation
 
 - [Action Plan](./ACTION-PLAN.md)
-- [Admin Dashboard PRD](./PRD-ADMIN-DASHBOARD.md)
+- [Admin Dashboard PRD](./the ConvexPress Dashboard System KB (`.claude/docs/DASHBOARD-SYSTEM.md`).md)
 - [Convex Crons Documentation](https://docs.convex.dev/scheduling/cron-jobs)
 - [Tinybird + Convex Guide](https://www.tinybird.co/docs/guides/convex)
 

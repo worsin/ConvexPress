@@ -1,28 +1,33 @@
 # PRD: Product Bundles
 
-> **Origin:** Ported from VexCart on 2026-04-22.
-> **Environment:** ConvexPress CMS + Commerce (WordPress-replacement architecture).
-> **Auth stack:** Admin uses Convex Auth; website uses Clerk. Not VexCart's auth model.
-> **Roles:** WordPress-standard — Administrator / Editor / Author / Contributor / Subscriber.
-> **No themes, widgets, or plugins** in ConvexPress — AI builds custom per-site.
-> **Package manager:** Bun (not npm/pnpm).
-> **See `docs/stripe-integration.md`** for the site-wide Stripe provider architecture; this PRD's payment/tax references should be read through that lens.
->
-> Lexical substitutions (VexCart→ConvexPress names and repo paths) have been
-> applied automatically. Deeper semantic adaptations (capabilities, role
-> naming, event-code conventions) may still reference VexCart-era details
-> verbatim — flag and fix as they're used.
+> **Origin:** Ported from VexCart on 2026-04-22, integrated into ConvexPress.
+> **Project:** ConvexPress — a unified CMS + commerce platform (WordPress + WooCommerce replacement). Commerce is not a separate app; it is a first-class layer inside ConvexPress alongside posts, pages, media, users, and taxonomies. Every commerce feature is either **baked into the commerce core** or **gated as an internal extension** via `ConvexPress-Admin/apps/web/src/lib/plugins/registry.ts` (feature flags, not a third-party marketplace).
+> **Two-app architecture:** `ConvexPress-Admin/` (TanStack Router SPA, Convex Auth) owns the Convex database + all mutations. `ConvexPress-Website/` (TanStack Start SSR, Clerk auth) is a read-only consumer.
+> **Roles (WordPress-standard):** Administrator / Editor / Author / Contributor / Subscriber. Customer-facing UIs serve `Subscriber` + guests.
+> **No third-party plugin/theme marketplace.** AI builds custom per-site. Internally, "extensions" are feature-flagged modules (Bundles, Digital, Returns, Reviews, Wishlists, Subscriptions, Add-Ons, Membership) that live in `convex/commerce<Thing>/` with a `<thing>Enabled` settings flag and a `require<Thing>Enabled(ctx)` gate on every mutation/query.
+> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `docs/stripe-integration.md`).
 
 
 > **Status:** DRAFT - Awaiting Review & Enhancement
-> **System Code:** CAT-BND
-> **Phase:** 4 of 6 (Checkout & Orders)
-> **Priority:** P1 - High
-> **Complexity:** Medium
 > **Airtable Record:** reckWsQczpT0y8QZ0
 
 ---
 
+## Integration with ConvexPress
+
+**Positioning:** internal extension (`commerceBundles`).
+**Extension gate:** ``commerce.bundles.bundlesEnabled`` in the Settings system; `requireX(ctx)` helper on every mutation/query. Admin UI hides the nav item when disabled.
+**Code lives at:** `ConvexPress-Admin/packages/backend/convex/commerceBundles/`
+
+**Consumes these ConvexPress systems:**
+
+- **Product System** — a bundle is a product that composes other products with quantity + discount rules.
+- **Inventory System** — bundle stock derives from component availability.
+- **Cart System** — bundle pricing resolved at add-to-cart via `orderBundleHelpers.ts`.
+
+**WooCommerce analog:** WooCommerce Product Bundles (extension) — fixed + dynamic product compositions with bundle-level pricing.
+
+---
 ## 1. Overview
 
 ### 1.1 Purpose
@@ -862,9 +867,9 @@ When a bundle order is fulfilled:
 ### B. Related Documentation
 
 - [Action Plan](./ACTION-PLAN.md)
-- [Product Catalog PRD](./PRD-PRODUCT-CATALOG.md)
-- [Product Variants PRD](./PRD-DRAFT-PRODUCT-VARIANTS.md)
-- [Subscription Products PRD](./PRD-DRAFT-SUBSCRIPTION-PRODUCTS.md)
+- [Product Catalog PRD](./the Product System PRD (`specs/ConvexPress/systems/product-system/PRD.md`).md)
+- [Product Variants PRD](./the Product Variants System PRD (`specs/ConvexPress/systems/product-variants-system/PRD.md`).md)
+- [Subscription Products PRD](./the Subscription System PRD (`specs/ConvexPress/systems/subscription-system/PRD.md`).md)
 
 ---
 

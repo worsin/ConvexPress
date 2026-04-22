@@ -1,26 +1,32 @@
 # PRD: Inventory System
 
-> **Origin:** Ported from VexCart on 2026-04-22.
-> **Environment:** ConvexPress CMS + Commerce (WordPress-replacement architecture).
-> **Auth stack:** Admin uses Convex Auth; website uses Clerk. Not VexCart's auth model.
-> **Roles:** WordPress-standard — Administrator / Editor / Author / Contributor / Subscriber.
-> **No themes, widgets, or plugins** in ConvexPress — AI builds custom per-site.
-> **Package manager:** Bun (not npm/pnpm).
-> **See `docs/stripe-integration.md`** for the site-wide Stripe provider architecture; this PRD's payment/tax references should be read through that lens.
->
-> Lexical substitutions (VexCart→ConvexPress names and repo paths) have been
-> applied automatically. Deeper semantic adaptations (capabilities, role
-> naming, event-code conventions) may still reference VexCart-era details
-> verbatim — flag and fix as they're used.
+> **Origin:** Ported from VexCart on 2026-04-22, integrated into ConvexPress.
+> **Project:** ConvexPress — a unified CMS + commerce platform (WordPress + WooCommerce replacement). Commerce is not a separate app; it is a first-class layer inside ConvexPress alongside posts, pages, media, users, and taxonomies. Every commerce feature is either **baked into the commerce core** or **gated as an internal extension** via `ConvexPress-Admin/apps/web/src/lib/plugins/registry.ts` (feature flags, not a third-party marketplace).
+> **Two-app architecture:** `ConvexPress-Admin/` (TanStack Router SPA, Convex Auth) owns the Convex database + all mutations. `ConvexPress-Website/` (TanStack Start SSR, Clerk auth) is a read-only consumer.
+> **Roles (WordPress-standard):** Administrator / Editor / Author / Contributor / Subscriber. Customer-facing UIs serve `Subscriber` + guests.
+> **No third-party plugin/theme marketplace.** AI builds custom per-site. Internally, "extensions" are feature-flagged modules (Bundles, Digital, Returns, Reviews, Wishlists, Subscriptions, Add-Ons, Membership) that live in `convex/commerce<Thing>/` with a `<thing>Enabled` settings flag and a `require<Thing>Enabled(ctx)` gate on every mutation/query.
+> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `docs/stripe-integration.md`).
 
 
-> **System Code:** INV-STK
-> **Phase:** 3 of 6
-> **Priority:** P0 - Critical
-> **Complexity:** Medium
 
 ---
 
+## Integration with ConvexPress
+
+**Positioning:** baked into commerce core.
+**Code lives at:** `ConvexPress-Admin/packages/backend/convex/commerce/inventory.ts`
+
+**Consumes these ConvexPress systems:**
+
+- **Product System** — writes stock counts + reservation counts on products + variants.
+- **Cart System** — decrements reservations during cart session.
+- **Order System** — commits stock at order creation; restocks on refund.
+- **Event Dispatcher** — emits `inventory.low`, `inventory.out_of_stock`, `inventory.restocked`.
+- **Email Notification System** — low-stock alerts to store admins.
+
+**WooCommerce analog:** WooCommerce stock management + Stock Management plugin behaviors (reservations, backorders, low-stock alerts).
+
+---
 ## 1. Overview
 
 ### 1.1 Purpose
@@ -52,7 +58,7 @@ The Inventory System manages stock levels across all products and variants. It e
 
 ### 1.3 Key Differentiators: Convex Atomic Operations
 
-This is where Convex **shines**. Traditional e-commerce platforms struggle with race conditions during high-demand scenarios (flash sales, limited releases). Convex's serializable transactions eliminate this entirely.
+This is where Convex **shines**. Traditional ConvexPress commerce layers struggle with race conditions during high-demand scenarios (flash sales, limited releases). Convex's serializable transactions eliminate this entirely.
 
 | Traditional Approach | Convex-Native Approach |
 |---------------------|----------------------|
@@ -151,7 +157,7 @@ interface InventoryContext {
 ```typescript
 // admin-app/packages/backend/convex/schema.ts
 
-// Inventory levels are stored on products table (see PRD-PRODUCT-CATALOG)
+// Inventory levels are stored on products table (see the Product System PRD (`specs/ConvexPress/systems/product-system/PRD.md`))
 // Additional inventory-specific fields:
 
 products: defineTable({

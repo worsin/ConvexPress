@@ -1,28 +1,35 @@
 # PRD: Customer Support (Ticket System)
 
-> **Origin:** Ported from VexCart on 2026-04-22.
-> **Environment:** ConvexPress CMS + Commerce (WordPress-replacement architecture).
-> **Auth stack:** Admin uses Convex Auth; website uses Clerk. Not VexCart's auth model.
-> **Roles:** WordPress-standard — Administrator / Editor / Author / Contributor / Subscriber.
-> **No themes, widgets, or plugins** in ConvexPress — AI builds custom per-site.
-> **Package manager:** Bun (not npm/pnpm).
-> **See `docs/stripe-integration.md`** for the site-wide Stripe provider architecture; this PRD's payment/tax references should be read through that lens.
->
-> Lexical substitutions (VexCart→ConvexPress names and repo paths) have been
-> applied automatically. Deeper semantic adaptations (capabilities, role
-> naming, event-code conventions) may still reference VexCart-era details
-> verbatim — flag and fix as they're used.
+> **Origin:** Ported from VexCart on 2026-04-22, integrated into ConvexPress.
+> **Project:** ConvexPress — a unified CMS + commerce platform (WordPress + WooCommerce replacement). Commerce is not a separate app; it is a first-class layer inside ConvexPress alongside posts, pages, media, users, and taxonomies. Every commerce feature is either **baked into the commerce core** or **gated as an internal extension** via `ConvexPress-Admin/apps/web/src/lib/plugins/registry.ts` (feature flags, not a third-party marketplace).
+> **Two-app architecture:** `ConvexPress-Admin/` (TanStack Router SPA, Convex Auth) owns the Convex database + all mutations. `ConvexPress-Website/` (TanStack Start SSR, Clerk auth) is a read-only consumer.
+> **Roles (WordPress-standard):** Administrator / Editor / Author / Contributor / Subscriber. Customer-facing UIs serve `Subscriber` + guests.
+> **No third-party plugin/theme marketplace.** AI builds custom per-site. Internally, "extensions" are feature-flagged modules (Bundles, Digital, Returns, Reviews, Wishlists, Subscriptions, Add-Ons, Membership) that live in `convex/commerce<Thing>/` with a `<thing>Enabled` settings flag and a `require<Thing>Enabled(ctx)` gate on every mutation/query.
+> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `docs/stripe-integration.md`).
 
 
 > **Status:** DRAFT - Awaiting Review & Enhancement
-> **System Code:** SUP-TKT
-> **Phase:** 5 of 6 (Post-Order & Engagement)
-> **Priority:** P2 - Medium
-> **Complexity:** Medium
 > **Airtable Record:** recomVQomRqmSjOsd
 
 ---
 
+## Integration with ConvexPress
+
+**Positioning:** internal extension (`tickets` + `support`).
+**Extension gate:** ``commerce.support.supportEnabled`` in the Settings system; `requireX(ctx)` helper on every mutation/query. Admin UI hides the nav item when disabled.
+**Code lives at:** `ConvexPress-Admin/packages/backend/convex/tickets/` + `convex/support/`
+
+**Consumes these ConvexPress systems:**
+
+- **Users** — tickets are filed by `users._id` or `customerEmail`.
+- **Order System** — tickets can reference an order context.
+- **Email Notification System** — ticket-created / reply / resolved templates.
+- **KB System** — support deflection via article suggestion.
+- **Event Dispatcher** — emits `ticket.*` events.
+
+**WooCommerce analog:** WooCommerce Support (via third-party extensions) — order-linked ticket system with KB deflection.
+
+---
 ## 1. Overview
 
 ### 1.1 Purpose
@@ -861,7 +868,7 @@ export const autoCloseStaleTickets = internalMutation({
 ### B. Related Documentation
 
 - [Action Plan](./ACTION-PLAN.md)
-- [Order Management PRD](./PRD-ORDER-MANAGEMENT.md)
+- [Order Management PRD](./the Order System PRD (`specs/ConvexPress/systems/order-system/PRD.md`).md)
 - [Returns & Refunds PRD](./PRD-RETURNS-REFUNDS.md)
 
 ---

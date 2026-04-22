@@ -1,26 +1,32 @@
 # PRD: Customer Accounts
 
-> **Origin:** Ported from VexCart on 2026-04-22.
-> **Environment:** ConvexPress CMS + Commerce (WordPress-replacement architecture).
-> **Auth stack:** Admin uses Convex Auth; website uses Clerk. Not VexCart's auth model.
-> **Roles:** WordPress-standard — Administrator / Editor / Author / Contributor / Subscriber.
-> **No themes, widgets, or plugins** in ConvexPress — AI builds custom per-site.
-> **Package manager:** Bun (not npm/pnpm).
-> **See `docs/stripe-integration.md`** for the site-wide Stripe provider architecture; this PRD's payment/tax references should be read through that lens.
->
-> Lexical substitutions (VexCart→ConvexPress names and repo paths) have been
-> applied automatically. Deeper semantic adaptations (capabilities, role
-> naming, event-code conventions) may still reference VexCart-era details
-> verbatim — flag and fix as they're used.
+> **Origin:** Ported from VexCart on 2026-04-22, integrated into ConvexPress.
+> **Project:** ConvexPress — a unified CMS + commerce platform (WordPress + WooCommerce replacement). Commerce is not a separate app; it is a first-class layer inside ConvexPress alongside posts, pages, media, users, and taxonomies. Every commerce feature is either **baked into the commerce core** or **gated as an internal extension** via `ConvexPress-Admin/apps/web/src/lib/plugins/registry.ts` (feature flags, not a third-party marketplace).
+> **Two-app architecture:** `ConvexPress-Admin/` (TanStack Router SPA, Convex Auth) owns the Convex database + all mutations. `ConvexPress-Website/` (TanStack Start SSR, Clerk auth) is a read-only consumer.
+> **Roles (WordPress-standard):** Administrator / Editor / Author / Contributor / Subscriber. Customer-facing UIs serve `Subscriber` + guests.
+> **No third-party plugin/theme marketplace.** AI builds custom per-site. Internally, "extensions" are feature-flagged modules (Bundles, Digital, Returns, Reviews, Wishlists, Subscriptions, Add-Ons, Membership) that live in `convex/commerce<Thing>/` with a `<thing>Enabled` settings flag and a `require<Thing>Enabled(ctx)` gate on every mutation/query.
+> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `docs/stripe-integration.md`).
 
 
-> **System Code:** USR-ACT
-> **Phase:** 1 of 6
-> **Priority:** P0 - Critical
-> **Complexity:** Medium
 
 ---
 
+## Integration with ConvexPress
+
+**Positioning:** baked into commerce core + Users integration.
+**Code lives at:** `ConvexPress-Admin/packages/backend/convex/commerce/customers.ts` + `schema/commerce.ts:commerce_customer_profiles`
+
+**Consumes these ConvexPress systems:**
+
+- **Users** — every `commerce_customer_profile` extends a `users._id` with commerce-specific fields (addresses, saved payment methods, stripeCustomerId, isTaxExempt).
+- **Order System** — orders join to customer profile.
+- **Subscription System** — subscriptions are attached to customer profile.
+- **Authentication** — admin users use Convex Auth; website customers use Clerk (sync'd into `users` via webhook).
+- **Email Notification System** — account-change emails via Resend.
+
+**WooCommerce analog:** WooCommerce Customer + Customer Accounts & Membership — extends WP `users` with address book, order history, and tax-exempt flag.
+
+---
 ## 1. Overview
 
 ### 1.1 Purpose
@@ -1181,8 +1187,8 @@ export const processAccountDeletions = action({
 ### B. Related Documentation
 
 - [Action Plan](./ACTION-PLAN.md)
-- [Authentication System PRD](./PRD-AUTH-SYSTEM.md)
-- [Role & Permission System PRD](./PRD-ROLE-PERMISSION-SYSTEM.md)
+- [Authentication System PRD](./the ConvexPress Auth System KB (`.claude/docs/AUTH-SYSTEM.md`).md)
+- [Role & Permission System PRD](./the ConvexPress Role & Capability System KB (`.claude/docs/ROLE-CAPABILITY-SYSTEM.md`).md)
 - [Tech Stack](../.claude/CLAUDE.md)
 
 ---
