@@ -66,17 +66,34 @@ place as historical reference only.
 - `PRD-ADMIN-DASHBOARD.md` — superseded by ConvexPress's Dashboard System + admin-shell-ui.
 - `PRD-TEMPLATE.md` — utility template, not a real PRD.
 
-## Banner contract
+## Banner contract (v2, 2026-04-22 tuning pass)
 
-Every ported PRD's banner states:
+Every ported PRD's v2 banner states:
 
 - **Origin:** date of VexCart → ConvexPress migration
-- **Environment:** ConvexPress CMS + Commerce (WordPress-replacement)
-- **Auth stack:** Convex Auth admin + Clerk website
-- **Roles:** WordPress-standard Administrator/Editor/Author/Contributor/Subscriber
-- **No themes/widgets/plugins** (AI-built custom per-site)
-- **Package manager:** Bun
-- **Cross-link** to `docs/stripe-integration.md` for payment architecture
+- **Project:** ConvexPress = unified CMS + commerce (WordPress + WooCommerce replacement). Commerce is a first-class *layer* alongside posts/pages/media/users/taxonomies — not a separate app.
+- **Two-app architecture:** Admin (TanStack Router SPA + Convex Auth, owns Convex DB) + Website (TanStack Start SSR + Clerk auth, read-only consumer).
+- **Roles:** WordPress-standard (Administrator/Editor/Author/Contributor/Subscriber).
+- **Extensions, not plugins:** ConvexPress has no third-party plugin/theme marketplace — AI builds custom per-site. Internally, feature-flagged extensions (Bundles, Digital, Returns, Reviews, Wishlists, Subscriptions, Add-Ons, Membership) live at `convex/commerce<Thing>/` gated by a `<thing>Enabled` settings flag + `require<Thing>Enabled(ctx)` helper.
+- **Stack:** Bun, Base UI (not Radix), Tailwind v4, Stripe. See `docs/stripe-integration.md`.
 
 The banner is the source of truth for environment constraints when a PRD
-and a ConvexPress memory conflict.
+body and a ConvexPress memory/convention conflict.
+
+## Integration section contract
+
+Every ported PRD also has a `## Integration with ConvexPress` section
+immediately after the banner stating:
+
+- **Positioning:** baked-into-commerce-core vs internal extension
+- **Extension gate** (if applicable): settings flag + `require<X>Enabled` helper
+- **Code path:** where the system's backend module lives
+- **Consumes:** list of ConvexPress systems this system depends on (Users, Media, Event Dispatcher, Taxonomy, etc.), each with specific mechanic
+- **WooCommerce analog:** the parity reference for orientation
+
+## Cross-reference convention
+
+When one PRD references another, it uses the ConvexPress spec path:
+`the Checkout System PRD (`specs/ConvexPress/systems/checkout-system/PRD.md`)`.
+The VexCart-style `PRD-FOO` references have been swept (37 rewrites
+across 15 files in the tuning pass).
