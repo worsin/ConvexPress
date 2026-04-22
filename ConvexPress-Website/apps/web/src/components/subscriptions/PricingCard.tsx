@@ -10,9 +10,11 @@
  *   - Base UI (@base-ui/react) + Tailwind tokens only — never @radix-ui.
  *   - No hardcoded palette colours (no bg-zinc-*, bg-slate-*, bg-emerald-*, etc.).
  *     All colours via semantic tokens (bg-primary, bg-muted, text-foreground…).
- *   - Pricing uses offer.recurringAmount / offer.currencyCode directly.
- *     Billing interval is NOT returned by listOffersForPricing (template join
- *     required) — displayed as "/ period" until Wave 7 enriches the query.
+ *   - Pricing uses offer.recurringAmount / offer.currencyCode / billing
+ *     interval fields. The interval + count come from the template joined by
+ *     listOffersForPricing (Wave 6.1 enrichment). Trial resolution:
+ *       trialDays = offer.trialDaysOverride ?? offer.templateTrialDays ?? 0
+ *     so the offer-level override wins but the template default still shows.
  */
 
 import { Check } from "lucide-react";
@@ -33,6 +35,23 @@ function formatMoney(amount: number, currencyCode = "USD"): string {
   }).format(amount / 100);
 }
 
+/**
+ * Builds the "/ month" / "/ 3 weeks" / "/ year" suffix shown next to the price.
+ * Returns "/ period" when the template could not be joined — the card still
+ * renders a usable price but falls back to a generic label rather than lying
+ * about the cadence.
+ */
+function formatIntervalSuffix(
+  billingInterval: PricingOffer["billingInterval"],
+  billingIntervalCount: PricingOffer["billingIntervalCount"],
+): string {
+  if (!billingInterval) return "/ period";
+  const count = billingIntervalCount ?? 1;
+  if (count === 1) return `/ ${billingInterval}`;
+  // Simple pluralization: "week" -> "weeks"
+  return `/ ${count} ${billingInterval}s`;
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface PricingCardProps {
@@ -43,8 +62,13 @@ interface PricingCardProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function PricingCard({ offer, isFeatured = false }: PricingCardProps) {
-  const trialDays = offer.trialDaysOverride ?? 0;
+  // Offer-level override wins; otherwise fall back to the template default.
+  const trialDays = offer.trialDaysOverride ?? offer.templateTrialDays ?? 0;
   const ctaLabel = trialDays > 0 ? "Start free trial" : "Subscribe";
+  const intervalSuffix = formatIntervalSuffix(
+    offer.billingInterval,
+    offer.billingIntervalCount,
+  );
 
   // Combine offer.features (offer-level strings from {text, …} objects) and
   // offer.planBenefits (membership plan benefits), deduping by label.
@@ -103,9 +127,7 @@ export function PricingCard({ offer, isFeatured = false }: PricingCardProps) {
         <span className="text-3xl font-bold text-foreground">
           {formatMoney(offer.recurringAmount, offer.currencyCode)}
         </span>
-        {/* Billing interval is not returned by listOffersForPricing (template
-            join required — Wave 7 will enrich this). Showing "/ period" for now. */}
-        <span className="text-sm text-muted-foreground">/ period</span>
+        <span className="text-sm text-muted-foreground">{intervalSuffix}</span>
       </div>
 
       {/* Trial badge */}
