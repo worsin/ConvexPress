@@ -1369,3 +1369,60 @@ export const revokeEntitlement = mutation({
     return { success: true };
   },
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ORDER FORM MUTATIONS (Wave 10.3)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const createOrderForm = mutation({
+  args: {
+    title: v.string(),
+    slug: v.string(),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requireCommerceSubscriptionsEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+    const now = Date.now();
+    const orderFormId = await ctx.db.insert(
+      "commerce_subscription_order_forms",
+      {
+        title: args.title,
+        slug: args.slug,
+        status: "draft",
+        selectionMode: "single_offer",
+        offerIds: [],
+        createdAt: now,
+        updatedAt: now,
+      },
+    );
+    return { orderFormId };
+  },
+});
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const updateOrderForm = mutation({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    orderFormId: v.id("commerce_subscription_order_forms"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    title: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    status: v.optional(
+      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+      v.union(v.literal("draft"), v.literal("active"), v.literal("archived")),
+    ),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requireCommerceSubscriptionsEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+    const { orderFormId, ...rest } = args;
+    const patch: Record<string, unknown> = { updatedAt: Date.now() };
+    if (rest.title !== undefined) patch.title = rest.title;
+    if (rest.status !== undefined) patch.status = rest.status;
+    await ctx.db.patch(orderFormId, patch);
+    return { success: true };
+  },
+});

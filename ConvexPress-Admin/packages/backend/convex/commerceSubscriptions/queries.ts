@@ -910,3 +910,73 @@ export const getLiveChargingStatus = query({
     return { live, publishableKey };
   },
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ORDER FORMS + FORM SUBMISSIONS ADMIN (Wave 10.3)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const listOrderForms = query({
+  args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx) => {
+    await requireCommerceSubscriptionsEnabled(ctx);
+    const rows = await ctx.db
+      .query("commerce_subscription_order_forms")
+      .order("desc")
+      .collect();
+    return rows;
+  },
+});
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const getOrderForm = query({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    orderFormId: v.id("commerce_subscription_order_forms"),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requireCommerceSubscriptionsEnabled(ctx);
+    return await ctx.db.get(args.orderFormId);
+  },
+});
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const listFormSubmissions = query({
+  args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx) => {
+    await requireCommerceSubscriptionsEnabled(ctx);
+    const rows = await ctx.db
+      .query("commerce_subscription_form_submissions")
+      .order("desc")
+      .take(200);
+    const withForm = await Promise.all(
+      rows.map(async (r: any) => {
+        const form = r.formId ? await ctx.db.get(r.formId) : null;
+        return {
+          _id: r._id,
+          email: r.email ?? "(no email)",
+          status: r.status ?? "pending",
+          submittedAt: r.createdAt,
+          formTitle: form?.title,
+        };
+      }),
+    );
+    return withForm;
+  },
+});
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const getFormSubmission = query({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    submissionId: v.id("commerce_subscription_form_submissions"),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requireCommerceSubscriptionsEnabled(ctx);
+    return await ctx.db.get(args.submissionId);
+  },
+});
