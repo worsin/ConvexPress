@@ -936,6 +936,96 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
     description:
       "Batch-creates 301 redirects from old URLs to new URLs when the permalink structure changes.",
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // COMMERCE SUBSCRIPTIONS — lifecycle emails (Wave 10.2)
+  // Each event code has its own dedicated handler that builds the variable
+  // bag from the subscription + user + offer docs and queues a Resend email.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    eventCode: "commerce.subscription_created",
+    name: "Email: Subscription Welcome",
+    handlerModule: "commerceSubscriptions/emails",
+    handlerFunction: "onSubscriptionCreated",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description:
+      "Sends welcome email when a subscription is first activated.",
+  },
+  {
+    eventCode: "commerce.subscription_renewed",
+    name: "Email: Subscription Renewed",
+    handlerModule: "commerceSubscriptions/emails",
+    handlerFunction: "onSubscriptionRenewed",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description:
+      "Sends renewal confirmation when a recurring charge succeeds.",
+  },
+  {
+    eventCode: "commerce.subscription_past_due",
+    name: "Email: Subscription Payment Failed",
+    handlerModule: "commerceSubscriptions/emails",
+    handlerFunction: "onSubscriptionPastDue",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description:
+      "Sends payment-failed email and retry schedule notice.",
+  },
+  {
+    eventCode: "commerce.subscription_trial_ending",
+    name: "Email: Subscription Trial Ending",
+    handlerModule: "commerceSubscriptions/emails",
+    handlerFunction: "onSubscriptionTrialEnding",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description:
+      "Sends trial-ending warning ~3 days before trial converts to paid.",
+  },
+  {
+    eventCode: "commerce.subscription_cancelled",
+    name: "Email: Subscription Cancelled",
+    handlerModule: "commerceSubscriptions/emails",
+    handlerFunction: "onSubscriptionCancelled",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description:
+      "Sends confirmation email when a subscription is cancelled.",
+  },
+  {
+    eventCode: "commerce.subscription_paused",
+    name: "Email: Subscription Paused",
+    handlerModule: "commerceSubscriptions/emails",
+    handlerFunction: "onSubscriptionPaused",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description:
+      "Sends confirmation email when a subscription is paused.",
+  },
 ];
 
 // ─── Bootstrap Function ───────────────────────────────────────────────────
