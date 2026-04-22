@@ -1,12 +1,8 @@
 /**
- * Commerce Tax Classes — managed-class CRUD (Wave 11.1).
+ * Commerce Returns — reason taxonomy CRUD (Wave 11.3).
  *
- * Replaces free-form `taxClass` strings with a managed list so product
- * editors pick from a Select (not a text input) and mistyped strings
- * can't silently fall to the default rate.
- *
- * Classes are referenced by `code` from `commerce_tax_rules.taxClass`,
- * `commerce_products.taxClass`, and `commerce_product_variants.taxClass`.
+ * Managed list of return reasons (defective, wrong_item, changed_mind, …)
+ * with per-reason flags for photo requirement + restock eligibility.
  */
 
 import { ConvexError, v } from "convex/values";
@@ -16,10 +12,19 @@ import { requireCan } from "../helpers/permissions";
 
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
-  args: {},
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx) => {
-    return await ctx.db.query("commerce_tax_classes").collect();
+  args: { activeOnly: v.optional(v.boolean()) },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    const q = ctx.db.query("commerce_return_reasons");
+    const rows = args.activeOnly
+      ? await q
+          .withIndex("by_active", (idx: any) => idx.eq("isActive", true))
+          .collect()
+      : await q.collect();
+    return rows.sort(
+      (a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+    );
   },
 });
 
@@ -29,7 +34,7 @@ export const getByCode = query({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     return await ctx.db
-      .query("commerce_tax_classes")
+      .query("commerce_return_reasons")
       .withIndex("by_code", (q: any) => q.eq("code", args.code))
       .unique();
   },
@@ -43,39 +48,34 @@ export const create = mutation({
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     description: v.optional(v.string()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-    isDefault: v.optional(v.boolean()),
+    requiresPhoto: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    requiresRestock: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    sortOrder: v.optional(v.number()),
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const existing = await ctx.db
-      .query("commerce_tax_classes")
+      .query("commerce_return_reasons")
       .withIndex("by_code", (q: any) => q.eq("code", args.code))
       .unique();
     if (existing) {
       throw new ConvexError({
         code: "DUPLICATE_CODE",
-        message: `A tax class with code "${args.code}" already exists.`,
+        message: `Return reason with code "${args.code}" already exists.`,
       });
     }
     const now = Date.now();
-
-    // If this is the new default, clear `isDefault` on any existing default.
-    if (args.isDefault) {
-      const current = await ctx.db
-        .query("commerce_tax_classes")
-        .withIndex("by_default", (q: any) => q.eq("isDefault", true))
-        .collect();
-      for (const row of current) {
-        await ctx.db.patch(row._id, { isDefault: false, updatedAt: now });
-      }
-    }
-
-    return await ctx.db.insert("commerce_tax_classes", {
+    return await ctx.db.insert("commerce_return_reasons", {
       code: args.code,
       label: args.label,
       description: args.description,
-      isDefault: args.isDefault ?? false,
+      requiresPhoto: args.requiresPhoto,
+      requiresRestock: args.requiresRestock,
+      sortOrder: args.sortOrder,
+      isActive: true,
       createdAt: now,
       updatedAt: now,
     });
@@ -86,40 +86,32 @@ export const create = mutation({
 export const update = mutation({
   args: {
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-    id: v.id("commerce_tax_classes"),
+    id: v.id("commerce_return_reasons"),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     label: v.optional(v.string()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     description: v.optional(v.string()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-    isDefault: v.optional(v.boolean()),
+    requiresPhoto: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    requiresRestock: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    sortOrder: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    isActive: v.optional(v.boolean()),
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
-    const row = await ctx.db.get(args.id);
-    if (!row) {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Tax class not found.",
-      });
-    }
-    const now = Date.now();
-
-    if (args.isDefault === true && !row.isDefault) {
-      const current = await ctx.db
-        .query("commerce_tax_classes")
-        .withIndex("by_default", (q: any) => q.eq("isDefault", true))
-        .collect();
-      for (const r of current) {
-        await ctx.db.patch(r._id, { isDefault: false, updatedAt: now });
-      }
-    }
-
-    const patch: Record<string, unknown> = { updatedAt: now };
+    const patch: Record<string, unknown> = { updatedAt: Date.now() };
     if (args.label !== undefined) patch.label = args.label;
     if (args.description !== undefined) patch.description = args.description;
-    if (args.isDefault !== undefined) patch.isDefault = args.isDefault;
+    if (args.requiresPhoto !== undefined)
+      patch.requiresPhoto = args.requiresPhoto;
+    if (args.requiresRestock !== undefined)
+      patch.requiresRestock = args.requiresRestock;
+    if (args.sortOrder !== undefined) patch.sortOrder = args.sortOrder;
+    if (args.isActive !== undefined) patch.isActive = args.isActive;
     await ctx.db.patch(args.id, patch);
     return { success: true };
   },
@@ -128,18 +120,10 @@ export const update = mutation({
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const remove = mutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  args: { id: v.id("commerce_tax_classes") },
+  args: { id: v.id("commerce_return_reasons") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
-    const row = await ctx.db.get(args.id);
-    if (!row) return { success: true };
-    if (row.isDefault) {
-      throw new ConvexError({
-        code: "CANNOT_DELETE_DEFAULT",
-        message: "Cannot delete the default tax class. Set another class as default first.",
-      });
-    }
     await ctx.db.delete(args.id);
     return { success: true };
   },
@@ -151,21 +135,33 @@ export const seedDefaults = mutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
-    const existing = await ctx.db.query("commerce_tax_classes").collect();
+    const existing = await ctx.db.query("commerce_return_reasons").collect();
     if (existing.length > 0) {
       return { seeded: false, reason: "already_seeded" } as const;
     }
     const now = Date.now();
-    const defaults = [
-      { code: "standard", label: "Standard", isDefault: true },
-      { code: "reduced-rate", label: "Reduced Rate (food, books, etc.)", isDefault: false },
-      { code: "zero-rate", label: "Zero Rate", isDefault: false },
+    const defaults: Array<{
+      code: string;
+      label: string;
+      requiresPhoto?: boolean;
+      requiresRestock?: boolean;
+      sortOrder: number;
+    }> = [
+      { code: "defective", label: "Defective or damaged", requiresPhoto: true, requiresRestock: false, sortOrder: 10 },
+      { code: "wrong_item", label: "Wrong item received", requiresPhoto: true, requiresRestock: true, sortOrder: 20 },
+      { code: "changed_mind", label: "Changed my mind", requiresPhoto: false, requiresRestock: true, sortOrder: 30 },
+      { code: "not_as_described", label: "Not as described", requiresPhoto: true, requiresRestock: true, sortOrder: 40 },
+      { code: "quality", label: "Quality issue", requiresPhoto: true, requiresRestock: false, sortOrder: 50 },
+      { code: "other", label: "Other", requiresPhoto: false, requiresRestock: false, sortOrder: 99 },
     ];
     for (const d of defaults) {
-      await ctx.db.insert("commerce_tax_classes", {
+      await ctx.db.insert("commerce_return_reasons", {
         code: d.code,
         label: d.label,
-        isDefault: d.isDefault,
+        requiresPhoto: d.requiresPhoto,
+        requiresRestock: d.requiresRestock,
+        sortOrder: d.sortOrder,
+        isActive: true,
         createdAt: now,
         updatedAt: now,
       });

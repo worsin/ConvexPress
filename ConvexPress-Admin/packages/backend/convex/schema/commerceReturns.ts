@@ -84,4 +84,42 @@ export const commerceReturnsTables = {
     metadata: v.optional(v.any()),
     createdAt: v.number(),
   }).index("by_return_request", ["returnRequestId"]),
+
+  // Wave 11.3: managed return-reason taxonomy replaces free-form strings.
+  commerce_return_reasons: defineTable({
+    code: v.string(),
+    label: v.string(),
+    description: v.optional(v.string()),
+    requiresPhoto: v.optional(v.boolean()),
+    requiresRestock: v.optional(v.boolean()),
+    sortOrder: v.optional(v.number()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_code", ["code"])
+    .index("by_active", ["isActive"]),
+
+  // Wave 11.3: store-credit ledger. Signed `amount` with cumulative
+  // `balanceAfter` on each entry so the latest row is authoritative.
+  commerce_store_credit_ledger: defineTable({
+    userId: v.id("users"),
+    entryType: v.union(
+      v.literal("issue"),
+      v.literal("redeem"),
+      v.literal("expire"),
+      v.literal("adjust"),
+    ),
+    amount: v.number(),
+    balanceAfter: v.number(),
+    sourceReturnId: v.optional(v.id("commerce_return_requests")),
+    sourceOrderId: v.optional(v.id("commerce_orders")),
+    note: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+    expiresAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_return", ["sourceReturnId"])
+    .index("by_expires_at", ["expiresAt"]),
 };
