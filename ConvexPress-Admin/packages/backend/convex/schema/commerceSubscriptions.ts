@@ -417,6 +417,7 @@ export const commerceSubscriptionTables = {
     checkoutIntentId: v.optional(v.id("commerce_subscription_checkout_intents")),
     sourceChannel: v.optional(commerceSubscriptionSourceChannelValidator),
     status: commerceSubscriptionInvoiceStatusValidator,
+    invoiceNumber: v.optional(v.string()),
     currencyCode: v.string(),
     subtotalAmount: v.number(),
     taxAmount: v.number(),
@@ -436,7 +437,8 @@ export const commerceSubscriptionTables = {
     .index("by_subscription", ["subscriptionId"])
     .index("by_checkout_intent", ["checkoutIntentId"])
     .index("by_source_channel", ["sourceChannel"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_invoice_number", ["invoiceNumber"]),
 
   commerce_subscription_invoice_items: defineTable({
     invoiceId: v.id("commerce_subscription_invoices"),

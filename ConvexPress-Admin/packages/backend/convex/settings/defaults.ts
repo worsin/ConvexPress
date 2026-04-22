@@ -54,7 +54,8 @@ export type SettingsSection =
   // Website Appearance sections
   | "layout"
   | "header"
-  | "footer";
+  | "footer"
+  | "commerce.subscriptions.counters";
 
 /**
  * Ordered array of all valid section names.
@@ -97,6 +98,8 @@ export const SECTION_NAMES: SettingsSection[] = [
   "layout",
   "header",
   "footer",
+  // Commerce subsystems
+  "commerce.subscriptions.counters",
 ];
 
 /**
@@ -696,6 +699,16 @@ export const COMMERCE_PAYMENTS_DEFAULTS: CommercePaymentsSettings = {
   subscriptionChargingEnabled: false,
 };
 
+export interface CommerceSubscriptionsCountersSettings {
+  invoiceCounter: number;
+  invoicePrefix: string;
+}
+
+export const COMMERCE_SUBSCRIPTIONS_COUNTERS_DEFAULTS: CommerceSubscriptionsCountersSettings = {
+  invoiceCounter: 0,
+  invoicePrefix: "INV-",
+};
+
 export const COMMERCE_GENERAL_DEFAULTS: CommerceGeneralSettings = {
   storeName: "ConvexPress Store",
   storeEmail: "",
@@ -893,6 +906,7 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   search: SEARCH_DEFAULTS,
   "commerce.general": COMMERCE_GENERAL_DEFAULTS,
   "commerce.payments": COMMERCE_PAYMENTS_DEFAULTS,
+  "commerce.subscriptions.counters": COMMERCE_SUBSCRIPTIONS_COUNTERS_DEFAULTS,
   "integrations.shipping": SHIPPING_INTEGRATION_DEFAULTS,
   "integrations.shipping.shipstation": {
     ...SHIPPING_PROVIDER_DEFAULTS,

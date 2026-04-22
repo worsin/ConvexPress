@@ -51,6 +51,7 @@ export const settingsTables = {
       // Commerce & Shipping sections
       v.literal("commerce.general"),
       v.literal("commerce.payments"),
+      v.literal("commerce.subscriptions.counters"),
       v.literal("integrations.shipping"),
       v.literal("integrations.shipping.shipstation"),
       v.literal("integrations.shipping.ups"),
