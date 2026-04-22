@@ -58,13 +58,16 @@ function formatDateTime(ts: number | undefined) {
 // ─── Status Badge ──────────────────────────────────────────────────────────
 
 function SubStatusBadge({ status }: { status: string }) {
+  // All badge tones derive from theme tokens. We never reach for
+  // emerald/blue/amber/etc. hex palettes — the website's design system
+  // defines primary / accent / destructive / muted for us.
   const styles: Record<string, string> = {
-    active: "bg-emerald-100 text-emerald-800",
-    trialing: "bg-blue-100 text-blue-800",
-    paused: "bg-amber-100 text-amber-800",
-    past_due: "bg-orange-100 text-orange-800",
-    pending_cancel: "bg-red-100 text-red-700",
-    cancelled: "bg-red-100 text-red-800",
+    active: "bg-primary/10 text-primary",
+    trialing: "bg-accent text-accent-foreground",
+    paused: "bg-muted text-muted-foreground",
+    past_due: "bg-destructive/10 text-destructive",
+    pending_cancel: "bg-destructive/10 text-destructive",
+    cancelled: "bg-destructive/10 text-destructive",
     expired: "bg-muted text-muted-foreground",
   };
   return (
@@ -78,10 +81,10 @@ function SubStatusBadge({ status }: { status: string }) {
 
 function InvoiceStatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    paid: "bg-emerald-100 text-emerald-800",
-    pending: "bg-amber-100 text-amber-800",
-    failed: "bg-red-100 text-red-800",
-    refunded: "bg-purple-100 text-purple-800",
+    paid: "bg-primary/10 text-primary",
+    pending: "bg-muted text-muted-foreground",
+    failed: "bg-destructive/10 text-destructive",
+    refunded: "bg-accent text-accent-foreground",
   };
   return (
     <span
@@ -251,12 +254,12 @@ function DashboardSubscriptionDetailPage() {
 
           {sub.trialEndsAt && (
             <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-blue-100 p-2">
-                <Calendar className="h-4 w-4 text-blue-700" />
+              <div className="rounded-lg bg-accent p-2">
+                <Calendar className="h-4 w-4 text-accent-foreground" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Trial Ends</p>
-                <p className="text-sm font-medium text-blue-700">
+                <p className="text-sm font-medium text-foreground">
                   {formatDate(sub.trialEndsAt)}
                 </p>
               </div>
@@ -267,7 +270,7 @@ function DashboardSubscriptionDetailPage() {
 
       {/* Status notices */}
       {sub.status === "pending_cancel" && (
-        <div className="rounded-xl border border-orange-200 bg-orange-50 px-5 py-4 text-sm text-orange-800">
+        <div className="rounded-xl border border-border bg-muted px-5 py-4 text-sm text-muted-foreground">
           This subscription is set to cancel at the end of the current billing
           period ({formatDate(sub.currentPeriodEndAt)}). You can resume to
           keep it active.
@@ -276,8 +279,8 @@ function DashboardSubscriptionDetailPage() {
 
       {/* Confirmation */}
       {confirmAction && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4">
-          <p className="text-sm text-red-800">
+        <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-5 py-4">
+          <p className="text-sm text-destructive">
             {confirmAction === "schedule_cancel"
               ? "Your subscription will cancel at the end of the current period. Are you sure?"
               : `Are you sure you want to ${confirmAction} this subscription?`}
@@ -287,7 +290,7 @@ function DashboardSubscriptionDetailPage() {
               type="button"
               onClick={() => void handleAction(confirmAction)}
               disabled={busy}
-              className="rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white disabled:opacity-60"
+              className="rounded-lg bg-destructive px-4 py-2 text-xs font-medium text-destructive-foreground disabled:opacity-60"
             >
               {busy ? "Processing..." : "Confirm"}
             </button>
@@ -321,7 +324,7 @@ function DashboardSubscriptionDetailPage() {
               type="button"
               onClick={() => void handleAction("resume")}
               disabled={busy}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
               <Play className="h-4 w-4" />
               Resume Subscription
@@ -332,7 +335,7 @@ function DashboardSubscriptionDetailPage() {
               type="button"
               onClick={() => setConfirmAction("schedule_cancel")}
               disabled={busy}
-              className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-destructive/40 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50"
             >
               <XCircle className="h-4 w-4" />
               Cancel Subscription
