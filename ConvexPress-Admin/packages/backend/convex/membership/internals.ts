@@ -7,6 +7,7 @@
  *
  * Functions:
  *   - expireGrants                         Expire grants past their end date
+ *   - trimAccessLog                        Delete old membership_access_log rows
  *   - grantFromSubscription                Auto-grant on active subscription
  *   - revokeFromSubscription               Auto-revoke on subscription cancel
  *   - moveGrantToGrace                     Move active grants to grace (past_due/paused)
@@ -18,6 +19,7 @@
 import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { requirePluginEnabled, isPluginEnabled } from "../helpers/plugins";
 import {
   decideGrant,
@@ -541,6 +543,68 @@ export const recordAccessCheck = internalMutation({
       createdAt: now,
     });
     return { logged: true, at: now };
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// trimAccessLog (access log retention sweep)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Delete `membership_access_log` rows older than the configured retention
+ * period (`settings.membership.general.accessLogRetentionDays`, default 30).
+ *
+ * Safety rules:
+ *   - If retentionDays <= 0 or is not a valid number, the function is a
+ *     no-op ("keep forever").
+ *   - Rows older than `now - retentionDays * 86400000` are deleted in
+ *     batches of 500.
+ *   - If more rows remain after one batch, the function self-schedules
+ *     another immediate run so the Convex mutation time limit is not exceeded.
+ *
+ * Intended to be called by a weekly cron.
+ */
+export const trimAccessLog = internalMutation({
+  args: {},
+  handler: async (ctx: any) => {
+    // Soft no-op when plugin is off.
+    if (!(await isPluginEnabled(ctx, "membership"))) {
+      return { deleted: 0, skipped: "plugin_disabled" };
+    }
+
+    const settings = await getMembershipSettings(ctx);
+    const retentionDays = settings.accessLogRetentionDays;
+
+    // Treat 0 or negative as "keep forever" — do nothing.
+    if (typeof retentionDays !== "number" || retentionDays <= 0) {
+      return { deleted: 0, skipped: "keep_forever" };
+    }
+
+    const now = Date.now();
+    const cutoff = now - retentionDays * 24 * 60 * 60 * 1000;
+
+    // Read all log rows and filter by createdAt < cutoff.
+    // The table has no index on createdAt so we do a full scan in batches.
+    const BATCH = 500;
+    const oldRows = await ctx.db
+      .query("membership_access_log")
+      .filter((q: any) => q.lt(q.field("createdAt"), cutoff))
+      .take(BATCH);
+
+    for (const row of oldRows) {
+      await ctx.db.delete(row._id);
+    }
+
+    // If we filled the batch, there may be more — self-schedule.
+    if (oldRows.length >= BATCH) {
+      await ctx.scheduler.runAfter(
+        0,
+        (internal as any).membership.internals.trimAccessLog,
+        {},
+      );
+    }
+
+    return { deleted: oldRows.length, cutoff };
   },
 });
 
