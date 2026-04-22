@@ -202,38 +202,66 @@ export async function getCurrentUserId(
  */
 async function resolveUserRole(
   ctx: DbReadCtx,
-  user: Pick<UserDoc, "roleId" | "internalRole">,
+  user: Pick<UserDoc, "_id" | "roleId" | "internalRole">,
 ): Promise<RoleDoc | null> {
   // Path 1: Direct roleId (new system)
+  let base: RoleDoc | null = null;
   if (user.roleId) {
     const role = await ctx.db.get("roles", user.roleId);
     if (!role) {
-      // Role was deleted -- fall through to legacy as a migration path
-      // (this handles the case where roleId references a removed role)
+      // Role was deleted -- fall through to legacy as a migration path.
     } else if (role.status !== "active") {
       // Role exists but is inactive -- deny access entirely.
       // Do NOT fall through to legacy, as that could silently UPGRADE
       // permissions if the legacy role maps to a higher-privilege active role.
       return null;
     } else {
-      return role as RoleDoc;
+      base = role as RoleDoc;
     }
   }
 
   // Path 2: Legacy internalRole string (migration path)
-  // Only reached if user has no roleId, or roleId references a deleted role.
-  if (user.internalRole) {
+  if (!base && user.internalRole) {
     const newSlug = LEGACY_ROLE_MAP[user.internalRole] ?? user.internalRole;
     const role = await ctx.db
       .query("roles")
       .withIndex("by_slug", (q) => q.eq("slug", newSlug))
       .unique();
     if (role && role.status === "active") {
-      return role as RoleDoc;
+      base = role as RoleDoc;
     }
   }
 
-  return null;
+  // Path 3 (Wave 10.4): membership-driven role elevation.
+  // Active/grace grants on active plans with a `linkedRoleId` contribute
+  // candidate roles. We pick the highest-level active role across the base
+  // + all contributed roles via `pickHighestRole`.
+  const grantRoles: RoleDoc[] = [];
+  try {
+    const grants = await ctx.db
+      .query("membership_grants")
+      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .collect();
+    const active = grants.filter(
+      (g: any) => g.status === "active" || g.status === "grace",
+    );
+    const seen = new Set<string>();
+    for (const g of active) {
+      if (!g.planId) continue;
+      const plan = await ctx.db.get(g.planId);
+      if (!plan || plan.status !== "active") continue;
+      if (!plan.linkedRoleId) continue;
+      const key = String(plan.linkedRoleId);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const role = await ctx.db.get(plan.linkedRoleId);
+      if (role) grantRoles.push(role as RoleDoc);
+    }
+  } catch {
+    // Membership plugin disabled or schema not yet present — skip.
+  }
+
+  return pickHighestRole(base, grantRoles);
 }
 
 /**
@@ -260,7 +288,7 @@ export function pickHighestRole<
  */
 async function getUserCapabilities(
   ctx: DbReadCtx,
-  user: Pick<UserDoc, "roleId" | "internalRole">,
+  user: Pick<UserDoc, "_id" | "roleId" | "internalRole">,
 ): Promise<string[]> {
   const role = await resolveUserRole(ctx, user);
   return role?.capabilities ?? [];
