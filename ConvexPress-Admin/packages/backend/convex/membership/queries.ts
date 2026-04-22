@@ -16,12 +16,14 @@
  *   - listRestrictions             List content restriction rules (admin)
  *   - listRestrictionsByResource   Rules attached to a specific resource (admin)
  *   - checkAccess                  Pure read: access decision (no writes)
+ *   - checkAccessAndLog            Mutation: access decision + deferred log write
  *   - getStats                     Membership dashboard stats
  */
 
 import { v } from "convex/values";
 
-import { query } from "../_generated/server";
+import { query, mutation } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import {
   requireMembershipEnabled,
@@ -697,6 +699,216 @@ export const checkAccess = query({
     }
 
     // All deny_if_missing rules passed — allow access
+    return {
+      allowed: true,
+      reason: "all_rules_passed",
+      teaserMode: null,
+      customMessage: null,
+      matchingPlanIds: userPlanIds,
+    };
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// checkAccessAndLog (access check + deferred log write)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Mutation wrapper around `checkAccess` that also persists the access
+ * decision to `membership_access_log` (if `logAccessChecks` is enabled).
+ *
+ * Use this instead of `checkAccess` on high-value gated routes (e.g.,
+ * SSR route restriction, product pages) where you want an audit trail.
+ * For lightweight "can I show the upgrade button?" reads, `checkAccess`
+ * is still fine and avoids an unnecessary write.
+ *
+ * Returns the same shape as `checkAccess`.
+ */
+export const checkAccessAndLog = mutation({
+  args: {
+    resourceType: v.union(
+      v.literal("page"),
+      v.literal("post"),
+      v.literal("route"),
+      v.literal("product"),
+      v.literal("block"),
+    ),
+    resourceIdOrKey: v.string(),
+  },
+  handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) {
+      return { allowed: false, reason: "", teaserMode: null, customMessage: null, matchingPlanIds: null };
+    }
+    await requireMembershipEnabled(ctx);
+
+    // Look up restriction rules for this resource
+    const rules = await ctx.db
+      .query("membership_restriction_rules")
+      .withIndex("by_resource", (q: any) =>
+        q
+          .eq("resourceType", args.resourceType)
+          .eq("resourceIdOrKey", args.resourceIdOrKey),
+      )
+      .collect();
+
+    // No rules = unrestricted
+    if (rules.length === 0) {
+      return {
+        allowed: true,
+        reason: "no_restriction",
+        teaserMode: null,
+        customMessage: null,
+        matchingPlanIds: [],
+      };
+    }
+
+    // Get current user
+    const user = await getCurrentUser(ctx);
+
+    // Check if any rule requires login
+    const loginRequired = rules.some((r: any) => r.loginRequired);
+    if (loginRequired && !user) {
+      const firstRule = rules[0];
+      const result = {
+        allowed: false,
+        reason: "login_required",
+        teaserMode: firstRule.teaserMode,
+        customMessage: firstRule.customMessage ?? null,
+        matchingPlanIds: [],
+      };
+      await ctx.scheduler.runAfter(0, internal.membership.internals.recordAccessCheck, {
+        userId: undefined,
+        resourceType: args.resourceType,
+        resourceIdOrKey: args.resourceIdOrKey,
+        allowed: false,
+        reason: "login_required",
+        matchingPlanIds: [],
+      });
+      return result;
+    }
+
+    // If no user and login not required, check rule modes
+    if (!user) {
+      const denyRules = rules.filter((r: any) => r.ruleMode === "deny_if_missing");
+      if (denyRules.length > 0) {
+        const result = {
+          allowed: false,
+          reason: "membership_required",
+          teaserMode: denyRules[0].teaserMode,
+          customMessage: denyRules[0].customMessage ?? null,
+          matchingPlanIds: [],
+        };
+        await ctx.scheduler.runAfter(0, internal.membership.internals.recordAccessCheck, {
+          userId: undefined,
+          resourceType: args.resourceType,
+          resourceIdOrKey: args.resourceIdOrKey,
+          allowed: false,
+          reason: "membership_required",
+          matchingPlanIds: [],
+        });
+        return result;
+      }
+      const result = {
+        allowed: false,
+        reason: "membership_required",
+        teaserMode: rules[0].teaserMode,
+        customMessage: rules[0].customMessage ?? null,
+        matchingPlanIds: [],
+      };
+      await ctx.scheduler.runAfter(0, internal.membership.internals.recordAccessCheck, {
+        userId: undefined,
+        resourceType: args.resourceType,
+        resourceIdOrKey: args.resourceIdOrKey,
+        allowed: false,
+        reason: "membership_required",
+        matchingPlanIds: [],
+      });
+      return result;
+    }
+
+    // Get user's active membership grants
+    const activeGrants = await ctx.db
+      .query("membership_grants")
+      .withIndex("by_user_status", (q: any) =>
+        q.eq("userId", user._id).eq("status", "active"),
+      )
+      .collect();
+
+    const graceGrants = await ctx.db
+      .query("membership_grants")
+      .withIndex("by_user_status", (q: any) =>
+        q.eq("userId", user._id).eq("status", "grace"),
+      )
+      .collect();
+
+    const now = Date.now();
+    const allValidGrants = [...activeGrants, ...graceGrants].filter((g: any) => {
+      if (g.status === "grace" && g.graceEndsAt && g.graceEndsAt < now) return false;
+      if (g.endsAt && g.endsAt < now && g.status !== "grace") return false;
+      return true;
+    });
+
+    const userPlanIds = allValidGrants.map((g: any) => g.planId);
+
+    // Helper: schedule log write
+    const logResult = async (allowed: boolean, reason: string, matchingPlanIds: string[]) => {
+      await ctx.scheduler.runAfter(0, internal.membership.internals.recordAccessCheck, {
+        userId: user._id,
+        resourceType: args.resourceType,
+        resourceIdOrKey: args.resourceIdOrKey,
+        allowed,
+        reason,
+        matchingPlanIds,
+      });
+    };
+
+    // Evaluate each rule
+    for (const rule of rules) {
+      const requiredPlanIds: string[] = rule.planIds ?? [];
+
+      if (rule.ruleMode === "allow_only") {
+        const hasMatchingPlan = requiredPlanIds.some((pid: string) => userPlanIds.includes(pid));
+        if (hasMatchingPlan) {
+          const matchingIds = requiredPlanIds.filter((pid: string) => userPlanIds.includes(pid));
+          await logResult(true, "plan_match", matchingIds);
+          return {
+            allowed: true,
+            reason: "plan_match",
+            teaserMode: null,
+            customMessage: null,
+            matchingPlanIds: matchingIds,
+          };
+        }
+      } else if (rule.ruleMode === "deny_if_missing") {
+        const hasMatchingPlan = requiredPlanIds.some((pid: string) => userPlanIds.includes(pid));
+        if (!hasMatchingPlan) {
+          await logResult(false, "missing_required_plan", []);
+          return {
+            allowed: false,
+            reason: "missing_required_plan",
+            teaserMode: rule.teaserMode,
+            customMessage: rule.customMessage ?? null,
+            matchingPlanIds: [],
+          };
+        }
+      }
+    }
+
+    // If we have allow_only rules but no match, deny
+    const allowOnlyRules = rules.filter((r: any) => r.ruleMode === "allow_only");
+    if (allowOnlyRules.length > 0) {
+      await logResult(false, "no_matching_plan", []);
+      return {
+        allowed: false,
+        reason: "no_matching_plan",
+        teaserMode: allowOnlyRules[0].teaserMode,
+        customMessage: allowOnlyRules[0].customMessage ?? null,
+        matchingPlanIds: [],
+      };
+    }
+
+    // All deny_if_missing rules passed — allow access
+    await logResult(true, "all_rules_passed", userPlanIds);
     return {
       allowed: true,
       reason: "all_rules_passed",
