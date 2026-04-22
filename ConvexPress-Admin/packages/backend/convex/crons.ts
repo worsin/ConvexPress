@@ -390,4 +390,15 @@ crons.daily(
   {},
 );
 
+// Weekly trim of membership_access_log rows older than
+// settings.membership.general.accessLogRetentionDays (default 30 days).
+// Self-reschedules if more than 500 rows are deleted in one run.
+// Added by: Membership Plan System Expert (Wave 7)
+crons.weekly(
+  "trim-membership-access-log",
+  { dayOfWeek: "sunday", hourUTC: 2, minuteUTC: 30 },
+  internal.membership.internals.trimAccessLog,
+  {},
+);
+
 export default crons;
