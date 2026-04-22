@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAuth, useSignUp } from "@clerk/clerk-react";
-import { useMutation } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { Check, Eye, EyeOff, Loader2, Tag } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AuthError } from "@/components/auth/AuthError";
+import { StripePaymentForm } from "./StripePaymentForm";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
 import { cn } from "@/lib/utils";
 
@@ -114,6 +115,17 @@ export function SignupForm({ offer, className }: SignupFormProps) {
   const activateFromIntent = useMutation(
     (api as any).commerceSubscriptions.checkout.activateFromIntent,
   );
+  const beginFirstCharge = useAction(
+    (api as any).commerceSubscriptions.publicCharge.beginFirstCharge,
+  );
+  const chargingStatus = useQuery(
+    (api as any).commerceSubscriptions.queries.getLiveChargingStatus,
+  ) as { live: boolean; publishableKey: string | null } | undefined;
+
+  const [stripeContext, setStripeContext] = useState<{
+    clientSecret: string;
+    publishableKey: string;
+  } | null>(null);
 
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -218,7 +230,25 @@ export function SignupForm({ offer, className }: SignupFormProps) {
         couponCode: couponCode.trim() || undefined,
       });
 
-      // Payment is stubbed end-to-end for Wave 5 — see module header.
+      // Live path (Wave 10.1): call Stripe to get a client_secret and
+      // render Stripe Elements inside this form. The webhook activates
+      // the intent on payment_intent.succeeded.
+      if (chargingStatus?.live && chargingStatus.publishableKey) {
+        const charge = await beginFirstCharge({
+          checkoutIntentId: intent.intentId as any,
+        });
+        if (!charge?.clientSecret) {
+          setError("Could not start payment. Please try again.");
+          return;
+        }
+        setStripeContext({
+          clientSecret: charge.clientSecret,
+          publishableKey: chargingStatus.publishableKey,
+        });
+        return;
+      }
+
+      // Stub path (dev): activate immediately with a stub payment result.
       const paymentResult = {
         provider: "stub",
         providerTransactionId: `stub_${Date.now()}_${Math.random()
@@ -314,6 +344,24 @@ export function SignupForm({ offer, className }: SignupFormProps) {
 
       {error && <AuthError message={error} />}
 
+      {/* Stripe Elements — live path (Wave 10.1) */}
+      {stripeContext && (
+        <StripePaymentForm
+          publishableKey={stripeContext.publishableKey}
+          clientSecret={stripeContext.clientSecret}
+          returnUrl={
+            typeof window !== "undefined"
+              ? `${window.location.origin}/dashboard/subscriptions?welcome=1`
+              : "/dashboard/subscriptions?welcome=1"
+          }
+          onError={(m) => {
+            setError(m);
+            setStripeContext(null);
+          }}
+        />
+      )}
+
+      {!stripeContext && <>
       {/* Signed-in vs anonymous split */}
       {needsClerkSignup ? (
         <div className="space-y-3">
@@ -467,6 +515,7 @@ export function SignupForm({ offer, className }: SignupFormProps) {
         Payment processing is in preview — your subscription will activate
         immediately for testing.
       </p>
+      </>}
     </form>
   );
 }
