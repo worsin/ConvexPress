@@ -10,8 +10,10 @@ import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { ProductReviews } from "@/components/commerce/ProductReviews";
 import { WishlistButton } from "@/components/commerce/WishlistButton";
 import { MediaImage } from "@/components/media/MediaImage";
+import { UpgradeCTA } from "@/components/membership/UpgradeCTA";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
+import { useProductAccess } from "@/hooks/useProductAccess";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
 import {
 	findMatchingVariant,
@@ -121,6 +123,9 @@ function ProductDetailPage() {
 		variants.find((variant) => variant.isDefault) ?? variants[0] ?? null;
 	const isVariableProduct =
 		product?.productType === "variable" && optionTypes.length > 0;
+
+	// Membership restriction: hide "Add to cart" if the product is gated.
+	const productAccess = useProductAccess(product?._id ?? undefined);
 
 	useEffect(() => {
 		if (!product || !isVariableProduct || !defaultVariant?.selections?.length)
@@ -377,33 +382,42 @@ function ProductDetailPage() {
 						</div>
 					) : null}
 
-					<div className="flex flex-wrap items-center gap-3">
-						<button
-							type="button"
-							onClick={() => void handleAddToCart()}
-							disabled={!isReady || isOutOfStock || requiresVariantSelection}
-							className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-						>
-							{requiresVariantSelection
-								? "Select options"
-								: isOutOfStock
-									? "Out of stock"
-									: "Add to cart"}
-						</button>
-						<Link
-							to="/cart"
-							className="inline-flex items-center justify-center rounded-xl border border-border px-5 py-3 text-sm font-medium text-foreground hover:bg-muted/60"
-						>
-							View cart
-						</Link>
-						{!isVariableProduct || selectedVariant ? (
-							<WishlistButton
-								productId={product._id}
-								variantId={isVariableProduct ? selectedVariant?._id : undefined}
-								className="inline-flex items-center justify-center rounded-xl border border-border px-5 py-3 text-sm font-medium text-foreground hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-50"
-							/>
-						) : null}
-					</div>
+					{!productAccess.allowed ? (
+						/* Membership gate: replace add-to-cart with an upgrade prompt */
+						<UpgradeCTA
+							matchingPlanIds={productAccess.matchingPlanIds as any}
+							title="Members-only product"
+							description="This product is available to members only. Upgrade your plan to purchase."
+						/>
+					) : (
+						<div className="flex flex-wrap items-center gap-3">
+							<button
+								type="button"
+								onClick={() => void handleAddToCart()}
+								disabled={!isReady || isOutOfStock || requiresVariantSelection}
+								className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+							>
+								{requiresVariantSelection
+									? "Select options"
+									: isOutOfStock
+										? "Out of stock"
+										: "Add to cart"}
+							</button>
+							<Link
+								to="/cart"
+								className="inline-flex items-center justify-center rounded-xl border border-border px-5 py-3 text-sm font-medium text-foreground hover:bg-muted/60"
+							>
+								View cart
+							</Link>
+							{!isVariableProduct || selectedVariant ? (
+								<WishlistButton
+									productId={product._id}
+									variantId={isVariableProduct ? selectedVariant?._id : undefined}
+									className="inline-flex items-center justify-center rounded-xl border border-border px-5 py-3 text-sm font-medium text-foreground hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-50"
+								/>
+							) : null}
+						</div>
+					)}
 
 					<dl className="grid gap-3 text-sm sm:grid-cols-2">
 						<div className="rounded-2xl bg-muted/40 p-4">
