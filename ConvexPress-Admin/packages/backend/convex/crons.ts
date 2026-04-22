@@ -350,32 +350,21 @@ crons.daily(
   {},
 );
 
-// ─── Commerce Subscriptions ─────────────────────────────────────────────────
-// Create and charge due subscription invoices. Payment failures move into the
-// dunning flow, so this must run without an admin opening the dashboard.
-crons.hourly(
-  "commerce:subscription-renewals",
-  { minuteUTC: 10 },
-  (internal as any).commerceSubscriptions.actions.processRenewals,
-  {},
-);
-
-// Retry failed subscription invoices that are due for another collection
-// attempt according to the subscription dunning settings.
-crons.hourly(
-  "commerce:subscription-dunning-retries",
-  { minuteUTC: 40 },
-  (internal as any).commerceSubscriptions.actions.processDunningRetries,
-  {},
-);
-
-// Finalize subscriptions whose pending cancellation period has elapsed.
-crons.daily(
-  "commerce:subscription-expirations",
-  { hourUTC: 2, minuteUTC: 45 },
-  (internal as any).commerceSubscriptions.actions.processExpiredSubscriptions,
-  {},
-);
+// ─── Commerce Subscriptions (legacy stubs) ──────────────────────────────────
+// The Wave 2 `commerce:subscription-renewals`, `commerce:subscription-dunning-
+// retries`, and `commerce:subscription-expirations` crons previously registered
+// here pointed at no-op stubs in `actions.ts` that returned
+// { skipped: true, reason: "subscription_charging_not_configured" }.
+//
+// Wave 7 ships real implementations registered below under
+// "Commerce Subscriptions System" (renewal.runRenewalSweep,
+// dunning.runDunningSweep, internals.expirePendingCancellations).
+//
+// The legacy action exports (actions.processRenewals / processDunningRetries /
+// processExpiredSubscriptions / chargeSubscriptionInvoice) are KEPT in place
+// so any code that still references `internal.commerceSubscriptions.actions.*`
+// keeps compiling. We only remove the cron registrations to eliminate the
+// double-schedule.
 
 // ─── Membership Plan System ─────────────────────────────────────────────────
 // Daily sweep of active/grace grants past their end or grace window.
