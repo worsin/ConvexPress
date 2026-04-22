@@ -302,6 +302,18 @@ export interface CommercePaymentsSettings {
    * are saved and the subscription signup flow is verified.
    */
   subscriptionChargingEnabled: boolean;
+  /**
+   * Tax provider mode (Wave 11.1). "rules" runs the in-house engine
+   * against commerce_tax_rules. "stripe" routes to Stripe Tax with a
+   * rules-engine fallback. Default: "rules".
+   */
+  taxProviderMode: "rules" | "stripe";
+  /**
+   * Tax class applied to shipping lines (Wave 11.1). Null/empty = no
+   * tax on shipping; any defined class string taxes shipping at that
+   * class's rate. Default: null.
+   */
+  shippingTaxClass: string;
 }
 
 export interface ClerkIntegrationSettings {
@@ -697,6 +709,8 @@ export const COMMERCE_PAYMENTS_DEFAULTS: CommercePaymentsSettings = {
   paypalWebhookId: "",
   paypalMode: "sandbox",
   subscriptionChargingEnabled: false,
+  taxProviderMode: "rules",
+  shippingTaxClass: "",
 };
 
 export interface CommerceSubscriptionsCountersSettings {

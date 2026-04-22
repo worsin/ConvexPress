@@ -130,6 +130,7 @@ export const commerceTables = {
     isDownloadable: v.boolean(),
     isNonReturnable: v.optional(v.boolean()),
     taxClass: v.optional(v.string()),
+    isTaxable: v.optional(v.boolean()),
     optionTypes: v.optional(v.any()),
     productAttributes: v.optional(v.any()),
     defaultAttributes: v.optional(v.any()),
@@ -194,6 +195,7 @@ export const commerceTables = {
     shippingWidthIn: v.optional(v.string()),
     shippingHeightIn: v.optional(v.string()),
     taxClass: v.optional(v.string()),
+    isTaxable: v.optional(v.boolean()),
     isVirtual: v.optional(v.boolean()),
     isDownloadable: v.optional(v.boolean()),
     downloadLimit: v.optional(v.number()),
@@ -574,7 +576,49 @@ export const commerceTables = {
     updatedAt: v.number(),
   })
     .index("by_country", ["countryCode"])
-    .index("by_active", ["isActive"]),
+    .index("by_active", ["isActive"])
+    .index("by_tax_class", ["taxClass"]),
+
+  // Wave 11.1: managed tax classes replace free-form strings.
+  commerce_tax_classes: defineTable({
+    code: v.string(),
+    label: v.string(),
+    description: v.optional(v.string()),
+    isDefault: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_code", ["code"])
+    .index("by_default", ["isDefault"]),
+
+  // Wave 11.1: per-jurisdiction tax breakdown on orders for compliance audits.
+  commerce_order_tax_lines: defineTable({
+    orderId: v.id("commerce_orders"),
+    orderItemId: v.optional(v.id("commerce_order_items")),
+    ruleId: v.optional(v.id("commerce_tax_rules")),
+    taxClass: v.optional(v.string()),
+    jurisdictionLabel: v.string(),
+    taxableAmount: v.number(),
+    ratePercent: v.number(),
+    taxAmount: v.number(),
+    provider: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_order", ["orderId"])
+    .index("by_order_item", ["orderItemId"])
+    .index("by_rule", ["ruleId"]),
+
+  // Wave 11.1: rate-history audit log so retroactive order analysis stays correct.
+  commerce_tax_rate_history: defineTable({
+    ruleId: v.id("commerce_tax_rules"),
+    changedBy: v.id("users"),
+    changedAt: v.number(),
+    before: v.any(),
+    after: v.any(),
+    reason: v.optional(v.string()),
+  })
+    .index("by_rule", ["ruleId"])
+    .index("by_changed_at", ["changedAt"]),
 
   commerce_inventory_adjustments: defineTable({
     productId: v.id("commerce_products"),

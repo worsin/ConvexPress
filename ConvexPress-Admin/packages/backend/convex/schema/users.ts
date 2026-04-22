@@ -28,6 +28,12 @@ export const usersTables = {
     phone: v.optional(v.string()),
     profilePictureUrl: v.optional(v.string()), // OAuth avatar URL
 
+    // === Tax Exemption (Wave 11.1) ===
+    isTaxExempt: v.optional(v.boolean()),
+    taxExemptId: v.optional(v.string()), // VAT ID / reseller certificate number
+    taxExemptReason: v.optional(v.string()),
+    taxExemptVerifiedAt: v.optional(v.number()),
+
     // === ConvexPress-Managed Profile Fields ===
     username: v.optional(v.string()),
     nickname: v.optional(v.string()), // User-chosen nickname for display name options
