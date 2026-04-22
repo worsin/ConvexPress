@@ -20,7 +20,6 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { useSession } from "@convex-dev/auth/react";
 import { toast } from "sonner";
 import {
   ArrowDown,
