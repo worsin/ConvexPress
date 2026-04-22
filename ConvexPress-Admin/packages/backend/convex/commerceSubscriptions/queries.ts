@@ -878,3 +878,35 @@ export const previewProration = query({
     };
   },
 });
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PUBLIC: live-charging status (Wave 10.1)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Public query exposing whether real Stripe charging is on for the site.
+ * The website signup flow uses this to decide whether to render Stripe
+ * Elements (live) or skip the card step entirely (stub mode for dev).
+ *
+ * Returns `{ live, publishableKey }`. Only the publishable key is exposed
+ * — never the secret.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const getLiveChargingStatus = query({
+  args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx): Promise<{ live: boolean; publishableKey: string | null }> => {
+    const doc = await ctx.db
+      .query("settings")
+      .withIndex("by_section", (q: any) => q.eq("section", "commerce.payments"))
+      .unique();
+    const values = (doc?.values ?? {}) as Record<string, unknown>;
+    const live = values.subscriptionChargingEnabled === true;
+    const publishableKey =
+      typeof values.stripePublishableKey === "string" && (values.stripePublishableKey as string).trim()
+        ? (values.stripePublishableKey as string)
+        : null;
+    return { live, publishableKey };
+  },
+});
