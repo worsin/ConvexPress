@@ -455,13 +455,23 @@ export const getOffer = query({
  * `pricingCardVisible !== false`. Treats absence of `pricingCardVisible`
  * as visible.
  *
- * Wave 6 enriches each offer with `planBenefits` — displayable benefits
- * pulled from any membership plans linked via `entitlementCodes`. The
- * `excludedPlanFeatureIds` field on the offer suppresses specific benefit
- * IDs from surfacing. Offer's own `features` array is unchanged.
+ * Wave 6 enriches each offer with:
+ *   1. `planBenefits` — displayable benefits pulled from any membership
+ *      plans linked via `entitlementCodes`. The `excludedPlanFeatureIds`
+ *      field on the offer suppresses specific benefit IDs from surfacing.
+ *   2. `billingInterval`, `billingIntervalCount`, `templateTrialDays` —
+ *      copied from the linked `commerce_subscription_templates` row so the
+ *      pricing card can render "/ month", "/ year", etc. without a second
+ *      round-trip. `trialDaysOverride` (on the offer) still wins over
+ *      `templateTrialDays` when both are set.
  *
  * Return shape per offer (all existing fields +):
- *   planBenefits: Array<{ _id, label, description?, sourcePlanId }>
+ *   planBenefits:        Array<{ _id, label, description?, sourcePlanId }>
+ *   billingInterval:     "week" | "month" | "year" | null
+ *   billingIntervalCount: number | null
+ *   templateTrialDays:   number | null
+ *
+ * Offer's own `features` array is unchanged.
  */
 export const listOffersForPricing = query({
   args: {},
@@ -477,8 +487,23 @@ export const listOffersForPricing = query({
       .filter((o) => o.pricingCardVisible !== false)
       .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 
-    // Enrich each offer with displayable plan benefits (Wave 6).
-    // When the membership plugin is disabled, the helper returns [] gracefully.
+    // Batch-load templates so we can surface billingInterval / trialDays.
+    // Uses a Map keyed by templateId (deduped across offers sharing one).
+    const uniqueTemplateIds = Array.from(
+      new Set(visible.map((o: any) => o.templateId).filter(Boolean)),
+    );
+    const templateMap = new Map<string, any>();
+    await Promise.all(
+      uniqueTemplateIds.map(async (tid: any) => {
+        const t = await ctx.db.get(tid);
+        if (t) templateMap.set(String(tid), t);
+      }),
+    );
+
+    // Enrich each offer with displayable plan benefits + template fields.
+    // When the membership plugin is disabled, the benefit helper returns []
+    // gracefully; when a template is missing (orphan offer) the interval
+    // fields are null so the UI can fall back to a generic label.
     const enriched = await Promise.all(
       visible.map(async (offer: any) => {
         const allPlanBenefits = await getDisplayableBenefitsForCodesHelper(
@@ -492,7 +517,15 @@ export const listOffersForPricing = query({
           (b) => !excluded.includes(b._id),
         );
 
-        return { ...offer, planBenefits };
+        const template = templateMap.get(String(offer.templateId));
+
+        return {
+          ...offer,
+          planBenefits,
+          billingInterval: template?.billingInterval ?? null,
+          billingIntervalCount: template?.billingIntervalCount ?? null,
+          templateTrialDays: template?.trialDays ?? null,
+        };
       }),
     );
 
