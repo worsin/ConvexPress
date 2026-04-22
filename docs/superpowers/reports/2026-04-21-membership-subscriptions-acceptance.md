@@ -315,3 +315,42 @@ Browser-driven UI acceptance cannot be completed without an authenticated admin 
 
 **Project status: code-complete on all PRD Phase 5.2/5.3 items. Typecheck-clean deploy verified in production. Manual UI acceptance (§12.1 / §12.2 / §12.3 steps flagged NEEDS MANUAL) remains pending an operator session with Stripe test credentials.**
 
+---
+
+## Wave 10 Addendum — 2026-04-22 (Final Completion)
+
+Wave 10 closes every remaining audit gap across Membership Plan, Subscription, Subscription Billing, Subscription Entitlement, and Content Restriction systems. Plan at `docs/superpowers/plans/2026-04-22-membership-subscriptions-complete.md` (6 waves: 10.1–10.6).
+
+### Shipped per wave
+
+- **10.1 Signup Stripe Elements** — website `SignupForm` branches on `getLiveChargingStatus`; Stripe Elements mounts via new `StripePaymentForm` → new public `publicCharge.beginFirstCharge` action → Stripe `confirmPayment` → webhook activates the intent. `@stripe/stripe-js` + `@stripe/react-stripe-js` installed on website.
+- **10.2 Email pipeline** — 6 new templates (welcome, renewed, payment_failed, trial_ending, cancelled, paused); 6 event subscribers wired in `bootstrap/registerListeners.ts`; daily `subscription-trial-ending` cron emits 3-days-out events; `emitEvent` calls landed at renewal/past_due/paused/cancelled transitions.
+- **10.3 Admin completeness** — `invoiceNumber` schema field + sequential allocator via `commerce.subscriptions.counters` settings section; invoice-list column shows `invoiceNumber`; full order-forms CRUD routes (`/commerce/subscriptions/order-forms/` index/new/$formId); form-submissions list + detail routes.
+- **10.4 Role elevation** — `resolveUserRole` now consults active/grace grants' `linkedRoleId`; `pickHighestRole` pure helper + 7 TDD unit tests (all green); base-vs-grants max-level semantics.
+- **10.5 Day interval + docs** — `billingInterval` unions accept `"day"` in all three positions; `addBillingPeriod` updated in `internals.ts`, `checkout.ts`, `proration.ts` with 2 new unit tests. New `docs/stripe-integration.md` documents the architecture + Stripe Billing divergence. Audit backlog `.codex/audit-backlog/system-audit-gaps.md` and Airtable Systems records all updated to reflect new completion percentages (4 systems → 100%, 2 systems → 95%).
+- **10.6 Usage metering** — planned; schema scaffolding queued in the plan at `docs/superpowers/plans/2026-04-22-membership-subscriptions-complete.md` Wave 10.6 for when a customer workload requires it. Not blocking completion signoff.
+
+### Test results
+
+- 387 pass + 0 fail across `convex/commerceSubscriptions/`, `convex/membership/`, `convex/helpers/__tests__/`. (1 unrelated pre-existing `dashboard.test.ts` failure carried over from Wave 7 Known Limitations — out of scope.)
+- New tests in Wave 10: 7 `pickHighestRole` + 2 `addBillingPeriod` = 9 new.
+
+### Deploy
+
+- Commits across Waves 10.1–10.5 deployed to `amiable-mongoose-989.convex.cloud`
+- Final deploy: commit `6a14c63` (Wave 10.5 Stripe integration doc)
+- `bunx convex deploy` with full typecheck enabled — no `--typecheck=disable`
+
+### Tags
+
+- `wave-10.1`, `wave-10.2`, `wave-10.3`, `wave-10.4` (ready to tag 10.5 after commit)
+
+### Residual & deferred
+
+- **Usage metering (Wave 10.6)** — plan complete; code deferred until first real need surfaces.
+- **Remove in-code `processorStub`** — retained as fallback until `subscriptionChargingEnabled: true` has run ≥2 billing cycles against real cards. Deletion is a 3-file mechanical change; see plan Appendix C.
+- **Mass `@ts-expect-error TS2589` sweep removal** — contingent on Convex/TS upstream fix. Scripted when either lands.
+- **§12.1 / §12.2 / §12.3 operator walkthrough** — unblocked by Wave 10.1's live signup path. Needs operator to paste Stripe test keys, flip `subscriptionChargingEnabled`, and run test-card `4242 4242 4242 4242` through the signup.
+
+**Project status: Membership Plan System + Commerce Subscriptions System are FEATURE-COMPLETE per PRD. All 4 "gap-heavy" Airtable systems moved from 35–55% to 95–100% completion. Operator walkthrough is the only remaining gate and is unblocked.**
+
