@@ -396,7 +396,7 @@ crons.weekly(
 // Added by: Commerce Subscriptions System Expert (Wave 7)
 crons.hourly(
   "subscription-renewals",
-  {},
+  { minuteUTC: 0 },
   internal.commerceSubscriptions.renewal.runRenewalSweep,
 );
 
