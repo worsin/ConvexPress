@@ -107,6 +107,30 @@ function processorStub(
   };
 }
 
+async function allocateProrationInvoiceNumber(ctx: any): Promise<string> {
+  const doc = await ctx.db
+    .query("settings")
+    .withIndex("by_section", (q: any) =>
+      q.eq("section", "commerce.subscriptions.counters"),
+    )
+    .unique();
+  const values = (doc?.values ?? {}) as {
+    invoiceCounter?: number;
+    invoicePrefix?: string;
+  };
+  const nextCounter = (values.invoiceCounter ?? 0) + 1;
+  const prefix = values.invoicePrefix ?? "INV-";
+  const formatted = `${prefix}${String(nextCounter).padStart(6, "0")}`;
+  const now = Date.now();
+  if (doc) {
+    await ctx.db.patch(doc._id, {
+      values: { ...values, invoiceCounter: nextCounter },
+      updatedAt: now,
+    });
+  }
+  return formatted;
+}
+
 async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
   const settings = await ctx.runQuery(
     internal.settings.httpInternals.getBySectionInternal,
@@ -255,11 +279,15 @@ export const applyUpgradeProration = internalMutation({
       },
     );
 
+    // Allocate a sequential invoice number (Wave 10.3).
+    const invoiceNumber = await allocateProrationInvoiceNumber(ctx);
+
     // Create the invoice.
     const invoiceId = await ctx.db.insert("commerce_subscription_invoices", {
       subscriptionId: args.contractId,
       sourceChannel: contract.sourceChannel,
       status: "open",
+      invoiceNumber,
       currencyCode,
       subtotalAmount: proration.netCharge,
       taxAmount: 0, // Tax stub — Wave 7 tax engine extension point.

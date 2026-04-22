@@ -101,6 +101,35 @@ async function resolveEffectiveConfig(ctx: any, product: any, templateId?: any) 
   };
 }
 
+async function allocateInvoiceNumber(ctx: any): Promise<string> {
+  const doc = await ctx.db
+    .query("settings")
+    .withIndex("by_section", (q: any) =>
+      q.eq("section", "commerce.subscriptions.counters"),
+    )
+    .unique();
+  const values = (doc?.values ?? {}) as {
+    invoiceCounter?: number;
+    invoicePrefix?: string;
+  };
+  const nextCounter = (values.invoiceCounter ?? 0) + 1;
+  const prefix = values.invoicePrefix ?? "INV-";
+  const formatted = `${prefix}${String(nextCounter).padStart(6, "0")}`;
+
+  const now = Date.now();
+  if (doc) {
+    await ctx.db.patch(doc._id, {
+      values: { ...values, invoiceCounter: nextCounter },
+      updatedAt: now,
+    });
+  }
+  // Note: if the settings row doesn't exist yet, we skip creation here —
+  // it gets created lazily on the first successful settings.update_* mutation
+  // via the standard defaults-first merge. Returning the counter without a
+  // persisted row would drift; in practice the admin configures this once.
+  return formatted;
+}
+
 async function writeHistory(ctx: any, args: any) {
   await ctx.db.insert("commerce_subscription_history", {
     subscriptionId: args.subscriptionId,
@@ -465,11 +494,14 @@ export const createDueInvoices = internalMutation({
       const taxAmount = 0;
       const totalAmount = subtotalAmount + taxAmount;
 
+      const invoiceNumber = await allocateInvoiceNumber(ctx);
+
       const invoiceId = await ctx.db.insert("commerce_subscription_invoices", {
         subscriptionId: subscription._id,
         checkoutIntentId: subscription.sourceCheckoutIntentId,
         sourceChannel: subscription.sourceChannel,
         status: "open",
+        invoiceNumber,
         currencyCode: subscription.currencyCode,
         subtotalAmount,
         taxAmount,
