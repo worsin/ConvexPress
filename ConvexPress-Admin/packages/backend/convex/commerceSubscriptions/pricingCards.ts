@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Commerce Subscriptions — Pricing Card Config (Wave 2).
  *
@@ -86,6 +85,7 @@ async function getSingletonRow(ctx: any) {
  * customer portal. Admin-only fields (there aren't any today) can be
  * added by splitting public/admin queries in Wave 4.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getPricingCardConfig = query({
   args: {},
   handler: async (ctx) => {
@@ -114,6 +114,7 @@ export const getPricingCardConfig = query({
  *     (UI can tolerate missing, but we keep the config invariant clean.)
  *   - `templateKey`: Wave 2 accepts only "default". Wave 4 relaxes this.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const updatePricingCardConfig = mutation({
   args: {
     orderedOfferIds: v.array(v.id("commerce_subscription_offers")),
@@ -162,7 +163,7 @@ export const updatePricingCardConfig = mutation({
     // featuredOfferId must be in the ordered list.
     if (args.featuredOfferId) {
       const isInList = args.orderedOfferIds.some(
-        (id) => String(id) === String(args.featuredOfferId),
+        (id: any) => String(id) === String(args.featuredOfferId),
       );
       if (!isInList) {
         throw new ConvexError({

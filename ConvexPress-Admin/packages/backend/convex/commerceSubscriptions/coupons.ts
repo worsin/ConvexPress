@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Commerce Subscriptions — Coupons CRUD + redemption (Wave 2).
  *
@@ -84,6 +83,7 @@ async function couponHasRedemptions(
  *   - If `duration === "n_months"`, `durationMonths` is a positive number.
  *   - Amount is non-negative. For percent: 0..100.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const createCoupon = mutation({
   args: {
     code: v.string(),
@@ -189,6 +189,7 @@ export const createCoupon = mutation({
  * and will throw `IMMUTABLE_FIELD` on attempted change. All other fields
  * remain editable.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const updateCoupon = mutation({
   args: {
     couponId: v.id("commerce_subscription_coupons"),
@@ -331,6 +332,7 @@ export const updateCoupon = mutation({
  * preserved (history). Already-issued redemptions continue to apply to
  * their contracts until `remainingApplications` hits zero.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const archiveCoupon = mutation({
   args: {
     couponId: v.id("commerce_subscription_coupons"),
@@ -377,6 +379,7 @@ export const archiveCoupon = mutation({
  * operation idempotent-per-contract and decouples discount accrual
  * from billing cycle timing.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const redeemCouponForContract = mutation({
   args: {
     contractId: v.id("commerce_subscriptions"),
@@ -481,6 +484,7 @@ export const redeemCouponForContract = mutation({
 /**
  * Admin coupon listing. Filter by status or code substring.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const listCoupons = query({
   args: {
     status: v.optional(couponStatusValidator),
@@ -515,6 +519,7 @@ export const listCoupons = query({
 /**
  * Fetch a single coupon by ID (admin).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getCoupon = query({
   args: {
     couponId: v.id("commerce_subscription_coupons"),
@@ -535,6 +540,7 @@ export const getCoupon = query({
  * `redeemCouponForContract` mutation for that. Public signup-time
  * preview validation will live on the customer portal in Wave 4.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getCouponByCode = query({
   args: { code: v.string() },
   handler: async (ctx, args) => {

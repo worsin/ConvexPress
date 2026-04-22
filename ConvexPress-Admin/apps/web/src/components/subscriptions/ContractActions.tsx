@@ -11,12 +11,16 @@
  *   - Retry Payment (past_due only) — Wave 7 stub
  *   - Change Payment Method — Wave 7 stub
  *
- * Wired mutations: pause / resume / scheduleCancel / cancelNow / redeemCouponForContract.
- * Stubs (Wave 7 target): scheduleUpgrade / scheduleDowngrade / retryInvoicePayment / changePaymentMethod.
+ * Wired mutations (Wave 7):
+ *   - pause / resume / scheduleCancel / cancelNow
+ *   - redeemCouponForContract
+ *   - applyUpgradeProration (upgrade: immediate charge)
+ *   - applyDowngradeProration (downgrade: scheduled at period end)
  */
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { useSession } from "@convex-dev/auth/react";
 import { toast } from "sonner";
 import {
   ArrowDown,
@@ -57,6 +61,17 @@ export function ContractActions({ contract }: ContractActionsProps) {
   const redeemCouponMutation = useMutation(
     (api as any).commerceSubscriptions.coupons.redeemCouponForContract,
   );
+  // Wave 7: real proration mutations (upgrade = immediate charge, downgrade = scheduled).
+  const applyUpgradeMutation = useMutation(
+    (api as any).commerceSubscriptions.proration.applyUpgradeProration,
+  );
+  const applyDowngradeMutation = useMutation(
+    (api as any).commerceSubscriptions.proration.applyDowngradeProration,
+  );
+
+  // Current admin user id — needed to pass as `triggeredByUserId`.
+  const currentUserQuery = useQuery((api as any).auth.queries?.getMe ?? (api as any).users?.getMe);
+  const currentUserId = (currentUserQuery as { _id?: Id<"users"> } | null)?._id ?? null;
 
   const offers = useQuery(
     (api as any).commerceSubscriptions.offers.listOffers,
@@ -157,10 +172,59 @@ export function ContractActions({ contract }: ContractActionsProps) {
     }
   }
 
-  // Determine upgrade vs downgrade based on candidate offer's price
+  // Determine upgrade vs downgrade based on candidate offer's price.
   const pendingOffer = pendingOfferId
     ? offers?.find((o) => o._id === pendingOfferId)
     : null;
+
+  // An upgrade is when the new offer price is strictly greater than the current.
+  // We approximate by comparing recurringAmount (offers list already has this).
+  const currentOfferPrice = contract.recurringAmount ?? 0;
+  const pendingOfferPrice = pendingOffer?.recurringAmount ?? 0;
+  const isUpgrade = pendingOfferPrice > currentOfferPrice;
+
+  async function handlePlanChange() {
+    if (!pendingOfferId) return;
+    if (!currentUserId) {
+      toast.error("Could not determine current admin user — cannot change plan.");
+      return;
+    }
+    setBusy("plan_change");
+    try {
+      if (isUpgrade) {
+        const result = await applyUpgradeMutation({
+          contractId: contract._id,
+          toOfferId: pendingOfferId,
+          triggeredByUserId: currentUserId,
+        });
+        if ((result as { success?: boolean })?.success === false) {
+          toast.error(
+            (result as { error?: string })?.error ?? "Upgrade charge failed.",
+          );
+        } else {
+          toast.success("Upgrade applied — new plan is now active.");
+          setOfferPickerOpen(false);
+          setPendingOfferId(null);
+        }
+      } else {
+        await applyDowngradeMutation({
+          contractId: contract._id,
+          toOfferId: pendingOfferId,
+          triggeredByUserId: currentUserId,
+        });
+        toast.success("Downgrade scheduled — takes effect at end of current period.");
+        setOfferPickerOpen(false);
+        setPendingOfferId(null);
+      }
+    } catch (error) {
+      toast.error(
+        (error as { data?: { message?: string } })?.data?.message ??
+          "Failed to change plan",
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <div className="space-y-3 rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -241,11 +305,22 @@ export function ContractActions({ contract }: ContractActionsProps) {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  disabled
-                  title="Wiring pending — Wave 7"
-                  className="flex-1 rounded-lg bg-primary/60 px-3 py-2 text-xs font-medium text-primary-foreground disabled:cursor-not-allowed"
+                  onClick={() => void handlePlanChange()}
+                  disabled={busy !== null || !pendingOfferId || !currentUserId}
+                  title={
+                    !pendingOfferId
+                      ? "Select an offer first"
+                      : isUpgrade
+                        ? "Upgrade immediately (prorated charge)"
+                        : "Schedule downgrade at period end"
+                  }
+                  className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <ArrowUp className="mr-1 inline h-3 w-3" /> Confirm change
+                  {isUpgrade ? (
+                    <><ArrowUp className="mr-1 inline h-3 w-3" /> Upgrade now</>
+                  ) : (
+                    <><ArrowDown className="mr-1 inline h-3 w-3" /> Schedule downgrade</>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -258,12 +333,13 @@ export function ContractActions({ contract }: ContractActionsProps) {
                   Cancel
                 </button>
               </div>
-              <p className="text-[10px] text-muted-foreground">
-                Wiring pending — Wave 7.{" "}
-                {pendingOffer?.title
-                  ? `Target: ${pendingOffer.title}.`
-                  : ""}
-              </p>
+              {pendingOffer && (
+                <p className="text-[10px] text-muted-foreground">
+                  {isUpgrade
+                    ? `Upgrade to "${pendingOffer.title}" — prorated charge applied immediately.`
+                    : `Downgrade to "${pendingOffer.title}" — takes effect at period end.`}
+                </p>
+              )}
             </div>
           )}
         </div>

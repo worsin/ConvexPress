@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Commerce Subscriptions — Offers CRUD (Wave 2).
  *
@@ -91,6 +90,7 @@ async function hasActiveContractReferencingOffer(
  * Validates that `templateId` exists. All Wave 1 fields are supported:
  *   `features`, `pricingCardVisible`, `excludedPlanFeatureIds`.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const createOffer = mutation({
   args: {
     title: v.string(),
@@ -196,6 +196,7 @@ export const createOffer = mutation({
  * description, excludedPlanFeatureIds, availability flags, entitlementCodes)
  * remain editable.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const updateOffer = mutation({
   args: {
     offerId: v.id("commerce_subscription_offers"),
@@ -356,6 +357,7 @@ export const updateOffer = mutation({
  * keep their pricing snapshot. Archived offers are hidden from the pricing
  * card loader and listing queries (unless filtered explicitly).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const archiveOffer = mutation({
   args: {
     offerId: v.id("commerce_subscription_offers"),
@@ -387,6 +389,7 @@ export const archiveOffer = mutation({
 /**
  * Admin listing. Filter by template, status, or search string.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const listOffers = query({
   args: {
     templateId: v.optional(v.id("commerce_subscription_templates")),
@@ -435,6 +438,7 @@ export const listOffers = query({
 /**
  * Fetch a single offer by ID.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getOffer = query({
   args: {
     offerId: v.id("commerce_subscription_offers"),
@@ -473,6 +477,7 @@ export const getOffer = query({
  *
  * Offer's own `features` array is unchanged.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const listOffersForPricing = query({
   args: {},
   handler: async (ctx) => {
@@ -484,8 +489,8 @@ export const listOffersForPricing = query({
       .collect();
 
     const visible = offers
-      .filter((o) => o.pricingCardVisible !== false)
-      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+      .filter((o: any) => o.pricingCardVisible !== false)
+      .sort((a: any, b: any) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 
     // Batch-load templates so we can surface billingInterval / trialDays.
     // Uses a Map keyed by templateId (deduped across offers sharing one).

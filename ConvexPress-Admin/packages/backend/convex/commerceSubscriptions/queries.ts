@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Commerce Subscriptions — Queries
  *
@@ -108,6 +107,7 @@ async function resolveEffectiveConfig(
 /**
  * List subscription templates (admin).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const listTemplates = query({
   args: {
     status: v.optional(
@@ -133,6 +133,7 @@ export const listTemplates = query({
 /**
  * Get a single subscription template by ID.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getTemplate = query({
   args: {
     templateId: v.id("commerce_subscription_templates"),
@@ -148,6 +149,7 @@ export const getTemplate = query({
  * Resolve effective subscription configuration for a product.
  * Merges template defaults with product-level overrides.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const resolveProductConfig = query({
   args: {
     productId: v.id("commerce_products"),
@@ -197,6 +199,7 @@ export const resolveProductConfig = query({
 /**
  * List current user's subscriptions (customer-facing, website).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const listMySubscriptions = query({
   args: {
     status: v.optional(commerceSubscriptionStatusValidator),
@@ -247,6 +250,7 @@ export const listMySubscriptions = query({
 /**
  * List all subscriptions (admin).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const list = query({
   args: {
     status: v.optional(commerceSubscriptionStatusValidator),
@@ -324,6 +328,7 @@ export const list = query({
  * Get subscription detail with items, history, entitlements, and invoices.
  * Accessible by admin or the owning customer.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getById = query({
   args: {
     subscriptionId: v.id("commerce_subscriptions"),
@@ -405,6 +410,7 @@ export const getById = query({
 /**
  * Subscription dashboard metrics (admin).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getMetrics = query({
   args: {},
   handler: async (ctx) => {
@@ -469,6 +475,7 @@ export const getMetrics = query({
 /**
  * List subscription invoices (admin, or filtered by subscription).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const listInvoices = query({
   args: {
     subscriptionId: v.optional(v.id("commerce_subscriptions")),
@@ -526,6 +533,7 @@ export const listInvoices = query({
 /**
  * Get a single invoice with its line items.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getInvoice = query({
   args: {
     invoiceId: v.id("commerce_subscription_invoices"),
@@ -570,6 +578,7 @@ export const getInvoice = query({
 /**
  * List entitlements for a subscription or user.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const listEntitlements = query({
   args: {
     subscriptionId: v.optional(v.id("commerce_subscriptions")),
@@ -663,6 +672,7 @@ export const listEntitlements = query({
  * Check if a user has an active entitlement for a specific code.
  * Used by downstream systems (membership, content gating) to check access.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const checkEntitlement = query({
   args: {
     userId: v.id("users"),
@@ -753,6 +763,7 @@ export const checkEntitlement = query({
  *
  * `@ts-nocheck` carried — matches the file-level pragma. Wave 7 removes.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const previewProration = query({
   args: {
     contractId: v.id("commerce_subscriptions"),

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Commerce Subscriptions — Mutations
  *
@@ -33,8 +32,6 @@ import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
 import {
-  commerceSubscriptionStatusValidator,
-  commerceSubscriptionEntitlementStatusValidator,
   commerceSubscriptionSourceChannelValidator,
 } from "../schema/commerceSubscriptions";
 import { subscriptionIntervalValidator } from "./validators";
@@ -472,6 +469,7 @@ async function transitionSubscription(ctx: any, args: any) {
 /**
  * Create a subscription template (admin).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const createTemplate = mutation({
   args: {
     title: v.string(),
@@ -525,6 +523,7 @@ export const createTemplate = mutation({
 /**
  * Update a subscription template (admin).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const updateTemplate = mutation({
   args: {
     templateId: v.id("commerce_subscription_templates"),
@@ -588,6 +587,7 @@ export const updateTemplate = mutation({
 /**
  * Set/update product subscription override (admin).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const setProductOverride = mutation({
   args: {
     productId: v.id("commerce_products"),
@@ -657,6 +657,7 @@ export const setProductOverride = mutation({
 /**
  * Remove product subscription override (admin).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const removeProductOverride = mutation({
   args: {
     productId: v.id("commerce_products"),
@@ -688,6 +689,7 @@ export const removeProductOverride = mutation({
  * Client checkout and public forms must create intents; they must not call this
  * mutation to activate a paid subscription directly.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const create = mutation({
   args: {
     customerId: v.optional(v.id("commerce_customer_profiles")),
@@ -935,6 +937,7 @@ export const create = mutation({
 /**
  * Pause a subscription.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const pause = mutation({
   args: {
     subscriptionId: v.id("commerce_subscriptions"),
@@ -989,6 +992,7 @@ export const pause = mutation({
 /**
  * Resume a paused subscription.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const resume = mutation({
   args: {
     subscriptionId: v.id("commerce_subscriptions"),
@@ -1058,6 +1062,7 @@ export const resume = mutation({
 /**
  * Schedule cancellation at period end.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const scheduleCancel = mutation({
   args: {
     subscriptionId: v.id("commerce_subscriptions"),
@@ -1115,6 +1120,7 @@ export const scheduleCancel = mutation({
 /**
  * Cancel a subscription immediately.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const cancelNow = mutation({
   args: {
     subscriptionId: v.id("commerce_subscriptions"),
@@ -1169,6 +1175,7 @@ export const cancelNow = mutation({
 /**
  * Admin-only subscription field updates (e.g. change recurring amount, billing interval).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const updateSubscription = mutation({
   args: {
     subscriptionId: v.id("commerce_subscriptions"),
@@ -1218,6 +1225,7 @@ export const updateSubscription = mutation({
 /**
  * Manually grant an entitlement to a subscription (admin).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const grantEntitlement = mutation({
   args: {
     subscriptionId: v.id("commerce_subscriptions"),
@@ -1261,6 +1269,7 @@ export const grantEntitlement = mutation({
 /**
  * Revoke an entitlement (admin).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const revokeEntitlement = mutation({
   args: {
     entitlementId: v.id("commerce_subscription_entitlements"),

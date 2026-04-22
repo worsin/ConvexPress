@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Commerce Subscriptions — Templates CRUD (Wave 2).
  *
@@ -48,6 +47,7 @@ import { requireCommerceSubscriptionsEnabled } from "./helpers";
  *     that's enforced at the UI layer in Wave 2 and can be tightened in
  *     Wave 7 if needed).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const archiveTemplate = mutation({
   args: {
     templateId: v.id("commerce_subscription_templates"),

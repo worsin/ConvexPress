@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use node";
 /**
  * Commerce Subscriptions — Actions (Node.js runtime)
@@ -31,11 +30,12 @@ import { requirePluginEnabled } from "../helpers/plugins";
  *
  * This should be scheduled to run periodically (e.g. every hour via cron).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const processRenewals = internalAction({
   args: {
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     return {
       processed: 0,
@@ -62,11 +62,12 @@ export const processRenewals = internalAction({
  *
  * This should be scheduled to run periodically (e.g. every 6 hours via cron).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const processDunningRetries = internalAction({
   args: {
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     return {
       scheduled: 0,
@@ -91,6 +92,7 @@ export const processDunningRetries = internalAction({
  *
  * This should be scheduled to run periodically (e.g. every hour via cron).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const processExpiredSubscriptions = internalAction({
   args: {
     limit: v.optional(v.number()),
@@ -117,6 +119,7 @@ export const processExpiredSubscriptions = internalAction({
  * Disabled-safe until off-session provider charging is implemented.
  * This intentionally does not report payment failure or success.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const chargeSubscriptionInvoice = internalAction({
   args: {
     invoiceId: v.id("commerce_subscription_invoices"),

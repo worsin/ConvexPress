@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Commerce Subscriptions — Checkout (Wave 5 Task 5.2)
  *
@@ -98,6 +97,7 @@ async function writeHistory(ctx: any, args: any) {
  *   - `VALIDATION_ERROR`  — missing customerEmail for anonymous checkout, or
  *                           coupon validation failure
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const createCheckoutIntent = mutation({
   args: {
     offerId: v.id("commerce_subscription_offers"),
@@ -300,6 +300,7 @@ export const createCheckoutIntent = mutation({
  *   - anonymous intent with no matching user → throws USER_NOT_FOUND.
  *     Website must complete signup (Clerk) before calling activate.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const activateFromIntent = mutation({
   args: {
     intentId: v.id("commerce_subscription_checkout_intents"),
@@ -410,7 +411,8 @@ export const activateFromIntent = mutation({
       (template?.billingInterval as BillingInterval) ?? "month";
     const billingIntervalCount = template?.billingIntervalCount ?? 1;
     const trialDays = offer.trialDaysOverride ?? template?.trialDays ?? 0;
-    const gracePeriodDays = template?.gracePeriodDays ?? 3;
+    // gracePeriodDays reserved for dunning config; not used in the activate handler itself.
+    void (template?.gracePeriodDays ?? 3);
 
     const status: "trialing" | "active" =
       trialDays > 0 ? "trialing" : "active";

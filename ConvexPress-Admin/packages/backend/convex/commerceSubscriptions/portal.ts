@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Commerce Subscriptions — Customer Portal (Wave 5 Task 5.2)
  *
@@ -284,6 +283,7 @@ async function requireOwnedContract(
  * Only offer fields safe to expose publicly are returned — no `metadata`,
  * no product cost breakdown, no audit fields beyond the basics.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getPublicOffer = query({
   args: {
     offerId: v.id("commerce_subscription_offers"),
@@ -350,6 +350,7 @@ export const getPublicOffer = query({
  * Returns `[]` for unauthenticated users rather than throwing — the typical
  * caller is an SSR loader that should degrade gracefully.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getMyActiveContracts = query({
   args: {},
   handler: async (ctx) => {
@@ -510,6 +511,7 @@ export const getMyActiveContracts = query({
  * owned, missing offer). The portal UI should treat `null` as "cannot preview"
  * rather than showing an error — the plan-change button is then disabled.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const previewPlanChange = query({
   args: {
     contractId: v.id("commerce_subscriptions"),
@@ -595,6 +597,7 @@ export const previewPlanChange = query({
  *
  * Returns `[]` for unauthenticated users.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const listMyInvoices = query({
   args: {
     limit: v.optional(v.number()),
@@ -668,6 +671,7 @@ export const listMyInvoices = query({
  * before delegating to the admin-side pause logic via the underlying status
  * transition.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const requestPauseContract = mutation({
   args: {
     contractId: v.id("commerce_subscriptions"),
@@ -719,6 +723,7 @@ export const requestPauseContract = mutation({
  * Customer-initiated resume from pause. Recomputes nextBillingAt if the
  * existing cycle end is already in the past.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const requestResumeContract = mutation({
   args: {
     contractId: v.id("commerce_subscriptions"),
@@ -781,6 +786,7 @@ export const requestResumeContract = mutation({
  * end) unless `immediate: true`. Immediate cancel is a deliberate
  * escape-hatch — most UIs should only expose schedule-at-end.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const requestCancelContract = mutation({
   args: {
     contractId: v.id("commerce_subscriptions"),
@@ -858,19 +864,17 @@ export const requestCancelContract = mutation({
 /**
  * Change a contract to a new offer.
  *
- * Two paths based on proration sign:
- *   - Upgrade (netCharge > 0): effective immediately. Creates a new invoice
- *     in `draft` status for the netCharge. Wave 7 will wire real charging.
- *     The subscription item is swapped inline. History records
- *     `subscription.plan_changed`.
- *
- *   - Downgrade (netCharge <= 0): stored as a `scheduledOfferChange` on the
- *     contract. The renewal cron applies it at the next cycle boundary.
- *     History records `subscription.plan_change_scheduled`.
+ * Wave 7 implementation: delegates to real proration internal mutations:
+ *   - Upgrade (netCharge > 0): calls `proration.applyUpgradeProration` —
+ *     creates proration_event + invoice + charges immediately via payment stub.
+ *   - Downgrade (netCharge <= 0): calls `proration.applyDowngradeProration` —
+ *     stores `scheduledOfferChange` on the contract. No immediate charge.
+ *     Renewal cron applies it at next cycle boundary (renewal.ts step 1.e).
  *
  * Ownership enforced. No-op if toOfferId matches the current offer — throws
  * `VALIDATION_ERROR` to make misclicks visible in the UI.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const requestPlanChange = mutation({
   args: {
     contractId: v.id("commerce_subscriptions"),
@@ -959,32 +963,18 @@ export const requestPlanChange = mutation({
     });
 
     const isUpgrade = proration.netCharge > 0;
-    const correlationId = createCorrelationId();
 
     if (!isUpgrade) {
-      // ── Downgrade / neutral: schedule at cycle end ───────────────────────
-      await ctx.db.patch(args.contractId, {
-        scheduledOfferChange: {
+      // ── Downgrade / neutral: delegate to applyDowngradeProration ─────────
+      // That mutation stores `scheduledOfferChange` and writes history.
+      await ctx.runMutation(
+        internal.commerceSubscriptions.proration.applyDowngradeProration,
+        {
+          contractId: args.contractId,
           toOfferId: args.toOfferId,
-          effectiveAt: cycleEnd,
+          triggeredByUserId: user._id,
         },
-        updatedAt: now,
-      });
-
-      await writeHistory(ctx, {
-        subscriptionId: args.contractId,
-        eventType: "subscription.plan_change_scheduled",
-        actorUserId: user._id,
-        reason: "downgrade_or_neutral",
-        data: {
-          fromOfferId: fromOffer._id,
-          toOfferId: toOffer._id,
-          netCharge: proration.netCharge,
-          effectiveAt: cycleEnd,
-          proration,
-        },
-        correlationId,
-      });
+      );
 
       return {
         ok: true,
@@ -995,139 +985,36 @@ export const requestPlanChange = mutation({
       };
     }
 
-    // ── Upgrade: apply now ─────────────────────────────────────────────────
-    // 1. Create a draft invoice for the netCharge. Wave 7 replaces this with
-    //    an immediate capture through the payment processor.
-    const currencyCode =
-      toOffer.currencyCode ?? contract.currencyCode ?? "USD";
-
-    const invoiceId = await ctx.db.insert(
-      "commerce_subscription_invoices",
+    // ── Upgrade: delegate to applyUpgradeProration ─────────────────────────
+    // That mutation handles proration_event creation, invoice, coupon discounts,
+    // payment stub, and item swap.
+    const upgradeResult: {
+      invoiceId: string | null;
+      success: boolean;
+      error?: string;
+    } = await ctx.runMutation(
+      internal.commerceSubscriptions.proration.applyUpgradeProration,
       {
-        subscriptionId: args.contractId,
-        sourceChannel: contract.sourceChannel,
-        status: "draft",
-        currencyCode,
-        subtotalAmount: proration.netCharge,
-        taxAmount: 0,
-        totalAmount: proration.netCharge,
-        paymentProvider: undefined,
-        paymentTransactionId: undefined,
-        savedPaymentMethodId: undefined,
-        manualBilling: false,
-        dueAt: now,
-        paidAt: undefined,
-        prorationEventId: undefined,
-        createdAt: now,
-        updatedAt: now,
+        contractId: args.contractId,
+        toOfferId: args.toOfferId,
+        triggeredByUserId: user._id,
       },
     );
 
-    await ctx.db.insert("commerce_subscription_invoice_items", {
-      invoiceId,
-      subscriptionItemId: activeItem._id,
-      description: `Plan upgrade: ${fromOffer.title} → ${toOffer.title}`,
-      quantity: 1,
-      unitAmount: proration.netCharge,
-      lineType: "proration_charge",
-      currencyCode,
-      lineTotalAmount: proration.netCharge,
-      metadata: {
-        fromOfferId: fromOffer._id,
-        toOfferId: toOffer._id,
-        proration,
-      },
-      createdAt: now,
-    });
+    if (!upgradeResult.success) {
+      throw new ConvexError({
+        code: "PAYMENT_FAILED",
+        message: upgradeResult.error ?? "Upgrade charge failed.",
+      });
+    }
 
-    // 2. Close out the old item — status "cancelled" with end = now. Keep
-    //    the row for audit; the bridge may reference it.
-    await ctx.db.patch(activeItem._id, {
-      status: "cancelled",
-      cancelledAt: now,
-      updatedAt: now,
-    });
-
-    // 3. Open a new item on the new offer.
-    const newItemId = await ctx.db.insert("commerce_subscription_items", {
-      subscriptionId: args.contractId,
-      sourceOfferId: toOffer._id,
-      sourceOfferItemId: undefined,
-      productId: toOffer.productId,
-      variantId: toOffer.variantId,
-      bundleId: toOffer.bundleId,
-      titleSnapshot: toOffer.title,
-      quantity: 1,
-      unitAmount: toOffer.recurringAmount ?? 0,
-      unitRecurringAmount: toOffer.recurringAmount ?? 0,
-      unitSetupFeeAmount: toOffer.setupFeeAmount ?? 0,
-      currencyCode,
-      status: "active",
-      startsAt: now,
-      currentPeriodEndAt: cycleEnd,
-      cancelAtPeriodEnd: false,
-      cancelledAt: undefined,
-      entitlementCodes: toOffer.entitlementCodes,
-      priceSnapshot: {
-        offerId: toOffer._id,
-        offerSlug: toOffer.slug,
-        recurringAmount: toOffer.recurringAmount,
-        setupFeeAmount: toOffer.setupFeeAmount,
-        currencyCode,
-      },
-      metadata: {
-        fromPlanChange: true,
-        fromOfferId: fromOffer._id,
-      },
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // 4. Patch the contract to reflect the new offer + price + history entry.
-    const existingHistory = contract.offerHistory ?? [];
-    await ctx.db.patch(args.contractId, {
-      recurringAmount: toOffer.recurringAmount ?? contract.recurringAmount,
-      currencyCode,
-      lastInvoiceId: invoiceId,
-      offerHistory: [
-        ...existingHistory,
-        {
-          offerId: toOffer._id,
-          effectiveAt: now,
-          reason: "portal_plan_change_upgrade",
-        },
-      ],
-      updatedAt: now,
-    });
-
-    // 5. History row.
-    await writeHistory(ctx, {
-      subscriptionId: args.contractId,
-      eventType: "subscription.plan_changed",
-      actorUserId: user._id,
-      reason: "upgrade",
-      data: {
-        fromOfferId: fromOffer._id,
-        toOfferId: toOffer._id,
-        fromItemId: activeItem._id,
-        toItemId: newItemId,
-        invoiceId,
-        proration,
-      },
-      correlationId,
-    });
-
-    // 6. Bridge sync: the new offer may carry different entitlement codes →
-    //    reconcile entitlements + memberships. Plan changes don't add NEW
-    //    entitlement rows on their own — the existing ones just stay linked
-    //    to the contract — but this propagates any membership-side changes
-    //    that depend on the codes carried by the current item.
+    // Sync entitlements after the upgrade (new offer may have different codes).
     await syncEntitlementsForContract(ctx, args.contractId);
 
     return {
       ok: true,
       mode: "immediate" as const,
-      invoiceId,
+      invoiceId: upgradeResult.invoiceId,
       netCharge: proration.netCharge,
       proration,
     };
@@ -1153,6 +1040,7 @@ export const requestPlanChange = mutation({
  *   - COUPON_INVALID — validation failed; `reason` surfaces from validator
  *   - INVALID_STATE — contract is cancelled/expired (no future invoices)
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const applyCouponToMyContract = mutation({
   args: {
     contractId: v.id("commerce_subscriptions"),
@@ -1267,6 +1155,7 @@ export const applyCouponToMyContract = mutation({
  *
  * Ownership verified via a query call — actions cannot read the DB directly.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getInvoicePdf = action({
   args: {
     invoiceId: v.id("commerce_subscription_invoices"),

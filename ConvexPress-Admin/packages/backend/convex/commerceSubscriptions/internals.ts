@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Commerce Subscriptions — Internal Functions
  *
@@ -297,6 +296,7 @@ async function transitionSubscription(ctx: any, args: any) {
 /**
  * Get subscriptions due for billing (used by renewal action).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getDueSubscriptions = internalQuery({
   args: {
     limit: v.optional(v.number()),
@@ -324,6 +324,7 @@ export const getDueSubscriptions = internalQuery({
 /**
  * Get failed invoices due for retry (used by dunning action).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getRetryableInvoices = internalQuery({
   args: {
     limit: v.optional(v.number()),
@@ -344,6 +345,7 @@ export const getRetryableInvoices = internalQuery({
   },
 });
 
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const checkEntitlementForUser = internalQuery({
   args: {
     userId: v.id("users"),
@@ -399,6 +401,7 @@ export const checkEntitlementForUser = internalQuery({
  * Create invoices for subscriptions that are due for billing.
  * Called by the renewal action on a schedule.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const createDueInvoices = internalMutation({
   args: {
     limit: v.optional(v.number()),
@@ -506,6 +509,7 @@ export const createDueInvoices = internalMutation({
  * Handle the result of a subscription invoice payment attempt.
  * Called by the renewal action after attempting payment.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const handleInvoicePaymentResult = internalMutation({
   args: {
     invoiceId: v.id("commerce_subscription_invoices"),
@@ -530,14 +534,6 @@ export const handleInvoicePaymentResult = internalMutation({
       // === SUCCESS PATH ===
       const currentPeriodEndAt = subscription.currentPeriodEndAt ?? now;
       const nextPeriodStartAt = currentPeriodEndAt;
-
-      // Determine billing interval from subscription items or defaults
-      const items = await ctx.db
-        .query("commerce_subscription_items")
-        .withIndex("by_subscription", (q: any) =>
-          q.eq("subscriptionId", subscription._id),
-        )
-        .first();
 
       // Use a default interval if not stored on subscription
       const billingInterval: BillingInterval = "month";
@@ -695,6 +691,7 @@ export const handleInvoicePaymentResult = internalMutation({
  * Sweep failed invoices and schedule retry dunning attempts.
  * Called on a schedule (e.g. hourly).
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const runDunningSweep = internalMutation({
   args: {
     limit: v.optional(v.number()),
@@ -750,6 +747,7 @@ export const runDunningSweep = internalMutation({
  * Expire subscriptions that have reached their scheduled cancel date.
  * Transitions pending_cancel -> cancelled when currentPeriodEndAt has passed.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const expirePendingCancellations = internalMutation({
   args: {
     limit: v.optional(v.number()),
@@ -792,6 +790,7 @@ export const expirePendingCancellations = internalMutation({
  * Process a single scheduled dunning attempt.
  * Marks the attempt as processing, then schedules the actual payment action.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const processScheduledDunning = internalMutation({
   args: {
     dunningAttemptId: v.id("commerce_subscription_dunning_attempts"),
@@ -821,6 +820,344 @@ export const processScheduledDunning = internalMutation({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// DUNNING SUPPORT — RETRYABLE ATTEMPTS + OUTCOME RECORDING
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Query retryable dunning attempts: `commerce_subscription_dunning_attempts`
+ * rows with `status === "scheduled"` whose associated invoice is still
+ * `failed` and the subscription is `past_due`.
+ *
+ * Called by the dunning action (actions cannot read DB directly).
+ */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const getRetryableDunningAttempts = internalQuery({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
+    const now = Date.now();
+    const limit = args.limit ?? 100;
+
+    const scheduled = await ctx.db
+      .query("commerce_subscription_dunning_attempts")
+      .withIndex("by_status", (q: any) => q.eq("status", "scheduled"))
+      .collect();
+
+    const due = scheduled
+      .filter((a: any) => a.scheduledAt !== undefined && a.scheduledAt <= now)
+      .slice(0, limit);
+
+    return due.map((a: any) => ({
+      attemptId: a._id,
+      subscriptionId: a.subscriptionId,
+      invoiceId: a.invoiceId,
+      attemptNumber: a.attemptNumber,
+    }));
+  },
+});
+
+/**
+ * Mark a dunning attempt as aborted (invoice gone or unrecoverable).
+ */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const abortDunningAttempt = internalMutation({
+  args: {
+    attemptId: v.id("commerce_subscription_dunning_attempts"),
+    reason: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    await ctx.db.patch(args.attemptId, {
+      status: "aborted",
+      processedAt: now,
+      errorMessage: args.reason,
+      updatedAt: now,
+    });
+  },
+});
+
+/**
+ * Mark a dunning attempt as succeeded.
+ */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const completeDunningAttempt = internalMutation({
+  args: {
+    attemptId: v.id("commerce_subscription_dunning_attempts"),
+    outcome: v.literal("success"),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    await ctx.db.patch(args.attemptId, {
+      status: "succeeded",
+      processedAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+/**
+ * Record a dunning charge failure. Updates the attempt row, schedules the
+ * next retry (or cancels the subscription if max attempts is reached).
+ *
+ * Returns `{ cancelled: boolean, nextRetryAt? }`.
+ */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const recordDunningFailure = internalMutation({
+  args: {
+    attemptId: v.id("commerce_subscription_dunning_attempts"),
+    subscriptionId: v.id("commerce_subscriptions"),
+    invoiceId: v.id("commerce_subscription_invoices"),
+    attemptNumber: v.number(),
+    failureReason: v.optional(v.string()),
+    maxAttempts: v.number(),
+    retryDays: v.array(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const correlationId = createCorrelationId();
+
+    // Mark this attempt as failed.
+    await ctx.db.patch(args.attemptId, {
+      status: "failed",
+      processedAt: now,
+      errorMessage: args.failureReason,
+      updatedAt: now,
+    });
+
+    // Mark the invoice as failed too (update dueAt to the next retry time).
+    const nextRetryDays = args.retryDays[args.attemptNumber]; // 0-indexed next attempt
+    const nextRetryAt =
+      nextRetryDays !== undefined ? addDays(now, nextRetryDays) : undefined;
+
+    await ctx.db.patch(args.invoiceId, {
+      status: "failed",
+      dueAt: nextRetryAt,
+      updatedAt: now,
+    });
+
+    const subscription = await ctx.db.get(args.subscriptionId);
+    if (!subscription) return { cancelled: false };
+
+    // Check if dunning is exhausted.
+    if (args.attemptNumber >= args.maxAttempts) {
+      // Cancel the subscription.
+      await transitionSubscription(ctx, {
+        subscription,
+        toStatus: "cancelled",
+        reason: "dunning_exhausted",
+        correlationId,
+        patch: {},
+      });
+
+      await writeHistory(ctx, {
+        subscriptionId: args.subscriptionId,
+        eventType: "subscription.dunning_exhausted",
+        fromStatus: subscription.status,
+        toStatus: "cancelled",
+        reason: "dunning_exhausted",
+        data: {
+          invoiceId: args.invoiceId,
+          attemptNumber: args.attemptNumber,
+          failureReason: args.failureReason,
+        },
+        correlationId,
+      });
+
+      return { cancelled: true };
+    }
+
+    // Schedule the next dunning attempt.
+    if (nextRetryAt !== undefined) {
+      await ctx.db.insert("commerce_subscription_dunning_attempts", {
+        subscriptionId: args.subscriptionId,
+        invoiceId: args.invoiceId,
+        attemptNumber: args.attemptNumber + 1,
+        status: "scheduled",
+        scheduledAt: nextRetryAt,
+        processedAt: undefined,
+        errorMessage: undefined,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    await writeHistory(ctx, {
+      subscriptionId: args.subscriptionId,
+      eventType: "subscription.payment_failed",
+      fromStatus: subscription.status,
+      toStatus: subscription.status,
+      reason: args.failureReason,
+      data: {
+        invoiceId: args.invoiceId,
+        attemptNumber: args.attemptNumber,
+        nextRetryAt,
+      },
+      correlationId,
+    });
+
+    return { cancelled: false, nextRetryAt };
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENEWAL SUPPORT — INVOICE FETCH FOR ACTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fetch a single invoice for the renewal action (actions cannot read DB
+ * directly). Returns only the fields the action needs to decide how to
+ * charge.
+ */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const getInvoiceForRenewal = internalQuery({
+  args: {
+    invoiceId: v.id("commerce_subscription_invoices"),
+  },
+  handler: async (ctx, args) => {
+    const invoice = await ctx.db.get(args.invoiceId);
+    if (!invoice) return null;
+    return {
+      _id: invoice._id,
+      totalAmount: invoice.totalAmount,
+      savedPaymentMethodId: invoice.savedPaymentMethodId,
+      subscriptionId: invoice.subscriptionId,
+      manualBilling: invoice.manualBilling,
+    };
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCHEDULED OFFER CHANGE APPLICATION (Step 1.e)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Apply any scheduled offer changes whose `effectiveAt` has passed.
+ * Called by the renewal action after billing completes so the new price
+ * takes effect on the next cycle.
+ *
+ * Per contract: updates the active subscription_item to point to the new
+ * offer, clears `scheduledOfferChange`, and appends to `offerHistory`.
+ */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const applyDueScheduledOfferChanges = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+
+    // Collect contracts that have a scheduled offer change due.
+    const active = await ctx.db
+      .query("commerce_subscriptions")
+      .withIndex("by_status", (q: any) => q.eq("status", "active"))
+      .collect();
+
+    let applied = 0;
+
+    for (const subscription of active) {
+      const change = subscription.scheduledOfferChange;
+      if (!change) continue;
+      if (change.effectiveAt > now) continue;
+
+      const toOffer = await ctx.db.get(change.toOfferId);
+      if (!toOffer) {
+        // Offer was deleted — clear the stale scheduled change.
+        await ctx.db.patch(subscription._id, {
+          scheduledOfferChange: undefined,
+          updatedAt: now,
+        });
+        continue;
+      }
+
+      // Update the active subscription item to the new offer.
+      const items = await ctx.db
+        .query("commerce_subscription_items")
+        .withIndex("by_subscription", (q: any) =>
+          q.eq("subscriptionId", subscription._id),
+        )
+        .collect();
+      const activeItem =
+        items.find((it: any) => it.status === "active") ??
+        items.find((it: any) => it.status === "pending_cancel") ??
+        items[0];
+
+      if (activeItem) {
+        // Cancel the old item.
+        await ctx.db.patch(activeItem._id, {
+          status: "cancelled",
+          cancelledAt: now,
+          updatedAt: now,
+        });
+
+        // Insert a new item for the new offer.
+        await ctx.db.insert("commerce_subscription_items", {
+          subscriptionId: subscription._id,
+          sourceOfferId: toOffer._id,
+          sourceOfferItemId: undefined,
+          productId: toOffer.productId,
+          variantId: toOffer.variantId,
+          bundleId: toOffer.bundleId,
+          titleSnapshot: toOffer.title,
+          quantity: 1,
+          unitAmount: toOffer.recurringAmount ?? 0,
+          unitRecurringAmount: toOffer.recurringAmount ?? 0,
+          unitSetupFeeAmount: toOffer.setupFeeAmount ?? 0,
+          currencyCode: toOffer.currencyCode ?? subscription.currencyCode,
+          status: "active",
+          startsAt: now,
+          currentPeriodEndAt: subscription.currentPeriodEndAt,
+          cancelAtPeriodEnd: false,
+          cancelledAt: undefined,
+          entitlementCodes: toOffer.entitlementCodes,
+          priceSnapshot: {
+            offerId: toOffer._id,
+            offerSlug: toOffer.slug,
+            recurringAmount: toOffer.recurringAmount,
+            currencyCode: toOffer.currencyCode ?? subscription.currencyCode,
+          },
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      // Patch contract: apply the new recurring amount, clear scheduled change,
+      // append to offerHistory.
+      const existingHistory = subscription.offerHistory ?? [];
+      await ctx.db.patch(subscription._id, {
+        recurringAmount: toOffer.recurringAmount ?? subscription.recurringAmount,
+        scheduledOfferChange: undefined,
+        offerHistory: [
+          ...existingHistory,
+          {
+            offerId: toOffer._id,
+            effectiveAt: now,
+            reason: "scheduled_downgrade_applied",
+          },
+        ],
+        updatedAt: now,
+      });
+
+      await writeHistory(ctx, {
+        subscriptionId: subscription._id,
+        eventType: "subscription.scheduled_offer_change_applied",
+        fromStatus: subscription.status,
+        toStatus: subscription.status,
+        data: {
+          fromItemId: activeItem?._id,
+          toOfferId: toOffer._id,
+          scheduledEffectiveAt: change.effectiveAt,
+          appliedAt: now,
+        },
+      });
+
+      applied++;
+    }
+
+    return { applied };
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // PORTAL SUPPORT — INVOICE PDF DATA
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -839,6 +1176,7 @@ export const processScheduledDunning = internalMutation({
  * Admin fetches should use the admin `queries.getInvoice` path instead — this
  * is strictly for customer self-serve downloads.
  */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getMyInvoiceForPdf = internalQuery({
   args: {
     invoiceId: v.id("commerce_subscription_invoices"),
@@ -858,10 +1196,11 @@ export const getMyInvoiceForPdf = internalQuery({
       )
       .unique();
     if (!user && typeof identity.email === "string") {
+      const email = identity.email; // narrowed to string
       user = await ctx.db
         .query("users")
         .withIndex("by_email", (q: any) =>
-          q.eq("email", identity.email.toLowerCase()),
+          q.eq("email", email.toLowerCase()),
         )
         .first();
     }

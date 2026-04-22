@@ -401,4 +401,31 @@ crons.weekly(
   {},
 );
 
+// ─── Commerce Subscriptions System ────────────────────────────────────────
+// Hourly renewal charging sweep — charges due invoices for contracts
+// whose currentPeriodEndAt has passed.
+// Added by: Commerce Subscriptions System Expert (Wave 7)
+crons.hourly(
+  "subscription-renewals",
+  {},
+  internal.commerceSubscriptions.renewal.runRenewalSweep,
+);
+
+// Hourly dunning retry sweep (offset 15 min so renewals run first).
+// Added by: Commerce Subscriptions System Expert (Wave 7)
+crons.hourly(
+  "subscription-dunning",
+  { minuteUTC: 15 },
+  internal.commerceSubscriptions.dunning.runDunningSweep,
+);
+
+// Daily sweep of contracts past their cancelAt timestamp (scheduled
+// cancellations at end of period).
+// Added by: Commerce Subscriptions System Expert (Wave 7)
+crons.daily(
+  "subscription-expire-pending-cancel",
+  { hourUTC: 3, minuteUTC: 45 },
+  internal.commerceSubscriptions.internals.expirePendingCancellations,
+);
+
 export default crons;
