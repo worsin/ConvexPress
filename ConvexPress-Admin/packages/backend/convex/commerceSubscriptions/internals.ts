@@ -819,3 +819,96 @@ export const processScheduledDunning = internalMutation({
     };
   },
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PORTAL SUPPORT — INVOICE PDF DATA
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fetch the data needed to render a customer-facing invoice document.
+ *
+ * Used by `portal.getInvoicePdf` (an action — actions can't read the DB
+ * directly, so this internal query gathers every row the renderer needs and
+ * returns them in a single payload).
+ *
+ * Enforces the SAME ownership check as the public portal surface: the
+ * caller's Convex auth identity is resolved to a users row, and that user
+ * must own the invoice's subscription. Returns `null` for any failure — the
+ * action surfaces a NOT_FOUND to the customer.
+ *
+ * Admin fetches should use the admin `queries.getInvoice` path instead — this
+ * is strictly for customer self-serve downloads.
+ */
+export const getMyInvoiceForPdf = internalQuery({
+  args: {
+    invoiceId: v.id("commerce_subscription_invoices"),
+  },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    // Admin-side Convex Auth uses `identity.subject` as the user id ref;
+    // website-side Clerk auth produces a subject == clerkUserId. We try
+    // clerkUserId first (the website path) then fall back to email.
+    let user: any = await ctx.db
+      .query("users")
+      .withIndex("by_clerkUserId", (q: any) =>
+        q.eq("clerkUserId", identity.subject),
+      )
+      .unique();
+    if (!user && typeof identity.email === "string") {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q: any) =>
+          q.eq("email", identity.email.toLowerCase()),
+        )
+        .first();
+    }
+    if (!user) return null;
+
+    const invoice = await ctx.db.get(args.invoiceId);
+    if (!invoice) return null;
+
+    const subscription = await ctx.db.get(invoice.subscriptionId);
+    if (!subscription) return null;
+    if (subscription.userId !== user._id) return null;
+
+    const items = await ctx.db
+      .query("commerce_subscription_invoice_items")
+      .withIndex("by_invoice", (q: any) =>
+        q.eq("invoiceId", args.invoiceId),
+      )
+      .collect();
+
+    // Resolve the current offer title (via the active subscription_item) so
+    // the "Plan: …" line shows something human-readable.
+    let offerTitle: string | undefined = undefined;
+    const subItems = await ctx.db
+      .query("commerce_subscription_items")
+      .withIndex("by_subscription", (q: any) =>
+        q.eq("subscriptionId", subscription._id),
+      )
+      .collect();
+    const activeItem =
+      subItems.find((it: any) => it.status === "active") ??
+      subItems.find((it: any) => it.status === "pending_cancel") ??
+      subItems[0];
+    if (activeItem?.sourceOfferId) {
+      const offer = await ctx.db.get(activeItem.sourceOfferId);
+      if (offer) {
+        offerTitle = offer.title;
+      }
+    }
+
+    return {
+      invoice,
+      items,
+      subscription: {
+        _id: subscription._id,
+        status: subscription.status,
+      },
+      offerTitle,
+    };
+  },
+});
