@@ -26,6 +26,7 @@ type Invoice = {
   _id: Id<"commerce_subscription_invoices">;
   subscriptionId: Id<"commerce_subscriptions">;
   status: InvoiceStatus;
+  invoiceNumber?: string;
   currencyCode: string;
   subtotalAmount: number;
   taxAmount: number;
@@ -164,7 +165,7 @@ function InvoicesIndex() {
 
           <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
             <div className="grid grid-cols-[1fr_100px_130px_130px_130px_32px] gap-4 border-b border-border px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              <div>Invoice id</div>
+              <div>Invoice #</div>
               <div>Status</div>
               <div>Total</div>
               <div>Due</div>
@@ -200,8 +201,8 @@ function InvoicesIndex() {
                       className="grid grid-cols-[1fr_100px_130px_130px_130px_32px] items-center gap-4 px-5 py-4 text-sm transition-colors hover:bg-muted/30"
                     >
                       <div className="min-w-0">
-                        <p className="truncate font-mono text-xs text-foreground">
-                          {String(inv._id)}
+                        <p className="truncate font-medium text-sm text-foreground">
+                          {inv.invoiceNumber ?? String(inv._id).slice(-8)}
                         </p>
                         <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
                           contract: {String(inv.subscriptionId)}
