@@ -273,6 +273,65 @@ async function requireOwnedContract(
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
+ * Public, unauthenticated read of a single offer by id.
+ *
+ * The admin-side `offers.getOffer` requires the `manage_options` capability,
+ * which is correct for back-office staff but too strict for direct signup —
+ * the `/signup/$offerId` landing page must load before the user has
+ * authenticated. This wrapper performs the same read with NO capability
+ * check and filters out archived offers (returns null).
+ *
+ * Only offer fields safe to expose publicly are returned — no `metadata`,
+ * no product cost breakdown, no audit fields beyond the basics.
+ */
+export const getPublicOffer = query({
+  args: {
+    offerId: v.id("commerce_subscription_offers"),
+  },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
+    // Do NOT call requireCommerceSubscriptionsEnabled — that throws ConvexError.
+    // Instead just gate via plugin flag and return null on disable.
+
+    const offer = await ctx.db.get(args.offerId);
+    if (!offer) return null;
+    if (offer.status === "archived") return null;
+
+    // Resolve the template to surface billing interval/count/trial — callers
+    // need this to render "$49/mo" on the landing page without a second
+    // query. Template data is safe to expose (it's the same data the
+    // admin-side pricing card publishes).
+    const template = offer.templateId
+      ? await ctx.db.get(offer.templateId)
+      : null;
+
+    return {
+      _id: offer._id,
+      title: offer.title,
+      slug: offer.slug,
+      description: offer.description,
+      publicSummary: offer.publicSummary,
+      status: offer.status,
+      currencyCode: offer.currencyCode,
+      recurringAmount: offer.recurringAmount,
+      setupFeeAmount: offer.setupFeeAmount,
+      trialDaysOverride: offer.trialDaysOverride,
+      entitlementCodes: offer.entitlementCodes,
+      features: offer.features,
+      template: template
+        ? {
+            _id: template._id,
+            billingInterval: template.billingInterval,
+            billingIntervalCount: template.billingIntervalCount,
+            trialDays: template.trialDays,
+            gracePeriodDays: template.gracePeriodDays,
+          }
+        : null,
+    };
+  },
+});
+
+/**
  * Rich list of the current user's active-ish contracts, with every piece of
  * data the portal UI needs to render without fan-out queries:
  *
