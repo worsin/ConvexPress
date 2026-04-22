@@ -19,6 +19,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as MarketingRouteImport } from './routes/_marketing'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
+import { Route as SignupOfferIdRouteImport } from './routes/signup.$offerId'
 import { Route as DashboardWishlistRouteImport } from './routes/dashboard/wishlist'
 import { Route as DashboardSubscriptionsRouteImport } from './routes/dashboard/subscriptions'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
@@ -39,9 +40,11 @@ import { Route as MarketingShopRouteImport } from './routes/_marketing/shop'
 import { Route as MarketingSearchRouteImport } from './routes/_marketing/search'
 import { Route as MarketingRecipesRouteImport } from './routes/_marketing/recipes'
 import { Route as MarketingProductsRouteImport } from './routes/_marketing/products'
+import { Route as MarketingPricingRouteImport } from './routes/_marketing/pricing'
 import { Route as MarketingHelpRouteImport } from './routes/_marketing/help'
 import { Route as MarketingGalleryRouteImport } from './routes/_marketing/gallery'
 import { Route as MarketingCheckoutRouteImport } from './routes/_marketing/checkout'
+import { Route as MarketingCategoriesRouteImport } from './routes/_marketing/categories'
 import { Route as MarketingCartRouteImport } from './routes/_marketing/cart'
 import { Route as MarketingBundlesRouteImport } from './routes/_marketing/bundles'
 import { Route as MarketingArchiveRouteImport } from './routes/_marketing/archive'
@@ -52,6 +55,7 @@ import { Route as MarketingProductsIndexRouteImport } from './routes/_marketing/
 import { Route as MarketingHelpIndexRouteImport } from './routes/_marketing/help/index'
 import { Route as MarketingGalleryIndexRouteImport } from './routes/_marketing/gallery/index'
 import { Route as MarketingCheckoutIndexRouteImport } from './routes/_marketing/checkout/index'
+import { Route as MarketingCategoriesIndexRouteImport } from './routes/_marketing/categories/index'
 import { Route as MarketingBundlesIndexRouteImport } from './routes/_marketing/bundles/index'
 import { Route as MarketingBlogIndexRouteImport } from './routes/_marketing/blog/index'
 import { Route as DashboardSubscriptionsSubscriptionIdRouteImport } from './routes/dashboard/subscriptions.$subscriptionId'
@@ -77,6 +81,7 @@ import { Route as MarketingCheckoutShippingRouteImport } from './routes/_marketi
 import { Route as MarketingCheckoutReviewRouteImport } from './routes/_marketing/checkout/review'
 import { Route as MarketingCheckoutPaymentRouteImport } from './routes/_marketing/checkout/payment'
 import { Route as MarketingCategorySlugRouteImport } from './routes/_marketing/category/$slug'
+import { Route as MarketingCategoriesSlugRouteImport } from './routes/_marketing/categories/$slug'
 import { Route as MarketingBundlesSlugRouteImport } from './routes/_marketing/bundles/$slug'
 import { Route as MarketingBlogSlugRouteImport } from './routes/_marketing/blog/$slug'
 import { Route as MarketingAuthorSlugRouteImport } from './routes/_marketing/author/$slug'
@@ -151,6 +156,11 @@ const MarketingIndexRoute = MarketingIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => MarketingRoute,
+} as any)
+const SignupOfferIdRoute = SignupOfferIdRouteImport.update({
+  id: '/signup/$offerId',
+  path: '/signup/$offerId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardWishlistRoute = DashboardWishlistRouteImport.update({
   id: '/wishlist',
@@ -252,6 +262,11 @@ const MarketingProductsRoute = MarketingProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => MarketingRoute,
 } as any)
+const MarketingPricingRoute = MarketingPricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => MarketingRoute,
+} as any)
 const MarketingHelpRoute = MarketingHelpRouteImport.update({
   id: '/help',
   path: '/help',
@@ -265,6 +280,11 @@ const MarketingGalleryRoute = MarketingGalleryRouteImport.update({
 const MarketingCheckoutRoute = MarketingCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingCategoriesRoute = MarketingCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
   getParentRoute: () => MarketingRoute,
 } as any)
 const MarketingCartRoute = MarketingCartRouteImport.update({
@@ -317,6 +337,12 @@ const MarketingCheckoutIndexRoute = MarketingCheckoutIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MarketingCheckoutRoute,
 } as any)
+const MarketingCategoriesIndexRoute =
+  MarketingCategoriesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => MarketingCategoriesRoute,
+  } as any)
 const MarketingBundlesIndexRoute = MarketingBundlesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -446,6 +472,11 @@ const MarketingCategorySlugRoute = MarketingCategorySlugRouteImport.update({
   id: '/category/$slug',
   path: '/category/$slug',
   getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingCategoriesSlugRoute = MarketingCategoriesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => MarketingCategoriesRoute,
 } as any)
 const MarketingBundlesSlugRoute = MarketingBundlesSlugRouteImport.update({
   id: '/$slug',
@@ -597,9 +628,11 @@ export interface FileRoutesByFullPath {
   '/archive': typeof MarketingArchiveRoute
   '/bundles': typeof MarketingBundlesRouteWithChildren
   '/cart': typeof MarketingCartRoute
+  '/categories': typeof MarketingCategoriesRouteWithChildren
   '/checkout': typeof MarketingCheckoutRouteWithChildren
   '/gallery': typeof MarketingGalleryRouteWithChildren
   '/help': typeof MarketingHelpRouteWithChildren
+  '/pricing': typeof MarketingPricingRoute
   '/products': typeof MarketingProductsRouteWithChildren
   '/recipes': typeof MarketingRecipesRouteWithChildren
   '/search': typeof MarketingSearchRoute
@@ -620,11 +653,13 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/subscriptions': typeof DashboardSubscriptionsRouteWithChildren
   '/dashboard/wishlist': typeof DashboardWishlistRoute
+  '/signup/$offerId': typeof SignupOfferIdRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/archives/$id': typeof MarketingArchivesIdRoute
   '/author/$slug': typeof MarketingAuthorSlugRoute
   '/blog/$slug': typeof MarketingBlogSlugRoute
   '/bundles/$slug': typeof MarketingBundlesSlugRoute
+  '/categories/$slug': typeof MarketingCategoriesSlugRoute
   '/category/$slug': typeof MarketingCategorySlugRoute
   '/checkout/payment': typeof MarketingCheckoutPaymentRoute
   '/checkout/review': typeof MarketingCheckoutReviewRoute
@@ -650,6 +685,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/subscriptions/$subscriptionId': typeof DashboardSubscriptionsSubscriptionIdRoute
   '/blog/': typeof MarketingBlogIndexRoute
   '/bundles/': typeof MarketingBundlesIndexRoute
+  '/categories/': typeof MarketingCategoriesIndexRoute
   '/checkout/': typeof MarketingCheckoutIndexRoute
   '/gallery/': typeof MarketingGalleryIndexRoute
   '/help/': typeof MarketingHelpIndexRoute
@@ -688,6 +724,7 @@ export interface FileRoutesByTo {
   '/verify-email': typeof VerifyEmailRoute
   '/archive': typeof MarketingArchiveRoute
   '/cart': typeof MarketingCartRoute
+  '/pricing': typeof MarketingPricingRoute
   '/search': typeof MarketingSearchRoute
   '/shop': typeof MarketingShopRoute
   '/api/robots': typeof ApiRobotsRoute
@@ -705,12 +742,14 @@ export interface FileRoutesByTo {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/subscriptions': typeof DashboardSubscriptionsRouteWithChildren
   '/dashboard/wishlist': typeof DashboardWishlistRoute
+  '/signup/$offerId': typeof SignupOfferIdRoute
   '/': typeof MarketingIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/archives/$id': typeof MarketingArchivesIdRoute
   '/author/$slug': typeof MarketingAuthorSlugRoute
   '/blog/$slug': typeof MarketingBlogSlugRoute
   '/bundles/$slug': typeof MarketingBundlesSlugRoute
+  '/categories/$slug': typeof MarketingCategoriesSlugRoute
   '/category/$slug': typeof MarketingCategorySlugRoute
   '/checkout/payment': typeof MarketingCheckoutPaymentRoute
   '/checkout/review': typeof MarketingCheckoutReviewRoute
@@ -735,6 +774,7 @@ export interface FileRoutesByTo {
   '/dashboard/subscriptions/$subscriptionId': typeof DashboardSubscriptionsSubscriptionIdRoute
   '/blog': typeof MarketingBlogIndexRoute
   '/bundles': typeof MarketingBundlesIndexRoute
+  '/categories': typeof MarketingCategoriesIndexRoute
   '/checkout': typeof MarketingCheckoutIndexRoute
   '/gallery': typeof MarketingGalleryIndexRoute
   '/help': typeof MarketingHelpIndexRoute
@@ -777,9 +817,11 @@ export interface FileRoutesById {
   '/_marketing/archive': typeof MarketingArchiveRoute
   '/_marketing/bundles': typeof MarketingBundlesRouteWithChildren
   '/_marketing/cart': typeof MarketingCartRoute
+  '/_marketing/categories': typeof MarketingCategoriesRouteWithChildren
   '/_marketing/checkout': typeof MarketingCheckoutRouteWithChildren
   '/_marketing/gallery': typeof MarketingGalleryRouteWithChildren
   '/_marketing/help': typeof MarketingHelpRouteWithChildren
+  '/_marketing/pricing': typeof MarketingPricingRoute
   '/_marketing/products': typeof MarketingProductsRouteWithChildren
   '/_marketing/recipes': typeof MarketingRecipesRouteWithChildren
   '/_marketing/search': typeof MarketingSearchRoute
@@ -800,12 +842,14 @@ export interface FileRoutesById {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/subscriptions': typeof DashboardSubscriptionsRouteWithChildren
   '/dashboard/wishlist': typeof DashboardWishlistRoute
+  '/signup/$offerId': typeof SignupOfferIdRoute
   '/_marketing/': typeof MarketingIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/_marketing/archives/$id': typeof MarketingArchivesIdRoute
   '/_marketing/author/$slug': typeof MarketingAuthorSlugRoute
   '/_marketing/blog/$slug': typeof MarketingBlogSlugRoute
   '/_marketing/bundles/$slug': typeof MarketingBundlesSlugRoute
+  '/_marketing/categories/$slug': typeof MarketingCategoriesSlugRoute
   '/_marketing/category/$slug': typeof MarketingCategorySlugRoute
   '/_marketing/checkout/payment': typeof MarketingCheckoutPaymentRoute
   '/_marketing/checkout/review': typeof MarketingCheckoutReviewRoute
@@ -831,6 +875,7 @@ export interface FileRoutesById {
   '/dashboard/subscriptions/$subscriptionId': typeof DashboardSubscriptionsSubscriptionIdRoute
   '/_marketing/blog/': typeof MarketingBlogIndexRoute
   '/_marketing/bundles/': typeof MarketingBundlesIndexRoute
+  '/_marketing/categories/': typeof MarketingCategoriesIndexRoute
   '/_marketing/checkout/': typeof MarketingCheckoutIndexRoute
   '/_marketing/gallery/': typeof MarketingGalleryIndexRoute
   '/_marketing/help/': typeof MarketingHelpIndexRoute
@@ -874,9 +919,11 @@ export interface FileRouteTypes {
     | '/archive'
     | '/bundles'
     | '/cart'
+    | '/categories'
     | '/checkout'
     | '/gallery'
     | '/help'
+    | '/pricing'
     | '/products'
     | '/recipes'
     | '/search'
@@ -897,11 +944,13 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/subscriptions'
     | '/dashboard/wishlist'
+    | '/signup/$offerId'
     | '/dashboard/'
     | '/archives/$id'
     | '/author/$slug'
     | '/blog/$slug'
     | '/bundles/$slug'
+    | '/categories/$slug'
     | '/category/$slug'
     | '/checkout/payment'
     | '/checkout/review'
@@ -927,6 +976,7 @@ export interface FileRouteTypes {
     | '/dashboard/subscriptions/$subscriptionId'
     | '/blog/'
     | '/bundles/'
+    | '/categories/'
     | '/checkout/'
     | '/gallery/'
     | '/help/'
@@ -965,6 +1015,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/archive'
     | '/cart'
+    | '/pricing'
     | '/search'
     | '/shop'
     | '/api/robots'
@@ -982,12 +1033,14 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/subscriptions'
     | '/dashboard/wishlist'
+    | '/signup/$offerId'
     | '/'
     | '/dashboard'
     | '/archives/$id'
     | '/author/$slug'
     | '/blog/$slug'
     | '/bundles/$slug'
+    | '/categories/$slug'
     | '/category/$slug'
     | '/checkout/payment'
     | '/checkout/review'
@@ -1012,6 +1065,7 @@ export interface FileRouteTypes {
     | '/dashboard/subscriptions/$subscriptionId'
     | '/blog'
     | '/bundles'
+    | '/categories'
     | '/checkout'
     | '/gallery'
     | '/help'
@@ -1053,9 +1107,11 @@ export interface FileRouteTypes {
     | '/_marketing/archive'
     | '/_marketing/bundles'
     | '/_marketing/cart'
+    | '/_marketing/categories'
     | '/_marketing/checkout'
     | '/_marketing/gallery'
     | '/_marketing/help'
+    | '/_marketing/pricing'
     | '/_marketing/products'
     | '/_marketing/recipes'
     | '/_marketing/search'
@@ -1076,12 +1132,14 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/subscriptions'
     | '/dashboard/wishlist'
+    | '/signup/$offerId'
     | '/_marketing/'
     | '/dashboard/'
     | '/_marketing/archives/$id'
     | '/_marketing/author/$slug'
     | '/_marketing/blog/$slug'
     | '/_marketing/bundles/$slug'
+    | '/_marketing/categories/$slug'
     | '/_marketing/category/$slug'
     | '/_marketing/checkout/payment'
     | '/_marketing/checkout/review'
@@ -1107,6 +1165,7 @@ export interface FileRouteTypes {
     | '/dashboard/subscriptions/$subscriptionId'
     | '/_marketing/blog/'
     | '/_marketing/bundles/'
+    | '/_marketing/categories/'
     | '/_marketing/checkout/'
     | '/_marketing/gallery/'
     | '/_marketing/help/'
@@ -1147,6 +1206,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   ApiRobotsRoute: typeof ApiRobotsRoute
+  SignupOfferIdRoute: typeof SignupOfferIdRoute
   ApiAuthCallbackRoute: typeof ApiAuthCallbackRoute
   ApiFeedAtomRoute: typeof ApiFeedAtomRoute
   ApiFeedRss2Route: typeof ApiFeedRss2Route
@@ -1237,6 +1297,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof MarketingIndexRouteImport
       parentRoute: typeof MarketingRoute
+    }
+    '/signup/$offerId': {
+      id: '/signup/$offerId'
+      path: '/signup/$offerId'
+      fullPath: '/signup/$offerId'
+      preLoaderRoute: typeof SignupOfferIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/dashboard/wishlist': {
       id: '/dashboard/wishlist'
@@ -1378,6 +1445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingProductsRouteImport
       parentRoute: typeof MarketingRoute
     }
+    '/_marketing/pricing': {
+      id: '/_marketing/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof MarketingPricingRouteImport
+      parentRoute: typeof MarketingRoute
+    }
     '/_marketing/help': {
       id: '/_marketing/help'
       path: '/help'
@@ -1397,6 +1471,13 @@ declare module '@tanstack/react-router' {
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof MarketingCheckoutRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/categories': {
+      id: '/_marketing/categories'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof MarketingCategoriesRouteImport
       parentRoute: typeof MarketingRoute
     }
     '/_marketing/cart': {
@@ -1468,6 +1549,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/checkout/'
       preLoaderRoute: typeof MarketingCheckoutIndexRouteImport
       parentRoute: typeof MarketingCheckoutRoute
+    }
+    '/_marketing/categories/': {
+      id: '/_marketing/categories/'
+      path: '/'
+      fullPath: '/categories/'
+      preLoaderRoute: typeof MarketingCategoriesIndexRouteImport
+      parentRoute: typeof MarketingCategoriesRoute
     }
     '/_marketing/bundles/': {
       id: '/_marketing/bundles/'
@@ -1643,6 +1731,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/category/$slug'
       preLoaderRoute: typeof MarketingCategorySlugRouteImport
       parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/categories/$slug': {
+      id: '/_marketing/categories/$slug'
+      path: '/$slug'
+      fullPath: '/categories/$slug'
+      preLoaderRoute: typeof MarketingCategoriesSlugRouteImport
+      parentRoute: typeof MarketingCategoriesRoute
     }
     '/_marketing/bundles/$slug': {
       id: '/_marketing/bundles/$slug'
@@ -1835,6 +1930,19 @@ const MarketingBundlesRouteChildren: MarketingBundlesRouteChildren = {
 const MarketingBundlesRouteWithChildren =
   MarketingBundlesRoute._addFileChildren(MarketingBundlesRouteChildren)
 
+interface MarketingCategoriesRouteChildren {
+  MarketingCategoriesSlugRoute: typeof MarketingCategoriesSlugRoute
+  MarketingCategoriesIndexRoute: typeof MarketingCategoriesIndexRoute
+}
+
+const MarketingCategoriesRouteChildren: MarketingCategoriesRouteChildren = {
+  MarketingCategoriesSlugRoute: MarketingCategoriesSlugRoute,
+  MarketingCategoriesIndexRoute: MarketingCategoriesIndexRoute,
+}
+
+const MarketingCategoriesRouteWithChildren =
+  MarketingCategoriesRoute._addFileChildren(MarketingCategoriesRouteChildren)
+
 interface MarketingCheckoutRouteChildren {
   MarketingCheckoutPaymentRoute: typeof MarketingCheckoutPaymentRoute
   MarketingCheckoutReviewRoute: typeof MarketingCheckoutReviewRoute
@@ -1954,9 +2062,11 @@ interface MarketingRouteChildren {
   MarketingArchiveRoute: typeof MarketingArchiveRoute
   MarketingBundlesRoute: typeof MarketingBundlesRouteWithChildren
   MarketingCartRoute: typeof MarketingCartRoute
+  MarketingCategoriesRoute: typeof MarketingCategoriesRouteWithChildren
   MarketingCheckoutRoute: typeof MarketingCheckoutRouteWithChildren
   MarketingGalleryRoute: typeof MarketingGalleryRouteWithChildren
   MarketingHelpRoute: typeof MarketingHelpRouteWithChildren
+  MarketingPricingRoute: typeof MarketingPricingRoute
   MarketingProductsRoute: typeof MarketingProductsRouteWithChildren
   MarketingRecipesRoute: typeof MarketingRecipesRouteWithChildren
   MarketingSearchRoute: typeof MarketingSearchRoute
@@ -1980,9 +2090,11 @@ const MarketingRouteChildren: MarketingRouteChildren = {
   MarketingArchiveRoute: MarketingArchiveRoute,
   MarketingBundlesRoute: MarketingBundlesRouteWithChildren,
   MarketingCartRoute: MarketingCartRoute,
+  MarketingCategoriesRoute: MarketingCategoriesRouteWithChildren,
   MarketingCheckoutRoute: MarketingCheckoutRouteWithChildren,
   MarketingGalleryRoute: MarketingGalleryRouteWithChildren,
   MarketingHelpRoute: MarketingHelpRouteWithChildren,
+  MarketingPricingRoute: MarketingPricingRoute,
   MarketingProductsRoute: MarketingProductsRouteWithChildren,
   MarketingRecipesRoute: MarketingRecipesRouteWithChildren,
   MarketingSearchRoute: MarketingSearchRoute,
@@ -2108,6 +2220,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   ApiRobotsRoute: ApiRobotsRoute,
+  SignupOfferIdRoute: SignupOfferIdRoute,
   ApiAuthCallbackRoute: ApiAuthCallbackRoute,
   ApiFeedAtomRoute: ApiFeedAtomRoute,
   ApiFeedRss2Route: ApiFeedRss2Route,
@@ -2129,3 +2242,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
