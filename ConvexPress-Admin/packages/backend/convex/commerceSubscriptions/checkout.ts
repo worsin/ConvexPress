@@ -35,7 +35,7 @@ import { requireCommerceSubscriptionsEnabled } from "./helpers";
 
 // ─── Helpers (duplicated with intentional care; see mutations.ts) ───────────
 
-type BillingInterval = "week" | "month" | "year";
+type BillingInterval = "day" | "week" | "month" | "year";
 
 function addDays(timestamp: number, days: number): number {
   return timestamp + days * 24 * 60 * 60 * 1000;
@@ -47,6 +47,10 @@ function addBillingPeriod(
   intervalCount: number,
 ): number {
   const date = new Date(timestamp);
+  if (interval === "day") {
+    date.setDate(date.getDate() + intervalCount);
+    return date.getTime();
+  }
   if (interval === "week") {
     date.setDate(date.getDate() + 7 * intervalCount);
     return date.getTime();

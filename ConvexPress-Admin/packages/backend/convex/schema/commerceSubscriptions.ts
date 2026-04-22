@@ -113,6 +113,7 @@ export const commerceSubscriptionTables = {
     slug: v.string(),
     status: v.union(v.literal("draft"), v.literal("active"), v.literal("archived")),
     billingInterval: v.union(
+      v.literal("day"),
       v.literal("week"),
       v.literal("month"),
       v.literal("year"),
@@ -298,7 +299,7 @@ export const commerceSubscriptionTables = {
     overridePriceAmount: v.optional(v.number()),
     overrideCurrencyCode: v.optional(v.string()),
     overrideBillingInterval: v.optional(
-      v.union(v.literal("week"), v.literal("month"), v.literal("year")),
+      v.union(v.literal("day"), v.literal("week"), v.literal("month"), v.literal("year")),
     ),
     overrideBillingIntervalCount: v.optional(v.number()),
     overrideTrialDays: v.optional(v.number()),
@@ -332,7 +333,7 @@ export const commerceSubscriptionTables = {
     recurringAmount: v.number(),
     setupFeeAmount: v.optional(v.number()),
     billingInterval: v.optional(
-      v.union(v.literal("week"), v.literal("month"), v.literal("year")),
+      v.union(v.literal("day"), v.literal("week"), v.literal("month"), v.literal("year")),
     ),
     billingIntervalCount: v.optional(v.number()),
     nextBillingAt: v.optional(v.number()),

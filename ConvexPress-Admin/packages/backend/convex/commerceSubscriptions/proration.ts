@@ -31,7 +31,7 @@ import type { MutationCtx } from "../_generated/server";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-type BillingInterval = "week" | "month" | "year";
+type BillingInterval = "day" | "week" | "month" | "year";
 
 function addBillingPeriod(
   timestamp: number,
@@ -39,6 +39,10 @@ function addBillingPeriod(
   intervalCount: number,
 ): number {
   const date = new Date(timestamp);
+  if (interval === "day") {
+    date.setDate(date.getDate() + intervalCount);
+    return date.getTime();
+  }
   if (interval === "week") {
     date.setDate(date.getDate() + 7 * intervalCount);
     return date.getTime();
