@@ -60,6 +60,28 @@ export function errorResponse(
   return jsonResponse({ error, code, status, ...extra }, status);
 }
 
+type ConvexHttpError = {
+  data?: {
+    code?: string;
+    message?: string;
+  };
+  message?: string;
+};
+
+function isConvexHttpError(error: unknown): error is ConvexHttpError {
+  return error !== null && typeof error === "object";
+}
+
+export function getHttpErrorCode(error: unknown, fallback: string): string {
+  if (!isConvexHttpError(error)) return fallback;
+  return error.data?.code ?? fallback;
+}
+
+export function getHttpErrorMessage(error: unknown, fallback: string): string {
+  if (!isConvexHttpError(error)) return fallback;
+  return error.data?.message ?? error.message ?? fallback;
+}
+
 /**
  * Create a paginated collection response with standard pagination headers.
  */

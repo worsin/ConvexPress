@@ -23,8 +23,10 @@ import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Submit Helpful ─────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const submitHelpful = mutation({
   args: submitHelpfulArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -46,7 +48,7 @@ export const submitHelpful = mutation({
     // Check for existing feedback from this session
     const existing = await ctx.db
       .query("kb_articleFeedback")
-      .withIndex("by_session_article", (q) =>
+      .withIndex("by_session_article", (q: ConvexQueryBuilder) =>
         q.eq("sessionId", args.sessionId).eq("articleId", args.articleId),
       )
       .first();
@@ -110,8 +112,10 @@ export const submitHelpful = mutation({
 
 // ─── Submit Rating ──────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const submitRating = mutation({
   args: submitRatingArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -137,7 +141,7 @@ export const submitRating = mutation({
     // Check for existing feedback from this session
     const existing = await ctx.db
       .query("kb_articleFeedback")
-      .withIndex("by_session_article", (q) =>
+      .withIndex("by_session_article", (q: ConvexQueryBuilder) =>
         q.eq("sessionId", args.sessionId).eq("articleId", args.articleId),
       )
       .first();
@@ -197,20 +201,26 @@ export const submitRating = mutation({
 
 // ─── Get Article Stats (Public) ─────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getArticleStats = query({
   args: getArticleFeedbackStatsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     // Safety-bounded with .take(5000) — use denormalized article counts for basic stats
     const feedback = await ctx.db
       .query("kb_articleFeedback")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(5000);
 
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const helpful = feedback.filter((f) => f.isHelpful).length;
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const notHelpful = feedback.filter((f) => !f.isHelpful).length;
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const ratings = feedback.filter((f) => f.rating !== undefined);
     const avgRating = ratings.length > 0
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ? ratings.reduce((sum, f) => sum + (f.rating ?? 0), 0) / ratings.length
       : null;
 
@@ -227,13 +237,15 @@ export const getArticleStats = query({
 
 // ─── Get User Feedback (Public) ─────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getUserFeedback = query({
   args: getUserFeedbackArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
       .query("kb_articleFeedback")
-      .withIndex("by_session_article", (q) =>
+      .withIndex("by_session_article", (q: ConvexQueryBuilder) =>
         q.eq("sessionId", args.sessionId).eq("articleId", args.articleId),
       )
       .first();

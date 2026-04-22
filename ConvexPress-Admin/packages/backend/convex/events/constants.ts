@@ -17,6 +17,7 @@ export const SYSTEM = {
   PAGE: "page",
   MEDIA: "media",
   TAXONOMY: "taxonomy",
+  CATEGORY: "category",
   COMMENT: "comment",
   ROLE: "role",
   PROFILE: "profile",
@@ -95,6 +96,14 @@ export const TAXONOMY_EVENTS = {
   TAG_DELETED: "taxonomy.tag_deleted",
   TERM_ASSIGNED: "taxonomy.term_assigned",
   MERGED: "taxonomy.merged",
+} as const;
+
+/** Product Category System events (4) */
+export const CATEGORY_EVENTS = {
+  CREATED: "category.created",
+  UPDATED: "category.updated",
+  DELETED: "category.deleted",
+  REORDERED: "category.reordered",
 } as const;
 
 /** Comment System events (8) */
@@ -281,6 +290,7 @@ export const ALL_EVENT_CODES: string[] = [
   ...Object.values(PAGE_EVENTS),
   ...Object.values(MEDIA_EVENTS),
   ...Object.values(TAXONOMY_EVENTS),
+  ...Object.values(CATEGORY_EVENTS),
   ...Object.values(COMMENT_EVENTS),
   ...Object.values(ROLE_EVENTS),
   ...Object.values(PROFILE_EVENTS),
@@ -326,6 +336,7 @@ export const EVENT_CODES_BY_SYSTEM: Record<string, readonly string[]> = {
   [SYSTEM.PAGE]: Object.values(PAGE_EVENTS),
   [SYSTEM.MEDIA]: Object.values(MEDIA_EVENTS),
   [SYSTEM.TAXONOMY]: Object.values(TAXONOMY_EVENTS),
+  [SYSTEM.CATEGORY]: Object.values(CATEGORY_EVENTS),
   [SYSTEM.COMMENT]: Object.values(COMMENT_EVENTS),
   [SYSTEM.ROLE]: Object.values(ROLE_EVENTS),
   [SYSTEM.PROFILE]: Object.values(PROFILE_EVENTS),

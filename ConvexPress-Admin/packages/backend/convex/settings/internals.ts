@@ -25,6 +25,7 @@
 import { internalQuery } from "../_generated/server";
 import { getInternalArgs } from "./validators";
 import { getDefaults, isValidSection, type SettingsSection } from "./defaults";
+import { requireCan } from "../helpers/permissions";
 
 // ─── getInternal ─────────────────────────────────────────────────────────────
 
@@ -71,5 +72,13 @@ export const getInternal = internalQuery({
       updatedAt: doc?.updatedAt ?? null,
       updatedBy: doc?.updatedBy ?? null,
     };
+  },
+});
+
+export const requireManageOptionsInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    await requireCan(ctx, "manage_options");
+    return true;
   },
 });

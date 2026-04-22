@@ -19,13 +19,47 @@ import {
   extractIdFromPath,
   parseJsonBody,
   toISOString,
+  getHttpErrorCode,
+  getHttpErrorMessage,
 } from "./helpers";
 import { asId, asOptionalId } from "../helpers/types";
 
 /**
  * Format a comment record for API response.
  */
-function formatComment(comment: { _id: string; content?: string; status?: string; postId?: string; authorId?: string; authorName?: string; authorAvatarUrl?: string; createdAt?: number; updatedAt?: number }) {
+type ApiCommentRecord = {
+  _id: string;
+  content?: string;
+  status?: string;
+  postId?: string;
+  authorId?: string;
+  authorName?: string;
+  authorAvatarUrl?: string;
+  parentId?: string;
+  depth?: number;
+  likeCount?: number;
+  flagCount?: number;
+  isEdited?: boolean;
+  editedAt?: number;
+  postTitle?: string;
+  postSlug?: string;
+  createdAt?: number;
+  updatedAt?: number;
+};
+
+type CommentListResult = {
+  comments: ApiCommentRecord[];
+  total: number;
+  page: number;
+  perPage: number;
+};
+
+type CommentCreateResult = {
+  commentId: string;
+  status: string;
+};
+
+function formatComment(comment: ApiCommentRecord) {
   return {
     id: comment._id,
     post_id: comment.postId,
@@ -63,7 +97,7 @@ export const commentsListHandler = httpAction(async (ctx, request) => {
   const search = url.searchParams.get("search") || undefined;
 
   try {
-    const result = await ctx.runQuery(internal.comments.httpInternals.listInternal, {
+    const result = (await ctx.runQuery(internal.comments.httpInternals.listInternal, {
       page,
       perPage,
       status: status || undefined,
@@ -71,14 +105,14 @@ export const commentsListHandler = httpAction(async (ctx, request) => {
       search,
       orderBy: "createdAt",
       orderDir: "desc",
-    });
+    })) as CommentListResult;
 
     const formatted = result.comments.map(formatComment);
     return paginatedResponse(formatted, result.total, result.page, result.perPage);
   } catch (error: unknown) {
     return errorResponse(
-      error?.data?.message ?? "Failed to list comments",
-      error?.data?.code ?? "INTERNAL_ERROR",
+      getHttpErrorMessage(error, "Failed to list comments"),
+      getHttpErrorCode(error, "INTERNAL_ERROR"),
       500,
     );
   }
@@ -95,9 +129,9 @@ export const commentsGetHandler = httpAction(async (ctx, request) => {
   }
 
   try {
-    const comment = await ctx.runQuery(internal.comments.httpInternals.getInternal, {
+    const comment = (await ctx.runQuery(internal.comments.httpInternals.getInternal, {
       commentId: asId<"comments">(id),
-    });
+    })) as ApiCommentRecord | null;
 
     if (!comment) {
       return errorResponse("Comment not found", "NOT_FOUND", 404);
@@ -132,7 +166,7 @@ export const commentsCreateHandler = httpAction(async (ctx, request) => {
       request.headers.get("X-Real-IP") ||
       undefined;
 
-    const result = await ctx.runMutation(internal.comments.httpInternals.createInternal, {
+    const result = (await ctx.runMutation(internal.comments.httpInternals.createInternal, {
       postId: asId<"posts">(body.post_id as string),
       content: body.content as string,
       parentId: asOptionalId<"comments">(body.parent_id as string | undefined),
@@ -142,7 +176,7 @@ export const commentsCreateHandler = httpAction(async (ctx, request) => {
       authorAvatarUrl: body.author_avatar_url as string | undefined,
       userAgent,
       ipAddress,
-    });
+    })) as CommentCreateResult;
 
     return jsonResponse(
       {
@@ -152,7 +186,7 @@ export const commentsCreateHandler = httpAction(async (ctx, request) => {
       201,
     );
   } catch (error: unknown) {
-    const code = error?.data?.code ?? "INTERNAL_ERROR";
+    const code = getHttpErrorCode(error, "INTERNAL_ERROR");
     const statusMap: Record<string, number> = {
       NOT_FOUND: 404,
       FORBIDDEN: 403,
@@ -162,7 +196,7 @@ export const commentsCreateHandler = httpAction(async (ctx, request) => {
       UNAUTHORIZED: 401,
     };
     return errorResponse(
-      error?.data?.message ?? "Failed to create comment",
+      getHttpErrorMessage(error, "Failed to create comment"),
       code,
       statusMap[code] ?? 500,
     );
@@ -199,7 +233,7 @@ export const commentsUpdateHandler = httpAction(async (ctx, request) => {
       updated: true,
     });
   } catch (error: unknown) {
-    const code = error?.data?.code ?? "INTERNAL_ERROR";
+    const code = getHttpErrorCode(error, "INTERNAL_ERROR");
     const statusMap: Record<string, number> = {
       NOT_FOUND: 404,
       FORBIDDEN: 403,
@@ -208,7 +242,7 @@ export const commentsUpdateHandler = httpAction(async (ctx, request) => {
       UNAUTHORIZED: 401,
     };
     return errorResponse(
-      error?.data?.message ?? "Failed to update comment",
+      getHttpErrorMessage(error, "Failed to update comment"),
       code,
       statusMap[code] ?? 500,
     );
@@ -245,7 +279,7 @@ export const commentsDeleteHandler = httpAction(async (ctx, request) => {
       permanent,
     });
   } catch (error: unknown) {
-    const code = error?.data?.code ?? "INTERNAL_ERROR";
+    const code = getHttpErrorCode(error, "INTERNAL_ERROR");
     const statusMap: Record<string, number> = {
       NOT_FOUND: 404,
       FORBIDDEN: 403,
@@ -253,7 +287,7 @@ export const commentsDeleteHandler = httpAction(async (ctx, request) => {
       UNAUTHORIZED: 401,
     };
     return errorResponse(
-      error?.data?.message ?? "Failed to delete comment",
+      getHttpErrorMessage(error, "Failed to delete comment"),
       code,
       statusMap[code] ?? 500,
     );

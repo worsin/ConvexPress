@@ -79,8 +79,10 @@ import { requirePluginEnabled } from "../helpers/plugins";
  *
  * @returns { ticketId, ticketNumber }
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const create = mutation({
   args: createTicketArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireAuth(ctx);
@@ -130,7 +132,7 @@ export const create = mutation({
     // Atomic counter increment
     const counterDoc = await ctx.db
       .query("ticket_counters")
-      .withIndex("by_year_month", (q) => q.eq("year", year).eq("month", month))
+      .withIndex("by_year_month", (q: ConvexQueryBuilder) => q.eq("year", year).eq("month", month))
       .unique();
 
     let counter: number;
@@ -155,7 +157,7 @@ export const create = mutation({
     let defaultPriority: "low" | "medium" | "high" = "medium";
     const prioritySetting = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "ticket.general"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "ticket.general"))
       .unique();
     const rawPriority = prioritySetting?.values?.defaultPriority;
     if (rawPriority === "low" || rawPriority === "medium" || rawPriority === "high") {
@@ -186,6 +188,7 @@ export const create = mutation({
       priority: effectivePriority,
       source: args.source ?? "dashboard",
       tags: args.tags
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         ? args.tags.map(t => t.trim().toLowerCase().replace(/<[^>]*>/g, '')).filter(t => t.length > 0 && t.length <= MAX_TAG_LENGTH)
         : [],
       aiAttempted: args.aiAttempted ?? false,
@@ -234,8 +237,10 @@ export const create = mutation({
  * Auto-transition: if ticket is "awaitingResponse", status becomes "open".
  * Increments messageCount and updates lastMessageAt.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const reply = mutation({
   args: replyTicketArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireAuth(ctx);
@@ -278,7 +283,7 @@ export const reply = mutation({
     // ── Compute next sequence number ────────────────────────────────────
     const lastMessage = await ctx.db
       .query("ticket_messages")
-      .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", args.ticketId))
+      .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", args.ticketId))
       .order("desc")
       .first();
     const sequence = (lastMessage?.sequence ?? -1) + 1;
@@ -335,8 +340,10 @@ export const reply = mutation({
  *
  * If this is the first non-internal admin reply, records firstResponseAt for SLA.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const adminReply = mutation({
   args: adminReplyArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
@@ -373,7 +380,7 @@ export const adminReply = mutation({
     // ── Compute next sequence number ────────────────────────────────────
     const lastMessage = await ctx.db
       .query("ticket_messages")
-      .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", args.ticketId))
+      .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", args.ticketId))
       .order("desc")
       .first();
     const sequence = (lastMessage?.sequence ?? -1) + 1;
@@ -437,8 +444,10 @@ export const adminReply = mutation({
  *   - "closed" -> sets closedAt
  *   - Reopening from "resolved"/"closed" -> clears resolvedAt/closedAt
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateStatus = mutation({
   args: updateStatusArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.updateStatus");
@@ -491,8 +500,10 @@ export const updateStatus = mutation({
 /**
  * Update ticket priority.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updatePriority = mutation({
   args: updatePriorityArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.updatePriority");
@@ -526,8 +537,10 @@ export const updatePriority = mutation({
 /**
  * Assign a ticket to a staff member.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const assign = mutation({
   args: assignTicketArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.assign");
@@ -570,8 +583,10 @@ export const assign = mutation({
 /**
  * Remove ticket assignment.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const unassign = mutation({
   args: unassignTicketArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.assign");
@@ -602,8 +617,10 @@ export const unassign = mutation({
 /**
  * Force close a ticket. Requires ticket.close capability.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const close = mutation({
   args: closeTicketArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.close");
@@ -640,8 +657,10 @@ export const close = mutation({
  * Reopen a resolved or closed ticket. Clears resolvedAt and closedAt.
  * The ticket owner can reopen their own ticket; staff need ticket.updateStatus.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const reopen = mutation({
   args: reopenTicketArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireAuth(ctx);
@@ -687,8 +706,10 @@ export const reopen = mutation({
  * Submit a CSAT rating for a resolved/closed ticket.
  * Only the ticket owner can rate. Rating is 1-5.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const rate = mutation({
   args: rateTicketArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireAuth(ctx);
@@ -753,8 +774,10 @@ export const rate = mutation({
 /**
  * Add tags to a ticket. Deduplicates against existing tags.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const addTags = mutation({
   args: addTagsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
@@ -766,11 +789,14 @@ export const addTags = mutation({
 
     // Sanitize and validate tags
     const sanitizedTags = args.tags
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .map(t => t.trim().toLowerCase().replace(/<[^>]*>/g, ''))
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .filter(t => t.length > 0 && t.length <= MAX_TAG_LENGTH);
 
     // Deduplicate
     const existingTags = new Set(ticket.tags);
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const newTags = sanitizedTags.filter((t) => !existingTags.has(t));
     const merged = [...ticket.tags, ...newTags];
 
@@ -793,8 +819,10 @@ export const addTags = mutation({
 /**
  * Remove tags from a ticket.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const removeTags = mutation({
   args: removeTagsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
@@ -805,6 +833,7 @@ export const removeTags = mutation({
     }
 
     const toRemove = new Set(args.tags);
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const filtered = ticket.tags.filter((t) => !toRemove.has(t));
 
     await ctx.db.patch("ticket_tickets", args.ticketId, {

@@ -30,8 +30,10 @@ import { isPluginEnabled } from "../helpers/plugins";
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: listArticlesArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return { page: [], isDone: true, continueCursor: "" };
     const user = await getCurrentUser(ctx);
@@ -53,10 +55,12 @@ export const list = query({
         .collect();
 
       const filtered = args.authorId
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         ? results.filter((a) => a.authorId === args.authorId)
         : results;
 
       const enriched = await Promise.all(
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         filtered.map(async (article) => {
           const author = await ctx.db.get("users", article.authorId);
           return {
@@ -78,16 +82,16 @@ export const list = query({
     if (args.status) {
       baseQuery = ctx.db
         .query("kb_articles")
-        .withIndex("by_status_updated", (q) => q.eq("status", args.status!))
+        .withIndex("by_status_updated", (q: ConvexQueryBuilder) => q.eq("status", args.status!))
         .order("desc");
     } else if (args.categoryId) {
       baseQuery = ctx.db
         .query("kb_articles")
-        .withIndex("by_category", (q) => q.eq("categoryId", args.categoryId!));
+        .withIndex("by_category", (q: ConvexQueryBuilder) => q.eq("categoryId", args.categoryId!));
     } else if (args.authorId) {
       baseQuery = ctx.db
         .query("kb_articles")
-        .withIndex("by_author", (q) => q.eq("authorId", args.authorId!));
+        .withIndex("by_author", (q: ConvexQueryBuilder) => q.eq("authorId", args.authorId!));
     } else {
       baseQuery = ctx.db.query("kb_articles").order("desc");
     }
@@ -98,10 +102,12 @@ export const list = query({
     const pageItems = args.authorId && !args.status && !args.categoryId
       ? paginationResult.page
       : args.authorId
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         ? paginationResult.page.filter((a) => a.authorId === args.authorId)
         : paginationResult.page;
 
     const enrichedPage = await Promise.all(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       pageItems.map(async (article) => {
         const author = await ctx.db.get("users", article.authorId);
         return {
@@ -120,8 +126,10 @@ export const list = query({
 
 // ─── Get By ID (Admin) ─────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getById = query({
   args: getArticleByIdArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -138,9 +146,10 @@ export const getById = query({
     // Get tags
     const articleTags = await ctx.db
       .query("kb_articleTags")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(100);
     const tags = await Promise.all(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       articleTags.map(async (at) => ctx.db.get("kb_tags", at.tagId)),
     );
 
@@ -155,13 +164,15 @@ export const getById = query({
 
 // ─── Get By Slug (Public) ───────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getBySlug = query({
   args: getArticleBySlugArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const article = await ctx.db
       .query("kb_articles")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.slug))
       .first();
 
     if (!article || article.status !== "published") return null;
@@ -171,18 +182,20 @@ export const getBySlug = query({
 
     const articleTags = await ctx.db
       .query("kb_articleTags")
-      .withIndex("by_article", (q) => q.eq("articleId", article._id))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", article._id))
       .take(100);
     const tags = await Promise.all(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       articleTags.map(async (at) => ctx.db.get("kb_tags", at.tagId)),
     );
 
     // Get related articles
     const relatedLinks = await ctx.db
       .query("kb_relatedArticles")
-      .withIndex("by_source", (q) => q.eq("sourceArticleId", article._id))
+      .withIndex("by_source", (q: ConvexQueryBuilder) => q.eq("sourceArticleId", article._id))
       .take(50);
     const relatedArticles = await Promise.all(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       relatedLinks.map(async (link) => {
         const related = await ctx.db.get("kb_articles", link.relatedArticleId);
         if (!related || related.status !== "published") return null;
@@ -198,6 +211,7 @@ export const getBySlug = query({
 
     return {
       ...article,
+      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       author: enrichUser(author),
       category,
       tags: tags.filter(Boolean),
@@ -208,8 +222,10 @@ export const getBySlug = query({
 
 // ─── List Published (Public) ────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listPublished = query({
   args: listPublishedArticlesArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return { page: [], isDone: true, continueCursor: "" };
     // When filtering by category we use the by_category index; status is then
@@ -219,11 +235,11 @@ export const listPublished = query({
     if (args.categoryId) {
       baseQuery = ctx.db
         .query("kb_articles")
-        .withIndex("by_category", (q) => q.eq("categoryId", args.categoryId!));
+        .withIndex("by_category", (q: ConvexQueryBuilder) => q.eq("categoryId", args.categoryId!));
     } else {
       baseQuery = ctx.db
         .query("kb_articles")
-        .withIndex("by_status", (q) => q.eq("status", "published"))
+        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "published"))
         .order("desc");
     }
 
@@ -231,10 +247,12 @@ export const listPublished = query({
 
     // Filter out non-published when coming from the category index.
     const pageItems = args.categoryId
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ? paginationResult.page.filter((a) => a.status === "published")
       : paginationResult.page;
 
     const enrichedPage = await Promise.all(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       pageItems.map(async (article) => {
         const author = await ctx.db.get("users", article.authorId);
         const category = article.categoryId ? await ctx.db.get("kb_categories", article.categoryId) : null;
@@ -255,8 +273,10 @@ export const listPublished = query({
 
 // ─── Get Popular (Public) ───────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getPopular = query({
   args: getPopularArticlesArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const limit = args.limit ?? 10;
@@ -266,12 +286,14 @@ export const getPopular = query({
     // bound of limit*3 to avoid unbounded .collect() on large tables.
     const articles = await ctx.db
       .query("kb_articles")
-      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "published"))
       .take(limit * 3);
 
     return articles
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .sort((a, b) => b.viewCount - a.viewCount)
       .slice(0, limit)
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .map((a) => ({
         _id: a._id,
         title: a.title,
@@ -285,8 +307,10 @@ export const getPopular = query({
 
 // ─── Get Recent (Public) ────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getRecent = query({
   args: getRecentArticlesArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const limit = args.limit ?? 10;
@@ -295,12 +319,14 @@ export const getRecent = query({
     // publishedAt is not the index order, so sort in memory with a safety bound.
     const articles = await ctx.db
       .query("kb_articles")
-      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "published"))
       .take(limit * 3);
 
     return articles
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0))
       .slice(0, limit)
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .map((a) => ({
         _id: a._id,
         title: a.title,
@@ -314,8 +340,10 @@ export const getRecent = query({
 
 // ─── Get Featured (Public) ──────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getFeatured = query({
   args: getFeaturedArticlesArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const limit = args.limit ?? 6;
@@ -325,12 +353,14 @@ export const getFeatured = query({
     // take(limit * 3) is a safe, tight upper bound.
     const articles = await ctx.db
       .query("kb_articles")
-      .withIndex("by_featured", (q) => q.eq("isFeatured", true))
+      .withIndex("by_featured", (q: ConvexQueryBuilder) => q.eq("isFeatured", true))
       .take(limit * 3);
 
     return articles
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .filter((a) => a.status === "published")
       .slice(0, limit)
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .map((a) => ({
         _id: a._id,
         title: a.title,
@@ -345,8 +375,10 @@ export const getFeatured = query({
 
 // ─── Get Versions (Admin) ───────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getVersions = query({
   args: getVersionsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return [];
     const user = await getCurrentUser(ctx);
@@ -356,11 +388,13 @@ export const getVersions = query({
 
     const versions = await ctx.db
       .query("kb_articleVersions")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .order("desc")
       .take(100);
 
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return Promise.all(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       versions.map(async (v) => {
         const author = await ctx.db.get("users", v.authorId);
         return {

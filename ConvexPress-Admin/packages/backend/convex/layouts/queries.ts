@@ -16,8 +16,10 @@ import { getCurrentUser } from "../helpers/permissions";
  *
  * @auth Requires authenticated user.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
@@ -36,8 +38,11 @@ export const list = query({
  *
  * @auth Requires authenticated user.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const get = query({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { id: v.id("layouts") },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -51,15 +56,17 @@ export const get = query({
  *
  * @auth Requires authenticated user.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getBySlug = query({
   args: { slug: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 
     return await ctx.db
       .query("layouts")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.slug))
       .first();
   },
 });

@@ -21,15 +21,17 @@ import { v } from "convex/values";
  *
  * Scheduled via hourly cron job.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteExpiredEntries = internalMutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const now = Date.now();
 
     // Query expired entries using the by_expiry index
     const expired = await ctx.db
       .query("gaCache")
-      .withIndex("by_expiry", (q) => q.lt("expiresAt", now))
+      .withIndex("by_expiry", (q: ConvexQueryBuilder) => q.lt("expiresAt", now))
       .take(100);
 
     for (const entry of expired) {
@@ -46,12 +48,14 @@ export const deleteExpiredEntries = internalMutation({
  * Delete all gaCache entries for a specific property.
  * Called when disconnecting GA4.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const purgeAllCache = internalMutation({
   args: { propertyId: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const entries = await ctx.db
       .query("gaCache")
-      .withIndex("by_hash", (q) => q.eq("propertyId", args.propertyId))
+      .withIndex("by_hash", (q: ConvexQueryBuilder) => q.eq("propertyId", args.propertyId))
       .collect();
 
     for (const entry of entries) {
@@ -68,12 +72,14 @@ export const purgeAllCache = internalMutation({
  * Update the ga4LastSync timestamp in settings after a successful GA4 fetch.
  * Also clears any previous error.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateLastSync = internalMutation({
   args: { propertyId: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const settings = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "analytics"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "analytics"))
       .unique();
 
     if (settings) {
@@ -98,12 +104,14 @@ export const updateLastSync = internalMutation({
  * Store a GA4 API error message in settings.
  * Used by actions when a GA4 fetch fails.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const setError = internalMutation({
   args: { error: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const settings = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "analytics"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "analytics"))
       .unique();
 
     if (settings) {

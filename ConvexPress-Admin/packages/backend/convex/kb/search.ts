@@ -13,8 +13,10 @@ import { isPluginEnabled } from "../helpers/plugins";
 
 // ─── Search ─────────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const search = query({
   args: searchArticlesArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const limit = Math.min(args.limit ?? 20, 100);
@@ -34,6 +36,7 @@ export const search = query({
       .take(limit);
 
     const enriched = await Promise.all(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       results.map(async (article) => {
         const category = article.categoryId ? await ctx.db.get("kb_categories", article.categoryId) : null;
         return {

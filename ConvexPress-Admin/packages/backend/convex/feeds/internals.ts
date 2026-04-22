@@ -27,17 +27,19 @@ import { FEED_SETTINGS_DEFAULTS, MAX_FEED_ITEM_COUNT } from "./validators";
  * Returns the same merged defaults + stored values as the public
  * getFeedSettings query, but callable from internal actions.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getSettingsForFeed = internalQuery({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const general = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "general"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "general"))
       .unique();
 
     const reading = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "reading"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "reading"))
       .unique();
 
     const generalValues = general?.values as Record<string, unknown> | undefined;
@@ -73,12 +75,14 @@ export const getSettingsForFeed = internalQuery({
  * Look up a user by their identifier (clerkUserId or Convex _id).
  * Used by the fetchExternal action for authentication.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getUserByIdentifier = internalQuery({
   args: { userId: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const byClerk = await ctx.db
       .query("users")
-      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", args.userId))
+      .withIndex("by_clerkUserId", (q: ConvexQueryBuilder) => q.eq("clerkUserId", args.userId))
       .unique();
     if (byClerk) return byClerk;
 
@@ -101,8 +105,11 @@ export const getUserByIdentifier = internalQuery({
  *   2. Legacy internalRole string (migration path)
  *   3. Returns 0 if no role found
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getUserRoleLevel = internalQuery({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { userId: v.id("users") },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await ctx.db.get("users", args.userId);
     if (!user || user.status !== "active") return 0;

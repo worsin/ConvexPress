@@ -7,10 +7,12 @@
  * For pure utility functions (no db access), see lib/search/ instead.
  */
 
-import type { QueryCtx, MutationCtx } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
 import { DEFAULT_STOP_WORDS } from "./validators";
 
 // ─── Query Helpers ──────────────────────────────────────────────────────────
+
+type ReadCtx = Pick<QueryCtx, "db">;
 
 /**
  * Sanitize and normalize a search query string.
@@ -63,7 +65,7 @@ export function escapeRegex(str: string): string {
  * @returns Set of all terms (original + expanded synonyms)
  */
 export async function expandWithSynonyms(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   queryTerms: string[],
 ): Promise<Set<string>> {
   const expandedTerms = new Set(queryTerms);

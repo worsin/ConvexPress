@@ -30,6 +30,7 @@ export const menusListHandler = httpAction(async (ctx, request) => {
   );
 
   // Format response
+  // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
   const formatted = menus.map((m) => ({
     id: m._id,
     name: m.name,

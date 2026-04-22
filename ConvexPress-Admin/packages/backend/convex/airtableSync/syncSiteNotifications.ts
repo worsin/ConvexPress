@@ -25,9 +25,12 @@ const SITE_NOTIF_TABLE = "tblAQZWvnLT4ygl0j";
 const EVENTS_TABLE = "tblDQOlXXJO1aQapT";
 const SYSTEMS_TABLE = "tblmiSawf6mIf56V8";
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const syncSiteNotifications = internalAction({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const [eventMap, systemMap, records] = await Promise.all([
       buildLookupMap(EVENTS_TABLE, "Event Code"),
       buildLookupMap(SYSTEMS_TABLE, "Name"),

@@ -15,6 +15,8 @@ import {
   MAX_CATEGORY_DEPTH,
 } from "../taxonomies/validators";
 
+type ReadCtx = Pick<QueryCtx, "db">;
+
 // ─── Slug Generation ────────────────────────────────────────────────────────
 
 /**
@@ -28,7 +30,7 @@ import {
  * @returns A unique slug string
  */
 export async function generateTermSlug(
-  ctx: MutationCtx | QueryCtx,
+  ctx: ReadCtx,
   name: string,
   taxonomy: "category" | "post_tag",
   existingTermId?: Id<"terms">,
@@ -204,7 +206,7 @@ export async function ensureDefaultCategory(
  * @returns { valid: true } or { valid: false, error: string }
  */
 export async function validateCategoryHierarchy(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   termId: Id<"terms">,
   proposedParentId: Id<"terms">,
   maxDepth: number = MAX_CATEGORY_DEPTH,
@@ -268,7 +270,7 @@ export async function validateCategoryHierarchy(
  * Root-level terms have depth 0.
  */
 export async function getTermDepth(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   termId: Id<"terms">,
 ): Promise<number> {
   let depth = 0;
@@ -293,7 +295,7 @@ export async function getTermDepth(
  * 1 + max(children subtree depths).
  */
 async function getSubtreeMaxDepth(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   termId: Id<"terms">,
 ): Promise<number> {
   const children = await ctx.db
@@ -319,7 +321,7 @@ async function getSubtreeMaxDepth(
  * Returns a Set of term IDs including all children, grandchildren, etc.
  */
 export async function getDescendantIds(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   termId: Id<"terms">,
 ): Promise<Set<string>> {
   const descendants = new Set<string>();

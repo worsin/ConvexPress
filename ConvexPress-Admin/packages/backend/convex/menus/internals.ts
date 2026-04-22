@@ -14,12 +14,14 @@
  */
 
 import { internalMutation, internalQuery } from "../_generated/server";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
 import { v } from "convex/values";
 import { DEFAULT_MENU_LOCATIONS, MAX_DEPTH } from "./validators";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
+
+type ReadCtx = Pick<QueryCtx, "db">;
 
 /** The possible item types for menu items, matching the schema union. */
 type MenuItemType = "page" | "post" | "category" | "tag" | "custom";
@@ -132,7 +134,7 @@ export function generateSlugFromName(name: string): string {
  * @throws Error if the referenced object does not exist or is invalid
  */
 export async function validateMenuItemObject(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   itemType: string,
   objectId: string,
 ): Promise<void> {
@@ -176,7 +178,7 @@ export async function validateMenuItemObject(
  * @returns The resolved URL, or undefined if the object is trashed/deleted
  */
 export async function resolveMenuItemUrl(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   itemType: string,
   objectId: string,
 ): Promise<string | undefined> {
@@ -219,7 +221,7 @@ export async function resolveMenuItemUrl(
  * @returns The calculated depth (0 for top-level)
  */
 export async function calculateDepthFromParent(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   parentItemId: string | undefined,
   maxDepth: number = MAX_DEPTH,
 ): Promise<number> {

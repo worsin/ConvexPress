@@ -369,16 +369,17 @@ export const purgeExpiredEvents = internalMutation({
   handler: async (ctx, args) => {
     const batchSize = args.batchSize ?? 1000;
 
-    // Read retention days from settings (default 90)
-    const retentionSetting = await ctx.db
+    // Read retention days from the section-based settings table.
+    const analyticsSettings = await ctx.db
       .query("settings")
-      .withIndex("by_key", (q) =>
-        q.eq("key", "analytics_retention_days"),
-      )
+      .withIndex("by_section", (q) => q.eq("section", "analytics"))
       .unique();
+    const values = analyticsSettings?.values as
+      | { retentionDays?: unknown }
+      | undefined;
     const retentionDays =
-      retentionSetting && typeof retentionSetting.value === "number"
-        ? retentionSetting.value
+      typeof values?.retentionDays === "number"
+        ? values.retentionDays
         : 90;
 
     const cutoffMs = Date.now() - retentionDays * 24 * 60 * 60 * 1000;

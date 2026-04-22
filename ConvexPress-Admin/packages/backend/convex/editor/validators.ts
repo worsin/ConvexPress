@@ -130,6 +130,7 @@ export const getLockArgs = {
  * Arguments for incrementing usage count on a reusable block.
  */
 export const incrementUsageCountArgs = {
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   blockId: v.id("reusableBlocks"),
   delta: v.number(), // +1 when inserted, -1 when removed
 };

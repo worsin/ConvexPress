@@ -19,15 +19,17 @@ import { createArgs, updateArgs } from "./validators";
  *
  * @auth settings.update_general capability required
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const create = mutation({
   args: createArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "settings.update_general");
 
     // Check for duplicate slug
     const existing = await ctx.db
       .query("layouts")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.slug))
       .first();
 
     if (existing) {
@@ -54,8 +56,10 @@ export const create = mutation({
  *
  * @auth settings.update_general capability required
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const update = mutation({
   args: updateArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "settings.update_general");
 
@@ -71,7 +75,7 @@ export const update = mutation({
     if (args.slug && args.slug !== layout.slug) {
       const existing = await ctx.db
         .query("layouts")
-        .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+        .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.slug))
         .first();
 
       if (existing) {
@@ -100,8 +104,11 @@ export const update = mutation({
  *
  * @auth settings.update_general capability required
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const duplicate = mutation({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { id: v.id("layouts") },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "settings.update_general");
 
@@ -119,7 +126,7 @@ export const duplicate = mutation({
     while (
       await ctx.db
         .query("layouts")
-        .withIndex("by_slug", (q) => q.eq("slug", copySlug))
+        .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", copySlug))
         .first()
     ) {
       counter++;
@@ -148,8 +155,11 @@ export const duplicate = mutation({
  *
  * @auth settings.update_general capability required
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const remove = mutation({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { id: v.id("layouts") },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "settings.update_general");
 

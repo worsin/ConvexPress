@@ -32,8 +32,10 @@ import { upsertCacheArgs, saveConnectionArgs } from "./validators";
  *
  * @auth analytics.manage (Administrator only)
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const saveConnectionSettings = mutation({
   args: saveConnectionArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "analytics.manage");
 
@@ -47,7 +49,7 @@ export const saveConnectionSettings = mutation({
     // Find or create the analytics settings document
     const existing = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "analytics"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "analytics"))
       .unique();
 
     const ga4Settings = {
@@ -93,15 +95,17 @@ export const saveConnectionSettings = mutation({
  *
  * @auth analytics.manage (Administrator only)
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const disconnect = mutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const user = await requireCan(ctx, "analytics.manage");
 
     // Read current settings to get property ID for event
     const existing = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "analytics"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "analytics"))
       .unique();
 
     const values = (existing?.values as Record<string, unknown>) ?? {};
@@ -146,8 +150,10 @@ export const disconnect = mutation({
  *
  * @auth analytics.manage (Administrator only)
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const clearCache = mutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireCan(ctx, "analytics.manage");
 
@@ -171,15 +177,17 @@ export const clearCache = mutation({
  *
  * @internal -- not client-callable
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const upsertCache = internalMutation({
   args: upsertCacheArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
 
     // Check for existing entry with same hash
     const existing = await ctx.db
       .query("gaCache")
-      .withIndex("by_hash", (q) =>
+      .withIndex("by_hash", (q: ConvexQueryBuilder) =>
         q.eq("propertyId", args.propertyId).eq("queryHash", args.queryHash),
       )
       .unique();

@@ -9,7 +9,6 @@
  * Functions:
  *   - createDueInvoices           Generate invoices for subscriptions due for billing
  *   - handleInvoicePaymentResult  Process payment success/failure for an invoice
- *   - runDunningSweep             Sweep failed invoices and schedule retry attempts
  *   - expirePendingCancellations  Expire subscriptions that reached their cancel-at date
  *   - processScheduledDunning     Process a single scheduled dunning attempt
  */
@@ -299,8 +298,10 @@ async function transitionSubscription(ctx: any, args: any) {
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getDueSubscriptions = internalQuery({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
     const now = Date.now();
@@ -327,8 +328,10 @@ export const getDueSubscriptions = internalQuery({
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getRetryableInvoices = internalQuery({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
     const now = Date.now();
@@ -348,9 +351,11 @@ export const getRetryableInvoices = internalQuery({
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const checkEntitlementForUser = internalQuery({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userId: v.id("users"),
     entitlementCode: v.string(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) {
       return { hasEntitlement: false, entitlement: null };
@@ -404,8 +409,10 @@ export const checkEntitlementForUser = internalQuery({
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const createDueInvoices = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     const now = Date.now();
@@ -502,6 +509,167 @@ export const createDueInvoices = internalMutation({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PRORATION ITEM-SWAP HELPER
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Apply the deferred item swap for a successful proration invoice. Called
+ * from `handleInvoicePaymentResult` when the invoice has a prorationEventId
+ * and the payment succeeded. Mirrors the synchronous swap that the stub
+ * path performs inside `applyUpgradeProration`.
+ */
+async function applyProrationItemSwap(
+  ctx: any,
+  invoice: any,
+  subscription: any,
+  paymentTransactionId: string | undefined,
+  correlationId: string,
+): Promise<void> {
+  const now = Date.now();
+
+  const prorationEvent = invoice.prorationEventId
+    ? await ctx.db.get(invoice.prorationEventId)
+    : null;
+  if (!prorationEvent) {
+    // Event was deleted; just mark invoice paid and exit.
+    await ctx.db.patch(invoice._id, {
+      status: "paid",
+      paidAt: now,
+      paymentTransactionId,
+      updatedAt: now,
+    });
+    return;
+  }
+
+  const toOffer = await ctx.db.get(prorationEvent.toOfferId);
+  const fromOffer = await ctx.db.get(prorationEvent.fromOfferId);
+  if (!toOffer || !fromOffer) {
+    await ctx.db.patch(invoice._id, {
+      status: "paid",
+      paidAt: now,
+      paymentTransactionId,
+      updatedAt: now,
+    });
+    return;
+  }
+
+  // Mark invoice paid.
+  await ctx.db.patch(invoice._id, {
+    status: "paid",
+    paidAt: now,
+    paymentTransactionId,
+    updatedAt: now,
+  });
+
+  // Find the active item to cancel.
+  const items = await ctx.db
+    .query("commerce_subscription_items")
+    .withIndex("by_subscription", (q: any) =>
+      q.eq("subscriptionId", subscription._id),
+    )
+    .collect();
+  const activeItem = items.find((i: any) => i.status === "active");
+  if (activeItem) {
+    await ctx.db.patch(activeItem._id, {
+      status: "cancelled",
+      cancelledAt: now,
+      updatedAt: now,
+    });
+  }
+
+  // Resolve billing interval (template first, contract fallback).
+  let billingInterval: BillingInterval = "month";
+  let billingIntervalCount = 1;
+  if (subscription.templateId) {
+    const template = await ctx.db.get(subscription.templateId);
+    if (template) {
+      billingInterval = template.billingInterval as BillingInterval;
+      billingIntervalCount = template.billingIntervalCount;
+    }
+  }
+  if (subscription.billingInterval) {
+    billingInterval = subscription.billingInterval as BillingInterval;
+  }
+  if (subscription.billingIntervalCount) {
+    billingIntervalCount = subscription.billingIntervalCount;
+  }
+
+  const newCycleStart = now;
+  const newCycleEnd = addBillingPeriod(
+    newCycleStart,
+    billingInterval,
+    billingIntervalCount,
+  );
+  const currencyCode = invoice.currencyCode ?? subscription.currencyCode ?? "USD";
+
+  // Insert new active item for the target offer.
+  await ctx.db.insert("commerce_subscription_items", {
+    subscriptionId: subscription._id,
+    sourceOfferId: toOffer._id,
+    productId: toOffer.productId,
+    variantId: toOffer.variantId,
+    bundleId: toOffer.bundleId,
+    titleSnapshot: toOffer.title,
+    quantity: 1,
+    unitAmount: toOffer.recurringAmount ?? 0,
+    unitRecurringAmount: toOffer.recurringAmount ?? 0,
+    unitSetupFeeAmount: toOffer.setupFeeAmount ?? 0,
+    currencyCode,
+    status: "active",
+    startsAt: now,
+    currentPeriodEndAt: newCycleEnd,
+    cancelAtPeriodEnd: false,
+    entitlementCodes: toOffer.entitlementCodes,
+    priceSnapshot: {
+      offerId: toOffer._id,
+      offerSlug: toOffer.slug,
+      recurringAmount: toOffer.recurringAmount,
+      currencyCode,
+    },
+    metadata: { fromPlanChange: true, fromOfferId: fromOffer._id },
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const existingHistory = subscription.offerHistory ?? [];
+  await ctx.db.patch(subscription._id, {
+    recurringAmount: toOffer.recurringAmount ?? subscription.recurringAmount,
+    currencyCode,
+    currentPeriodStartAt: newCycleStart,
+    currentPeriodEndAt: newCycleEnd,
+    nextBillingAt: newCycleEnd,
+    lastInvoiceId: invoice._id,
+    scheduledOfferChange: undefined,
+    offerHistory: [
+      ...existingHistory,
+      {
+        offerId: toOffer._id,
+        effectiveAt: now,
+        reason: "upgrade_proration",
+      },
+    ],
+    updatedAt: now,
+  });
+
+  await writeHistory(ctx, {
+    subscriptionId: subscription._id,
+    eventType: "subscription.upgraded_via_proration",
+    actorUserId: prorationEvent.triggeredBy,
+    fromStatus: subscription.status,
+    toStatus: subscription.status,
+    reason: "upgrade",
+    data: {
+      fromOfferId: fromOffer._id,
+      toOfferId: toOffer._id,
+      invoiceId: invoice._id,
+      prorationEventId: prorationEvent._id,
+      chargeTransactionId: paymentTransactionId,
+    },
+    correlationId,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // INTERNAL MUTATIONS — PAYMENT RESULT HANDLING
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -512,13 +680,19 @@ export const createDueInvoices = internalMutation({
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const handleInvoicePaymentResult = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     invoiceId: v.id("commerce_subscription_invoices"),
     succeeded: v.boolean(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     paymentTransactionId: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     failureCode: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     failureReason: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     correlationId: v.optional(v.string()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     const now = Date.now();
@@ -529,6 +703,40 @@ export const handleInvoicePaymentResult = internalMutation({
 
     const subscription = await ctx.db.get(invoice.subscriptionId);
     if (!subscription) throw new Error("Subscription not found");
+
+    // Proration invoices (upgrades) flow through a different result path:
+    // on success, apply the item swap from the proration event; on failure,
+    // mark the invoice failed but do NOT enter dunning (proration is a
+    // customer-initiated portal action, not a recurring-billing failure).
+    if (invoice.prorationEventId) {
+      if (args.succeeded) {
+        await applyProrationItemSwap(
+          ctx,
+          invoice,
+          subscription,
+          args.paymentTransactionId,
+          correlationId,
+        );
+      } else {
+        await ctx.db.patch(invoice._id, {
+          status: "failed",
+          updatedAt: now,
+        });
+        await writeHistory(ctx, {
+          subscriptionId: subscription._id,
+          eventType: "subscription.proration_charge_failed",
+          fromStatus: subscription.status,
+          toStatus: subscription.status,
+          data: {
+            invoiceId: invoice._id,
+            prorationEventId: invoice.prorationEventId,
+            failureReason: args.failureReason,
+          },
+          correlationId,
+        });
+      }
+      return;
+    }
 
     if (args.succeeded) {
       // === SUCCESS PATH ===
@@ -684,62 +892,6 @@ export const handleInvoicePaymentResult = internalMutation({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// INTERNAL MUTATIONS — DUNNING SWEEP
-// ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Sweep failed invoices and schedule retry dunning attempts.
- * Called on a schedule (e.g. hourly).
- */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
-export const runDunningSweep = internalMutation({
-  args: {
-    limit: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    await requirePluginEnabled(ctx, "commerceSubscriptions");
-    const now = Date.now();
-    const limit = args.limit ?? 100;
-
-    const failedInvoices = await ctx.db
-      .query("commerce_subscription_invoices")
-      .withIndex("by_status", (q: any) => q.eq("status", "failed"))
-      .collect();
-
-    // Find invoices that are due for retry (dueAt is the scheduled retry time)
-    const dueRetries = failedInvoices
-      .filter((inv: any) => inv.dueAt !== undefined && inv.dueAt <= now)
-      .slice(0, limit);
-
-    for (const invoice of dueRetries) {
-      // Count existing attempts
-      const attempts = await ctx.db
-        .query("commerce_subscription_dunning_attempts")
-        .withIndex("by_subscription", (q: any) =>
-          q.eq("subscriptionId", invoice.subscriptionId),
-        )
-        .collect();
-
-      const attemptNumber = attempts.length + 1;
-
-      await ctx.db.insert("commerce_subscription_dunning_attempts", {
-        subscriptionId: invoice.subscriptionId,
-        invoiceId: invoice._id,
-        attemptNumber,
-        status: "scheduled",
-        scheduledAt: now,
-        processedAt: undefined,
-        errorMessage: undefined,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-
-    return { scheduled: dueRetries.length };
-  },
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
 // INTERNAL MUTATIONS — EXPIRATION SWEEP
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -750,8 +902,10 @@ export const runDunningSweep = internalMutation({
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const expirePendingCancellations = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     const now = Date.now();
@@ -793,8 +947,10 @@ export const expirePendingCancellations = internalMutation({
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const processScheduledDunning = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     dunningAttemptId: v.id("commerce_subscription_dunning_attempts"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     const now = Date.now();
@@ -833,8 +989,10 @@ export const processScheduledDunning = internalMutation({
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getRetryableDunningAttempts = internalQuery({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
     const now = Date.now();
@@ -864,9 +1022,11 @@ export const getRetryableDunningAttempts = internalQuery({
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const abortDunningAttempt = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     attemptId: v.id("commerce_subscription_dunning_attempts"),
     reason: v.string(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
     await ctx.db.patch(args.attemptId, {
@@ -884,9 +1044,12 @@ export const abortDunningAttempt = internalMutation({
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const completeDunningAttempt = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     attemptId: v.id("commerce_subscription_dunning_attempts"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     outcome: v.literal("success"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
     await ctx.db.patch(args.attemptId, {
@@ -906,14 +1069,20 @@ export const completeDunningAttempt = internalMutation({
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const recordDunningFailure = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     attemptId: v.id("commerce_subscription_dunning_attempts"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     subscriptionId: v.id("commerce_subscriptions"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     invoiceId: v.id("commerce_subscription_invoices"),
     attemptNumber: v.number(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     failureReason: v.optional(v.string()),
     maxAttempts: v.number(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     retryDays: v.array(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
     const correlationId = createCorrelationId();
@@ -1013,18 +1182,188 @@ export const recordDunningFailure = internalMutation({
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getInvoiceForRenewal = internalQuery({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     invoiceId: v.id("commerce_subscription_invoices"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const invoice = await ctx.db.get(args.invoiceId);
     if (!invoice) return null;
+    const subscription = await ctx.db.get(invoice.subscriptionId);
+    let email: string | undefined;
+    if (subscription?.userId) {
+      const user = await ctx.db.get(subscription.userId);
+      email = user?.email;
+    }
     return {
       _id: invoice._id,
       totalAmount: invoice.totalAmount,
-      savedPaymentMethodId: invoice.savedPaymentMethodId,
+      currencyCode: invoice.currencyCode,
+      savedPaymentMethodId:
+        invoice.savedPaymentMethodId ??
+        subscription?.defaultPaymentMethodId,
+      stripeCustomerId: subscription?.stripeCustomerId,
       subscriptionId: invoice.subscriptionId,
       manualBilling: invoice.manualBilling,
+      email,
     };
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INTERNAL QUERIES — CHECKOUT INTENT LOOKUP FOR CHARGING (Wave 9.1)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const getCheckoutIntentForCharge = internalQuery({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    const intent = await ctx.db.get(args.checkoutIntentId);
+    if (!intent) return null;
+    return {
+      _id: intent._id,
+      email: intent.email,
+      initialAmount: intent.initialAmount,
+      currencyCode: intent.currencyCode,
+      userId: intent.userId,
+      status: intent.status,
+    };
+  },
+});
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const getCheckoutIntentByPaymentIntent = internalQuery({
+  args: {
+    paymentIntentId: v.string(),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    const intent = await ctx.db
+      .query("commerce_subscription_checkout_intents")
+      .filter((q: any) =>
+        q.eq(q.field("paymentTransactionId"), args.paymentIntentId),
+      )
+      .first();
+    return intent;
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INTERNAL MUTATIONS — FIRST-CHARGE INTENT RECORDING (Wave 9.1)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Record the Stripe Customer + PaymentIntent IDs created during signup on
+ * the checkout intent row so the webhook can match and activate later.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const recordFirstChargeIntent = internalMutation({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
+    stripeCustomerId: v.string(),
+    paymentIntentId: v.string(),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.checkoutIntentId, {
+      stripeCustomerId: args.stripeCustomerId,
+      paymentProvider: "stripe",
+      paymentTransactionId: args.paymentIntentId,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+/**
+ * Activate a checkout intent from a successful Stripe first-charge webhook.
+ * Mirrors `checkout.activateFromIntent` but runs on the server after real
+ * payment confirmation. Idempotent: re-calls on already-activated intents
+ * are no-ops.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const activateCheckoutIntentFromStripe = internalMutation({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
+    paymentIntentId: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    paymentMethodId: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    stripeCustomerId: v.optional(v.string()),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    const intent = await ctx.db.get(args.checkoutIntentId);
+    if (!intent) return;
+    if (
+      intent.status !== "payment_pending" &&
+      intent.status !== "draft"
+    ) {
+      return; // Already activated or terminal.
+    }
+
+    // Persist saved PM + customer on the intent (webhook may arrive before
+    // or after the client-side activate call; we upsert so both paths
+    // converge on the same state).
+    await ctx.db.patch(args.checkoutIntentId, {
+      savedPaymentMethodId:
+        intent.savedPaymentMethodId ?? args.paymentMethodId,
+      stripeCustomerId:
+        intent.stripeCustomerId ?? args.stripeCustomerId,
+      paymentTransactionId: args.paymentIntentId,
+      paymentProvider: "stripe",
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INTERNAL MUTATIONS — SAVED PAYMENT METHOD PERSISTENCE (Wave 9)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Attach a Stripe Customer + PaymentMethod pair to a checkout intent.
+ * Called from the `setup_intent.succeeded` webhook path. Idempotent:
+ * running twice with the same payload leaves the intent in the same state.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const recordSavedPaymentMethod = internalMutation({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
+    stripeCustomerId: v.string(),
+    paymentMethodId: v.string(),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    const intent = await ctx.db.get(args.checkoutIntentId);
+    if (!intent) return;
+    await ctx.db.patch(args.checkoutIntentId, {
+      savedPaymentMethodId: args.paymentMethodId,
+      stripeCustomerId: args.stripeCustomerId,
+      paymentProvider: "stripe",
+      updatedAt: Date.now(),
+    });
+    // If the intent has already been activated into a subscription, also
+    // persist the Stripe IDs on the contract so renewals can charge.
+    if (intent.subscriptionId) {
+      const sub = await ctx.db.get(intent.subscriptionId);
+      if (sub) {
+        await ctx.db.patch(intent.subscriptionId, {
+          defaultPaymentMethodId:
+            sub.defaultPaymentMethodId ?? args.paymentMethodId,
+          stripeCustomerId:
+            sub.stripeCustomerId ?? args.stripeCustomerId,
+          paymentProvider: "stripe",
+          updatedAt: Date.now(),
+        });
+      }
+    }
   },
 });
 
@@ -1043,6 +1382,7 @@ export const getInvoiceForRenewal = internalQuery({
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const applyDueScheduledOfferChanges = internalMutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const now = Date.now();
 
@@ -1179,8 +1519,10 @@ export const applyDueScheduledOfferChanges = internalMutation({
 // @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getMyInvoiceForPdf = internalQuery({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     invoiceId: v.id("commerce_subscription_invoices"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
 

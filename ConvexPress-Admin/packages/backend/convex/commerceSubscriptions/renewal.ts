@@ -27,7 +27,7 @@ import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { requirePluginEnabled } from "../helpers/plugins";
 
-// ─── Payment processor stub ──────────────────────────────────────────────────
+// ─── Payment processor: stub fallback + live Stripe dispatch ─────────────────
 
 interface ChargeResult {
   success: boolean;
@@ -36,38 +36,45 @@ interface ChargeResult {
 }
 
 /**
- * Stub payment processor. Replace with a real Stripe / Paddle / etc.
- * integration when off-session charging is wired.
- *
- * Returns success for invoices with `totalAmount === 0` (free-tier) and
- * a simulated failure for everything else (no real payment method on file).
+ * Stub payment processor — used when `commerce.payments.subscriptionChargingEnabled`
+ * is `false`. Returns success for free-tier invoices and a simulated success
+ * for paid invoices with a saved payment method (so dev/staging renewals
+ * advance). When the live-charging flag flips on, invoices are routed to
+ * `chargeSubscriptionInvoice` in `stripeCharge.ts` instead.
  */
 function processorStub(invoice: {
   _id: string;
   totalAmount: number;
   savedPaymentMethodId?: string;
 }): ChargeResult {
-  // Free-tier: no charge needed.
   if (invoice.totalAmount === 0) {
     return { success: true, transactionId: `free_${Date.now()}` };
   }
-
-  // A saved payment method must be present to attempt charging.
   if (!invoice.savedPaymentMethodId) {
     return {
       success: false,
       failureReason: "no_payment_method_on_file",
     };
   }
-
-  // Stub: in a real integration, call Stripe / Paddle / etc. here.
-  // For now, all invoices with a payment method are considered chargeable.
-  // The stub returns success so renewals advance in development/staging.
-  // Production deployment wires the real processor before enabling this cron.
   return {
     success: true,
     transactionId: `stub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
   };
+}
+
+/**
+ * Returns true when `commerce.payments.subscriptionChargingEnabled` is set
+ * in settings. Callers fall through to `processorStub` when this is false.
+ */
+async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
+  const settings = await ctx.runQuery(
+    internal.settings.httpInternals.getBySectionInternal,
+    { section: "commerce.payments" },
+  );
+  const flag =
+    settings?.values?.subscriptionChargingEnabled ??
+    settings?.subscriptionChargingEnabled;
+  return flag === true;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -82,10 +89,13 @@ function processorStub(invoice: {
  * Registered in `crons.ts` as:
  *   crons.hourly("subscription-renewals", {}, internal.commerceSubscriptions.renewal.runRenewalSweep)
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const runRenewalSweep = internalAction({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
 
@@ -106,6 +116,7 @@ export const runRenewalSweep = internalAction({
       };
     }
 
+    const live = await isLiveChargingEnabled(ctx);
     let succeeded = 0;
     let failed = 0;
     const results: Array<{
@@ -118,47 +129,53 @@ export const runRenewalSweep = internalAction({
     // Step 2: Attempt payment for each generated invoice.
     for (const invoiceId of generated.invoiceIds) {
       try {
-        // Fetch the invoice to get payment details (actions can't read DB).
-        const invoice: {
-          _id: string;
-          totalAmount: number;
-          savedPaymentMethodId?: string;
-          subscriptionId: string;
-          manualBilling?: boolean;
-        } | null = await ctx.runQuery(
-          internal.commerceSubscriptions.internals.getInvoiceForRenewal,
-          { invoiceId: invoiceId as Parameters<typeof String>[0] },
-        );
+        let chargeResult: ChargeResult;
 
-        if (!invoice) {
-          // Invoice was deleted between generation and charging — skip.
-          continue;
-        }
-
-        // Manual billing invoices are not auto-charged.
-        if (invoice.manualBilling) {
-          continue;
-        }
-
-        const chargeResult = processorStub(invoice);
-
-        // Step 2c / 2d: Delegate success or failure handling to an
-        // internalMutation (DB access not allowed in actions).
-        await ctx.runMutation(
-          internal.commerceSubscriptions.internals.handleInvoicePaymentResult,
-          {
-            invoiceId: invoiceId as Parameters<typeof String>[0],
-            succeeded: chargeResult.success,
-            paymentTransactionId: chargeResult.transactionId,
-            failureReason: chargeResult.failureReason,
-          },
-        );
-
-        if (chargeResult.success) {
-          succeeded++;
+        if (live) {
+          // Live Stripe path — delegate to the off-session charge action,
+          // which also writes the invoice result via
+          // `handleInvoicePaymentResult` on our behalf.
+          const stripeResult = await ctx.runAction(
+            internal.commerceSubscriptions.stripeCharge
+              .chargeSubscriptionInvoice,
+            { invoiceId: invoiceId as Parameters<typeof String>[0] },
+          );
+          chargeResult = {
+            success: stripeResult.success,
+            transactionId: stripeResult.transactionId,
+            failureReason: stripeResult.failureReason,
+          };
         } else {
-          failed++;
+          // Stub path — fetch the invoice and run the in-process stub.
+          const invoice: {
+            _id: string;
+            totalAmount: number;
+            savedPaymentMethodId?: string;
+            subscriptionId: string;
+            manualBilling?: boolean;
+          } | null = await ctx.runQuery(
+            internal.commerceSubscriptions.internals.getInvoiceForRenewal,
+            { invoiceId: invoiceId as Parameters<typeof String>[0] },
+          );
+
+          if (!invoice) continue;
+          if (invoice.manualBilling) continue;
+
+          chargeResult = processorStub(invoice);
+
+          await ctx.runMutation(
+            internal.commerceSubscriptions.internals.handleInvoicePaymentResult,
+            {
+              invoiceId: invoiceId as Parameters<typeof String>[0],
+              succeeded: chargeResult.success,
+              paymentTransactionId: chargeResult.transactionId,
+              failureReason: chargeResult.failureReason,
+            },
+          );
         }
+
+        if (chargeResult.success) succeeded++;
+        else failed++;
 
         results.push({
           invoiceId,

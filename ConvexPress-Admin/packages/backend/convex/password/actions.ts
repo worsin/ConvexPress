@@ -24,6 +24,10 @@ import { adminResetUserPasswordArgs, completePasswordResetArgs } from "./validat
 /** Token expiry: 24 hours */
 const RESET_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
+type PasswordResetRequestResult = {
+  oauthHint: boolean;
+} | void;
+
 /**
  * Generate a cryptographically secure random token string.
  * Uses the Web Crypto API available in Convex runtime.
@@ -68,7 +72,7 @@ async function hashToken(token: string): Promise<string> {
  */
 export const requestPasswordReset = action({
   args: { email: v.string() },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<PasswordResetRequestResult> => {
     const email = args.email.trim().toLowerCase();
 
     // Input validation: basic email format and length check
@@ -81,12 +85,12 @@ export const requestPasswordReset = action({
     // 1. Check if this user registered via OAuth (for UX hint)
     // This does NOT confirm/deny email existence to the client.
     // The hint is advisory: "you might want to try OAuth login instead."
-    const registrationMethod = await ctx.runQuery(
+    const registrationMethod = (await ctx.runQuery(
       internal.password.queries.getRegistrationMethodByEmail,
       { email },
-    );
+    )) as string | null;
 
-    const isOAuth = registrationMethod === "oauth";
+    const isOAuth: boolean = registrationMethod === "oauth";
 
     // 2. Generate a secure reset token
     const token = generateResetToken();

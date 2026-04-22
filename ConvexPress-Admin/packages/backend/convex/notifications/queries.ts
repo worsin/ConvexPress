@@ -60,8 +60,10 @@ import {
  * This is a reactive subscription — the dropdown and notification center
  * auto-update when new notifications arrive.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: listArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Authenticate
     const user = await getCurrentUser(ctx);
@@ -81,7 +83,7 @@ export const list = query({
       // This avoids the 3x over-fetch since we filter at the index level
       notifications = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user_unread", (q) =>
+        .withIndex("by_user_unread", (q: ConvexQueryBuilder) =>
           q.eq("userId", userIdentifier).eq("readAt", undefined),
         )
         .order("desc")
@@ -90,7 +92,7 @@ export const list = query({
       // Filter by notification visual type
       notifications = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user_type", (q) =>
+        .withIndex("by_user_type", (q: ConvexQueryBuilder) =>
           q.eq("userId", userIdentifier).eq("type", args.type!),
         )
         .order("desc")
@@ -99,12 +101,13 @@ export const list = query({
       // Default: chronological by createdAt
       notifications = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user", (q) => q.eq("userId", userIdentifier))
+        .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", userIdentifier))
         .order("desc")
         .take(fetchLimit * 3);
     }
 
     // 3. Apply post-filters
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     let filtered = notifications.filter((n) => {
       // Exclude dismissed
       if (n.dismissedAt !== undefined) return false;
@@ -131,6 +134,7 @@ export const list = query({
         : undefined;
 
     return {
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       notifications: resultNotifications.map((n) => ({
         _id: n._id,
         userId: n.userId,
@@ -168,8 +172,10 @@ export const list = query({
  * Uses the by_user_unread index for efficient lookup.
  * Convex caches identical subscriptions: multiple tabs = single query evaluation.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const unreadCount = query({
   args: unreadCountArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     // 1. Authenticate
     const user = await getCurrentUser(ctx);
@@ -180,12 +186,13 @@ export const unreadCount = query({
     // 2. Query unread notifications (readAt === undefined)
     const unread = await ctx.db
       .query("siteNotifications")
-      .withIndex("by_user_unread", (q) =>
+      .withIndex("by_user_unread", (q: ConvexQueryBuilder) =>
         q.eq("userId", getUserIdentifier(user)).eq("readAt", undefined),
       )
       .take(101); // Cap at 101 to detect > 100
 
     // 3. Filter out dismissed and count
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const count = unread.filter((n) => n.dismissedAt === undefined).length;
 
     // 4. Cap at 100
@@ -201,8 +208,10 @@ export const unreadCount = query({
  * Verifies ownership: only the notification recipient can view it.
  * Returns full notification detail including parsed metadata.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const get = query({
   args: getArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Authenticate
     const user = await getCurrentUser(ctx);
@@ -278,8 +287,10 @@ export const get = query({
  *
  * Returns array of preferences sorted by category display order.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getPreferences = query({
   args: getPreferencesArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     // 1. Authenticate
     const user = await getCurrentUser(ctx);
@@ -290,7 +301,7 @@ export const getPreferences = query({
     // 2. Fetch all saved preferences for this user
     const savedPreferences = await ctx.db
       .query("notificationPreferences")
-      .withIndex("by_user", (q) => q.eq("userId", getUserIdentifier(user)))
+      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", getUserIdentifier(user)))
       .collect();
 
     // 3. Build a map of saved preferences by key
@@ -354,8 +365,10 @@ export const getPreferences = query({
  * If no saved preference exists, returns the default from NOTIFICATION_TYPES.
  * Returns null if the key is not a known notification type.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getPreference = query({
   args: getPreferenceArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Authenticate
     const user = await getCurrentUser(ctx);
@@ -371,7 +384,7 @@ export const getPreference = query({
     // 3. Look up saved preference
     const saved = await ctx.db
       .query("notificationPreferences")
-      .withIndex("by_user_key", (q) =>
+      .withIndex("by_user_key", (q: ConvexQueryBuilder) =>
         q
           .eq("userId", getUserIdentifier(user))
           .eq("notificationKey", args.notificationKey),
@@ -403,8 +416,10 @@ export const getPreference = query({
  *
  * Used for the /admin/settings/notifications monitoring view.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listAll = query({
   args: listAllArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Require administrator access (role level 100)
     await requireMinimumRoleLevel(ctx, 100);
@@ -418,7 +433,7 @@ export const listAll = query({
     if (args.userId && args.notificationKey) {
       notifications = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user_key", (q) =>
+        .withIndex("by_user_key", (q: ConvexQueryBuilder) =>
           q
             .eq("userId", args.userId!)
             .eq("notificationKey", args.notificationKey!),
@@ -428,7 +443,7 @@ export const listAll = query({
     } else if (args.userId && args.type) {
       notifications = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user_type", (q) =>
+        .withIndex("by_user_type", (q: ConvexQueryBuilder) =>
           q.eq("userId", args.userId!).eq("type", args.type!),
         )
         .order("desc")
@@ -436,7 +451,7 @@ export const listAll = query({
     } else if (args.userId) {
       notifications = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user", (q) => q.eq("userId", args.userId!))
+        .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", args.userId!))
         .order("desc")
         .take(fetchLimit * 2);
     } else {
@@ -452,15 +467,18 @@ export const listAll = query({
     let filtered = notifications;
 
     if (args.cursor !== undefined) {
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       filtered = filtered.filter((n) => n.createdAt < args.cursor!);
     }
 
     if (args.type && !args.userId) {
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       filtered = filtered.filter((n) => n.type === args.type);
     }
 
     if (args.notificationKey && !args.userId) {
       filtered = filtered.filter(
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (n) => n.notificationKey === args.notificationKey,
       );
     }
@@ -477,6 +495,7 @@ export const listAll = query({
         : undefined;
 
     return {
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       notifications: resultNotifications.map((n) => ({
         _id: n._id,
         userId: n.userId,

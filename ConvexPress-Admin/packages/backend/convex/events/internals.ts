@@ -18,6 +18,7 @@ import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { internalMutation } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { SchedulableFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import { evaluateFilter } from "../helpers/eventFilter";
 import { shouldRetry, getNextRetryAt } from "../helpers/eventRetry";
@@ -42,18 +43,18 @@ import { processEventArgs, retryExecutionArgs } from "./validators";
 function resolveHandler(
   handlerModule: string,
   handlerFunction: string,
-): unknown {
+): SchedulableFunctionReference | null {
   try {
     // Split module path (e.g., "notifications/internals" -> ["notifications", "internals"])
     const parts = handlerModule.split("/");
 
     // Navigate the internal API tree
-    let current: unknown = internal;
+    let current: Record<string, unknown> = internal as unknown as Record<string, unknown>;
     for (const part of parts) {
       if (!current || typeof current !== "object" || !(part in current)) {
         return null;
       }
-      current = current[part];
+      current = current[part] as Record<string, unknown>;
     }
 
     // Resolve the function name
@@ -61,7 +62,7 @@ function resolveHandler(
       return null;
     }
 
-    return current[handlerFunction];
+    return current[handlerFunction] as SchedulableFunctionReference;
   } catch {
     return null;
   }

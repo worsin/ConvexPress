@@ -59,6 +59,17 @@ function processorStub(invoice: {
   };
 }
 
+async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
+  const settings = await ctx.runQuery(
+    internal.settings.httpInternals.getBySectionInternal,
+    { section: "commerce.payments" },
+  );
+  const flag =
+    settings?.values?.subscriptionChargingEnabled ??
+    settings?.subscriptionChargingEnabled;
+  return flag === true;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // DUNNING SWEEP ACTION
 // ═══════════════════════════════════════════════════════════════════════════
@@ -67,10 +78,13 @@ function processorStub(invoice: {
  * Hourly dunning retry sweep. Offset 15 minutes in `crons.ts` so renewals
  * complete before dunning runs.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const runDunningSweep = internalAction({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
 
@@ -82,6 +96,7 @@ export const runDunningSweep = internalAction({
       subscriptionId: string;
       invoiceId: string;
       attemptNumber: number;
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     }> | null = await ctx.runQuery(
       internal.commerceSubscriptions.internals.getRetryableDunningAttempts,
       { limit },
@@ -125,7 +140,21 @@ export const runDunningSweep = internalAction({
           continue;
         }
 
-        const chargeResult = processorStub(invoice);
+        let chargeResult: ChargeResult;
+        if (await isLiveChargingEnabled(ctx)) {
+          const stripeResult = await ctx.runAction(
+            internal.commerceSubscriptions.stripeCharge
+              .chargeSubscriptionInvoice,
+            { invoiceId: attempt.invoiceId as Parameters<typeof String>[0] },
+          );
+          chargeResult = {
+            success: stripeResult.success,
+            transactionId: stripeResult.transactionId,
+            failureReason: stripeResult.failureReason,
+          };
+        } else {
+          chargeResult = processorStub(invoice);
+        }
 
         if (chargeResult.success) {
           // On success: delegate result handling (marks invoice paid,

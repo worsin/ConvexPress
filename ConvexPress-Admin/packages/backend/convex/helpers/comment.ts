@@ -27,6 +27,8 @@ import { COMMENT_EVENTS, SYSTEM } from "../events/constants";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+type ReadCtx = Pick<QueryCtx, "db">;
+
 export interface DiscussionSettingsResolved {
   commentModeration: boolean;
   commentPreviouslyApproved: boolean;
@@ -143,7 +145,7 @@ export function sanitizeCommentContent(content: string): string {
  * Maps the Settings System's field names to Comment System's internal names.
  */
 export async function getDiscussionSettings(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
 ): Promise<DiscussionSettingsResolved> {
   try {
     const doc = await ctx.db
@@ -219,7 +221,7 @@ export async function getDiscussionSettings(
  * @returns Object with resolved parentId and depth
  */
 export async function resolveCommentDepth(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   parentId: Id<"comments"> | undefined,
   settings: DiscussionSettingsResolved,
 ): Promise<{ resolvedParentId: Id<"comments"> | undefined; depth: number }> {
@@ -308,7 +310,7 @@ export function canEditComment(
  * Used to denormalize author data when creating comments.
  */
 export function resolveCommentAuthor(user: {
-  _id: string;
+  _id: Id<"users">;
   clerkUserId?: string;
   displayName?: string;
   firstName?: string;
@@ -323,7 +325,7 @@ export function resolveCommentAuthor(user: {
     user.email;
 
   return {
-    authorId: getUserIdentifier(user as any),
+    authorId: getUserIdentifier(user),
     authorName,
     authorAvatarUrl: user.avatarUrl || user.profilePictureUrl || undefined,
   };
@@ -346,7 +348,7 @@ export function resolveCommentAuthor(user: {
  * @returns The determined status: "approved", "pending", or "spam"
  */
 export async function runModerationPipeline(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   content: string,
   authorId: string,
   authorName: string,
@@ -464,7 +466,7 @@ function countLinks(content: string): number {
  * @returns null if allowed, or the number of remaining seconds to wait
  */
 export async function checkFloodProtection(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   authorId: string,
   intervalSeconds: number,
 ): Promise<number | null> {
@@ -655,7 +657,7 @@ export interface CreateCommentCoreParams {
   content: string;
   /** The authenticated user creating the comment */
   user: {
-    _id: string;
+    _id: Id<"users">;
     clerkUserId?: string;
     displayName?: string;
     firstName?: string;
@@ -719,7 +721,7 @@ export async function createCommentCore(
   const settings = await getDiscussionSettings(ctx);
 
   // ── Flood protection ────────────────────────────────────────────────
-  const userIdentifier = getUserIdentifier(user as any);
+  const userIdentifier = getUserIdentifier(user);
   const floodWait = await checkFloodProtection(
     ctx,
     userIdentifier,

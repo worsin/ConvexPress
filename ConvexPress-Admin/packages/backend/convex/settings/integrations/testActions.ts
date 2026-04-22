@@ -10,11 +10,15 @@
  */
 
 import { action } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { getServiceKeyFromAction } from "../../helpers/serviceKeys";
-import { requireCan } from "../../helpers/permissions";
 
 type TestResult = { success: boolean; detail?: string };
+
+function requireManageOptions(ctx: ActionCtx) {
+  return ctx.runQuery(internal.settings.internals.requireManageOptionsInternal, {});
+}
 
 async function maskError(err: unknown): Promise<string> {
   if (err instanceof Error) return err.message.slice(0, 200);
@@ -25,7 +29,7 @@ async function maskError(err: unknown): Promise<string> {
 export const testStripe = action({
   args: {},
   handler: async (ctx): Promise<TestResult> => {
-    await requireCan(ctx, "manage_options");
+    await requireManageOptions(ctx);
     const key = await getServiceKeyFromAction(
       ctx,
       "commerce.payments",
@@ -56,7 +60,7 @@ export const testStripe = action({
 export const testPayPal = action({
   args: {},
   handler: async (ctx): Promise<TestResult> => {
-    await requireCan(ctx, "manage_options");
+    await requireManageOptions(ctx);
     const clientId = await getServiceKeyFromAction(
       ctx,
       "commerce.payments",
@@ -110,7 +114,7 @@ export const testPayPal = action({
 export const testClerk = action({
   args: {},
   handler: async (ctx): Promise<TestResult> => {
-    await requireCan(ctx, "manage_options");
+    await requireManageOptions(ctx);
     const key = await getServiceKeyFromAction(
       ctx,
       "integrations.clerk",
@@ -137,7 +141,7 @@ export const testClerk = action({
 export const testGa4 = action({
   args: {},
   handler: async (ctx): Promise<TestResult> => {
-    await requireCan(ctx, "manage_options");
+    await requireManageOptions(ctx);
     const json = await getServiceKeyFromAction(
       ctx,
       "analytics.ga4",
@@ -177,7 +181,7 @@ export const testGa4 = action({
 export const testUspsAddress = action({
   args: {},
   handler: async (ctx): Promise<TestResult> => {
-    await requireCan(ctx, "manage_options");
+    await requireManageOptions(ctx);
     try {
       const { getUspsAccessTokenV2 } = await import(
         "../../shipping/providers/usps/auth"
@@ -209,7 +213,7 @@ export const testUspsAddress = action({
 export const testGooglePlaces = action({
   args: {},
   handler: async (ctx): Promise<TestResult> => {
-    await requireCan(ctx, "manage_options");
+    await requireManageOptions(ctx);
     const key = await getServiceKeyFromAction(
       ctx,
       "integrations.google",

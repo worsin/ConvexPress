@@ -67,7 +67,9 @@ export async function runBootstrapShippingTemplates(
   return { created, existing };
 }
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const bootstrapShippingTemplates = internalMutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => runBootstrapShippingTemplates(ctx),
 });

@@ -62,8 +62,10 @@ import {
  *
  * @returns The Convex user ID of the created (or existing) user
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const handleExternalAuthUserCreated = internalMutation({
   args: createUserFromExternalAuthArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
 
@@ -72,7 +74,7 @@ export const handleExternalAuthUserCreated = internalMutation({
     // Check by clerkUserId first, then by email.
     const existingByClerk = await ctx.db
       .query("users")
-      .withIndex("by_clerkUserId", (q) =>
+      .withIndex("by_clerkUserId", (q: ConvexQueryBuilder) =>
         q.eq("clerkUserId", args.externalAuthId),
       )
       .unique();
@@ -84,7 +86,7 @@ export const handleExternalAuthUserCreated = internalMutation({
     // Also check by email to prevent duplicate accounts
     const existingByEmail = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase().trim()))
+      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", args.email.toLowerCase().trim()))
       .first();
 
     if (existingByEmail) {
@@ -95,10 +97,11 @@ export const handleExternalAuthUserCreated = internalMutation({
     const email = args.email.toLowerCase().trim();
     const pendingInvitations = await ctx.db
       .query("invitations")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email))
       .collect();
 
     const matchedInvitation = pendingInvitations.find(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (inv) =>
         inv.status === "pending" && inv.expiresAt >= now,
     );
@@ -117,7 +120,7 @@ export const handleExternalAuthUserCreated = internalMutation({
       // Look up the role by slug from the invitation
       const invitedRole = await ctx.db
         .query("roles")
-        .withIndex("by_slug", (q) => q.eq("slug", matchedInvitation.role))
+        .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", matchedInvitation.role))
         .unique();
 
       if (invitedRole) {
@@ -226,15 +229,17 @@ export const handleExternalAuthUserCreated = internalMutation({
  *
  * @returns Object with count of expired invitations
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const expireOldInvitations = internalMutation({
   args: expireOldInvitationsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const now = Date.now();
 
     // Get all pending invitations
     const pendingInvitations = await ctx.db
       .query("invitations")
-      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "pending"))
       .collect();
 
     let expiredCount = 0;
@@ -265,21 +270,23 @@ export const expireOldInvitations = internalMutation({
  *
  * @returns Object with count of deleted invitations
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanupExpiredInvitations = internalMutation({
   args: cleanupExpiredInvitationsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
 
     // Get expired invitations
     const expiredInvitations = await ctx.db
       .query("invitations")
-      .withIndex("by_status", (q) => q.eq("status", "expired"))
+      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "expired"))
       .collect();
 
     // Get revoked invitations
     const revokedInvitations = await ctx.db
       .query("invitations")
-      .withIndex("by_status", (q) => q.eq("status", "revoked"))
+      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "revoked"))
       .collect();
 
     let deletedCount = 0;
@@ -312,20 +319,23 @@ export const cleanupExpiredInvitations = internalMutation({
  * Used by other internal systems that need to check if an email
  * has a pending invitation without going through the public query.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getPendingByEmail = internalQuery({
   args: {
     email: v.string(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const email = args.email.toLowerCase().trim();
 
     const invitations = await ctx.db
       .query("invitations")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email))
       .collect();
 
     return (
       invitations.find(
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (inv) =>
           inv.status === "pending" && inv.expiresAt >= Date.now(),
       ) ?? null

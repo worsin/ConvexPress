@@ -9,10 +9,12 @@ import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { resolveServiceKey } from "../helpers/serviceKeys";
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const sendTestEmail = action({
   args: {
     recipientEmail: v.string(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

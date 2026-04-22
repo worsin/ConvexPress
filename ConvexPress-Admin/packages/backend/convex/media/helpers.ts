@@ -372,7 +372,20 @@ export async function setMediaAttachmentBatch(
  *
  * WordPress equivalent: Settings > Media page.
  */
-export const MEDIA_SETTINGS_DEFAULTS = {
+export interface MediaSettings {
+  maxUploadSize: number;
+  thumbnailWidth: number;
+  thumbnailHeight: number;
+  thumbnailCrop: boolean;
+  mediumWidth: number;
+  mediumMaxHeight: number;
+  mediumLargeWidth: number;
+  mediumLargeMaxHeight: number;
+  largeWidth: number;
+  largeMaxHeight: number;
+}
+
+export const MEDIA_SETTINGS_DEFAULTS: MediaSettings = {
   /** Maximum file upload size in bytes (default: 50MB) */
   maxUploadSize: 50 * 1024 * 1024,
   /** WordPress-standard image sizes (configurable dimensions) */
@@ -385,7 +398,7 @@ export const MEDIA_SETTINGS_DEFAULTS = {
   mediumLargeMaxHeight: 0,
   largeWidth: 1024,
   largeMaxHeight: 0,
-} as const;
+};
 
 /**
  * Read media settings from the Settings System with fallback to defaults.
@@ -398,7 +411,7 @@ export const MEDIA_SETTINGS_DEFAULTS = {
  */
 export async function getMediaSettings(
   ctx: QueryCtx,
-): Promise<typeof MEDIA_SETTINGS_DEFAULTS> {
+): Promise<MediaSettings> {
   try {
     // Attempt to read from Settings System
     const doc = await ctx.db

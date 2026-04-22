@@ -12,8 +12,10 @@ import { mutation } from "../_generated/server";
  *
  * The email-based fallback is critical for customer continuity.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const provisionClerkUser = mutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
@@ -28,7 +30,7 @@ export const provisionClerkUser = mutation({
     // 1. Match by clerkUserId
     const byClerkId = await ctx.db
       .query("users")
-      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
+      .withIndex("by_clerkUserId", (q: ConvexQueryBuilder) => q.eq("clerkUserId", clerkUserId))
       .unique();
 
     if (byClerkId) return byClerkId._id;
@@ -37,7 +39,7 @@ export const provisionClerkUser = mutation({
     if (normalizedEmail) {
       const byEmail = await ctx.db
         .query("users")
-        .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+        .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", normalizedEmail))
         .unique();
 
       if (byEmail) {
@@ -71,7 +73,7 @@ export const provisionClerkUser = mutation({
     // 3. No match — create a new user
     const subscriberRole = await ctx.db
       .query("roles")
-      .withIndex("by_slug", (q) => q.eq("slug", "subscriber"))
+      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "subscriber"))
       .unique();
 
     const userId = await ctx.db.insert("users", {

@@ -539,7 +539,7 @@ export const getByNumericId = query({
       .withIndex("by_type_status", (q) =>
         q.eq("type", "post").eq("status", "publish"),
       )
-      .filter((q) => q.eq(q.field("numericId"), args.numericId))
+      .filter((q) => q.eq(q.field("wpPostId"), args.numericId))
       .first();
 
     if (!post) return null;

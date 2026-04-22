@@ -15,6 +15,8 @@ import type { Id, Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { resolveUserRole } from "./permissions";
 
+type ReadCtx = Pick<QueryCtx, "db">;
+
 // ─── Settings Integration ────────────────────────────────────────────────────
 
 /** Default maximum revisions per post (matches validators.ts). */
@@ -33,7 +35,7 @@ const SETTINGS_DEFAULT_MAX_REVISIONS = 25;
  * @returns Object with maxRevisions and revisionsEnabled
  */
 export async function getRevisionSettings(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
 ): Promise<{ maxRevisions: number; revisionsEnabled: boolean }> {
   let maxRevisions = SETTINGS_DEFAULT_MAX_REVISIONS;
   let revisionsEnabled = true;
@@ -41,7 +43,7 @@ export async function getRevisionSettings(
   try {
     const writingSettings = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "writing"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "writing"))
       .unique();
 
     if (writingSettings?.values) {
@@ -90,7 +92,7 @@ export async function getRevisionSettings(
  * @param capability - The capability string to check
  */
 export async function requireRevisionAccess(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   user: Doc<"users">,
   post: Doc<"posts">,
   capability: string,
@@ -127,14 +129,14 @@ export async function requireRevisionAccess(
  * @returns The number of revisions matching the criteria
  */
 export async function getRevisionCount(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   parentId: Id<"posts">,
   type?: "manual" | "autosave",
 ): Promise<number> {
   if (type) {
     const revisions = await ctx.db
       .query("revisions")
-      .withIndex("by_parent_type", (q) =>
+      .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
         q.eq("parentId", parentId).eq("type", type),
       )
       .collect();
@@ -143,7 +145,7 @@ export async function getRevisionCount(
 
   const revisions = await ctx.db
     .query("revisions")
-    .withIndex("by_parent", (q) => q.eq("parentId", parentId))
+    .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", parentId))
     .collect();
   return revisions.length;
 }
@@ -159,7 +161,7 @@ export async function getRevisionCount(
  * @returns The most recent revision document, or null if none exist
  */
 export async function getLatestRevision(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   parentId: Id<"posts">,
   type?: "manual" | "autosave",
 ): Promise<Doc<"revisions"> | null> {
@@ -168,14 +170,14 @@ export async function getLatestRevision(
   if (type) {
     revisions = await ctx.db
       .query("revisions")
-      .withIndex("by_parent_type", (q) =>
+      .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
         q.eq("parentId", parentId).eq("type", type),
       )
       .collect();
   } else {
     revisions = await ctx.db
       .query("revisions")
-      .withIndex("by_parent", (q) => q.eq("parentId", parentId))
+      .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", parentId))
       .collect();
   }
 

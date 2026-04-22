@@ -61,6 +61,135 @@ import { requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Validation Helpers (local) ─────────────────────────────────────────────
 
+type LocationRuleCondition = {
+  param: string;
+  operator: "==" | "!=";
+  value: string;
+};
+
+type LocationRules = LocationRuleCondition[][];
+
+type ImportedField = {
+  label: string;
+  type: string;
+  name?: string;
+  instructions?: string;
+  required: boolean;
+  defaultValue?: string;
+  settings: string;
+  conditionalLogic?: string;
+  wrapperWidth?: string;
+  wrapperClass?: string;
+  wrapperId?: string;
+  menuOrder: number;
+  _origKey?: string;
+  _origParentKey?: string;
+};
+
+type ImportedGroup = {
+  title: string;
+  description?: string;
+  locationRules: LocationRules;
+  position: "normal" | "side" | "after_title";
+  style: "default" | "seamless";
+  labelPlacement: "top" | "left";
+  instructionPlacement: "label" | "field";
+  menuOrder: number;
+};
+
+const DEFAULT_LOCATION_RULES: LocationRules = [
+  [{ param: "post_type", operator: "==", value: "post" }],
+];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function stringOr(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function numberOr(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function booleanOr(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function parseLocationRules(value: unknown): LocationRules {
+  if (!Array.isArray(value)) return DEFAULT_LOCATION_RULES;
+
+  const groups: LocationRules = [];
+  for (const rawGroup of value) {
+    if (!Array.isArray(rawGroup)) continue;
+    const conditions: LocationRuleCondition[] = [];
+    for (const rawCondition of rawGroup) {
+      if (!isRecord(rawCondition)) continue;
+      const param = optionalString(rawCondition.param);
+      const operator = rawCondition.operator;
+      const conditionValue = optionalString(rawCondition.value);
+      if (
+        param &&
+        conditionValue !== undefined &&
+        (operator === "==" || operator === "!=")
+      ) {
+        conditions.push({ param, operator, value: conditionValue });
+      }
+    }
+    if (conditions.length > 0) groups.push(conditions);
+  }
+
+  return groups.length > 0 ? groups : DEFAULT_LOCATION_RULES;
+}
+
+function parseImportedGroup(value: Record<string, unknown>): ImportedGroup {
+  const position = value.position;
+  const style = value.style;
+  const labelPlacement = value.labelPlacement;
+  const instructionPlacement = value.instructionPlacement;
+
+  return {
+    title: stringOr(value.title, "Imported Group"),
+    description: optionalString(value.description),
+    locationRules: parseLocationRules(value.locationRules),
+    position:
+      position === "side" || position === "after_title" ? position : "normal",
+    style: style === "seamless" ? "seamless" : "default",
+    labelPlacement: labelPlacement === "left" ? "left" : "top",
+    instructionPlacement:
+      instructionPlacement === "field" ? "field" : "label",
+    menuOrder: numberOr(value.menuOrder, 0),
+  };
+}
+
+function parseImportedField(value: Record<string, unknown>): ImportedField | null {
+  const label = optionalString(value.label);
+  const type = optionalString(value.type);
+  if (!label || !type) return null;
+
+  return {
+    label,
+    type,
+    name: optionalString(value.name),
+    instructions: optionalString(value.instructions),
+    required: booleanOr(value.required, false),
+    defaultValue: optionalString(value.defaultValue),
+    settings: stringOr(value.settings, "{}"),
+    conditionalLogic: optionalString(value.conditionalLogic),
+    wrapperWidth: optionalString(value.wrapperWidth),
+    wrapperClass: optionalString(value.wrapperClass),
+    wrapperId: optionalString(value.wrapperId),
+    menuOrder: numberOr(value.menuOrder, 0),
+    _origKey: optionalString(value._origKey),
+    _origParentKey: optionalString(value._origParentKey),
+  };
+}
+
 function validateTitle(title: string): string {
   const trimmed = title.trim();
   if (!trimmed) {
@@ -200,8 +329,10 @@ function validateConditionalLogic(
  * Generates key from title if not provided. Validates key uniqueness.
  * Optionally creates inline field definitions.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createGroup = mutation({
   args: createGroupArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
@@ -224,7 +355,7 @@ export const createGroup = mutation({
     // 5. Check key uniqueness
     const existingByKey = await ctx.db
       .query("fieldGroups")
-      .withIndex("by_key", (q) => q.eq("key", key))
+      .withIndex("by_key", (q: ConvexQueryBuilder) => q.eq("key", key))
       .unique();
     if (existingByKey) {
       // Auto-deduplicate: append a random suffix
@@ -290,7 +421,7 @@ export const createGroup = mutation({
         // Check name uniqueness within group
         const existingField = await ctx.db
           .query("fieldDefinitions")
-          .withIndex("by_group_name", (q) =>
+          .withIndex("by_group_name", (q: ConvexQueryBuilder) =>
             q.eq("groupId", groupId).eq("name", fieldName),
           )
           .unique();
@@ -360,8 +491,10 @@ export const createGroup = mutation({
  * Requires `custom_field.update_group` capability (Administrator only).
  * Key is immutable after creation. Validates all changed fields.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateGroup = mutation({
   args: updateGroupArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
@@ -521,8 +654,10 @@ export const updateGroup = mutation({
  * Deletes all field definitions belonging to this group.
  * Optionally deletes all stored field values for those definitions.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteGroup = mutation({
   args: deleteGroupArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
@@ -540,7 +675,7 @@ export const deleteGroup = mutation({
     // 3. Get all field definitions for this group
     const fields = await ctx.db
       .query("fieldDefinitions")
-      .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
+      .withIndex("by_group", (q: ConvexQueryBuilder) => q.eq("groupId", args.groupId))
       .collect();
 
     // 4. If deleteValues is true, delete all field values and corresponding postMeta
@@ -548,7 +683,7 @@ export const deleteGroup = mutation({
       for (const field of fields) {
         const values = await ctx.db
           .query("fieldValues")
-          .withIndex("by_field_key", (q) => q.eq("fieldKey", field.key))
+          .withIndex("by_field_key", (q: ConvexQueryBuilder) => q.eq("fieldKey", field.key))
           .collect();
 
         for (const value of values) {
@@ -557,7 +692,7 @@ export const deleteGroup = mutation({
             try {
               const meta = await ctx.db
                 .query("postMeta")
-                .withIndex("by_post_key", (q) =>
+                .withIndex("by_post_key", (q: ConvexQueryBuilder) =>
                   q.eq("postId", value.entityId as Id<"posts">).eq("key", field.name),
                 )
                 .unique();
@@ -611,8 +746,10 @@ export const deleteGroup = mutation({
  * Requires `custom_field.create_group` capability (Administrator only).
  * Generates name from label if not provided. Validates type and settings.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createField = mutation({
   args: createFieldArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
@@ -638,7 +775,7 @@ export const createField = mutation({
     // 5. Validate name uniqueness within group
     const existingField = await ctx.db
       .query("fieldDefinitions")
-      .withIndex("by_group_name", (q) =>
+      .withIndex("by_group_name", (q: ConvexQueryBuilder) =>
         q.eq("groupId", args.groupId).eq("name", name),
       )
       .unique();
@@ -728,8 +865,10 @@ export const createField = mutation({
  * Requires `custom_field.update_group` capability (Administrator only).
  * Validates name uniqueness if changed. Warns on type changes.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateField = mutation({
   args: updateFieldArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
@@ -762,7 +901,7 @@ export const updateField = mutation({
         // Check uniqueness within group
         const existingField = await ctx.db
           .query("fieldDefinitions")
-          .withIndex("by_group_name", (q) =>
+          .withIndex("by_group_name", (q: ConvexQueryBuilder) =>
             q.eq("groupId", field.groupId).eq("name", newName),
           )
           .unique();
@@ -839,8 +978,10 @@ export const updateField = mutation({
  * Recursively deletes sub-fields for compound types.
  * Optionally deletes all stored field values.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteField = mutation({
   args: deleteFieldArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
@@ -864,7 +1005,7 @@ export const deleteField = mutation({
     if (args.deleteValues) {
       const values = await ctx.db
         .query("fieldValues")
-        .withIndex("by_field_key", (q) => q.eq("fieldKey", field.key))
+        .withIndex("by_field_key", (q: ConvexQueryBuilder) => q.eq("fieldKey", field.key))
         .collect();
 
       for (const value of values) {
@@ -926,8 +1067,10 @@ async function deleteSubFieldsRecursive(
  * Requires `custom_field.update_group` capability (Administrator only).
  * Batch updates menuOrder for all specified fields.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const reorderFields = mutation({
   args: reorderFieldsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
@@ -982,8 +1125,10 @@ export const reorderFields = mutation({
  * Layout fields (message, accordion, tab) cannot have values set.
  * Upserts: updates existing value or creates new one.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const setValue = mutation({
   args: setValueArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
@@ -992,7 +1137,7 @@ export const setValue = mutation({
     // 2. Retrieve field definition by fieldKey
     const fieldDef = await ctx.db
       .query("fieldDefinitions")
-      .withIndex("by_key", (q) => q.eq("key", args.fieldKey))
+      .withIndex("by_key", (q: ConvexQueryBuilder) => q.eq("key", args.fieldKey))
       .unique();
     if (!fieldDef) {
       throw new ConvexError({
@@ -1035,7 +1180,7 @@ export const setValue = mutation({
     const now = Date.now();
     const existing = await ctx.db
       .query("fieldValues")
-      .withIndex("by_entity_field", (q) =>
+      .withIndex("by_entity_field", (q: ConvexQueryBuilder) =>
         q
           .eq("entityType", args.entityType)
           .eq("entityId", args.entityId)
@@ -1071,7 +1216,7 @@ export const setValue = mutation({
         // Note: postMeta table may not exist yet during incremental build
         const existingMeta = await ctx.db
           .query("postMeta")
-          .withIndex("by_post_key", (q) =>
+          .withIndex("by_post_key", (q: ConvexQueryBuilder) =>
             q.eq("postId", args.entityId as Id<"posts">).eq("key", fieldDef.name),
           )
           .unique();
@@ -1112,8 +1257,10 @@ export const setValue = mutation({
  *
  * Requires `custom_field.set_value` capability.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteValue = mutation({
   args: deleteValueArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
@@ -1122,7 +1269,7 @@ export const deleteValue = mutation({
     // 2. Find existing value
     const existing = await ctx.db
       .query("fieldValues")
-      .withIndex("by_entity_field", (q) =>
+      .withIndex("by_entity_field", (q: ConvexQueryBuilder) =>
         q
           .eq("entityType", args.entityType)
           .eq("entityId", args.entityId)
@@ -1143,13 +1290,13 @@ export const deleteValue = mutation({
       try {
         const fieldDef = await ctx.db
           .query("fieldDefinitions")
-          .withIndex("by_key", (q) => q.eq("key", args.fieldKey))
+          .withIndex("by_key", (q: ConvexQueryBuilder) => q.eq("key", args.fieldKey))
           .unique();
 
         if (fieldDef) {
           const meta = await ctx.db
             .query("postMeta")
-            .withIndex("by_post_key", (q) =>
+            .withIndex("by_post_key", (q: ConvexQueryBuilder) =>
               q.eq("postId", args.entityId as Id<"posts">).eq("key", fieldDef.name),
             )
             .unique();
@@ -1175,8 +1322,10 @@ export const deleteValue = mutation({
  * Requires `custom_field.set_value` capability.
  * Used by the content editor to save all dirty field values at once.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const setValues = mutation({
   args: setValuesArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
@@ -1189,7 +1338,7 @@ export const setValues = mutation({
       // 2. Retrieve field definition
       const fieldDef = await ctx.db
         .query("fieldDefinitions")
-        .withIndex("by_key", (q) => q.eq("key", entry.fieldKey))
+        .withIndex("by_key", (q: ConvexQueryBuilder) => q.eq("key", entry.fieldKey))
         .unique();
 
       if (!fieldDef) { skipped++; continue; } // Skip unknown fields
@@ -1222,7 +1371,7 @@ export const setValues = mutation({
       // 3. Upsert field value
       const existing = await ctx.db
         .query("fieldValues")
-        .withIndex("by_entity_field", (q) =>
+        .withIndex("by_entity_field", (q: ConvexQueryBuilder) =>
           q
             .eq("entityType", args.entityType)
             .eq("entityId", args.entityId)
@@ -1254,7 +1403,7 @@ export const setValues = mutation({
         try {
           const existingMeta = await ctx.db
             .query("postMeta")
-            .withIndex("by_post_key", (q) =>
+            .withIndex("by_post_key", (q: ConvexQueryBuilder) =>
               q
                 .eq("postId", args.entityId as Id<"posts">)
                 .eq("key", fieldDef.name),
@@ -1295,8 +1444,10 @@ export const setValues = mutation({
  * Deep-copies the group and all field definitions with new IDs and keys.
  * The copy starts as inactive to prevent accidental duplicate display.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const duplicateGroup = mutation({
   args: duplicateGroupArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
@@ -1336,7 +1487,7 @@ export const duplicateGroup = mutation({
     // 5. Deep-copy field definitions (top-level first, then sub-fields)
     const allFields = await ctx.db
       .query("fieldDefinitions")
-      .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
+      .withIndex("by_group", (q: ConvexQueryBuilder) => q.eq("groupId", args.groupId))
       .collect();
 
     // Build a map from old ID to new ID for parent references
@@ -1344,7 +1495,9 @@ export const duplicateGroup = mutation({
 
     // First pass: copy all fields, tracking ID mappings
     // Sort so parent fields come before children
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const topLevelFields = allFields.filter((f) => !f.parentFieldId);
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const subFields = allFields.filter((f) => f.parentFieldId);
 
     // Copy top-level fields first
@@ -1425,8 +1578,10 @@ export const duplicateGroup = mutation({
  * Requires `custom_field.create_group` capability (Administrator only).
  * Returns a JSON string blob suitable for importGroup.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const exportGroup = mutation({
   args: exportGroupArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
@@ -1444,7 +1599,7 @@ export const exportGroup = mutation({
     // 3. Fetch all field definitions
     const fields = await ctx.db
       .query("fieldDefinitions")
-      .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
+      .withIndex("by_group", (q: ConvexQueryBuilder) => q.eq("groupId", args.groupId))
       .collect();
 
     // 4. Build export object (strip internal IDs)
@@ -1463,6 +1618,7 @@ export const exportGroup = mutation({
         isActive: group.isActive,
         menuOrder: group.menuOrder,
       },
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       fields: fields.map((f) => ({
         label: f.label,
         name: f.name,
@@ -1478,6 +1634,7 @@ export const exportGroup = mutation({
         menuOrder: f.menuOrder,
         _origKey: f.key, // For parent reference resolution
         _origParentKey: f.parentFieldId
+          // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           ? fields.find((p) => p._id === f.parentFieldId)?.key
           : undefined,
       })),
@@ -1493,15 +1650,17 @@ export const exportGroup = mutation({
  * Requires `custom_field.create_group` capability (Administrator only).
  * Creates new group and field definitions with new IDs and keys.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const importGroup = mutation({
   args: importGroupArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     const user = await requireCan(ctx, "custom_field.create_group");
 
     // 2. Parse JSON
-    let data: Record<string, unknown>;
+    let data: unknown;
     try {
       data = JSON.parse(args.data);
     } catch {
@@ -1512,30 +1671,36 @@ export const importGroup = mutation({
     }
 
     // 3. Validate structure
-    if (!data.group || !data.fields) {
+    if (!isRecord(data) || !isRecord(data.group) || !Array.isArray(data.fields)) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message: "Import data must contain 'group' and 'fields' properties",
       });
     }
 
+    const group = parseImportedGroup(data.group);
+    const fieldsArray = data.fields
+      .filter(isRecord)
+      .map(parseImportedField)
+      .filter((field): field is ImportedField => field !== null);
+
     // 4. Generate new key (avoid conflicts)
-    const baseKey = generateSlug(data.group.title || "imported_group");
+    const baseKey = generateSlug(group.title || "imported_group");
     const newKey = `${baseKey}_${generateRandomHex()}`;
 
     // 5. Insert new group
     const now = Date.now();
     const newGroupId = await ctx.db.insert("fieldGroups", {
-      title: data.group.title || "Imported Group",
+      title: group.title,
       key: newKey,
-      description: data.group.description,
-      locationRules: data.group.locationRules || [[{ param: "post_type", operator: "==" as const, value: "post" }]],
-      position: data.group.position || "normal",
-      style: data.group.style || "default",
-      labelPlacement: data.group.labelPlacement || "top",
-      instructionPlacement: data.group.instructionPlacement || "label",
+      description: group.description,
+      locationRules: group.locationRules,
+      position: group.position,
+      style: group.style,
+      labelPlacement: group.labelPlacement,
+      instructionPlacement: group.instructionPlacement,
       isActive: false, // Start inactive for safety
-      menuOrder: data.group.menuOrder ?? 0,
+      menuOrder: group.menuOrder,
       createdBy: getUserIdentifier(user),
       createdAt: now,
       updatedAt: now,
@@ -1544,14 +1709,11 @@ export const importGroup = mutation({
     // 6. Import field definitions
     // First pass: import top-level fields (no parent)
     const origKeyToNewId = new Map<string, Id<"fieldDefinitions">>();
-    const fieldsArray: Array<Record<string, unknown>> = data.fields;
 
-    const topLevel = fieldsArray.filter((f: Record<string, unknown>) => !f._origParentKey);
-    const subLevel = fieldsArray.filter((f: Record<string, unknown>) => f._origParentKey);
+    const topLevel = fieldsArray.filter((f) => !f._origParentKey);
+    const subLevel = fieldsArray.filter((f) => f._origParentKey);
 
     for (const field of topLevel) {
-      if (!field.label || !field.type) continue; // Skip invalid
-
       const fieldName = field.name || generateSlug(field.label);
       const fieldKey = generateFieldKey(fieldName);
 
@@ -1581,8 +1743,6 @@ export const importGroup = mutation({
 
     // Second pass: import sub-fields with resolved parent references
     for (const field of subLevel) {
-      if (!field.label || !field.type) continue;
-
       const parentId = field._origParentKey
         ? origKeyToNewId.get(field._origParentKey)
         : undefined;
@@ -1622,7 +1782,7 @@ export const importGroup = mutation({
       SYSTEM.CUSTOM_FIELD,
       {
         groupId: newGroupId,
-        title: data.group.title || "Imported Group",
+        title: group.title,
         key: newKey,
         fieldCount: fieldsArray.length,
         createdBy: getUserIdentifier(user),

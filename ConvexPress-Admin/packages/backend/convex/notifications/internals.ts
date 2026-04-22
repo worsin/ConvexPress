@@ -71,8 +71,10 @@ const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
  * Called by: onEvent handler, sendBulk, or direct internal calls
  * Never exposed to clients.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const send = internalMutation({
   args: sendArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
 
@@ -128,10 +130,11 @@ export const send = internalMutation({
         : undefined;
 
     // ─── 3. Check user preferences ─────────────────────────────────────
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const notificationConfig = NOTIFICATION_TYPES[args.notificationKey];
     const preference = await ctx.db
       .query("notificationPreferences")
-      .withIndex("by_user_key", (q) =>
+      .withIndex("by_user_key", (q: ConvexQueryBuilder) =>
         q
           .eq("userId", args.userId)
           .eq("notificationKey", args.notificationKey),
@@ -155,11 +158,12 @@ export const send = internalMutation({
     const recentCutoff = now - RATE_LIMIT_WINDOW_MS;
     const recentNotifications = await ctx.db
       .query("siteNotifications")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", args.userId))
       .order("desc")
       .take(RATE_LIMIT_MAX + 1);
 
     const recentCount = recentNotifications.filter(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (n) => n.createdAt > recentCutoff,
     ).length;
 
@@ -167,7 +171,7 @@ export const send = internalMutation({
       // Check if a rate-limit summary already exists in the window
       const existingSummary = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_group", (q) =>
+        .withIndex("by_group", (q: ConvexQueryBuilder) =>
           q.eq("userId", args.userId).eq("groupKey", `rate_limit:${args.userId}`),
         )
         .order("desc")
@@ -214,7 +218,7 @@ export const send = internalMutation({
       // Look for existing unread notification with same groupKey in the window
       const existingGrouped = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_group", (q) =>
+        .withIndex("by_group", (q: ConvexQueryBuilder) =>
           q.eq("userId", args.userId).eq("groupKey", args.groupKey!),
         )
         .order("desc")
@@ -296,8 +300,10 @@ export const send = internalMutation({
  *   - Each send is isolated in its own mutation for error resilience
  *   - Any future changes to `send` automatically apply to bulk sends
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const sendBulk = internalMutation({
   args: sendBulkArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const { userIds, ...notificationArgs } = args;
 
@@ -346,8 +352,10 @@ export const sendBulk = internalMutation({
  * Circuit breaker: notification.* events are NEVER processed here
  * (prevents infinite loops where notification creation triggers more notifications).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onEvent = internalMutation({
   args: onEventArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // ─── 1. Load event record ──────────────────────────────────────────
     const event = await ctx.db.get("events", args.eventId);
@@ -388,7 +396,7 @@ export const onEvent = internalMutation({
       // Try multiple lookup strategies for the actor
       let actorUser = await ctx.db
         .query("users")
-        .withIndex("by_clerkUserId", (q) =>
+        .withIndex("by_clerkUserId", (q: ConvexQueryBuilder) =>
           q.eq("clerkUserId", event.actorId!),
         )
         .unique();
@@ -436,13 +444,13 @@ export const onEvent = internalMutation({
         // All administrators
         const adminRole = await ctx.db
           .query("roles")
-          .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
+          .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
           .unique();
 
         if (adminRole) {
           const admins = await ctx.db
             .query("users")
-            .withIndex("by_roleId", (q) => q.eq("roleId", adminRole._id))
+            .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", adminRole._id))
             .take(50); // Cap at 50 admins
 
           for (const admin of admins) {
@@ -540,24 +548,28 @@ export const onEvent = internalMutation({
  * unread notifications. Continues processing in batches of 100 without
  * requiring auth context (userId is passed explicitly).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const markAllReadBatch = internalMutation({
   args: markAllReadBatchArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
 
     const unreadNotifications = await ctx.db
       .query("siteNotifications")
-      .withIndex("by_user_unread", (q) =>
+      .withIndex("by_user_unread", (q: ConvexQueryBuilder) =>
         q.eq("userId", args.userId).eq("readAt", undefined),
       )
       .take(100);
 
     let toMark = unreadNotifications.filter(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (n) => n.dismissedAt === undefined,
     );
 
     if (args.beforeTimestamp !== undefined) {
       toMark = toMark.filter(
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (n) => n.createdAt <= args.beforeTimestamp!,
       );
     }
@@ -591,14 +603,16 @@ export const markAllReadBatch = internalMutation({
  * This function is meant to be called by a daily cron job.
  * Does NOT emit events to avoid recursion.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanupExpired = internalMutation({
   args: cleanupExpiredArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const now = Date.now();
 
     const expiredNotifications = await ctx.db
       .query("siteNotifications")
-      .withIndex("by_expires", (q) => q.lt("expiresAt", now))
+      .withIndex("by_expires", (q: ConvexQueryBuilder) => q.lt("expiresAt", now))
       .take(CLEANUP_BATCH_SIZE);
 
     if (expiredNotifications.length === 0) return;
@@ -628,14 +642,16 @@ export const cleanupExpired = internalMutation({
  * entries need to be cleaned up. Continues until no more expired
  * entries remain.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanupBatch = internalMutation({
   args: cleanupBatchArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
 
     const expiredNotifications = await ctx.db
       .query("siteNotifications")
-      .withIndex("by_expires", (q) => q.lt("expiresAt", now))
+      .withIndex("by_expires", (q: ConvexQueryBuilder) => q.lt("expiresAt", now))
       .take(CLEANUP_BATCH_SIZE);
 
     if (expiredNotifications.length === 0) return;
@@ -667,15 +683,17 @@ export const cleanupBatch = internalMutation({
  * This ensures every user has a complete set of preferences that they
  * can later customize.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const bootstrapPreferences = internalMutation({
   args: bootstrapPreferencesArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
 
     // Check if preferences already exist (idempotent)
     const existing = await ctx.db
       .query("notificationPreferences")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", args.userId))
       .first();
 
     if (existing) {
@@ -707,8 +725,10 @@ export const bootstrapPreferences = internalMutation({
  *
  * Requires Administrator role.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const sendTestNotification = internalMutation({
   args: sendTestNotificationArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
 

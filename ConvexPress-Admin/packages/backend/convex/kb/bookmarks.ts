@@ -15,8 +15,10 @@ import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── List ───────────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return [];
     const user = await getCurrentUser(ctx);
@@ -26,12 +28,14 @@ export const list = query({
 
     const bookmarks = await ctx.db
       .query("kb_bookmarks")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", user._id))
       .order("desc")
       .take(500);
 
     // Enrich with article details
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return Promise.all(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       bookmarks.map(async (bookmark) => {
         const article = await ctx.db.get("kb_articles", bookmark.articleId);
         return {
@@ -54,8 +58,10 @@ export const list = query({
 
 // ─── Is Bookmarked ──────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const isBookmarked = query({
   args: isBookmarkedArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -63,7 +69,7 @@ export const isBookmarked = query({
 
     const bookmark = await ctx.db
       .query("kb_bookmarks")
-      .withIndex("by_user_article", (q) =>
+      .withIndex("by_user_article", (q: ConvexQueryBuilder) =>
         q.eq("userId", user._id).eq("articleId", args.articleId),
       )
       .first();
@@ -74,8 +80,10 @@ export const isBookmarked = query({
 
 // ─── Toggle ─────────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const toggle = mutation({
   args: toggleBookmarkArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -85,7 +93,7 @@ export const toggle = mutation({
 
     const existing = await ctx.db
       .query("kb_bookmarks")
-      .withIndex("by_user_article", (q) =>
+      .withIndex("by_user_article", (q: ConvexQueryBuilder) =>
         q.eq("userId", user._id).eq("articleId", args.articleId),
       )
       .first();

@@ -7,7 +7,7 @@
  */
 
 import { internalAction, internalMutation } from "../../_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { PhaseResult } from "../internals";
@@ -995,6 +995,51 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+async function getCommerceCategoryParentState(ctx: any, parentId?: string) {
+  if (!parentId) {
+    return { parentId: undefined, path: [], depth: 0 };
+  }
+
+  const typedParentId = parentId as Id<"commerce_product_categories">;
+  const parent = await ctx.db.get("commerce_product_categories", typedParentId);
+  if (!parent) {
+    throw new ConvexError({
+      code: "NOT_FOUND",
+      message: "Commerce category parent not found during sync.",
+    });
+  }
+
+  const path = [...(parent.path ?? []), parent._id];
+  if (path.length >= 5) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "WooCommerce category hierarchy exceeds the 5-level product category limit.",
+    });
+  }
+
+  return { parentId: typedParentId, path, depth: path.length };
+}
+
+async function updateCommerceCategoryDescendantPaths(ctx: any, categoryId: Id<"commerce_product_categories">) {
+  const parent = await ctx.db.get("commerce_product_categories", categoryId);
+  if (!parent) return;
+
+  const children = await ctx.db
+    .query("commerce_product_categories")
+    .withIndex("by_parent", (q) => q.eq("parentId", categoryId))
+    .collect();
+
+  for (const child of children) {
+    const path = [...(parent.path ?? []), parent._id];
+    await ctx.db.patch("commerce_product_categories", child._id, {
+      path,
+      depth: path.length,
+      updatedAt: Date.now(),
+    });
+    await updateCommerceCategoryDescendantPaths(ctx, child._id);
+  }
+}
+
 export const upsertCategory = internalMutation({
   args: {
     existingId: v.optional(v.string()),
@@ -1010,15 +1055,24 @@ export const upsertCategory = internalMutation({
   },
   handler: async (ctx, { existingId, parentId, wpCategory }) => {
     const now = Date.now();
+    const parentState = await getCommerceCategoryParentState(ctx, parentId);
+    const categorySlug =
+      slugify(wpCategory.slug || wpCategory.name) || `category-${wpCategory.id}`;
     const patch = {
       name: wpCategory.name,
-      slug: wpCategory.slug,
+      slug: categorySlug,
       description: wpCategory.description,
-      parentId: parentId ? (parentId as Id<"commerce_product_categories">) : undefined,
+      parentId: parentState.parentId,
+      path: parentState.path,
+      depth: parentState.depth,
       thumbnailMediaId: wpCategory.thumbnailMediaId
         ? (wpCategory.thumbnailMediaId as Id<"media">)
         : undefined,
       productCount: wpCategory.count,
+      totalProductCount: wpCategory.count,
+      isVisible: true,
+      isFeatured: false,
+      showInNav: false,
       updatedAt: now,
     };
 
@@ -1032,12 +1086,14 @@ export const upsertCategory = internalMutation({
     }
 
     if (targetId) {
-      await ctx.db.patch(targetId, patch);
+      await ctx.db.patch("commerce_product_categories", targetId, patch);
+      await updateCommerceCategoryDescendantPaths(ctx, targetId);
       return targetId;
     }
 
     return await ctx.db.insert("commerce_product_categories", {
       ...patch,
+      sortOrder: now,
       createdAt: now,
     });
   },
@@ -1049,10 +1105,15 @@ export const setCategoryParent = internalMutation({
     parentId: v.optional(v.string()),
   },
   handler: async (ctx, { categoryId, parentId }) => {
-    await ctx.db.patch(categoryId as Id<"commerce_product_categories">, {
-      parentId: parentId ? (parentId as Id<"commerce_product_categories">) : undefined,
+    const typedCategoryId = categoryId as Id<"commerce_product_categories">;
+    const parentState = await getCommerceCategoryParentState(ctx, parentId);
+    await ctx.db.patch("commerce_product_categories", typedCategoryId, {
+      parentId: parentState.parentId,
+      path: parentState.path,
+      depth: parentState.depth,
       updatedAt: Date.now(),
     });
+    await updateCommerceCategoryDescendantPaths(ctx, typedCategoryId);
   },
 });
 

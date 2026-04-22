@@ -1,8 +1,8 @@
 import { ConvexError } from "convex/values";
 
-import type { QueryCtx, MutationCtx } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
 
-type BundleCtx = QueryCtx | MutationCtx;
+type BundleCtx = Pick<QueryCtx, "db">;
 
 /**
  * Check whether the commerce bundles plugin is enabled via settings.
@@ -13,7 +13,7 @@ export async function isCommerceBundlesEnabled(
 ): Promise<boolean> {
   const doc = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: any) => q.eq("section", "plugins"))
+    .withIndex("by_section", (q) => q.eq("section", "plugins"))
     .unique();
 
   const values = (doc?.values ?? {}) as Record<string, unknown>;

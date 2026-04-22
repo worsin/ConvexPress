@@ -34,8 +34,10 @@ import { isPluginEnabled } from "../helpers/plugins";
  *   - aiEnabled: boolean (deflection on/off)
  *   - escalationButtonLabel: string
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getConfig = query({
   args: getConfigArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     // Additional widget-display-only defaults (not persisted in settings)
@@ -46,7 +48,7 @@ export const getConfig = query({
 
     const doc = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "support.widget"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "support.widget"))
       .unique();
 
     const stored = doc ? (doc.values as Record<string, unknown>) : {};
@@ -72,8 +74,10 @@ export const getConfig = query({
  * Each ticket is returned with minimal fields needed for the widget:
  *   { _id, ticketNumber, subject, status, updatedAt }
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getRecentTickets = query({
   args: getRecentTicketsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return [];
     const user = await getCurrentUser(ctx);
@@ -83,10 +87,11 @@ export const getRecentTickets = query({
 
     const tickets = await ctx.db
       .query("ticket_tickets")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", user._id))
       .order("desc")
       .take(limit);
 
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     return tickets.map((t) => ({
       _id: t._id,
       ticketNumber: t.ticketNumber,

@@ -1,4 +1,5 @@
 import { defineSchema } from "convex/server";
+import type {} from "./types/convexQueryBuilder";
 
 // ─── Modular Schema Imports ──────────────────────────────────────────────────
 // Each system owns its own schema file in convex/schema/

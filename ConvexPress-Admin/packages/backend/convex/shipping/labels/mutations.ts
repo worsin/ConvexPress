@@ -139,7 +139,7 @@ export const recordPurchasedLabel = internalMutation({
 export const reprintLabel = mutation({
   args: { labelId: v.id("commerce_shipment_labels") },
   handler: async (ctx, args) => {
-    const user = await requireCan(ctx, "shipping.labels.print");
+    const user = await requireCan(ctx, "shipping.labels.reprint");
     const label = await ctx.db.get(args.labelId);
     if (!label) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Label not found." });

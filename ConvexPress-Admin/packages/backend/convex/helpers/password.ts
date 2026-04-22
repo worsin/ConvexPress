@@ -10,7 +10,7 @@
  * They are imported by mutations, queries, and internals.
  */
 
-import type { QueryCtx, MutationCtx } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
 import { PASSWORD_SETTINGS_DEFAULTS } from "../password/validators";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -23,6 +23,8 @@ export interface PasswordResetSettings {
   /** Send admin notification when any user resets password. */
   notifyAdminOnPasswordReset: boolean;
 }
+
+type ReadCtx = Pick<QueryCtx, "db">;
 
 // ─── getPasswordResetSettings ───────────────────────────────────────────────
 
@@ -39,7 +41,7 @@ export interface PasswordResetSettings {
  * @returns Password-related settings with defaults applied
  */
 export async function getPasswordResetSettings(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
 ): Promise<PasswordResetSettings> {
   try {
     // Read from the "email" section (where password email settings live per PRD)

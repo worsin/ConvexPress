@@ -52,8 +52,10 @@ const UNSUBSCRIBABLE_CATEGORIES = new Set([
  *
  * Emits settings.updated event for audit trail.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateTemplate = mutation({
   args: updateTemplateArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "settings.update_email");
 
@@ -149,8 +151,10 @@ export const updateTemplate = mutation({
  * Copies defaultSubjectTemplate -> subjectTemplate and
  * defaultBodyHtml -> bodyHtml, sets isCustomized = false.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const resetTemplate = mutation({
   args: resetTemplateArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "settings.update_email");
 
@@ -190,8 +194,10 @@ export const resetTemplate = mutation({
  *
  * Only failed emails can be retried.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const retryEmail = mutation({
   args: retryEmailArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "email.retry");
 
@@ -233,8 +239,10 @@ export const retryEmail = mutation({
  * Cancel a queued email before it is sent.
  * Only queued emails can be cancelled.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cancelEmail = mutation({
   args: cancelEmailArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "settings.update_email");
 
@@ -271,8 +279,10 @@ export const cancelEmail = mutation({
  *
  * Security-critical categories ("security") cannot be unsubscribed.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateUnsubscribe = mutation({
   args: updateUnsubscribeArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -306,7 +316,7 @@ export const updateUnsubscribe = mutation({
       // Resubscribe: delete the unsubscribe record if it exists
       const existing = await ctx.db
         .query("emailUnsubscribes")
-        .withIndex("by_user_category", (q) =>
+        .withIndex("by_user_category", (q: ConvexQueryBuilder) =>
           q.eq("userId", userId).eq("category", category),
         )
         .unique();
@@ -318,7 +328,7 @@ export const updateUnsubscribe = mutation({
       // Unsubscribe: check if record already exists
       const existing = await ctx.db
         .query("emailUnsubscribes")
-        .withIndex("by_user_category", (q) =>
+        .withIndex("by_user_category", (q: ConvexQueryBuilder) =>
           q.eq("userId", userId).eq("category", category),
         )
         .unique();

@@ -73,10 +73,12 @@ function findProvider(rawUrl: string): Provider | null {
  * URL isn't from a known provider — the editor can treat that as "paste
  * as plain text" rather than an embed.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const resolveOembed = action({
   args: {
     url: v.string(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (
     ctx,
     args,

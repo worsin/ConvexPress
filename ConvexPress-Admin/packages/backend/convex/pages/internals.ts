@@ -25,6 +25,8 @@ import { v } from "convex/values";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
+type ReadCtx = Pick<QueryCtx, "db">;
+
 /** Maximum allowed page nesting depth (0-indexed: 0, 1, 2, 3, 4 = 5 levels). */
 export const MAX_PAGE_DEPTH = 4;
 
@@ -58,7 +60,7 @@ export function slugify(input: string): string {
  * @returns A unique slug string
  */
 export async function generateUniqueSlug(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   baseSlug: string,
   excludeId?: Id<"posts">,
 ): Promise<string> {
@@ -105,7 +107,7 @@ export async function generateUniqueSlug(
  * @returns The computed path string
  */
 export async function computePagePath(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   slug: string,
   parentId?: Id<"posts">,
 ): Promise<string> {
@@ -138,7 +140,7 @@ export async function computePagePath(
  * @returns The depth number (0 = top-level)
  */
 export async function computePageDepth(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   parentId?: Id<"posts">,
 ): Promise<number> {
   if (!parentId) return 0;
@@ -173,7 +175,7 @@ export async function computePageDepth(
  * @returns true if a circular reference would be created
  */
 export async function wouldCreateCircle(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   pageId: Id<"posts">,
   newParentId: Id<"posts">,
 ): Promise<boolean> {
@@ -206,7 +208,7 @@ export async function wouldCreateCircle(
  * @throws ConvexError if parent is invalid
  */
 export async function validateParent(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   parentId: Id<"posts">,
 ): Promise<{
   _id: Id<"posts">;
@@ -260,7 +262,7 @@ export async function validateParent(
  * @returns Maximum depth relative to this page (0 if no children)
  */
 export async function getMaxSubtreeDepth(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   pageId: Id<"posts">,
 ): Promise<number> {
   const children = await ctx.db

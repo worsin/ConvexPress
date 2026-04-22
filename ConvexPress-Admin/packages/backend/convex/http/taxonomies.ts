@@ -17,13 +17,34 @@ import {
   parsePagination,
   parseJsonBody,
   toISOString,
+  getHttpErrorCode,
+  getHttpErrorMessage,
 } from "./helpers";
 import { asOptionalId } from "../helpers/types";
 
 /**
  * Format a term record for API response.
  */
-function formatTerm(term: { _id: string; name?: string; slug?: string; description?: string; count?: number; taxonomy?: string }) {
+type ApiTermRecord = {
+  _id: string;
+  name?: string;
+  slug?: string;
+  description?: string;
+  count?: number;
+  taxonomy?: string;
+  parentId?: string;
+  createdAt?: number;
+  updatedAt?: number;
+};
+
+type TermListResult = {
+  terms: ApiTermRecord[];
+  total: number;
+  page: number;
+  perPage: number;
+};
+
+function formatTerm(term: ApiTermRecord) {
   return {
     id: term._id,
     name: term.name,
@@ -47,7 +68,7 @@ export const categoriesListHandler = httpAction(async (ctx, request) => {
   const hideEmpty = url.searchParams.get("hide_empty") === "true";
 
   try {
-    const result = await ctx.runQuery(internal.taxonomies.httpInternals.listInternal, {
+    const result = (await ctx.runQuery(internal.taxonomies.httpInternals.listInternal, {
       taxonomy: "category",
       page,
       perPage,
@@ -55,7 +76,7 @@ export const categoriesListHandler = httpAction(async (ctx, request) => {
       hideEmpty,
       orderBy: "name",
       orderDir: "asc",
-    });
+    })) as TermListResult;
 
     const formatted = result.terms.map(formatTerm);
     return paginatedResponse(formatted, result.total, result.page, result.perPage);
@@ -88,8 +109,8 @@ export const categoriesCreateHandler = httpAction(async (ctx, request) => {
 
     return jsonResponse({ id: result, name: body.name }, 201);
   } catch (error: unknown) {
-    const message = error?.data?.message ?? error?.message ?? "Failed to create category";
-    return errorResponse(message, error?.data?.code ?? "SERVER_ERROR", 500);
+    const message = getHttpErrorMessage(error, "Failed to create category");
+    return errorResponse(message, getHttpErrorCode(error, "SERVER_ERROR"), 500);
   }
 });
 
@@ -103,7 +124,7 @@ export const tagsListHandler = httpAction(async (ctx, request) => {
   const hideEmpty = url.searchParams.get("hide_empty") === "true";
 
   try {
-    const result = await ctx.runQuery(internal.taxonomies.httpInternals.listInternal, {
+    const result = (await ctx.runQuery(internal.taxonomies.httpInternals.listInternal, {
       taxonomy: "post_tag",
       page,
       perPage,
@@ -111,7 +132,7 @@ export const tagsListHandler = httpAction(async (ctx, request) => {
       hideEmpty,
       orderBy: "name",
       orderDir: "asc",
-    });
+    })) as TermListResult;
 
     const formatted = result.terms.map(formatTerm);
     return paginatedResponse(formatted, result.total, result.page, result.perPage);
@@ -143,7 +164,7 @@ export const tagsCreateHandler = httpAction(async (ctx, request) => {
 
     return jsonResponse({ id: result, name: body.name }, 201);
   } catch (error: unknown) {
-    const message = error?.data?.message ?? error?.message ?? "Failed to create tag";
-    return errorResponse(message, error?.data?.code ?? "SERVER_ERROR", 500);
+    const message = getHttpErrorMessage(error, "Failed to create tag");
+    return errorResponse(message, getHttpErrorCode(error, "SERVER_ERROR"), 500);
   }
 });

@@ -75,10 +75,13 @@ export const list = query({
       indexedEvents = await ctx.db
         .query("events")
         .withIndex("by_code_emitted", (q) => {
-          let q1 = q.eq("code", args.code!);
-          if (args.dateFrom !== undefined) q1 = q1.gte("emittedAt", args.dateFrom);
-          if (args.dateTo !== undefined) q1 = q1.lte("emittedAt", args.dateTo);
-          return q1;
+          const byCode = q.eq("code", args.code!);
+          if (args.dateFrom !== undefined && args.dateTo !== undefined) {
+            return byCode.gte("emittedAt", args.dateFrom).lte("emittedAt", args.dateTo);
+          }
+          if (args.dateFrom !== undefined) return byCode.gte("emittedAt", args.dateFrom);
+          if (args.dateTo !== undefined) return byCode.lte("emittedAt", args.dateTo);
+          return byCode;
         })
         .order("desc")
         .collect();
@@ -93,10 +96,12 @@ export const list = query({
       indexedEvents = await ctx.db
         .query("events")
         .withIndex("by_emitted", (q) => {
-          let q1 = q;
-          if (args.dateFrom !== undefined) q1 = q1.gte("emittedAt", args.dateFrom);
-          if (args.dateTo !== undefined) q1 = q1.lte("emittedAt", args.dateTo);
-          return q1;
+          if (args.dateFrom !== undefined && args.dateTo !== undefined) {
+            return q.gte("emittedAt", args.dateFrom).lte("emittedAt", args.dateTo);
+          }
+          if (args.dateFrom !== undefined) return q.gte("emittedAt", args.dateFrom);
+          if (args.dateTo !== undefined) return q.lte("emittedAt", args.dateTo);
+          return q;
         })
         .order("desc")
         .collect();

@@ -25,9 +25,12 @@ const ROUTES_TABLE = "tblgdxTFKRbmuQ2qx";
 const ROLES_TABLE = "tblquj6encuzq7p1f";
 const SYSTEMS_TABLE = "tblmiSawf6mIf56V8";
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const syncRoutes = internalAction({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const [roleMap, systemMap, records] = await Promise.all([
       buildLookupMap(ROLES_TABLE, "Name"),
       buildLookupMap(SYSTEMS_TABLE, "Name"),

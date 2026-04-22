@@ -17,10 +17,13 @@ import type { Doc } from "../_generated/dataModel";
  * Returns sites without the encrypted application password.
  * Includes activeJob flag for each site.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listSites = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { limit = 50 }) => {
     await requireCan(ctx, "manage_options");
 
@@ -33,20 +36,30 @@ export const listSites = query({
     // Get active jobs for all sites (bounded)
     const activeJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q) => q.eq("status", "running"))
+      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "running"))
       .take(100);
 
     const pausedJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q) => q.eq("status", "paused"))
+      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "paused"))
+      .take(100);
+
+    const pendingJobs = await ctx.db
+      .query("wordpressSyncJobs")
+      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "pending"))
       .take(100);
 
     const activeJobSiteIds = new Set([
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ...activeJobs.map((j) => j.siteId),
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ...pausedJobs.map((j) => j.siteId),
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
+      ...pendingJobs.map((j) => j.siteId),
     ]);
 
     // Strip sensitive fields and add activeJob flag
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     return sites.map((site) => ({
       _id: site._id,
       name: site.name,
@@ -73,10 +86,13 @@ export const listSites = query({
 /**
  * Get a single WordPress site by ID.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getSite = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -111,17 +127,21 @@ export const getSite = query({
 /**
  * List sync jobs for a site.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listJobs = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId, limit = 10 }) => {
     await requireCan(ctx, "manage_options");
 
     const jobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_site_created", (q) => q.eq("siteId", siteId))
+      .withIndex("by_site_created", (q: ConvexQueryBuilder) => q.eq("siteId", siteId))
       .order("desc")
       .take(limit);
 
@@ -132,10 +152,13 @@ export const listJobs = query({
 /**
  * Get a single sync job by ID.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getJob = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -146,17 +169,20 @@ export const getJob = query({
 /**
  * Get the currently active job for a site (running, paused, or pending).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getActiveJob = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
 
     // Check for running jobs first
     const runningJob = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_site", (q) => q.eq("siteId", siteId).eq("status", "running"))
+      .withIndex("by_site", (q: ConvexQueryBuilder) => q.eq("siteId", siteId).eq("status", "running"))
       .first();
 
     if (runningJob) return runningJob;
@@ -164,7 +190,7 @@ export const getActiveJob = query({
     // Check for paused jobs
     const pausedJob = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_site", (q) => q.eq("siteId", siteId).eq("status", "paused"))
+      .withIndex("by_site", (q: ConvexQueryBuilder) => q.eq("siteId", siteId).eq("status", "paused"))
       .first();
 
     if (pausedJob) return pausedJob;
@@ -172,7 +198,7 @@ export const getActiveJob = query({
     // Check for pending jobs
     return await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_site", (q) => q.eq("siteId", siteId).eq("status", "pending"))
+      .withIndex("by_site", (q: ConvexQueryBuilder) => q.eq("siteId", siteId).eq("status", "pending"))
       .first();
   },
 });
@@ -180,16 +206,19 @@ export const getActiveJob = query({
 /**
  * Get the most recent job for a site.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getLatestJob = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
 
     return await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_site_created", (q) => q.eq("siteId", siteId))
+      .withIndex("by_site_created", (q: ConvexQueryBuilder) => q.eq("siteId", siteId))
       .order("desc")
       .first();
   },
@@ -200,10 +229,13 @@ export const getLatestJob = query({
 /**
  * Get import statistics for a site.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getImportStats = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -211,7 +243,7 @@ export const getImportStats = query({
     // This avoids loading potentially 100k+ mapping records
     const latestJob = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_site_created", (q) => q.eq("siteId", siteId))
+      .withIndex("by_site_created", (q: ConvexQueryBuilder) => q.eq("siteId", siteId))
       .order("desc")
       .first();
 
@@ -245,7 +277,7 @@ export const getImportStats = query({
     const SAMPLE_LIMIT = 10000;
     const mappings = await ctx.db
       .query("wpIdMappings")
-      .withIndex("by_site", (q) => q.eq("siteId", siteId))
+      .withIndex("by_site", (q: ConvexQueryBuilder) => q.eq("siteId", siteId))
       .take(SAMPLE_LIMIT + 1);
 
     const counts: Record<string, number> = {};
@@ -276,8 +308,10 @@ export const getImportStats = query({
 /**
  * Get an overview of all WordPress sync activity.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getOverview = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
 
@@ -297,18 +331,23 @@ export const getOverview = query({
       }
     }
 
-    // Get active jobs (running or paused) - bounded queries
+    // Get active jobs (running, paused, or pending) - bounded queries
     const runningJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q) => q.eq("status", "running"))
+      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "running"))
       .take(100);
 
     const pausedJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q) => q.eq("status", "paused"))
+      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "paused"))
       .take(100);
 
-    const activeJobs = runningJobs.length + pausedJobs.length;
+    const pendingJobs = await ctx.db
+      .query("wordpressSyncJobs")
+      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "pending"))
+      .take(100);
+
+    const activeJobs = runningJobs.length + pausedJobs.length + pendingJobs.length;
 
     // Count total imported items (bounded to avoid memory issues)
     // We sample up to 10,000 records - for exact counts on large datasets,
@@ -338,12 +377,17 @@ export const getOverview = query({
 /**
  * Get errors from a sync job.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getJobErrors = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     offset: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId, limit = 50, offset = 0 }) => {
     await requireCan(ctx, "manage_options");
 
@@ -365,13 +409,16 @@ export const getJobErrors = query({
 /**
  * Get the latest sync report for a site.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getLatestReport = query({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { siteId: v.id("wordpressSites") },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
     return await ctx.db
       .query("wordpressSyncReports")
-      .withIndex("by_site_created", (q) => q.eq("siteId", siteId))
+      .withIndex("by_site_created", (q: ConvexQueryBuilder) => q.eq("siteId", siteId))
       .order("desc")
       .first();
   },
@@ -380,13 +427,16 @@ export const getLatestReport = query({
 /**
  * Get the report for a specific sync job.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getJobReport = query({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { jobId: v.id("wordpressSyncJobs") },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId }) => {
     await requireCan(ctx, "manage_options");
     return await ctx.db
       .query("wordpressSyncReports")
-      .withIndex("by_job", (q) => q.eq("jobId", jobId))
+      .withIndex("by_job", (q: ConvexQueryBuilder) => q.eq("jobId", jobId))
       .first();
   },
 });
@@ -394,16 +444,20 @@ export const getJobReport = query({
 /**
  * List sync reports for a site, most recent first.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listReports = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId, limit = 20 }) => {
     await requireCan(ctx, "manage_options");
     return await ctx.db
       .query("wordpressSyncReports")
-      .withIndex("by_site_created", (q) => q.eq("siteId", siteId))
+      .withIndex("by_site_created", (q: ConvexQueryBuilder) => q.eq("siteId", siteId))
       .order("desc")
       .take(Math.min(limit, 50));
   },
@@ -415,13 +469,19 @@ export const listReports = query({
  * List reconciliation findings for a job, with optional filtering
  * by severity or finding code.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listFindings = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     severity: v.optional(v.union(v.literal("error"), v.literal("warning"), v.literal("info"))),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     code: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId, severity, code, limit = 50 }) => {
     await requireCan(ctx, "manage_options");
 
@@ -429,15 +489,15 @@ export const listFindings = query({
     if (severity) {
       q = ctx.db
         .query("wordpressSyncReconciliationFindings")
-        .withIndex("by_job_severity", (q) => q.eq("jobId", jobId).eq("severity", severity));
+        .withIndex("by_job_severity", (q: ConvexQueryBuilder) => q.eq("jobId", jobId).eq("severity", severity));
     } else if (code) {
       q = ctx.db
         .query("wordpressSyncReconciliationFindings")
-        .withIndex("by_job_code", (q) => q.eq("jobId", jobId).eq("code", code));
+        .withIndex("by_job_code", (q: ConvexQueryBuilder) => q.eq("jobId", jobId).eq("code", code));
     } else {
       q = ctx.db
         .query("wordpressSyncReconciliationFindings")
-        .withIndex("by_job_created", (q) => q.eq("jobId", jobId));
+        .withIndex("by_job_created", (q: ConvexQueryBuilder) => q.eq("jobId", jobId));
     }
 
     return await q.take(Math.min(limit, 100));

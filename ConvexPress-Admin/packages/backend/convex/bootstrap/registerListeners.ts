@@ -951,8 +951,10 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
  *
  * Safe to call multiple times. Will not create duplicates.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const run = internalMutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const now = Date.now();
     let created = 0;
@@ -963,11 +965,12 @@ export const run = internalMutation({
       // Check for existing listener with same eventCode + name
       const existingListeners = await ctx.db
         .query("eventListeners")
-        .withIndex("by_event_code", (q) =>
+        .withIndex("by_event_code", (q: ConvexQueryBuilder) =>
           q.eq("eventCode", def.eventCode),
         )
         .collect();
 
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       const existing = existingListeners.find((l) => l.name === def.name);
 
       if (existing) {

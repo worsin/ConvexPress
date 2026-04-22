@@ -20,8 +20,36 @@ import {
   extractIdFromPath,
   parseJsonBody,
   toISOString,
+  getHttpErrorMessage,
 } from "./helpers";
 import { asId, asOptionalId } from "../helpers/types";
+
+type ApiPageRecord = {
+  _id: string;
+  title?: string;
+  slug?: string;
+  status?: string;
+  path?: string;
+  content?: string;
+  excerpt?: string;
+  depth?: number;
+  menuOrder?: number;
+  parentId?: string;
+  parent?: unknown;
+  children?: unknown[];
+  pageTemplate?: string;
+  isPasswordProtected?: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+  publishedAt?: number;
+};
+
+type PageListResult = {
+  pages: ApiPageRecord[];
+  total: number;
+  page: number;
+  perPage: number;
+};
 
 export const pagesListHandler = httpAction(async (ctx, request) => {
   const auth = await authenticateApiRequest(ctx, request, "read:posts");
@@ -31,10 +59,10 @@ export const pagesListHandler = httpAction(async (ctx, request) => {
   const { page, perPage } = parsePagination(url);
 
   try {
-    const result = await ctx.runQuery(internal.pages.httpInternals.listPublishedInternal, {
+    const result = (await ctx.runQuery(internal.pages.httpInternals.listPublishedInternal, {
       page,
       perPage,
-    });
+    })) as PageListResult;
 
     const formatted = result.pages.map((p) => ({
       id: p._id,
@@ -67,9 +95,9 @@ export const pagesGetHandler = httpAction(async (ctx, request) => {
   }
 
   try {
-    const page = await ctx.runQuery(internal.pages.httpInternals.getInternal, {
+    const page = (await ctx.runQuery(internal.pages.httpInternals.getInternal, {
       pageId: asId<"posts">(id),
-    });
+    })) as ApiPageRecord | null;
 
     if (!page) {
       return errorResponse("Page not found", "NOT_FOUND", 404);
@@ -126,7 +154,7 @@ export const pagesCreateHandler = httpAction(async (ctx, request) => {
 
     return jsonResponse({ id: pageId }, 201);
   } catch (error: unknown) {
-    const message = error?.data?.message ?? error?.message ?? "Failed to create page";
+    const message = getHttpErrorMessage(error, "Failed to create page");
     return errorResponse(message, "SERVER_ERROR", 500);
   }
 });
@@ -178,7 +206,7 @@ export const pagesUpdateHandler = httpAction(async (ctx, request) => {
 
     return jsonResponse({ id, updated: true });
   } catch (error: unknown) {
-    const message = error?.data?.message ?? error?.message ?? "Failed to update page";
+    const message = getHttpErrorMessage(error, "Failed to update page");
     return errorResponse(message, "SERVER_ERROR", 500);
   }
 });
@@ -200,7 +228,7 @@ export const pagesDeleteHandler = httpAction(async (ctx, request) => {
 
     return jsonResponse({ id, deleted: true });
   } catch (error: unknown) {
-    const message = error?.data?.message ?? error?.message ?? "Failed to delete page";
+    const message = getHttpErrorMessage(error, "Failed to delete page");
     return errorResponse(message, "SERVER_ERROR", 500);
   }
 });

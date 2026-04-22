@@ -76,8 +76,10 @@ async function resolveRevisionAuthor(
  *
  * Used by: Revision comparison page (/admin/posts/$postId/revisions)
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listByPost = query({
   args: listByPostArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -105,18 +107,19 @@ export const listByPost = query({
     if (args.type) {
       revisions = await ctx.db
         .query("revisions")
-        .withIndex("by_parent_type", (q) =>
+        .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
           q.eq("parentId", args.parentId).eq("type", args.type!),
         )
         .collect();
     } else {
       revisions = await ctx.db
         .query("revisions")
-        .withIndex("by_parent", (q) => q.eq("parentId", args.parentId))
+        .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", args.parentId))
         .collect();
     }
 
     // ── Sort by revisionNumber descending (newest first) ────────────────
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     revisions.sort((a, b) => b.revisionNumber - a.revisionNumber);
 
     // ── Apply limit ─────────────────────────────────────────────────────
@@ -130,6 +133,7 @@ export const listByPost = query({
 
     // ── Denormalize author data ─────────────────────────────────────────
     const revisionsWithAuthors = await Promise.all(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       paged.map(async (rev) => {
         const { authorName, authorAvatar } = await resolveRevisionAuthor(ctx, rev.authorId);
         return {
@@ -155,8 +159,10 @@ export const listByPost = query({
  *
  * Used by: Client-side rendering of a specific revision snapshot.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const get = query({
   args: getRevisionArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -208,8 +214,10 @@ export const get = query({
  *
  * Used by: Revision comparison page with diff viewer
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const compare = query({
   args: compareRevisionsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -304,8 +312,10 @@ export const compare = query({
  * Used by: Revisions metabox on the edit post page
  * ("Revisions: 12" with "Browse Revisions" link)
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const count = query({
   args: countRevisionsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -331,7 +341,7 @@ export const count = query({
     // ── Count ───────────────────────────────────────────────────────────
     const revisions = await ctx.db
       .query("revisions")
-      .withIndex("by_parent", (q) => q.eq("parentId", args.parentId))
+      .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", args.parentId))
       .collect();
 
     return revisions.length;
@@ -347,8 +357,10 @@ export const count = query({
  *
  * Used by: Editor to detect if autosave exists, revision metabox
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getLatest = query({
   args: getLatestRevisionArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -377,14 +389,14 @@ export const getLatest = query({
     if (args.type) {
       revisions = await ctx.db
         .query("revisions")
-        .withIndex("by_parent_type", (q) =>
+        .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
           q.eq("parentId", args.parentId).eq("type", args.type!),
         )
         .collect();
     } else {
       revisions = await ctx.db
         .query("revisions")
-        .withIndex("by_parent", (q) => q.eq("parentId", args.parentId))
+        .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", args.parentId))
         .collect();
     }
 

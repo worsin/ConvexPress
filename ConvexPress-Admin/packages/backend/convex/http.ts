@@ -450,6 +450,47 @@ http.route({
       switch (event.type) {
         case "payment_intent.succeeded": {
           const paymentIntent = event.data.object;
+          // Subscription PaymentIntents route to the subscriptions handler;
+          // one-time order PaymentIntents route to commerce.
+          const kind = paymentIntent.metadata?.kind;
+          if (kind === "subscription_invoice") {
+            const invoiceId = paymentIntent.metadata?.invoiceId;
+            if (invoiceId) {
+              await ctx.runMutation(
+                internal.commerceSubscriptions.internals
+                  .handleInvoicePaymentResult,
+                {
+                  invoiceId: invoiceId as any,
+                  succeeded: true,
+                  paymentTransactionId: paymentIntent.id,
+                },
+              );
+            }
+            break;
+          }
+          if (kind === "subscription_first_charge") {
+            const checkoutIntentId = paymentIntent.metadata?.checkoutIntentId;
+            const paymentMethodId =
+              typeof paymentIntent.payment_method === "string"
+                ? paymentIntent.payment_method
+                : paymentIntent.payment_method?.id;
+            if (checkoutIntentId) {
+              await ctx.runMutation(
+                (internal.commerceSubscriptions.internals as any)
+                  .activateCheckoutIntentFromStripe,
+                {
+                  checkoutIntentId: checkoutIntentId as any,
+                  paymentIntentId: paymentIntent.id,
+                  paymentMethodId: paymentMethodId ?? undefined,
+                  stripeCustomerId:
+                    typeof paymentIntent.customer === "string"
+                      ? paymentIntent.customer
+                      : paymentIntent.customer?.id,
+                },
+              );
+            }
+            break;
+          }
           await ctx.runMutation(
             internal.commerce.payments.confirmPaymentSuccess,
             {
@@ -462,6 +503,26 @@ http.route({
 
         case "payment_intent.payment_failed": {
           const paymentIntent = event.data.object;
+          const kind = paymentIntent.metadata?.kind;
+          if (kind === "subscription_invoice") {
+            const invoiceId = paymentIntent.metadata?.invoiceId;
+            if (invoiceId) {
+              await ctx.runMutation(
+                internal.commerceSubscriptions.internals
+                  .handleInvoicePaymentResult,
+                {
+                  invoiceId: invoiceId as any,
+                  succeeded: false,
+                  paymentTransactionId: paymentIntent.id,
+                  failureReason:
+                    paymentIntent.last_payment_error?.code ??
+                    paymentIntent.last_payment_error?.message ??
+                    "payment_failed",
+                },
+              );
+            }
+            break;
+          }
           await ctx.runMutation(
             internal.commerce.payments.confirmPaymentFailure,
             {
@@ -471,6 +532,31 @@ http.route({
                 paymentIntent.last_payment_error?.message ?? "Payment failed",
             },
           );
+          break;
+        }
+
+        case "setup_intent.succeeded": {
+          const setupIntent = event.data.object;
+          const intentId = setupIntent.metadata?.checkoutIntentId;
+          const paymentMethodId =
+            typeof setupIntent.payment_method === "string"
+              ? setupIntent.payment_method
+              : setupIntent.payment_method?.id;
+          const customerId =
+            typeof setupIntent.customer === "string"
+              ? setupIntent.customer
+              : setupIntent.customer?.id;
+          if (intentId && paymentMethodId && customerId) {
+            await ctx.runAction(
+              internal.commerceSubscriptions.stripeCharge
+                .saveSetupIntentResult,
+              {
+                checkoutIntentId: intentId as any,
+                stripeCustomerId: customerId,
+                paymentMethodId,
+              },
+            );
+          }
           break;
         }
 

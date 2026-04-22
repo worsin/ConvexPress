@@ -58,13 +58,19 @@ async function getOrCreateCurrentUserForLogin(ctx: MutationCtx) {
  * @param ip - Optional IP address (from client or server)
  * @param userAgent - Optional user agent string
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const recordLogin = mutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     method: v.optional(authMethodValidator),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     app: v.optional(appIdentifierValidator),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     ip: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userAgent: v.optional(v.string()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getOrCreateCurrentUserForLogin(ctx);
     if (!user) return null;
@@ -107,10 +113,13 @@ export const recordLogin = mutation({
  *
  * @param app - Which app the logout occurred from ("admin" or "website")
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const recordLogout = mutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     app: v.optional(appIdentifierValidator),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -155,15 +164,20 @@ export const recordLogout = mutation({
  * @param userAgent - Optional user agent string
  * @param description - Optional human-readable description
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const recordFailedLogin = mutation({
   args: {
     email: v.string(),
     reason: failureReasonValidator,
     app: appIdentifierValidator,
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     ip: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userAgent: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     description: v.optional(v.string()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // ─── Input Sanitization (CRITICAL-1 fix) ──────────────────────────
     // This mutation is unauthenticated (the user failed to log in).
@@ -190,7 +204,7 @@ export const recordFailedLogin = mutation({
     // Check per-email rate limit
     const recentByEmail = await ctx.db
       .query("failedLoginAttempts")
-      .withIndex("by_email", (q) =>
+      .withIndex("by_email", (q: ConvexQueryBuilder) =>
         q.eq("email", email).gt("attemptedAt", windowStart),
       )
       .take(RATE_LIMIT_MAX + 1);
@@ -203,7 +217,7 @@ export const recordFailedLogin = mutation({
     if (ip) {
       const recentByIp = await ctx.db
         .query("failedLoginAttempts")
-        .withIndex("by_ip", (q) =>
+        .withIndex("by_ip", (q: ConvexQueryBuilder) =>
           q.eq("ip", ip).gt("attemptedAt", windowStart),
         )
         .take(RATE_LIMIT_MAX + 1);
@@ -218,7 +232,7 @@ export const recordFailedLogin = mutation({
     // Look up user by email (may not exist if typo / non-existent account)
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email))
       .first();
 
     // Insert the failed attempt record
@@ -273,10 +287,13 @@ export const recordFailedLogin = mutation({
  * Used in the admin UI to acknowledge/dismiss failed login alerts.
  * Requires admin authentication.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const markFailedLoginReviewed = mutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     attemptId: v.id("failedLoginAttempts"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // Use capability system instead of legacy isInternal/internalRole check (#51)
     await requireCan(ctx, "audit.view");

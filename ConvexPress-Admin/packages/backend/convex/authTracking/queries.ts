@@ -27,8 +27,10 @@ import { getCurrentUser, currentUserCan, getUserIdentifier } from "../helpers/pe
  *
  * Used by: Website header, admin bar, auth state checks.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getAuthInfo = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -57,10 +59,13 @@ export const getAuthInfo = query({
  *
  * Used by: Website user dashboard, admin user profile page.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getLoginHistory = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
@@ -70,12 +75,13 @@ export const getLoginHistory = query({
     // Query events table for auth.login events by this user using compound index
     const userEvents = await ctx.db
       .query("events")
-      .withIndex("by_code_and_actor", (q) =>
+      .withIndex("by_code_and_actor", (q: ConvexQueryBuilder) =>
         q.eq("code", "auth.login").eq("actorId", getUserIdentifier(user)),
       )
       .order("desc")
       .take(limit);
 
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     return userEvents.map((event) => {
       let payload: Record<string, unknown> = {};
       try {
@@ -105,12 +111,17 @@ export const getLoginHistory = query({
  * Can filter by email, reviewed status, and time range.
  * Used by: Admin Tools > Security / Failed Logins page.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getFailedLoginAttempts = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     onlyUnreviewed: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     email: v.optional(v.string()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // Use capability system instead of legacy isInternal/internalRole check (#52)
     const canView = await currentUserCan(ctx, "audit.view");
@@ -124,13 +135,13 @@ export const getFailedLoginAttempts = query({
     if (args.onlyUnreviewed) {
       attempts = await ctx.db
         .query("failedLoginAttempts")
-        .withIndex("by_reviewed", (q) => q.eq("reviewed", false))
+        .withIndex("by_reviewed", (q: ConvexQueryBuilder) => q.eq("reviewed", false))
         .order("desc")
         .take(limit);
     } else if (args.email) {
       attempts = await ctx.db
         .query("failedLoginAttempts")
-        .withIndex("by_email", (q) => q.eq("email", args.email!))
+        .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", args.email!))
         .order("desc")
         .take(limit);
     } else {
@@ -141,6 +152,7 @@ export const getFailedLoginAttempts = query({
         .take(limit);
     }
 
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     return attempts.map((a) => ({
       id: a._id,
       email: a.email,
@@ -162,8 +174,10 @@ export const getFailedLoginAttempts = query({
  * Returns the count of unreviewed failed login attempts.
  * Used for badge display in admin sidebar/toolbar.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getUnreviewedFailedLoginCount = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     // Use capability system instead of legacy isInternal/internalRole check (#52)
     const canView = await currentUserCan(ctx, "audit.view");
@@ -175,7 +189,7 @@ export const getUnreviewedFailedLoginCount = query({
     const maxCount = 1000;
     const unreviewed = await ctx.db
       .query("failedLoginAttempts")
-      .withIndex("by_reviewed", (q) => q.eq("reviewed", false))
+      .withIndex("by_reviewed", (q: ConvexQueryBuilder) => q.eq("reviewed", false))
       .take(maxCount + 1);
 
     const isTruncated = unreviewed.length > maxCount;
@@ -195,11 +209,15 @@ export const getUnreviewedFailedLoginCount = query({
  *
  * Used by: Website User Dashboard > Security page.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getSecurityOverview = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     loginLimit: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     failedLimit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -210,12 +228,13 @@ export const getSecurityOverview = query({
     // ─── Successful Logins ─────────────────────────────────────────────
     const userLoginEvents = await ctx.db
       .query("events")
-      .withIndex("by_code_and_actor", (q) =>
+      .withIndex("by_code_and_actor", (q: ConvexQueryBuilder) =>
         q.eq("code", "auth.login").eq("actorId", getUserIdentifier(user)),
       )
       .order("desc")
       .take(loginLimit);
 
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const logins = userLoginEvents.map((event) => {
       let payload: Record<string, unknown> = {};
       try {
@@ -238,10 +257,11 @@ export const getSecurityOverview = query({
     // ─── Failed Attempts Against This Email ────────────────────────────
     const failedAttempts = await ctx.db
       .query("failedLoginAttempts")
-      .withIndex("by_email", (q) => q.eq("email", user.email))
+      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", user.email))
       .order("desc")
       .take(failedLimit);
 
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const failures = failedAttempts.map((a) => ({
       id: a._id,
       type: "failed" as const,

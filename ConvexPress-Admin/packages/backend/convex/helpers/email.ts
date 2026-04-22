@@ -20,6 +20,8 @@ import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { getUserIdentifier } from "./permissions";
 
+type ReadCtx = Pick<QueryCtx, "db">;
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 /**
@@ -247,7 +249,7 @@ export function isSecurityEmail(templateSlug: string): boolean {
  * @returns true if the user has unsubscribed (email should NOT be sent)
  */
 export async function checkUnsubscribed(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   userId: string,
   category: string,
 ): Promise<boolean> {
@@ -286,7 +288,7 @@ export async function checkUnsubscribed(
  * @returns Array of resolved recipients with email, name, and userId
  */
 export async function resolveRecipients(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   recipientType: "admin" | "employee" | "custom",
   options?: {
     userIds?: string[];
@@ -393,7 +395,7 @@ export function isValidEmail(email: string): boolean {
  * @returns true if a duplicate was found (email should be skipped)
  */
 export async function isDuplicateEmail(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   templateSlug: string,
   recipientEmail: string,
   eventId?: Id<"events">,
@@ -426,7 +428,7 @@ export async function isDuplicateEmail(
  * section for site name/URL.
  */
 export async function getEmailSettings(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
 ): Promise<{
   fromAddress: string;
   fromName: string;

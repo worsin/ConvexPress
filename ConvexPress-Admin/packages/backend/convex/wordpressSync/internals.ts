@@ -82,10 +82,13 @@ async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
 /**
  * Get site with credentials (internal only).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getSiteWithCredentials = internalQuery({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId }) => {
     return await ctx.db.get(siteId);
   },
@@ -94,10 +97,13 @@ export const getSiteWithCredentials = internalQuery({
 /**
  * Get job details (internal only).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getJobInternal = internalQuery({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId }) => {
     return await ctx.db.get(jobId);
   },
@@ -106,8 +112,11 @@ export const getJobInternal = internalQuery({
 /**
  * Count/fetch reconciliation findings for a job (up to limit).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const countFindings = internalQuery({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { jobId: v.id("wordpressSyncJobs"), limit: v.number() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId, limit }) => {
     return await ctx.db
       .query("wordpressSyncReconciliationFindings")
@@ -119,13 +128,16 @@ export const countFindings = internalQuery({
 /**
  * Get a batch of ID mappings for a site, paginated by wpId.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getMappingsBatch = internalQuery({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
     objectType: v.string(),
     afterWpId: v.number(),
     limit: v.number(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId, objectType, afterWpId, limit }) => {
     return await ctx.db
       .query("wpIdMappings")
@@ -141,8 +153,11 @@ export const getMappingsBatch = internalQuery({
 /**
  * Find a post by slug (for slug collision detection).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const findPostBySlug = internalQuery({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { slug: v.string(), type: v.optional(v.string()) },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { slug, type }) => {
     return await ctx.db
       .query("posts")
@@ -156,8 +171,10 @@ export const findPostBySlug = internalQuery({
 /**
  * Find a user by email (for email collision detection).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const findUserByEmail = internalQuery({
   args: { email: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { email }) => {
     return await ctx.db
       .query("users")
@@ -169,8 +186,10 @@ export const findUserByEmail = internalQuery({
 /**
  * Find a term by slug and taxonomy (for taxonomy collision detection).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const findTermBySlug = internalQuery({
   args: { slug: v.string(), taxonomy: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { slug, taxonomy }) => {
     return await ctx.db
       .query("terms")
@@ -184,8 +203,10 @@ export const findTermBySlug = internalQuery({
 /**
  * Find a menu by slug (for menu collision detection).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const findMenuBySlug = internalQuery({
   args: { slug: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { slug }) => {
     return await ctx.db
       .query("menus")
@@ -197,8 +218,10 @@ export const findMenuBySlug = internalQuery({
 /**
  * Find a product by SKU (for SKU collision detection).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const findProductBySku = internalQuery({
   args: { sku: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { sku }) => {
     return await ctx.db
       .query("commerce_products")
@@ -210,8 +233,10 @@ export const findProductBySku = internalQuery({
 /**
  * Find a customer by email (for email collision detection).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const findCustomerByEmail = internalQuery({
   args: { email: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { email }) => {
     return await ctx.db
       .query("commerce_customer_profiles")
@@ -223,8 +248,10 @@ export const findCustomerByEmail = internalQuery({
 /**
  * Find an order by orderNumber (for order number collision detection).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const findOrderByNumber = internalQuery({
   args: { orderNumber: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { orderNumber }) => {
     return await ctx.db
       .query("commerce_orders")
@@ -236,8 +263,10 @@ export const findOrderByNumber = internalQuery({
 /**
  * Find a discount code by code (for coupon code collision detection).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const findDiscountByCode = internalQuery({
   args: { code: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { code }) => {
     return await ctx.db
       .query("commerce_discount_codes")
@@ -250,8 +279,10 @@ export const findDiscountByCode = internalQuery({
  * Generic entity lookup by table + ID string.
  * Used for local edit detection — fetches the local entity to compare updatedAt.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getEntityById = internalQuery({
   args: { table: v.string(), id: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { table, id }) => {
     try {
       return await ctx.db.get(id as any);
@@ -265,12 +296,14 @@ export const getEntityById = internalQuery({
  * Generic entity patch by table + ID string.
  * Used by reconciliation phase to repair relationships.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const patchEntity = internalMutation({
   args: {
     table: v.string(),
     id: v.string(),
     fields: v.any(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { table, id, fields }) => {
     try {
       await ctx.db.patch(id as any, fields);
@@ -284,11 +317,14 @@ export const patchEntity = internalMutation({
  * Get media mappings that have sourceUrl populated.
  * Used by reconciliation phase to build URL rewrite maps.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getMediaMappingsWithUrls = internalQuery({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
     limit: v.number(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId, limit }) => {
     const all = await ctx.db
       .query("wpIdMappings")
@@ -321,9 +357,12 @@ export const getMediaMappingsWithUrls = internalQuery({
 /**
  * Initialize job progress with content counts.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const initializeProgress = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     counts: v.object({
       users: v.number(),
       posts: v.number(),
@@ -334,6 +373,7 @@ export const initializeProgress = internalMutation({
       comments: v.number(),
     }),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId, counts }) => {
     const job = await ctx.db.get(jobId);
     if (!job) return;
@@ -358,12 +398,15 @@ export const initializeProgress = internalMutation({
 /**
  * Update progress for a specific phase.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updatePhaseProgress = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
     phase: v.string(),
     progress: phaseProgressValidator,
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId, phase, progress }) => {
     const job = await ctx.db.get(jobId);
     if (!job) return;
@@ -381,11 +424,15 @@ export const updatePhaseProgress = internalMutation({
 /**
  * Add errors to a job.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const addErrors = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     errors: v.array(syncErrorValidator),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId, errors }) => {
     const job = await ctx.db.get(jobId);
     if (!job) return;
@@ -400,11 +447,14 @@ export const addErrors = internalMutation({
 /**
  * Advance to the next phase.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const advancePhase = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
     phase: syncPhaseValidator,
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId, phase }) => {
     const job = await ctx.db.get(jobId);
     if (!job) return;
@@ -419,10 +469,13 @@ export const advancePhase = internalMutation({
 /**
  * Mark job as completed.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const completeJob = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId }) => {
     const job = await ctx.db.get(jobId);
     if (!job) return;
@@ -450,13 +503,18 @@ export const completeJob = internalMutation({
  * Upsert a sync report for a completed job.
  * Creates on first call, patches on subsequent calls.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const upsertReport = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
     startedAt: v.number(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     completedAt: v.optional(v.number()),
     finalStatus: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     detectedCapabilities: v.object({
       wpRest: v.boolean(),
       wpAuthValid: v.boolean(),
@@ -469,6 +527,7 @@ export const upsertReport = internalMutation({
     }),
     importConfig: v.string(),
     phaseCounts: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     totalCounts: v.object({
       created: v.number(),
       updated: v.number(),
@@ -479,6 +538,7 @@ export const upsertReport = internalMutation({
     findingSummary: v.string(),
     operatorSummary: v.string(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("wordpressSyncReports")
@@ -507,23 +567,36 @@ export const upsertReport = internalMutation({
 /**
  * Insert a single reconciliation finding.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const insertFinding = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     severity: v.union(v.literal("error"), v.literal("warning"), v.literal("info")),
     phase: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     code: v.optional(v.string()),
     message: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     sourceType: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     sourceId: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     destinationTable: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wpId: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     objectType: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     convexId: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     metadata: v.optional(v.string()),
     createdAt: v.number(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await ctx.db.insert("wordpressSyncReconciliationFindings", args);
   },
@@ -532,11 +605,14 @@ export const insertFinding = internalMutation({
 /**
  * Mark job as failed.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const failJob = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
     error: v.string(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId, error }) => {
     const job = await ctx.db.get(jobId);
     if (!job) return;
@@ -568,10 +644,13 @@ export const failJob = internalMutation({
  * Main sync phase executor.
  * Runs the current phase, then schedules the next iteration or advances.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const runSyncPhase = internalAction({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId }) => {
     // Get current job state
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
@@ -917,8 +996,11 @@ async function runCleanup(
  * Generate final sync report after job completion.
  * Aggregates findings, computes totals, and stores an operator summary.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const generateFinalReport = internalAction({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { jobId: v.id("wordpressSyncJobs") },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId }) => {
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
     if (!job) return;
@@ -997,8 +1079,10 @@ export const generateFinalReport = internalAction({
  * Jobs older than 30 days are deleted to prevent unbounded growth.
  * Runs daily.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanupOldJobs = internalMutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const RETENTION_DAYS = 30;
     const cutoff = Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -1057,8 +1141,10 @@ export const cleanupOldJobs = internalMutation({
  * Mappings for deleted sites are removed.
  * Runs weekly.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanupOrphanedMappings = internalMutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const BATCH_SIZE = 500;
     let deleted = 0;
@@ -1087,8 +1173,10 @@ export const cleanupOrphanedMappings = internalMutation({
  * Jobs stuck in "running" for more than 1 hour without updates are marked as failed.
  * Runs hourly.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const checkStaleJobs = internalMutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const STALE_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour
     const cutoff = Date.now() - STALE_THRESHOLD_MS;

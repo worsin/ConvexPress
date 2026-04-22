@@ -292,6 +292,13 @@ export interface CommercePaymentsSettings {
   /** PayPal webhook id from the PayPal dashboard. */
   paypalWebhookId: string;
   paypalMode: "sandbox" | "production";
+  /**
+   * Enables live off-session charging of subscription renewal/dunning
+   * invoices via Stripe. When false (default), the processor stub is used
+   * and no real money moves. Flip to true only after Stripe test creds
+   * are saved and the subscription signup flow is verified.
+   */
+  subscriptionChargingEnabled: boolean;
 }
 
 export interface ClerkIntegrationSettings {
@@ -328,6 +335,8 @@ export interface CommerceGeneralSettings {
   defaultState: string;
   checkoutRequiresPhone: boolean;
   allowGuestCheckout: boolean;
+  returnWindowDays: number;
+  requireDeliveryBeforeReturn: boolean;
   shippingEnabled: boolean;
   shippingMethods: Array<{ code: string; label: string }>;
   paymentMethods: Array<{ code: string; label: string; enabled: boolean }>;
@@ -684,6 +693,7 @@ export const COMMERCE_PAYMENTS_DEFAULTS: CommercePaymentsSettings = {
   paypalClientSecret: "",
   paypalWebhookId: "",
   paypalMode: "sandbox",
+  subscriptionChargingEnabled: false,
 };
 
 export const COMMERCE_GENERAL_DEFAULTS: CommerceGeneralSettings = {
@@ -697,6 +707,8 @@ export const COMMERCE_GENERAL_DEFAULTS: CommerceGeneralSettings = {
   defaultState: "",
   checkoutRequiresPhone: false,
   allowGuestCheckout: true,
+  returnWindowDays: 30,
+  requireDeliveryBeforeReturn: true,
   shippingEnabled: true,
   shippingMethods: [
     { code: "standard", label: "Standard shipping" },

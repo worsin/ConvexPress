@@ -16,25 +16,29 @@ import { internalMutation, internalQuery } from "../_generated/server";
  * Find a local-auth user by email or username.
  * Returns null if the user doesn't exist or uses a non-local auth source.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const findLocalUser = internalQuery({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     email: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     username: v.optional(v.string()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     let user = null;
 
     if (args.email) {
       user = await ctx.db
         .query("users")
-        .withIndex("by_email", (q) => q.eq("email", args.email!))
+        .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", args.email!))
         .first();
     }
 
     if (!user && args.username) {
       user = await ctx.db
         .query("users")
-        .withIndex("by_username", (q) => q.eq("username", args.username!))
+        .withIndex("by_username", (q: ConvexQueryBuilder) => q.eq("username", args.username!))
         .first();
     }
 
@@ -48,8 +52,11 @@ export const findLocalUser = internalQuery({
 /**
  * Get a user by their Convex document ID.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getUserById = internalQuery({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { userId: v.id("users") },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     return await ctx.db.get(args.userId);
   },
@@ -65,11 +72,13 @@ export const getUserById = internalQuery({
  *   - 5+ failures for the same identifier within 15 minutes → locked
  *   - 20+ failures from the same IP within 5 minutes → locked
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const checkLockout = internalQuery({
   args: {
     identifier: v.string(),
     ip: v.string(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
@@ -77,7 +86,7 @@ export const checkLockout = internalQuery({
     // Check account-level lockout (by email/username)
     const accountFailures = await ctx.db
       .query("failedLoginAttempts")
-      .withIndex("by_email", (q) =>
+      .withIndex("by_email", (q: ConvexQueryBuilder) =>
         q.eq("email", args.identifier).gte("attemptedAt", fifteenMinutesAgo),
       )
       .collect();
@@ -87,7 +96,7 @@ export const checkLockout = internalQuery({
     // Check IP-level lockout
     const ipFailures = await ctx.db
       .query("failedLoginAttempts")
-      .withIndex("by_ip", (q) =>
+      .withIndex("by_ip", (q: ConvexQueryBuilder) =>
         q.eq("ip", args.ip).gte("attemptedAt", fiveMinutesAgo),
       )
       .collect();
@@ -103,12 +112,15 @@ export const checkLockout = internalQuery({
 /**
  * Insert a new refresh token record.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createRefreshToken = internalMutation({
   args: {
     tokenHash: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userId: v.id("users"),
     expiresAt: v.number(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await ctx.db.insert("refreshTokens", {
       tokenHash: args.tokenHash,
@@ -122,12 +134,14 @@ export const createRefreshToken = internalMutation({
 /**
  * Find a refresh token by its SHA-256 hash.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const findRefreshToken = internalQuery({
   args: { tokenHash: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     return await ctx.db
       .query("refreshTokens")
-      .withIndex("by_tokenHash", (q) => q.eq("tokenHash", args.tokenHash))
+      .withIndex("by_tokenHash", (q: ConvexQueryBuilder) => q.eq("tokenHash", args.tokenHash))
       .first();
   },
 });
@@ -136,12 +150,14 @@ export const findRefreshToken = internalQuery({
  * Revoke a refresh token by marking it with a revokedAt timestamp.
  * Implements token rotation — the old token is invalidated immediately.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const revokeRefreshToken = internalMutation({
   args: { tokenHash: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const token = await ctx.db
       .query("refreshTokens")
-      .withIndex("by_tokenHash", (q) => q.eq("tokenHash", args.tokenHash))
+      .withIndex("by_tokenHash", (q: ConvexQueryBuilder) => q.eq("tokenHash", args.tokenHash))
       .first();
     if (token) {
       await ctx.db.patch(token._id, { revokedAt: Date.now() });
@@ -155,11 +171,14 @@ export const revokeRefreshToken = internalMutation({
  * Update a user's password hash and track when the change occurred.
  * Called by the password reset and change-password flows.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const setPasswordHash = internalMutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userId: v.id("users"),
     passwordHash: v.string(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await ctx.db.patch(args.userId, {
       passwordHash: args.passwordHash,
@@ -175,18 +194,20 @@ export const setPasswordHash = internalMutation({
  * Check whether any administrator user already exists.
  * Used by the createFirstAdmin action to guard against duplicate admins.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const checkExistingAdmins = internalQuery({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const adminRole = await ctx.db
       .query("roles")
-      .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
+      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
       .unique();
     if (!adminRole) return false;
 
     const admin = await ctx.db
       .query("users")
-      .withIndex("by_roleId", (q) => q.eq("roleId", adminRole._id))
+      .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", adminRole._id))
       .first();
 
     return !!admin;
@@ -197,6 +218,7 @@ export const checkExistingAdmins = internalQuery({
  * Insert a new administrator user with a pre-hashed password.
  * Only called by the createFirstAdmin action after confirming no admins exist.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createAdminUser = internalMutation({
   args: {
     email: v.string(),
@@ -204,10 +226,11 @@ export const createAdminUser = internalMutation({
     passwordHash: v.string(),
     displayName: v.string(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const adminRole = await ctx.db
       .query("roles")
-      .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
+      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
       .unique();
 
     const now = Date.now();

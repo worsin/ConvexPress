@@ -56,6 +56,7 @@ import {
   decryptSecret,
   computeHmacSignature,
 } from "./crypto_helpers";
+import { lookupUserByIdentifier } from "../helpers/permissions";
 
 // ─── authenticateRequest ────────────────────────────────────────────────────
 

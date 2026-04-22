@@ -1,22 +1,28 @@
 import { ConvexError } from "convex/values";
 
-import type { QueryCtx, MutationCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { QueryCtx } from "../_generated/server";
 
-type BundleCtx = QueryCtx | MutationCtx;
+type BundleCtx = Pick<QueryCtx, "db">;
+type CommerceMoney = number | { amount: number; currencyCode?: string };
+type BundleDoc = Doc<"commerce_bundles">;
+type BundleComponentDoc = Doc<"commerce_bundle_components">;
+type ProductDoc = Doc<"commerce_products">;
+type VariantDoc = Doc<"commerce_product_variants">;
 
 type BundleSelectionInput = {
-  componentId: any;
-  productId?: any;
-  variantId?: any;
+  componentId: Id<"commerce_bundle_components">;
+  productId?: Id<"commerce_products">;
+  variantId?: Id<"commerce_product_variants">;
   quantity: number;
 };
 
 type BundleSelectionSnapshot = {
-  componentId: any;
+  componentId: Id<"commerce_bundle_components">;
   componentLabel?: string;
-  productId: any;
+  productId: Id<"commerce_products">;
   productTitle: string;
-  variantId?: any;
+  variantId?: Id<"commerce_product_variants">;
   variantTitle?: string;
   quantity: number;
   unitPriceAmount: number;
@@ -31,32 +37,41 @@ type BundleSnapshotResult = {
   resolvedBundlePriceAmount: number;
 };
 
-export function isConfigurableBundle(bundle: any) {
+export function isConfigurableBundle(bundle: Pick<BundleDoc, "bundleType">) {
   return bundle.bundleType === "mix_and_match" || bundle.bundleType === "bogo";
 }
 
-export async function getBundleByProductId(ctx: BundleCtx, productId: any) {
+export async function getBundleByProductId(
+  ctx: BundleCtx,
+  productId: Id<"commerce_products">,
+) {
   return ctx.db
     .query("commerce_bundles")
-    .withIndex("by_product", (q: any) => q.eq("productId", productId))
+    .withIndex("by_product", (q) => q.eq("productId", productId))
     .unique();
 }
 
-export async function getBundleComponents(ctx: BundleCtx, bundleId: any) {
+export async function getBundleComponents(
+  ctx: BundleCtx,
+  bundleId: Id<"commerce_bundles">,
+) {
   const components = await ctx.db
     .query("commerce_bundle_components")
-    .withIndex("by_bundle", (q: any) => q.eq("bundleId", bundleId))
+    .withIndex("by_bundle", (q) => q.eq("bundleId", bundleId))
     .collect();
 
-  return components.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+  return components.sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-function getMoneyAmount(money: any): number {
+function getMoneyAmount(money: CommerceMoney): number {
   if (typeof money === "number") return money;
-  return money?.amount ?? 0;
+  return money.amount;
 }
 
-function getProductBaseUnitPrice(product: any, variant: any): number {
+function getProductBaseUnitPrice(
+  product: ProductDoc,
+  variant: VariantDoc | null,
+): number {
   if (variant) {
     return getMoneyAmount(variant.salePrice ?? variant.price);
   }
@@ -64,7 +79,7 @@ function getProductBaseUnitPrice(product: any, variant: any): number {
 }
 
 export function getResolvedComponentUnitPrice(
-  component: any,
+  component: Pick<BundleComponentDoc, "discountPercent" | "priceOverride">,
   baseUnitPrice: number,
 ): number {
   if (component.priceOverride !== undefined && component.priceOverride !== null) {
@@ -77,7 +92,10 @@ export function getResolvedComponentUnitPrice(
 }
 
 export function applyBundlePricing(
-  bundle: any,
+  bundle: Pick<
+    BundleDoc,
+    "discountAmount" | "discountPercent" | "fixedPrice" | "pricingType"
+  >,
   componentSubtotalAmount: number,
 ): number {
   switch (bundle.pricingType) {
@@ -98,8 +116,8 @@ export function applyBundlePricing(
 export async function resolveBundleSelectionSnapshot(
   ctx: BundleCtx,
   args: {
-    bundle: any;
-    components?: any[];
+    bundle: BundleDoc;
+    components?: BundleComponentDoc[];
     selections?: BundleSelectionInput[];
   },
 ): Promise<BundleSnapshotResult> {
@@ -137,7 +155,7 @@ export async function resolveBundleSelectionSnapshot(
       });
     }
 
-    const product: any = await ctx.db.get(productId);
+    const product = await ctx.db.get(productId);
     if (!product) {
       throw new ConvexError({
         code: "product_not_found",
@@ -168,7 +186,7 @@ export async function resolveBundleSelectionSnapshot(
       });
     }
 
-    const variant: any = selectedVariantId ? await ctx.db.get(selectedVariantId) : null;
+    const variant = selectedVariantId ? await ctx.db.get(selectedVariantId) : null;
     if (selectedVariantId && !variant) {
       throw new ConvexError({
         code: "variant_not_found",
@@ -252,8 +270,8 @@ export async function resolveBundleSelectionSnapshot(
 export async function resolveBundlePricingPreview(
   ctx: BundleCtx,
   args: {
-    bundle: any;
-    components?: any[];
+    bundle: BundleDoc;
+    components?: BundleComponentDoc[];
   },
 ): Promise<BundleSnapshotResult | null> {
   const components = args.components ?? (await getBundleComponents(ctx, args.bundle._id));
@@ -292,7 +310,7 @@ export async function resolveBundlePricingPreview(
 export async function resolveBundleAvailability(
   ctx: BundleCtx,
   args: {
-    bundle: any;
+    bundle: BundleDoc;
     snapshot: Pick<BundleSnapshotResult, "selections">;
     quantity?: number;
   },
@@ -316,7 +334,7 @@ export async function resolveBundleAvailability(
   const unavailableComponents: string[] = [];
 
   for (const selection of args.snapshot.selections) {
-    const product: any = await ctx.db.get(selection.productId);
+    const product = await ctx.db.get(selection.productId);
     if (!product) {
       unavailableComponents.push(selection.componentLabel || selection.productTitle);
       continue;
@@ -342,7 +360,7 @@ export async function resolveBundleAvailability(
         continue;
       }
 
-      const variant: any = await ctx.db.get(selection.variantId);
+      const variant = await ctx.db.get(selection.variantId);
       if (!variant || variant.productId.toString() !== selection.productId.toString()) {
         unavailableComponents.push(label);
         continue;
@@ -369,8 +387,8 @@ export async function resolveBundleAvailability(
 }
 
 export function buildBundleLineMetadata(args: {
-  bundle: any;
-  owningProductId: any;
+  bundle: BundleDoc;
+  owningProductId: Id<"commerce_products">;
   snapshot: Awaited<ReturnType<typeof resolveBundleSelectionSnapshot>>;
 }) {
   return {
@@ -387,25 +405,29 @@ export function buildBundleLineMetadata(args: {
   };
 }
 
-export function isBundleLineMetadata(metadata: any): metadata is {
+type BundleLineMetadata = {
   lineType: "bundle";
-  bundleId: any;
+  bundleId: Id<"commerce_bundles">;
   selections: BundleSelectionSnapshot[];
   regularPriceAmount: number;
   resolvedBundlePriceAmount: number;
-} {
+};
+
+export function isBundleLineMetadata(metadata: unknown): metadata is BundleLineMetadata {
+  if (!metadata || typeof metadata !== "object") return false;
+  const value = metadata as Partial<BundleLineMetadata>;
   return (
-    metadata?.lineType === "bundle" &&
-    Array.isArray(metadata?.selections) &&
-    typeof metadata?.regularPriceAmount === "number" &&
-    typeof metadata?.resolvedBundlePriceAmount === "number"
+    value.lineType === "bundle" &&
+    Array.isArray(value.selections) &&
+    typeof value.regularPriceAmount === "number" &&
+    typeof value.resolvedBundlePriceAmount === "number"
   );
 }
 
-export function expandBundleLineInventory(metadata: any, lineQuantity: number) {
+export function expandBundleLineInventory(metadata: unknown, lineQuantity: number) {
   if (!isBundleLineMetadata(metadata)) return [];
 
-  return metadata.selections.map((selection: any) => ({
+  return metadata.selections.map((selection) => ({
     productId: selection.productId,
     variantId: selection.variantId,
     quantity: selection.quantity * lineQuantity,
@@ -414,9 +436,9 @@ export function expandBundleLineInventory(metadata: any, lineQuantity: number) {
 }
 
 export function getBundlePurchaseDelta(
-  metadata: any,
+  metadata: unknown,
   lineQuantity: number,
-): { bundleId: any; quantity: number } | null {
+): { bundleId: Id<"commerce_bundles">; quantity: number } | null {
   if (!isBundleLineMetadata(metadata)) return null;
   if (!Number.isFinite(lineQuantity) || lineQuantity <= 0) return null;
 

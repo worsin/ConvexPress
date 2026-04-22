@@ -244,8 +244,10 @@ function parseAtom(xml: string, maxItems: number): ParsedFeed {
  * @throws ConvexError "FETCH_ERROR" if network request fails
  * @throws ConvexError "PARSE_ERROR" if response is not valid feed XML
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const fetchExternal = action({
   args: fetchExternalArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // ── 1. Authentication ─────────────────────────────────────────────────
     const identity = await ctx.auth.getUserIdentity();

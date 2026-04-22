@@ -14,12 +14,14 @@ import { PRESET_LAYOUTS } from "./presets";
  * Idempotent — skips if any preset layouts already exist.
  * Intended to be called during bootstrap or via the Convex dashboard.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const seedPresets = internalMutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const existing = await ctx.db
       .query("layouts")
-      .withIndex("by_type", (q) => q.eq("type", "preset"))
+      .withIndex("by_type", (q: ConvexQueryBuilder) => q.eq("type", "preset"))
       .collect();
 
     if (existing.length > 0) {

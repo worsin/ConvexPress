@@ -67,6 +67,7 @@ export interface ElementorImage {
 
 export interface ElementorSlide {
   image?: ElementorImage;
+  heading?: string;
   title?: string;
   description?: string;
   button_text?: string;

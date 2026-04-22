@@ -14,6 +14,10 @@ import {
 } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 import { sanitizeSlug } from "../helpers/slug";
+import {
+  ensureDefaultProductCategory,
+  recomputeAllProductCategoryCounts,
+} from "./categories";
 import { requireCommerceEnabled } from "./helpers";
 import {
   normalizeVariantSelections,
@@ -186,7 +190,10 @@ async function getUniqueProductSlug(
 
 async function assertCategoriesExist(ctx: any, categoryIds: any[]) {
   for (const categoryId of categoryIds) {
-    const category = await ctx.db.get(categoryId);
+    const category = await ctx.db.get(
+      "commerce_product_categories",
+      categoryId,
+    );
     if (!category) {
       throw new ConvexError({
         code: "NOT_FOUND",
@@ -196,31 +203,60 @@ async function assertCategoriesExist(ctx: any, categoryIds: any[]) {
   }
 }
 
-async function recomputeCategoryCounts(ctx: any, categoryIds: any[]) {
-  const products = await ctx.db.query("commerce_products").take(5000);
+function dedupeIds(ids: any[]) {
+  return ids.filter(
+    (value: any, index: number, array: any[]) =>
+      array.findIndex((candidate) => candidate.toString() === value.toString()) ===
+      index,
+  );
+}
 
-  for (const categoryId of categoryIds) {
-    const count = products.filter(
-      (product: any) =>
-        product.status === "publish" &&
-        product.categoryIds.some((id: any) => id.toString() === categoryId.toString()),
-    ).length;
+async function resolveProductCategoryIds(ctx: any, categoryIds: any[] | undefined) {
+  const nextCategoryIds = dedupeIds(categoryIds ?? []);
+  if (nextCategoryIds.length > 0) {
+    await assertCategoriesExist(ctx, nextCategoryIds);
+    return nextCategoryIds;
+  }
 
-    await ctx.db.patch(categoryId, {
-      productCount: count,
-      updatedAt: Date.now(),
+  const defaultCategory = await ensureDefaultProductCategory(ctx);
+  if (!defaultCategory) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "Default product category could not be created.",
     });
   }
+  return [defaultCategory._id];
+}
+
+async function recomputeCategoryCounts(ctx: any, categoryIds: any[]) {
+  void categoryIds;
+  await recomputeAllProductCategoryCounts(ctx);
 }
 
 async function loadCategoriesByIds(ctx: any, categoryIds: any[]) {
   const categories = await Promise.all(
-    categoryIds.map((categoryId: any) => ctx.db.get(categoryId)),
+    categoryIds.map((categoryId: any) =>
+      ctx.db.get("commerce_product_categories", categoryId),
+    ),
   );
 
   return categories
     .filter(Boolean)
     .sort((a: any, b: any) => a.name.localeCompare(b.name));
+}
+
+function collectCategoryDescendants(categories: any[], categoryId: any) {
+  const ids = new Set<string>([categoryId.toString()]);
+  const visit = (parentId: any) => {
+    for (const category of categories) {
+      if (category.parentId?.toString() === parentId.toString()) {
+        ids.add(category._id.toString());
+        visit(category._id);
+      }
+    }
+  };
+  visit(categoryId);
+  return ids;
 }
 
 async function computeDisplayPrice(ctx: any, product: any) {
@@ -408,11 +444,17 @@ export const listPublished = query({
       ? categories.find((entry: any) => entry.slug === categorySlug) ?? null
       : null;
 
-    const categoryFiltered = category
-      ? products.filter((product: any) =>
-          product.categoryIds.some((id: any) => id.toString() === category._id.toString()),
-        )
-      : products;
+    const categoryIds = category
+      ? collectCategoryDescendants(categories, category._id)
+      : null;
+    const categoryFiltered =
+      categorySlug && !category
+        ? []
+        : categoryIds
+          ? products.filter((product: any) =>
+              product.categoryIds.some((id: any) => categoryIds.has(id.toString())),
+            )
+          : products;
     const filtered = search
       ? categoryFiltered.filter((product: any) => {
           const haystack = [
@@ -476,8 +518,7 @@ export const create = mutation({
       });
     }
 
-    const categoryIds = args.categoryIds ?? [];
-    await assertCategoriesExist(ctx, categoryIds);
+    const categoryIds = await resolveProductCategoryIds(ctx, args.categoryIds);
 
     const now = Date.now();
     const status = args.status ?? "draft";
@@ -502,6 +543,7 @@ export const create = mutation({
       shippingWeightOz:
         args.isVirtual === true ? undefined : args.shippingWeightOz,
       isDownloadable: args.isDownloadable ?? false,
+      taxClass: args.taxClass?.trim() || undefined,
       publishedAt: status === "publish" ? now : undefined,
       createdAt: now,
       updatedAt: now,
@@ -578,10 +620,10 @@ export const update = mutation({
     if (args.isVirtual !== undefined) patch.isVirtual = args.isVirtual;
     if (args.shippingWeightOz !== undefined) patch.shippingWeightOz = args.shippingWeightOz ?? undefined;
     if (args.isDownloadable !== undefined) patch.isDownloadable = args.isDownloadable;
+    if (args.taxClass !== undefined) patch.taxClass = args.taxClass?.trim() || undefined;
 
     if (args.categoryIds !== undefined) {
-      await assertCategoriesExist(ctx, args.categoryIds);
-      patch.categoryIds = args.categoryIds;
+      patch.categoryIds = await resolveProductCategoryIds(ctx, args.categoryIds);
     }
 
     if (args.status !== undefined) {
@@ -609,15 +651,13 @@ export const update = mutation({
       patch.stockQuantity = undefined;
     }
 
-    await ctx.db.patch(args.productId, patch);
+    await ctx.db.patch("commerce_products", args.productId, patch);
 
     const nextCategoryIds = (patch.categoryIds as any[] | undefined) ?? product.categoryIds;
-    const affectedCategoryIds = [
+    const affectedCategoryIds = dedupeIds([
       ...product.categoryIds,
       ...nextCategoryIds,
-    ].filter((value: any, index: number, array: any[]) =>
-      array.findIndex((candidate: any) => candidate.toString() === value.toString()) === index,
-    );
+    ]);
     await recomputeCategoryCounts(ctx, affectedCategoryIds);
 
     return args.productId;

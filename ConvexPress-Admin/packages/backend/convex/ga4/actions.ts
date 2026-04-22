@@ -66,8 +66,10 @@ function getAnalyticsClient(serviceAccountJson: string) {
  *
  * @auth analytics.manage (validated client-side before calling)
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const testConnection = action({
   args: testConnectionArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (_ctx, args) => {
     // Validate service account JSON structure
     let credentials: Record<string, unknown>;
@@ -150,11 +152,13 @@ export const testConnection = action({
  *
  * Returns the normalized traffic data object.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const fetchTrafficData = action({
   args: {
     ...ga4DateRangeArgs,
     ...ga4PathArgs,
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // Read credentials from env var
     const { getServiceKeyFromAction } = await import("../helpers/serviceKeys"); const serviceAccountJson = await getServiceKeyFromAction(ctx, "analytics.ga4", "ga4ServiceAccountJson", "GA4_SERVICE_ACCOUNT_JSON");
@@ -311,11 +315,13 @@ export const fetchTrafficData = action({
 /**
  * Fetch engagement metrics from GA4 Data API and cache the result.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const fetchEngagementData = action({
   args: {
     ...ga4DateRangeArgs,
     ...ga4PathArgs,
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // Read credentials from env var
     const { getServiceKeyFromAction } = await import("../helpers/serviceKeys"); const serviceAccountJson = await getServiceKeyFromAction(ctx, "analytics.ga4", "ga4ServiceAccountJson", "GA4_SERVICE_ACCOUNT_JSON");

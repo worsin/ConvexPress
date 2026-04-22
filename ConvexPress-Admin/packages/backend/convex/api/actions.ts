@@ -27,6 +27,40 @@ import { MAX_RESPONSE_BODY_SIZE } from "./validators";
 
 // ─── testWebhook ───────────────────────────────────────────────────────────
 
+interface WebhookTestPermissionResult {
+  authorized: boolean;
+  error?: string;
+  errorCode?: string;
+  webhookName?: string;
+}
+
+interface WebhookInternalRecord {
+  secret: string;
+  deliveryUrl: string;
+  contentType: string;
+  deliveryTimeout: number;
+}
+
+interface WebhookDeliveryResult {
+  success: boolean;
+  statusCode: number | null;
+  duration: number;
+  error?: string;
+  deliveryId: string;
+  responseBody?: string;
+}
+
+interface WebhookTestPayload {
+  event: string;
+  timestamp: number;
+  delivery_id: string;
+  webhook_id: string;
+  data: {
+    test: boolean;
+    message: string;
+  };
+}
+
 /**
  * Send a test delivery to a webhook endpoint.
  *
@@ -45,9 +79,9 @@ import { MAX_RESPONSE_BODY_SIZE } from "./validators";
  */
 export const testWebhook = action({
   args: testWebhookArgs,
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<WebhookDeliveryResult> => {
     // 1. Verify authentication and permissions via internal mutation
-    const authResult = await ctx.runMutation(
+    const authResult: WebhookTestPermissionResult = await ctx.runMutation(
       internal.api.internals.verifyWebhookTestPermission,
       { webhookId: args.webhookId },
     );
@@ -63,7 +97,7 @@ export const testWebhook = action({
     const webhook = await ctx.runQuery(
       internal.api.internals.getWebhookInternal,
       { webhookId: args.webhookId },
-    );
+    ) as WebhookInternalRecord | null;
 
     if (!webhook) {
       throw new ConvexError({
@@ -75,7 +109,7 @@ export const testWebhook = action({
     // 3. Construct test payload
     const deliveredAt = Date.now();
     const deliveryId = `del_${deliveredAt.toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
-    const deliveryPayload = {
+    const deliveryPayload: WebhookTestPayload = {
       event: "api.webhook_triggered",
       timestamp: deliveredAt,
       delivery_id: deliveryId,
@@ -140,7 +174,7 @@ export const testWebhook = action({
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), webhook.deliveryTimeout);
 
-      const response = await fetch(webhook.deliveryUrl, {
+      const response: Response = await fetch(webhook.deliveryUrl, {
         method: "POST",
         headers: requestHeaders,
         body: bodyString,

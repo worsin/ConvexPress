@@ -6,10 +6,12 @@
  */
 
 import { mutation } from "../_generated/server";
-import { v } from "convex/values";
+import { ConvexError } from "convex/values";
 import { requireCan } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { purgeArgs, settingsArgs } from "./validators";
+import { getDefaults } from "../settings/defaults";
+import { computeChanges } from "../settings/helpers";
 
 // ─── purgeAnalytics ─────────────────────────────────────────────────────────
 
@@ -94,83 +96,58 @@ export const updateSettings = mutation({
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "analytics.manage");
 
-    const changes: Record<string, unknown> = {};
-
-    // Update each provided setting
-    if (args.trackingEnabled !== undefined) {
-      const existing = await ctx.db
-        .query("settings")
-        .withIndex("by_key", (q) => q.eq("key", "analytics_tracking_enabled"))
-        .unique();
-      if (existing) {
-        await ctx.db.patch(existing._id, { value: args.trackingEnabled });
-      } else {
-        await ctx.db.insert("settings", {
-          key: "analytics_tracking_enabled",
-          value: args.trackingEnabled,
-          group: "analytics",
-          label: "Enable Tracking",
-          description: "Master switch for analytics tracking",
-          type: "boolean",
-          isPublic: false,
-          isAutoloaded: true,
-        });
-      }
-      changes.trackingEnabled = args.trackingEnabled;
+    if (
+      args.retentionDays !== undefined &&
+      (!Number.isInteger(args.retentionDays) ||
+        args.retentionDays < 1 ||
+        args.retentionDays > 3650)
+    ) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Retention must be 1-3650 days.",
+      });
     }
 
-    if (args.respectDoNotTrack !== undefined) {
-      const existing = await ctx.db
-        .query("settings")
-        .withIndex("by_key", (q) => q.eq("key", "analytics_respect_dnt"))
-        .unique();
-      if (existing) {
-        await ctx.db.patch(existing._id, { value: args.respectDoNotTrack });
-      } else {
-        await ctx.db.insert("settings", {
-          key: "analytics_respect_dnt",
-          value: args.respectDoNotTrack,
-          group: "analytics",
-          label: "Respect Do Not Track",
-          description: "Honor the browser Do Not Track header",
-          type: "boolean",
-          isPublic: false,
-          isAutoloaded: true,
-        });
-      }
-      changes.respectDoNotTrack = args.respectDoNotTrack;
-    }
+    const defaults = getDefaults("analytics");
+    const existing = await ctx.db
+      .query("settings")
+      .withIndex("by_section", (q) => q.eq("section", "analytics"))
+      .unique();
 
-    if (args.retentionDays !== undefined) {
-      const existing = await ctx.db
-        .query("settings")
-        .withIndex("by_key", (q) =>
-          q.eq("key", "analytics_retention_days"),
-        )
-        .unique();
-      if (existing) {
-        await ctx.db.patch(existing._id, { value: args.retentionDays });
-      } else {
-        await ctx.db.insert("settings", {
-          key: "analytics_retention_days",
-          value: args.retentionDays,
-          group: "analytics",
-          label: "Data Retention (Days)",
-          description: "Days to keep raw tracking events before purging",
-          type: "number",
-          isPublic: false,
-          isAutoloaded: true,
-        });
-      }
-      changes.retentionDays = args.retentionDays;
-    }
+    const oldValues: Record<string, unknown> = existing
+      ? { ...defaults, ...(existing.values as Record<string, unknown>) }
+      : { ...defaults };
 
-    // Emit event for audit trail
-    if (Object.keys(changes).length > 0) {
-      await emitEvent(ctx, "analytics.settings_updated", "analytics", {
-        changes,
+    const newValues: Record<string, unknown> = {
+      ...oldValues,
+      ...Object.fromEntries(
+        Object.entries(args).filter(([, value]) => value !== undefined),
+      ),
+    };
+
+    const changes = computeChanges(oldValues, newValues);
+    if (changes.length === 0) return;
+
+    const now = Date.now();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        values: newValues,
+        updatedAt: now,
+        updatedBy: user._id,
+      });
+    } else {
+      await ctx.db.insert("settings", {
+        section: "analytics",
+        values: newValues,
+        updatedAt: now,
         updatedBy: user._id,
       });
     }
+
+    // Emit event for audit trail
+    await emitEvent(ctx, "analytics.settings_updated", "analytics", {
+      changes,
+      updatedBy: user._id,
+    });
   },
 });

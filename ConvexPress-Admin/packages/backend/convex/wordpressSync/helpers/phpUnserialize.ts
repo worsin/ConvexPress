@@ -30,6 +30,7 @@ export type PHPValue =
   | number
   | boolean
   | null
+  | PHPValue[]
   | PHPArray
   | PHPObject;
 

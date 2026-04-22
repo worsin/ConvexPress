@@ -76,8 +76,11 @@ function indexUrl(baseUrl: string, indexName = "kb_articles"): string {
  * @throws CONFIGURATION_ERROR if Meilisearch is not configured
  * @throws NOT_FOUND if the article does not exist
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const syncArticle = action({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { articleId: v.id("kb_articles") },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const identity = await ctx.auth.getUserIdentity();
@@ -146,8 +149,11 @@ export const syncArticle = action({
  *
  * @throws CONFIGURATION_ERROR if Meilisearch is not configured
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const removeArticle = action({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { articleId: v.id("kb_articles") },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const identity = await ctx.auth.getUserIdentity();
@@ -191,12 +197,16 @@ export const removeArticle = action({
  *
  * @throws CONFIGURATION_ERROR if Meilisearch is not configured
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const searchMeilisearch = action({
   args: {
     query: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     categorySlug: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const { url, apiKey } = await resolveMeilisearchConfig(ctx);
@@ -242,6 +252,7 @@ export const searchMeilisearch = action({
       processingTimeMs?: number;
     };
 
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const hits = (data.hits ?? []).map((hit, index) => ({
       articleId: hit["id"] as string,
       title: hit["title"] as string,

@@ -1,6 +1,9 @@
 import type { Id } from "../_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
 import { getCurrentUser, requireAuth } from "./permissions";
+
+type AuthCtx = Pick<QueryCtx, "auth" | "db">;
+type ReadCtx = Pick<QueryCtx, "db">;
 
 // ─── Consolidated Re-exports (MEDIUM-6 fix) ────────────────────────────────
 // getCurrentUser and requireAuth are re-exported from permissions.ts
@@ -24,7 +27,7 @@ export type InternalRole =
 
 // ─── Identity Retrieval ─────────────────────────────────────────────────────
 
-export async function getIdentity(ctx: QueryCtx | MutationCtx) {
+export async function getIdentity(ctx: AuthCtx) {
   return await ctx.auth.getUserIdentity();
 }
 
@@ -35,7 +38,7 @@ export async function getIdentity(ctx: QueryCtx | MutationCtx) {
  * for role type "internal" instead. This checks the legacy `isInternal` field.
  */
 export async function isInternal(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthCtx,
 ): Promise<boolean> {
   const user = await getCurrentUser(ctx);
   return user?.isInternal === true;
@@ -45,7 +48,7 @@ export async function isInternal(
  * @deprecated Use `requireCan(ctx, capability)` from `helpers/permissions.ts` instead.
  * This checks the legacy `isInternal` field rather than the capability system.
  */
-export async function requireInternal(ctx: QueryCtx | MutationCtx) {
+export async function requireInternal(ctx: AuthCtx) {
   const user = await requireAuth(ctx);
   if (user.isInternal !== true) {
     throw new Error("Internal team access required");
@@ -60,7 +63,7 @@ export async function requireInternal(ctx: QueryCtx | MutationCtx) {
  * from `helpers/permissions.ts` instead. This function bypasses the capability system
  * and only checks legacy `isInternal` / `internalRole` fields.
  */
-export async function isAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {
+export async function isAdmin(ctx: AuthCtx): Promise<boolean> {
   const user = await getCurrentUser(ctx);
   if (!user) return false;
   return user.isInternal === true && user.internalRole === "admin";
@@ -70,7 +73,7 @@ export async function isAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {
  * @deprecated Use `requireCan(ctx, capability)` from `helpers/permissions.ts` instead.
  * This function bypasses the capability system and only checks legacy fields.
  */
-export async function requireAdmin(ctx: QueryCtx | MutationCtx) {
+export async function requireAdmin(ctx: AuthCtx) {
   const user = await requireAuth(ctx);
   const adminStatus =
     user.isInternal === true && user.internalRole === "admin";
@@ -97,7 +100,7 @@ const LEGACY_ROLE_HIERARCHY: Record<string, number> = {
  * This function falls back to a legacy hardcoded hierarchy.
  */
 export async function getRoleLevel(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   roleSlug: string | null | undefined,
 ): Promise<number> {
   if (!roleSlug) return 0;
@@ -120,7 +123,7 @@ export async function getRoleLevel(
  * @deprecated Use `hasMinimumRoleLevel(ctx, level)` from `helpers/permissions.ts` instead.
  */
 export async function hasRoleOrHigher(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthCtx,
   minimumRoleSlug: InternalRole,
 ): Promise<boolean> {
   const user = await getCurrentUser(ctx);
@@ -136,7 +139,7 @@ export async function hasRoleOrHigher(
  * @deprecated Use `requireMinimumRoleLevel(ctx, level)` from `helpers/permissions.ts` instead.
  */
 export async function requireRoleOrHigher(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthCtx,
   minimumRoleSlug: InternalRole,
 ) {
   const user = await requireAuth(ctx);
@@ -158,7 +161,7 @@ export async function requireRoleOrHigher(
  * This checks the legacy `internalRole` field rather than the capability system.
  */
 export async function hasRole(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthCtx,
   role: InternalRole,
 ): Promise<boolean> {
   const user = await getCurrentUser(ctx);
@@ -170,7 +173,7 @@ export async function hasRole(
  * @deprecated Use `hasMinimumRoleLevel(ctx, 40)` from `helpers/permissions.ts` instead.
  */
 export async function isEmployee(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthCtx,
 ): Promise<boolean> {
   const user = await getCurrentUser(ctx);
   if (!user || user.isInternal !== true) return false;
@@ -189,7 +192,7 @@ export async function isEmployee(
  * @deprecated Use role type checks via the capability system instead.
  */
 export async function isCustomer(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthCtx,
 ): Promise<boolean> {
   const user = await getCurrentUser(ctx);
   // Return false for unauthenticated users (null) to prevent
@@ -205,7 +208,7 @@ export async function isCustomer(
  * `helpers/permissions.ts` instead. This checks legacy `isInternal`/`internalRole` fields.
  */
 export async function requireAdminOrOwner(
-  ctx: MutationCtx,
+  ctx: AuthCtx,
   resourceUserId: Id<"users">,
 ) {
   const user = await requireAuth(ctx);
@@ -224,7 +227,7 @@ export async function requireAdminOrOwner(
  * `helpers/permissions.ts` instead. This checks legacy `isInternal`/`internalRole` fields.
  */
 export async function canAccessResource(
-  ctx: QueryCtx | MutationCtx,
+  ctx: AuthCtx,
   resourceUserId: Id<"users">,
 ): Promise<boolean> {
   const user = await getCurrentUser(ctx);

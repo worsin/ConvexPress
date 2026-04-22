@@ -12,10 +12,12 @@
  *   import { computeChanges, mergeWithDefaults } from "./helpers";
  */
 
-import type { QueryCtx, MutationCtx } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
 import { getDefaults, isValidSection, type SettingsSection } from "./defaults";
 
 // ─── Change Detection ────────────────────────────────────────────────────────
+
+type ReadCtx = Pick<QueryCtx, "db">;
 
 /**
  * Compute an array of changes between old and new values.
@@ -76,7 +78,7 @@ export function computeChanges(
  * @returns The settings document or null
  */
 export async function getSettingsDoc(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   section: string,
 ) {
   if (!isValidSection(section)) return null;

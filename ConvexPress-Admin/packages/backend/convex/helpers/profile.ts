@@ -13,9 +13,11 @@
 
 import { ConvexError } from "convex/values";
 import type { Id } from "../_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
+
+type ReadCtx = Pick<QueryCtx, "db">;
 
 /** Minimal user shape needed for profile helpers. */
 type UserProfileFields = {
@@ -193,7 +195,7 @@ export function generateSlug(displayName: string): string {
  * @returns A unique slug
  */
 export async function ensureUniqueSlug(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   slug: string,
   excludeUserId?: Id<"users">,
 ): Promise<string> {
@@ -236,13 +238,13 @@ export async function ensureUniqueSlug(
  * Extract public-only fields from a user document.
  * Used for non-admin queries and author archive pages.
  */
-export function extractPublicFields(user: { _id: string; displayName?: string; slug?: string; bio?: string; avatarStorageId?: string; avatarExternalUrl?: string; url?: string; socialLinks?: Record<string, string>; postCount?: number; status?: string; }) {
+export function extractPublicFields(user: { _id: string; displayName?: string; slug?: string; bio?: string; avatarUrl?: string; avatarExternalUrl?: string; profilePictureUrl?: string; url?: string; socialLinks?: Record<string, string>; postCount?: number; status?: string; }) {
   return {
     _id: user._id,
     displayName: user.displayName,
     slug: user.slug,
     bio: user.bio,
-    avatarUrl: resolveAvatarUrl(user),
+    avatarUrl: user.avatarExternalUrl ?? resolveAvatarUrl(user),
     url: user.url,
     socialLinks: user.socialLinks,
     postCount: user.postCount ?? 0,
@@ -300,7 +302,7 @@ export function isValidUrl(url: string): boolean {
  * @returns The number of active administrators
  */
 export async function countActiveAdmins(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
 ): Promise<number> {
   // Step 1: Find all roles with level >= 100 (admin-level roles).
   // Typically just 1 role (Administrator), so this is a small set.

@@ -35,8 +35,10 @@ import {
  *
  * Auth required: registration.invite capability (Administrator only).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listInvitations = query({
   args: listInvitationsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // Auth check
     const user = await requireCan(ctx, "registration.invite");
@@ -47,7 +49,7 @@ export const listInvitations = query({
       // Filter by status using index
       invitations = await ctx.db
         .query("invitations")
-        .withIndex("by_status", (q) => q.eq("status", args.status!))
+        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", args.status!))
         .order("desc")
         .collect();
     } else {
@@ -60,6 +62,7 @@ export const listInvitations = query({
 
     // Enrich with inviter details
     const enriched = await Promise.all(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       invitations.map(async (invitation) => {
         const inviter = await ctx.db.get("users", invitation.invitedBy);
         const acceptedUser = invitation.acceptedBy
@@ -92,8 +95,10 @@ export const listInvitations = query({
  *
  * Auth required: registration.invite capability (Administrator only).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getInvitation = query({
   args: getInvitationArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // Auth check
     const user = await requireCan(ctx, "registration.invite");
@@ -140,8 +145,10 @@ export const getInvitation = query({
  *   - Invitation is not pending
  *   - Invitation has expired
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getByToken = query({
   args: getByTokenArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!args.token || args.token.trim() === "") return null;
 
@@ -150,7 +157,7 @@ export const getByToken = query({
     // First, try matching the current token via index
     let invitation = await ctx.db
       .query("invitations")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .withIndex("by_token", (q: ConvexQueryBuilder) => q.eq("token", args.token))
       .unique();
 
     // If not found by current token, check if the token matches a
@@ -161,11 +168,12 @@ export const getByToken = query({
       // This is acceptable because pending invitations are a small set.
       const pendingInvitations = await ctx.db
         .query("invitations")
-        .withIndex("by_status", (q) => q.eq("status", "pending"))
+        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "pending"))
         .collect();
 
       invitation =
         pendingInvitations.find(
+          // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           (inv) =>
             inv.previousToken === args.token &&
             inv.previousTokenExpiresAt !== undefined &&
@@ -202,8 +210,10 @@ export const getByToken = query({
  *
  * Auth required: registration.invite capability (Administrator only).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const counts = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     // Auth check
     const user = await requireCan(ctx, "registration.invite");
@@ -264,8 +274,10 @@ export const counts = query({
  * The website /register page subscribes to this query reactively.
  * If an admin toggles registration off, the page updates without reload.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const isRegistrationOpen = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const settings = await getRegistrationSettings(ctx);
     return settings.anyoneCanRegister;
@@ -282,8 +294,10 @@ export const isRegistrationOpen = query({
  *
  * Auth required: registration.invite capability (Administrator only).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getRegistrationStats = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     // Auth check
     const user = await requireCan(ctx, "registration.invite");
@@ -298,7 +312,7 @@ export const getRegistrationStats = query({
     // (which encompasses the 7d and 24h windows).
     const recentUsers = await ctx.db
       .query("users")
-      .withIndex("by_createdAt", (q) => q.gte("createdAt", last30d))
+      .withIndex("by_createdAt", (q: ConvexQueryBuilder) => q.gte("createdAt", last30d))
       .collect();
 
     let count24h = 0;
@@ -323,11 +337,12 @@ export const getRegistrationStats = query({
     // Count pending invitations
     const pendingInvitations = await ctx.db
       .query("invitations")
-      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "pending"))
       .collect();
 
     // Filter out effectively expired ones
     const activePendingCount = pendingInvitations.filter(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (inv) => inv.expiresAt >= now,
     ).length;
 

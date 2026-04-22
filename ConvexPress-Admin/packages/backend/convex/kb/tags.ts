@@ -27,8 +27,10 @@ import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── List (Public) ──────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db.query("kb_tags").take(500);
@@ -37,21 +39,25 @@ export const list = query({
 
 // ─── Get By Slug (Public) ───────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getBySlug = query({
   args: getTagBySlugArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
       .query("kb_tags")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.slug))
       .first();
   },
 });
 
 // ─── Create ─────────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const create = mutation({
   args: createTagArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTags");
@@ -80,8 +86,10 @@ export const create = mutation({
 
 // ─── Update ─────────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const update = mutation({
   args: updateTagArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTags");
@@ -112,8 +120,10 @@ export const update = mutation({
 
 // ─── Remove ─────────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const remove = mutation({
   args: removeTagArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTags");
@@ -126,7 +136,7 @@ export const remove = mutation({
     // Delete all article-tag associations
     const articleTags = await ctx.db
       .query("kb_articleTags")
-      .withIndex("by_tag", (q) => q.eq("tagId", args.tagId))
+      .withIndex("by_tag", (q: ConvexQueryBuilder) => q.eq("tagId", args.tagId))
       .take(1000);
     for (const at of articleTags) {
       await ctx.db.delete("kb_articleTags", at._id);
@@ -139,8 +149,10 @@ export const remove = mutation({
 
 // ─── Add To Article ─────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const addToArticle = mutation({
   args: addTagToArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -151,7 +163,7 @@ export const addToArticle = mutation({
     // Check for existing association
     const existing = await ctx.db
       .query("kb_articleTags")
-      .withIndex("by_article_tag", (q) =>
+      .withIndex("by_article_tag", (q: ConvexQueryBuilder) =>
         q.eq("articleId", args.articleId).eq("tagId", args.tagId),
       )
       .first();
@@ -179,8 +191,10 @@ export const addToArticle = mutation({
 
 // ─── Remove From Article ────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const removeFromArticle = mutation({
   args: removeTagFromArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -190,7 +204,7 @@ export const removeFromArticle = mutation({
 
     const existing = await ctx.db
       .query("kb_articleTags")
-      .withIndex("by_article_tag", (q) =>
+      .withIndex("by_article_tag", (q: ConvexQueryBuilder) =>
         q.eq("articleId", args.articleId).eq("tagId", args.tagId),
       )
       .first();

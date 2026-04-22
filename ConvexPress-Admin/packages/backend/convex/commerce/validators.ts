@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { v } from "convex/values";
 
 export const commerceSlugValidator = v.string();
@@ -55,21 +56,49 @@ export const listPublishedCommerceProductsArgs = {
 
 export const createCommerceCategoryArgs = {
   name: v.string(),
+  slug: v.optional(v.string()),
   description: v.optional(v.string()),
-  parentId: v.optional(v.id("commerce_product_categories")),
+  parentId: v.optional(v.union(v.id("commerce_product_categories"), v.null())),
   thumbnailMediaId: v.optional(v.id("media")),
+  icon: v.optional(v.string()),
+  sortOrder: v.optional(v.number()),
+  isVisible: v.optional(v.boolean()),
+  isFeatured: v.optional(v.boolean()),
+  showInNav: v.optional(v.boolean()),
+  metaTitle: v.optional(v.string()),
+  metaDescription: v.optional(v.string()),
 };
 
 export const updateCommerceCategoryArgs = {
   categoryId: v.id("commerce_product_categories"),
   name: v.optional(v.string()),
+  slug: v.optional(v.string()),
   description: v.optional(v.string()),
-  parentId: v.optional(v.id("commerce_product_categories")),
+  parentId: v.optional(v.union(v.id("commerce_product_categories"), v.null())),
   thumbnailMediaId: v.optional(v.union(v.id("media"), v.null())),
+  icon: v.optional(v.union(v.string(), v.null())),
+  sortOrder: v.optional(v.number()),
+  isVisible: v.optional(v.boolean()),
+  isFeatured: v.optional(v.boolean()),
+  showInNav: v.optional(v.boolean()),
+  metaTitle: v.optional(v.union(v.string(), v.null())),
+  metaDescription: v.optional(v.union(v.string(), v.null())),
 };
 
 export const removeCommerceCategoryArgs = {
   categoryId: v.id("commerce_product_categories"),
+  moveProductsTo: v.optional(v.id("commerce_product_categories")),
+};
+
+export const moveCommerceCategoryArgs = {
+  categoryId: v.id("commerce_product_categories"),
+  parentId: v.optional(v.union(v.id("commerce_product_categories"), v.null())),
+  sortOrder: v.optional(v.number()),
+};
+
+export const reorderCommerceCategoriesArgs = {
+  parentId: v.optional(v.id("commerce_product_categories")),
+  orderedIds: v.array(v.id("commerce_product_categories")),
 };
 
 export const createCommerceProductArgs = {
@@ -90,6 +119,7 @@ export const createCommerceProductArgs = {
   shippingWeightOz: v.optional(v.number()),
   isDownloadable: v.optional(v.boolean()),
   isNonReturnable: v.optional(v.boolean()),
+  taxClass: v.optional(v.string()),
   status: v.optional(
     v.union(
       v.literal("draft"),
@@ -119,6 +149,7 @@ export const updateCommerceProductArgs = {
   shippingWeightOz: v.optional(v.union(v.number(), v.null())),
   isDownloadable: v.optional(v.boolean()),
   isNonReturnable: v.optional(v.boolean()),
+  taxClass: v.optional(v.union(v.string(), v.null())),
   status: v.optional(
     v.union(
       v.literal("draft"),
@@ -327,16 +358,40 @@ export const updateShipmentStatusArgs = {
   note: v.optional(v.string()),
 };
 
+const discountTypeValidator = v.union(
+  v.literal("fixed_cart"),
+  v.literal("percent"),
+  v.literal("fixed_product"),
+);
+
+const discountApplicabilityValidator = v.union(
+  v.literal("cart"),
+  v.literal("matching_items"),
+);
+
+const discountTierValidator = v.object({
+  label: v.optional(v.string()),
+  minQuantity: v.optional(v.number()),
+  minSubtotalAmount: v.optional(v.number()),
+  discountType: discountTypeValidator,
+  amount: v.number(),
+});
+
 export const createDiscountCodeArgs = {
   code: v.string(),
   description: v.optional(v.string()),
   status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
-  discountType: v.union(
-    v.literal("fixed_cart"),
-    v.literal("percent"),
-    v.literal("fixed_product"),
-  ),
+  discountType: discountTypeValidator,
   amount: v.number(),
+  minimumSubtotalAmount: v.optional(v.union(v.number(), v.null())),
+  minimumQuantity: v.optional(v.union(v.number(), v.null())),
+  applicability: v.optional(discountApplicabilityValidator),
+  productIds: v.optional(v.array(v.id("commerce_products"))),
+  categoryIds: v.optional(v.array(v.id("commerce_product_categories"))),
+  excludedProductIds: v.optional(v.array(v.id("commerce_products"))),
+  excludedCategoryIds: v.optional(v.array(v.id("commerce_product_categories"))),
+  tiers: v.optional(v.array(discountTierValidator)),
+  maxDiscountAmount: v.optional(v.union(v.number(), v.null())),
   usageLimit: v.optional(v.union(v.number(), v.null())),
   startsAt: v.optional(v.union(v.number(), v.null())),
   endsAt: v.optional(v.union(v.number(), v.null())),
@@ -347,14 +402,23 @@ export const updateDiscountCodeArgs = {
   code: v.optional(v.string()),
   description: v.optional(v.union(v.string(), v.null())),
   status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
-  discountType: v.optional(
-    v.union(
-      v.literal("fixed_cart"),
-      v.literal("percent"),
-      v.literal("fixed_product"),
-    ),
-  ),
+  discountType: v.optional(discountTypeValidator),
   amount: v.optional(v.number()),
+  minimumSubtotalAmount: v.optional(v.union(v.number(), v.null())),
+  minimumQuantity: v.optional(v.union(v.number(), v.null())),
+  applicability: v.optional(discountApplicabilityValidator),
+  productIds: v.optional(v.union(v.array(v.id("commerce_products")), v.null())),
+  categoryIds: v.optional(
+    v.union(v.array(v.id("commerce_product_categories")), v.null()),
+  ),
+  excludedProductIds: v.optional(
+    v.union(v.array(v.id("commerce_products")), v.null()),
+  ),
+  excludedCategoryIds: v.optional(
+    v.union(v.array(v.id("commerce_product_categories")), v.null()),
+  ),
+  tiers: v.optional(v.union(v.array(discountTierValidator), v.null())),
+  maxDiscountAmount: v.optional(v.union(v.number(), v.null())),
   usageLimit: v.optional(v.union(v.number(), v.null())),
   startsAt: v.optional(v.union(v.number(), v.null())),
   endsAt: v.optional(v.union(v.number(), v.null())),

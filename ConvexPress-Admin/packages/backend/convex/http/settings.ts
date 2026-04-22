@@ -12,6 +12,8 @@ import { internal } from "../_generated/api";
 import {
   authenticateApiRequest,
   errorResponse,
+  getHttpErrorCode,
+  getHttpErrorMessage,
   jsonResponse,
 } from "./helpers";
 
@@ -36,8 +38,8 @@ export const settingsReadHandler = httpAction(async (ctx, request) => {
     }
   } catch (error: unknown) {
     return errorResponse(
-      error?.data?.message ?? "Failed to read settings",
-      error?.data?.code ?? "INTERNAL_ERROR",
+      getHttpErrorMessage(error, "Failed to read settings"),
+      getHttpErrorCode(error, "INTERNAL_ERROR"),
       500,
     );
   }

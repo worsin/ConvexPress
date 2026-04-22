@@ -217,7 +217,7 @@ export const createInternal = internalMutation({
 
     // Get settings for moderation
     const settings = await getDiscussionSettings(ctx);
-    const initialStatus = settings.defaultCommentStatus ?? "approved";
+    const initialStatus = settings.commentModeration ? "pending" : "approved";
 
     const now = Date.now();
 
@@ -227,12 +227,9 @@ export const createInternal = internalMutation({
       status: initialStatus,
       authorId: args.authorId,
       authorName: args.authorName,
-      authorEmail: args.authorEmail,
       authorAvatarUrl: args.authorAvatarUrl,
       parentId: args.parentId,
       depth,
-      userAgent: args.userAgent,
-      ipAddress: args.ipAddress,
       likeCount: 0,
       flagCount: 0,
       isEdited: false,

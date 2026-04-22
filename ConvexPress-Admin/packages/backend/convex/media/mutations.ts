@@ -1096,7 +1096,7 @@ export const bulkUpdate = mutation({
           continue;
         }
 
-        await checkMediaCapability(ctx, user, media, "update");
+        await checkMediaCapability(ctx, user, media, "edit");
 
         const patch: Record<string, unknown> = { updatedAt: now };
         if (args.title !== undefined) {

@@ -15,7 +15,7 @@
  *   import { resolveNotificationRecipients, shouldDeliver } from "../helpers/notification";
  */
 
-import type { QueryCtx, MutationCtx } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
 import {
   NOTIFICATION_TYPES,
   type NotificationTypeConfig,
@@ -23,6 +23,8 @@ import {
 import { getUserIdentifier } from "./permissions";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+type ReadCtx = Pick<QueryCtx, "db">;
 
 export interface NotificationRecipient {
   /** User identifier string (clerkUserId or Convex _id) */
@@ -52,7 +54,7 @@ export interface NotificationBuildResult {
  * @returns Array of user identifier strings
  */
 export async function resolveNotificationRecipients(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   recipientType: "admin" | "employee" | "customer",
   payload: Record<string, unknown>,
 ): Promise<string[]> {
@@ -107,7 +109,7 @@ export async function resolveNotificationRecipients(
  * @returns Object with siteEnabled and toastEnabled booleans
  */
 export async function shouldDeliver(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   userId: string,
   notificationKey: string,
 ): Promise<{ siteEnabled: boolean; toastEnabled: boolean }> {

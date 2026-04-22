@@ -10,7 +10,9 @@
  *   - registration/queries.ts
  */
 
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
+
+type ReadCtx = Pick<QueryCtx, "db">;
 
 // ─── Token Generation ────────────────────────────────────────────────────────
 
@@ -49,12 +51,12 @@ export function isValidEmail(email: string): boolean {
  * @returns The existing user document, or null if not found
  */
 export async function findUserByEmail(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   email: string,
 ) {
   return await ctx.db
     .query("users")
-    .withIndex("by_email", (q) => q.eq("email", email.toLowerCase().trim()))
+    .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email.toLowerCase().trim()))
     .unique();
 }
 
@@ -66,15 +68,16 @@ export async function findUserByEmail(
  * @returns The pending invitation document, or null if not found
  */
 export async function findPendingInvitation(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   email: string,
 ) {
   const invitations = await ctx.db
     .query("invitations")
-    .withIndex("by_email", (q) => q.eq("email", email.toLowerCase().trim()))
+    .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email.toLowerCase().trim()))
     .collect();
 
   // Return the first pending invitation (there should only be one)
+  // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
   return invitations.find((inv) => inv.status === "pending") ?? null;
 }
 
@@ -116,13 +119,13 @@ export function generateUsernameFromEmail(email: string): string {
  * @returns A unique username string
  */
 export async function ensureUniqueUsername(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   base: string,
 ): Promise<string> {
   // Check if the base username is available
   const existing = await ctx.db
     .query("users")
-    .withIndex("by_username", (q) => q.eq("username", base))
+    .withIndex("by_username", (q: ConvexQueryBuilder) => q.eq("username", base))
     .unique();
 
   if (!existing) return base;
@@ -133,7 +136,7 @@ export async function ensureUniqueUsername(
     const candidate = `${base}${counter}`;
     const candidateExisting = await ctx.db
       .query("users")
-      .withIndex("by_username", (q) => q.eq("username", candidate))
+      .withIndex("by_username", (q: ConvexQueryBuilder) => q.eq("username", candidate))
       .unique();
 
     if (!candidateExisting) return candidate;
@@ -174,7 +177,7 @@ const REGISTRATION_DEFAULTS = {
  * @returns The setting value, or undefined if section/key not found
  */
 async function getSettingValue(
-  ctx: QueryCtx | MutationCtx,
+  ctx: ReadCtx,
   section:
     | "general"
     | "reading"
@@ -187,7 +190,7 @@ async function getSettingValue(
   try {
     const doc = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", section))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", section))
       .unique();
 
     if (doc && doc.values && typeof doc.values === "object") {
@@ -222,7 +225,7 @@ async function getSettingValue(
  *
  * @returns Object with all registration settings
  */
-export async function getRegistrationSettings(ctx: QueryCtx | MutationCtx) {
+export async function getRegistrationSettings(ctx: ReadCtx) {
   // "membershipEnabled" is the stored key (Settings > General page).
   // Maps to PRD concept "anyoneCanRegister".
   const membershipEnabled = await getSettingValue(
@@ -278,11 +281,12 @@ export async function getRegistrationSettings(ctx: QueryCtx | MutationCtx) {
  *
  * @returns The default role document, or null if not found
  */
-export async function getDefaultRoleDoc(ctx: QueryCtx | MutationCtx) {
+export async function getDefaultRoleDoc(ctx: ReadCtx) {
   // First try: role marked as default
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   const defaultRole = await ctx.db
     .query("roles")
-    .withIndex("by_isDefault", (q) => q.eq("isDefault", true))
+    .withIndex("by_isDefault", (q: ConvexQueryBuilder) => q.eq("isDefault", true))
     .first();
 
   if (defaultRole) return defaultRole;
@@ -290,7 +294,7 @@ export async function getDefaultRoleDoc(ctx: QueryCtx | MutationCtx) {
   // Fallback: look up subscriber by slug
   const subscriber = await ctx.db
     .query("roles")
-    .withIndex("by_slug", (q) => q.eq("slug", "subscriber"))
+    .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "subscriber"))
     .unique();
 
   return subscriber;

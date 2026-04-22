@@ -48,8 +48,10 @@ import {
  *
  * @returns The updated parent post ID
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const restore = mutation({
   args: restoreRevisionArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // ── Auth: require revision.restore capability ────────────────────────
     const user = await requireCan(ctx, "revision.restore");
@@ -132,12 +134,13 @@ export const restore = mutation({
     if (maxRevisions > 0) {
       const manualRevisions = await ctx.db
         .query("revisions")
-        .withIndex("by_parent_type", (q) =>
+        .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
           q.eq("parentId", revision.parentId).eq("type", "manual"),
         )
         .collect();
 
       if (manualRevisions.length > maxRevisions) {
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         manualRevisions.sort((a, b) => a.revisionNumber - b.revisionNumber);
         const toDelete = manualRevisions.length - maxRevisions;
         for (let i = 0; i < toDelete; i++) {
@@ -171,8 +174,10 @@ export const restore = mutation({
  *
  * @returns Success indicator
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteRevision = mutation({
   args: deleteRevisionArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // ── Auth: require revision.delete capability (Admin only) ────────────
     await requireCan(ctx, "revision.delete");

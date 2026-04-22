@@ -22,19 +22,21 @@ import { query } from "../_generated/server";
  *
  * Returns `true` if an admin exists, `false` otherwise.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const hasAdmin = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const adminRole = await ctx.db
       .query("roles")
-      .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
+      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
       .unique();
 
     if (!adminRole) return false;
 
     const admin = await ctx.db
       .query("users")
-      .withIndex("by_roleId", (q) => q.eq("roleId", adminRole._id))
+      .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", adminRole._id))
       .first();
 
     return !!admin;

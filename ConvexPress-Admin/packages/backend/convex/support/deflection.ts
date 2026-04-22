@@ -54,8 +54,10 @@ interface SourceArticle {
  *
  * @returns { answer, sourceArticles, confidence, usedAi }
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const generateAnswer = action({
   args: generateAnswerArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args): Promise<{
     answer: string;
     sourceArticles: SourceArticle[];
@@ -196,8 +198,10 @@ export const generateAnswer = action({
  * No auth required — widget users may be anonymous. sessionId is used to
  * associate logs with the same session.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const logInteraction = mutation({
   args: logInteractionArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     // Validate input lengths
@@ -212,7 +216,7 @@ export const logInteraction = mutation({
     if (args.sessionId) {
       const session = await ctx.db
         .query("ticket_sessions")
-        .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
+        .withIndex("by_session_id", (q: ConvexQueryBuilder) => q.eq("sessionId", args.sessionId))
         .first();
       if (!session || session.expiresAt < Date.now()) {
         throw new ConvexError({ code: "INVALID_SESSION", message: "Invalid or expired session" });

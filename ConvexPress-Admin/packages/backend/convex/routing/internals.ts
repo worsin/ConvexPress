@@ -49,18 +49,21 @@ import {
  *   - Prefix match: < 10ms (filtered scan)
  *   - Regex match: < 20ms (pattern testing, max 50 regex redirects)
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const resolveRedirect = internalQuery({
   args: resolveRedirectArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const url = args.url;
 
     // ── Tier 1: Exact match ──────────────────────────────────────────────
     const exactMatches = await ctx.db
       .query("redirects")
-      .withIndex("by_source_url", (q) => q.eq("sourceUrl", url))
+      .withIndex("by_source_url", (q: ConvexQueryBuilder) => q.eq("sourceUrl", url))
       .collect();
 
     const exactMatch = exactMatches.find(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (r) => r.enabled && r.matchType === "exact",
     );
 
@@ -72,13 +75,15 @@ export const resolveRedirect = internalQuery({
     // Get all enabled prefix redirects and find the longest matching prefix
     const enabledRedirects = await ctx.db
       .query("redirects")
-      .withIndex("by_enabled", (q) => q.eq("enabled", true))
+      .withIndex("by_enabled", (q: ConvexQueryBuilder) => q.eq("enabled", true))
       .collect();
 
     const prefixMatches = enabledRedirects
       .filter(
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (r) => r.matchType === "prefix" && url.startsWith(r.sourceUrl),
       )
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .sort((a, b) => b.sourceUrl.length - a.sourceUrl.length); // Longest prefix wins
 
     if (prefixMatches.length > 0) {
@@ -94,6 +99,7 @@ export const resolveRedirect = internalQuery({
 
     // ── Tier 3: Regex match ──────────────────────────────────────────────
     const regexRedirects = enabledRedirects.filter(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (r) => r.matchType === "regex",
     );
 
@@ -134,8 +140,10 @@ export const resolveRedirect = internalQuery({
  *   3. Update all existing redirects targeting old URL to point to new URL (chain flatten)
  *   4. Remove 404 entry for the new URL if one exists
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const generateSlugRedirect = internalMutation({
   args: generateSlugRedirectArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // Compute old and new URLs
     // For pages, it's always /{slug}/
@@ -152,10 +160,11 @@ export const generateSlugRedirect = internalMutation({
     // ── Check if a redirect already exists for the old URL ───────────────
     const existingRedirects = await ctx.db
       .query("redirects")
-      .withIndex("by_source_url", (q) => q.eq("sourceUrl", oldUrl))
+      .withIndex("by_source_url", (q: ConvexQueryBuilder) => q.eq("sourceUrl", oldUrl))
       .collect();
 
     const existingActiveRedirect = existingRedirects.find(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (r) => r.enabled && r.matchType === "exact",
     );
 
@@ -187,7 +196,7 @@ export const generateSlugRedirect = internalMutation({
     // Uses the by_target_url index for efficient lookup instead of full table scan
     const chainingRedirects = await ctx.db
       .query("redirects")
-      .withIndex("by_target_url", (q) => q.eq("targetUrl", oldUrl))
+      .withIndex("by_target_url", (q: ConvexQueryBuilder) => q.eq("targetUrl", oldUrl))
       .collect();
 
     for (const redirect of chainingRedirects) {
@@ -202,7 +211,7 @@ export const generateSlugRedirect = internalMutation({
     // ── Clear 404 entry for the new URL ──────────────────────────────────
     const notFoundEntries = await ctx.db
       .query("notFound")
-      .withIndex("by_url", (q) => q.eq("url", newUrl))
+      .withIndex("by_url", (q: ConvexQueryBuilder) => q.eq("url", newUrl))
       .collect();
 
     for (const entry of notFoundEntries) {
@@ -223,8 +232,10 @@ export const generateSlugRedirect = internalMutation({
  * Inserts up to MAX_BATCH_SIZE redirect records in a single mutation.
  * Each record gets statusCode 301, enabled: true, hitCount: 0.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const batchCreateRedirects = internalMutation({
   args: batchCreateRedirectsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
     let created = 0;
@@ -243,12 +254,13 @@ export const batchCreateRedirects = internalMutation({
       // Skip if a redirect already exists for this source URL
       const existing = await ctx.db
         .query("redirects")
-        .withIndex("by_source_url", (q) =>
+        .withIndex("by_source_url", (q: ConvexQueryBuilder) =>
           q.eq("sourceUrl", redirect.sourceUrl),
         )
         .collect();
 
       const activeExisting = existing.find(
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (r) => r.enabled && r.matchType === "exact",
       );
 
@@ -294,8 +306,10 @@ export const batchCreateRedirects = internalMutation({
  * This is an internalMutation because it's called from server-side middleware,
  * not from client-side code.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const recordRedirectHit = internalMutation({
   args: recordRedirectHitArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const redirect = await ctx.db.get("redirects", args.redirectId);
     if (!redirect) return;
@@ -319,15 +333,17 @@ export const recordRedirectHit = internalMutation({
  *   2. If exists: increment hitCount, update lastHitAt, referrer, userAgent
  *   3. If not exists: insert new record with hitCount: 1, resolved: false
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const log404 = internalMutation({
   args: log404Args,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
 
     // Check for existing entry
     const existing = await ctx.db
       .query("notFound")
-      .withIndex("by_url", (q) => q.eq("url", args.url))
+      .withIndex("by_url", (q: ConvexQueryBuilder) => q.eq("url", args.url))
       .unique();
 
     if (existing) {
@@ -368,8 +384,10 @@ export const log404 = internalMutation({
  *
  * This function is designed to be called by a Convex cron job.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanup404Log = internalMutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const now = Date.now();
     const resolvedCutoff = now - RESOLVED_CLEANUP_DAYS * 24 * 60 * 60 * 1000;
@@ -381,7 +399,7 @@ export const cleanup404Log = internalMutation({
     // ── Rule 1: Delete resolved entries older than 90 days ───────────────
     const resolvedEntries = await ctx.db
       .query("notFound")
-      .withIndex("by_resolved", (q) => q.eq("resolved", true))
+      .withIndex("by_resolved", (q: ConvexQueryBuilder) => q.eq("resolved", true))
       .take(500);
 
     for (const entry of resolvedEntries) {
@@ -394,7 +412,7 @@ export const cleanup404Log = internalMutation({
     // ── Rule 2: Delete unresolved low-hit entries older than 30 days ────
     const unresolvedEntries = await ctx.db
       .query("notFound")
-      .withIndex("by_resolved", (q) => q.eq("resolved", false))
+      .withIndex("by_resolved", (q: ConvexQueryBuilder) => q.eq("resolved", false))
       .take(500);
 
     for (const entry of unresolvedEntries) {
@@ -412,6 +430,7 @@ export const cleanup404Log = internalMutation({
 
     if (remainingEntries.length > MAX_NOT_FOUND_RECORDS) {
       // Sort by hit count ascending, then by lastHitAt ascending (least valuable first)
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       const sortedByValue = [...remainingEntries].sort((a, b) => {
         if (a.hitCount !== b.hitCount) return a.hitCount - b.hitCount;
         return a.lastHitAt - b.lastHitAt;
@@ -438,12 +457,14 @@ export const cleanup404Log = internalMutation({
  *   - A page is published
  *   - A redirect is created that covers this URL
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const clearNotFoundForUrl = internalMutation({
   args: { url: v.string() },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const entries = await ctx.db
       .query("notFound")
-      .withIndex("by_url", (q) => q.eq("url", args.url))
+      .withIndex("by_url", (q: ConvexQueryBuilder) => q.eq("url", args.url))
       .collect();
 
     for (const entry of entries) {

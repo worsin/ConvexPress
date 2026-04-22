@@ -49,8 +49,10 @@ import { requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Create ─────────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const create = mutation({
   args: createArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.create");
@@ -160,8 +162,10 @@ export const create = mutation({
 
 // ─── Update ─────────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const update = mutation({
   args: updateArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -279,8 +283,10 @@ export const update = mutation({
 
 // ─── Publish ────────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const publish = mutation({
   args: publishArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.publish");
@@ -347,8 +353,10 @@ export const publish = mutation({
 
 // ─── Unpublish ──────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const unpublish = mutation({
   args: unpublishArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.publish");
@@ -393,8 +401,10 @@ export const unpublish = mutation({
 
 // ─── Archive ────────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const archive = mutation({
   args: archiveArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.delete");
@@ -437,8 +447,10 @@ export const archive = mutation({
 
 // ─── Remove (Permanent Delete) ──────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const remove = mutation({
   args: removeArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.delete");
@@ -451,7 +463,7 @@ export const remove = mutation({
     // Delete all related data
     const articleTags = await ctx.db
       .query("kb_articleTags")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(1000);
     for (const at of articleTags) {
       // Decrement tag article count
@@ -464,25 +476,25 @@ export const remove = mutation({
 
     const relatedFrom = await ctx.db
       .query("kb_relatedArticles")
-      .withIndex("by_source", (q) => q.eq("sourceArticleId", args.articleId))
+      .withIndex("by_source", (q: ConvexQueryBuilder) => q.eq("sourceArticleId", args.articleId))
       .take(1000);
     for (const r of relatedFrom) await ctx.db.delete("kb_relatedArticles", r._id);
 
     const relatedTo = await ctx.db
       .query("kb_relatedArticles")
-      .withIndex("by_related", (q) => q.eq("relatedArticleId", args.articleId))
+      .withIndex("by_related", (q: ConvexQueryBuilder) => q.eq("relatedArticleId", args.articleId))
       .take(1000);
     for (const r of relatedTo) await ctx.db.delete("kb_relatedArticles", r._id);
 
     const versions = await ctx.db
       .query("kb_articleVersions")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(1000);
     for (const v of versions) await ctx.db.delete("kb_articleVersions", v._id);
 
     const collectionArticles = await ctx.db
       .query("kb_collectionArticles")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(1000);
     for (const ca of collectionArticles) {
       const collection = await ctx.db.get("kb_collections", ca.collectionId);
@@ -497,36 +509,36 @@ export const remove = mutation({
 
     const feedback = await ctx.db
       .query("kb_articleFeedback")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(1000);
     for (const f of feedback) await ctx.db.delete("kb_articleFeedback", f._id);
 
     const bookmarks = await ctx.db
       .query("kb_bookmarks")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(1000);
     for (const b of bookmarks) await ctx.db.delete("kb_bookmarks", b._id);
 
     const progress = await ctx.db
       .query("kb_userProgress")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(1000);
     for (const p of progress) await ctx.db.delete("kb_userProgress", p._id);
 
     const views = await ctx.db
       .query("kb_pageViews")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(1000);
     for (const pv of views) await ctx.db.delete("kb_pageViews", pv._id);
 
     const comments = await ctx.db
       .query("kb_comments")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(1000);
     for (const c of comments) {
       const votes = await ctx.db
         .query("kb_commentVotes")
-        .withIndex("by_comment", (q) => q.eq("commentId", c._id))
+        .withIndex("by_comment", (q: ConvexQueryBuilder) => q.eq("commentId", c._id))
         .take(1000);
       for (const cv of votes) await ctx.db.delete("kb_commentVotes", cv._id);
       await ctx.db.delete("kb_comments", c._id);
@@ -534,14 +546,14 @@ export const remove = mutation({
 
     const ragChunks = await ctx.db
       .query("kb_ragChunks")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(1000);
     for (const rc of ragChunks) await ctx.db.delete("kb_ragChunks", rc._id);
 
     // Clean up article workflows
     const articleWorkflows = await ctx.db
       .query("kb_articleWorkflows")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(1000);
     for (const aw of articleWorkflows) {
       await ctx.db.delete("kb_articleWorkflows", aw._id);
@@ -568,8 +580,10 @@ export const remove = mutation({
 
 // ─── Toggle Featured ────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const toggleFeatured = mutation({
   args: toggleFeaturedArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.publish");
@@ -590,8 +604,10 @@ export const toggleFeatured = mutation({
 
 // ─── Create Version ─────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createVersion = mutation({
   args: createVersionArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);

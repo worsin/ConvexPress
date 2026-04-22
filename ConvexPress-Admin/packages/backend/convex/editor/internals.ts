@@ -33,8 +33,10 @@ import { incrementUsageCountArgs } from "./validators";
  * This ensures that expired locks don't accumulate in the database even if
  * no one queries for them.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanupExpiredLocks = internalMutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const now = Date.now();
 
@@ -42,7 +44,7 @@ export const cleanupExpiredLocks = internalMutation({
     // (those with expiresAt less than the current time).
     const expiredLocks = await ctx.db
       .query("editorLocks")
-      .withIndex("by_expiresAt", (q) => q.lt("expiresAt", now))
+      .withIndex("by_expiresAt", (q: ConvexQueryBuilder) => q.lt("expiresAt", now))
       .collect();
 
     let cleaned = 0;
@@ -72,8 +74,10 @@ export const cleanupExpiredLocks = internalMutation({
  * This is an internal function because usage tracking is managed by
  * the editor frontend/post save pipeline, not by direct user action.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const incrementUsageCount = internalMutation({
   args: incrementUsageCountArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const block = await ctx.db.get("reusableBlocks", args.blockId);
     if (!block) return; // Block was deleted, nothing to update

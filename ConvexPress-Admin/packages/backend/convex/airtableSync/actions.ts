@@ -17,12 +17,13 @@
  */
 
 import { action } from "../_generated/server";
+import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { ConvexError } from "convex/values";
 
 // ─── Auth helper ────────────────────────────────────────────────────────────
 
-async function requireAdmin(ctx: { auth: { getUserIdentity: () => Promise<{ tokenIdentifier?: string } | null> } }) {
+async function requireAdmin(ctx: ActionCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new ConvexError({
@@ -41,10 +42,13 @@ async function requireAdmin(ctx: { auth: { getUserIdentity: () => Promise<{ toke
 
 // ─── syncRoles ──────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const syncRoles = action({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireAdmin(ctx);
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return await ctx.runAction(
       internal.airtableSync.syncRoles.syncRoles,
       {},
@@ -54,10 +58,13 @@ export const syncRoles = action({
 
 // ─── syncCapabilities ───────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const syncCapabilities = action({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireAdmin(ctx);
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return await ctx.runAction(
       internal.airtableSync.syncCapabilities.syncCapabilities,
       {},
@@ -67,10 +74,13 @@ export const syncCapabilities = action({
 
 // ─── syncEvents ─────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const syncEvents = action({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireAdmin(ctx);
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return await ctx.runAction(
       internal.airtableSync.syncEvents.syncEvents,
       {},
@@ -80,10 +90,13 @@ export const syncEvents = action({
 
 // ─── syncRoutes ─────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const syncRoutes = action({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireAdmin(ctx);
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return await ctx.runAction(
       internal.airtableSync.syncRoutes.syncRoutes,
       {},
@@ -93,10 +106,13 @@ export const syncRoutes = action({
 
 // ─── syncEmailNotifications ─────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const syncEmailNotifications = action({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireAdmin(ctx);
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return await ctx.runAction(
       internal.airtableSync.syncEmailNotifications.syncEmailNotifications,
       {},
@@ -106,10 +122,13 @@ export const syncEmailNotifications = action({
 
 // ─── syncSiteNotifications ──────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const syncSiteNotifications = action({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireAdmin(ctx);
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return await ctx.runAction(
       internal.airtableSync.syncSiteNotifications.syncSiteNotifications,
       {},

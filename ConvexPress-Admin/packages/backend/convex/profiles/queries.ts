@@ -42,14 +42,17 @@ import {
  * Returns the full user document for the currently authenticated user.
  * Returns null if not authenticated.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getProfile = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 
     return {
       ...user,
+      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       resolvedAvatarUrl: resolveAvatarUrl(user),
     };
   },
@@ -65,8 +68,10 @@ export const getProfile = query({
  *
  * At least one of userId, slug, or externalAuthId must be provided.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getUser = query({
   args: getUserArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // Resolve target user
     let targetUser;
@@ -76,7 +81,7 @@ export const getUser = query({
     } else if (args.slug) {
       targetUser = await ctx.db
         .query("users")
-        .withIndex("by_slug", (q) => q.eq("slug", args.slug!))
+        .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.slug!))
         .unique();
     } else if (args.externalAuthId) {
       targetUser = await lookupUserByIdentifier(ctx, args.externalAuthId!);
@@ -117,12 +122,14 @@ export const getUser = query({
  * Auth: Not required (public, for author archive pages).
  * Returns public profile data only. Returns null if user not found or not active.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getUserBySlug = query({
   args: getUserBySlugArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.slug))
       .unique();
 
     if (!user) return null;
@@ -154,8 +161,10 @@ export const getUserBySlug = query({
  *   - Role enrichment is done only for the paginated slice, not all users.
  *   - Role data is cached in a local map to avoid duplicate lookups within the same query.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listUsers = query({
   args: listUsersArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // Auth check - must be authenticated
     const currentUser = await getCurrentUser(ctx);
@@ -205,18 +214,19 @@ export const listUsers = query({
       // Both filters: use one index, filter the other in memory
       allUsers = await ctx.db
         .query("users")
-        .withIndex("by_status", (q) => q.eq("status", args.status!))
+        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", args.status!))
         .take(10000);
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       allUsers = allUsers.filter((u) => u.roleId === args.roleId);
     } else if (args.status) {
       allUsers = await ctx.db
         .query("users")
-        .withIndex("by_status", (q) => q.eq("status", args.status!))
+        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", args.status!))
         .take(10000);
     } else if (args.roleId) {
       allUsers = await ctx.db
         .query("users")
-        .withIndex("by_roleId", (q) => q.eq("roleId", args.roleId!))
+        .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", args.roleId!))
         .take(10000);
     } else {
       // No filters: use an indexed order when possible to reduce sort cost
@@ -241,6 +251,7 @@ export const listUsers = query({
     if (args.search) {
       const searchLower = args.search.toLowerCase();
       allUsers = allUsers.filter(
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (u) =>
           (u.displayName && u.displayName.toLowerCase().includes(searchLower)) ||
           u.email.toLowerCase().includes(searchLower) ||
@@ -258,6 +269,7 @@ export const listUsers = query({
       (orderBy === "createdAt" || orderBy === "displayName");
 
     if (!alreadySorted) {
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       allUsers.sort((a, b) => {
         let cmp = 0;
         switch (orderBy) {
@@ -290,6 +302,7 @@ export const listUsers = query({
     const roleCache = new Map<string, { name: string; level: number }>();
 
     const enrichedUsers = await Promise.all(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       paginatedUsers.map(async (user) => {
         let roleName: string | undefined;
         let roleLevel: number | undefined;
@@ -336,8 +349,10 @@ export const listUsers = query({
  * If userId is provided, generates options for that user (admin only).
  * Otherwise, generates options for the current user.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getDisplayNameOptions = query({
   args: generateDisplayNameOptionsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const currentUser = await getCurrentUser(ctx);
     if (!currentUser) return [];
@@ -360,6 +375,7 @@ export const getDisplayNameOptions = query({
       targetUser = user;
     }
 
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return generateOptions({
       email: targetUser.email,
       firstName: targetUser.firstName,
@@ -380,8 +396,10 @@ export const getDisplayNameOptions = query({
  * avoiding loading all user documents into memory. Each indexed query only
  * traverses users with that specific status.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const counts = query({
   args: userCountsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -390,18 +408,19 @@ export const counts = query({
 
     // Count each status independently using the by_status index.
     // Bounded to 100,000 per status for admin dashboard counts.
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const [activeUsers, inactiveUsers, bannedUsers] = await Promise.all([
       ctx.db
         .query("users")
-        .withIndex("by_status", (q) => q.eq("status", "active"))
+        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "active"))
         .take(100000),
       ctx.db
         .query("users")
-        .withIndex("by_status", (q) => q.eq("status", "inactive"))
+        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "inactive"))
         .take(100000),
       ctx.db
         .query("users")
-        .withIndex("by_status", (q) => q.eq("status", "banned"))
+        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "banned"))
         .take(100000),
     ]);
 

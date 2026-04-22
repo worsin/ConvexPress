@@ -81,11 +81,15 @@ export const resendWebhookHandler = httpAction(async (ctx, request) => {
     // The secret is base64-encoded with a "whsec_" prefix
     try {
       const secretBytes = base64Decode(webhookSecret.replace("whsec_", ""));
+      const secretKeyData = secretBytes.buffer.slice(
+        secretBytes.byteOffset,
+        secretBytes.byteOffset + secretBytes.byteLength,
+      ) as ArrayBuffer;
       const signaturePayload = `${svixId}.${svixTimestamp}.${JSON.stringify(body)}`;
 
       const key = await crypto.subtle.importKey(
         "raw",
-        secretBytes,
+        secretKeyData,
         { name: "HMAC", hash: "SHA-256" },
         false,
         ["sign"],

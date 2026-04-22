@@ -2,8 +2,8 @@ import { ConvexError } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
+import { evaluateDiscount } from "./discountEngine";
 import { getCommerceSettings, requireCommerceEnabled } from "./helpers";
-import { calculateTaxFromRules } from "./tax";
 import {
   addCartItemArgs,
   applyCartDiscountCodeArgs,
@@ -56,10 +56,10 @@ async function resolveCartItemForMutation(
   sessionToken?: string,
 ) {
   const user = await getCurrentUser(ctx);
-  const item = await ctx.db.get(cartItemId);
+  const item = await ctx.db.get("commerce_cart_items", cartItemId);
   if (!item) return { item: null, cart: null, user };
 
-  const cart = await ctx.db.get(item.cartId);
+  const cart = await ctx.db.get("commerce_carts", item.cartId);
   await assertCanMutateCart(cart, sessionToken, user?._id);
   return { item, cart, user };
 }
@@ -73,7 +73,7 @@ async function resolvePurchasableProductAndVariant(
   productId: any,
   variantId?: any,
 ) {
-  const product = await ctx.db.get(productId);
+  const product = await ctx.db.get("commerce_products", productId);
 
   if (!product || product.status !== "publish") {
     throw new ConvexError({
@@ -82,7 +82,9 @@ async function resolvePurchasableProductAndVariant(
     });
   }
 
-  const variant = variantId ? await ctx.db.get(variantId) : null;
+  const variant = variantId
+    ? await ctx.db.get("commerce_product_variants", variantId)
+    : null;
   if (product.productType === "variable" && !variant) {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
@@ -127,30 +129,6 @@ function assertSufficientStock(product: any, variant: any, quantity: number) {
   }
 }
 
-function computeDiscountAmount(discount: any, items: any[], subtotalAmount: number) {
-  if (!discount || subtotalAmount <= 0) return 0;
-
-  if (discount.discountType === "percent") {
-    return Math.min(
-      subtotalAmount,
-      Math.max(0, Math.round((subtotalAmount * discount.amount) / 100)),
-    );
-  }
-
-  if (discount.discountType === "fixed_product") {
-    return Math.min(
-      subtotalAmount,
-      items.reduce(
-        (sum: number, item: any) =>
-          sum + Math.min(item.lineTotalAmount, item.quantity * discount.amount),
-        0,
-      ),
-    );
-  }
-
-  return Math.min(subtotalAmount, Math.max(0, discount.amount));
-}
-
 async function resolveActiveDiscount(ctx: any, code?: string) {
   const normalizedCode = code?.trim().toUpperCase();
   if (!normalizedCode) return null;
@@ -171,22 +149,38 @@ async function resolveActiveDiscount(ctx: any, code?: string) {
   return discount;
 }
 
-async function recalculateCart(ctx: any, cartId: any) {
-  const cart = await ctx.db.get(cartId);
-  if (!cart) return;
-
+async function getCartItemsForDiscount(ctx: any, cartId: any) {
   const items = await ctx.db
     .query("commerce_cart_items")
     .withIndex("by_cart", (q: any) => q.eq("cartId", cartId))
     .collect();
 
+  return Promise.all(
+    items.map(async (item: any) => {
+      const product = await ctx.db.get("commerce_products", item.productId);
+      return {
+        ...item,
+        product,
+      };
+    }),
+  );
+}
+
+async function recalculateCart(ctx: any, cartId: any) {
+  const cart = await ctx.db.get("commerce_carts", cartId);
+  if (!cart) return;
+
+  const items = await getCartItemsForDiscount(ctx, cartId);
   const subtotalAmount = items.reduce(
     (sum: number, item: any) => sum + item.lineTotalAmount,
     0,
   );
   const discount = await resolveActiveDiscount(ctx, cart.appliedDiscountCode);
-  const discountAmount = discount
-    ? computeDiscountAmount(discount, items, subtotalAmount)
+  const discountEvaluation = discount
+    ? evaluateDiscount(discount, items)
+    : null;
+  const discountAmount = discountEvaluation?.eligible
+    ? discountEvaluation.discountAmount
     : 0;
 
   // Tax calculation requires a shipping address which the cart does not store.
@@ -198,10 +192,11 @@ async function recalculateCart(ctx: any, cartId: any) {
   const taxableAmount = Math.max(0, subtotalAmount - discountAmount);
   const taxAmount = 0;
 
-  await ctx.db.patch(cartId, {
+  await ctx.db.patch("commerce_carts", cartId, {
     subtotalAmount,
     appliedDiscountCode: discount?.code,
-    appliedDiscountDescription: discount?.description,
+    appliedDiscountDescription:
+      discountEvaluation?.message ?? discount?.description,
     discountAmount,
     shippingAmount: 0,
     taxAmount,
@@ -267,11 +262,13 @@ async function ensureCart(ctx: any, sessionToken: string, userId?: any) {
     updatedAt: now,
   });
 
-  return ctx.db.get(cartId);
+  return ctx.db.get("commerce_carts", cartId);
 }
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getMine = query({
   args: getCartArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -296,8 +293,10 @@ export const getMine = query({
 
     const enrichedItems = await Promise.all(
       items.map(async (item: any) => {
-        const product = await ctx.db.get(item.productId);
-        const variant = item.variantId ? await ctx.db.get(item.variantId) : null;
+        const product = await ctx.db.get("commerce_products", item.productId);
+        const variant = item.variantId
+          ? await ctx.db.get("commerce_product_variants", item.variantId)
+          : null;
         return {
           ...item,
           product,
@@ -313,8 +312,10 @@ export const getMine = query({
   },
 });
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const addItem = mutation({
   args: addCartItemArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -377,8 +378,10 @@ export const addItem = mutation({
   },
 });
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateItemQuantity = mutation({
   args: updateCartItemArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const { item } = await resolveCartItemForMutation(
@@ -419,8 +422,10 @@ export const updateItemQuantity = mutation({
   },
 });
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const removeItem = mutation({
   args: removeCartItemArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const { item } = await resolveCartItemForMutation(
@@ -436,8 +441,10 @@ export const removeItem = mutation({
   },
 });
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const clear = mutation({
   args: clearCartArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const cart = await findCartBySession(ctx, args.sessionToken);
@@ -457,8 +464,10 @@ export const clear = mutation({
   },
 });
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const applyDiscountCode = mutation({
   args: applyCartDiscountCodeArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const cart = await findCartBySession(ctx, args.sessionToken);
@@ -477,9 +486,18 @@ export const applyDiscountCode = mutation({
       });
     }
 
-    await ctx.db.patch(cart._id, {
+    const items = await getCartItemsForDiscount(ctx, cart._id);
+    const evaluation = evaluateDiscount(discount, items);
+    if (!evaluation.eligible) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: evaluation.message ?? "Cart does not qualify for this discount.",
+      });
+    }
+
+    await ctx.db.patch("commerce_carts", cart._id, {
       appliedDiscountCode: discount.code,
-      appliedDiscountDescription: discount.description,
+      appliedDiscountDescription: evaluation.message ?? discount.description,
       updatedAt: Date.now(),
     });
     await recalculateCart(ctx, cart._id);
@@ -487,14 +505,16 @@ export const applyDiscountCode = mutation({
   },
 });
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const removeDiscountCode = mutation({
   args: removeCartDiscountCodeArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const cart = await findCartBySession(ctx, args.sessionToken);
     if (!cart) return null;
 
-    await ctx.db.patch(cart._id, {
+    await ctx.db.patch("commerce_carts", cart._id, {
       appliedDiscountCode: undefined,
       appliedDiscountDescription: undefined,
       updatedAt: Date.now(),

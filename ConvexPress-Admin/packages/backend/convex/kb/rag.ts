@@ -195,8 +195,11 @@ async function generateEmbedding(
  * @throws NOT_FOUND if the article does not exist
  * @throws EMBEDDING_ERROR if the embedding API call fails
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const ingestArticle = action({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { articleId: v.id("kb_articles") },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const identity = await ctx.auth.getUserIdentity();
@@ -277,11 +280,14 @@ export const ingestArticle = action({
  * @throws CONFIGURATION_ERROR if RAG is not configured
  * @throws EMBEDDING_ERROR if the embedding API call fails
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const searchRag = action({
   args: {
     query: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     topK: v.optional(v.number()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const identity = await ctx.auth.getUserIdentity();

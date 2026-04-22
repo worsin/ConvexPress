@@ -21,6 +21,20 @@ import {
 // Environment variable for encrypting application passwords
 const WP_ENCRYPTION_KEY = process.env.WP_SYNC_ENCRYPTION_KEY;
 const ARTIFACT_DELETE_BATCH_SIZE = 500;
+const ACTIVE_JOB_STATUSES = ["pending", "running", "paused"] as const;
+
+async function findActiveJobForSite(ctx: any, siteId: any) {
+  for (const status of ACTIVE_JOB_STATUSES) {
+    const job = await ctx.db
+      .query("wordpressSyncJobs")
+      .withIndex("by_site", (q: any) => q.eq("siteId", siteId).eq("status", status))
+      .first();
+
+    if (job) return job;
+  }
+
+  return null;
+}
 
 async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
   let reportsDeleted = 0;
@@ -104,16 +118,21 @@ async function encryptWpSyncSecret(secret: string): Promise<string> {
  * The application password is encrypted with AES-256-GCM before storage.
  * Requires the WP_SYNC_ENCRYPTION_KEY environment variable to be set.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createSite = mutation({
   args: {
     name: v.string(),
     siteUrl: v.string(),
     username: v.string(),
     applicationPassword: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wooConsumerKey: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wooConsumerSecret: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { name, siteUrl, username, applicationPassword, wooConsumerKey, wooConsumerSecret, wooAuthMode }) => {
     const user = await requireCan(ctx, "manage_options");
 
@@ -141,7 +160,7 @@ export const createSite = mutation({
     // Check for existing site with same URL
     const existing = await ctx.db
       .query("wordpressSites")
-      .withIndex("by_url", (q) => q.eq("siteUrl", normalizedUrl))
+      .withIndex("by_url", (q: ConvexQueryBuilder) => q.eq("siteUrl", normalizedUrl))
       .first();
 
     if (existing) {
@@ -185,17 +204,27 @@ export const createSite = mutation({
 /**
  * Update a WordPress site connection.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateSite = mutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     name: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     username: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     applicationPassword: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     status: v.optional(siteStatusValidator),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wooConsumerKey: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wooConsumerSecret: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId, name, username, applicationPassword, status, wooConsumerKey, wooConsumerSecret, wooAuthMode }) => {
     await requireCan(ctx, "manage_options");
 
@@ -263,10 +292,13 @@ export const updateSite = mutation({
  * Delete a WordPress site connection.
  * Also deletes all associated jobs and mappings.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteSite = mutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -275,14 +307,9 @@ export const deleteSite = mutation({
       throw new ConvexError("Site not found");
     }
 
-    // Check for running jobs
-    const runningJob = await ctx.db
-      .query("wordpressSyncJobs")
-      .withIndex("by_site", (q) => q.eq("siteId", siteId).eq("status", "running"))
-      .first();
-
-    if (runningJob) {
-      throw new ConvexError("Cannot delete site with a running sync job. Cancel the job first.");
+    const activeJob = await findActiveJobForSite(ctx, siteId);
+    if (activeJob) {
+      throw new ConvexError("Cannot delete site with an active sync job. Cancel the job first.");
     }
 
     const artifactsDeleted = await deleteImportArtifactsForSite(ctx, siteId);
@@ -295,7 +322,7 @@ export const deleteSite = mutation({
     do {
       jobBatch = await ctx.db
         .query("wordpressSyncJobs")
-        .withIndex("by_site_created", (q) => q.eq("siteId", siteId))
+        .withIndex("by_site_created", (q: ConvexQueryBuilder) => q.eq("siteId", siteId))
         .take(DELETE_BATCH_SIZE);
 
       for (const job of jobBatch) {
@@ -311,7 +338,7 @@ export const deleteSite = mutation({
     do {
       mappingBatch = await ctx.db
         .query("wpIdMappings")
-        .withIndex("by_site", (q) => q.eq("siteId", siteId))
+        .withIndex("by_site", (q: ConvexQueryBuilder) => q.eq("siteId", siteId))
         .take(DELETE_BATCH_SIZE);
 
       for (const mapping of mappingBatch) {
@@ -331,16 +358,24 @@ export const deleteSite = mutation({
  * Update site connection test result.
  * Called after testing the connection to update metadata.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateConnectionTest = mutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
     success: v.boolean(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wpVersion: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteName: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteDescription: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     error: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     capabilities: v.optional(v.any()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId, success, wpVersion, siteName, siteDescription, error, capabilities }) => {
     await requireCan(ctx, "manage_options");
 
@@ -376,11 +411,15 @@ export const updateConnectionTest = mutation({
 /**
  * Create a new sync job for a site.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createJob = mutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     importConfig: v.optional(v.any()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId, importConfig }) => {
     const user = await requireCan(ctx, "manage_options");
 
@@ -392,7 +431,7 @@ export const createJob = mutation({
     // Check for existing active jobs
     const existingJob = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_site", (q) => q.eq("siteId", siteId).eq("status", "running"))
+      .withIndex("by_site", (q: ConvexQueryBuilder) => q.eq("siteId", siteId).eq("status", "running"))
       .first();
 
     if (existingJob) {
@@ -401,7 +440,7 @@ export const createJob = mutation({
 
     const pendingJob = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_site", (q) => q.eq("siteId", siteId).eq("status", "pending"))
+      .withIndex("by_site", (q: ConvexQueryBuilder) => q.eq("siteId", siteId).eq("status", "pending"))
       .first();
 
     if (pendingJob) {
@@ -410,7 +449,7 @@ export const createJob = mutation({
 
     const pausedJob = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_site", (q) => q.eq("siteId", siteId).eq("status", "paused"))
+      .withIndex("by_site", (q: ConvexQueryBuilder) => q.eq("siteId", siteId).eq("status", "paused"))
       .first();
 
     if (pausedJob) {
@@ -440,10 +479,13 @@ export const createJob = mutation({
 /**
  * Start a pending sync job.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const startJob = mutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -470,10 +512,13 @@ export const startJob = mutation({
 /**
  * Pause a running sync job.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const pauseJob = mutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -499,10 +544,13 @@ export const pauseJob = mutation({
 /**
  * Cancel a sync job.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cancelJob = mutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -533,10 +581,13 @@ export const cancelJob = mutation({
  * Delete a sync job.
  * Only allowed for completed, failed, or cancelled jobs.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteJob = mutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -545,7 +596,7 @@ export const deleteJob = mutation({
       throw new ConvexError("Job not found");
     }
 
-    if (job.status === "running" || job.status === "pending") {
+    if (job.status === "running" || job.status === "pending" || job.status === "paused") {
       throw new ConvexError("Cannot delete an active job. Cancel it first.");
     }
 
@@ -562,10 +613,13 @@ export const deleteJob = mutation({
  * Clear all import mappings for a site.
  * Use this before re-importing to start fresh.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const clearMappings = mutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -574,14 +628,9 @@ export const clearMappings = mutation({
       throw new ConvexError("Site not found");
     }
 
-    // Check for running jobs
-    const runningJob = await ctx.db
-      .query("wordpressSyncJobs")
-      .withIndex("by_site", (q) => q.eq("siteId", siteId).eq("status", "running"))
-      .first();
-
-    if (runningJob) {
-      throw new ConvexError("Cannot clear mappings while a sync job is running");
+    const activeJob = await findActiveJobForSite(ctx, siteId);
+    if (activeJob) {
+      throw new ConvexError("Cannot clear mappings while a sync job is active");
     }
 
     // Delete all mappings (batched to avoid memory issues)
@@ -592,7 +641,7 @@ export const clearMappings = mutation({
     do {
       batch = await ctx.db
         .query("wpIdMappings")
-        .withIndex("by_site", (q) => q.eq("siteId", siteId))
+        .withIndex("by_site", (q: ConvexQueryBuilder) => q.eq("siteId", siteId))
         .take(DELETE_BATCH_SIZE);
 
       for (const mapping of batch) {

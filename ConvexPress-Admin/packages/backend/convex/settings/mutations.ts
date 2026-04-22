@@ -134,7 +134,10 @@ export const updateSection = mutation({
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message: `Validation failed for ${section} settings`,
-        errors: validationErrors,
+        errors: validationErrors.map((error) => ({
+          field: error.field,
+          message: error.message,
+        })),
       });
     }
 

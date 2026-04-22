@@ -476,6 +476,57 @@ function validateSearch(values: Record<string, unknown>): ValidationError[] {
   return errors;
 }
 
+function validateAnalytics(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  for (const field of ["trackingEnabled", "respectDoNotTrack"]) {
+    if (values[field] !== undefined && !isBoolean(values[field])) {
+      errors.push({ field, message: `${field} must be a boolean.` });
+    }
+  }
+
+  if (values.retentionDays !== undefined && !intInRange(values.retentionDays, 1, 3650)) {
+    errors.push({ field: "retentionDays", message: "Retention must be 1-3650 days." });
+  }
+
+  return errors;
+}
+
+function validateCommerceGeneral(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (isString(values.storeEmail) && values.storeEmail.length > 0 && !isValidEmail(values.storeEmail)) {
+    errors.push({ field: "storeEmail", message: "Store email must be a valid email." });
+  }
+
+  if (values.returnWindowDays !== undefined && !intInRange(values.returnWindowDays, 0, 3650)) {
+    errors.push({ field: "returnWindowDays", message: "Return window must be 0-3650 days." });
+  }
+
+  if (
+    values.taxRateBasis !== undefined &&
+    (!isString(values.taxRateBasis) ||
+      !["billing", "shipping", "store"].includes(values.taxRateBasis))
+  ) {
+    errors.push({
+      field: "taxRateBasis",
+      message: "Tax rate basis must be billing, shipping, or store.",
+    });
+  }
+
+  if (
+    values.requireDeliveryBeforeReturn !== undefined &&
+    !isBoolean(values.requireDeliveryBeforeReturn)
+  ) {
+    errors.push({
+      field: "requireDeliveryBeforeReturn",
+      message: "Require delivery before return must be a boolean.",
+    });
+  }
+
+  return errors;
+}
+
 function validateLayoutAssignment(values: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
   // Layout IDs are optional strings - no strict validation needed
@@ -522,13 +573,15 @@ export function validateSectionValues(
     case "media":
       return []; // Media settings validated at media system level
     case "analytics":
-      return []; // Analytics settings validated at analytics system level
+      return validateAnalytics(values);
     case "ai":
       return validateAI(values);
     case "plugins":
       return [];
     case "search":
       return validateSearch(values);
+    case "commerce.general":
+      return validateCommerceGeneral(values);
     // Knowledge Base System sections
     case "kb.general":
     case "kb.features":

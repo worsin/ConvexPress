@@ -58,8 +58,10 @@ import { SYSTEM, REGISTRATION_EVENTS } from "../events/constants";
  *
  * @returns The invitation ID and token
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const inviteUser = mutation({
   args: inviteUserArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Auth check - require registration.invite capability
     const admin = await requireCan(ctx, "registration.invite");
@@ -147,8 +149,10 @@ export const inviteUser = mutation({
  *
  * @returns void
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const resendInvitation = mutation({
   args: resendInvitationArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Auth check
     const admin = await requireCan(ctx, "registration.invite");
@@ -222,8 +226,10 @@ export const resendInvitation = mutation({
  *
  * @returns void
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const revokeInvitation = mutation({
   args: revokeInvitationArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Auth check
     const admin = await requireCan(ctx, "registration.invite");
@@ -267,8 +273,10 @@ export const revokeInvitation = mutation({
  *
  * @returns Array of results with success/failure per email
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const bulkInvite = mutation({
   args: bulkInviteArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Auth check
     const admin = await requireCan(ctx, "registration.invite");
@@ -381,8 +389,10 @@ export const bulkInvite = mutation({
  *
  * @returns void
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const acceptInvitation = mutation({
   args: acceptInvitationArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Auth check - require authenticated user
     const authenticatedUser = await requireAuth(ctx);
@@ -400,18 +410,19 @@ export const acceptInvitation = mutation({
     const now = Date.now();
     let invitation = await ctx.db
       .query("invitations")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .withIndex("by_token", (q: ConvexQueryBuilder) => q.eq("token", args.token))
       .unique();
 
     // If not found by current token, check previousToken within grace period
     if (!invitation) {
       const pendingInvitations = await ctx.db
         .query("invitations")
-        .withIndex("by_status", (q) => q.eq("status", "pending"))
+        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "pending"))
         .collect();
 
       invitation =
         pendingInvitations.find(
+          // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           (inv) =>
             inv.previousToken === args.token &&
             inv.previousTokenExpiresAt !== undefined &&

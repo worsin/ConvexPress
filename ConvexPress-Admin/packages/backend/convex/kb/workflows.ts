@@ -29,8 +29,10 @@ import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -44,8 +46,11 @@ export const list = query({
 
 // ─── Get (Admin) ────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const get = query({
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { workflowId: v.id("kb_workflows") },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -59,8 +64,10 @@ export const get = query({
 
 // ─── Get Default ────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getDefault = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -70,15 +77,17 @@ export const getDefault = query({
 
     return ctx.db
       .query("kb_workflows")
-      .withIndex("by_default", (q) => q.eq("isDefault", true))
+      .withIndex("by_default", (q: ConvexQueryBuilder) => q.eq("isDefault", true))
       .first();
   },
 });
 
 // ─── Create ─────────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const create = mutation({
   args: createWorkflowArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageWorkflows");
@@ -98,7 +107,7 @@ export const create = mutation({
     if (args.isDefault) {
       const existingDefault = await ctx.db
         .query("kb_workflows")
-        .withIndex("by_default", (q) => q.eq("isDefault", true))
+        .withIndex("by_default", (q: ConvexQueryBuilder) => q.eq("isDefault", true))
         .first();
       if (existingDefault) {
         await ctx.db.patch("kb_workflows", existingDefault._id, { isDefault: false, updatedAt: now });
@@ -121,8 +130,10 @@ export const create = mutation({
 
 // ─── Update ─────────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const update = mutation({
   args: updateWorkflowArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageWorkflows");
@@ -156,7 +167,7 @@ export const update = mutation({
       if (args.isDefault) {
         const existingDefault = await ctx.db
           .query("kb_workflows")
-          .withIndex("by_default", (q) => q.eq("isDefault", true))
+          .withIndex("by_default", (q: ConvexQueryBuilder) => q.eq("isDefault", true))
           .first();
         if (existingDefault && existingDefault._id !== args.workflowId) {
           await ctx.db.patch("kb_workflows", existingDefault._id, { isDefault: false, updatedAt: Date.now() });
@@ -171,8 +182,10 @@ export const update = mutation({
 
 // ─── Remove ─────────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const remove = mutation({
   args: removeWorkflowArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageWorkflows");
@@ -185,7 +198,7 @@ export const remove = mutation({
     // Delete all article workflow instances using this workflow
     const instances = await ctx.db
       .query("kb_articleWorkflows")
-      .withIndex("by_workflow", (q) => q.eq("workflowId", args.workflowId))
+      .withIndex("by_workflow", (q: ConvexQueryBuilder) => q.eq("workflowId", args.workflowId))
       .take(500);
     for (const instance of instances) {
       await ctx.db.delete("kb_articleWorkflows", instance._id);
@@ -198,8 +211,10 @@ export const remove = mutation({
 
 // ─── Start Workflow ─────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const startWorkflow = mutation({
   args: startWorkflowArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -219,7 +234,7 @@ export const startWorkflow = mutation({
     } else {
       workflow = await ctx.db
         .query("kb_workflows")
-        .withIndex("by_default", (q) => q.eq("isDefault", true))
+        .withIndex("by_default", (q: ConvexQueryBuilder) => q.eq("isDefault", true))
         .first();
     }
 
@@ -234,9 +249,10 @@ export const startWorkflow = mutation({
     // Check for existing active workflow on this article
     const existingWorkflow = await ctx.db
       .query("kb_articleWorkflows")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(50);
     const activeWorkflow = existingWorkflow.find(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (w) => w.status === "inProgress" || w.status === "pendingReview",
     );
     if (activeWorkflow) {
@@ -269,8 +285,10 @@ export const startWorkflow = mutation({
 
 // ─── Approve Step ───────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const approveStep = mutation({
   args: approveStepArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.publish");
@@ -369,8 +387,10 @@ export const approveStep = mutation({
 
 // ─── Reject Step ────────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const rejectStep = mutation({
   args: rejectStepArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.publish");

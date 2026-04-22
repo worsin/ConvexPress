@@ -38,6 +38,7 @@
 import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 
 // Lazy-load sharp at action runtime instead of at module-load time. The
 // Convex bundler analyzes top-level imports and fails when sharp's native
@@ -46,12 +47,24 @@ import { internal } from "../_generated/api";
 // platform-correct binary resolution at runtime, but the eager-load deploy
 // check still fails. Dynamic import bypasses the eager check while
 // preserving full sharp functionality at runtime.
-let sharpModule: typeof import("sharp") | null = null;
-async function getSharp(): Promise<typeof import("sharp")["default"]> {
+type Sharp = typeof import("sharp");
+
+let sharpModule: Sharp | null = null;
+async function getSharp(): Promise<Sharp> {
   if (!sharpModule) {
-    sharpModule = await import("sharp");
+    const module = await import("sharp");
+    sharpModule =
+      (module as unknown as { default?: Sharp }).default ??
+      (module as unknown as Sharp);
   }
-  return (sharpModule as any).default ?? (sharpModule as any);
+  return sharpModule;
+}
+
+function bytesToBlobPart(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  ) as ArrayBuffer;
 }
 
 // ─── WordPress-standard size variants ───────────────────────────────────────
@@ -63,6 +76,23 @@ const SIZE_VARIANTS = [
   { name: "medium_large", width: 768, height: null, crop: false },
   { name: "large", width: 1024, height: null, crop: false },
 ] as const;
+
+type RegenerationItem = {
+  _id: Id<"media">;
+};
+
+type RegenerationListResult = {
+  page: RegenerationItem[];
+  isDone: boolean;
+  continueCursor?: string | null;
+};
+
+type RegenerationBatchResult = {
+  processed: number;
+  failed: number;
+  done: boolean;
+  continueCursor?: string | null;
+};
 
 // Scale-down threshold for originals. Matches WP's big-image threshold.
 const DEFAULT_BIG_IMAGE_THRESHOLD = 2560;
@@ -94,19 +124,19 @@ export const regenerateBatch = internalAction({
     cursor: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<RegenerationBatchResult> => {
     const limit = Math.min(Math.max(args.limit ?? 10, 1), 25);
-    const result = await ctx.runQuery(
+    const result = (await ctx.runQuery(
       internal.media.internals.listImagesForRegeneration,
       {
         cursor: args.cursor ?? null,
         numItems: limit,
       },
-    );
+    )) as RegenerationListResult;
 
     let processed = 0;
     let failed = 0;
-    for (const item of result.page as any[]) {
+    for (const item of result.page) {
       try {
         // Wipe existing sub-size records + storage for this item
         await ctx.runMutation(
@@ -206,7 +236,7 @@ export const processImageWithSharp = internalAction({
       // still rely on browsers honoring the EXIF tag.
       const newOriginalBuffer = await rotated.toBuffer();
       const newOriginalStorageId = await ctx.storage.store(
-        new Blob([newOriginalBuffer as unknown as Uint8Array], {
+        new Blob([bytesToBlobPart(newOriginalBuffer)], {
           type: media.mimeType,
         }),
       );
@@ -255,7 +285,7 @@ export const processImageWithSharp = internalAction({
         });
 
         const variantStorageId = await ctx.storage.store(
-          new Blob([variantBuffer.data as unknown as Uint8Array], {
+          new Blob([bytesToBlobPart(variantBuffer.data)], {
             type: media.mimeType,
           }),
         );

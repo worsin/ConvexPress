@@ -605,6 +605,7 @@ export function filterNewVariantCombinations(
   existingSummaries: Set<string>,
 ): ReturnType<typeof generateVariantCombinations> {
   return combos.filter(
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     (combo) =>
       !existingKeys.has(combo.selectionKey) &&
       !existingSummaries.has(combo.optionSummary),

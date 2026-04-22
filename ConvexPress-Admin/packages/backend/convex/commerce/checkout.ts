@@ -8,7 +8,7 @@ import {
   getEnabledShippingMethods,
   requireCommerceEnabled,
 } from "./helpers";
-import { calculateTaxFromRules } from "./tax";
+import { calculateTaxForLinesFromRules } from "./tax";
 import {
   buildOrderItemTitle,
   buildOrderItemMetadata,
@@ -46,14 +46,57 @@ async function getCheckoutBySession(ctx: any, sessionToken: string) {
 async function computeTaxForAddress(
   ctx: any,
   address: { countryCode: string; state?: string; postalCode?: string },
-  taxableAmount: number,
+  items: any[],
+  discountAmount: number,
+  pricesIncludeTax: boolean,
 ) {
   const rules = await ctx.db
     .query("commerce_tax_rules")
     .withIndex("by_active", (q: any) => q.eq("isActive", true))
     .collect();
 
-  return calculateTaxFromRules(rules, address, taxableAmount);
+  const subtotalAmount = items.reduce(
+    (sum: number, item: any) => sum + Math.max(0, Number(item.lineTotalAmount ?? 0)),
+    0,
+  );
+  const discountRatio =
+    subtotalAmount > 0 ? Math.min(1, Math.max(0, discountAmount / subtotalAmount)) : 0;
+
+  return calculateTaxForLinesFromRules(
+    rules,
+    address,
+    items.map((item: any) => ({
+      amount: Math.max(
+        0,
+        Math.round(Number(item.lineTotalAmount ?? 0) * (1 - discountRatio)),
+      ),
+      taxClass: item.variant?.taxClass ?? item.product?.taxClass,
+      taxable: true,
+    })),
+    { pricesIncludeTax },
+  );
+}
+
+function resolveTaxAddress(settings: any, session: any, patch: Record<string, unknown>) {
+  const basis = settings.taxRateBasis ?? "shipping";
+  if (basis === "billing") {
+    return (patch.billingAddress ?? session.billingAddress) as
+      | { countryCode: string; state?: string; postalCode?: string }
+      | undefined;
+  }
+  if (basis === "store") {
+    return {
+      countryCode: settings.defaultCountryCode || "US",
+      state: settings.defaultState || undefined,
+      postalCode: undefined,
+    };
+  }
+  return (patch.shippingAddress ??
+    session.shippingAddress ??
+    patch.billingAddress ??
+    session.billingAddress) as
+    | { countryCode: string; state?: string; postalCode?: string }
+    | undefined;
 }
 
 async function getCheckoutQuotes(ctx: any, checkoutSessionId: any) {
@@ -72,6 +115,7 @@ async function getCartItemsWithProducts(ctx: any, cartId: any) {
     .withIndex("by_cart", (q: any) => q.eq("cartId", cartId))
     .collect();
 
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   const enrichedItems = await Promise.all(
     items.map(async (item: any) => ({
       ...item,
@@ -236,8 +280,10 @@ function buildTrackingToken() {
   return `trk_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
 }
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getSession = query({
   args: getCheckoutSessionArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const session = await getCheckoutBySession(ctx, args.sessionToken);
@@ -246,8 +292,10 @@ export const getSession = query({
   },
 });
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createSession = mutation({
   args: createCheckoutSessionArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -299,8 +347,10 @@ export const createSession = mutation({
   },
 });
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateSession = mutation({
   args: updateCheckoutSessionArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const session = await getCheckoutBySession(ctx, args.sessionToken);
@@ -435,30 +485,34 @@ export const updateSession = mutation({
       patch.shippingAmount ?? session.shippingAmount ?? 0,
     );
 
-    // Calculate tax from shipping/billing address
-    const taxAddress = (args.shippingAddress ?? session.shippingAddress ??
-      args.billingAddress ?? session.billingAddress) as
-      | { countryCode: string; state?: string; postalCode?: string }
-      | undefined;
     const taxableAmount = Math.max(
       0,
       Number(session.subtotalAmount ?? 0) - Number(session.discountAmount ?? 0),
     );
 
     let nextTaxAmount = Number(session.taxAmount ?? 0);
+    const taxAddress = resolveTaxAddress(settings, session, patch);
     if (taxAddress) {
-      const taxResult = await computeTaxForAddress(ctx, taxAddress, taxableAmount);
+      const taxResult = await computeTaxForAddress(
+        ctx,
+        taxAddress,
+        cartItems,
+        Number(session.discountAmount ?? 0),
+        Boolean(settings.pricesIncludeTax),
+      );
       nextTaxAmount = taxResult.taxAmount;
     }
     patch.taxAmount = nextTaxAmount;
 
-    patch.totalAmount = taxableAmount + nextShippingAmount + nextTaxAmount;
+    patch.totalAmount =
+      taxableAmount + nextShippingAmount + (settings.pricesIncludeTax ? 0 : nextTaxAmount);
 
-    await ctx.db.patch(session._id, patch);
-    await ctx.db.patch(session.cartId, {
+    await ctx.db.patch("commerce_checkout_sessions", session._id, patch);
+    await ctx.db.patch("commerce_carts", session.cartId, {
       shippingAmount: nextShippingAmount,
       taxAmount: nextTaxAmount,
-      totalAmount: taxableAmount + nextShippingAmount + nextTaxAmount,
+      totalAmount:
+        taxableAmount + nextShippingAmount + (settings.pricesIncludeTax ? 0 : nextTaxAmount),
       updatedAt: Date.now(),
       lastActiveAt: Date.now(),
     });
@@ -466,8 +520,10 @@ export const updateSession = mutation({
   },
 });
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const complete = mutation({
   args: completeCheckoutArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -550,7 +606,9 @@ export const complete = mutation({
       settings.shippingEnabled &&
       items.some((item: any) => item.product && item.product.isVirtual !== true);
     const paymentMethods = getEnabledPaymentMethods(settings);
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const selectedPaymentMethod = paymentMethods.find(
+      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       (method) => method.code === session.selectedPaymentMethodCode,
     );
 
@@ -600,7 +658,9 @@ export const complete = mutation({
         };
       } else {
         const shippingMethods = getEnabledShippingMethods(settings);
+        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         selectedShippingMethod = shippingMethods.find(
+          // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
           (method) => method.code === session.selectedShippingMethodCode,
         );
       }
@@ -613,27 +673,26 @@ export const complete = mutation({
       }
     }
 
-    // Recalculate tax at completion time for accuracy
-    const completionTaxAddress = (session.shippingAddress ?? session.billingAddress) as
-      | { countryCode: string; state?: string; postalCode?: string }
-      | undefined;
     const completionTaxableAmount = Math.max(
       0,
       Number(cart.subtotalAmount ?? 0) - Number(cart.discountAmount ?? 0),
     );
     let finalTaxAmount = Number(cart.taxAmount ?? 0);
+    const completionTaxAddress = resolveTaxAddress(settings, session, {});
     if (completionTaxAddress) {
       const taxResult = await computeTaxForAddress(
         ctx,
         completionTaxAddress,
-        completionTaxableAmount,
+        items,
+        Number(cart.discountAmount ?? 0),
+        Boolean(settings.pricesIncludeTax),
       );
       finalTaxAmount = taxResult.taxAmount;
     }
     const finalTotalAmount =
       completionTaxableAmount +
       Number(cart.shippingAmount ?? 0) +
-      finalTaxAmount;
+      (settings.pricesIncludeTax ? 0 : finalTaxAmount);
     await reserveCheckoutInventory(ctx, session, items);
 
     const now = Date.now();

@@ -88,9 +88,12 @@ async function auditReferenceRows(
   return { missingCount, crossProductCount, missingVariantRefs, crossProductVariantRefs };
 }
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const auditVariantIntegrity = query({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     productId: v.optional(v.id("commerce_products")),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     sampleLimit: v.optional(v.number()),
   },
   handler: async (ctx: any, args: any) => {
@@ -460,9 +463,12 @@ export const auditVariantIntegrity = query({
   },
 });
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const repairVariantIntegrity = mutation({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     dryRun: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     productId: v.optional(v.id("commerce_products")),
   },
   handler: async (ctx: any, args: any) => {

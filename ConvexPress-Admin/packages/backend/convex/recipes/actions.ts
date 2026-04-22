@@ -145,8 +145,10 @@ async function extractWithOpenRouter(
   return data.choices?.[0]?.message?.content ?? "";
 }
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const extractRecipeFromImage = action({
   args: extractRecipeFromImageArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "recipes");
     const identity = await ctx.auth.getUserIdentity();

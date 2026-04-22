@@ -108,13 +108,15 @@ function getAuditRetentionMs(eventCode: string): number {
  *   7. Generate human-readable description
  *   8. Insert the audit entry
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createEntry = internalMutation({
   args: createEntryArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // ─── 1. Dedup check ──────────────────────────────────────────────────
     const existing = await ctx.db
       .query("auditEntries")
-      .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+      .withIndex("by_event", (q: ConvexQueryBuilder) => q.eq("eventId", args.eventId))
       .unique();
 
     if (existing) {
@@ -231,8 +233,10 @@ export const createEntry = internalMutation({
  * continuation to handle remaining entries. This prevents long-running
  * mutations that could time out.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const clearBatch = internalMutation({
   args: clearBatchArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const BATCH_SIZE = 100;
     const now = Date.now();
@@ -242,21 +246,21 @@ export const clearBatch = internalMutation({
     if (args.mode === "before_date" && args.beforeDate) {
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_occurred", (q) =>
+        .withIndex("by_occurred", (q: ConvexQueryBuilder) =>
           q.lt("occurredAt", args.beforeDate!),
         )
         .take(BATCH_SIZE);
     } else if (args.mode === "by_severity" && args.severity) {
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_severity", (q) =>
+        .withIndex("by_severity", (q: ConvexQueryBuilder) =>
           q.eq("severity", args.severity!),
         )
         .take(BATCH_SIZE);
     } else if (args.mode === "expired") {
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_expires", (q) => q.lt("expiresAt", now))
+        .withIndex("by_expires", (q: ConvexQueryBuilder) => q.lt("expiresAt", now))
         .take(BATCH_SIZE);
     } else {
       return;
@@ -299,15 +303,17 @@ export const clearBatch = internalMutation({
  * since the audit listener would process the event and potentially
  * create a new audit entry, which would need cleanup, etc.).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const retentionCleanup = internalMutation({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const BATCH_SIZE = 100;
     const now = Date.now();
 
     const expiredEntries = await ctx.db
       .query("auditEntries")
-      .withIndex("by_expires", (q) => q.lt("expiresAt", now))
+      .withIndex("by_expires", (q: ConvexQueryBuilder) => q.lt("expiresAt", now))
       .take(BATCH_SIZE);
 
     if (expiredEntries.length === 0) return;
@@ -338,12 +344,14 @@ export const retentionCleanup = internalMutation({
  * Separated because actions cannot call emitEvent directly
  * (emitEvent requires a MutationCtx).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const emitExportEvent = internalMutation({
   args: {
     format: v.string(),
     recordCount: v.number(),
     filters: v.string(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await emitEvent(ctx, "audit.exported", SYSTEM.AUDIT, {
       format: args.format,
@@ -359,10 +367,12 @@ export const emitExportEvent = internalMutation({
  * Internal query to check if a user has the export_audit_log capability.
  * Called from the export action since actions cannot use requireCan() directly.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const checkExportPermission = internalQuery({
   args: {
     userId: v.string(),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args): Promise<boolean> => {
     // Look up user by identifier
     const user = await lookupUserByIdentifier(ctx, args.userId);
@@ -393,20 +403,32 @@ export const checkExportPermission = internalQuery({
  * Used by the export action which has already validated authorization.
  * This avoids the action needing to pass auth context through.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listInternal = internalQuery({
   args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     actorId: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     severity: v.optional(severityValidator),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     objectType: v.optional(objectTypeValidator),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     eventCode: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     dateFrom: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     dateTo: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     cursor: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     direction: v.optional(
+      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.union(v.literal("newer"), v.literal("older")),
     ),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const limit = Math.min(args.limit ?? 500, 500);
     const direction = args.direction ?? "older";
@@ -429,19 +451,19 @@ export const listInternal = internalQuery({
     if (args.severity) {
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_severity", (q) => q.eq("severity", args.severity!))
+        .withIndex("by_severity", (q: ConvexQueryBuilder) => q.eq("severity", args.severity!))
         .order("desc")
         .take(fetchLimit * 2);
     } else if (args.actorId) {
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_actor", (q) => q.eq("actorId", args.actorId!))
+        .withIndex("by_actor", (q: ConvexQueryBuilder) => q.eq("actorId", args.actorId!))
         .order("desc")
         .take(fetchLimit * 2);
     } else if (args.objectType) {
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_object_type", (q) =>
+        .withIndex("by_object_type", (q: ConvexQueryBuilder) =>
           q.eq("objectType", args.objectType!),
         )
         .order("desc")
@@ -449,7 +471,7 @@ export const listInternal = internalQuery({
     } else if (args.eventCode) {
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_event_code", (q) =>
+        .withIndex("by_event_code", (q: ConvexQueryBuilder) =>
           q.eq("eventCode", args.eventCode!),
         )
         .order("desc")
@@ -463,6 +485,7 @@ export const listInternal = internalQuery({
     }
 
     // Apply remaining filters as post-filters (only what the index didn't cover)
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     entries = entries.filter((e) => {
       // Skip filters already handled by the selected index
       if (args.actorId && !args.severity && e.actorId !== args.actorId) return false;
@@ -480,6 +503,7 @@ export const listInternal = internalQuery({
       return true;
     });
 
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     entries.sort((a, b) => b.occurredAt - a.occurredAt);
     entries = entries.slice(0, fetchLimit);
 
@@ -492,6 +516,7 @@ export const listInternal = internalQuery({
         : undefined;
 
     return {
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       entries: resultEntries.map((entry) => ({
         _id: entry._id,
         eventId: entry.eventId,

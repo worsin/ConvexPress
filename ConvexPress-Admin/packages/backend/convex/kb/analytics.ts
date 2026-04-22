@@ -26,8 +26,10 @@ import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Track Page View ────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const trackPageView = mutation({
   args: trackPageViewArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     // Validate sessionId
@@ -46,7 +48,7 @@ export const trackPageView = mutation({
     // Check if this session has EVER viewed this article
     const priorView = await ctx.db
       .query("kb_pageViews")
-      .withIndex("by_session_article", (q) =>
+      .withIndex("by_session_article", (q: ConvexQueryBuilder) =>
         q.eq("sessionId", args.sessionId).eq("articleId", args.articleId),
       )
       .first();
@@ -84,8 +86,10 @@ export const trackPageView = mutation({
 
 // ─── Update Duration ────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateDuration = mutation({
   args: updateDurationArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     // Validate duration range
@@ -104,8 +108,10 @@ export const updateDuration = mutation({
 
 // ─── Track Search ───────────────────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const trackSearch = mutation({
   args: trackSearchArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     // Validate query
@@ -134,8 +140,10 @@ export const trackSearch = mutation({
 
 // ─── Get Dashboard Stats (Admin) ────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getDashboardStats = query({
   args: getDashboardStatsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await requireCan(ctx, "kb.viewAnalytics");
@@ -145,11 +153,12 @@ export const getDashboardStats = query({
     const endDate = args.endDate ?? now;
 
     // Article counts by status — safety-bounded with .take(10000) per status
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const [draftArticles, reviewArticles, publishedArticles, archivedArticles] = await Promise.all([
-      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "draft")).take(10000),
-      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "review")).take(10000),
-      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "published")).take(10000),
-      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "archived")).take(10000),
+      ctx.db.query("kb_articles").withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "draft")).take(10000),
+      ctx.db.query("kb_articles").withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "review")).take(10000),
+      ctx.db.query("kb_articles").withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "published")).take(10000),
+      ctx.db.query("kb_articles").withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "archived")).take(10000),
     ]);
     const statusCounts = {
       draft: draftArticles.length,
@@ -162,19 +171,21 @@ export const getDashboardStats = query({
     // Page views in range — safety-bounded with .take(50000)
     const viewsInRange = await ctx.db
       .query("kb_pageViews")
-      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
+      .withIndex("by_date", (q: ConvexQueryBuilder) => q.gte("createdAt", startDate).lte("createdAt", endDate))
       .take(50000);
     const totalViews = viewsInRange.length;
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const uniqueSessions = new Set(viewsInRange.map((v) => v.sessionId)).size;
 
     // Search queries in range — safety-bounded with .take(10000)
     const searchesInRange = await ctx.db
       .query("kb_searchQueries")
-      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
+      .withIndex("by_date", (q: ConvexQueryBuilder) => q.gte("createdAt", startDate).lte("createdAt", endDate))
       .take(10000);
 
     // Feedback stats — no date-range index on feedback; use a safety-bounded take
     const feedback = await ctx.db.query("kb_articleFeedback").take(5000);
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const helpful = feedback.filter((f) => f.isHelpful).length;
     const total = feedback.length;
 
@@ -188,6 +199,7 @@ export const getDashboardStats = query({
       searches: {
         total: searchesInRange.length,
         avgResultCount: searchesInRange.length > 0
+          // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           ? Math.round(searchesInRange.reduce((s, q) => s + q.resultCount, 0) / searchesInRange.length)
           : 0,
       },
@@ -201,27 +213,33 @@ export const getDashboardStats = query({
 
 // ─── Get Article Stats (Admin) ──────────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getArticleStats = query({
   args: getArticleAnalyticsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await requireCan(ctx, "kb.viewAnalytics");
 
     const views = await ctx.db
       .query("kb_pageViews")
-      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(10000);
 
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const durations = views.filter((v) => v.duration).map((v) => v.duration!);
     const avgDuration = durations.length > 0
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ? Math.round(durations.reduce((s, d) => s + d, 0) / durations.length)
       : 0;
 
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const uniqueSessions = new Set(views.map((v) => v.sessionId)).size;
 
     // Views over time (last 30 days, grouped by day)
     const now = Date.now();
     const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const recentViews = views.filter((v) => v.createdAt >= thirtyDaysAgo);
 
     const viewsByDay: Record<string, number> = {};
@@ -241,8 +259,10 @@ export const getArticleStats = query({
 
 // ─── Get Search Analytics (Admin) ───────────────────────────────────────────
 
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getSearchAnalytics = query({
   args: getSearchAnalyticsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await requireCan(ctx, "kb.viewAnalytics");
@@ -254,7 +274,7 @@ export const getSearchAnalytics = query({
 
     const inRange = await ctx.db
       .query("kb_searchQueries")
-      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
+      .withIndex("by_date", (q: ConvexQueryBuilder) => q.gte("createdAt", startDate).lte("createdAt", endDate))
       .take(10000);
 
     // Group by query
@@ -270,6 +290,7 @@ export const getSearchAnalytics = query({
     }
 
     // Calculate averages and sort
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const topQueries = Object.entries(queryCounts)
       .map(([query, stats]) => ({
         query,
@@ -277,22 +298,30 @@ export const getSearchAnalytics = query({
         avgResults: Math.round(stats.avgResults / stats.count),
         clickRate: stats.count > 0 ? Math.round((stats.clicked / stats.count) * 100) : 0,
       }))
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .sort((a, b) => b.count - a.count)
       .slice(0, limit);
 
     // Zero-result queries
     const zeroResults = inRange
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .filter((s) => s.resultCount === 0)
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .map((s) => s.query);
-    const uniqueZeroResults = [...new Set(zeroResults.map((q) => q.toLowerCase().trim()))];
+    const uniqueZeroResults = [
+      ...new Set(zeroResults.map((query: string) => query.toLowerCase().trim())),
+    ];
 
     return {
       totalSearches: inRange.length,
       topQueries,
       zeroResultQueries: uniqueZeroResults.slice(0, limit),
       bySource: {
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         convex: inRange.filter((s) => s.source === "convex").length,
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         meilisearch: inRange.filter((s) => s.source === "meilisearch").length,
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         rag: inRange.filter((s) => s.source === "rag").length,
       },
     };

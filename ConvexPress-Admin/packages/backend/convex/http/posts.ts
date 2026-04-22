@@ -20,8 +20,37 @@ import {
   extractIdFromPath,
   parseJsonBody,
   toISOString,
+  getHttpErrorCode,
+  getHttpErrorMessage,
 } from "./helpers";
 import { asId } from "../helpers/types";
+
+type ApiAuthorRecord = {
+  _id: string;
+  displayName?: string;
+};
+
+type ApiPostRecord = {
+  _id: string;
+  title?: string;
+  slug?: string;
+  status?: string;
+  content?: string;
+  excerpt?: string;
+  author?: ApiAuthorRecord | null;
+  featuredImageUrl?: string;
+  isPasswordProtected?: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+  publishedAt?: number;
+};
+
+type PostListResult = {
+  posts: ApiPostRecord[];
+  total: number;
+  page: number;
+  perPage: number;
+};
 
 export const postsListHandler = httpAction(async (ctx, request) => {
   const auth = await authenticateApiRequest(ctx, request, "read:posts");
@@ -31,10 +60,10 @@ export const postsListHandler = httpAction(async (ctx, request) => {
   const { page, perPage } = parsePagination(url);
 
   // Query published posts from the database via the public listPublished query
-  const result = await ctx.runQuery(internal.posts.httpInternals.listPublishedInternal, {
+  const result = (await ctx.runQuery(internal.posts.httpInternals.listPublishedInternal, {
     page,
     perPage,
-  });
+  })) as PostListResult;
 
   const formatted = result.posts.map((p) => ({
     id: p._id,
@@ -66,9 +95,9 @@ export const postsGetHandler = httpAction(async (ctx, request) => {
   }
 
   try {
-    const post = await ctx.runQuery(internal.posts.httpInternals.getInternal, {
+    const post = (await ctx.runQuery(internal.posts.httpInternals.getInternal, {
       postId: asId<"posts">(id),
-    });
+    })) as ApiPostRecord | null;
 
     if (!post) {
       return errorResponse("Post not found", "NOT_FOUND", 404);
@@ -119,8 +148,8 @@ export const postsCreateHandler = httpAction(async (ctx, request) => {
 
     return jsonResponse({ id: result, title: body.title }, 201);
   } catch (error: unknown) {
-    const message = error?.data?.message ?? error?.message ?? "Failed to create post";
-    return errorResponse(message, error?.data?.code ?? "SERVER_ERROR", 500);
+    const message = getHttpErrorMessage(error, "Failed to create post");
+    return errorResponse(message, getHttpErrorCode(error, "SERVER_ERROR"), 500);
   }
 });
 
@@ -157,8 +186,8 @@ export const postsUpdateHandler = httpAction(async (ctx, request) => {
     await ctx.runMutation(internal.posts.httpInternals.updateInternal, args);
     return jsonResponse({ id, updated: true });
   } catch (error: unknown) {
-    const message = error?.data?.message ?? error?.message ?? "Failed to update post";
-    return errorResponse(message, error?.data?.code ?? "SERVER_ERROR", 500);
+    const message = getHttpErrorMessage(error, "Failed to update post");
+    return errorResponse(message, getHttpErrorCode(error, "SERVER_ERROR"), 500);
   }
 });
 
@@ -178,7 +207,7 @@ export const postsDeleteHandler = httpAction(async (ctx, request) => {
     });
     return jsonResponse({ id, deleted: true });
   } catch (error: unknown) {
-    const message = error?.data?.message ?? error?.message ?? "Failed to delete post";
-    return errorResponse(message, error?.data?.code ?? "SERVER_ERROR", 500);
+    const message = getHttpErrorMessage(error, "Failed to delete post");
+    return errorResponse(message, getHttpErrorCode(error, "SERVER_ERROR"), 500);
   }
 });

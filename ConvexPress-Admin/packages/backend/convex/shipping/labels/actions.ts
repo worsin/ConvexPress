@@ -377,11 +377,7 @@ export const purchaseLabel = action({
     // and monotonically increasing packageIndex.
     const recordedLabelIds: any[] = [];
     if (labelResult.shipmentId) {
-      const packageList: any[] = Array.isArray(r.packages)
-        ? r.packages
-        : Array.isArray(r.shipment?.packages)
-          ? r.shipment.packages
-          : [];
+      const packageList: any[] = Array.isArray(r.packages) ? r.packages : [];
 
       if (packageList.length > 1) {
         for (let i = 0; i < packageList.length; i++) {

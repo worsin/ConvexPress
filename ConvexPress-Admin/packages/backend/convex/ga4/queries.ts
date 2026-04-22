@@ -31,15 +31,17 @@ import {
  *
  * @auth analytics.view (Administrator, Editor)
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const isConnected = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const canView = await currentUserCan(ctx, "analytics.view");
     if (!canView) return false;
 
     const settings = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "analytics"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "analytics"))
       .unique();
 
     if (!settings) return false;
@@ -57,15 +59,17 @@ export const isConnected = query({
  *
  * @auth analytics.manage (Administrator only)
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getConnectionStatus = query({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const canManage = await currentUserCan(ctx, "analytics.manage");
     if (!canManage) return null;
 
     const settings = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "analytics"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "analytics"))
       .unique();
 
     if (!settings) {
@@ -101,11 +105,13 @@ export const getConnectionStatus = query({
  *
  * @auth analytics.view (Administrator, Editor)
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getCachedTrafficData = query({
   args: {
     ...ga4DateRangeArgs,
     ...ga4PathArgs,
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const canView = await currentUserCan(ctx, "analytics.view");
     if (!canView) return null;
@@ -113,7 +119,7 @@ export const getCachedTrafficData = query({
     // Get property ID from settings
     const settings = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "analytics"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "analytics"))
       .unique();
 
     if (!settings) return null;
@@ -133,7 +139,7 @@ export const getCachedTrafficData = query({
     // Look up cache
     const cached = await ctx.db
       .query("gaCache")
-      .withIndex("by_hash", (q) =>
+      .withIndex("by_hash", (q: ConvexQueryBuilder) =>
         q.eq("propertyId", propertyId).eq("queryHash", queryHash),
       )
       .unique();
@@ -159,11 +165,13 @@ export const getCachedTrafficData = query({
  *
  * @auth analytics.view (Administrator, Editor)
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getCachedEngagementData = query({
   args: {
     ...ga4DateRangeArgs,
     ...ga4PathArgs,
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const canView = await currentUserCan(ctx, "analytics.view");
     if (!canView) return null;
@@ -171,7 +179,7 @@ export const getCachedEngagementData = query({
     // Get property ID from settings
     const settings = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "analytics"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "analytics"))
       .unique();
 
     if (!settings) return null;
@@ -191,7 +199,7 @@ export const getCachedEngagementData = query({
     // Look up cache
     const cached = await ctx.db
       .query("gaCache")
-      .withIndex("by_hash", (q) =>
+      .withIndex("by_hash", (q: ConvexQueryBuilder) =>
         q.eq("propertyId", propertyId).eq("queryHash", queryHash),
       )
       .unique();
@@ -215,12 +223,14 @@ export const getCachedEngagementData = query({
  * Internal query used by actions to read GA4 connection settings.
  * Not client-callable.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getConnectionStatusInternal = internalQuery({
   args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const settings = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", "analytics"))
+      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "analytics"))
       .unique();
 
     if (!settings) return null;

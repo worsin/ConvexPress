@@ -74,13 +74,27 @@ export const commerceTables = {
     slug: v.string(),
     description: v.optional(v.string()),
     parentId: v.optional(v.id("commerce_product_categories")),
+    depth: v.optional(v.number()),
+    path: v.optional(v.array(v.id("commerce_product_categories"))),
     thumbnailMediaId: v.optional(v.id("media")),
+    icon: v.optional(v.string()),
+    sortOrder: v.optional(v.number()),
     productCount: v.number(),
+    totalProductCount: v.optional(v.number()),
+    isVisible: v.optional(v.boolean()),
+    isFeatured: v.optional(v.boolean()),
+    showInNav: v.optional(v.boolean()),
+    metaTitle: v.optional(v.string()),
+    metaDescription: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_slug", ["slug"])
-    .index("by_parent", ["parentId"]),
+    .index("by_parent", ["parentId"])
+    .index("by_parent_sort", ["parentId", "sortOrder"])
+    .index("by_visible", ["isVisible"])
+    .index("by_featured", ["isFeatured"])
+    .index("by_nav", ["showInNav"]),
 
   commerce_products: defineTable({
     title: v.string(),
@@ -115,6 +129,7 @@ export const commerceTables = {
     rawSourceMeta: v.optional(v.string()),
     isDownloadable: v.boolean(),
     isNonReturnable: v.optional(v.boolean()),
+    taxClass: v.optional(v.string()),
     optionTypes: v.optional(v.any()),
     productAttributes: v.optional(v.any()),
     defaultAttributes: v.optional(v.any()),
@@ -456,6 +471,33 @@ export const commerceTables = {
       v.literal("fixed_product"),
     ),
     amount: v.number(),
+    minimumSubtotalAmount: v.optional(v.number()),
+    minimumQuantity: v.optional(v.number()),
+    applicability: v.optional(
+      v.union(v.literal("cart"), v.literal("matching_items")),
+    ),
+    productIds: v.optional(v.array(v.id("commerce_products"))),
+    categoryIds: v.optional(v.array(v.id("commerce_product_categories"))),
+    excludedProductIds: v.optional(v.array(v.id("commerce_products"))),
+    excludedCategoryIds: v.optional(
+      v.array(v.id("commerce_product_categories")),
+    ),
+    tiers: v.optional(
+      v.array(
+        v.object({
+          label: v.optional(v.string()),
+          minQuantity: v.optional(v.number()),
+          minSubtotalAmount: v.optional(v.number()),
+          discountType: v.union(
+            v.literal("fixed_cart"),
+            v.literal("percent"),
+            v.literal("fixed_product"),
+          ),
+          amount: v.number(),
+        }),
+      ),
+    ),
+    maxDiscountAmount: v.optional(v.number()),
     usageCount: v.number(),
     usageLimit: v.optional(v.number()),
     startsAt: v.optional(v.number()),
@@ -523,6 +565,7 @@ export const commerceTables = {
     countryCode: v.string(),
     stateCode: v.optional(v.string()),
     postalCodePattern: v.optional(v.string()),
+    taxClass: v.optional(v.string()),
     ratePercent: v.number(),
     priority: v.number(),
     isCompound: v.boolean(),

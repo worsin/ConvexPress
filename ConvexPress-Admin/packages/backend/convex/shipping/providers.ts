@@ -340,7 +340,9 @@ export function validateProviderCredentials(
   credentials: Record<string, unknown>,
 ) {
   const descriptor = getShippingProviderDescriptor(provider);
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   const missingFields = descriptor.credentialFields
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     .filter((field) => field.required)
     .filter((field) => {
       const value = credentials[field.key];

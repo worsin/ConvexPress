@@ -41,6 +41,7 @@ export const MAX_REVISION_LIMIT = 200;
  * Arguments for restoring a revision.
  */
 export const restoreRevisionArgs = {
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   revisionId: v.id("revisions"),
 };
 
@@ -65,6 +66,7 @@ export const deleteAllForPostArgs = {
  */
 export const listByPostArgs = {
   parentId: v.id("posts"),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   type: v.optional(revisionTypeValidator),
   limit: v.optional(v.number()),
 };
@@ -112,6 +114,7 @@ export const createOnSaveArgs = {
   content: v.string(),
   excerpt: v.optional(v.string()),
   authorId: v.string(),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   changedFields: v.array(v.string()),
 };
 

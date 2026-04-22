@@ -52,8 +52,10 @@ import {
  *
  * @returns The new reusable block document ID
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createReusableBlock = mutation({
   args: createReusableBlockArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.create");
 
@@ -137,8 +139,10 @@ export const createReusableBlock = mutation({
  * Changes propagate to all posts referencing this block since they resolve
  * by ID at render time. Only Administrators and Editors can update.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateReusableBlock = mutation({
   args: updateReusableBlockArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.update");
 
@@ -268,8 +272,10 @@ export const updateReusableBlock = mutation({
  *
  * Only Administrators and Editors can delete reusable blocks.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteReusableBlock = mutation({
   args: deleteReusableBlockArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.delete");
 
@@ -306,8 +312,10 @@ export const deleteReusableBlock = mutation({
  *
  * @returns The new reusable block document ID
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const duplicateReusableBlock = mutation({
   args: duplicateReusableBlockArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.create");
 
@@ -358,8 +366,10 @@ export const duplicateReusableBlock = mutation({
  *
  * @returns { acquired: true } or { acquired: false, lockedBy: { userId, displayName, lockedAt } }
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const acquireLock = mutation({
   args: acquireLockArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -384,7 +394,7 @@ export const acquireLock = mutation({
     // Check for existing lock
     const existingLock = await ctx.db
       .query("editorLocks")
-      .withIndex("by_postId", (q) => q.eq("postId", args.postId))
+      .withIndex("by_postId", (q: ConvexQueryBuilder) => q.eq("postId", args.postId))
       .first();
 
     if (existingLock) {
@@ -434,8 +444,10 @@ export const acquireLock = mutation({
  * Called when a user navigates away from the editor.
  * Only the lock holder can release their own lock.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const releaseLock = mutation({
   args: releaseLockArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -447,7 +459,7 @@ export const releaseLock = mutation({
 
     const existingLock = await ctx.db
       .query("editorLocks")
-      .withIndex("by_postId", (q) => q.eq("postId", args.postId))
+      .withIndex("by_postId", (q: ConvexQueryBuilder) => q.eq("postId", args.postId))
       .first();
 
     if (!existingLock) {
@@ -478,8 +490,10 @@ export const releaseLock = mutation({
  * this returns { renewed: false } and the editor UI should show a
  * warning that another user has taken over editing.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const renewLock = mutation({
   args: renewLockArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -491,7 +505,7 @@ export const renewLock = mutation({
 
     const existingLock = await ctx.db
       .query("editorLocks")
-      .withIndex("by_postId", (q) => q.eq("postId", args.postId))
+      .withIndex("by_postId", (q: ConvexQueryBuilder) => q.eq("postId", args.postId))
       .first();
 
     if (!existingLock) {
@@ -529,7 +543,16 @@ export const renewLock = mutation({
  * Recursively check if a TipTap document contains a reusableBlock node
  * referencing the given blockId (circular reference detection).
  */
-function containsSelfReference(node: { type?: string; attrs?: { id?: string }; content?: unknown[] }, blockId: string): boolean {
+interface TipTapNode {
+  type?: string;
+  attrs?: {
+    id?: string;
+    blockId?: string;
+  };
+  content?: TipTapNode[];
+}
+
+function containsSelfReference(node: TipTapNode, blockId: string): boolean {
   if (!node || typeof node !== "object") return false;
 
   // Check if this node is a reusableBlock referencing the given ID

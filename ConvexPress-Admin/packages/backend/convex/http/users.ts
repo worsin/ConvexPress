@@ -22,6 +22,8 @@ import {
   parsePagination,
   extractIdFromPath,
   toISOString,
+  getHttpErrorCode,
+  getHttpErrorMessage,
 } from "./helpers";
 import { asId } from "../helpers/types";
 
@@ -39,7 +41,16 @@ interface EnrichedUserProfile {
   resolvedAvatarUrl?: string;
   postCount?: number;
   createdAt?: number;
+  roleName?: string;
+  roleLevel?: number;
 }
+
+type UserListResult = {
+  users: EnrichedUserProfile[];
+  total: number;
+  page: number;
+  perPage: number;
+};
 
 export const usersListHandler = httpAction(async (ctx, request) => {
   const auth = await authenticateApiRequest(ctx, request, "read:users");
@@ -53,14 +64,14 @@ export const usersListHandler = httpAction(async (ctx, request) => {
   const orderDir = url.searchParams.get("orderDir") as "asc" | "desc" | undefined;
 
   try {
-    const result = await ctx.runQuery(internal.profiles.internals.listUsersInternal, {
+    const result = (await ctx.runQuery(internal.profiles.internals.listUsersInternal, {
       page,
       perPage,
       search,
       status,
       orderBy,
       orderDir,
-    });
+    })) as UserListResult;
 
     const formatted = result.users.map((u) => ({
       id: u._id,
@@ -79,8 +90,8 @@ export const usersListHandler = httpAction(async (ctx, request) => {
     return paginatedResponse(formatted, result.total, result.page, result.perPage);
   } catch (error: unknown) {
     return errorResponse(
-      error?.data?.message ?? "Failed to list users",
-      error?.data?.code ?? "INTERNAL_ERROR",
+      getHttpErrorMessage(error, "Failed to list users"),
+      getHttpErrorCode(error, "INTERNAL_ERROR"),
       500,
     );
   }

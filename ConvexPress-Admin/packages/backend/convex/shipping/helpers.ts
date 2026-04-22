@@ -1,13 +1,13 @@
 import { ConvexError } from "convex/values";
 
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 import {
   SHIPPING_INTEGRATION_DEFAULTS,
   SHIPPING_PROVIDER_DEFAULTS,
 } from "../settings/defaults";
 
-type ShippingCtx = MutationCtx | QueryCtx;
+type ShippingCtx = Pick<QueryCtx, "auth" | "db">;
 
 export const SHIPPING_PROVIDERS = [
   "shipstation",
@@ -63,9 +63,10 @@ export async function getShippingSettingsSection(
   ctx: ShippingCtx,
   section: ShippingSettingsSection,
 ) {
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   const doc = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: any) => q.eq("section", section))
+    .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", section))
     .unique();
 
   const defaults =
