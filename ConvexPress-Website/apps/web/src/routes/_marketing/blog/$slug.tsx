@@ -9,7 +9,7 @@ import { usePageOverrides } from "@/contexts/PageOverridesContext";
 import { slugParamsSchema } from "@/lib/schemas/routeParams";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import type { AuthorData, PostDetail, PostCategory, PostTag, PostCard as PostCardType, BlockDocument } from "@/lib/blog/types";
-import { estimateReadingTime } from "@/lib/blog/renderContent";
+import { estimateReadingTime, extractPlainText } from "@/lib/blog/renderContent";
 import { parseTipTapDocument } from "@/lib/schemas/content";
 import { AuthorBox } from "@/components/blog/AuthorBox";
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
@@ -20,6 +20,10 @@ import { PostFooter } from "@/components/blog/PostFooter";
 import { PostHeader } from "@/components/blog/PostHeader";
 import { RelatedPosts } from "@/components/blog/RelatedPosts";
 import { CommentSection } from "@/components/comments/CommentSection";
+import {
+  RestrictedContent,
+  type RestrictedTeaserMode,
+} from "@/components/membership/RestrictedContent";
 import { SeoHead } from "@/components/seo/SeoHead";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -35,9 +39,21 @@ export const Route = createFileRoute("/_marketing/blog/$slug")({
   component: SinglePost,
   loader: async ({ context: { queryClient }, params: { slug } }) => {
     // Pre-fetch the post data on the server for SSR
-    await queryClient.ensureQueryData(
+    const post = await queryClient.ensureQueryData(
       convexQuery(api.posts.queries.getPublished, { slug }),
     );
+
+    // Prefetch the membership access decision so SSR renders the correct
+    // gated view without a client-side flash. Safe to skip when the post is
+    // missing or the membership plugin is off (checkAccess returns `allowed`).
+    if (post && typeof post === "object" && "_id" in post && post._id) {
+      await queryClient.ensureQueryData(
+        convexQuery(api.membership.queries.checkAccess, {
+          resourceType: "post",
+          resourceIdOrKey: post._id as string,
+        }),
+      );
+    }
   },
   head: ({ params }) => ({
     meta: [
@@ -132,6 +148,18 @@ function SinglePost() {
   const adjacentPosts = useQuery(
     api.posts.queries.getAdjacentPosts,
     rawPost?._id ? { postId: rawPost._id as Id<"posts"> } : "skip",
+  );
+  // Membership access check — skip until we know the post id. When the plugin
+  // is disabled the query returns `allowed: false, reason: "plugin_disabled"`
+  // (actually treated as unrestricted below; see gate logic).
+  const access = useQuery(
+    api.membership.queries.checkAccess,
+    rawPost?._id
+      ? {
+          resourceType: "post" as const,
+          resourceIdOrKey: rawPost._id as string,
+        }
+      : "skip",
   );
   // Loading state
   if (rawPost === undefined) {
@@ -278,6 +306,26 @@ function SinglePost() {
         },
       )
     : undefined;
+  // Evaluate membership gate. The `plugin_disabled` short-circuit in the
+  // backend returns `allowed: false` with `reason: "plugin_disabled"`; we
+  // treat that the same as "no restriction" so content remains visible when
+  // the plugin is off site-wide.
+  const isAccessRestricted = Boolean(
+    access && access.allowed === false && access.reason !== "plugin_disabled",
+  );
+  const accessRule = isAccessRestricted && access ? access : null;
+  const teaserMode: RestrictedTeaserMode =
+    (accessRule?.teaserMode as RestrictedTeaserMode | null | undefined) ??
+    "hide";
+  // Pre-compute an excerpt from the raw post body for the `excerpt` teaser
+  // mode. We explicitly use `rawPost.content` (not the resolved post) because
+  // password verification already runs before we reach this point and we
+  // don't want to expose post-password excerpts through the membership gate.
+  const restrictedExcerpt =
+    isAccessRestricted && teaserMode === "excerpt"
+      ? extractPlainText(rawPost.content).slice(0, 400)
+      : undefined;
+
   // Map related posts from query to PostCardType[] for the RelatedPosts component
   const relatedPosts: PostCardType[] = (relatedPostsRaw ?? []).map((rp: NonNullable<typeof relatedPostsRaw>[number]) => ({
     _id: rp._id,
@@ -317,14 +365,26 @@ function SinglePost() {
         featuredImageUrl={post.featuredImageUrl}
         featuredImageAlt={post.featuredImageAlt}
       />
-      {/* Content: structured (AI-generated) takes priority over TipTap blocks */}
-      {hasStructuredContent({
-        hero: resolvedPostData.hero,
-        topics: resolvedPostData.topics,
-        summary: resolvedPostData.summary,
-        sources: resolvedPostData.sources,
-        tableOfContents: resolvedPostData.tableOfContents,
-      }) ? (
+      {/* Content: gated by membership when a restriction rule applies.
+          Otherwise structured (AI-generated) takes priority over TipTap blocks. */}
+      {isAccessRestricted && accessRule ? (
+        <RestrictedContent
+          mode={teaserMode}
+          rule={{
+            teaserMode: accessRule.teaserMode as RestrictedTeaserMode | null,
+            customMessage: accessRule.customMessage,
+            matchingPlanIds: accessRule.matchingPlanIds as Id<"membership_plans">[] | null,
+          }}
+          excerpt={restrictedExcerpt}
+          userState={isSignedIn ? "logged_in_non_member" : "logged_out"}
+        />
+      ) : hasStructuredContent({
+          hero: resolvedPostData.hero,
+          topics: resolvedPostData.topics,
+          summary: resolvedPostData.summary,
+          sources: resolvedPostData.sources,
+          tableOfContents: resolvedPostData.tableOfContents,
+        }) ? (
         <StructuredContent
           hero={resolvedPostData.hero}
           topics={resolvedPostData.topics}
