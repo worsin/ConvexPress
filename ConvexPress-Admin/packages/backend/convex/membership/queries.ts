@@ -23,7 +23,11 @@ import { v } from "convex/values";
 
 import { query } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
-import { requireMembershipEnabled } from "./helpers";
+import {
+  requireMembershipEnabled,
+  getDisplayableBenefitsForPlanHelper,
+  getDisplayableBenefitsForCodesHelper,
+} from "./helpers";
 import {
   membershipPlanStatusValidator,
   membershipGrantStatusValidator,
@@ -706,6 +710,54 @@ export const checkAccess = query({
 // ═══════════════════════════════════════════════════════════════════════════
 // STATS
 // ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRICING PAGE — BENEFIT DISPLAY QUERIES (Wave 6)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Return displayable benefits for a single membership plan.
+ *
+ * A benefit is included when `displayAsFeature !== false`; absence of the
+ * field is treated as TRUE per Wave 1 schema convention.
+ *
+ * Public — no auth required. Plugin-gated: returns [] when membership is
+ * disabled so pricing pages degrade gracefully.
+ *
+ * Shape: Array<{ _id, label, description?, sourcePlanId }>
+ */
+export const getDisplayableBenefitsForPlan = query({
+  args: {
+    planId: v.id("membership_plans"),
+  },
+  handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return [];
+    return getDisplayableBenefitsForPlanHelper(ctx, args.planId);
+  },
+});
+
+/**
+ * Return displayable benefits for a set of subscription entitlement codes.
+ *
+ * For each code, resolves `membership_plans` where `linkedSubscriptionCode
+ * === code` AND `status === "active"`. Collects displayable benefits from all
+ * matching plans, then dedupes by `label` (first occurrence wins; codes are
+ * iterated in input order for determinism).
+ *
+ * Public — no auth required. Plugin-gated: returns [] when membership is
+ * disabled. Returns [] on empty input without touching the DB.
+ *
+ * Shape: Array<{ _id, label, description?, sourcePlanId }>
+ */
+export const getDisplayableBenefitsForEntitlementCodes = query({
+  args: {
+    codes: v.array(v.string()),
+  },
+  handler: async (ctx: any, args: any) => {
+    if (!(await isPluginEnabled(ctx, "membership"))) return [];
+    return getDisplayableBenefitsForCodesHelper(ctx, args.codes);
+  },
+});
 
 /**
  * Membership dashboard stats (admin).
