@@ -123,3 +123,131 @@ describe("commerce discount engine", () => {
 		expect(result.message).toContain("No cart items");
 	});
 });
+
+describe("Wave 11.7 — new parity fields", () => {
+	test("newCustomersOnly rejects returning customers", () => {
+		const result = evaluateDiscount(
+			{ discountType: "percent", amount: 10, newCustomersOnly: true },
+			[productA],
+			{ priorOrderCount: 3 },
+		);
+		expect(result.eligible).toBe(false);
+		expect(result.message).toMatch(/new customers/i);
+	});
+
+	test("newCustomersOnly allows first-time buyers", () => {
+		const result = evaluateDiscount(
+			{ discountType: "percent", amount: 10, newCustomersOnly: true },
+			[productA],
+			{ priorOrderCount: 0 },
+		);
+		expect(result.eligible).toBe(true);
+	});
+
+	test("allowedEmails rejects non-allowlisted emails", () => {
+		const result = evaluateDiscount(
+			{
+				discountType: "percent",
+				amount: 10,
+				allowedEmails: ["vip@example.com"],
+			},
+			[productA],
+			{ email: "other@example.com" },
+		);
+		expect(result.eligible).toBe(false);
+	});
+
+	test("allowedEmails accepts allowlisted email (case-insensitive)", () => {
+		const result = evaluateDiscount(
+			{
+				discountType: "percent",
+				amount: 10,
+				allowedEmails: ["vip@example.com"],
+			},
+			[productA],
+			{ email: "VIP@Example.com" },
+		);
+		expect(result.eligible).toBe(true);
+	});
+
+	test("perUserUsageLimit rejects when limit reached", () => {
+		const result = evaluateDiscount(
+			{ discountType: "percent", amount: 10, perUserUsageLimit: 2 },
+			[productA],
+			{ priorCodeUsageCount: 2 },
+		);
+		expect(result.eligible).toBe(false);
+		expect(result.message).toMatch(/maximum uses/i);
+	});
+
+	test("excludeSaleItems skips on-sale items", () => {
+		const result = evaluateDiscount(
+			{ discountType: "percent", amount: 10, excludeSaleItems: true },
+			[
+				{ ...productA, onSale: true },
+				{ ...productB, onSale: false },
+			],
+		);
+		expect(result.eligible).toBe(true);
+		// Only productB ($2000) should contribute; 10% of 2000 = 200.
+		expect(result.discountAmount).toBe(200);
+	});
+
+	test("maximumSubtotalAmount blocks above-cap carts", () => {
+		const result = evaluateDiscount(
+			{
+				discountType: "percent",
+				amount: 10,
+				maximumSubtotalAmount: 1_500,
+			},
+			[productA, productB], // $3000 total
+		);
+		expect(result.eligible).toBe(false);
+		expect(result.message).toMatch(/exceeds/i);
+	});
+
+	test("free_shipping short-circuits with suppressShipping flag", () => {
+		const result = evaluateDiscount(
+			{ discountType: "free_shipping", amount: 0 },
+			[productA],
+		);
+		expect(result.eligible).toBe(true);
+		expect(result.discountAmount).toBe(0);
+		expect(result.suppressShipping).toBe(true);
+	});
+
+	test("free_shipping honors minimumSubtotalAmount", () => {
+		const result = evaluateDiscount(
+			{
+				discountType: "free_shipping",
+				amount: 0,
+				minimumSubtotalAmount: 5_000,
+			},
+			[productA],
+		);
+		expect(result.eligible).toBe(false);
+	});
+});
+
+describe("filterForIndividualUse", () => {
+	test("returns all when none are individualUse", () => {
+		const list = [
+			{ individualUse: false, discountAmount: 100 },
+			{ individualUse: false, discountAmount: 200 },
+		];
+		const { filterForIndividualUse } = require("../discountEngine");
+		expect(filterForIndividualUse(list)).toHaveLength(2);
+	});
+
+	test("returns only the best individualUse when present", () => {
+		const list = [
+			{ individualUse: false, discountAmount: 500 },
+			{ individualUse: true, discountAmount: 300 },
+			{ individualUse: true, discountAmount: 400 },
+		];
+		const { filterForIndividualUse } = require("../discountEngine");
+		const filtered = filterForIndividualUse(list);
+		expect(filtered).toHaveLength(1);
+		expect(filtered[0].discountAmount).toBe(400);
+	});
+});
