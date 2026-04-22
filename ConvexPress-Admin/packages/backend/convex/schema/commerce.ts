@@ -471,9 +471,11 @@ export const commerceTables = {
       v.literal("fixed_cart"),
       v.literal("percent"),
       v.literal("fixed_product"),
+      v.literal("free_shipping"),
     ),
     amount: v.number(),
     minimumSubtotalAmount: v.optional(v.number()),
+    maximumSubtotalAmount: v.optional(v.number()),
     minimumQuantity: v.optional(v.number()),
     applicability: v.optional(
       v.union(v.literal("cart"), v.literal("matching_items")),
@@ -484,6 +486,22 @@ export const commerceTables = {
     excludedCategoryIds: v.optional(
       v.array(v.id("commerce_product_categories")),
     ),
+    allowedEmails: v.optional(v.array(v.string())),
+    newCustomersOnly: v.optional(v.boolean()),
+    individualUse: v.optional(v.boolean()),
+    excludeSaleItems: v.optional(v.boolean()),
+    perUserUsageLimit: v.optional(v.number()),
+    appliesTo: v.optional(
+      v.union(
+        v.literal("initial"),
+        v.literal("recurring"),
+        v.literal("both"),
+      ),
+    ),
+    auto: v.optional(v.boolean()),
+    autoConditions: v.optional(v.any()),
+    stripeCouponId: v.optional(v.string()),
+    stripePromotionCodeId: v.optional(v.string()),
     tiers: v.optional(
       v.array(
         v.object({
@@ -509,7 +527,33 @@ export const commerceTables = {
     updatedAt: v.number(),
   })
     .index("by_code", ["code"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_auto", ["auto"])
+    .index("by_stripe_coupon", ["stripeCouponId"]),
+
+  // Wave 11.2: per-usage history for reporting + perUserUsageLimit enforcement.
+  commerce_discount_usages: defineTable({
+    discountId: v.id("commerce_discount_codes"),
+    userId: v.optional(v.id("users")),
+    customerEmail: v.optional(v.string()),
+    orderId: v.optional(v.id("commerce_orders")),
+    subscriptionId: v.optional(v.id("commerce_subscriptions")),
+    invoiceId: v.optional(v.id("commerce_subscription_invoices")),
+    appliedAmount: v.number(),
+    appliedAt: v.number(),
+    context: v.union(
+      v.literal("order"),
+      v.literal("subscription_initial"),
+      v.literal("subscription_renewal"),
+    ),
+    createdAt: v.number(),
+  })
+    .index("by_discount", ["discountId"])
+    .index("by_user", ["userId"])
+    .index("by_email", ["customerEmail"])
+    .index("by_order", ["orderId"])
+    .index("by_subscription", ["subscriptionId"])
+    .index("by_applied_at", ["appliedAt"]),
 
   commerce_payment_transactions: defineTable({
     orderId: v.optional(v.id("commerce_orders")),
