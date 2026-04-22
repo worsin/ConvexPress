@@ -417,4 +417,13 @@ crons.daily(
   internal.commerceSubscriptions.internals.expirePendingCancellations,
 );
 
+// Daily notifier for trials ending in ~3 days (Wave 10.2). Emits
+// `commerce.subscription_trial_ending` so email subscribers can warn the
+// customer before the first real charge runs.
+crons.daily(
+  "subscription-trial-ending",
+  { hourUTC: 12, minuteUTC: 0 },
+  internal.commerceSubscriptions.internals.emitTrialEndingEvents,
+);
+
 export default crons;

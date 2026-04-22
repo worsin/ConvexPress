@@ -1623,3 +1623,51 @@ export const getMyInvoiceForPdf = internalQuery({
     };
   },
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TRIAL ENDING NOTIFIER (Wave 10.2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Scan for trialing subscriptions whose trial ends in ~3 days and emit
+ * `commerce.subscription_trial_ending` once. Idempotent via a marker on
+ * the subscription's sourceMetadata (`trialEndingEmailSent`).
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const emitTrialEndingEvents = internalMutation({
+  args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx) => {
+    const now = Date.now();
+    const threeDays = 3 * 24 * 60 * 60 * 1000;
+    const fourDays = 4 * 24 * 60 * 60 * 1000;
+
+    const trialing = await ctx.db
+      .query("commerce_subscriptions")
+      .withIndex("by_status", (q: any) => q.eq("status", "trialing"))
+      .collect();
+
+    let emitted = 0;
+    for (const sub of trialing) {
+      if (!sub.trialEndsAt) continue;
+      if (sub.trialEndsAt < now + threeDays) continue;
+      if (sub.trialEndsAt > now + fourDays) continue;
+      if (sub.sourceMetadata?.trialEndingEmailSent) continue;
+
+      await emitEvent(ctx, "commerce.subscription_trial_ending", "commerce", {
+        subscriptionId: sub._id,
+        userId: sub.userId,
+        trialEndsAt: sub.trialEndsAt,
+      });
+      await ctx.db.patch(sub._id, {
+        sourceMetadata: {
+          ...(sub.sourceMetadata ?? {}),
+          trialEndingEmailSent: true,
+        },
+        updatedAt: now,
+      });
+      emitted++;
+    }
+    return { emitted };
+  },
+});
