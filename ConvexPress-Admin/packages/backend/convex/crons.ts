@@ -426,4 +426,13 @@ crons.daily(
   internal.commerceSubscriptions.internals.emitTrialEndingEvents,
 );
 
+// Daily store-credit expiration sweep (Wave 11.3). Writes `expire`
+// ledger rows that zero out balances whose issue rows have an
+// `expiresAt` in the past.
+crons.daily(
+  "store-credit-expiration",
+  { hourUTC: 4, minuteUTC: 15 },
+  internal.commerceReturns.storeCredit.expireExpired,
+);
+
 export default crons;
