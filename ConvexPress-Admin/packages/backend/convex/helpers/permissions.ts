@@ -237,6 +237,25 @@ async function resolveUserRole(
 }
 
 /**
+ * Pure helper: given a base role and a list of candidate roles contributed
+ * by active/grace membership grants, return the role with the highest
+ * `level`. Inactive grant roles are skipped. Null base means "no role
+ * assigned directly" — in which case the highest-active grant role wins.
+ *
+ * Exported for unit testing (see `helpers/__tests__/linkedRole.test.ts`).
+ */
+export function pickHighestRole<
+  R extends { level: number; status: "active" | "inactive" },
+>(base: R | null, grantRoles: R[]): R | null {
+  const active = grantRoles.filter((r) => r.status === "active");
+  let best = base && base.status === "active" ? base : null;
+  for (const g of active) {
+    if (!best || g.level > best.level) best = g;
+  }
+  return best;
+}
+
+/**
  * Get the capabilities array for a user's resolved role.
  */
 async function getUserCapabilities(
