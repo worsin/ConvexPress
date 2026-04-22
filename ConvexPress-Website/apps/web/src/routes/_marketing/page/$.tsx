@@ -19,22 +19,59 @@
  * Pages are fetched from the shared `posts` table with `type: "page"`.
  */
 
+import { convexQuery } from "@convex-dev/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { useAuth } from "@clerk/clerk-react";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
 
 import { parseTipTapDocument } from "@/lib/schemas/content";
+import { extractPlainText } from "@/lib/blog/renderContent";
 import type { PageDetail, BlockContent } from "@/lib/blog/types";
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { PageRenderer } from "@/components/pages/PageRenderer";
 import { PagePasswordForm } from "@/components/pages/PagePasswordForm";
+import {
+  RestrictedContent,
+  type RestrictedTeaserMode,
+} from "@/components/membership/RestrictedContent";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
 import { usePageOverrides } from "@/contexts/PageOverridesContext";
 
 export const Route = createFileRoute("/_marketing/page/$")({
   component: SinglePage,
+  loader: async ({ context: { queryClient }, params }) => {
+    // Extract the full path from the splat param (mirrors component logic).
+    const splatPath = params._splat ?? "";
+    const segments = splatPath.split("/").filter(Boolean);
+    const pagePath = `/${segments.join("/")}`;
+    const isSingleSegment = segments.length === 1;
+    const slug = isSingleSegment ? segments[0] : undefined;
+
+    // Prefetch page lookup so SSR has data ready.
+    const pageByPath = await queryClient.ensureQueryData(
+      convexQuery(api.pages.queries.getByPath, { path: pagePath }),
+    );
+    const pageBySlug =
+      isSingleSegment && slug
+        ? await queryClient.ensureQueryData(
+            convexQuery(api.pages.queries.get, { slug }),
+          )
+        : null;
+    const page = pageByPath ?? pageBySlug;
+
+    // Prefetch the membership access decision. Same pattern as blog/$slug.
+    if (page && typeof page === "object" && "_id" in page && page._id) {
+      await queryClient.ensureQueryData(
+        convexQuery(api.membership.queries.checkAccess, {
+          resourceType: "page",
+          resourceIdOrKey: page._id as string,
+        }),
+      );
+    }
+  },
   head: ({ params }) => {
     // Extract a human-readable title from the splat path
     const splatPath = params._splat ?? "";
@@ -52,6 +89,7 @@ export const Route = createFileRoute("/_marketing/page/$")({
 
 function SinglePage() {
   const params = Route.useParams();
+  const { isSignedIn } = useAuth();
 
   // ── All hooks called unconditionally at the top ──────────────────────
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -113,6 +151,19 @@ function SinglePage() {
     api.pages.queries.getChildren,
     !isSingleSegment && pageId
       ? { pageId: pageId as Id<"posts">, status: "publish" as const }
+      : "skip",
+  );
+
+  // Membership access check — skip until we know the page id. Backend
+  // short-circuits with `reason: "plugin_disabled"` when the membership
+  // plugin is off; we treat that as unrestricted (see gate logic below).
+  const access = useQuery(
+    api.membership.queries.checkAccess,
+    pageId
+      ? {
+          resourceType: "page" as const,
+          resourceIdOrKey: pageId as string,
+        }
       : "skip",
   );
 
@@ -244,6 +295,43 @@ function SinglePage() {
     breadcrumbs: breadcrumbs ?? [],
     children: children ?? [],
   };
+
+  // Membership gate: if the access check returned denied and the plugin is
+  // enabled, render a restricted view instead of the full page template.
+  // The page header (title + featured image handled inside PageContent) is
+  // replaced with a lightweight header so the title still appears.
+  const isAccessRestricted = Boolean(
+    access && access.allowed === false && access.reason !== "plugin_disabled",
+  );
+  if (isAccessRestricted && access) {
+    const teaserMode =
+      (access.teaserMode as RestrictedTeaserMode | null | undefined) ?? "hide";
+    const restrictedExcerpt =
+      teaserMode === "excerpt"
+        ? extractPlainText(resolvedPage.content).slice(0, 400)
+        : undefined;
+
+    return (
+      <div
+        data-slot="restricted-page"
+        className="mx-auto flex max-w-3xl flex-col gap-6 px-4"
+      >
+        <h1 className="text-lg font-bold leading-tight md:text-xl">
+          {page.title}
+        </h1>
+        <RestrictedContent
+          mode={teaserMode}
+          rule={{
+            teaserMode: access.teaserMode as RestrictedTeaserMode | null,
+            customMessage: access.customMessage,
+            matchingPlanIds: access.matchingPlanIds as Id<"membership_plans">[] | null,
+          }}
+          excerpt={restrictedExcerpt}
+          userState={isSignedIn ? "logged_in_non_member" : "logged_out"}
+        />
+      </div>
+    );
+  }
 
   return <PageRenderer page={page} />;
 }
