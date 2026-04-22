@@ -40,6 +40,7 @@ import {
   commerceSubscriptionOfferSourceTypeValidator,
 } from "../schema/commerceSubscriptions";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
+import { getDisplayableBenefitsForCodesHelper } from "../membership/helpers";
 
 // ─── Shared shape validators ────────────────────────────────────────────────
 
@@ -454,8 +455,13 @@ export const getOffer = query({
  * `pricingCardVisible !== false`. Treats absence of `pricingCardVisible`
  * as visible.
  *
- * Wave 6 will enrich this with linked-plan benefit features. Wave 2
- * returns raw offer rows — consumer can decide.
+ * Wave 6 enriches each offer with `planBenefits` — displayable benefits
+ * pulled from any membership plans linked via `entitlementCodes`. The
+ * `excludedPlanFeatureIds` field on the offer suppresses specific benefit
+ * IDs from surfacing. Offer's own `features` array is unchanged.
+ *
+ * Return shape per offer (all existing fields +):
+ *   planBenefits: Array<{ _id, label, description?, sourcePlanId }>
  */
 export const listOffersForPricing = query({
   args: {},
@@ -467,8 +473,29 @@ export const listOffersForPricing = query({
       .withIndex("by_status", (q: any) => q.eq("status", "active"))
       .collect();
 
-    return offers
+    const visible = offers
       .filter((o) => o.pricingCardVisible !== false)
       .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+
+    // Enrich each offer with displayable plan benefits (Wave 6).
+    // When the membership plugin is disabled, the helper returns [] gracefully.
+    const enriched = await Promise.all(
+      visible.map(async (offer: any) => {
+        const allPlanBenefits = await getDisplayableBenefitsForCodesHelper(
+          ctx,
+          offer.entitlementCodes ?? [],
+        );
+
+        // Filter out any benefits the offer has explicitly excluded.
+        const excluded: string[] = offer.excludedPlanFeatureIds ?? [];
+        const planBenefits = allPlanBenefits.filter(
+          (b) => !excluded.includes(b._id),
+        );
+
+        return { ...offer, planBenefits };
+      }),
+    );
+
+    return enriched;
   },
 });
