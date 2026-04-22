@@ -18,6 +18,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { emitEvent } from "../helpers/events";
 import { decideBridgeCall } from "./bridgeDecisions";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -283,6 +284,20 @@ async function transitionSubscription(ctx: any, args: any) {
   if (product) {
     const config = await resolveEffectiveConfig(ctx, product, updated.templateId);
     await syncEntitlementsForStatus(ctx, updated, now, config.gracePeriodDays ?? 3);
+  }
+
+  // Wave 10.2: emit lifecycle events for email subscribers.
+  if (args.toStatus === "paused") {
+    await emitEvent(ctx, "commerce.subscription_paused", "commerce", {
+      subscriptionId: updated._id,
+      userId: updated.userId,
+    });
+  } else if (args.toStatus === "cancelled") {
+    await emitEvent(ctx, "commerce.subscription_cancelled", "commerce", {
+      subscriptionId: updated._id,
+      userId: updated.userId,
+      reason: args.reason,
+    });
   }
 
   return updated;
@@ -799,6 +814,13 @@ export const handleInvoicePaymentResult = internalMutation({
         },
         correlationId,
       });
+
+      // Wave 10.2: emit for email subscribers.
+      await emitEvent(ctx, "commerce.subscription_renewed", "commerce", {
+        subscriptionId: subscription._id,
+        userId: subscription.userId,
+        invoiceId: invoice._id,
+      });
     } else {
       // === FAILURE PATH ===
       const product = subscription.productId
@@ -853,6 +875,14 @@ export const handleInvoicePaymentResult = internalMutation({
       if (updated) {
         await syncEntitlementsForStatus(ctx, updated, now, config.gracePeriodDays ?? 3);
       }
+
+      // Wave 10.2: emit past_due so email subscribers can notify the customer.
+      await emitEvent(ctx, "commerce.subscription_past_due", "commerce", {
+        subscriptionId: subscription._id,
+        userId: subscription.userId,
+        attemptNumber,
+        maxAttempts: config.dunningPolicy.maxAttempts,
+      });
 
       // Check if dunning is exhausted
       if (
