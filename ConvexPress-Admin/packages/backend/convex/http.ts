@@ -45,6 +45,7 @@ import { menusListHandler } from "./http/menus";
 import { settingsReadHandler } from "./http/settings";
 import { resendWebhookHandler } from "./http/resendWebhook";
 import { clerkWebhookHandler } from "./auth/clerkWebhook";
+import { inboundEmailWebhookHandler } from "./http/inboundEmailWebhook";
 import { analyticsTrackHandler } from "./http/analytics";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -368,6 +369,16 @@ http.route({
   path: "/webhooks/clerk",
   method: "POST",
   handler: clerkWebhookHandler,
+});
+http.route({
+  path: "/webhooks/inbound-email",
+  method: "OPTIONS",
+  handler: corsPreflight,
+});
+http.route({
+  path: "/webhooks/inbound-email",
+  method: "POST",
+  handler: inboundEmailWebhookHandler,
 });
 
 // ─── Stripe Webhook (with idempotency and dispute handling) ────────────────

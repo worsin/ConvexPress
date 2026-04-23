@@ -198,3 +198,32 @@ export async function getUserCount(ctx: QueryCtx): Promise<number> {
     .collect();
   return activeUsers.length;
 }
+
+// ─── Content Performance Aggregation ────────────────────────────────────────
+
+/**
+ * Pure aggregation helper — rank a list of content items (posts/pages) by
+ * view count, with a tie-break by title. Items with zero views are
+ * excluded. Callers pass in the recent-views map from `analytics_events`
+ * aggregation and the item metadata list.
+ *
+ * Returns at most `limit` entries (default 5). Sort order:
+ *   1. views DESC
+ *   2. title ASC (stable tie-break)
+ */
+export function aggregateContentPerformance<
+  T extends { _id: string; title: string },
+>(
+  items: T[],
+  viewsByItemId: Record<string, number>,
+  limit = 5,
+): Array<T & { views: number }> {
+  return items
+    .map((item) => ({ ...item, views: viewsByItemId[item._id] ?? 0 }))
+    .filter((entry) => entry.views > 0)
+    .sort((a, b) => {
+      if (b.views !== a.views) return b.views - a.views;
+      return a.title.localeCompare(b.title);
+    })
+    .slice(0, limit);
+}

@@ -73,4 +73,59 @@ export const supportTables = {
     .index("by_outcome", ["outcome"])
     .index("by_date", ["createdAt"])
     .index("by_ticket", ["ticketId"]),
+
+  // Wave 13: Support Integration System — inbound channel adapters.
+
+  /**
+   * support_channels — configured inbound channels. One row per
+   * channel instance (one Postmark mailbox, one Slack workspace, etc.).
+   */
+  support_channels: defineTable({
+    code: v.string(),
+    kind: v.union(
+      v.literal("email"),
+      v.literal("slack"),
+      v.literal("discord"),
+      v.literal("twilio_sms"),
+      v.literal("form"),
+      v.literal("chat"),
+      v.literal("api"),
+    ),
+    label: v.string(),
+    isActive: v.boolean(),
+    config: v.optional(v.any()),
+    webhookUrl: v.optional(v.string()),
+    lastInboundAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_code", ["code"])
+    .index("by_kind", ["kind"])
+    .index("by_active", ["isActive"]),
+
+  /**
+   * support_inbound_events — every raw inbound payload from a channel,
+   * with idempotency via (channelId, externalId). Maps to a ticket once
+   * parsed.
+   */
+  support_inbound_events: defineTable({
+    channelId: v.id("support_channels"),
+    externalId: v.string(),
+    rawPayload: v.string(),
+    parsedPayload: v.optional(v.any()),
+    ticketId: v.optional(v.string()),
+    status: v.union(
+      v.literal("received"),
+      v.literal("parsed"),
+      v.literal("ticket_created"),
+      v.literal("ticket_updated"),
+      v.literal("error"),
+    ),
+    errorMessage: v.optional(v.string()),
+    receivedAt: v.number(),
+  })
+    .index("by_channel_external_id", ["channelId", "externalId"])
+    .index("by_status", ["status"])
+    .index("by_ticket", ["ticketId"])
+    .index("by_received_at", ["receivedAt"]),
 };
