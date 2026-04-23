@@ -71,7 +71,7 @@ export const issue = mutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    await requireCan(ctx, "manage_options");
+    await requireCan(ctx, "commerce.returns.manage");
     if (args.amount <= 0) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
@@ -155,7 +155,7 @@ export const adjust = mutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    await requireCan(ctx, "manage_options");
+    await requireCan(ctx, "commerce.returns.manage");
     const latest = await latestEntry(ctx, args.userId);
     const prev = latest?.balanceAfter ?? 0;
     const newBalance = prev + args.amount;

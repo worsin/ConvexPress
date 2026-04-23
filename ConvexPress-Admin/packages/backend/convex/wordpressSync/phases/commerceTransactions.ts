@@ -1903,13 +1903,23 @@ export const upsertDiscountCode = internalMutation({
       discountType: v.union(
         v.literal("fixed_cart"),
         v.literal("percent"),
-        v.literal("fixed_product")
+        v.literal("fixed_product"),
+        v.literal("free_shipping"),
       ),
       amount: v.number(),
       usageCount: v.number(),
       usageLimit: v.optional(v.number()),
       startsAt: v.optional(v.number()),
       endsAt: v.optional(v.number()),
+      // Wave 12.6: full WooCommerce coupon parity.
+      minimumSubtotalAmount: v.optional(v.number()),
+      maximumSubtotalAmount: v.optional(v.number()),
+      allowedEmails: v.optional(v.array(v.string())),
+      individualUse: v.optional(v.boolean()),
+      excludeSaleItems: v.optional(v.boolean()),
+      perUserUsageLimit: v.optional(v.number()),
+      productIds: v.optional(v.array(v.string())),
+      excludedProductIds: v.optional(v.array(v.string())),
       rawSourceMeta: v.optional(v.string()),
     }),
   },
@@ -1924,7 +1934,7 @@ export const upsertDiscountCode = internalMutation({
       targetId = byCode?._id;
     }
 
-    const patch = {
+    const patch: Record<string, unknown> = {
       code: discount.code,
       description: discount.description,
       status: discount.status,
@@ -1934,6 +1944,14 @@ export const upsertDiscountCode = internalMutation({
       usageLimit: discount.usageLimit,
       startsAt: discount.startsAt,
       endsAt: discount.endsAt,
+      minimumSubtotalAmount: discount.minimumSubtotalAmount,
+      maximumSubtotalAmount: discount.maximumSubtotalAmount,
+      allowedEmails: discount.allowedEmails,
+      individualUse: discount.individualUse,
+      excludeSaleItems: discount.excludeSaleItems,
+      perUserUsageLimit: discount.perUserUsageLimit,
+      productIds: discount.productIds as any,
+      excludedProductIds: discount.excludedProductIds as any,
       rawSourceMeta: discount.rawSourceMeta,
       updatedAt: now,
     };
@@ -1944,11 +1962,72 @@ export const upsertDiscountCode = internalMutation({
     }
 
     return await ctx.db.insert("commerce_discount_codes", {
-      ...patch,
+      ...(patch as any),
       createdAt: now,
     });
   },
 });
+
+/**
+ * Wave 12.6: Translate a raw WooCommerce coupon API payload into the
+ * upsertDiscountCode args shape, preserving every Woo field. Pure —
+ * unit-testable.
+ */
+export function mapWooCouponToUpsertArgs(coupon: any): any {
+  const amount = Number(coupon.amount ?? 0);
+  const discountType =
+    coupon.discount_type === "free_shipping"
+      ? "free_shipping"
+      : coupon.discount_type === "percent"
+        ? "percent"
+        : coupon.discount_type === "fixed_product"
+          ? "fixed_product"
+          : "fixed_cart";
+  const minimumSubtotalAmount = coupon.minimum_amount
+    ? Math.round(parseFloat(coupon.minimum_amount) * 100)
+    : undefined;
+  const maximumSubtotalAmount = coupon.maximum_amount
+    ? Math.round(parseFloat(coupon.maximum_amount) * 100)
+    : undefined;
+  return {
+    code: (coupon.code ?? "").toString().trim().toUpperCase(),
+    description: coupon.description ?? undefined,
+    status: "active" as const,
+    discountType,
+    amount:
+      discountType === "percent" ? amount : Math.round(amount * 100),
+    usageCount: Number(coupon.usage_count ?? 0),
+    usageLimit:
+      typeof coupon.usage_limit === "number" ? coupon.usage_limit : undefined,
+    startsAt: undefined,
+    endsAt: coupon.date_expires
+      ? new Date(coupon.date_expires).getTime()
+      : undefined,
+    minimumSubtotalAmount,
+    maximumSubtotalAmount,
+    allowedEmails: Array.isArray(coupon.email_restrictions)
+      ? coupon.email_restrictions
+      : undefined,
+    individualUse: coupon.individual_use === true,
+    excludeSaleItems: coupon.exclude_sale_items === true,
+    perUserUsageLimit:
+      typeof coupon.usage_limit_per_user === "number"
+        ? coupon.usage_limit_per_user
+        : undefined,
+    productIds: Array.isArray(coupon.product_ids)
+      ? coupon.product_ids.map((id: any) => String(id))
+      : undefined,
+    excludedProductIds: Array.isArray(coupon.excluded_product_ids)
+      ? coupon.excluded_product_ids.map((id: any) => String(id))
+      : undefined,
+    rawSourceMeta: JSON.stringify({
+      wpId: coupon.id,
+      product_categories: coupon.product_categories ?? [],
+      excluded_product_categories: coupon.excluded_product_categories ?? [],
+      meta_data: coupon.meta_data ?? [],
+    }),
+  };
+}
 
 export const upsertPaymentRefund = internalMutation({
   args: {

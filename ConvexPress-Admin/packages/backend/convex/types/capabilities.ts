@@ -299,6 +299,22 @@ type CommerceReviewsCapability =
   | "commerce.reviews.moderate"
   | "commerce.reviews.delete";
 
+// ─── Commerce Tax Capabilities (Wave 12.4) ──────────────────────────────────
+
+type CommerceTaxCapability =
+  | "commerce.tax.view"
+  | "commerce.tax.manage"
+  | "commerce.customers.tax_exempt";
+
+// ─── Commerce Discount Capabilities (Wave 12.4) ─────────────────────────────
+
+type CommerceDiscountCapability =
+  | "commerce.discount.view"
+  | "commerce.discount.create"
+  | "commerce.discount.update"
+  | "commerce.discount.delete"
+  | "commerce.discount.apply";
+
 // ─── Settings Management Capability (1) ─────────────────────────────────────
 // WordPress-standard "manage_options" used by admin-only settings operations.
 
@@ -406,6 +422,8 @@ export type Capability =
   | CommerceReturnsCapability
   | CommerceBundlesCapability
   | CommerceReviewsCapability
+  | CommerceTaxCapability
+  | CommerceDiscountCapability
   | SettingsManageCapability
   | ShippingCapability;
 
@@ -628,6 +646,16 @@ export const ALL_CAPABILITIES: Capability[] = [
   "commerce.reviews.view",
   "commerce.reviews.moderate",
   "commerce.reviews.delete",
+  // Commerce Tax (Wave 12.4) (3)
+  "commerce.tax.view",
+  "commerce.tax.manage",
+  "commerce.customers.tax_exempt",
+  // Commerce Discount (Wave 12.4) (5)
+  "commerce.discount.view",
+  "commerce.discount.create",
+  "commerce.discount.update",
+  "commerce.discount.delete",
+  "commerce.discount.apply",
   // Settings Management (1)
   "manage_options",
   // Shipping (34) — PRDs A1–D3

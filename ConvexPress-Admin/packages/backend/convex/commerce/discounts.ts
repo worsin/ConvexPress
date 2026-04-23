@@ -190,7 +190,7 @@ export const list = query({
 	args: {},
 	handler: async (ctx) => {
 		await requireCommerceEnabled(ctx);
-		await requireCan(ctx, "manage_options");
+		await requireCan(ctx, "commerce.discount.update");
 		const discounts = await ctx.db.query("commerce_discount_codes").take(500);
 		discounts.sort((a: any, b: any) => b.updatedAt - a.updatedAt);
 		return discounts;
@@ -201,7 +201,7 @@ export const create = mutation({
 	args: createDiscountCodeArgs,
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
-		await requireCan(ctx, "manage_options");
+		await requireCan(ctx, "commerce.discount.update");
 
 		const code = normalizeCode(args.code);
 		if (!code) {
@@ -234,7 +234,7 @@ export const update = mutation({
 	args: updateDiscountCodeArgs,
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
-		await requireCan(ctx, "manage_options");
+		await requireCan(ctx, "commerce.discount.update");
 
 		const discount = await ctx.db.get(
 			"commerce_discount_codes",
@@ -282,7 +282,7 @@ export const remove = mutation({
 	},
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
-		await requireCan(ctx, "manage_options");
+		await requireCan(ctx, "commerce.discount.update");
 
 		const discount = await ctx.db.get(
 			"commerce_discount_codes",
@@ -294,3 +294,73 @@ export const remove = mutation({
 		return args.discountId;
 	},
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTOMATIC DISCOUNTS (Wave 12.2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * List active automatic discounts ordered by updatedAt.
+ * Called from cart.apply to evaluate auto-discounts on every cart mutation.
+ */
+export const listAutomatic = query({
+	args: {},
+	handler: async (ctx) => {
+		await requireCommerceEnabled(ctx);
+		const rows = await ctx.db
+			.query("commerce_discount_codes")
+			.withIndex("by_auto", (q: any) => q.eq("auto", true))
+			.collect();
+		return rows.filter((r: any) => r.status === "active");
+	},
+});
+
+/**
+ * Evaluate serialized `autoConditions` against a cart context. Returns true
+ * if the auto-discount should apply. Conditions object is intentionally
+ * simple; extend as needed.
+ *
+ * Supported shapes:
+ *   { minSubtotal: number }
+ *   { newCustomersOnly: true } — delegated to userContext.priorOrderCount
+ *   { hasProductId: string }   — at least one line matches
+ *   { hasCategoryId: string }  — at least one line's categories match
+ */
+export function matchesAutoConditions(
+	conditions: any,
+	ctx: {
+		cartSubtotal: number;
+		priorOrderCount?: number;
+		productIds: string[];
+		categoryIds: string[];
+	},
+): boolean {
+	if (!conditions || typeof conditions !== "object") return true;
+	if (
+		typeof conditions.minSubtotal === "number" &&
+		ctx.cartSubtotal < conditions.minSubtotal
+	) {
+		return false;
+	}
+	if (conditions.newCustomersOnly) {
+		if (
+			typeof ctx.priorOrderCount !== "number" ||
+			ctx.priorOrderCount > 0
+		) {
+			return false;
+		}
+	}
+	if (
+		typeof conditions.hasProductId === "string" &&
+		!ctx.productIds.includes(conditions.hasProductId)
+	) {
+		return false;
+	}
+	if (
+		typeof conditions.hasCategoryId === "string" &&
+		!ctx.categoryIds.includes(conditions.hasCategoryId)
+	) {
+		return false;
+	}
+	return true;
+}

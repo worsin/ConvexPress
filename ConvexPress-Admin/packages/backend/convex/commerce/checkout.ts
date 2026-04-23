@@ -678,6 +678,15 @@ export const complete = mutation({
       Number(cart.subtotalAmount ?? 0) - Number(cart.discountAmount ?? 0),
     );
     let finalTaxAmount = Number(cart.taxAmount ?? 0);
+    // Wave 12.1: capture the per-class tax breakdown for per-line writes
+    // into `commerce_order_tax_lines` after the order is created.
+    let finalTaxBreakdown: Array<{
+      taxClass: string;
+      taxableAmount: number;
+      taxAmount: number;
+      taxRate: number;
+      rules: Array<Record<string, unknown>>;
+    }> = [];
     const completionTaxAddress = resolveTaxAddress(settings, session, {});
     if (completionTaxAddress) {
       const taxResult = await computeTaxForAddress(
@@ -688,6 +697,7 @@ export const complete = mutation({
         Boolean(settings.pricesIncludeTax),
       );
       finalTaxAmount = taxResult.taxAmount;
+      finalTaxBreakdown = taxResult.breakdown;
     }
     const finalTotalAmount =
       completionTaxableAmount +
@@ -803,6 +813,31 @@ export const complete = mutation({
         metadata: buildOrderItemMetadata(item),
         createdAt: now,
       });
+    }
+
+    // Wave 12.1: persist per-class tax breakdown for compliance audits.
+    if (completionTaxAddress && finalTaxBreakdown.length > 0) {
+      const jurisdictionLabel = [
+        completionTaxAddress.state,
+        completionTaxAddress.countryCode,
+      ]
+        .filter(Boolean)
+        .join(" / ") || completionTaxAddress.countryCode;
+      for (const group of finalTaxBreakdown) {
+        if (group.taxAmount <= 0) continue;
+        const firstRule: any = group.rules?.[0];
+        await ctx.db.insert("commerce_order_tax_lines", {
+          orderId,
+          ruleId: firstRule?._id,
+          taxClass: group.taxClass,
+          jurisdictionLabel,
+          taxableAmount: group.taxableAmount,
+          ratePercent: Math.round(group.taxRate * 10000) / 100,
+          taxAmount: group.taxAmount,
+          provider: "rules",
+          createdAt: now,
+        });
+      }
     }
 
     await ctx.db.insert("commerce_order_history", {

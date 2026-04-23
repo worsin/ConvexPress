@@ -47,7 +47,7 @@ export const create = mutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    await requireCan(ctx, "manage_options");
+    await requireCan(ctx, "commerce.tax.manage");
     const existing = await ctx.db
       .query("commerce_tax_classes")
       .withIndex("by_code", (q: any) => q.eq("code", args.code))
@@ -96,7 +96,7 @@ export const update = mutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    await requireCan(ctx, "manage_options");
+    await requireCan(ctx, "commerce.tax.manage");
     const row = await ctx.db.get(args.id);
     if (!row) {
       throw new ConvexError({
@@ -131,7 +131,7 @@ export const remove = mutation({
   args: { id: v.id("commerce_tax_classes") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    await requireCan(ctx, "manage_options");
+    await requireCan(ctx, "commerce.tax.manage");
     const row = await ctx.db.get(args.id);
     if (!row) return { success: true };
     if (row.isDefault) {
@@ -150,7 +150,7 @@ export const seedDefaults = mutation({
   args: {},
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
-    await requireCan(ctx, "manage_options");
+    await requireCan(ctx, "commerce.tax.manage");
     const existing = await ctx.db.query("commerce_tax_classes").collect();
     if (existing.length > 0) {
       return { seeded: false, reason: "already_seeded" } as const;
