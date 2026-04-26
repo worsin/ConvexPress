@@ -37,6 +37,23 @@ export interface RevisionComparisonProps {
   canRestore: boolean;
 }
 
+interface RevisionRow {
+  _id: Id<"revisions">;
+  revisionNumber: number;
+  authorName: string;
+  authorAvatar?: string;
+  createdAt: number;
+  type: "manual" | "autosave";
+  changedFields?: string[];
+  title: string;
+  content: string;
+  excerpt?: string;
+}
+
+interface RevisionListResult {
+  revisions: RevisionRow[];
+}
+
 // ─── Route Link Helpers ──────────────────────────────────────────────────────
 
 /** Type-safe back link to list page */
@@ -108,7 +125,7 @@ export function RevisionComparison({
   const revisionsData = useQuery(api.revisions.queries.listByPost, {
     parentId: contentId as Id<"posts">,
     limit: 200,
-  });
+  }) as RevisionListResult | undefined;
 
   // ─── State ─────────────────────────────────────────────────────────────
   const [userSelectedIndex, setUserSelectedIndex] = useState<number | null>(null);

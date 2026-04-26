@@ -10,7 +10,7 @@
  * because GA4 connection has a custom flow (test -> connect, not autosave).
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
@@ -35,6 +35,17 @@ export const Route = createFileRoute(
 
 function AnalyticsSettingsPage() {
   const connectionStatus = useQuery(api.ga4.queries.getConnectionStatus);
+  const analyticsSettings = useQuery(api.settings.queries.getBySection, {
+    section: "analytics" as const,
+  }) as
+    | {
+        trackingEnabled?: boolean;
+        respectDoNotTrack?: boolean;
+        retentionDays?: number;
+      }
+    | null
+    | undefined;
+  const updateAnalyticsSettings = useMutation(api.analytics.mutations.updateSettings);
   const saveConnection = useMutation(api.ga4.mutations.saveConnectionSettings);
   const disconnectGA4 = useMutation(api.ga4.mutations.disconnect);
   const clearCache = useMutation(api.ga4.mutations.clearCache);
@@ -45,11 +56,43 @@ function AnalyticsSettingsPage() {
   const [serviceAccountJson, setServiceAccountJson] = useState("");
   const [isTesting, setIsTesting] = useState(false);
   const [testError, setTestError] = useState<string | null>(null);
+  const [trackingEnabled, setTrackingEnabled] = useState(true);
+  const [respectDoNotTrack, setRespectDoNotTrack] = useState(true);
+  const [retentionDays, setRetentionDays] = useState(90);
+  const [isSavingAnalytics, setIsSavingAnalytics] = useState(false);
 
   // Disconnect confirmation
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
   const isConnected = connectionStatus?.connected ?? false;
+
+  useEffect(() => {
+    if (!analyticsSettings) return;
+    setTrackingEnabled(analyticsSettings.trackingEnabled ?? true);
+    setRespectDoNotTrack(analyticsSettings.respectDoNotTrack ?? true);
+    setRetentionDays(analyticsSettings.retentionDays ?? 90);
+  }, [analyticsSettings]);
+
+  const handleSaveAnalyticsSettings = useCallback(async () => {
+    setIsSavingAnalytics(true);
+    try {
+      await updateAnalyticsSettings({
+        trackingEnabled,
+        respectDoNotTrack,
+        retentionDays,
+      });
+      toast.success("Analytics settings saved.");
+    } catch {
+      toast.error("Failed to save analytics settings.");
+    } finally {
+      setIsSavingAnalytics(false);
+    }
+  }, [
+    trackingEnabled,
+    respectDoNotTrack,
+    retentionDays,
+    updateAnalyticsSettings,
+  ]);
 
   // ─── Handle Test & Connect ───────────────────────────────────────────
 
@@ -140,7 +183,7 @@ function AnalyticsSettingsPage() {
   );
 
   // Loading gate AFTER all hooks so hook order stays stable across renders.
-  if (connectionStatus === undefined) {
+  if (connectionStatus === undefined || analyticsSettings === undefined) {
     return (
       <div className="mx-auto max-w-3xl p-6">
         <div className="animate-pulse space-y-6">
@@ -159,8 +202,85 @@ function AnalyticsSettingsPage() {
           Analytics Settings
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Connect Google Analytics 4 for richer traffic and engagement data.
+          Manage built-in analytics and connect Google Analytics 4.
         </p>
+      </div>
+
+      <div className="mb-6 rounded-lg border border-border bg-card p-6">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-foreground">
+            Built-in Analytics
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Control local page-event tracking and data retention.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <label className="flex items-start justify-between gap-4">
+            <span>
+              <span className="block text-sm font-medium text-foreground">
+                Enable tracking
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Collect page events for built-in analytics reports.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              checked={trackingEnabled}
+              onChange={(event) => setTrackingEnabled(event.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-border"
+            />
+          </label>
+
+          <label className="flex items-start justify-between gap-4">
+            <span>
+              <span className="block text-sm font-medium text-foreground">
+                Respect Do Not Track
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Skip tracking when a browser sends the DNT signal.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              checked={respectDoNotTrack}
+              onChange={(event) => setRespectDoNotTrack(event.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-border"
+            />
+          </label>
+
+          <div>
+            <label
+              htmlFor="analytics-retention-days"
+              className="block text-sm font-medium text-foreground"
+            >
+              Retention days
+            </label>
+            <input
+              id="analytics-retention-days"
+              type="number"
+              min={1}
+              max={3650}
+              value={retentionDays}
+              onChange={(event) => setRetentionDays(Number(event.target.value))}
+              className="mt-1 w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Raw page events older than this are purged by the scheduled job.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSaveAnalyticsSettings}
+            disabled={isSavingAnalytics}
+            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          >
+            {isSavingAnalytics ? "Saving..." : "Save Analytics Settings"}
+          </button>
+        </div>
       </div>
 
       {/* Connection Status Section */}

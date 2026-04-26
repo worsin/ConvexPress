@@ -75,6 +75,13 @@ export function isElectron(): boolean {
   return typeof window !== "undefined" && !!window.convexpress;
 }
 
+/** Check if running inside Electron on macOS (traffic-light buttons sit at top-left). */
+export function isMacElectron(): boolean {
+  if (!isElectron()) return false;
+  const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "";
+  return /Mac OS X|Macintosh/i.test(ua);
+}
+
 /**
  * Get the typed ConvexPress Electron bridge.
  * Returns null when running in a regular browser.

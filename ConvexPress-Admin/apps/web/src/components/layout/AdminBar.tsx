@@ -19,13 +19,11 @@ export function AdminBar({ siteTitle }: AdminBarProps) {
       role="banner"
       className={cn(
         "sticky top-0 z-40 flex h-12 items-center justify-between border-b border-border bg-background px-4",
+        isElectron() && "app-drag",
       )}
-      style={isElectron() ? { WebkitAppRegion: "drag" } as React.CSSProperties : undefined}
     >
       {/* Left side — no-drag so buttons/links are clickable */}
-      <div className="flex items-center gap-3" style={isElectron() ? { WebkitAppRegion: "no-drag" } as React.CSSProperties : undefined}>
-        {/* Electron: spacer for traffic lights */}
-        {isElectron() && <div className="w-14" />}
+      <div className={cn("flex items-center gap-3", isElectron() && "app-no-drag")}>
         {/* Mobile hamburger */}
         <button
           type="button"
@@ -49,12 +47,12 @@ export function AdminBar({ siteTitle }: AdminBarProps) {
       </div>
 
       {/* Center - Command Palette Search */}
-      <div className="hidden flex-1 justify-center md:flex" style={isElectron() ? { WebkitAppRegion: "no-drag" } as React.CSSProperties : undefined}>
+      <div className={cn("hidden flex-1 justify-center md:flex", isElectron() && "app-no-drag")}>
         <AdminSearchBar />
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-1" style={isElectron() ? { WebkitAppRegion: "no-drag" } as React.CSSProperties : undefined}>
+      <div className={cn("flex items-center gap-1", isElectron() && "app-no-drag")}>
         <NotificationBell />
         <ModeToggle />
         <UserMenu />

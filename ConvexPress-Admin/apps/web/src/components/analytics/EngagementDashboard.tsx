@@ -94,6 +94,17 @@ interface GA4EngagementData {
   }>;
 }
 
+interface EngagementSummary {
+  avgTimeOnPage: number;
+  avgEngagedTime: number;
+  totalInternalClicks: number;
+  scrollDepthDistribution: ReturnType<typeof getDefaultScrollDepth>;
+  topInternalLinks: Array<{
+    targetPath: string;
+    clicks: number;
+  }>;
+}
+
 // Section labels for display
 const SECTION_CONFIG: Array<{
   key: keyof ReturnType<typeof getDefaultScrollDepth>;
@@ -172,7 +183,7 @@ export function EngagementDashboard({ postId }: EngagementDashboardProps) {
     postId,
     startDate,
     endDate,
-  });
+  }) as EngagementSummary | null | undefined;
 
   // Determine data source for aggregate metrics
   const ga4Engagement = isGA4Connected && ga4DateRange && ga4Data?.data

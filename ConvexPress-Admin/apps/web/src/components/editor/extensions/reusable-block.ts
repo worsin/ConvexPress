@@ -9,9 +9,10 @@
  */
 
 import { Node, mergeAttributes, type Editor } from "@tiptap/core";
+import { NodeSelection } from "@tiptap/pm/state";
 
 export interface ReusableBlockOptions {
-  HTMLAttributes: Record<string, any>;
+  HTMLAttributes: Record<string, unknown>;
 }
 
 declare module "@tiptap/core" {
@@ -102,7 +103,11 @@ export const ReusableBlock = Node.create<ReusableBlockOptions>({
           }
 
           // Also check if the selection is directly on the atom node (NodeSelection)
-          if (!reusableNode && selection.node?.type.name === "reusableBlock") {
+          if (
+            !reusableNode &&
+            selection instanceof NodeSelection &&
+            selection.node.type.name === "reusableBlock"
+          ) {
             reusableNode = selection.node;
             nodePos = selection.from;
           }

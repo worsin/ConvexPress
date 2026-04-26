@@ -2,7 +2,7 @@
  * Platform detection and OS-specific helpers.
  */
 
-import { app } from "electron";
+const { app } = require("electron") as typeof import("electron");
 
 /**
  * Returns true when running in development (not packaged).

@@ -1,6 +1,6 @@
 interface ListTableToolbarProps {
   /** Left side content (BulkActions). */
-  bulkActionsSlot: React.ReactNode;
+  bulkActionsSlot?: React.ReactNode;
   /** Center/right content (entity-specific filters). */
   filtersSlot?: React.ReactNode;
   /** Right side content (SearchBox). */
@@ -14,7 +14,7 @@ interface ListTableToolbarProps {
  * Rendering: [Bulk Actions v] [Apply]  |  [All Dates v] [All Categories v] [Filter]  |  Search [________]
  */
 export function ListTableToolbar({
-  bulkActionsSlot,
+  bulkActionsSlot = null,
   filtersSlot,
   searchSlot,
 }: ListTableToolbarProps) {

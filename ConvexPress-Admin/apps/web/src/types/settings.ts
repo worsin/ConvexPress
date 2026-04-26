@@ -7,25 +7,50 @@
  */
 
 import type { z } from "zod";
-import type { FormApi } from "@tanstack/react-form";
 
 // --- Settings Section Identifiers ---
 
-/** Identifies a core settings section */
+/** Identifies a settings section backed by the Convex settings table. */
 export type SettingsSection =
   | "general"
   | "reading"
   | "writing"
   | "discussion"
   | "permalinks"
-  | "privacy";
+  | "privacy"
+  | "email"
+  | "media"
+  | "analytics"
+  | "ai"
+  | "plugins"
+  | "search"
+  | "commerce.general"
+  | "commerce.payments"
+  | "integrations.shipping"
+  | "integrations.shipping.shipstation"
+  | "integrations.shipping.ups"
+  | "integrations.shipping.usps"
+  | "integrations.shipping.fedex"
+  | "integrations.shipping.dhl"
+  | "integrations.clerk"
+  | "integrations.google"
+  | "analytics.ga4"
+  | "kb.general"
+  | "kb.features"
+  | "kb.search"
+  | "ticket.general"
+  | "ticket.sla"
+  | "support.widget"
+  | "support.ai"
+  | "layout"
+  | "header"
+  | "footer";
 
 /** Extended sections for non-core settings pages that reuse the same layout */
 export type ExtendedSettingsSection =
   | SettingsSection
   | "seo"
   | "sitemap"
-  | "email"
   | "api";
 
 // --- Page Configuration ---
@@ -39,7 +64,7 @@ export interface SettingsPageConfig {
   /** Optional page-level description */
   description?: string;
   /** The Zod schema for client-side validation */
-  validationSchema: z.ZodObject<z.ZodRawShape>;
+  validationSchema: z.ZodTypeAny;
 }
 
 /** Configuration for a settings section (visual grouping within a page) */
@@ -134,9 +159,9 @@ export interface FieldOptionGroup {
 // --- Form State ---
 
 /** State returned by useSettingsForm hook */
-export interface SettingsFormState<T extends Record<string, unknown>> {
+export interface SettingsFormState<T extends object> {
   /** TanStack Form instance */
-  form: FormApi<T>;
+  form: any;
   /** Whether any field has been modified from initial values */
   isDirty: boolean;
   /** Whether the form is currently submitting */
@@ -262,4 +287,18 @@ export interface PermalinkSettings {
 export interface PrivacySettings {
   privacyPolicyPageId: string | null;
   showPrivacyPolicyLink: boolean;
+}
+
+/** Media Settings values -- matches backend defaults.ts field names */
+export interface MediaSettings {
+  maxUploadSize: number;
+  thumbnailWidth: number;
+  thumbnailHeight: number;
+  thumbnailCrop: boolean;
+  mediumWidth: number;
+  mediumMaxHeight: number;
+  mediumLargeWidth: number;
+  mediumLargeMaxHeight: number;
+  largeWidth: number;
+  largeMaxHeight: number;
 }

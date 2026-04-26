@@ -1,9 +1,7 @@
-import { app, BrowserWindow } from "electron";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { isQuitting } from "./utils/app-state.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const { app, BrowserWindow } = require("electron") as typeof import("electron");
 
 function getPreloadPath(): string {
   return path.join(__dirname, "preload.cjs");

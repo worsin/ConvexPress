@@ -17,6 +17,8 @@ import { SettingsPageSkeleton } from "@/components/settings/SettingsPageSkeleton
 import { CheckboxField } from "@/components/settings/fields/CheckboxField";
 import { useSettingsForm } from "@/hooks/useSettingsForm";
 import { useNavigationGuard } from "@/hooks/useNavigationGuard";
+import { mediaSettingsSchema } from "@/lib/settings/schemas";
+import type { MediaSettings } from "@/types/settings";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/settings/media",
@@ -24,18 +26,8 @@ export const Route = createFileRoute(
   component: MediaSettingsPage,
 });
 
-/** Minimal inline type matching backend MediaSettings */
-interface MediaSettings {
-  maxUploadSize: number;
-  thumbnailWidth: number;
-  thumbnailHeight: number;
-  thumbnailCrop: boolean;
-  mediumWidth: number;
-  mediumMaxHeight: number;
-  mediumLargeWidth: number;
-  mediumLargeMaxHeight: number;
-  largeWidth: number;
-  largeMaxHeight: number;
+function fieldError(errors: unknown[]) {
+  return errors[0] === undefined ? undefined : String(errors[0]);
 }
 
 function MediaSettingsPage() {
@@ -47,7 +39,7 @@ function MediaSettingsPage() {
     lastUpdated,
     autoSaveStatus,
     autoSaveError,
-  } = useSettingsForm<MediaSettings>("media");
+  } = useSettingsForm<MediaSettings>("media", mediaSettingsSchema);
 
   useNavigationGuard({ isDirty, autoSaveStatus });
 
@@ -76,12 +68,12 @@ function MediaSettingsPage() {
         </SettingsCallout>
 
         <form.Field name="maxUploadSize">
-          {(field) => (
+          {(field: any) => (
             <SettingsField
               label="Maximum upload size (bytes)"
               htmlFor="maxUploadSize"
               description="Default: 52428800 (50 MB). Set to 0 for no limit."
-              error={field.state.meta.errors[0]?.toString()}
+              error={fieldError(field.state.meta.errors)}
             >
               <input
                 id="maxUploadSize"
@@ -104,11 +96,11 @@ function MediaSettingsPage() {
       >
         <div className="grid grid-cols-2 gap-4">
           <form.Field name="thumbnailWidth">
-            {(field) => (
+            {(field: any) => (
               <SettingsField
                 label="Width"
                 htmlFor="thumbnailWidth"
-                error={field.state.meta.errors[0]?.toString()}
+                error={fieldError(field.state.meta.errors)}
               >
                 <input
                   id="thumbnailWidth"
@@ -123,11 +115,11 @@ function MediaSettingsPage() {
             )}
           </form.Field>
           <form.Field name="thumbnailHeight">
-            {(field) => (
+            {(field: any) => (
               <SettingsField
                 label="Height"
                 htmlFor="thumbnailHeight"
-                error={field.state.meta.errors[0]?.toString()}
+                error={fieldError(field.state.meta.errors)}
               >
                 <input
                   id="thumbnailHeight"
@@ -144,7 +136,7 @@ function MediaSettingsPage() {
         </div>
 
         <form.Field name="thumbnailCrop">
-          {(field) => (
+          {(field: any) => (
             <SettingsField label="" layout="stacked">
               <CheckboxField
                 field={field}
@@ -163,11 +155,11 @@ function MediaSettingsPage() {
       >
         <div className="grid grid-cols-2 gap-4">
           <form.Field name="mediumWidth">
-            {(field) => (
+            {(field: any) => (
               <SettingsField
                 label="Max Width"
                 htmlFor="mediumWidth"
-                error={field.state.meta.errors[0]?.toString()}
+                error={fieldError(field.state.meta.errors)}
               >
                 <input
                   id="mediumWidth"
@@ -182,12 +174,12 @@ function MediaSettingsPage() {
             )}
           </form.Field>
           <form.Field name="mediumMaxHeight">
-            {(field) => (
+            {(field: any) => (
               <SettingsField
                 label="Max Height"
                 htmlFor="mediumMaxHeight"
                 description="0 = proportional"
-                error={field.state.meta.errors[0]?.toString()}
+                error={fieldError(field.state.meta.errors)}
               >
                 <input
                   id="mediumMaxHeight"
@@ -210,11 +202,11 @@ function MediaSettingsPage() {
       >
         <div className="grid grid-cols-2 gap-4">
           <form.Field name="largeWidth">
-            {(field) => (
+            {(field: any) => (
               <SettingsField
                 label="Max Width"
                 htmlFor="largeWidth"
-                error={field.state.meta.errors[0]?.toString()}
+                error={fieldError(field.state.meta.errors)}
               >
                 <input
                   id="largeWidth"
@@ -229,12 +221,12 @@ function MediaSettingsPage() {
             )}
           </form.Field>
           <form.Field name="largeMaxHeight">
-            {(field) => (
+            {(field: any) => (
               <SettingsField
                 label="Max Height"
                 htmlFor="largeMaxHeight"
                 description="0 = proportional"
-                error={field.state.meta.errors[0]?.toString()}
+                error={fieldError(field.state.meta.errors)}
               >
                 <input
                   id="largeMaxHeight"

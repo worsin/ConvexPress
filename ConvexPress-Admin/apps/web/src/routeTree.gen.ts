@@ -61,6 +61,7 @@ import { Route as AuthenticatedAdminTicketsSettingsRouteImport } from './routes/
 import { Route as AuthenticatedAdminTicketsCannedResponsesRouteImport } from './routes/_authenticated/_admin/tickets/canned-responses'
 import { Route as AuthenticatedAdminTicketsAnalyticsRouteImport } from './routes/_authenticated/_admin/tickets/analytics'
 import { Route as AuthenticatedAdminTicketsTicketIdRouteImport } from './routes/_authenticated/_admin/tickets/$ticketId'
+import { Route as AuthenticatedAdminSupportSettingsRouteImport } from './routes/_authenticated/_admin/support/settings'
 import { Route as AuthenticatedAdminSupportAnalyticsRouteImport } from './routes/_authenticated/_admin/support/analytics'
 import { Route as AuthenticatedAdminSettingsWritingRouteImport } from './routes/_authenticated/_admin/settings/writing'
 import { Route as AuthenticatedAdminSettingsToolsRouteImport } from './routes/_authenticated/_admin/settings/tools'
@@ -89,9 +90,7 @@ import { Route as AuthenticatedAdminPagesNewRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminPagesPageIdRouteImport } from './routes/_authenticated/_admin/pages/$pageId'
 import { Route as AuthenticatedAdminMenusLocationsRouteImport } from './routes/_authenticated/_admin/menus/locations'
 import { Route as AuthenticatedAdminMembershipSettingsRouteImport } from './routes/_authenticated/_admin/membership/settings'
-import { Route as AuthenticatedAdminMembershipRestrictionsRouteImport } from './routes/_authenticated/_admin/membership/restrictions'
 import { Route as AuthenticatedAdminMembershipPlansRouteImport } from './routes/_authenticated/_admin/membership/plans'
-import { Route as AuthenticatedAdminMembershipGrantsRouteImport } from './routes/_authenticated/_admin/membership/grants'
 import { Route as AuthenticatedAdminMediaUploadRouteImport } from './routes/_authenticated/_admin/media/upload'
 import { Route as AuthenticatedAdminLayoutsNewRouteImport } from './routes/_authenticated/_admin/layouts/new'
 import { Route as AuthenticatedAdminLayoutsAssignRouteImport } from './routes/_authenticated/_admin/layouts/assign'
@@ -132,6 +131,8 @@ import { Route as AuthenticatedAdminToolsWordpressSyncIndexRouteImport } from '.
 import { Route as AuthenticatedAdminToolsWebsiteImportIndexRouteImport } from './routes/_authenticated/_admin/tools/website-import/index'
 import { Route as AuthenticatedAdminToolsRedirectsIndexRouteImport } from './routes/_authenticated/_admin/tools/redirects/index'
 import { Route as AuthenticatedAdminToolsAuditLogIndexRouteImport } from './routes/_authenticated/_admin/tools/audit-log/index'
+import { Route as AuthenticatedAdminMembershipRestrictionsIndexRouteImport } from './routes/_authenticated/_admin/membership/restrictions/index'
+import { Route as AuthenticatedAdminMembershipGrantsIndexRouteImport } from './routes/_authenticated/_admin/membership/grants/index'
 import { Route as AuthenticatedAdminCommerceSubscriptionsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/index'
 import { Route as AuthenticatedAdminUsersUserIdEditRouteImport } from './routes/_authenticated/_admin/users/$userId/edit'
 import { Route as AuthenticatedAdminToolsRedirectsNewRouteImport } from './routes/_authenticated/_admin/tools/redirects/new'
@@ -155,15 +156,21 @@ import { Route as AuthenticatedAdminPagesPageIdRevisionsRouteImport } from './ro
 import { Route as AuthenticatedAdminPagesPageIdEngagementRouteImport } from './routes/_authenticated/_admin/pages/$pageId/engagement'
 import { Route as AuthenticatedAdminPagesPageIdEditRouteImport } from './routes/_authenticated/_admin/pages/$pageId/edit'
 import { Route as AuthenticatedAdminMenusMenuIdEditRouteImport } from './routes/_authenticated/_admin/menus/$menuId/edit'
+import { Route as AuthenticatedAdminMembershipRestrictionsNewRouteImport } from './routes/_authenticated/_admin/membership/restrictions/new'
+import { Route as AuthenticatedAdminMembershipGrantsNewRouteImport } from './routes/_authenticated/_admin/membership/grants/new'
+import { Route as AuthenticatedAdminMembershipGrantsGrantIdRouteImport } from './routes/_authenticated/_admin/membership/grants/$grantId'
 import { Route as AuthenticatedAdminMediaMediaIdEditRouteImport } from './routes/_authenticated/_admin/media/$mediaId/edit'
 import { Route as AuthenticatedAdminKbArticleIdEditRouteImport } from './routes/_authenticated/_admin/kb/$articleId/edit'
 import { Route as AuthenticatedAdminGalleryAlbumIdEditRouteImport } from './routes/_authenticated/_admin/gallery/$albumId/edit'
 import { Route as AuthenticatedAdminCustomFieldsGroupIdEditRouteImport } from './routes/_authenticated/_admin/custom-fields/$groupId/edit'
+import { Route as AuthenticatedAdminCommerceSubscriptionsPricingCardsRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/pricing-cards'
+import { Route as AuthenticatedAdminCommerceSubscriptionsDunningRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/dunning'
 import { Route as AuthenticatedAdminCommerceShippingTrackingRouteImport } from './routes/_authenticated/_admin/commerce/shipping.tracking'
 import { Route as AuthenticatedAdminCommerceShippingManifestsRouteImport } from './routes/_authenticated/_admin/commerce/shipping.manifests'
 import { Route as AuthenticatedAdminCommerceSettingsTaxRouteImport } from './routes/_authenticated/_admin/commerce/settings.tax'
 import { Route as AuthenticatedAdminCommerceSettingsShippingRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping'
 import { Route as AuthenticatedAdminCommerceReturnsSettingsRouteImport } from './routes/_authenticated/_admin/commerce/returns.settings'
+import { Route as AuthenticatedAdminCommerceReturnsReasonsRouteImport } from './routes/_authenticated/_admin/commerce/returns.reasons'
 import { Route as AuthenticatedAdminCommerceReturnsReturnIdRouteImport } from './routes/_authenticated/_admin/commerce/returns.$returnId'
 import { Route as AuthenticatedAdminCommerceProductsNewRouteImport } from './routes/_authenticated/_admin/commerce/products.new'
 import { Route as AuthenticatedAdminCommerceProductsProductIdRouteImport } from './routes/_authenticated/_admin/commerce/products.$productId'
@@ -173,6 +180,13 @@ import { Route as AuthenticatedAdminCommerceAttributesAttributeIdRouteImport } f
 import { Route as AuthenticatedAdminCommentsCommentIdEditRouteImport } from './routes/_authenticated/_admin/comments/$commentId/edit'
 import { Route as AuthenticatedAdminToolsWordpressSyncSiteIdIndexRouteImport } from './routes/_authenticated/_admin/tools/wordpress-sync/$siteId/index'
 import { Route as AuthenticatedAdminToolsWebsiteImportSiteIdIndexRouteImport } from './routes/_authenticated/_admin/tools/website-import/$siteId/index'
+import { Route as AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/templates/index'
+import { Route as AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/order-forms/index'
+import { Route as AuthenticatedAdminCommerceSubscriptionsOffersIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/offers/index'
+import { Route as AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/invoices/index'
+import { Route as AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/form-submissions/index'
+import { Route as AuthenticatedAdminCommerceSubscriptionsCouponsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/coupons/index'
+import { Route as AuthenticatedAdminCommerceSubscriptionsContractsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/contracts/index'
 import { Route as AuthenticatedAdminToolsRedirectsRedirectIdEditRouteImport } from './routes/_authenticated/_admin/tools/redirects/$redirectId/edit'
 import { Route as AuthenticatedAdminSettingsIntegrationsShippingUspsRouteImport } from './routes/_authenticated/_admin/settings/integrations.shipping.usps'
 import { Route as AuthenticatedAdminSettingsIntegrationsShippingUpsRouteImport } from './routes/_authenticated/_admin/settings/integrations.shipping.ups'
@@ -181,12 +195,27 @@ import { Route as AuthenticatedAdminSettingsIntegrationsShippingFedexRouteImport
 import { Route as AuthenticatedAdminSettingsIntegrationsShippingDhlRouteImport } from './routes/_authenticated/_admin/settings/integrations.shipping.dhl'
 import { Route as AuthenticatedAdminSettingsEmailTemplatesTemplateSlugRouteImport } from './routes/_authenticated/_admin/settings/email_/templates.$templateSlug'
 import { Route as AuthenticatedAdminSettingsEmailQueueQueueIdRouteImport } from './routes/_authenticated/_admin/settings/email_/queue.$queueId'
+import { Route as AuthenticatedAdminMembershipRestrictionsRuleIdEditRouteImport } from './routes/_authenticated/_admin/membership/restrictions/$ruleId/edit'
+import { Route as AuthenticatedAdminMembershipPlansPlanIdEditRouteImport } from './routes/_authenticated/_admin/membership/plans/$planId/edit'
+import { Route as AuthenticatedAdminCommerceSubscriptionsTemplatesNewRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/templates/new'
+import { Route as AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/order-forms/new'
+import { Route as AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/order-forms/$formId'
+import { Route as AuthenticatedAdminCommerceSubscriptionsOffersNewRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/offers/new'
+import { Route as AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/invoices/$invoiceId'
+import { Route as AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/form-submissions/$submissionId'
+import { Route as AuthenticatedAdminCommerceSubscriptionsCouponsNewRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/coupons/new'
+import { Route as AuthenticatedAdminCommerceSubscriptionsContractsContractIdRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/contracts/$contractId'
+import { Route as AuthenticatedAdminCommerceSettingsTaxClassesRouteImport } from './routes/_authenticated/_admin/commerce/settings.tax.classes'
 import { Route as AuthenticatedAdminCommerceSettingsShippingZonesRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.zones'
 import { Route as AuthenticatedAdminCommerceSettingsShippingTestRatesRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.test-rates'
 import { Route as AuthenticatedAdminCommerceSettingsShippingRulesRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.rules'
 import { Route as AuthenticatedAdminCommerceSettingsShippingPackagesRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.packages'
 import { Route as AuthenticatedAdminCommerceSettingsShippingLocationsRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.locations'
 import { Route as AuthenticatedAdminCommerceSettingsShippingClassesRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.classes'
+import { Route as AuthenticatedAdminCommerceCustomersUserIdStoreCreditRouteImport } from './routes/_authenticated/_admin/commerce/customers.$userId.store-credit'
+import { Route as AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/templates/$templateId/edit'
+import { Route as AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/offers/$offerId/edit'
+import { Route as AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/coupons/$couponId/edit'
 import { Route as AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.zones_.$zoneId'
 import { Route as AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.zones_.$zoneId.methods_.$methodType.$methodId'
 
@@ -498,6 +527,12 @@ const AuthenticatedAdminTicketsTicketIdRoute =
     path: '/$ticketId',
     getParentRoute: () => AuthenticatedAdminTicketsRoute,
   } as any)
+const AuthenticatedAdminSupportSettingsRoute =
+  AuthenticatedAdminSupportSettingsRouteImport.update({
+    id: '/support/settings',
+    path: '/support/settings',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminSupportAnalyticsRoute =
   AuthenticatedAdminSupportAnalyticsRouteImport.update({
     id: '/support/analytics',
@@ -674,22 +709,10 @@ const AuthenticatedAdminMembershipSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedAdminMembershipRoute,
   } as any)
-const AuthenticatedAdminMembershipRestrictionsRoute =
-  AuthenticatedAdminMembershipRestrictionsRouteImport.update({
-    id: '/restrictions',
-    path: '/restrictions',
-    getParentRoute: () => AuthenticatedAdminMembershipRoute,
-  } as any)
 const AuthenticatedAdminMembershipPlansRoute =
   AuthenticatedAdminMembershipPlansRouteImport.update({
     id: '/plans',
     path: '/plans',
-    getParentRoute: () => AuthenticatedAdminMembershipRoute,
-  } as any)
-const AuthenticatedAdminMembershipGrantsRoute =
-  AuthenticatedAdminMembershipGrantsRouteImport.update({
-    id: '/grants',
-    path: '/grants',
     getParentRoute: () => AuthenticatedAdminMembershipRoute,
   } as any)
 const AuthenticatedAdminMediaUploadRoute =
@@ -931,6 +954,18 @@ const AuthenticatedAdminToolsAuditLogIndexRoute =
     path: '/audit-log/',
     getParentRoute: () => AuthenticatedAdminToolsRoute,
   } as any)
+const AuthenticatedAdminMembershipRestrictionsIndexRoute =
+  AuthenticatedAdminMembershipRestrictionsIndexRouteImport.update({
+    id: '/restrictions/',
+    path: '/restrictions/',
+    getParentRoute: () => AuthenticatedAdminMembershipRoute,
+  } as any)
+const AuthenticatedAdminMembershipGrantsIndexRoute =
+  AuthenticatedAdminMembershipGrantsIndexRouteImport.update({
+    id: '/grants/',
+    path: '/grants/',
+    getParentRoute: () => AuthenticatedAdminMembershipRoute,
+  } as any)
 const AuthenticatedAdminCommerceSubscriptionsIndexRoute =
   AuthenticatedAdminCommerceSubscriptionsIndexRouteImport.update({
     id: '/',
@@ -1105,6 +1140,24 @@ const AuthenticatedAdminMenusMenuIdEditRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedAdminMembershipRestrictionsNewRoute =
+  AuthenticatedAdminMembershipRestrictionsNewRouteImport.update({
+    id: '/restrictions/new',
+    path: '/restrictions/new',
+    getParentRoute: () => AuthenticatedAdminMembershipRoute,
+  } as any)
+const AuthenticatedAdminMembershipGrantsNewRoute =
+  AuthenticatedAdminMembershipGrantsNewRouteImport.update({
+    id: '/grants/new',
+    path: '/grants/new',
+    getParentRoute: () => AuthenticatedAdminMembershipRoute,
+  } as any)
+const AuthenticatedAdminMembershipGrantsGrantIdRoute =
+  AuthenticatedAdminMembershipGrantsGrantIdRouteImport.update({
+    id: '/grants/$grantId',
+    path: '/grants/$grantId',
+    getParentRoute: () => AuthenticatedAdminMembershipRoute,
+  } as any)
 const AuthenticatedAdminMediaMediaIdEditRoute =
   AuthenticatedAdminMediaMediaIdEditRouteImport.update({
     id: '/media/$mediaId/edit',
@@ -1133,6 +1186,18 @@ const AuthenticatedAdminCustomFieldsGroupIdEditRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedAdminCommerceSubscriptionsPricingCardsRoute =
+  AuthenticatedAdminCommerceSubscriptionsPricingCardsRouteImport.update({
+    id: '/pricing-cards',
+    path: '/pricing-cards',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsDunningRoute =
+  AuthenticatedAdminCommerceSubscriptionsDunningRouteImport.update({
+    id: '/dunning',
+    path: '/dunning',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
 const AuthenticatedAdminCommerceShippingTrackingRoute =
   AuthenticatedAdminCommerceShippingTrackingRouteImport.update({
     id: '/shipping/tracking',
@@ -1161,6 +1226,12 @@ const AuthenticatedAdminCommerceReturnsSettingsRoute =
   AuthenticatedAdminCommerceReturnsSettingsRouteImport.update({
     id: '/settings',
     path: '/settings',
+    getParentRoute: () => AuthenticatedAdminCommerceReturnsRoute,
+  } as any)
+const AuthenticatedAdminCommerceReturnsReasonsRoute =
+  AuthenticatedAdminCommerceReturnsReasonsRouteImport.update({
+    id: '/reasons',
+    path: '/reasons',
     getParentRoute: () => AuthenticatedAdminCommerceReturnsRoute,
   } as any)
 const AuthenticatedAdminCommerceReturnsReturnIdRoute =
@@ -1217,6 +1288,50 @@ const AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute =
     path: '/website-import/$siteId/',
     getParentRoute: () => AuthenticatedAdminToolsRoute,
   } as any)
+const AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute =
+  AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRouteImport.update({
+    id: '/templates/',
+    path: '/templates/',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute =
+  AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRouteImport.update({
+    id: '/order-forms/',
+    path: '/order-forms/',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute =
+  AuthenticatedAdminCommerceSubscriptionsOffersIndexRouteImport.update({
+    id: '/offers/',
+    path: '/offers/',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute =
+  AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRouteImport.update({
+    id: '/invoices/',
+    path: '/invoices/',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute =
+  AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRouteImport.update(
+    {
+      id: '/form-submissions/',
+      path: '/form-submissions/',
+      getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+    } as any,
+  )
+const AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute =
+  AuthenticatedAdminCommerceSubscriptionsCouponsIndexRouteImport.update({
+    id: '/coupons/',
+    path: '/coupons/',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute =
+  AuthenticatedAdminCommerceSubscriptionsContractsIndexRouteImport.update({
+    id: '/contracts/',
+    path: '/contracts/',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
 const AuthenticatedAdminToolsRedirectsRedirectIdEditRoute =
   AuthenticatedAdminToolsRedirectsRedirectIdEditRouteImport.update({
     id: '/redirects/$redirectId/edit',
@@ -1265,6 +1380,74 @@ const AuthenticatedAdminSettingsEmailQueueQueueIdRoute =
     path: '/email/queue/$queueId',
     getParentRoute: () => AuthenticatedAdminSettingsRoute,
   } as any)
+const AuthenticatedAdminMembershipRestrictionsRuleIdEditRoute =
+  AuthenticatedAdminMembershipRestrictionsRuleIdEditRouteImport.update({
+    id: '/restrictions/$ruleId/edit',
+    path: '/restrictions/$ruleId/edit',
+    getParentRoute: () => AuthenticatedAdminMembershipRoute,
+  } as any)
+const AuthenticatedAdminMembershipPlansPlanIdEditRoute =
+  AuthenticatedAdminMembershipPlansPlanIdEditRouteImport.update({
+    id: '/$planId/edit',
+    path: '/$planId/edit',
+    getParentRoute: () => AuthenticatedAdminMembershipPlansRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute =
+  AuthenticatedAdminCommerceSubscriptionsTemplatesNewRouteImport.update({
+    id: '/templates/new',
+    path: '/templates/new',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute =
+  AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRouteImport.update({
+    id: '/order-forms/new',
+    path: '/order-forms/new',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute =
+  AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRouteImport.update({
+    id: '/order-forms/$formId',
+    path: '/order-forms/$formId',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsOffersNewRoute =
+  AuthenticatedAdminCommerceSubscriptionsOffersNewRouteImport.update({
+    id: '/offers/new',
+    path: '/offers/new',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute =
+  AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRouteImport.update({
+    id: '/invoices/$invoiceId',
+    path: '/invoices/$invoiceId',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute =
+  AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRouteImport.update(
+    {
+      id: '/form-submissions/$submissionId',
+      path: '/form-submissions/$submissionId',
+      getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+    } as any,
+  )
+const AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute =
+  AuthenticatedAdminCommerceSubscriptionsCouponsNewRouteImport.update({
+    id: '/coupons/new',
+    path: '/coupons/new',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute =
+  AuthenticatedAdminCommerceSubscriptionsContractsContractIdRouteImport.update({
+    id: '/contracts/$contractId',
+    path: '/contracts/$contractId',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSettingsTaxClassesRoute =
+  AuthenticatedAdminCommerceSettingsTaxClassesRouteImport.update({
+    id: '/classes',
+    path: '/classes',
+    getParentRoute: () => AuthenticatedAdminCommerceSettingsTaxRoute,
+  } as any)
 const AuthenticatedAdminCommerceSettingsShippingZonesRoute =
   AuthenticatedAdminCommerceSettingsShippingZonesRouteImport.update({
     id: '/zones',
@@ -1300,6 +1483,32 @@ const AuthenticatedAdminCommerceSettingsShippingClassesRoute =
     id: '/classes',
     path: '/classes',
     getParentRoute: () => AuthenticatedAdminCommerceSettingsShippingRoute,
+  } as any)
+const AuthenticatedAdminCommerceCustomersUserIdStoreCreditRoute =
+  AuthenticatedAdminCommerceCustomersUserIdStoreCreditRouteImport.update({
+    id: '/$userId/store-credit',
+    path: '/$userId/store-credit',
+    getParentRoute: () => AuthenticatedAdminCommerceCustomersRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRoute =
+  AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRouteImport.update(
+    {
+      id: '/templates/$templateId/edit',
+      path: '/templates/$templateId/edit',
+      getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+    } as any,
+  )
+const AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRoute =
+  AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRouteImport.update({
+    id: '/offers/$offerId/edit',
+    path: '/offers/$offerId/edit',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
+  } as any)
+const AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute =
+  AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRouteImport.update({
+    id: '/coupons/$couponId/edit',
+    path: '/coupons/$couponId/edit',
+    getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
   } as any)
 const AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRoute =
   AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteImport.update({
@@ -1342,7 +1551,7 @@ export interface FileRoutesByFullPath {
   '/commerce/attributes': typeof AuthenticatedAdminCommerceAttributesRouteWithChildren
   '/commerce/bundles': typeof AuthenticatedAdminCommerceBundlesRoute
   '/commerce/categories': typeof AuthenticatedAdminCommerceCategoriesRoute
-  '/commerce/customers': typeof AuthenticatedAdminCommerceCustomersRoute
+  '/commerce/customers': typeof AuthenticatedAdminCommerceCustomersRouteWithChildren
   '/commerce/digital': typeof AuthenticatedAdminCommerceDigitalRoute
   '/commerce/discounts': typeof AuthenticatedAdminCommerceDiscountsRoute
   '/commerce/orders': typeof AuthenticatedAdminCommerceOrdersRouteWithChildren
@@ -1370,9 +1579,7 @@ export interface FileRoutesByFullPath {
   '/layouts/assign': typeof AuthenticatedAdminLayoutsAssignRoute
   '/layouts/new': typeof AuthenticatedAdminLayoutsNewRoute
   '/media/upload': typeof AuthenticatedAdminMediaUploadRoute
-  '/membership/grants': typeof AuthenticatedAdminMembershipGrantsRoute
-  '/membership/plans': typeof AuthenticatedAdminMembershipPlansRoute
-  '/membership/restrictions': typeof AuthenticatedAdminMembershipRestrictionsRoute
+  '/membership/plans': typeof AuthenticatedAdminMembershipPlansRouteWithChildren
   '/membership/settings': typeof AuthenticatedAdminMembershipSettingsRoute
   '/menus/locations': typeof AuthenticatedAdminMenusLocationsRoute
   '/pages/$pageId': typeof AuthenticatedAdminPagesPageIdRouteWithChildren
@@ -1401,6 +1608,7 @@ export interface FileRoutesByFullPath {
   '/settings/tools': typeof AuthenticatedAdminSettingsToolsRoute
   '/settings/writing': typeof AuthenticatedAdminSettingsWritingRoute
   '/support/analytics': typeof AuthenticatedAdminSupportAnalyticsRoute
+  '/support/settings': typeof AuthenticatedAdminSupportSettingsRoute
   '/tickets/$ticketId': typeof AuthenticatedAdminTicketsTicketIdRoute
   '/tickets/analytics': typeof AuthenticatedAdminTicketsAnalyticsRoute
   '/tickets/canned-responses': typeof AuthenticatedAdminTicketsCannedResponsesRoute
@@ -1442,15 +1650,21 @@ export interface FileRoutesByFullPath {
   '/commerce/products/$productId': typeof AuthenticatedAdminCommerceProductsProductIdRoute
   '/commerce/products/new': typeof AuthenticatedAdminCommerceProductsNewRoute
   '/commerce/returns/$returnId': typeof AuthenticatedAdminCommerceReturnsReturnIdRoute
+  '/commerce/returns/reasons': typeof AuthenticatedAdminCommerceReturnsReasonsRoute
   '/commerce/returns/settings': typeof AuthenticatedAdminCommerceReturnsSettingsRoute
   '/commerce/settings/shipping': typeof AuthenticatedAdminCommerceSettingsShippingRouteWithChildren
-  '/commerce/settings/tax': typeof AuthenticatedAdminCommerceSettingsTaxRoute
+  '/commerce/settings/tax': typeof AuthenticatedAdminCommerceSettingsTaxRouteWithChildren
   '/commerce/shipping/manifests': typeof AuthenticatedAdminCommerceShippingManifestsRoute
   '/commerce/shipping/tracking': typeof AuthenticatedAdminCommerceShippingTrackingRoute
+  '/commerce/subscriptions/dunning': typeof AuthenticatedAdminCommerceSubscriptionsDunningRoute
+  '/commerce/subscriptions/pricing-cards': typeof AuthenticatedAdminCommerceSubscriptionsPricingCardsRoute
   '/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
   '/gallery/$albumId/edit': typeof AuthenticatedAdminGalleryAlbumIdEditRoute
   '/kb/$articleId/edit': typeof AuthenticatedAdminKbArticleIdEditRoute
   '/media/$mediaId/edit': typeof AuthenticatedAdminMediaMediaIdEditRoute
+  '/membership/grants/$grantId': typeof AuthenticatedAdminMembershipGrantsGrantIdRoute
+  '/membership/grants/new': typeof AuthenticatedAdminMembershipGrantsNewRoute
+  '/membership/restrictions/new': typeof AuthenticatedAdminMembershipRestrictionsNewRoute
   '/menus/$menuId/edit': typeof AuthenticatedAdminMenusMenuIdEditRoute
   '/pages/$pageId/edit': typeof AuthenticatedAdminPagesPageIdEditRoute
   '/pages/$pageId/engagement': typeof AuthenticatedAdminPagesPageIdEngagementRoute
@@ -1474,16 +1688,30 @@ export interface FileRoutesByFullPath {
   '/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
   '/commerce/subscriptions/': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
+  '/membership/grants/': typeof AuthenticatedAdminMembershipGrantsIndexRoute
+  '/membership/restrictions/': typeof AuthenticatedAdminMembershipRestrictionsIndexRoute
   '/tools/audit-log/': typeof AuthenticatedAdminToolsAuditLogIndexRoute
   '/tools/redirects/': typeof AuthenticatedAdminToolsRedirectsIndexRoute
   '/tools/website-import/': typeof AuthenticatedAdminToolsWebsiteImportIndexRoute
   '/tools/wordpress-sync/': typeof AuthenticatedAdminToolsWordpressSyncIndexRoute
+  '/commerce/customers/$userId/store-credit': typeof AuthenticatedAdminCommerceCustomersUserIdStoreCreditRoute
   '/commerce/settings/shipping/classes': typeof AuthenticatedAdminCommerceSettingsShippingClassesRoute
   '/commerce/settings/shipping/locations': typeof AuthenticatedAdminCommerceSettingsShippingLocationsRoute
   '/commerce/settings/shipping/packages': typeof AuthenticatedAdminCommerceSettingsShippingPackagesRoute
   '/commerce/settings/shipping/rules': typeof AuthenticatedAdminCommerceSettingsShippingRulesRoute
   '/commerce/settings/shipping/test-rates': typeof AuthenticatedAdminCommerceSettingsShippingTestRatesRoute
   '/commerce/settings/shipping/zones': typeof AuthenticatedAdminCommerceSettingsShippingZonesRoute
+  '/commerce/settings/tax/classes': typeof AuthenticatedAdminCommerceSettingsTaxClassesRoute
+  '/commerce/subscriptions/contracts/$contractId': typeof AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute
+  '/commerce/subscriptions/coupons/new': typeof AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute
+  '/commerce/subscriptions/form-submissions/$submissionId': typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute
+  '/commerce/subscriptions/invoices/$invoiceId': typeof AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute
+  '/commerce/subscriptions/offers/new': typeof AuthenticatedAdminCommerceSubscriptionsOffersNewRoute
+  '/commerce/subscriptions/order-forms/$formId': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute
+  '/commerce/subscriptions/order-forms/new': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute
+  '/commerce/subscriptions/templates/new': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute
+  '/membership/plans/$planId/edit': typeof AuthenticatedAdminMembershipPlansPlanIdEditRoute
+  '/membership/restrictions/$ruleId/edit': typeof AuthenticatedAdminMembershipRestrictionsRuleIdEditRoute
   '/settings/email/queue/$queueId': typeof AuthenticatedAdminSettingsEmailQueueQueueIdRoute
   '/settings/email/templates/$templateSlug': typeof AuthenticatedAdminSettingsEmailTemplatesTemplateSlugRoute
   '/settings/integrations/shipping/dhl': typeof AuthenticatedAdminSettingsIntegrationsShippingDhlRoute
@@ -1492,9 +1720,19 @@ export interface FileRoutesByFullPath {
   '/settings/integrations/shipping/ups': typeof AuthenticatedAdminSettingsIntegrationsShippingUpsRoute
   '/settings/integrations/shipping/usps': typeof AuthenticatedAdminSettingsIntegrationsShippingUspsRoute
   '/tools/redirects/$redirectId/edit': typeof AuthenticatedAdminToolsRedirectsRedirectIdEditRoute
+  '/commerce/subscriptions/contracts/': typeof AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute
+  '/commerce/subscriptions/coupons/': typeof AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute
+  '/commerce/subscriptions/form-submissions/': typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute
+  '/commerce/subscriptions/invoices/': typeof AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute
+  '/commerce/subscriptions/offers/': typeof AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute
+  '/commerce/subscriptions/order-forms/': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute
+  '/commerce/subscriptions/templates/': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute
   '/tools/website-import/$siteId/': typeof AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute
   '/tools/wordpress-sync/$siteId/': typeof AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute
   '/commerce/settings/shipping/zones/$zoneId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteWithChildren
+  '/commerce/subscriptions/coupons/$couponId/edit': typeof AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute
+  '/commerce/subscriptions/offers/$offerId/edit': typeof AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRoute
+  '/commerce/subscriptions/templates/$templateId/edit': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRoute
   '/commerce/settings/shipping/zones/$zoneId/methods/$methodType/$methodId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute
 }
 export interface FileRoutesByTo {
@@ -1511,7 +1749,7 @@ export interface FileRoutesByTo {
   '/commerce/attributes': typeof AuthenticatedAdminCommerceAttributesRouteWithChildren
   '/commerce/bundles': typeof AuthenticatedAdminCommerceBundlesRoute
   '/commerce/categories': typeof AuthenticatedAdminCommerceCategoriesRoute
-  '/commerce/customers': typeof AuthenticatedAdminCommerceCustomersRoute
+  '/commerce/customers': typeof AuthenticatedAdminCommerceCustomersRouteWithChildren
   '/commerce/digital': typeof AuthenticatedAdminCommerceDigitalRoute
   '/commerce/discounts': typeof AuthenticatedAdminCommerceDiscountsRoute
   '/commerce/orders': typeof AuthenticatedAdminCommerceOrdersRouteWithChildren
@@ -1538,9 +1776,7 @@ export interface FileRoutesByTo {
   '/layouts/assign': typeof AuthenticatedAdminLayoutsAssignRoute
   '/layouts/new': typeof AuthenticatedAdminLayoutsNewRoute
   '/media/upload': typeof AuthenticatedAdminMediaUploadRoute
-  '/membership/grants': typeof AuthenticatedAdminMembershipGrantsRoute
-  '/membership/plans': typeof AuthenticatedAdminMembershipPlansRoute
-  '/membership/restrictions': typeof AuthenticatedAdminMembershipRestrictionsRoute
+  '/membership/plans': typeof AuthenticatedAdminMembershipPlansRouteWithChildren
   '/membership/settings': typeof AuthenticatedAdminMembershipSettingsRoute
   '/menus/locations': typeof AuthenticatedAdminMenusLocationsRoute
   '/pages/$pageId': typeof AuthenticatedAdminPagesPageIdRouteWithChildren
@@ -1569,6 +1805,7 @@ export interface FileRoutesByTo {
   '/settings/tools': typeof AuthenticatedAdminSettingsToolsRoute
   '/settings/writing': typeof AuthenticatedAdminSettingsWritingRoute
   '/support/analytics': typeof AuthenticatedAdminSupportAnalyticsRoute
+  '/support/settings': typeof AuthenticatedAdminSupportSettingsRoute
   '/tickets/$ticketId': typeof AuthenticatedAdminTicketsTicketIdRoute
   '/tickets/analytics': typeof AuthenticatedAdminTicketsAnalyticsRoute
   '/tickets/canned-responses': typeof AuthenticatedAdminTicketsCannedResponsesRoute
@@ -1610,15 +1847,21 @@ export interface FileRoutesByTo {
   '/commerce/products/$productId': typeof AuthenticatedAdminCommerceProductsProductIdRoute
   '/commerce/products/new': typeof AuthenticatedAdminCommerceProductsNewRoute
   '/commerce/returns/$returnId': typeof AuthenticatedAdminCommerceReturnsReturnIdRoute
+  '/commerce/returns/reasons': typeof AuthenticatedAdminCommerceReturnsReasonsRoute
   '/commerce/returns/settings': typeof AuthenticatedAdminCommerceReturnsSettingsRoute
   '/commerce/settings/shipping': typeof AuthenticatedAdminCommerceSettingsShippingRouteWithChildren
-  '/commerce/settings/tax': typeof AuthenticatedAdminCommerceSettingsTaxRoute
+  '/commerce/settings/tax': typeof AuthenticatedAdminCommerceSettingsTaxRouteWithChildren
   '/commerce/shipping/manifests': typeof AuthenticatedAdminCommerceShippingManifestsRoute
   '/commerce/shipping/tracking': typeof AuthenticatedAdminCommerceShippingTrackingRoute
+  '/commerce/subscriptions/dunning': typeof AuthenticatedAdminCommerceSubscriptionsDunningRoute
+  '/commerce/subscriptions/pricing-cards': typeof AuthenticatedAdminCommerceSubscriptionsPricingCardsRoute
   '/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
   '/gallery/$albumId/edit': typeof AuthenticatedAdminGalleryAlbumIdEditRoute
   '/kb/$articleId/edit': typeof AuthenticatedAdminKbArticleIdEditRoute
   '/media/$mediaId/edit': typeof AuthenticatedAdminMediaMediaIdEditRoute
+  '/membership/grants/$grantId': typeof AuthenticatedAdminMembershipGrantsGrantIdRoute
+  '/membership/grants/new': typeof AuthenticatedAdminMembershipGrantsNewRoute
+  '/membership/restrictions/new': typeof AuthenticatedAdminMembershipRestrictionsNewRoute
   '/menus/$menuId/edit': typeof AuthenticatedAdminMenusMenuIdEditRoute
   '/pages/$pageId/edit': typeof AuthenticatedAdminPagesPageIdEditRoute
   '/pages/$pageId/engagement': typeof AuthenticatedAdminPagesPageIdEngagementRoute
@@ -1642,16 +1885,30 @@ export interface FileRoutesByTo {
   '/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
   '/commerce/subscriptions': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
+  '/membership/grants': typeof AuthenticatedAdminMembershipGrantsIndexRoute
+  '/membership/restrictions': typeof AuthenticatedAdminMembershipRestrictionsIndexRoute
   '/tools/audit-log': typeof AuthenticatedAdminToolsAuditLogIndexRoute
   '/tools/redirects': typeof AuthenticatedAdminToolsRedirectsIndexRoute
   '/tools/website-import': typeof AuthenticatedAdminToolsWebsiteImportIndexRoute
   '/tools/wordpress-sync': typeof AuthenticatedAdminToolsWordpressSyncIndexRoute
+  '/commerce/customers/$userId/store-credit': typeof AuthenticatedAdminCommerceCustomersUserIdStoreCreditRoute
   '/commerce/settings/shipping/classes': typeof AuthenticatedAdminCommerceSettingsShippingClassesRoute
   '/commerce/settings/shipping/locations': typeof AuthenticatedAdminCommerceSettingsShippingLocationsRoute
   '/commerce/settings/shipping/packages': typeof AuthenticatedAdminCommerceSettingsShippingPackagesRoute
   '/commerce/settings/shipping/rules': typeof AuthenticatedAdminCommerceSettingsShippingRulesRoute
   '/commerce/settings/shipping/test-rates': typeof AuthenticatedAdminCommerceSettingsShippingTestRatesRoute
   '/commerce/settings/shipping/zones': typeof AuthenticatedAdminCommerceSettingsShippingZonesRoute
+  '/commerce/settings/tax/classes': typeof AuthenticatedAdminCommerceSettingsTaxClassesRoute
+  '/commerce/subscriptions/contracts/$contractId': typeof AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute
+  '/commerce/subscriptions/coupons/new': typeof AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute
+  '/commerce/subscriptions/form-submissions/$submissionId': typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute
+  '/commerce/subscriptions/invoices/$invoiceId': typeof AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute
+  '/commerce/subscriptions/offers/new': typeof AuthenticatedAdminCommerceSubscriptionsOffersNewRoute
+  '/commerce/subscriptions/order-forms/$formId': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute
+  '/commerce/subscriptions/order-forms/new': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute
+  '/commerce/subscriptions/templates/new': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute
+  '/membership/plans/$planId/edit': typeof AuthenticatedAdminMembershipPlansPlanIdEditRoute
+  '/membership/restrictions/$ruleId/edit': typeof AuthenticatedAdminMembershipRestrictionsRuleIdEditRoute
   '/settings/email/queue/$queueId': typeof AuthenticatedAdminSettingsEmailQueueQueueIdRoute
   '/settings/email/templates/$templateSlug': typeof AuthenticatedAdminSettingsEmailTemplatesTemplateSlugRoute
   '/settings/integrations/shipping/dhl': typeof AuthenticatedAdminSettingsIntegrationsShippingDhlRoute
@@ -1660,9 +1917,19 @@ export interface FileRoutesByTo {
   '/settings/integrations/shipping/ups': typeof AuthenticatedAdminSettingsIntegrationsShippingUpsRoute
   '/settings/integrations/shipping/usps': typeof AuthenticatedAdminSettingsIntegrationsShippingUspsRoute
   '/tools/redirects/$redirectId/edit': typeof AuthenticatedAdminToolsRedirectsRedirectIdEditRoute
+  '/commerce/subscriptions/contracts': typeof AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute
+  '/commerce/subscriptions/coupons': typeof AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute
+  '/commerce/subscriptions/form-submissions': typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute
+  '/commerce/subscriptions/invoices': typeof AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute
+  '/commerce/subscriptions/offers': typeof AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute
+  '/commerce/subscriptions/order-forms': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute
+  '/commerce/subscriptions/templates': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute
   '/tools/website-import/$siteId': typeof AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute
   '/tools/wordpress-sync/$siteId': typeof AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute
   '/commerce/settings/shipping/zones/$zoneId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteWithChildren
+  '/commerce/subscriptions/coupons/$couponId/edit': typeof AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute
+  '/commerce/subscriptions/offers/$offerId/edit': typeof AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRoute
+  '/commerce/subscriptions/templates/$templateId/edit': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRoute
   '/commerce/settings/shipping/zones/$zoneId/methods/$methodType/$methodId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute
 }
 export interface FileRoutesById {
@@ -1693,7 +1960,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/commerce/attributes': typeof AuthenticatedAdminCommerceAttributesRouteWithChildren
   '/_authenticated/_admin/commerce/bundles': typeof AuthenticatedAdminCommerceBundlesRoute
   '/_authenticated/_admin/commerce/categories': typeof AuthenticatedAdminCommerceCategoriesRoute
-  '/_authenticated/_admin/commerce/customers': typeof AuthenticatedAdminCommerceCustomersRoute
+  '/_authenticated/_admin/commerce/customers': typeof AuthenticatedAdminCommerceCustomersRouteWithChildren
   '/_authenticated/_admin/commerce/digital': typeof AuthenticatedAdminCommerceDigitalRoute
   '/_authenticated/_admin/commerce/discounts': typeof AuthenticatedAdminCommerceDiscountsRoute
   '/_authenticated/_admin/commerce/orders': typeof AuthenticatedAdminCommerceOrdersRouteWithChildren
@@ -1721,9 +1988,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/layouts/assign': typeof AuthenticatedAdminLayoutsAssignRoute
   '/_authenticated/_admin/layouts/new': typeof AuthenticatedAdminLayoutsNewRoute
   '/_authenticated/_admin/media/upload': typeof AuthenticatedAdminMediaUploadRoute
-  '/_authenticated/_admin/membership/grants': typeof AuthenticatedAdminMembershipGrantsRoute
-  '/_authenticated/_admin/membership/plans': typeof AuthenticatedAdminMembershipPlansRoute
-  '/_authenticated/_admin/membership/restrictions': typeof AuthenticatedAdminMembershipRestrictionsRoute
+  '/_authenticated/_admin/membership/plans': typeof AuthenticatedAdminMembershipPlansRouteWithChildren
   '/_authenticated/_admin/membership/settings': typeof AuthenticatedAdminMembershipSettingsRoute
   '/_authenticated/_admin/menus/locations': typeof AuthenticatedAdminMenusLocationsRoute
   '/_authenticated/_admin/pages/$pageId': typeof AuthenticatedAdminPagesPageIdRouteWithChildren
@@ -1752,6 +2017,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/settings/tools': typeof AuthenticatedAdminSettingsToolsRoute
   '/_authenticated/_admin/settings/writing': typeof AuthenticatedAdminSettingsWritingRoute
   '/_authenticated/_admin/support/analytics': typeof AuthenticatedAdminSupportAnalyticsRoute
+  '/_authenticated/_admin/support/settings': typeof AuthenticatedAdminSupportSettingsRoute
   '/_authenticated/_admin/tickets/$ticketId': typeof AuthenticatedAdminTicketsTicketIdRoute
   '/_authenticated/_admin/tickets/analytics': typeof AuthenticatedAdminTicketsAnalyticsRoute
   '/_authenticated/_admin/tickets/canned-responses': typeof AuthenticatedAdminTicketsCannedResponsesRoute
@@ -1793,15 +2059,21 @@ export interface FileRoutesById {
   '/_authenticated/_admin/commerce/products/$productId': typeof AuthenticatedAdminCommerceProductsProductIdRoute
   '/_authenticated/_admin/commerce/products/new': typeof AuthenticatedAdminCommerceProductsNewRoute
   '/_authenticated/_admin/commerce/returns/$returnId': typeof AuthenticatedAdminCommerceReturnsReturnIdRoute
+  '/_authenticated/_admin/commerce/returns/reasons': typeof AuthenticatedAdminCommerceReturnsReasonsRoute
   '/_authenticated/_admin/commerce/returns/settings': typeof AuthenticatedAdminCommerceReturnsSettingsRoute
   '/_authenticated/_admin/commerce/settings/shipping': typeof AuthenticatedAdminCommerceSettingsShippingRouteWithChildren
-  '/_authenticated/_admin/commerce/settings/tax': typeof AuthenticatedAdminCommerceSettingsTaxRoute
+  '/_authenticated/_admin/commerce/settings/tax': typeof AuthenticatedAdminCommerceSettingsTaxRouteWithChildren
   '/_authenticated/_admin/commerce/shipping/manifests': typeof AuthenticatedAdminCommerceShippingManifestsRoute
   '/_authenticated/_admin/commerce/shipping/tracking': typeof AuthenticatedAdminCommerceShippingTrackingRoute
+  '/_authenticated/_admin/commerce/subscriptions/dunning': typeof AuthenticatedAdminCommerceSubscriptionsDunningRoute
+  '/_authenticated/_admin/commerce/subscriptions/pricing-cards': typeof AuthenticatedAdminCommerceSubscriptionsPricingCardsRoute
   '/_authenticated/_admin/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
   '/_authenticated/_admin/gallery/$albumId/edit': typeof AuthenticatedAdminGalleryAlbumIdEditRoute
   '/_authenticated/_admin/kb/$articleId/edit': typeof AuthenticatedAdminKbArticleIdEditRoute
   '/_authenticated/_admin/media/$mediaId/edit': typeof AuthenticatedAdminMediaMediaIdEditRoute
+  '/_authenticated/_admin/membership/grants/$grantId': typeof AuthenticatedAdminMembershipGrantsGrantIdRoute
+  '/_authenticated/_admin/membership/grants/new': typeof AuthenticatedAdminMembershipGrantsNewRoute
+  '/_authenticated/_admin/membership/restrictions/new': typeof AuthenticatedAdminMembershipRestrictionsNewRoute
   '/_authenticated/_admin/menus/$menuId/edit': typeof AuthenticatedAdminMenusMenuIdEditRoute
   '/_authenticated/_admin/pages/$pageId/edit': typeof AuthenticatedAdminPagesPageIdEditRoute
   '/_authenticated/_admin/pages/$pageId/engagement': typeof AuthenticatedAdminPagesPageIdEngagementRoute
@@ -1825,16 +2097,30 @@ export interface FileRoutesById {
   '/_authenticated/_admin/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/_authenticated/_admin/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
   '/_authenticated/_admin/commerce/subscriptions/': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
+  '/_authenticated/_admin/membership/grants/': typeof AuthenticatedAdminMembershipGrantsIndexRoute
+  '/_authenticated/_admin/membership/restrictions/': typeof AuthenticatedAdminMembershipRestrictionsIndexRoute
   '/_authenticated/_admin/tools/audit-log/': typeof AuthenticatedAdminToolsAuditLogIndexRoute
   '/_authenticated/_admin/tools/redirects/': typeof AuthenticatedAdminToolsRedirectsIndexRoute
   '/_authenticated/_admin/tools/website-import/': typeof AuthenticatedAdminToolsWebsiteImportIndexRoute
   '/_authenticated/_admin/tools/wordpress-sync/': typeof AuthenticatedAdminToolsWordpressSyncIndexRoute
+  '/_authenticated/_admin/commerce/customers/$userId/store-credit': typeof AuthenticatedAdminCommerceCustomersUserIdStoreCreditRoute
   '/_authenticated/_admin/commerce/settings/shipping/classes': typeof AuthenticatedAdminCommerceSettingsShippingClassesRoute
   '/_authenticated/_admin/commerce/settings/shipping/locations': typeof AuthenticatedAdminCommerceSettingsShippingLocationsRoute
   '/_authenticated/_admin/commerce/settings/shipping/packages': typeof AuthenticatedAdminCommerceSettingsShippingPackagesRoute
   '/_authenticated/_admin/commerce/settings/shipping/rules': typeof AuthenticatedAdminCommerceSettingsShippingRulesRoute
   '/_authenticated/_admin/commerce/settings/shipping/test-rates': typeof AuthenticatedAdminCommerceSettingsShippingTestRatesRoute
   '/_authenticated/_admin/commerce/settings/shipping/zones': typeof AuthenticatedAdminCommerceSettingsShippingZonesRoute
+  '/_authenticated/_admin/commerce/settings/tax/classes': typeof AuthenticatedAdminCommerceSettingsTaxClassesRoute
+  '/_authenticated/_admin/commerce/subscriptions/contracts/$contractId': typeof AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute
+  '/_authenticated/_admin/commerce/subscriptions/coupons/new': typeof AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute
+  '/_authenticated/_admin/commerce/subscriptions/form-submissions/$submissionId': typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute
+  '/_authenticated/_admin/commerce/subscriptions/invoices/$invoiceId': typeof AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute
+  '/_authenticated/_admin/commerce/subscriptions/offers/new': typeof AuthenticatedAdminCommerceSubscriptionsOffersNewRoute
+  '/_authenticated/_admin/commerce/subscriptions/order-forms/$formId': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute
+  '/_authenticated/_admin/commerce/subscriptions/order-forms/new': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute
+  '/_authenticated/_admin/commerce/subscriptions/templates/new': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute
+  '/_authenticated/_admin/membership/plans/$planId/edit': typeof AuthenticatedAdminMembershipPlansPlanIdEditRoute
+  '/_authenticated/_admin/membership/restrictions/$ruleId/edit': typeof AuthenticatedAdminMembershipRestrictionsRuleIdEditRoute
   '/_authenticated/_admin/settings/email_/queue/$queueId': typeof AuthenticatedAdminSettingsEmailQueueQueueIdRoute
   '/_authenticated/_admin/settings/email_/templates/$templateSlug': typeof AuthenticatedAdminSettingsEmailTemplatesTemplateSlugRoute
   '/_authenticated/_admin/settings/integrations/shipping/dhl': typeof AuthenticatedAdminSettingsIntegrationsShippingDhlRoute
@@ -1843,9 +2129,19 @@ export interface FileRoutesById {
   '/_authenticated/_admin/settings/integrations/shipping/ups': typeof AuthenticatedAdminSettingsIntegrationsShippingUpsRoute
   '/_authenticated/_admin/settings/integrations/shipping/usps': typeof AuthenticatedAdminSettingsIntegrationsShippingUspsRoute
   '/_authenticated/_admin/tools/redirects/$redirectId/edit': typeof AuthenticatedAdminToolsRedirectsRedirectIdEditRoute
+  '/_authenticated/_admin/commerce/subscriptions/contracts/': typeof AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute
+  '/_authenticated/_admin/commerce/subscriptions/coupons/': typeof AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute
+  '/_authenticated/_admin/commerce/subscriptions/form-submissions/': typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute
+  '/_authenticated/_admin/commerce/subscriptions/invoices/': typeof AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute
+  '/_authenticated/_admin/commerce/subscriptions/offers/': typeof AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute
+  '/_authenticated/_admin/commerce/subscriptions/order-forms/': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute
+  '/_authenticated/_admin/commerce/subscriptions/templates/': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute
   '/_authenticated/_admin/tools/website-import/$siteId/': typeof AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute
   '/_authenticated/_admin/tools/wordpress-sync/$siteId/': typeof AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute
   '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteWithChildren
+  '/_authenticated/_admin/commerce/subscriptions/coupons/$couponId/edit': typeof AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute
+  '/_authenticated/_admin/commerce/subscriptions/offers/$offerId/edit': typeof AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRoute
+  '/_authenticated/_admin/commerce/subscriptions/templates/$templateId/edit': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRoute
   '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId/methods_/$methodType/$methodId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute
 }
 export interface FileRouteTypes {
@@ -1903,9 +2199,7 @@ export interface FileRouteTypes {
     | '/layouts/assign'
     | '/layouts/new'
     | '/media/upload'
-    | '/membership/grants'
     | '/membership/plans'
-    | '/membership/restrictions'
     | '/membership/settings'
     | '/menus/locations'
     | '/pages/$pageId'
@@ -1934,6 +2228,7 @@ export interface FileRouteTypes {
     | '/settings/tools'
     | '/settings/writing'
     | '/support/analytics'
+    | '/support/settings'
     | '/tickets/$ticketId'
     | '/tickets/analytics'
     | '/tickets/canned-responses'
@@ -1975,15 +2270,21 @@ export interface FileRouteTypes {
     | '/commerce/products/$productId'
     | '/commerce/products/new'
     | '/commerce/returns/$returnId'
+    | '/commerce/returns/reasons'
     | '/commerce/returns/settings'
     | '/commerce/settings/shipping'
     | '/commerce/settings/tax'
     | '/commerce/shipping/manifests'
     | '/commerce/shipping/tracking'
+    | '/commerce/subscriptions/dunning'
+    | '/commerce/subscriptions/pricing-cards'
     | '/custom-fields/$groupId/edit'
     | '/gallery/$albumId/edit'
     | '/kb/$articleId/edit'
     | '/media/$mediaId/edit'
+    | '/membership/grants/$grantId'
+    | '/membership/grants/new'
+    | '/membership/restrictions/new'
     | '/menus/$menuId/edit'
     | '/pages/$pageId/edit'
     | '/pages/$pageId/engagement'
@@ -2007,16 +2308,30 @@ export interface FileRouteTypes {
     | '/tools/redirects/new'
     | '/users/$userId/edit'
     | '/commerce/subscriptions/'
+    | '/membership/grants/'
+    | '/membership/restrictions/'
     | '/tools/audit-log/'
     | '/tools/redirects/'
     | '/tools/website-import/'
     | '/tools/wordpress-sync/'
+    | '/commerce/customers/$userId/store-credit'
     | '/commerce/settings/shipping/classes'
     | '/commerce/settings/shipping/locations'
     | '/commerce/settings/shipping/packages'
     | '/commerce/settings/shipping/rules'
     | '/commerce/settings/shipping/test-rates'
     | '/commerce/settings/shipping/zones'
+    | '/commerce/settings/tax/classes'
+    | '/commerce/subscriptions/contracts/$contractId'
+    | '/commerce/subscriptions/coupons/new'
+    | '/commerce/subscriptions/form-submissions/$submissionId'
+    | '/commerce/subscriptions/invoices/$invoiceId'
+    | '/commerce/subscriptions/offers/new'
+    | '/commerce/subscriptions/order-forms/$formId'
+    | '/commerce/subscriptions/order-forms/new'
+    | '/commerce/subscriptions/templates/new'
+    | '/membership/plans/$planId/edit'
+    | '/membership/restrictions/$ruleId/edit'
     | '/settings/email/queue/$queueId'
     | '/settings/email/templates/$templateSlug'
     | '/settings/integrations/shipping/dhl'
@@ -2025,9 +2340,19 @@ export interface FileRouteTypes {
     | '/settings/integrations/shipping/ups'
     | '/settings/integrations/shipping/usps'
     | '/tools/redirects/$redirectId/edit'
+    | '/commerce/subscriptions/contracts/'
+    | '/commerce/subscriptions/coupons/'
+    | '/commerce/subscriptions/form-submissions/'
+    | '/commerce/subscriptions/invoices/'
+    | '/commerce/subscriptions/offers/'
+    | '/commerce/subscriptions/order-forms/'
+    | '/commerce/subscriptions/templates/'
     | '/tools/website-import/$siteId/'
     | '/tools/wordpress-sync/$siteId/'
     | '/commerce/settings/shipping/zones/$zoneId'
+    | '/commerce/subscriptions/coupons/$couponId/edit'
+    | '/commerce/subscriptions/offers/$offerId/edit'
+    | '/commerce/subscriptions/templates/$templateId/edit'
     | '/commerce/settings/shipping/zones/$zoneId/methods/$methodType/$methodId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -2071,9 +2396,7 @@ export interface FileRouteTypes {
     | '/layouts/assign'
     | '/layouts/new'
     | '/media/upload'
-    | '/membership/grants'
     | '/membership/plans'
-    | '/membership/restrictions'
     | '/membership/settings'
     | '/menus/locations'
     | '/pages/$pageId'
@@ -2102,6 +2425,7 @@ export interface FileRouteTypes {
     | '/settings/tools'
     | '/settings/writing'
     | '/support/analytics'
+    | '/support/settings'
     | '/tickets/$ticketId'
     | '/tickets/analytics'
     | '/tickets/canned-responses'
@@ -2143,15 +2467,21 @@ export interface FileRouteTypes {
     | '/commerce/products/$productId'
     | '/commerce/products/new'
     | '/commerce/returns/$returnId'
+    | '/commerce/returns/reasons'
     | '/commerce/returns/settings'
     | '/commerce/settings/shipping'
     | '/commerce/settings/tax'
     | '/commerce/shipping/manifests'
     | '/commerce/shipping/tracking'
+    | '/commerce/subscriptions/dunning'
+    | '/commerce/subscriptions/pricing-cards'
     | '/custom-fields/$groupId/edit'
     | '/gallery/$albumId/edit'
     | '/kb/$articleId/edit'
     | '/media/$mediaId/edit'
+    | '/membership/grants/$grantId'
+    | '/membership/grants/new'
+    | '/membership/restrictions/new'
     | '/menus/$menuId/edit'
     | '/pages/$pageId/edit'
     | '/pages/$pageId/engagement'
@@ -2175,16 +2505,30 @@ export interface FileRouteTypes {
     | '/tools/redirects/new'
     | '/users/$userId/edit'
     | '/commerce/subscriptions'
+    | '/membership/grants'
+    | '/membership/restrictions'
     | '/tools/audit-log'
     | '/tools/redirects'
     | '/tools/website-import'
     | '/tools/wordpress-sync'
+    | '/commerce/customers/$userId/store-credit'
     | '/commerce/settings/shipping/classes'
     | '/commerce/settings/shipping/locations'
     | '/commerce/settings/shipping/packages'
     | '/commerce/settings/shipping/rules'
     | '/commerce/settings/shipping/test-rates'
     | '/commerce/settings/shipping/zones'
+    | '/commerce/settings/tax/classes'
+    | '/commerce/subscriptions/contracts/$contractId'
+    | '/commerce/subscriptions/coupons/new'
+    | '/commerce/subscriptions/form-submissions/$submissionId'
+    | '/commerce/subscriptions/invoices/$invoiceId'
+    | '/commerce/subscriptions/offers/new'
+    | '/commerce/subscriptions/order-forms/$formId'
+    | '/commerce/subscriptions/order-forms/new'
+    | '/commerce/subscriptions/templates/new'
+    | '/membership/plans/$planId/edit'
+    | '/membership/restrictions/$ruleId/edit'
     | '/settings/email/queue/$queueId'
     | '/settings/email/templates/$templateSlug'
     | '/settings/integrations/shipping/dhl'
@@ -2193,9 +2537,19 @@ export interface FileRouteTypes {
     | '/settings/integrations/shipping/ups'
     | '/settings/integrations/shipping/usps'
     | '/tools/redirects/$redirectId/edit'
+    | '/commerce/subscriptions/contracts'
+    | '/commerce/subscriptions/coupons'
+    | '/commerce/subscriptions/form-submissions'
+    | '/commerce/subscriptions/invoices'
+    | '/commerce/subscriptions/offers'
+    | '/commerce/subscriptions/order-forms'
+    | '/commerce/subscriptions/templates'
     | '/tools/website-import/$siteId'
     | '/tools/wordpress-sync/$siteId'
     | '/commerce/settings/shipping/zones/$zoneId'
+    | '/commerce/subscriptions/coupons/$couponId/edit'
+    | '/commerce/subscriptions/offers/$offerId/edit'
+    | '/commerce/subscriptions/templates/$templateId/edit'
     | '/commerce/settings/shipping/zones/$zoneId/methods/$methodType/$methodId'
   id:
     | '__root__'
@@ -2253,9 +2607,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/layouts/assign'
     | '/_authenticated/_admin/layouts/new'
     | '/_authenticated/_admin/media/upload'
-    | '/_authenticated/_admin/membership/grants'
     | '/_authenticated/_admin/membership/plans'
-    | '/_authenticated/_admin/membership/restrictions'
     | '/_authenticated/_admin/membership/settings'
     | '/_authenticated/_admin/menus/locations'
     | '/_authenticated/_admin/pages/$pageId'
@@ -2284,6 +2636,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/settings/tools'
     | '/_authenticated/_admin/settings/writing'
     | '/_authenticated/_admin/support/analytics'
+    | '/_authenticated/_admin/support/settings'
     | '/_authenticated/_admin/tickets/$ticketId'
     | '/_authenticated/_admin/tickets/analytics'
     | '/_authenticated/_admin/tickets/canned-responses'
@@ -2325,15 +2678,21 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/commerce/products/$productId'
     | '/_authenticated/_admin/commerce/products/new'
     | '/_authenticated/_admin/commerce/returns/$returnId'
+    | '/_authenticated/_admin/commerce/returns/reasons'
     | '/_authenticated/_admin/commerce/returns/settings'
     | '/_authenticated/_admin/commerce/settings/shipping'
     | '/_authenticated/_admin/commerce/settings/tax'
     | '/_authenticated/_admin/commerce/shipping/manifests'
     | '/_authenticated/_admin/commerce/shipping/tracking'
+    | '/_authenticated/_admin/commerce/subscriptions/dunning'
+    | '/_authenticated/_admin/commerce/subscriptions/pricing-cards'
     | '/_authenticated/_admin/custom-fields/$groupId/edit'
     | '/_authenticated/_admin/gallery/$albumId/edit'
     | '/_authenticated/_admin/kb/$articleId/edit'
     | '/_authenticated/_admin/media/$mediaId/edit'
+    | '/_authenticated/_admin/membership/grants/$grantId'
+    | '/_authenticated/_admin/membership/grants/new'
+    | '/_authenticated/_admin/membership/restrictions/new'
     | '/_authenticated/_admin/menus/$menuId/edit'
     | '/_authenticated/_admin/pages/$pageId/edit'
     | '/_authenticated/_admin/pages/$pageId/engagement'
@@ -2357,16 +2716,30 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/tools/redirects/new'
     | '/_authenticated/_admin/users/$userId/edit'
     | '/_authenticated/_admin/commerce/subscriptions/'
+    | '/_authenticated/_admin/membership/grants/'
+    | '/_authenticated/_admin/membership/restrictions/'
     | '/_authenticated/_admin/tools/audit-log/'
     | '/_authenticated/_admin/tools/redirects/'
     | '/_authenticated/_admin/tools/website-import/'
     | '/_authenticated/_admin/tools/wordpress-sync/'
+    | '/_authenticated/_admin/commerce/customers/$userId/store-credit'
     | '/_authenticated/_admin/commerce/settings/shipping/classes'
     | '/_authenticated/_admin/commerce/settings/shipping/locations'
     | '/_authenticated/_admin/commerce/settings/shipping/packages'
     | '/_authenticated/_admin/commerce/settings/shipping/rules'
     | '/_authenticated/_admin/commerce/settings/shipping/test-rates'
     | '/_authenticated/_admin/commerce/settings/shipping/zones'
+    | '/_authenticated/_admin/commerce/settings/tax/classes'
+    | '/_authenticated/_admin/commerce/subscriptions/contracts/$contractId'
+    | '/_authenticated/_admin/commerce/subscriptions/coupons/new'
+    | '/_authenticated/_admin/commerce/subscriptions/form-submissions/$submissionId'
+    | '/_authenticated/_admin/commerce/subscriptions/invoices/$invoiceId'
+    | '/_authenticated/_admin/commerce/subscriptions/offers/new'
+    | '/_authenticated/_admin/commerce/subscriptions/order-forms/$formId'
+    | '/_authenticated/_admin/commerce/subscriptions/order-forms/new'
+    | '/_authenticated/_admin/commerce/subscriptions/templates/new'
+    | '/_authenticated/_admin/membership/plans/$planId/edit'
+    | '/_authenticated/_admin/membership/restrictions/$ruleId/edit'
     | '/_authenticated/_admin/settings/email_/queue/$queueId'
     | '/_authenticated/_admin/settings/email_/templates/$templateSlug'
     | '/_authenticated/_admin/settings/integrations/shipping/dhl'
@@ -2375,9 +2748,19 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/settings/integrations/shipping/ups'
     | '/_authenticated/_admin/settings/integrations/shipping/usps'
     | '/_authenticated/_admin/tools/redirects/$redirectId/edit'
+    | '/_authenticated/_admin/commerce/subscriptions/contracts/'
+    | '/_authenticated/_admin/commerce/subscriptions/coupons/'
+    | '/_authenticated/_admin/commerce/subscriptions/form-submissions/'
+    | '/_authenticated/_admin/commerce/subscriptions/invoices/'
+    | '/_authenticated/_admin/commerce/subscriptions/offers/'
+    | '/_authenticated/_admin/commerce/subscriptions/order-forms/'
+    | '/_authenticated/_admin/commerce/subscriptions/templates/'
     | '/_authenticated/_admin/tools/website-import/$siteId/'
     | '/_authenticated/_admin/tools/wordpress-sync/$siteId/'
     | '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId'
+    | '/_authenticated/_admin/commerce/subscriptions/coupons/$couponId/edit'
+    | '/_authenticated/_admin/commerce/subscriptions/offers/$offerId/edit'
+    | '/_authenticated/_admin/commerce/subscriptions/templates/$templateId/edit'
     | '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId/methods_/$methodType/$methodId'
   fileRoutesById: FileRoutesById
 }
@@ -2752,6 +3135,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminTicketsTicketIdRouteImport
       parentRoute: typeof AuthenticatedAdminTicketsRoute
     }
+    '/_authenticated/_admin/support/settings': {
+      id: '/_authenticated/_admin/support/settings'
+      path: '/support/settings'
+      fullPath: '/support/settings'
+      preLoaderRoute: typeof AuthenticatedAdminSupportSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/_admin/support/analytics': {
       id: '/_authenticated/_admin/support/analytics'
       path: '/support/analytics'
@@ -2948,25 +3338,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMembershipSettingsRouteImport
       parentRoute: typeof AuthenticatedAdminMembershipRoute
     }
-    '/_authenticated/_admin/membership/restrictions': {
-      id: '/_authenticated/_admin/membership/restrictions'
-      path: '/restrictions'
-      fullPath: '/membership/restrictions'
-      preLoaderRoute: typeof AuthenticatedAdminMembershipRestrictionsRouteImport
-      parentRoute: typeof AuthenticatedAdminMembershipRoute
-    }
     '/_authenticated/_admin/membership/plans': {
       id: '/_authenticated/_admin/membership/plans'
       path: '/plans'
       fullPath: '/membership/plans'
       preLoaderRoute: typeof AuthenticatedAdminMembershipPlansRouteImport
-      parentRoute: typeof AuthenticatedAdminMembershipRoute
-    }
-    '/_authenticated/_admin/membership/grants': {
-      id: '/_authenticated/_admin/membership/grants'
-      path: '/grants'
-      fullPath: '/membership/grants'
-      preLoaderRoute: typeof AuthenticatedAdminMembershipGrantsRouteImport
       parentRoute: typeof AuthenticatedAdminMembershipRoute
     }
     '/_authenticated/_admin/media/upload': {
@@ -3249,6 +3625,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminToolsAuditLogIndexRouteImport
       parentRoute: typeof AuthenticatedAdminToolsRoute
     }
+    '/_authenticated/_admin/membership/restrictions/': {
+      id: '/_authenticated/_admin/membership/restrictions/'
+      path: '/restrictions'
+      fullPath: '/membership/restrictions/'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipRestrictionsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminMembershipRoute
+    }
+    '/_authenticated/_admin/membership/grants/': {
+      id: '/_authenticated/_admin/membership/grants/'
+      path: '/grants'
+      fullPath: '/membership/grants/'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipGrantsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminMembershipRoute
+    }
     '/_authenticated/_admin/commerce/subscriptions/': {
       id: '/_authenticated/_admin/commerce/subscriptions/'
       path: '/'
@@ -3410,6 +3800,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMenusMenuIdEditRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/membership/restrictions/new': {
+      id: '/_authenticated/_admin/membership/restrictions/new'
+      path: '/restrictions/new'
+      fullPath: '/membership/restrictions/new'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipRestrictionsNewRouteImport
+      parentRoute: typeof AuthenticatedAdminMembershipRoute
+    }
+    '/_authenticated/_admin/membership/grants/new': {
+      id: '/_authenticated/_admin/membership/grants/new'
+      path: '/grants/new'
+      fullPath: '/membership/grants/new'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipGrantsNewRouteImport
+      parentRoute: typeof AuthenticatedAdminMembershipRoute
+    }
+    '/_authenticated/_admin/membership/grants/$grantId': {
+      id: '/_authenticated/_admin/membership/grants/$grantId'
+      path: '/grants/$grantId'
+      fullPath: '/membership/grants/$grantId'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipGrantsGrantIdRouteImport
+      parentRoute: typeof AuthenticatedAdminMembershipRoute
+    }
     '/_authenticated/_admin/media/$mediaId/edit': {
       id: '/_authenticated/_admin/media/$mediaId/edit'
       path: '/media/$mediaId/edit'
@@ -3437,6 +3848,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/custom-fields/$groupId/edit'
       preLoaderRoute: typeof AuthenticatedAdminCustomFieldsGroupIdEditRouteImport
       parentRoute: typeof AuthenticatedAdminCustomFieldsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/pricing-cards': {
+      id: '/_authenticated/_admin/commerce/subscriptions/pricing-cards'
+      path: '/pricing-cards'
+      fullPath: '/commerce/subscriptions/pricing-cards'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsPricingCardsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/dunning': {
+      id: '/_authenticated/_admin/commerce/subscriptions/dunning'
+      path: '/dunning'
+      fullPath: '/commerce/subscriptions/dunning'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsDunningRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
     }
     '/_authenticated/_admin/commerce/shipping/tracking': {
       id: '/_authenticated/_admin/commerce/shipping/tracking'
@@ -3471,6 +3896,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/commerce/returns/settings'
       preLoaderRoute: typeof AuthenticatedAdminCommerceReturnsSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceReturnsRoute
+    }
+    '/_authenticated/_admin/commerce/returns/reasons': {
+      id: '/_authenticated/_admin/commerce/returns/reasons'
+      path: '/reasons'
+      fullPath: '/commerce/returns/reasons'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceReturnsReasonsRouteImport
       parentRoute: typeof AuthenticatedAdminCommerceReturnsRoute
     }
     '/_authenticated/_admin/commerce/returns/$returnId': {
@@ -3536,6 +3968,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminToolsWebsiteImportSiteIdIndexRouteImport
       parentRoute: typeof AuthenticatedAdminToolsRoute
     }
+    '/_authenticated/_admin/commerce/subscriptions/templates/': {
+      id: '/_authenticated/_admin/commerce/subscriptions/templates/'
+      path: '/templates'
+      fullPath: '/commerce/subscriptions/templates/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/order-forms/': {
+      id: '/_authenticated/_admin/commerce/subscriptions/order-forms/'
+      path: '/order-forms'
+      fullPath: '/commerce/subscriptions/order-forms/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/offers/': {
+      id: '/_authenticated/_admin/commerce/subscriptions/offers/'
+      path: '/offers'
+      fullPath: '/commerce/subscriptions/offers/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsOffersIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/invoices/': {
+      id: '/_authenticated/_admin/commerce/subscriptions/invoices/'
+      path: '/invoices'
+      fullPath: '/commerce/subscriptions/invoices/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/form-submissions/': {
+      id: '/_authenticated/_admin/commerce/subscriptions/form-submissions/'
+      path: '/form-submissions'
+      fullPath: '/commerce/subscriptions/form-submissions/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/coupons/': {
+      id: '/_authenticated/_admin/commerce/subscriptions/coupons/'
+      path: '/coupons'
+      fullPath: '/commerce/subscriptions/coupons/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsCouponsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/contracts/': {
+      id: '/_authenticated/_admin/commerce/subscriptions/contracts/'
+      path: '/contracts'
+      fullPath: '/commerce/subscriptions/contracts/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsContractsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
     '/_authenticated/_admin/tools/redirects/$redirectId/edit': {
       id: '/_authenticated/_admin/tools/redirects/$redirectId/edit'
       path: '/redirects/$redirectId/edit'
@@ -3592,6 +4073,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsEmailQueueQueueIdRouteImport
       parentRoute: typeof AuthenticatedAdminSettingsRoute
     }
+    '/_authenticated/_admin/membership/restrictions/$ruleId/edit': {
+      id: '/_authenticated/_admin/membership/restrictions/$ruleId/edit'
+      path: '/restrictions/$ruleId/edit'
+      fullPath: '/membership/restrictions/$ruleId/edit'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipRestrictionsRuleIdEditRouteImport
+      parentRoute: typeof AuthenticatedAdminMembershipRoute
+    }
+    '/_authenticated/_admin/membership/plans/$planId/edit': {
+      id: '/_authenticated/_admin/membership/plans/$planId/edit'
+      path: '/$planId/edit'
+      fullPath: '/membership/plans/$planId/edit'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipPlansPlanIdEditRouteImport
+      parentRoute: typeof AuthenticatedAdminMembershipPlansRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/templates/new': {
+      id: '/_authenticated/_admin/commerce/subscriptions/templates/new'
+      path: '/templates/new'
+      fullPath: '/commerce/subscriptions/templates/new'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsTemplatesNewRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/order-forms/new': {
+      id: '/_authenticated/_admin/commerce/subscriptions/order-forms/new'
+      path: '/order-forms/new'
+      fullPath: '/commerce/subscriptions/order-forms/new'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/order-forms/$formId': {
+      id: '/_authenticated/_admin/commerce/subscriptions/order-forms/$formId'
+      path: '/order-forms/$formId'
+      fullPath: '/commerce/subscriptions/order-forms/$formId'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/offers/new': {
+      id: '/_authenticated/_admin/commerce/subscriptions/offers/new'
+      path: '/offers/new'
+      fullPath: '/commerce/subscriptions/offers/new'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsOffersNewRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/invoices/$invoiceId': {
+      id: '/_authenticated/_admin/commerce/subscriptions/invoices/$invoiceId'
+      path: '/invoices/$invoiceId'
+      fullPath: '/commerce/subscriptions/invoices/$invoiceId'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/form-submissions/$submissionId': {
+      id: '/_authenticated/_admin/commerce/subscriptions/form-submissions/$submissionId'
+      path: '/form-submissions/$submissionId'
+      fullPath: '/commerce/subscriptions/form-submissions/$submissionId'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/coupons/new': {
+      id: '/_authenticated/_admin/commerce/subscriptions/coupons/new'
+      path: '/coupons/new'
+      fullPath: '/commerce/subscriptions/coupons/new'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsCouponsNewRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/contracts/$contractId': {
+      id: '/_authenticated/_admin/commerce/subscriptions/contracts/$contractId'
+      path: '/contracts/$contractId'
+      fullPath: '/commerce/subscriptions/contracts/$contractId'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsContractsContractIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/settings/tax/classes': {
+      id: '/_authenticated/_admin/commerce/settings/tax/classes'
+      path: '/classes'
+      fullPath: '/commerce/settings/tax/classes'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSettingsTaxClassesRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSettingsTaxRoute
+    }
     '/_authenticated/_admin/commerce/settings/shipping/zones': {
       id: '/_authenticated/_admin/commerce/settings/shipping/zones'
       path: '/zones'
@@ -3633,6 +4191,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/commerce/settings/shipping/classes'
       preLoaderRoute: typeof AuthenticatedAdminCommerceSettingsShippingClassesRouteImport
       parentRoute: typeof AuthenticatedAdminCommerceSettingsShippingRoute
+    }
+    '/_authenticated/_admin/commerce/customers/$userId/store-credit': {
+      id: '/_authenticated/_admin/commerce/customers/$userId/store-credit'
+      path: '/$userId/store-credit'
+      fullPath: '/commerce/customers/$userId/store-credit'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceCustomersUserIdStoreCreditRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceCustomersRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/templates/$templateId/edit': {
+      id: '/_authenticated/_admin/commerce/subscriptions/templates/$templateId/edit'
+      path: '/templates/$templateId/edit'
+      fullPath: '/commerce/subscriptions/templates/$templateId/edit'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/offers/$offerId/edit': {
+      id: '/_authenticated/_admin/commerce/subscriptions/offers/$offerId/edit'
+      path: '/offers/$offerId/edit'
+      fullPath: '/commerce/subscriptions/offers/$offerId/edit'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
+    }
+    '/_authenticated/_admin/commerce/subscriptions/coupons/$couponId/edit': {
+      id: '/_authenticated/_admin/commerce/subscriptions/coupons/$couponId/edit'
+      path: '/coupons/$couponId/edit'
+      fullPath: '/commerce/subscriptions/coupons/$couponId/edit'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
     }
     '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId': {
       id: '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId'
@@ -3693,6 +4279,21 @@ const AuthenticatedAdminCommerceAttributesRouteWithChildren =
     AuthenticatedAdminCommerceAttributesRouteChildren,
   )
 
+interface AuthenticatedAdminCommerceCustomersRouteChildren {
+  AuthenticatedAdminCommerceCustomersUserIdStoreCreditRoute: typeof AuthenticatedAdminCommerceCustomersUserIdStoreCreditRoute
+}
+
+const AuthenticatedAdminCommerceCustomersRouteChildren: AuthenticatedAdminCommerceCustomersRouteChildren =
+  {
+    AuthenticatedAdminCommerceCustomersUserIdStoreCreditRoute:
+      AuthenticatedAdminCommerceCustomersUserIdStoreCreditRoute,
+  }
+
+const AuthenticatedAdminCommerceCustomersRouteWithChildren =
+  AuthenticatedAdminCommerceCustomersRoute._addFileChildren(
+    AuthenticatedAdminCommerceCustomersRouteChildren,
+  )
+
 interface AuthenticatedAdminCommerceOrdersRouteChildren {
   AuthenticatedAdminCommerceOrdersOrderIdRoute: typeof AuthenticatedAdminCommerceOrdersOrderIdRoute
   AuthenticatedAdminCommerceOrdersAbandonedRoute: typeof AuthenticatedAdminCommerceOrdersAbandonedRoute
@@ -3731,6 +4332,7 @@ const AuthenticatedAdminCommerceProductsRouteWithChildren =
 
 interface AuthenticatedAdminCommerceReturnsRouteChildren {
   AuthenticatedAdminCommerceReturnsReturnIdRoute: typeof AuthenticatedAdminCommerceReturnsReturnIdRoute
+  AuthenticatedAdminCommerceReturnsReasonsRoute: typeof AuthenticatedAdminCommerceReturnsReasonsRoute
   AuthenticatedAdminCommerceReturnsSettingsRoute: typeof AuthenticatedAdminCommerceReturnsSettingsRoute
 }
 
@@ -3738,6 +4340,8 @@ const AuthenticatedAdminCommerceReturnsRouteChildren: AuthenticatedAdminCommerce
   {
     AuthenticatedAdminCommerceReturnsReturnIdRoute:
       AuthenticatedAdminCommerceReturnsReturnIdRoute,
+    AuthenticatedAdminCommerceReturnsReasonsRoute:
+      AuthenticatedAdminCommerceReturnsReasonsRoute,
     AuthenticatedAdminCommerceReturnsSettingsRoute:
       AuthenticatedAdminCommerceReturnsSettingsRoute,
   }
@@ -3795,9 +4399,24 @@ const AuthenticatedAdminCommerceSettingsShippingRouteWithChildren =
     AuthenticatedAdminCommerceSettingsShippingRouteChildren,
   )
 
+interface AuthenticatedAdminCommerceSettingsTaxRouteChildren {
+  AuthenticatedAdminCommerceSettingsTaxClassesRoute: typeof AuthenticatedAdminCommerceSettingsTaxClassesRoute
+}
+
+const AuthenticatedAdminCommerceSettingsTaxRouteChildren: AuthenticatedAdminCommerceSettingsTaxRouteChildren =
+  {
+    AuthenticatedAdminCommerceSettingsTaxClassesRoute:
+      AuthenticatedAdminCommerceSettingsTaxClassesRoute,
+  }
+
+const AuthenticatedAdminCommerceSettingsTaxRouteWithChildren =
+  AuthenticatedAdminCommerceSettingsTaxRoute._addFileChildren(
+    AuthenticatedAdminCommerceSettingsTaxRouteChildren,
+  )
+
 interface AuthenticatedAdminCommerceSettingsRouteChildren {
   AuthenticatedAdminCommerceSettingsShippingRoute: typeof AuthenticatedAdminCommerceSettingsShippingRouteWithChildren
-  AuthenticatedAdminCommerceSettingsTaxRoute: typeof AuthenticatedAdminCommerceSettingsTaxRoute
+  AuthenticatedAdminCommerceSettingsTaxRoute: typeof AuthenticatedAdminCommerceSettingsTaxRouteWithChildren
 }
 
 const AuthenticatedAdminCommerceSettingsRouteChildren: AuthenticatedAdminCommerceSettingsRouteChildren =
@@ -3805,7 +4424,7 @@ const AuthenticatedAdminCommerceSettingsRouteChildren: AuthenticatedAdminCommerc
     AuthenticatedAdminCommerceSettingsShippingRoute:
       AuthenticatedAdminCommerceSettingsShippingRouteWithChildren,
     AuthenticatedAdminCommerceSettingsTaxRoute:
-      AuthenticatedAdminCommerceSettingsTaxRoute,
+      AuthenticatedAdminCommerceSettingsTaxRouteWithChildren,
   }
 
 const AuthenticatedAdminCommerceSettingsRouteWithChildren =
@@ -3814,13 +4433,73 @@ const AuthenticatedAdminCommerceSettingsRouteWithChildren =
   )
 
 interface AuthenticatedAdminCommerceSubscriptionsRouteChildren {
+  AuthenticatedAdminCommerceSubscriptionsDunningRoute: typeof AuthenticatedAdminCommerceSubscriptionsDunningRoute
+  AuthenticatedAdminCommerceSubscriptionsPricingCardsRoute: typeof AuthenticatedAdminCommerceSubscriptionsPricingCardsRoute
   AuthenticatedAdminCommerceSubscriptionsIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
+  AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute: typeof AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute
+  AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute: typeof AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute
+  AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute: typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute
+  AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute: typeof AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute
+  AuthenticatedAdminCommerceSubscriptionsOffersNewRoute: typeof AuthenticatedAdminCommerceSubscriptionsOffersNewRoute
+  AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute: typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute
+  AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute: typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute
+  AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute: typeof AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute
+  AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute
+  AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute
+  AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute
+  AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute
+  AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute
+  AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute
+  AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute: typeof AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute
+  AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute: typeof AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute
+  AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRoute: typeof AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRoute
+  AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRoute: typeof AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRoute
 }
 
 const AuthenticatedAdminCommerceSubscriptionsRouteChildren: AuthenticatedAdminCommerceSubscriptionsRouteChildren =
   {
+    AuthenticatedAdminCommerceSubscriptionsDunningRoute:
+      AuthenticatedAdminCommerceSubscriptionsDunningRoute,
+    AuthenticatedAdminCommerceSubscriptionsPricingCardsRoute:
+      AuthenticatedAdminCommerceSubscriptionsPricingCardsRoute,
     AuthenticatedAdminCommerceSubscriptionsIndexRoute:
       AuthenticatedAdminCommerceSubscriptionsIndexRoute,
+    AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute:
+      AuthenticatedAdminCommerceSubscriptionsContractsContractIdRoute,
+    AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute:
+      AuthenticatedAdminCommerceSubscriptionsCouponsNewRoute,
+    AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute:
+      AuthenticatedAdminCommerceSubscriptionsFormSubmissionsSubmissionIdRoute,
+    AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute:
+      AuthenticatedAdminCommerceSubscriptionsInvoicesInvoiceIdRoute,
+    AuthenticatedAdminCommerceSubscriptionsOffersNewRoute:
+      AuthenticatedAdminCommerceSubscriptionsOffersNewRoute,
+    AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute:
+      AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute,
+    AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute:
+      AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute,
+    AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute:
+      AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute,
+    AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute:
+      AuthenticatedAdminCommerceSubscriptionsContractsIndexRoute,
+    AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute:
+      AuthenticatedAdminCommerceSubscriptionsCouponsIndexRoute,
+    AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute:
+      AuthenticatedAdminCommerceSubscriptionsFormSubmissionsIndexRoute,
+    AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute:
+      AuthenticatedAdminCommerceSubscriptionsInvoicesIndexRoute,
+    AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute:
+      AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute,
+    AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute:
+      AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute,
+    AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute:
+      AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute,
+    AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute:
+      AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute,
+    AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRoute:
+      AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRoute,
+    AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRoute:
+      AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRoute,
   }
 
 const AuthenticatedAdminCommerceSubscriptionsRouteWithChildren =
@@ -3832,7 +4511,7 @@ interface AuthenticatedAdminCommerceRouteChildren {
   AuthenticatedAdminCommerceAttributesRoute: typeof AuthenticatedAdminCommerceAttributesRouteWithChildren
   AuthenticatedAdminCommerceBundlesRoute: typeof AuthenticatedAdminCommerceBundlesRoute
   AuthenticatedAdminCommerceCategoriesRoute: typeof AuthenticatedAdminCommerceCategoriesRoute
-  AuthenticatedAdminCommerceCustomersRoute: typeof AuthenticatedAdminCommerceCustomersRoute
+  AuthenticatedAdminCommerceCustomersRoute: typeof AuthenticatedAdminCommerceCustomersRouteWithChildren
   AuthenticatedAdminCommerceDigitalRoute: typeof AuthenticatedAdminCommerceDigitalRoute
   AuthenticatedAdminCommerceDiscountsRoute: typeof AuthenticatedAdminCommerceDiscountsRoute
   AuthenticatedAdminCommerceOrdersRoute: typeof AuthenticatedAdminCommerceOrdersRouteWithChildren
@@ -3857,7 +4536,7 @@ const AuthenticatedAdminCommerceRouteChildren: AuthenticatedAdminCommerceRouteCh
     AuthenticatedAdminCommerceCategoriesRoute:
       AuthenticatedAdminCommerceCategoriesRoute,
     AuthenticatedAdminCommerceCustomersRoute:
-      AuthenticatedAdminCommerceCustomersRoute,
+      AuthenticatedAdminCommerceCustomersRouteWithChildren,
     AuthenticatedAdminCommerceDigitalRoute:
       AuthenticatedAdminCommerceDigitalRoute,
     AuthenticatedAdminCommerceDiscountsRoute:
@@ -3981,26 +4660,53 @@ const AuthenticatedAdminKbRouteChildren: AuthenticatedAdminKbRouteChildren = {
 const AuthenticatedAdminKbRouteWithChildren =
   AuthenticatedAdminKbRoute._addFileChildren(AuthenticatedAdminKbRouteChildren)
 
+interface AuthenticatedAdminMembershipPlansRouteChildren {
+  AuthenticatedAdminMembershipPlansPlanIdEditRoute: typeof AuthenticatedAdminMembershipPlansPlanIdEditRoute
+}
+
+const AuthenticatedAdminMembershipPlansRouteChildren: AuthenticatedAdminMembershipPlansRouteChildren =
+  {
+    AuthenticatedAdminMembershipPlansPlanIdEditRoute:
+      AuthenticatedAdminMembershipPlansPlanIdEditRoute,
+  }
+
+const AuthenticatedAdminMembershipPlansRouteWithChildren =
+  AuthenticatedAdminMembershipPlansRoute._addFileChildren(
+    AuthenticatedAdminMembershipPlansRouteChildren,
+  )
+
 interface AuthenticatedAdminMembershipRouteChildren {
-  AuthenticatedAdminMembershipGrantsRoute: typeof AuthenticatedAdminMembershipGrantsRoute
-  AuthenticatedAdminMembershipPlansRoute: typeof AuthenticatedAdminMembershipPlansRoute
-  AuthenticatedAdminMembershipRestrictionsRoute: typeof AuthenticatedAdminMembershipRestrictionsRoute
+  AuthenticatedAdminMembershipPlansRoute: typeof AuthenticatedAdminMembershipPlansRouteWithChildren
   AuthenticatedAdminMembershipSettingsRoute: typeof AuthenticatedAdminMembershipSettingsRoute
   AuthenticatedAdminMembershipIndexRoute: typeof AuthenticatedAdminMembershipIndexRoute
+  AuthenticatedAdminMembershipGrantsGrantIdRoute: typeof AuthenticatedAdminMembershipGrantsGrantIdRoute
+  AuthenticatedAdminMembershipGrantsNewRoute: typeof AuthenticatedAdminMembershipGrantsNewRoute
+  AuthenticatedAdminMembershipRestrictionsNewRoute: typeof AuthenticatedAdminMembershipRestrictionsNewRoute
+  AuthenticatedAdminMembershipGrantsIndexRoute: typeof AuthenticatedAdminMembershipGrantsIndexRoute
+  AuthenticatedAdminMembershipRestrictionsIndexRoute: typeof AuthenticatedAdminMembershipRestrictionsIndexRoute
+  AuthenticatedAdminMembershipRestrictionsRuleIdEditRoute: typeof AuthenticatedAdminMembershipRestrictionsRuleIdEditRoute
 }
 
 const AuthenticatedAdminMembershipRouteChildren: AuthenticatedAdminMembershipRouteChildren =
   {
-    AuthenticatedAdminMembershipGrantsRoute:
-      AuthenticatedAdminMembershipGrantsRoute,
     AuthenticatedAdminMembershipPlansRoute:
-      AuthenticatedAdminMembershipPlansRoute,
-    AuthenticatedAdminMembershipRestrictionsRoute:
-      AuthenticatedAdminMembershipRestrictionsRoute,
+      AuthenticatedAdminMembershipPlansRouteWithChildren,
     AuthenticatedAdminMembershipSettingsRoute:
       AuthenticatedAdminMembershipSettingsRoute,
     AuthenticatedAdminMembershipIndexRoute:
       AuthenticatedAdminMembershipIndexRoute,
+    AuthenticatedAdminMembershipGrantsGrantIdRoute:
+      AuthenticatedAdminMembershipGrantsGrantIdRoute,
+    AuthenticatedAdminMembershipGrantsNewRoute:
+      AuthenticatedAdminMembershipGrantsNewRoute,
+    AuthenticatedAdminMembershipRestrictionsNewRoute:
+      AuthenticatedAdminMembershipRestrictionsNewRoute,
+    AuthenticatedAdminMembershipGrantsIndexRoute:
+      AuthenticatedAdminMembershipGrantsIndexRoute,
+    AuthenticatedAdminMembershipRestrictionsIndexRoute:
+      AuthenticatedAdminMembershipRestrictionsIndexRoute,
+    AuthenticatedAdminMembershipRestrictionsRuleIdEditRoute:
+      AuthenticatedAdminMembershipRestrictionsRuleIdEditRoute,
   }
 
 const AuthenticatedAdminMembershipRouteWithChildren =
@@ -4344,6 +5050,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminPostsTagsRoute: typeof AuthenticatedAdminPostsTagsRoute
   AuthenticatedAdminRolesNewRoute: typeof AuthenticatedAdminRolesNewRoute
   AuthenticatedAdminSupportAnalyticsRoute: typeof AuthenticatedAdminSupportAnalyticsRoute
+  AuthenticatedAdminSupportSettingsRoute: typeof AuthenticatedAdminSupportSettingsRoute
   AuthenticatedAdminUsersNewRoute: typeof AuthenticatedAdminUsersNewRoute
   AuthenticatedAdminApiKeysIndexRoute: typeof AuthenticatedAdminApiKeysIndexRoute
   AuthenticatedAdminCommentsIndexRoute: typeof AuthenticatedAdminCommentsIndexRoute
@@ -4401,6 +5108,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminRolesNewRoute: AuthenticatedAdminRolesNewRoute,
   AuthenticatedAdminSupportAnalyticsRoute:
     AuthenticatedAdminSupportAnalyticsRoute,
+  AuthenticatedAdminSupportSettingsRoute:
+    AuthenticatedAdminSupportSettingsRoute,
   AuthenticatedAdminUsersNewRoute: AuthenticatedAdminUsersNewRoute,
   AuthenticatedAdminApiKeysIndexRoute: AuthenticatedAdminApiKeysIndexRoute,
   AuthenticatedAdminCommentsIndexRoute: AuthenticatedAdminCommentsIndexRoute,

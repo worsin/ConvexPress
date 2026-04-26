@@ -16,6 +16,20 @@ interface PostQuickEditProps {
   onClose: () => void;
 }
 
+interface AuthorOption {
+  _id: Id<"users">;
+  displayName?: string;
+  email: string;
+}
+
+interface AuthorListResult {
+  users?: AuthorOption[];
+}
+
+interface TermSummary {
+  name: string;
+}
+
 /**
  * Inline Quick Edit form for posts. Replaces the row when active.
  * Fields: Title, Slug, Status, Date, Author, Categories, Tags, Allow Comments, Sticky.
@@ -31,7 +45,7 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
       ? new Date(post.publishedAt).toISOString().split("T")[0]
       : "",
   );
-  const [authorId, setAuthorId] = useState(post.authorId ?? "");
+  const [authorId, setAuthorId] = useState<string>(post.authorId ?? "");
   const [allowComments, setAllowComments] = useState(post.commentStatus === "open");
   const [isSticky, setIsSticky] = useState(post.isSticky);
   const [isSaving, setIsSaving] = useState(false);
@@ -44,7 +58,7 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
     perPage: 100,
     orderBy: "displayName",
     orderDir: "asc",
-  });
+  }) as AuthorListResult | undefined;
 
   const authors = useMemo(() => {
     if (!authorsResult) return [];
@@ -58,13 +72,13 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
   const postCategories = useQuery(api.taxonomies.queries.getByPost, {
     postId: post._id as Id<"posts">,
     taxonomy: "category",
-  });
+  }) as { categories?: TermSummary[] } | undefined;
 
   // Fetch tags for this post
   const postTags = useQuery(api.taxonomies.queries.getByPost, {
     postId: post._id as Id<"posts">,
     taxonomy: "post_tag",
-  });
+  }) as { tags?: TermSummary[] } | undefined;
 
   const categoryNames = useMemo(() => {
     if (!postCategories) return "Loading...";

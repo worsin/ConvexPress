@@ -7,6 +7,7 @@ import { usePluginSettings } from "@/hooks/usePluginSettings";
 import { useCan } from "@/hooks/useCan";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { getPluginDefinition, getPluginParent } from "@/lib/plugins/registry";
 
 export const Route = createFileRoute("/_authenticated/_admin/plugins")({
   component: PluginsPage,
@@ -46,10 +47,24 @@ function PluginsPage() {
 
       <div className="grid gap-4">
         {plugins.map((plugin) => {
+          const parentId = getPluginParent(plugin.id);
+          const parent = parentId ? getPluginDefinition(parentId) : null;
+          const parentEnabled = parent ? Boolean(values[parent.settingsKey]) : true;
           const nextValues = {
             ...values,
             [plugin.settingsKey]: !plugin.enabled,
           };
+          if (!plugin.enabled && parent) {
+            nextValues[parent.settingsKey] = true;
+          }
+          if (plugin.id === "commerce" && plugin.enabled) {
+            nextValues.commerceDigitalEnabled = false;
+            nextValues.commerceReviewsEnabled = false;
+            nextValues.commerceWishlistsEnabled = false;
+            nextValues.commerceBundlesEnabled = false;
+            nextValues.commerceReturnsEnabled = false;
+            nextValues.commerceSubscriptionsEnabled = false;
+          }
 
           return (
             <section
@@ -82,6 +97,11 @@ function PluginsPage() {
                     <p className="mt-3 text-xs text-muted-foreground">
                       Routes: {plugin.routePrefixes.join(", ")}
                     </p>
+                    {parent && !parentEnabled ? (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Enabling this extension will also enable {parent.title}.
+                      </p>
+                    ) : null}
                   </div>
                 </div>
 

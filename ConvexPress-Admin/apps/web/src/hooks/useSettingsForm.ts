@@ -96,9 +96,9 @@ interface UseSettingsFormOptions {
   disableAutosave?: boolean;
 }
 
-export function useSettingsForm<T extends Record<string, unknown>>(
+export function useSettingsForm<T extends object>(
   section: SettingsSection,
-  validationSchema: z.ZodObject<z.ZodRawShape>,
+  validationSchema: z.ZodTypeAny,
   options?: UseSettingsFormOptions,
 ) {
   const disableAutosave = options?.disableAutosave ?? false;
@@ -139,12 +139,25 @@ export function useSettingsForm<T extends Record<string, unknown>>(
   const prevSettingsJsonRef = useRef<string | null>(null);
 
   // Create TanStack Form instance
-  const form = useForm<T>({
+  const form = useForm<
+    T,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    unknown
+  >({
     defaultValues: initialValues,
   });
 
   // Compute dirty state from content, not object reference.
-  const currentValues = useStore(form.store, (state) => state.values as T);
+  const currentValues = useStore(form.store, (state) => state.values);
   const currentValuesJson = stableSerialize(currentValues);
   const isDirty = !deepEqual(currentValues, initialValues);
 
@@ -279,7 +292,7 @@ export function useSettingsForm<T extends Record<string, unknown>>(
   // on handleSave's identity. The actual value is read from form.state.values
   // at call time, so it's always fresh regardless of closure staleness.
   const handleSave = useCallback(async () => {
-    await persistValues(cloneValues(form.state.values as T), { source: "manual" });
+    await persistValues(cloneValues(form.state.values), { source: "manual" });
   }, [currentValuesJson, persistValues]);
 
   // Debounced autosave on any dirty value changes.

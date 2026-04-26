@@ -30,6 +30,11 @@ interface FlatPageOption {
   depth: number;
 }
 
+interface PageTemplateOption {
+  id: string;
+  name: string;
+}
+
 export function PageAttributesMetabox({
   parentPageId,
   menuOrder,
@@ -41,6 +46,7 @@ export function PageAttributesMetabox({
 }: PageAttributesMetaboxProps) {
   const { tree, isLoading: isLoadingTree } = usePageTree({ status: "all" });
   const { templates, isLoading: isLoadingTemplates } = usePageTemplates();
+  const templateOptions = templates as PageTemplateOption[];
 
   // Flatten tree for parent dropdown, excluding current page and its descendants
   const flattenTree = useCallback(
@@ -96,7 +102,7 @@ export function PageAttributesMetabox({
             aria-label="Page template"
             disabled={isLoadingTemplates}
           >
-            {templates.map((t) => (
+            {templateOptions.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
               </option>

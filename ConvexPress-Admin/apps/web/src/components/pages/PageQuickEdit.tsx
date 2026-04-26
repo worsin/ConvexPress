@@ -32,6 +32,11 @@ interface PageQuickEditProps {
   onClose: () => void;
 }
 
+interface PageTemplateOption {
+  id: string;
+  name: string;
+}
+
 export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
   const [title, setTitle] = useState(page.title);
   const [slug, setSlug] = useState(page.slug);
@@ -44,6 +49,7 @@ export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
   const { updatePage, setPageParent } = usePageMutations();
   const { tree } = usePageTree({ status: "all" });
   const { templates } = usePageTemplates();
+  const templateOptions = templates as PageTemplateOption[];
 
   // Flatten tree for parent dropdown, excluding self AND all descendants
   // (selecting a descendant as parent would create a circular reference)
@@ -179,7 +185,7 @@ export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
               onChange={(e) => setPageTemplate(e.target.value)}
               className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
             >
-              {templates.map((t) => (
+              {templateOptions.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>

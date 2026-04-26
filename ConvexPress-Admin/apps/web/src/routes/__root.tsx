@@ -58,10 +58,7 @@ function RootComponent() {
           setup wizard, error screens). The AdminBar has its own drag region
           that covers the full header height once the admin shell loads. */}
       {isElectron() && (
-        <div
-          className="fixed top-0 left-0 right-0 z-[9999] h-8"
-          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
-        />
+        <div className="fixed top-0 left-0 right-0 z-[9999] h-8 app-drag" />
       )}
       <ThemeProvider
         attribute="class"

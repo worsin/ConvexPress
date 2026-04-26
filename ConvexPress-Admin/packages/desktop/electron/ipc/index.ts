@@ -1,4 +1,3 @@
-import { ipcMain, app } from "electron";
 import { registerWindowHandlers, unregisterWindowHandlers } from "./window.js";
 import { registerConfigHandlers, unregisterConfigHandlers } from "./config.js";
 import { registerAuthHandlers, unregisterAuthHandlers } from "./auth.js";
@@ -11,6 +10,8 @@ import {
   registerUpdaterHandlers,
   unregisterUpdaterHandlers,
 } from "./updater.js";
+
+const { ipcMain, app } = require("electron") as typeof import("electron");
 
 export function registerAllIpcHandlers(): void {
   registerWindowHandlers();

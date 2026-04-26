@@ -24,6 +24,7 @@ import { SelectField } from "@/components/settings/fields/SelectField";
 import { TextareaField } from "@/components/settings/fields/TextareaField";
 import { RadioGroupField } from "@/components/settings/fields/RadioGroupField";
 import { ToggleField } from "@/components/settings/fields/ToggleField";
+import { getFieldError } from "@/components/settings/fields/types";
 import { useSettingsForm } from "@/hooks/useSettingsForm";
 import { useNavigationGuard } from "@/hooks/useNavigationGuard";
 import { discussionSettingsSchema } from "@/lib/settings/schemas";
@@ -222,7 +223,7 @@ function DiscussionSettingsPage() {
                         <SettingsField
                           label=""
                           suffix="days"
-                          error={daysField.state.meta.errors[0]?.toString()}
+                          error={getFieldError(daysField.state.meta.errors)}
                         >
                           <NumberField
                             field={daysField}
@@ -263,7 +264,7 @@ function DiscussionSettingsPage() {
                         <SettingsField
                           label=""
                           suffix="levels deep"
-                          error={depthField.state.meta.errors[0]?.toString()}
+                          error={getFieldError(depthField.state.meta.errors)}
                         >
                           <NumberField
                             field={depthField}
@@ -304,7 +305,7 @@ function DiscussionSettingsPage() {
                         <SettingsField
                           label=""
                           suffix="top level comments per page"
-                          error={perPageField.state.meta.errors[0]?.toString()}
+                          error={getFieldError(perPageField.state.meta.errors)}
                         >
                           <NumberField
                             field={perPageField}
@@ -414,7 +415,7 @@ function DiscussionSettingsPage() {
               htmlFor="holdIfLinksExceed"
               suffix="or more links"
               description="A common characteristic of comment spam is a large number of hyperlinks."
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <NumberField
                 field={field}
@@ -433,7 +434,7 @@ function DiscussionSettingsPage() {
               htmlFor="moderationWordList"
               layout="stacked"
               description="When a comment contains any of these words in its content, author name, URL, email, IP address, or browser's user agent string, it will be held in the moderation queue. One word or IP address per line."
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <TextareaField
                 field={field}
@@ -454,7 +455,7 @@ function DiscussionSettingsPage() {
               htmlFor="disallowedWordList"
               layout="stacked"
               description="When a comment contains any of these words in its content, author name, URL, email, IP address, or browser's user agent string, it will be put in the Trash. One word or IP address per line."
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <TextareaField
                 field={field}

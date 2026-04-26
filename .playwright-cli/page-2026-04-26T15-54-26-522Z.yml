@@ -1,0 +1,14 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - heading "ConvexPress Admin" [level=1] [ref=e6]
+      - paragraph [ref=e7]: Sign in to continue
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - text: Email or Username
+        - textbox "Email or Username" [active] [ref=e10]
+      - generic [ref=e11]:
+        - text: Password
+        - textbox "Password" [ref=e12]
+      - button "Sign In" [ref=e13]
+  - region "Notifications alt+T"

@@ -12,6 +12,10 @@ import { api } from "@backend/convex/_generated/api";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
+import {
+  CredentialField,
+  SECRET_SENTINEL,
+} from "@/components/settings/integrations/CredentialField";
 
 // ─── Form State ──────────────────────────────────────────────────────────────
 
@@ -47,7 +51,7 @@ type KBSettingsAction =
   | { type: "RESET"; payload: KBSettingsState };
 
 const DEFAULT_STATE: KBSettingsState = {
-  general: { siteName: "", siteDescription: "", homepageLayout: "categories", articlesPerPage: 10 },
+  general: { siteName: "", siteDescription: "", homepageLayout: "categories", articlesPerPage: 20 },
   features: { commentsEnabled: true, bookmarksEnabled: true, progressTrackingEnabled: true, ratingsEnabled: true, relatedArticlesEnabled: true },
   search: { meilisearchEnabled: false, meilisearchUrl: "", meilisearchApiKey: "", ragEnabled: false, ragProvider: "openai", ragApiKey: "", ragModel: "" },
 };
@@ -108,7 +112,7 @@ function KBSettingsForm() {
           siteName: (g?.siteName as string) ?? "",
           siteDescription: (g?.siteDescription as string) ?? "",
           homepageLayout: (g?.homepageLayout as "categories" | "search" | "featured") ?? "categories",
-          articlesPerPage: (g?.articlesPerPage as number) ?? 10,
+          articlesPerPage: (g?.articlesPerPage as number) ?? 20,
         },
         features: {
           commentsEnabled: (f?.commentsEnabled as boolean) ?? true,
@@ -150,10 +154,16 @@ function KBSettingsForm() {
         search: {
           meilisearchEnabled: search.meilisearchEnabled,
           meilisearchUrl: search.meilisearchUrl || undefined,
-          meilisearchApiKey: search.meilisearchApiKey || undefined,
+          meilisearchApiKey:
+            search.meilisearchApiKey === SECRET_SENTINEL
+              ? SECRET_SENTINEL
+              : search.meilisearchApiKey || undefined,
           ragEnabled: search.ragEnabled,
           ragProvider: search.ragProvider,
-          ragApiKey: search.ragApiKey || undefined,
+          ragApiKey:
+            search.ragApiKey === SECRET_SENTINEL
+              ? SECRET_SENTINEL
+              : search.ragApiKey || undefined,
           ragModel: search.ragModel || undefined,
         },
       });
@@ -275,16 +285,19 @@ function KBSettingsForm() {
                   className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-foreground/70 mb-1">Meilisearch API Key</label>
-                <input
-                  type="password"
-                  value={search.meilisearchApiKey}
-                  onChange={(e) => dispatch({ type: "SET_SEARCH", field: "meilisearchApiKey", value: e.target.value })}
-                  placeholder="••••••••"
-                  className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card"
-                />
-              </div>
+              <CredentialField
+                id="kb-meilisearch-api-key"
+                label="Meilisearch API Key"
+                value={search.meilisearchApiKey}
+                onChange={(value) =>
+                  dispatch({
+                    type: "SET_SEARCH",
+                    field: "meilisearchApiKey",
+                    value: value ?? SECRET_SENTINEL,
+                  })
+                }
+                placeholder="Master key or search key"
+              />
             </>
           )}
         </div>
@@ -313,16 +326,19 @@ function KBSettingsForm() {
                   <option value="anthropic">Anthropic</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-foreground/70 mb-1">API Key</label>
-                <input
-                  type="password"
-                  value={search.ragApiKey}
-                  onChange={(e) => dispatch({ type: "SET_SEARCH", field: "ragApiKey", value: e.target.value })}
-                  placeholder="••••••••"
-                  className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card"
-                />
-              </div>
+              <CredentialField
+                id="kb-rag-api-key"
+                label="API Key"
+                value={search.ragApiKey}
+                onChange={(value) =>
+                  dispatch({
+                    type: "SET_SEARCH",
+                    field: "ragApiKey",
+                    value: value ?? SECRET_SENTINEL,
+                  })
+                }
+                placeholder="Provider API key"
+              />
               <div>
                 <label className="block text-xs font-medium text-foreground/70 mb-1">Model</label>
                 <input

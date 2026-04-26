@@ -64,14 +64,16 @@ export function ActivityLogTable() {
 
   const updateFilter = useCallback(
     (key: string, value: string | undefined) => {
+      const searchUpdater = (prev: Record<string, unknown>) => {
+        const next = { ...prev, [key]: value, cursor: undefined };
+        for (const k of Object.keys(next)) {
+          if (next[k] === undefined || next[k] === "") delete next[k];
+        }
+        return next;
+      };
+
       navigate({
-        search: (prev: Record<string, unknown>) => {
-          const next = { ...prev, [key]: value, cursor: undefined };
-          for (const k of Object.keys(next)) {
-            if (next[k] === undefined || next[k] === "") delete next[k];
-          }
-          return next;
-        },
+        search: searchUpdater as never,
         replace: true,
       });
     },
@@ -80,11 +82,13 @@ export function ActivityLogTable() {
 
   const handleLoadMore = useCallback(() => {
     if (nextCursor) {
+      const searchUpdater = (prev: Record<string, unknown>) => ({
+        ...prev,
+        cursor: nextCursor,
+      });
+
       navigate({
-        search: (prev: Record<string, unknown>) => ({
-          ...prev,
-          cursor: nextCursor,
-        }),
+        search: searchUpdater as never,
         replace: true,
       });
     }

@@ -12,6 +12,14 @@ interface MenuSettingsPanelProps {
   menuName: string;
 }
 
+interface MenuLocationRow {
+  _id: string;
+  slug: string;
+  name: string;
+  menuName?: string;
+  menuId?: Id<"menus"> | null;
+}
+
 /**
  * Menu settings panel shown below the item list in the editor.
  * Contains: auto-add pages checkbox and location assignment checkboxes.
@@ -24,7 +32,9 @@ export function MenuSettingsPanel({
   autoAddPages,
   menuName,
 }: MenuSettingsPanelProps) {
-  const locations = useQuery(api.menus.queries.getMenuLocations);
+  const locations = useQuery(api.menus.queries.getMenuLocations) as
+    | MenuLocationRow[]
+    | undefined;
   const updateMenu = useMutation(api.menus.mutations.updateMenu);
   const assignMenuToLocation = useMutation(
     api.menus.mutations.assignMenuToLocation,

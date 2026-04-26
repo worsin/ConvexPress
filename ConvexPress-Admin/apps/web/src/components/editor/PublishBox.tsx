@@ -449,7 +449,7 @@ export function PublishBox({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex gap-1.5">
             {/* Save Draft - visible for draft/auto-draft */}
-            {(isDraft || status === "auto-draft") && (
+            {isDraft && (
               <Button
                 variant="secondary"
                 size="sm"

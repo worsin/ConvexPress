@@ -17,16 +17,16 @@
  */
 
 import * as React from "react";
-import type { AnyFieldApi } from "@tanstack/react-form";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { ChevronDown, Search, X } from "lucide-react";
 
 import type { FieldOption, FieldOptionGroup } from "@/types/settings";
 import { cn } from "@/lib/utils";
+import type { SettingsFieldApi } from "./types";
 
 interface ComboboxFieldProps {
   /** TanStack Form field API */
-  field: AnyFieldApi;
+  field: SettingsFieldApi;
   /** Options to display (flat or grouped) */
   options: FieldOption[] | FieldOptionGroup[];
   /** Placeholder text */

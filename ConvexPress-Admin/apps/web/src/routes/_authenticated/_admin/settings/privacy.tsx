@@ -14,6 +14,7 @@ import { SettingsField } from "@/components/settings/SettingsField";
 import { SettingsCallout } from "@/components/settings/SettingsCallout";
 import { SettingsPageSkeleton } from "@/components/settings/SettingsPageSkeleton";
 import { CheckboxField } from "@/components/settings/fields/CheckboxField";
+import { getFieldError } from "@/components/settings/fields/types";
 import { PageSelect } from "@/components/settings/PageSelect";
 import { useSettingsForm } from "@/hooks/useSettingsForm";
 import { useNavigationGuard } from "@/hooks/useNavigationGuard";
@@ -75,7 +76,7 @@ function PrivacySettingsPage() {
               label="Privacy Policy Page"
               htmlFor="privacyPolicyPageId"
               description="Select the page that will serve as your privacy policy. This page will be linked from registration and login forms."
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <PageSelect
                 field={field}

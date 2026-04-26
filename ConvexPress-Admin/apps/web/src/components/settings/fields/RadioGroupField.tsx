@@ -17,17 +17,17 @@
  * - Description text per option
  */
 
-import type { AnyFieldApi } from "@tanstack/react-form";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { Radio } from "@base-ui/react/radio";
 
 import type { FieldOption } from "@/types/settings";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import type { SettingsFieldApi } from "./types";
 
 interface RadioGroupFieldProps {
   /** TanStack Form field API */
-  field: AnyFieldApi;
+  field: SettingsFieldApi;
   /** Options to display */
   options: FieldOption[];
   /** Layout direction */
@@ -36,7 +36,7 @@ interface RadioGroupFieldProps {
   customOption?: {
     value: string;
     inputPlaceholder?: string;
-    inputField: AnyFieldApi;
+    inputField: SettingsFieldApi;
   };
   /** Disabled state */
   disabled?: boolean;

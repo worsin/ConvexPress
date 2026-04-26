@@ -10,6 +10,11 @@ const webUrl =
 	process.env.CONVEXPRESS_DESKTOP_DEV_URL ?? "http://localhost:4105";
 const bun = process.platform === "win32" ? "bun.cmd" : "bun";
 const shouldStartWeb = !process.env.CONVEXPRESS_DESKTOP_DEV_URL;
+const childEnv = { ...process.env };
+
+// Some shells export this globally. If it leaks into Electron, the app starts
+// in Node-only mode and the main process never receives the real Electron API.
+delete childEnv.ELECTRON_RUN_AS_NODE;
 
 function run(command, args, options = {}) {
 	return new Promise((resolveRun, rejectRun) => {
@@ -77,7 +82,7 @@ async function main() {
 		webDevServer = spawn(bun, ["run", "dev:web"], {
 			cwd: repoRoot,
 			stdio: "inherit",
-			env: process.env,
+			env: childEnv,
 		});
 
 		webDevServer.on("error", (error) => {
@@ -92,15 +97,13 @@ async function main() {
 		"tsup",
 		"electron/main.ts",
 		"--format",
-		"esm",
+		"cjs",
 		"--outDir",
 		"dist-electron",
 		"--external",
 		"electron",
 		"--external",
 		"electron-updater",
-		"--external",
-		"electron-store",
 		"--external",
 		"fix-path",
 	]);
@@ -129,7 +132,7 @@ async function main() {
 		cwd: desktopRoot,
 		stdio: "inherit",
 		env: {
-			...process.env,
+			...childEnv,
 			CONVEXPRESS_DESKTOP_DEV_URL: webUrl,
 		},
 	});

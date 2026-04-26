@@ -17,6 +17,7 @@ import { RadioGroupField } from "@/components/settings/fields/RadioGroupField";
 import { NumberField } from "@/components/settings/fields/NumberField";
 import { CheckboxField } from "@/components/settings/fields/CheckboxField";
 import { SelectField } from "@/components/settings/fields/SelectField";
+import { getFieldError } from "@/components/settings/fields/types";
 import { PageSelect } from "@/components/settings/PageSelect";
 import { useSettingsForm } from "@/hooks/useSettingsForm";
 import { useNavigationGuard } from "@/hooks/useNavigationGuard";
@@ -107,7 +108,7 @@ function ReadingSettingsPage() {
                   <SettingsField
                     label="Homepage"
                     htmlFor="homepageId"
-                    error={field.state.meta.errors[0]?.toString()}
+                    error={getFieldError(field.state.meta.errors)}
                   >
                     <PageSelect
                       field={field}
@@ -123,7 +124,7 @@ function ReadingSettingsPage() {
                   <SettingsField
                     label="Posts page"
                     htmlFor="postsPageId"
-                    error={field.state.meta.errors[0]?.toString()}
+                    error={getFieldError(field.state.meta.errors)}
                   >
                     <PageSelect
                       field={field}
@@ -149,7 +150,7 @@ function ReadingSettingsPage() {
               label="Blog pages show at most"
               htmlFor="postsPerPage"
               suffix="posts"
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <NumberField
                 field={field}
@@ -167,7 +168,7 @@ function ReadingSettingsPage() {
               label="Syndication feeds show the most recent"
               htmlFor="feedItemCount"
               suffix="items"
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <NumberField
                 field={field}
@@ -184,7 +185,7 @@ function ReadingSettingsPage() {
             <SettingsField
               label="For each post in a feed, include"
               htmlFor="feedContentDisplay"
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <SelectField field={field} options={feedContentOptions} />
             </SettingsField>

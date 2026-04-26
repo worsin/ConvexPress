@@ -10,11 +10,22 @@ import { MenuDeleteDialog } from "./MenuDeleteDialog";
 import { useDuplicateMenu } from "@/hooks/menus";
 import type { Id } from "@backend/convex/_generated/dataModel";
 
+interface MenuRow {
+  _id: Id<"menus">;
+  name: string;
+  slug?: string;
+  description?: string;
+  itemCount?: number;
+  assignedLocations: string[];
+  createdAt: number;
+  updatedAt?: number;
+}
+
 /**
  * Table listing all menus with name, item count, assigned locations, date, and actions.
  */
 export function MenuListTable() {
-  const menus = useQuery(api.menus.queries.listMenus);
+  const menus = useQuery(api.menus.queries.listMenus) as MenuRow[] | undefined;
   const duplicateMenu = useDuplicateMenu();
   const [deleteTarget, setDeleteTarget] = useState<{
     id: Id<"menus">;

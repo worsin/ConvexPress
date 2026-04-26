@@ -18,7 +18,7 @@ import { api } from "@backend/convex/_generated/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserForm } from "@/components/users/user-form";
 import { useUpdateProfile } from "@/hooks/users/useUserMutations";
-import type { SocialLinks, UserPreferences } from "@/lib/users/types";
+import type { SocialLinks, UserPreferences, UserStatus } from "@/lib/users/types";
 import type { Id } from "@backend/convex/_generated/dataModel";
 
 /** Shape returned by getProfile query (enriched user profile) */
@@ -37,8 +37,8 @@ interface EnrichedUserProfile {
   url?: string;
   socialLinks?: SocialLinks;
   preferences?: UserPreferences;
-  status: string;
-  roleId?: string;
+  status: UserStatus;
+  roleId?: Id<"roles">;
   roleName?: string;
   roleLevel?: number;
   createdAt: number;

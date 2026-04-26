@@ -112,10 +112,10 @@ function SortableTermRow({
           <button
             type="button"
             className="cursor-grab text-muted-foreground/50 hover:text-muted-foreground active:cursor-grabbing"
-            aria-roledescription="sortable"
             aria-label={`Reorder ${term.name}`}
             {...attributes}
             {...listeners}
+            aria-roledescription="sortable"
           >
             <GripVerticalIcon className="size-4" />
           </button>

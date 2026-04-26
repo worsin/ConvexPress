@@ -68,13 +68,11 @@ export function SitemapSettingsForm({
   );
 
   const computeDiff = useCallback((): Partial<SitemapSettings> => {
-    const diff: Partial<SitemapSettings> = {};
-    for (const key of Object.keys(localSettings) as Array<keyof SitemapSettings>) {
-      if (localSettings[key] !== settings[key]) {
-        diff[key] = localSettings[key];
-      }
-    }
-    return diff;
+    return Object.fromEntries(
+      (Object.keys(localSettings) as Array<keyof SitemapSettings>)
+        .filter((key) => localSettings[key] !== settings[key])
+        .map((key) => [key, localSettings[key]]),
+    ) as Partial<SitemapSettings>;
   }, [localSettings, settings]);
 
   // Debounced autosave for real-time settings persistence.

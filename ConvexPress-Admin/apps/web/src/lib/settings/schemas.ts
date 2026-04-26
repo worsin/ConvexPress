@@ -260,6 +260,50 @@ export const privacySettingsSchema = z.object({
 
 export type PrivacySettingsSchema = z.infer<typeof privacySettingsSchema>;
 
+// --- Media Settings ---
+
+export const mediaSettingsSchema = z.object({
+  maxUploadSize: z
+    .number()
+    .int("Must be a whole number.")
+    .min(0, "Cannot be negative."),
+  thumbnailWidth: z
+    .number()
+    .int("Must be a whole number.")
+    .min(0, "Cannot be negative."),
+  thumbnailHeight: z
+    .number()
+    .int("Must be a whole number.")
+    .min(0, "Cannot be negative."),
+  thumbnailCrop: z.boolean().default(true),
+  mediumWidth: z
+    .number()
+    .int("Must be a whole number.")
+    .min(0, "Cannot be negative."),
+  mediumMaxHeight: z
+    .number()
+    .int("Must be a whole number.")
+    .min(0, "Cannot be negative."),
+  mediumLargeWidth: z
+    .number()
+    .int("Must be a whole number.")
+    .min(0, "Cannot be negative."),
+  mediumLargeMaxHeight: z
+    .number()
+    .int("Must be a whole number.")
+    .min(0, "Cannot be negative."),
+  largeWidth: z
+    .number()
+    .int("Must be a whole number.")
+    .min(0, "Cannot be negative."),
+  largeMaxHeight: z
+    .number()
+    .int("Must be a whole number.")
+    .min(0, "Cannot be negative."),
+});
+
+export type MediaSettingsSchema = z.infer<typeof mediaSettingsSchema>;
+
 // --- Default Values (must match backend defaults.ts exactly) ---
 
 export const generalDefaults: GeneralSettingsSchema = {
@@ -333,6 +377,19 @@ export const privacyDefaults: PrivacySettingsSchema = {
   showPrivacyPolicyLink: true,
 };
 
+export const mediaDefaults: MediaSettingsSchema = {
+  maxUploadSize: 52_428_800,
+  thumbnailWidth: 150,
+  thumbnailHeight: 150,
+  thumbnailCrop: true,
+  mediumWidth: 300,
+  mediumMaxHeight: 0,
+  mediumLargeWidth: 768,
+  mediumLargeMaxHeight: 0,
+  largeWidth: 1024,
+  largeMaxHeight: 0,
+};
+
 /** Map of section key to default values */
 export const sectionDefaults: Record<string, Record<string, unknown>> = {
   general: generalDefaults,
@@ -341,6 +398,7 @@ export const sectionDefaults: Record<string, Record<string, unknown>> = {
   discussion: discussionDefaults,
   permalinks: permalinkDefaults,
   privacy: privacyDefaults,
+  media: mediaDefaults,
 };
 
 /** Map of section key to validation schema */
@@ -351,4 +409,5 @@ export const sectionSchemas: Record<string, z.ZodObject<z.ZodRawShape>> = {
   discussion: discussionSettingsSchema as unknown as z.ZodObject<z.ZodRawShape>,
   permalinks: permalinkSettingsSchema as unknown as z.ZodObject<z.ZodRawShape>,
   privacy: privacySettingsSchema as unknown as z.ZodObject<z.ZodRawShape>,
+  media: mediaSettingsSchema as unknown as z.ZodObject<z.ZodRawShape>,
 };

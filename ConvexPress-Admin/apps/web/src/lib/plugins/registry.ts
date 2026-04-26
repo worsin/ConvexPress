@@ -247,8 +247,21 @@ export const DEFAULT_PLUGIN_SETTINGS: PluginSettingsValues = {
   galleryEnabled: true,
 };
 
+export const PLUGIN_PARENT: Partial<Record<AdminPluginId, AdminPluginId>> = {
+  commerceDigital: "commerce",
+  commerceReviews: "commerce",
+  commerceWishlists: "commerce",
+  commerceBundles: "commerce",
+  commerceReturns: "commerce",
+  commerceSubscriptions: "commerce",
+};
+
 export function getPluginDefinition(pluginId: AdminPluginId) {
   return ADMIN_PLUGINS.find((plugin) => plugin.id === pluginId) ?? null;
+}
+
+export function getPluginParent(pluginId: AdminPluginId) {
+  return PLUGIN_PARENT[pluginId] ?? null;
 }
 
 export function isPluginEnabled(
@@ -258,6 +271,10 @@ export function isPluginEnabled(
   const plugin = getPluginDefinition(pluginId);
   if (!plugin) return true;
   const merged = { ...DEFAULT_PLUGIN_SETTINGS, ...(values ?? {}) };
+  const parentId = getPluginParent(pluginId);
+  if (parentId && !isPluginEnabled(parentId, merged)) {
+    return false;
+  }
   return Boolean(merged[plugin.settingsKey]);
 }
 

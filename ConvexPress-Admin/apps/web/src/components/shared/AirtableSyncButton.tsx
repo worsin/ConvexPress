@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 import { useAction } from "convex/react";
+import type { FunctionReference } from "convex/server";
 import { RefreshCwIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,7 +27,7 @@ interface SyncResult {
 
 interface AirtableSyncButtonProps {
   /** The Convex action reference to call (e.g., api.airtableSync.actions.syncRoles) */
-  syncAction: () => Promise<unknown>;
+  syncAction: FunctionReference<"action">;
   /** Button label. Default: "Sync from Airtable" */
   label?: string;
 }

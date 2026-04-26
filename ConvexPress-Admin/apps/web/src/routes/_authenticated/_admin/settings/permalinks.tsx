@@ -19,6 +19,7 @@ import { SettingsField } from "@/components/settings/SettingsField";
 import { SettingsPageSkeleton } from "@/components/settings/SettingsPageSkeleton";
 import { RadioGroupField } from "@/components/settings/fields/RadioGroupField";
 import { TextField } from "@/components/settings/fields/TextField";
+import { getFieldError } from "@/components/settings/fields/types";
 import { PermalinkTagButtons } from "@/components/settings/PermalinkTagButtons";
 import { PermalinkPreview } from "@/components/settings/PermalinkPreview";
 import { PermalinkChangeDialog } from "@/components/settings/PermalinkChangeDialog";
@@ -96,13 +97,13 @@ function PermalinkSettingsPage() {
     (values.structure === "custom" &&
       values.customStructure !== initialValues.customStructure);
 
-  const handleSaveClick = React.useCallback(() => {
+  const handleSaveClick = React.useCallback(async () => {
     if (structureChanged) {
       // Show confirmation dialog before saving
       setShowConfirmDialog(true);
     } else {
       // Non-structure changes (categoryBase, tagBase) can save directly
-      void handleSave();
+      await handleSave();
     }
   }, [structureChanged, handleSave]);
 
@@ -196,7 +197,7 @@ function PermalinkSettingsPage() {
                       label="Custom Structure"
                       htmlFor="customStructure"
                       description="Build your permalink using the available structure tags."
-                      error={field.state.meta.errors[0]?.toString()}
+                      error={getFieldError(field.state.meta.errors)}
                     >
                       <div>
                         <input
@@ -246,7 +247,7 @@ function PermalinkSettingsPage() {
                 label="Category base"
                 htmlFor="categoryBase"
                 description="The prefix for category archive URLs. Default: category"
-                error={field.state.meta.errors[0]?.toString()}
+                error={getFieldError(field.state.meta.errors)}
               >
                 <TextField
                   field={field}
@@ -262,7 +263,7 @@ function PermalinkSettingsPage() {
                 label="Tag base"
                 htmlFor="tagBase"
                 description="The prefix for tag archive URLs. Default: tag"
-                error={field.state.meta.errors[0]?.toString()}
+                error={getFieldError(field.state.meta.errors)}
               >
                 <TextField
                   field={field}

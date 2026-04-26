@@ -35,6 +35,16 @@ interface DeleteUserDialogProps {
   onDeleted?: () => void;
 }
 
+interface UserOption {
+  _id: Id<"users">;
+  displayName?: string;
+  email: string;
+}
+
+interface UserListResult {
+  users?: UserOption[];
+}
+
 export function DeleteUserDialog({
   open,
   onClose,
@@ -53,7 +63,7 @@ export function DeleteUserDialog({
   const usersResult = useQuery(api.profiles.queries.listUsers, {
     status: "active",
     perPage: 100,
-  });
+  }) as UserListResult | undefined;
   const activeUsers = usersResult?.users?.filter(
     (u) => u._id !== user._id,
   );

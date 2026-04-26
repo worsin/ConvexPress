@@ -5,15 +5,15 @@
  */
 
 import * as React from "react";
-import type { AnyFieldApi } from "@tanstack/react-form";
 
 import { Button } from "@/components/ui/button";
+import type { SettingsFieldApi } from "./fields/types";
 
 interface PermalinkTagButtonsProps {
   /** Reference to the custom structure input element */
   inputRef: React.RefObject<HTMLInputElement | null>;
   /** TanStack Form field for customStructure */
-  field: AnyFieldApi;
+  field: SettingsFieldApi;
 }
 
 const PERMALINK_TAGS = [

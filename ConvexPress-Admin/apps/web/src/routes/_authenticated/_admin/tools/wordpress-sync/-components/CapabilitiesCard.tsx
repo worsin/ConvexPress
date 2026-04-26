@@ -72,7 +72,7 @@ function resolveCapability(
 export function CapabilitiesCard({ capabilities }: CapabilitiesCardProps) {
   if (!capabilities) return null;
 
-  const caps = capabilities as Record<string, unknown>;
+  const caps = capabilities as unknown as Record<string, unknown>;
 
   return (
     <Card>

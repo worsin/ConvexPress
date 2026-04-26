@@ -43,6 +43,12 @@ interface BlockInserterProps {
   onClose: () => void;
 }
 
+interface ReusableBlockSummary {
+  _id: string;
+  title: string;
+  content: string;
+}
+
 const CATEGORY_LABELS: Record<string, string> = {
   text: "Text",
   media: "Media",
@@ -62,7 +68,7 @@ export function BlockInserter({ onSelect, onClose }: BlockInserterProps) {
   const reusableBlocks = useQuery(
     api.editor.queries.listReusableBlocks,
     { publishedOnly: true },
-  );
+  ) as ReusableBlockSummary[] | undefined;
 
   const items = useMemo(() => {
     const all = getSlashCommandItems();

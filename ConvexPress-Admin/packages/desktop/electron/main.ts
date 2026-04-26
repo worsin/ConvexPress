@@ -1,26 +1,23 @@
-import {
+import path from "node:path";
+import { appendFileSync, writeFileSync } from "node:fs";
+import { registerAllIpcHandlers } from "./ipc/index.js";
+import { initAppUpdater } from "./ipc/app-updater.js";
+import { initUpdaterEvents } from "./ipc/updater.js";
+import { createTray } from "./tray.js";
+import { JsonStore } from "./utils/json-store.js";
+import { setQuitting } from "./utils/app-state.js";
+import { safeError, safeLog } from "./utils/safe-log.js";
+import { windowManager } from "./window-manager.js";
+import { readManifest } from "./version.js";
+
+const {
   app,
   BrowserWindow,
   ipcMain,
   nativeImage,
   nativeTheme,
   session,
-} from "electron";
-import path from "node:path";
-import { appendFileSync, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { createRequire } from "node:module";
-import Store from "electron-store";
-import { registerAllIpcHandlers } from "./ipc/index.js";
-import { initAppUpdater } from "./ipc/app-updater.js";
-import { initUpdaterEvents } from "./ipc/updater.js";
-import { createTray } from "./tray.js";
-import { setQuitting } from "./utils/app-state.js";
-import { safeError, safeLog } from "./utils/safe-log.js";
-import { windowManager } from "./window-manager.js";
-import { readManifest } from "./version.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+} = require("electron") as typeof import("electron");
 
 // ---------- IMPORTANT: Set app name and userData BEFORE anything reads them ----------
 app.setName("ConvexPress");
@@ -53,7 +50,6 @@ try {
 }
 
 // ---------- Fix PATH for macOS .app bundles ----------
-const require = createRequire(import.meta.url);
 const fixPath = require("fix-path");
 fixPath();
 
@@ -77,7 +73,7 @@ if (process.platform === "darwin") {
 }
 
 // ---------- Config Store ----------
-const store = new Store({ name: "convexpress-config" });
+const store = new JsonStore({ name: "convexpress-config" });
 
 // ---------- Global Error Handling ----------
 

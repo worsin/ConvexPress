@@ -5,14 +5,13 @@
  * Integrates with TanStack Form field API.
  */
 
-import type { AnyFieldApi } from "@tanstack/react-form";
-
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import type { SettingsFieldApi } from "./types";
 
 interface TextFieldProps {
   /** TanStack Form field API */
-  field: AnyFieldApi;
+  field: SettingsFieldApi;
   /** Input type: text, email, url, password */
   type?: "text" | "email" | "url" | "password";
   /** Placeholder text */

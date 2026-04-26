@@ -37,7 +37,7 @@ import { DeleteUserDialog } from "@/components/users/delete-user-dialog";
 import { useUpdateUser, useReactivateUser } from "@/hooks/users/useUserMutations";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import type { Id } from "@backend/convex/_generated/dataModel";
-import type { SocialLinks, UserPreferences } from "@/lib/users/types";
+import type { SocialLinks, UserPreferences, UserStatus } from "@/lib/users/types";
 
 /** Shape returned by getUser query (enriched user profile) */
 interface EnrichedUser {
@@ -55,8 +55,8 @@ interface EnrichedUser {
   url?: string;
   socialLinks?: SocialLinks;
   preferences?: UserPreferences;
-  status: string;
-  roleId?: string;
+  status: UserStatus;
+  roleId?: Id<"roles">;
   roleName?: string;
   roleLevel?: number;
   createdAt: number;

@@ -29,7 +29,10 @@ type Money = { amount?: number; currency?: string };
 type Category = {
 	_id: Id<"commerce_product_categories">;
 	name: string;
+	slug?: string;
 	description?: string;
+	depth?: number;
+	children?: Category[];
 };
 type OptionValue = {
 	id: string;
@@ -86,6 +89,7 @@ type Product = {
 	isVirtual?: boolean;
 	shippingWeightOz?: number;
 	isDownloadable?: boolean;
+	taxClass?: string;
 	categoryIds?: Id<"commerce_product_categories">[];
 	featuredMediaId?: Id<"media">;
 	galleryMediaIds?: Id<"media">[];
@@ -103,6 +107,18 @@ type VariantIntegrity = {
 	samples: Record<string, Record<string, unknown>[]>;
 };
 
+function flattenCategoryTree(
+	nodes: Category[],
+	level = 0,
+	output: Array<Category & { level: number }> = [],
+) {
+	for (const node of nodes) {
+		output.push({ ...node, level });
+		flattenCategoryTree(node.children ?? [], level + 1, output);
+	}
+	return output;
+}
+
 interface CommerceProductEditorProps {
 	mode: EditorMode;
 	productId?: Id<"commerce_products">;
@@ -113,9 +129,14 @@ export function CommerceProductEditor({
 	productId,
 }: CommerceProductEditorProps) {
 	const navigate = useNavigate();
-	const categories =
-		(useQuery(api["commerce/categories"].list, {}) as Category[] | undefined) ??
-		[];
+	const categoryTree =
+		(useQuery(api["commerce/categories"].getTree, {
+			includeHidden: true,
+		}) as Category[] | undefined) ?? [];
+	const categories = useMemo(
+		() => flattenCategoryTree(categoryTree),
+		[categoryTree],
+	);
 	const optionTypes = useQuery(
 		api["commerce/products"].listOptionTypes,
 		mode === "edit" && productId ? { productId } : "skip",
@@ -176,6 +197,7 @@ export function CommerceProductEditor({
 	const [isVirtual, setIsVirtual] = useState(false);
 	const [shippingWeightOz, setShippingWeightOz] = useState("");
 	const [isDownloadable, setIsDownloadable] = useState(false);
+	const [taxClass, setTaxClass] = useState("");
 	const [selectedCategoryIds, setSelectedCategoryIds] = useState<
 		Id<"commerce_product_categories">[]
 	>([]);
@@ -295,6 +317,7 @@ export function CommerceProductEditor({
 				: "",
 		);
 		setIsDownloadable(product.isDownloadable ?? false);
+		setTaxClass(product.taxClass ?? "");
 		setSelectedCategoryIds(product.categoryIds ?? []);
 		setFeaturedMediaId(product.featuredMediaId);
 		setGalleryMediaIds(product.galleryMediaIds ?? []);
@@ -982,6 +1005,7 @@ export function CommerceProductEditor({
 				? Number(shippingWeightOz)
 				: undefined,
 			isDownloadable,
+			taxClass: taxClass.trim() || undefined,
 			featuredMediaId:
 				mode === "edit" ? (featuredMediaId ?? null) : featuredMediaId,
 			galleryMediaIds,
@@ -2394,6 +2418,24 @@ export function CommerceProductEditor({
 								/>
 								Downloadable product
 							</label>
+							<div className="grid gap-2">
+								<label
+									className="text-sm font-medium"
+									htmlFor="commerce-product-tax-class"
+								>
+									Tax class
+								</label>
+								<Input
+									id="commerce-product-tax-class"
+									value={taxClass}
+									onChange={(event) => setTaxClass(event.target.value)}
+									placeholder="standard"
+								/>
+								<p className="text-xs text-muted-foreground">
+									Leave blank for standard. Use values like reduced-rate to
+									match tax rules.
+								</p>
+							</div>
 							{mode === "edit" ? (
 								<div className="rounded-2xl border border-dashed border-border bg-muted/30 p-4 text-sm">
 									<p className="font-medium text-foreground">
@@ -2452,20 +2494,21 @@ export function CommerceProductEditor({
 									No categories yet. Create one first.
 								</p>
 							) : (
-								categories.map((category) => (
-									<label
-										key={category._id}
-										className="flex items-start gap-3 text-sm"
-									>
+									categories.map((category) => (
+										<label
+											key={category._id}
+											className="flex items-start gap-3 text-sm"
+										>
 										<input
 											type="checkbox"
 											checked={selectedCategoryIds.includes(category._id)}
 											onChange={() => handleCategoryToggle(category._id)}
-										/>
-										<div>
-											<div className="font-medium text-foreground">
-												{category.name}
-											</div>
+											/>
+											<div>
+												<div className="font-medium text-foreground">
+													{"- ".repeat(category.level)}
+													{category.name}
+												</div>
 											{category.description ? (
 												<div className="text-xs text-muted-foreground">
 													{category.description}

@@ -12,15 +12,15 @@
  * - Step snapping
  */
 
-import type { AnyFieldApi } from "@tanstack/react-form";
 import { NumberField as NumberFieldPrimitive } from "@base-ui/react/number-field";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import type { SettingsFieldApi } from "./types";
 
 interface NumberFieldProps {
   /** TanStack Form field API */
-  field: AnyFieldApi;
+  field: SettingsFieldApi;
   /** Minimum value */
   min?: number;
   /** Maximum value */

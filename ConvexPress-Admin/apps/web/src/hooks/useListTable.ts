@@ -165,21 +165,23 @@ export function useListTable<TRow>(
 
   const updateSearch = useCallback(
     (updates: Record<string, string | number | undefined>) => {
-      navigate({
-        search: (prev: Record<string, unknown>) => {
-          const next = { ...prev, ...updates };
-          // Remove undefined/empty values from search params
-          for (const key of Object.keys(next)) {
-            if (
-              next[key] === undefined ||
-              next[key] === "" ||
-              next[key] === null
-            ) {
-              delete next[key];
-            }
+      const searchUpdater = (prev: Record<string, unknown>) => {
+        const next = { ...prev, ...updates };
+        // Remove undefined/empty values from search params
+        for (const key of Object.keys(next)) {
+          if (
+            next[key] === undefined ||
+            next[key] === "" ||
+            next[key] === null
+          ) {
+            delete next[key];
           }
-          return next;
-        },
+        }
+        return next;
+      };
+
+      navigate({
+        search: searchUpdater as never,
         replace: true,
       });
     },

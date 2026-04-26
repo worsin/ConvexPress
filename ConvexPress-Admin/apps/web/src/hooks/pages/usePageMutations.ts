@@ -9,6 +9,7 @@ import { useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
 import { toast } from "sonner";
 import type { Id, Doc } from "@backend/convex/_generated/dataModel";
+import { getErrorMessage } from "@/lib/utils";
 
 // Page-specific types derived from Convex schema
 type PageStatus = Doc<"posts">["status"];
@@ -58,7 +59,7 @@ export function usePageMutations() {
       }
       return pageId;
     } catch (error: unknown) {
-      const message = (error as { data?: { message?: string }; message?: string })?.data?.message ?? error?.message ?? "Failed to create page";
+      const message = getErrorMessage(error, "Failed to create page");
       toast.error(message);
       throw error;
     }
@@ -86,7 +87,7 @@ export function usePageMutations() {
       toast.success("Page updated.");
       return result;
     } catch (error: unknown) {
-      const message = (error as { data?: { message?: string }; message?: string })?.data?.message ?? error?.message ?? "Failed to update page";
+      const message = getErrorMessage(error, "Failed to update page");
       toast.error(message);
       throw error;
     }
@@ -100,7 +101,7 @@ export function usePageMutations() {
       toast.success("Page published.");
       return result;
     } catch (error: unknown) {
-      const message = (error as { data?: { message?: string }; message?: string })?.data?.message ?? error?.message ?? "Failed to publish page";
+      const message = getErrorMessage(error, "Failed to publish page");
       toast.error(message);
       throw error;
     }
@@ -116,7 +117,7 @@ export function usePageMutations() {
       );
       return result;
     } catch (error: unknown) {
-      const message = (error as { data?: { message?: string }; message?: string })?.data?.message ?? error?.message ?? "Failed to trash page";
+      const message = getErrorMessage(error, "Failed to trash page");
       toast.error(message);
       throw error;
     }
@@ -132,7 +133,7 @@ export function usePageMutations() {
       );
       return result;
     } catch (error: unknown) {
-      const message = (error as { data?: { message?: string }; message?: string })?.data?.message ?? error?.message ?? "Failed to restore page";
+      const message = getErrorMessage(error, "Failed to restore page");
       toast.error(message);
       throw error;
     }
@@ -148,7 +149,7 @@ export function usePageMutations() {
       );
       return result;
     } catch (error: unknown) {
-      const message = (error as { data?: { message?: string }; message?: string })?.data?.message ?? error?.message ?? "Failed to delete page";
+      const message = getErrorMessage(error, "Failed to delete page");
       toast.error(message);
       throw error;
     }
@@ -166,7 +167,7 @@ export function usePageMutations() {
       toast.success("Pages reordered.");
       return result;
     } catch (error: unknown) {
-      const message = (error as { data?: { message?: string }; message?: string })?.data?.message ?? error?.message ?? "Failed to reorder pages";
+      const message = getErrorMessage(error, "Failed to reorder pages");
       toast.error(message);
       throw error;
     }
@@ -180,7 +181,7 @@ export function usePageMutations() {
       toast.success("Page parent updated.");
       return result;
     } catch (error: unknown) {
-      const message = (error as { data?: { message?: string }; message?: string })?.data?.message ?? error?.message ?? "Failed to set page parent";
+      const message = getErrorMessage(error, "Failed to set page parent");
       toast.error(message);
       throw error;
     }

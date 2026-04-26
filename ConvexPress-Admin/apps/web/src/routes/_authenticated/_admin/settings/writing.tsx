@@ -12,6 +12,7 @@ import { SettingsSection } from "@/components/settings/SettingsSection";
 import { SettingsField } from "@/components/settings/SettingsField";
 import { SettingsPageSkeleton } from "@/components/settings/SettingsPageSkeleton";
 import { SelectField } from "@/components/settings/fields/SelectField";
+import { getFieldError } from "@/components/settings/fields/types";
 import { CategorySelect } from "@/components/settings/CategorySelect";
 import { useSettingsForm } from "@/hooks/useSettingsForm";
 import { useNavigationGuard } from "@/hooks/useNavigationGuard";
@@ -74,7 +75,7 @@ function WritingSettingsPage() {
               label="Default Post Category"
               htmlFor="defaultCategory"
               description="The category assigned to new posts if none is selected."
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <CategorySelect field={field} />
             </SettingsField>
@@ -87,7 +88,7 @@ function WritingSettingsPage() {
               label="Default Post Format"
               htmlFor="defaultPostFormat"
               description="The format assigned to new posts if none is selected."
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <SelectField field={field} options={postFormatOptions} />
             </SettingsField>

@@ -22,6 +22,20 @@ interface MediaPickerProps {
   filterType?: "image" | "video" | "audio" | "document";
 }
 
+interface MediaListItem {
+  _id: string;
+  url?: string;
+  thumbnailUrl?: string;
+  title?: string;
+  filename?: string;
+  altText?: string;
+  mimeType?: string;
+}
+
+interface MediaListResult {
+  page: MediaListItem[];
+}
+
 export function MediaPicker({
   onSelect,
   onClose,
@@ -38,7 +52,7 @@ export function MediaPicker({
     mediaType: filterType,
     search: search.trim() || undefined,
     paginationOpts: { numItems: 24, cursor: null },
-  });
+  }) as MediaListResult | undefined;
 
   // Map Convex media records to our display format
   const filteredMedia = useMemo(() => {

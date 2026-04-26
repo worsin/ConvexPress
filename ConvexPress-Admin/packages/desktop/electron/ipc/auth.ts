@@ -1,9 +1,9 @@
-import { ipcMain } from "electron";
-import Store from "electron-store";
+import { JsonStore } from "../utils/json-store.js";
 
-const authStore = new Store({
+const { ipcMain } = require("electron") as typeof import("electron");
+
+const authStore = new JsonStore({
   name: "convexpress-auth",
-  encryptionKey: "convexpress-auth-v1",
 });
 
 const ALLOWED_PREFIXES = ["__convexAuth", "convexAuth"];

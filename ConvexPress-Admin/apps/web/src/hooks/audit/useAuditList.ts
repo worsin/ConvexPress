@@ -52,14 +52,16 @@ export function useAuditList(options?: UseAuditListOptions) {
   // Update a filter in URL search params (resets cursor)
   const updateFilter = useCallback(
     (key: string, value: string | undefined) => {
+      const searchUpdater = (prev: Record<string, unknown>) => {
+        const next = { ...prev, [key]: value, cursor: undefined };
+        for (const k of Object.keys(next)) {
+          if (next[k] === undefined || next[k] === "") delete next[k];
+        }
+        return next;
+      };
+
       navigate({
-        search: (prev: Record<string, unknown>) => {
-          const next = { ...prev, [key]: value, cursor: undefined };
-          for (const k of Object.keys(next)) {
-            if (next[k] === undefined || next[k] === "") delete next[k];
-          }
-          return next;
-        },
+        search: searchUpdater as never,
         replace: true,
       });
     },
@@ -69,18 +71,20 @@ export function useAuditList(options?: UseAuditListOptions) {
   // Set multiple filters at once
   const setFilters = useCallback(
     (filters: Partial<AuditFilter>) => {
+      const searchUpdater = (prev: Record<string, unknown>) => {
+        const next: Record<string, unknown> = {
+          ...prev,
+          ...filters,
+          cursor: undefined,
+        };
+        for (const k of Object.keys(next)) {
+          if (next[k] === undefined || next[k] === "") delete next[k];
+        }
+        return next;
+      };
+
       navigate({
-        search: (prev: Record<string, unknown>) => {
-          const next: Record<string, unknown> = {
-            ...prev,
-            ...filters,
-            cursor: undefined,
-          };
-          for (const k of Object.keys(next)) {
-            if (next[k] === undefined || next[k] === "") delete next[k];
-          }
-          return next;
-        },
+        search: searchUpdater as never,
         replace: true,
       });
     },
@@ -90,7 +94,7 @@ export function useAuditList(options?: UseAuditListOptions) {
   // Clear all filters
   const clearFilters = useCallback(() => {
     navigate({
-      search: {},
+      search: {} as never,
       replace: true,
     });
   }, [navigate]);
@@ -98,11 +102,13 @@ export function useAuditList(options?: UseAuditListOptions) {
   // Pagination: go to next page
   const goToNextPage = useCallback(() => {
     if (result?.nextCursor) {
+      const searchUpdater = (prev: Record<string, unknown>) => ({
+        ...prev,
+        cursor: result.nextCursor,
+      });
+
       navigate({
-        search: (prev: Record<string, unknown>) => ({
-          ...prev,
-          cursor: result.nextCursor,
-        }),
+        search: searchUpdater as never,
         replace: true,
       });
     }

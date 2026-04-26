@@ -33,6 +33,35 @@ interface SearchAnalyticsDashboardProps {
 
 type DateRange = "7d" | "30d" | "90d";
 
+interface SearchQueryRow {
+  query: string;
+  count: number;
+  avgResults: number;
+  clickRate: number;
+}
+
+interface SearchVolumeDay {
+  date: string;
+  count: number;
+}
+
+interface SearchAnalyticsData {
+  summary: {
+    totalSearches: number;
+    uniqueQueries: number;
+    clickThroughRate: number;
+    zeroResultRate: number;
+  };
+  topQueries: SearchQueryRow[];
+  zeroResultQueries: Array<Pick<SearchQueryRow, "query" | "count">>;
+  volumeByDay: SearchVolumeDay[];
+  sourceBreakdown: {
+    website: number;
+    admin: number;
+    api: number;
+  };
+}
+
 const DATE_RANGES: Record<DateRange, { label: string; ms: number }> = {
   "7d": { label: "Last 7 days", ms: 7 * 24 * 60 * 60 * 1000 },
   "30d": { label: "Last 30 days", ms: 30 * 24 * 60 * 60 * 1000 },
@@ -84,7 +113,7 @@ export function SearchAnalyticsDashboard({ className }: SearchAnalyticsDashboard
     dateFrom,
     dateTo: now,
     limit: 50,
-  });
+  }) as SearchAnalyticsData | undefined;
 
   if (analytics === undefined) {
     return (

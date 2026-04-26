@@ -1,6 +1,7 @@
-import { ipcMain } from "electron";
 import { safeError, safeLog } from "../utils/safe-log.js";
 import { windowManager } from "../window-manager.js";
+
+const { ipcMain } = require("electron") as typeof import("electron");
 
 // Dynamic import to handle cases where electron-updater is not available
 let autoUpdater: any = null;

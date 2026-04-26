@@ -20,6 +20,11 @@ interface LayoutMetaboxProps {
   onHideFooterChange: (hide: boolean) => void;
 }
 
+interface LayoutOption {
+  _id: string;
+  name: string;
+}
+
 function ToggleRow({
   id,
   label,
@@ -66,7 +71,7 @@ export function LayoutMetabox({
   onHideHeaderChange,
   onHideFooterChange,
 }: LayoutMetaboxProps) {
-  const layouts = useQuery(api.layouts.queries.list);
+  const layouts = useQuery(api.layouts.queries.list) as LayoutOption[] | undefined;
 
   return (
     <div className="space-y-3">

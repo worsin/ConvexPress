@@ -29,6 +29,20 @@ import {
 import { NOTIFICATION_CATEGORIES } from "@/lib/notifications/constants";
 import type { NotificationPreference } from "@/lib/notifications/types";
 
+interface NotificationActivityRow {
+  _id: string;
+  type: "info" | "success" | "warning" | "error";
+  title: string;
+  actorName?: string;
+  readAt?: number;
+  dismissedAt?: number;
+  createdAt: number;
+}
+
+interface NotificationListResult {
+  notifications: NotificationActivityRow[];
+}
+
 export const Route = createFileRoute(
   "/_authenticated/_admin/settings/notifications",
 )({
@@ -372,7 +386,9 @@ function TestNotificationSection() {
 // ─── Recent Activity Section ──────────────────────────────────────────────────
 
 function RecentActivitySection() {
-  const result = useQuery(api.notifications.queries.listAll, { limit: 20 });
+  const result = useQuery(api.notifications.queries.listAll, { limit: 20 }) as
+    | NotificationListResult
+    | undefined;
 
   return (
     <section className="border border-border bg-card">

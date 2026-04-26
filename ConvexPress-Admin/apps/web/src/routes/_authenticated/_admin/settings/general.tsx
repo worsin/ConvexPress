@@ -20,6 +20,7 @@ import { TextField } from "@/components/settings/fields/TextField";
 import { SelectField } from "@/components/settings/fields/SelectField";
 import { CheckboxField } from "@/components/settings/fields/CheckboxField";
 import { RadioGroupField } from "@/components/settings/fields/RadioGroupField";
+import { getFieldError } from "@/components/settings/fields/types";
 import { TimezoneSelect } from "@/components/settings/TimezoneSelect";
 import { DateFormatPreview } from "@/components/settings/DateFormatPreview";
 import { TimeFormatPreview } from "@/components/settings/TimeFormatPreview";
@@ -124,7 +125,7 @@ function GeneralSettingsPage() {
               label="Site Title"
               htmlFor="siteTitle"
               required
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <TextField
                 field={field}
@@ -141,7 +142,7 @@ function GeneralSettingsPage() {
               label="Tagline"
               htmlFor="tagline"
               description="In a few words, explain what this site is about."
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <TextField
                 field={field}
@@ -165,7 +166,7 @@ function GeneralSettingsPage() {
               htmlFor="siteUrl"
               required
               description="The URL where ConvexPress's core files reside."
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <TextField
                 field={field}
@@ -183,7 +184,7 @@ function GeneralSettingsPage() {
               htmlFor="homeUrl"
               required
               description="The address visitors use to reach your site."
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <TextField
                 field={field}
@@ -209,7 +210,7 @@ function GeneralSettingsPage() {
               htmlFor="adminEmail"
               required
               description="This address is used for admin purposes."
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <TextField
                 field={field}
@@ -237,7 +238,7 @@ function GeneralSettingsPage() {
             <SettingsField
               label="New User Default Role"
               htmlFor="defaultRole"
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <SelectField field={field} options={roleOptions} />
             </SettingsField>
@@ -297,7 +298,7 @@ function GeneralSettingsPage() {
             <SettingsField
               label="Site Language"
               htmlFor="siteLanguage"
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <SelectField field={field} options={languageOptions} />
             </SettingsField>
@@ -309,7 +310,7 @@ function GeneralSettingsPage() {
             <SettingsField
               label="Timezone"
               htmlFor="timezone"
-              error={field.state.meta.errors[0]?.toString()}
+              error={getFieldError(field.state.meta.errors)}
             >
               <TimezoneSelect field={field} />
             </SettingsField>
@@ -456,7 +457,7 @@ function GeneralSettingsPage() {
               <SettingsField
                 label="Week Starts On"
                 htmlFor="weekStartsOn"
-                error={field.state.meta.errors[0]?.toString()}
+                error={getFieldError(field.state.meta.errors)}
               >
                 <SelectField field={stringAdapter} options={weekStartOptions} />
               </SettingsField>

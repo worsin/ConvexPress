@@ -14,8 +14,21 @@ import { api } from "@backend/convex/_generated/api";
 import { MessageSquareIcon, ArrowRightIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
+interface RecentComment {
+  _id: string;
+  authorAvatarUrl?: string;
+  authorName: string;
+  postId: string;
+  postTitle: string;
+  content: string;
+  status: string;
+  createdAt: number;
+}
+
 function RecentCommentsWidget() {
-  const recentComments = useQuery(api.comments.queries.recent, { limit: 5 });
+  const recentComments = useQuery(api.comments.queries.recent, { limit: 5 }) as
+    | RecentComment[]
+    | undefined;
 
   // Loading state
   if (recentComments === undefined) {

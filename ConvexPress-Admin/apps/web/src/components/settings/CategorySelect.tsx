@@ -6,16 +6,16 @@
  */
 
 import { useMemo } from "react";
-import type { AnyFieldApi } from "@tanstack/react-form";
 import { useQuery } from "convex/react";
 
 import { api } from "@backend/convex/_generated/api";
 import type { FieldOption } from "@/types/settings";
 import { ComboboxField } from "./fields/ComboboxField";
+import type { SettingsFieldApi } from "./fields/types";
 
 interface CategorySelectProps {
   /** TanStack Form field API */
-  field: AnyFieldApi;
+  field: SettingsFieldApi;
   /** Placeholder text */
   placeholder?: string;
   /** Disabled state */

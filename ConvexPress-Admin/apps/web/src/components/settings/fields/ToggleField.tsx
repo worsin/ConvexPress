@@ -11,14 +11,14 @@
  * - ARIA attributes managed automatically
  */
 
-import type { AnyFieldApi } from "@tanstack/react-form";
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch";
 
 import { cn } from "@/lib/utils";
+import type { SettingsFieldApi } from "./types";
 
 interface ToggleFieldProps {
   /** TanStack Form field API */
-  field: AnyFieldApi;
+  field: SettingsFieldApi;
   /** Label text */
   label: string;
   /** Optional description */

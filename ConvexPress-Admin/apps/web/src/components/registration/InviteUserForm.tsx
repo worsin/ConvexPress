@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { getErrorMessage } from "@/lib/utils";
 
 // ─── Valid Roles ───────────────────────────────────────────────────────────────
 
@@ -81,8 +82,7 @@ export function InviteUserForm() {
         toast.success(`Invitation sent to ${trimmedEmail}`);
         resetForm();
       } catch (err: unknown) {
-        const errorMessage =
-          (err as { data?: { message?: string }; message?: string })?.data?.message ?? err?.message ?? "Failed to send invitation.";
+        const errorMessage = getErrorMessage(err, "Failed to send invitation.");
         toast.error(errorMessage);
       } finally {
         setIsSubmitting(false);

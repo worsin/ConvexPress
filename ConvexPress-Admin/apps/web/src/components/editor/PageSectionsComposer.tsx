@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 import {
   createDefaultSection,
   getPageTemplateManifest,
+  type PageSection,
   type PageSectionType,
 } from "@/lib/page-builder/templates";
-import type { PageSection } from "@/types/editor";
 
 interface PageSectionsComposerProps {
   templateId: string;

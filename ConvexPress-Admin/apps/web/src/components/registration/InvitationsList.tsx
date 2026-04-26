@@ -36,6 +36,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { getErrorMessage } from "@/lib/utils";
 
 // ─── Status Badge ──────────────────────────────────────────────────────────────
 
@@ -95,10 +96,25 @@ function formatDateTime(timestamp: number | undefined): string {
   });
 }
 
+interface InvitationRow {
+  _id: Id<"invitations">;
+  email: string;
+  role: string;
+  status: string;
+  inviterName: string;
+  createdAt: number;
+  expiresAt: number;
+  resentCount: number;
+  isEffectivelyExpired?: boolean;
+  acceptedUserName?: string;
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function InvitationsList() {
-  const invitations = useQuery(api.registration.queries.listInvitations, {});
+  const invitations = useQuery(api.registration.queries.listInvitations, {}) as
+    | InvitationRow[]
+    | undefined;
   const resendInvitation = useMutation(
     api.registration.mutations.resendInvitation,
   );
@@ -125,8 +141,7 @@ export function InvitationsList() {
         });
         toast.success(`Invitation resent to ${email}`);
       } catch (err: unknown) {
-        const errorMessage =
-          (err as { data?: { message?: string }; message?: string })?.data?.message ?? err?.message ?? "Failed to resend invitation.";
+        const errorMessage = getErrorMessage(err, "Failed to resend invitation.");
         toast.error(errorMessage);
       } finally {
         setResendingId(null);
@@ -148,8 +163,7 @@ export function InvitationsList() {
       toast.success(`Invitation to ${revokeTarget.email} revoked.`);
       setRevokeTarget(null);
     } catch (err: unknown) {
-      const errorMessage =
-        (err as { data?: { message?: string }; message?: string })?.data?.message ?? err?.message ?? "Failed to revoke invitation.";
+      const errorMessage = getErrorMessage(err, "Failed to revoke invitation.");
       toast.error(errorMessage);
     } finally {
       setIsRevoking(false);

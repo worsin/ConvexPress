@@ -263,15 +263,15 @@ export function NotFoundLogTable() {
 
   // ─── Status tab counts ───────────────────────────────────────────────
 
-  const countsMap = useMemo(() => {
-    if (!statsResult) return {};
+  const countsMap = useMemo<Record<string, number>>(() => {
+    if (!statsResult) return {} as Record<string, number>;
     return {
-      all: statsResult.total404s,
-      unresolved: statsResult.unresolved404s,
+      all: statsResult.total404s ?? 0,
+      unresolved: statsResult.unresolved404s ?? 0,
       resolved:
         statsResult.total404s !== undefined && statsResult.unresolved404s !== undefined
           ? statsResult.total404s - statsResult.unresolved404s
-          : undefined,
+          : 0,
     };
   }, [statsResult]);
 

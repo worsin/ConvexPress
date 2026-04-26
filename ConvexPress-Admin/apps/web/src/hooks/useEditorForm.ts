@@ -151,7 +151,20 @@ export function useEditorForm(options: UseEditorFormOptions) {
     [initialData, defaultCommentStatus],
   );
 
-  const form = useForm<EditorFormValues>({
+  const form = useForm<
+    EditorFormValues,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    unknown
+  >({
     defaultValues,
   });
 

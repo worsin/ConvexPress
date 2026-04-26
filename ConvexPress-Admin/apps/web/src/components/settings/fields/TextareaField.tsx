@@ -5,13 +5,12 @@
  * Integrates with TanStack Form field API.
  */
 
-import type { AnyFieldApi } from "@tanstack/react-form";
-
 import { cn } from "@/lib/utils";
+import type { SettingsFieldApi } from "./types";
 
 interface TextareaFieldProps {
   /** TanStack Form field API */
-  field: AnyFieldApi;
+  field: SettingsFieldApi;
   /** Placeholder text */
   placeholder?: string;
   /** Number of visible rows */

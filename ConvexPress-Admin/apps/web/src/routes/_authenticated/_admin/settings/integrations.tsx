@@ -122,9 +122,28 @@ function IntegrationsOverviewPage() {
   const googleSettings = useQuery(api.settings.queries.getBySection, {
     section: "integrations.google" as any,
   }) as any;
+  const searchSettings = useQuery(api.settings.queries.getBySection, {
+    section: "search" as any,
+  }) as any;
+  const shippingOverview = useQuery((api as any).shipping.queries.getOverview, {}) as
+    | {
+        providers: Array<{
+          connection: { status?: string } | null;
+        }>;
+      }
+    | undefined;
 
   // Loading state
-  if (aiSettings === undefined || ga4Status === undefined || emailSettings === undefined) {
+  if (
+    aiSettings === undefined ||
+    ga4Status === undefined ||
+    emailSettings === undefined ||
+    paymentsSettings === undefined ||
+    clerkSettings === undefined ||
+    googleSettings === undefined ||
+    searchSettings === undefined ||
+    shippingOverview === undefined
+  ) {
     return (
       <div className="mx-auto max-w-3xl p-6">
         <div className="animate-pulse space-y-6">
@@ -153,11 +172,21 @@ function IntegrationsOverviewPage() {
       paymentsSettings.paypalClientSecret !== "",
   );
   const clerkConnected = Boolean(
-    clerkSettings?.secretKey && clerkSettings.secretKey !== "",
+    clerkSettings?.clerkSecretKey && clerkSettings.clerkSecretKey !== "",
   );
   const googleConnected = Boolean(
     googleSettings?.placesApiKey && googleSettings.placesApiKey !== "",
   );
+  const searchConnected = Boolean(
+    searchSettings?.meilisearchHost && searchSettings?.meilisearchApiKey,
+  );
+  const connectedShippingProviders =
+    shippingOverview?.providers.filter((provider) =>
+      ["connected", "verified", "active"].includes(
+        String(provider.connection?.status ?? "").toLowerCase(),
+      ),
+    ).length ?? 0;
+  const shippingConnected = connectedShippingProviders > 0;
 
   return (
     <div className="mx-auto max-w-3xl p-6">
@@ -204,8 +233,8 @@ function IntegrationsOverviewPage() {
           description="Full-text search indexing for posts, pages, and media."
           icon={Search}
           to="/settings/search"
-          connected={false}
-          statusLabel="Not connected"
+          connected={searchConnected}
+          statusLabel={searchConnected ? "Configured" : "Not configured"}
         />
 
         {/* Payments */}
@@ -242,8 +271,12 @@ function IntegrationsOverviewPage() {
           description="ShipStation, UPS, USPS, FedEx, DHL — connect carriers for live rates, labels, and tracking."
           icon={Truck}
           to="/settings/integrations/shipping"
-          connected={false}
-          statusLabel="Configure carriers"
+          connected={shippingConnected}
+          statusLabel={
+            shippingConnected
+              ? `${connectedShippingProviders} configured`
+              : "Not configured"
+          }
         />
 
         {/* Google */}

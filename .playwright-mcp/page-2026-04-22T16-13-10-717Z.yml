@@ -1,0 +1,15 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "404" [level=1] [ref=e5]
+      - paragraph [ref=e6]: The page you are looking for could not be found.
+    - generic [ref=e7]:
+      - button "Go Back" [ref=e8]:
+        - img
+        - text: Go Back
+      - link "Dashboard" [ref=e9] [cursor=pointer]:
+        - /url: /
+        - button "Dashboard" [ref=e10]:
+          - img
+          - text: Dashboard
+  - region "Notifications alt+T"

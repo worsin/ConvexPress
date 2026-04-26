@@ -1,0 +1,15 @@
+{
+  "cookies": [
+    {
+      "name": "convexpress_refresh",
+      "value": "c24ea3b6f9718efb4686e3b50363ec71f97bd56f38629516f71eff2b2b6769fa",
+      "domain": "amiable-mongoose-989.convex.site",
+      "path": "/auth/refresh",
+      "expires": 1777822743.010601,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    }
+  ],
+  "origins": []
+}

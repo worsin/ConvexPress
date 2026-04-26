@@ -93,6 +93,7 @@ function ShopContent() {
       name: string;
       slug: string;
       productCount: number;
+      totalProductCount?: number;
       thumbnailMediaId?: string;
     }>;
   };
@@ -368,6 +369,7 @@ function CategorySidebar({
     name: string;
     slug: string;
     productCount: number;
+    totalProductCount?: number;
     thumbnailMediaId?: string;
   }>;
   activeSlug?: string;
@@ -419,7 +421,7 @@ function CategorySidebar({
                 <span className="truncate">{cat.name}</span>
               </span>
               <span className="text-xs text-muted-foreground">
-                {cat.productCount}
+                {cat.totalProductCount ?? cat.productCount}
               </span>
             </button>
           </li>

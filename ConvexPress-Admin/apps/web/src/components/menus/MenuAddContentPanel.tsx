@@ -19,6 +19,14 @@ import type { Id } from "@backend/convex/_generated/dataModel";
 
 type ContentType = "page" | "post" | "category" | "tag";
 
+interface LinkableContentItem {
+  id: string;
+  label: string;
+  type: ContentType;
+  url?: string;
+  status?: string;
+}
+
 interface MenuAddContentPanelProps {
   menuId: Id<"menus">;
   contentType: ContentType;
@@ -57,7 +65,7 @@ export function MenuAddContentPanel({
     type: contentType,
     search: tab === "search" && search.trim() ? search.trim() : undefined,
     limit: tab === "recent" ? 10 : 100,
-  });
+  }) as LinkableContentItem[] | undefined;
 
   const Icon = CONTENT_ICONS[contentType];
   const label = CONTENT_LABELS[contentType];

@@ -18,7 +18,7 @@
  */
 
 import { useAction, useQuery } from "convex/react";
-import { api } from "@convexpress/backend/convex/_generated/api";
+import { api } from "@backend/convex/_generated/api";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";

@@ -80,6 +80,7 @@ async function bootstrap() {
     context: {},
     Wrap: function WrapComponent({ children }: { children: React.ReactNode }) {
       const auth = useLocalAuth();
+      const useSharedAuth = () => auth;
 
       // AdminGate needs LocalAuthProvider context, so it must be INSIDE the
       // provider tree, not wrapping it.
@@ -95,7 +96,7 @@ async function bootstrap() {
       );
 
       return (
-        <ConvexProviderWithAuth client={convex} useAuth={useLocalAuth}>
+        <ConvexProviderWithAuth client={convex} useAuth={useSharedAuth}>
           <LocalAuthProvider value={auth}>{gatedChildren}</LocalAuthProvider>
         </ConvexProviderWithAuth>
       );

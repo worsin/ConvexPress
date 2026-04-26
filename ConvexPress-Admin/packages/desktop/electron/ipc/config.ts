@@ -1,7 +1,8 @@
-import { ipcMain, net } from "electron";
-import Store from "electron-store";
+import { JsonStore } from "../utils/json-store.js";
 
-const store = new Store({ name: "convexpress-config" });
+const { ipcMain, net } = require("electron") as typeof import("electron");
+
+const store = new JsonStore({ name: "convexpress-config" });
 
 export function registerConfigHandlers(): void {
   ipcMain.handle("config:get", (_event, key: string) => {

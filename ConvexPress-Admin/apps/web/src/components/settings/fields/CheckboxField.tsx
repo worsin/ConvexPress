@@ -6,14 +6,13 @@
  * Integrates with TanStack Form field API.
  */
 
-import type { AnyFieldApi } from "@tanstack/react-form";
-
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import type { SettingsFieldApi } from "./types";
 
 interface CheckboxFieldProps {
   /** TanStack Form field API */
-  field: AnyFieldApi;
+  field: SettingsFieldApi;
   /** Label text displayed next to the checkbox */
   label: string;
   /** Optional description below the label */

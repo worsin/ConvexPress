@@ -1,23 +1,33 @@
-// electron/main.ts
-import {
-  app as app4,
-  BrowserWindow as BrowserWindow3,
-  ipcMain as ipcMain8,
-  nativeImage as nativeImage2,
-  nativeTheme,
-  session
-} from "electron";
-import path3 from "path";
-import { appendFileSync, writeFileSync as writeFileSync2 } from "fs";
-import { fileURLToPath as fileURLToPath3 } from "url";
-import { createRequire } from "module";
-import Store3 from "electron-store";
+"use strict";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 
-// electron/ipc/index.ts
-import { ipcMain as ipcMain7, app as app2 } from "electron";
+// electron/main.ts
+var import_node_path6 = __toESM(require("path"));
+var import_node_fs4 = require("fs");
 
 // electron/ipc/window.ts
-import { ipcMain, BrowserWindow } from "electron";
+var { ipcMain, BrowserWindow } = require("electron");
 function registerWindowHandlers() {
   ipcMain.handle("window:minimize", (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize();
@@ -39,10 +49,66 @@ function registerWindowHandlers() {
   });
 }
 
+// electron/utils/json-store.ts
+var import_node_fs = require("fs");
+var import_node_path = __toESM(require("path"));
+var { app } = require("electron");
+function ensureParentDir(filePath) {
+  const dir = import_node_path.default.dirname(filePath);
+  if (!(0, import_node_fs.existsSync)(dir)) {
+    (0, import_node_fs.mkdirSync)(dir, { recursive: true });
+  }
+}
+var JsonStore = class {
+  name;
+  defaults;
+  constructor(options) {
+    this.name = options.name;
+    this.defaults = options.defaults ?? {};
+  }
+  getFilePath() {
+    return import_node_path.default.join(app.getPath("userData"), `${this.name}.json`);
+  }
+  readState() {
+    const filePath = this.getFilePath();
+    if (!(0, import_node_fs.existsSync)(filePath)) {
+      return { ...this.defaults };
+    }
+    try {
+      const raw = (0, import_node_fs.readFileSync)(filePath, "utf-8");
+      const parsed = JSON.parse(raw);
+      return { ...this.defaults, ...parsed };
+    } catch {
+      return { ...this.defaults };
+    }
+  }
+  writeState(state) {
+    const filePath = this.getFilePath();
+    ensureParentDir(filePath);
+    (0, import_node_fs.writeFileSync)(filePath, JSON.stringify(state, null, 2));
+  }
+  get(key, defaultValue) {
+    const state = this.readState();
+    if (Object.prototype.hasOwnProperty.call(state, key)) {
+      return state[key];
+    }
+    return defaultValue;
+  }
+  set(key, value) {
+    const state = this.readState();
+    state[key] = value;
+    this.writeState(state);
+  }
+  delete(key) {
+    const state = this.readState();
+    delete state[key];
+    this.writeState(state);
+  }
+};
+
 // electron/ipc/config.ts
-import { ipcMain as ipcMain2, net } from "electron";
-import Store from "electron-store";
-var store = new Store({ name: "convexpress-config" });
+var { ipcMain: ipcMain2, net } = require("electron");
+var store = new JsonStore({ name: "convexpress-config" });
 function registerConfigHandlers() {
   ipcMain2.handle("config:get", (_event, key) => {
     return store.get(key);
@@ -75,11 +141,9 @@ function registerConfigHandlers() {
 }
 
 // electron/ipc/auth.ts
-import { ipcMain as ipcMain3 } from "electron";
-import Store2 from "electron-store";
-var authStore = new Store2({
-  name: "convexpress-auth",
-  encryptionKey: "convexpress-auth-v1"
+var { ipcMain: ipcMain3 } = require("electron");
+var authStore = new JsonStore({
+  name: "convexpress-auth"
 });
 var ALLOWED_PREFIXES = ["__convexAuth", "convexAuth"];
 function isAllowedKey(key) {
@@ -118,7 +182,7 @@ function registerAuthHandlers() {
 }
 
 // electron/ipc/setup.ts
-import { ipcMain as ipcMain4 } from "electron";
+var { ipcMain: ipcMain4 } = require("electron");
 function registerSetupHandlers() {
   ipcMain4.handle(
     "setup:complete",
@@ -152,47 +216,44 @@ function registerSetupHandlers() {
   );
 }
 
-// electron/ipc/app-updater.ts
-import { ipcMain as ipcMain5 } from "electron";
-
 // electron/app-updater.ts
-import { execFile } from "child_process";
-import { existsSync as existsSync2 } from "fs";
-import { join as join2 } from "path";
-import { promisify } from "util";
-import { EventEmitter } from "events";
+var import_node_child_process = require("child_process");
+var import_node_fs3 = require("fs");
+var import_node_path3 = require("path");
+var import_node_util = require("util");
+var import_node_events = require("events");
 
 // electron/version.ts
-import { readFileSync, writeFileSync, renameSync, existsSync } from "fs";
-import { join } from "path";
-import { tmpdir } from "os";
+var import_node_fs2 = require("fs");
+var import_node_path2 = require("path");
+var import_node_os = require("os");
 var MANIFEST_FILENAME = ".convexpress-version.json";
 function getManifestPath(installPath) {
-  return join(installPath, MANIFEST_FILENAME);
+  return (0, import_node_path2.join)(installPath, MANIFEST_FILENAME);
 }
 function readManifest(installPath) {
   const manifestPath = getManifestPath(installPath);
-  if (!existsSync(manifestPath)) return null;
+  if (!(0, import_node_fs2.existsSync)(manifestPath)) return null;
   try {
-    return JSON.parse(readFileSync(manifestPath, "utf-8"));
+    return JSON.parse((0, import_node_fs2.readFileSync)(manifestPath, "utf-8"));
   } catch {
     return null;
   }
 }
 function writeManifest(installPath, manifest) {
   const targetPath = getManifestPath(installPath);
-  const tempPath = join(
-    tmpdir(),
+  const tempPath = (0, import_node_path2.join)(
+    (0, import_node_os.tmpdir)(),
     `convexpress-manifest-${Date.now()}-${Math.random().toString(36).slice(2)}.json`
   );
-  writeFileSync(tempPath, JSON.stringify(manifest, null, 2));
-  renameSync(tempPath, targetPath);
+  (0, import_node_fs2.writeFileSync)(tempPath, JSON.stringify(manifest, null, 2));
+  (0, import_node_fs2.renameSync)(tempPath, targetPath);
 }
 
 // electron/app-updater.ts
-import { net as net2 } from "electron";
-var execFileAsync = promisify(execFile);
-var AppUpdater = class extends EventEmitter {
+var { net: net2 } = require("electron");
+var execFileAsync = (0, import_node_util.promisify)(import_node_child_process.execFile);
+var AppUpdater = class extends import_node_events.EventEmitter {
   installPath;
   checkIntervalMs;
   intervalHandle = null;
@@ -451,7 +512,7 @@ var AppUpdater = class extends EventEmitter {
     });
   }
   async detectPackageManager() {
-    if (existsSync2(join2(this.installPath, "bun.lock")) || existsSync2(join2(this.installPath, ".bun-version"))) {
+    if ((0, import_node_fs3.existsSync)((0, import_node_path3.join)(this.installPath, "bun.lock")) || (0, import_node_fs3.existsSync)((0, import_node_path3.join)(this.installPath, ".bun-version"))) {
       try {
         await execFileAsync("bun", ["--version"], { shell: true });
         return "bun";
@@ -463,9 +524,7 @@ var AppUpdater = class extends EventEmitter {
 };
 
 // electron/window-manager.ts
-import { app, BrowserWindow as BrowserWindow2 } from "electron";
-import path from "path";
-import { fileURLToPath } from "url";
+var import_node_path4 = __toESM(require("path"));
 
 // electron/utils/app-state.ts
 var quitting = false;
@@ -477,15 +536,15 @@ function isQuitting() {
 }
 
 // electron/window-manager.ts
-var __dirname = path.dirname(fileURLToPath(import.meta.url));
+var { app: app2, BrowserWindow: BrowserWindow2 } = require("electron");
 function getPreloadPath() {
-  return path.join(__dirname, "preload.cjs");
+  return import_node_path4.default.join(__dirname, "preload.cjs");
 }
 function getIconPath() {
-  return path.join(__dirname, "../resources/icon.png");
+  return import_node_path4.default.join(__dirname, "../resources/icon.png");
 }
 function getRendererIndexPath() {
-  return path.join(__dirname, "..", "dist", "index.html");
+  return import_node_path4.default.join(__dirname, "..", "dist", "index.html");
 }
 var WindowManager = class {
   mainWindow = null;
@@ -517,7 +576,7 @@ var WindowManager = class {
         sandbox: true
       }
     });
-    if (!app.isPackaged) {
+    if (!app2.isPackaged) {
       win.loadURL("http://localhost:4105");
     } else {
       const indexPath = getRendererIndexPath();
@@ -582,7 +641,7 @@ var WindowManager = class {
         sandbox: true
       }
     });
-    win.loadFile(path.join(__dirname, "wizard", "index.html"));
+    win.loadFile(import_node_path4.default.join(__dirname, "wizard", "index.html"));
     win.once("ready-to-show", () => {
       win.show();
     });
@@ -608,6 +667,7 @@ var WindowManager = class {
 var windowManager = new WindowManager();
 
 // electron/ipc/app-updater.ts
+var { ipcMain: ipcMain5 } = require("electron");
 var updater = null;
 function initAppUpdater(installPath) {
   updater = new AppUpdater(installPath);
@@ -642,9 +702,6 @@ function registerAppUpdaterHandlers() {
   });
 }
 
-// electron/ipc/updater.ts
-import { ipcMain as ipcMain6 } from "electron";
-
 // electron/utils/safe-log.ts
 function safeLog(...args) {
   try {
@@ -660,6 +717,7 @@ function safeError(...args) {
 }
 
 // electron/ipc/updater.ts
+var { ipcMain: ipcMain6 } = require("electron");
 var autoUpdater = null;
 async function getAutoUpdater() {
   if (!autoUpdater) {
@@ -719,6 +777,7 @@ async function initUpdaterEvents() {
 }
 
 // electron/ipc/index.ts
+var { ipcMain: ipcMain7, app: app3 } = require("electron");
 function registerAllIpcHandlers() {
   registerWindowHandlers();
   registerConfigHandlers();
@@ -727,7 +786,7 @@ function registerAllIpcHandlers() {
   registerAppUpdaterHandlers();
   registerUpdaterHandlers();
   ipcMain7.handle("app:get-version", () => {
-    return app2.getVersion();
+    return app3.getVersion();
   });
   ipcMain7.handle("app:get-platform", () => {
     return {
@@ -737,18 +796,16 @@ function registerAllIpcHandlers() {
     };
   });
   ipcMain7.handle("app:quit", () => {
-    app2.quit();
+    app3.quit();
   });
 }
 
 // electron/tray.ts
-import { app as app3, Menu, nativeImage, Tray } from "electron";
-import path2 from "path";
-import { fileURLToPath as fileURLToPath2 } from "url";
-var __dirname2 = path2.dirname(fileURLToPath2(import.meta.url));
+var import_node_path5 = __toESM(require("path"));
+var { app: app4, Menu, nativeImage, Tray } = require("electron");
 var tray = null;
 function loadTrayIcon() {
-  const iconPath = app3.isPackaged ? path2.join(process.resourcesPath, "iconTemplate.png") : path2.join(__dirname2, "../resources/iconTemplate.png");
+  const iconPath = app4.isPackaged ? import_node_path5.default.join(process.resourcesPath, "iconTemplate.png") : import_node_path5.default.join(__dirname, "../resources/iconTemplate.png");
   const image = nativeImage.createFromPath(iconPath);
   image.setTemplateImage(true);
   return image;
@@ -776,7 +833,7 @@ function createTray(wm) {
       label: "Quit",
       click: () => {
         setQuitting(true);
-        app3.quit();
+        app4.quit();
       }
     }
   ]);
@@ -797,31 +854,37 @@ function createTray(wm) {
 }
 
 // electron/main.ts
-var __dirname3 = path3.dirname(fileURLToPath3(import.meta.url));
-app4.setName("ConvexPress");
-if (!app4.isPackaged) {
-  app4.setPath("userData", path3.join(app4.getPath("userData"), "-dev"));
+var {
+  app: app5,
+  BrowserWindow: BrowserWindow3,
+  ipcMain: ipcMain8,
+  nativeImage: nativeImage2,
+  nativeTheme,
+  session
+} = require("electron");
+app5.setName("ConvexPress");
+if (!app5.isPackaged) {
+  app5.setPath("userData", import_node_path6.default.join(app5.getPath("userData"), "-dev"));
 }
-var LOG_FILE = path3.join(app4.getPath("userData"), "convexpress-debug.log");
+var LOG_FILE = import_node_path6.default.join(app5.getPath("userData"), "convexpress-debug.log");
 function fileLog(msg) {
   const line = `[${(/* @__PURE__ */ new Date()).toISOString()}] ${msg}
 `;
   try {
-    appendFileSync(LOG_FILE, line);
+    (0, import_node_fs4.appendFileSync)(LOG_FILE, line);
   } catch {
   }
   safeLog(msg);
 }
 try {
-  writeFileSync2(
+  (0, import_node_fs4.writeFileSync)(
     LOG_FILE,
     `=== ConvexPress started ${(/* @__PURE__ */ new Date()).toISOString()} ===
 `
   );
 } catch {
 }
-var require2 = createRequire(import.meta.url);
-var fixPath = require2("fix-path");
+var fixPath = require("fix-path");
 fixPath();
 if (process.platform === "darwin") {
   const home = process.env.HOME ?? "";
@@ -840,7 +903,7 @@ if (process.platform === "darwin") {
     process.env.PATH = [...missing, ...parts].join(":");
   }
 }
-var store2 = new Store3({ name: "convexpress-config" });
+var store2 = new JsonStore({ name: "convexpress-config" });
 process.on("uncaughtException", (error) => {
   safeError("[Main] Uncaught exception:", error);
 });
@@ -862,8 +925,8 @@ function launchApp() {
       win.webContents.send("theme:os-changed", theme);
     }
   });
-  if (app4.isPackaged) {
-    const installPath = path3.dirname(app4.getAppPath());
+  if (app5.isPackaged) {
+    const installPath = import_node_path6.default.dirname(app5.getAppPath());
     const manifest = readManifest(installPath);
     if (manifest) {
       fileLog(`[Main] App-content updater initialized at ${installPath}`);
@@ -876,11 +939,11 @@ function launchApp() {
     fileLog(`[Main] Shell auto-updater init failed: ${err}`);
   });
 }
-var gotTheLock = app4.requestSingleInstanceLock();
+var gotTheLock = app5.requestSingleInstanceLock();
 if (!gotTheLock) {
-  app4.quit();
+  app5.quit();
 } else {
-  app4.on("second-instance", () => {
+  app5.on("second-instance", () => {
     const win = windowManager.getMainWindow();
     if (win) {
       if (win.isMinimized()) win.restore();
@@ -889,14 +952,14 @@ if (!gotTheLock) {
     }
   });
 }
-app4.whenReady().then(async () => {
+app5.whenReady().then(async () => {
   fileLog("[Main] App ready");
-  if (process.platform === "darwin" && app4.dock && !app4.isPackaged) {
-    const iconPath = path3.join(__dirname3, "../resources/icon_dock.png");
+  if (process.platform === "darwin" && app5.dock && !app5.isPackaged) {
+    const iconPath = import_node_path6.default.join(__dirname, "../resources/icon_dock.png");
     try {
       const dockIcon = nativeImage2.createFromPath(iconPath);
       if (!dockIcon.isEmpty()) {
-        app4.dock.setIcon(dockIcon);
+        app5.dock.setIcon(dockIcon);
         fileLog("[Main] Dock icon set");
       }
     } catch (err) {
@@ -904,7 +967,7 @@ app4.whenReady().then(async () => {
     }
   }
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const csp = app4.isPackaged ? [
+    const csp = app5.isPackaged ? [
       "default-src 'self' file: blob:",
       "script-src 'self' file: 'unsafe-inline'",
       "style-src 'self' file: 'unsafe-inline'",
@@ -940,7 +1003,7 @@ app4.whenReady().then(async () => {
     }
     launchApp();
   });
-  if (!app4.isPackaged) {
+  if (!app5.isPackaged) {
     fileLog("[Main] Dev mode \u2014 launching app directly");
     launchApp();
   } else if (isSetupComplete()) {
@@ -951,14 +1014,14 @@ app4.whenReady().then(async () => {
     windowManager.createWizardWindow();
   }
 });
-app4.on("window-all-closed", () => {
+app5.on("window-all-closed", () => {
 });
-app4.on("activate", () => {
-  if (isSetupComplete() || !app4.isPackaged) {
+app5.on("activate", () => {
+  if (isSetupComplete() || !app5.isPackaged) {
     windowManager.createMainWindow();
   }
 });
-app4.on("before-quit", () => {
+app5.on("before-quit", () => {
   fileLog("[Main] App quitting \u2014 cleaning up");
   setQuitting(true);
 });

@@ -5,13 +5,28 @@ import { toast } from "sonner";
 import { LoaderIcon } from "lucide-react";
 import type { Id } from "@backend/convex/_generated/dataModel";
 
+interface MenuLocationRow {
+  _id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  menuId?: Id<"menus"> | null;
+}
+
+interface MenuOptionRow {
+  _id: Id<"menus">;
+  name: string;
+}
+
 /**
  * Location assignment table for the Manage Locations page.
  * Each row shows a location name, description, and a dropdown to assign a menu.
  */
 export function MenuLocationTable() {
-  const locations = useQuery(api.menus.queries.getMenuLocations);
-  const menus = useQuery(api.menus.queries.listMenus);
+  const locations = useQuery(api.menus.queries.getMenuLocations) as
+    | MenuLocationRow[]
+    | undefined;
+  const menus = useQuery(api.menus.queries.listMenus) as MenuOptionRow[] | undefined;
   const assignMenuToLocation = useMutation(
     api.menus.mutations.assignMenuToLocation,
   );

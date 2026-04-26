@@ -85,8 +85,8 @@ export function CustomFieldsMetabox({ context, position }: CustomFieldsMetaboxPr
     taxonomy: context.taxonomy,
   });
 
-  if (matchingGroups === undefined) {
-    // Still loading - return nothing to avoid layout shift
+  // undefined = still loading; null = plugin disabled or no access
+  if (!matchingGroups) {
     return null;
   }
 

@@ -288,7 +288,7 @@ export function MediaPicker({
                   </div>
                 ) : (
                   <div className="grid grid-cols-4 gap-1">
-                    {items.map((item: { _id: string; mediaType: string; url?: string; altText?: string; title: string }) => {
+                    {items.map((item: { _id: Id<"media">; mediaType: string; url?: string; altText?: string; title: string }) => {
                       const isSelected = pendingId === item._id;
                       const isImage = item.mediaType === "image";
                       return (

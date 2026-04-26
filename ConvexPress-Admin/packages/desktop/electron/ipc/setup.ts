@@ -1,5 +1,6 @@
-import { ipcMain } from "electron";
 import { configStore } from "./config.js";
+
+const { ipcMain } = require("electron") as typeof import("electron");
 
 interface SetupConfig {
   mode: "server" | "client";

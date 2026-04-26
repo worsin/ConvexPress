@@ -80,10 +80,10 @@ export function MetaboxContainer({
           <button
             type="button"
             className="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing p-0.5 -ml-1 shrink-0"
-            aria-roledescription="sortable"
             aria-label={`Reorder ${title}`}
             {...attributes}
             {...listeners}
+            aria-roledescription="sortable"
           >
             <GripVertical className="size-3.5" />
           </button>

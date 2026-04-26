@@ -324,14 +324,10 @@ export function RedirectListTable() {
 
   // ─── Build counts for status tabs ──────────────────────────────────────
 
-  const countsMap = useMemo(() => {
-    if (!statsResult) return {};
+  const countsMap = useMemo<Record<string, number>>(() => {
+    if (!statsResult) return {} as Record<string, number>;
     return {
-      all: statsResult.totalRedirects,
-      manual: undefined,
-      slug_change: undefined,
-      permalink_change: undefined,
-      import: undefined,
+      all: statsResult.totalRedirects ?? 0,
     };
   }, [statsResult]);
 

@@ -9,7 +9,8 @@ import {
   writeManifest,
   type ConvexpressVersionManifest,
 } from "./version.js";
-import { net } from "electron";
+
+const { net } = require("electron") as typeof import("electron");
 
 const execFileAsync = promisify(execFile);
 

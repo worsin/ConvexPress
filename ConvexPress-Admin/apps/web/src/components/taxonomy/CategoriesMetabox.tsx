@@ -23,6 +23,16 @@ import { cn } from "@/lib/utils";
 import { CategoryTree } from "./CategoryTree";
 import { ParentCategorySelect } from "./ParentCategorySelect";
 
+interface CategorySummary {
+  _id: string;
+  name: string;
+  count?: number;
+}
+
+interface TaxonomyListResult {
+  terms?: CategorySummary[];
+}
+
 interface CategoriesMetaboxProps {
   /** Set of selected category IDs. */
   selectedIds: Set<string>;
@@ -46,7 +56,7 @@ export function CategoriesMetabox({
     orderBy: "count" as const,
     orderDir: "desc" as const,
     perPage: 10,
-  });
+  }) as TaxonomyListResult | undefined;
 
   const createCategory = useMutation(
     api.taxonomies.mutations.createCategory,

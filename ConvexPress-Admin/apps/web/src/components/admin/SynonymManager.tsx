@@ -19,14 +19,21 @@ import { toast } from "sonner";
 
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 interface SynonymManagerProps {
   className?: string;
 }
 
+interface SynonymRow {
+  _id: Id<"searchSynonyms">;
+  term: string;
+  synonyms: string[];
+  isActive: boolean;
+}
+
 export function SynonymManager({ className }: SynonymManagerProps) {
-  const synonyms = useQuery(api.search.queries.listSynonyms);
+  const synonyms = useQuery(api.search.queries.listSynonyms) as SynonymRow[] | undefined;
   const createSynonym = useMutation(api.search.mutations.createSynonym);
   const updateSynonym = useMutation(api.search.mutations.updateSynonym);
   const deleteSynonym = useMutation(api.search.mutations.deleteSynonym);
@@ -64,7 +71,7 @@ export function SynonymManager({ className }: SynonymManagerProps) {
         setNewSynonyms("");
         setShowForm(false);
       } catch (err: unknown) {
-        const message = (err as { data?: { message?: string }; message?: string })?.data?.message ?? err?.message ?? "Failed to create synonym";
+        const message = getErrorMessage(err, "Failed to create synonym");
         toast.error(message);
       }
     });

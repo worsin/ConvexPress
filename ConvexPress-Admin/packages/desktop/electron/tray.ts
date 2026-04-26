@@ -1,9 +1,7 @@
-import { app, Menu, nativeImage, Tray } from "electron";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { setQuitting } from "./utils/app-state.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const { app, Menu, nativeImage, Tray } = require("electron") as typeof import("electron");
 
 let tray: Tray | null = null;
 

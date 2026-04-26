@@ -6,14 +6,14 @@
  */
 
 import * as React from "react";
-import type { AnyFieldApi } from "@tanstack/react-form";
 
 import type { FieldOptionGroup } from "@/types/settings";
 import { ComboboxField } from "./fields/ComboboxField";
+import type { SettingsFieldApi } from "./fields/types";
 
 interface TimezoneSelectProps {
   /** TanStack Form field API */
-  field: AnyFieldApi;
+  field: SettingsFieldApi;
   /** Disabled state */
   disabled?: boolean;
 }

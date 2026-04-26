@@ -1,10 +1,11 @@
-import { ipcMain } from "electron";
 import {
   AppUpdater,
   type UpdateCheckResult,
   type UpdateProgress,
 } from "../app-updater.js";
 import { windowManager } from "../window-manager.js";
+
+const { ipcMain } = require("electron") as typeof import("electron");
 
 let updater: AppUpdater | null = null;
 

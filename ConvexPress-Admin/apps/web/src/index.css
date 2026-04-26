@@ -160,3 +160,13 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Electron window-drag regions. Inline style="WebkitAppRegion" sometimes
+   does not emit the vendor-prefixed property, so we expose CSS classes. */
+.app-drag {
+  -webkit-app-region: drag;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}

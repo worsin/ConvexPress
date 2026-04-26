@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from "electron";
+const { ipcMain, BrowserWindow } = require("electron") as typeof import("electron");
 
 export function registerWindowHandlers(): void {
   ipcMain.handle("window:minimize", (event) => {

@@ -10,16 +10,16 @@
  * - Positioned popover with scroll arrows
  */
 
-import type { AnyFieldApi } from "@tanstack/react-form";
 import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { ChevronDown, Check } from "lucide-react";
 
 import type { FieldOption } from "@/types/settings";
 import { cn } from "@/lib/utils";
+import type { SettingsFieldApi } from "./types";
 
 interface SelectFieldProps {
   /** TanStack Form field API */
-  field: AnyFieldApi;
+  field: SettingsFieldApi;
   /** Options to display */
   options: FieldOption[];
   /** Placeholder text when no option selected */
@@ -41,7 +41,9 @@ export function SelectField({
     <SelectPrimitive.Root
       value={value}
       onValueChange={(newValue) => {
-        field.handleChange(newValue);
+        if (newValue !== null) {
+          field.handleChange(newValue);
+        }
       }}
       disabled={disabled}
       name={field.name}

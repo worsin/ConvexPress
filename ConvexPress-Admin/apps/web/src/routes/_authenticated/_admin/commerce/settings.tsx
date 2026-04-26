@@ -25,6 +25,9 @@ function CommerceSettingsPage() {
   const [defaultCountryCode, setDefaultCountryCode] = useState("US");
   const [defaultState, setDefaultState] = useState("");
   const [pricesIncludeTax, setPricesIncludeTax] = useState(false);
+  const [taxRateBasis, setTaxRateBasis] = useState<
+    "shipping" | "billing" | "store"
+  >("shipping");
   const [checkoutRequiresPhone, setCheckoutRequiresPhone] = useState(false);
   const [allowGuestCheckout, setAllowGuestCheckout] = useState(true);
   const [shippingEnabled, setShippingEnabled] = useState(true);
@@ -49,6 +52,7 @@ function CommerceSettingsPage() {
     setDefaultCountryCode(settings.defaultCountryCode ?? "US");
     setDefaultState(settings.defaultState ?? "");
     setPricesIncludeTax(settings.pricesIncludeTax ?? false);
+    setTaxRateBasis(settings.taxRateBasis ?? "shipping");
     setCheckoutRequiresPhone(settings.checkoutRequiresPhone ?? false);
     setAllowGuestCheckout(settings.allowGuestCheckout ?? true);
     setShippingEnabled(settings.shippingEnabled ?? true);
@@ -102,7 +106,7 @@ function CommerceSettingsPage() {
           currencyCode,
           currencySymbol,
           pricesIncludeTax,
-          taxRateBasis: "shipping",
+          taxRateBasis,
           defaultCountryCode,
           defaultState,
           checkoutRequiresPhone,
@@ -223,6 +227,23 @@ function CommerceSettingsPage() {
               />
               Prices include tax
             </label>
+            <div className="grid gap-2">
+              <Label htmlFor="commerce-tax-rate-basis">Tax address basis</Label>
+              <select
+                id="commerce-tax-rate-basis"
+                value={taxRateBasis}
+                onChange={(event) =>
+                  setTaxRateBasis(
+                    event.target.value as "shipping" | "billing" | "store",
+                  )
+                }
+                className="h-9 rounded-4xl border border-input bg-input/30 px-3 text-sm outline-hidden"
+              >
+                <option value="shipping">Shipping address</option>
+                <option value="billing">Billing address</option>
+                <option value="store">Store location</option>
+              </select>
+            </div>
             <label className="flex items-center gap-3">
               <input
                 type="checkbox"
