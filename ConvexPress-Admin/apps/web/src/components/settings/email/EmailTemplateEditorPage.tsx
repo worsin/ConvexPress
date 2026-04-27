@@ -14,7 +14,8 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef, useTransition } from "react";
 import { useParams, Link } from "@tanstack/react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { toast } from "sonner";
 import {
   ArrowLeft,

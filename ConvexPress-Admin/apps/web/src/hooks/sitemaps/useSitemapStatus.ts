@@ -7,7 +7,7 @@
  * Returns undefined while loading, or the full SitemapStatus object.
  */
 
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { SitemapStatus } from "@/lib/sitemaps/types";
 

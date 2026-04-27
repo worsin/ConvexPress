@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { useRouter } from "@tanstack/react-router";
 import { api } from "@backend/convex/_generated/api";
 import { toast } from "sonner";

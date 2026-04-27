@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useAction, useQuery } from "convex/react";
+import { useAction } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { toast } from "sonner";
 import { KeyRound, Clock, RotateCcw } from "lucide-react";

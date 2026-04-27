@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { api } from "@backend/convex/_generated/api";
 import { Outlet, createFileRoute } from "@tanstack/react-router";
-import { useConvexAuth, useQuery } from "convex/react";
+import { useConvexAuth } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 
 import Loader from "@/components/loader";
 import { useLocalAuthContext } from "@/lib/local-auth-context";

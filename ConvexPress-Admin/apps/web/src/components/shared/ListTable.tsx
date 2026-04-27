@@ -93,7 +93,7 @@ export function ListTable<TRow>({
   };
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
       <table className="w-full border-collapse">
         {/* Header */}
         <thead>

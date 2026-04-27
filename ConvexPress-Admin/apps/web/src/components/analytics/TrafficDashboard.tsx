@@ -9,7 +9,8 @@
  */
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useQuery, useAction } from "convex/react";
+import { useAction } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import {

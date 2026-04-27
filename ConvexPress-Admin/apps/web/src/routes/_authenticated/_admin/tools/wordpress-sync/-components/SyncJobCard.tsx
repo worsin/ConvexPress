@@ -5,7 +5,8 @@
  * Shows current phase, progress bars, and controls.
  */
 
-import { useQuery, useMutation, useAction } from "convex/react";
+import { useMutation, useAction } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { Link } from "@tanstack/react-router";

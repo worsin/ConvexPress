@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { FieldRendererProps } from "./index";
 import { FieldWrapper } from "./FieldWrapper";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { XIcon, SearchIcon } from "lucide-react";
 

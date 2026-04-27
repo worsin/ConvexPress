@@ -5,7 +5,7 @@
  * Appears in the editor sidebar alongside other metaboxes.
  */
 
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { Label } from "@/components/ui/label";
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch";

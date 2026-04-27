@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { toast } from "sonner";
 import { api } from "@backend/convex/_generated/api";
 

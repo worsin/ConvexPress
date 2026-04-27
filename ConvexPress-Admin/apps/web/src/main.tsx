@@ -1,5 +1,6 @@
 import { RouterProvider, createRouter, createHashHistory } from "@tanstack/react-router";
 import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
+import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
 import ReactDOM from "react-dom/client";
 
 import { AdminGate } from "./components/auth/AdminGate";
@@ -97,7 +98,9 @@ async function bootstrap() {
 
       return (
         <ConvexProviderWithAuth client={convex} useAuth={useSharedAuth}>
-          <LocalAuthProvider value={auth}>{gatedChildren}</LocalAuthProvider>
+          <ConvexQueryCacheProvider expiration={300_000} maxIdleEntries={250}>
+            <LocalAuthProvider value={auth}>{gatedChildren}</LocalAuthProvider>
+          </ConvexQueryCacheProvider>
         </ConvexProviderWithAuth>
       );
     },

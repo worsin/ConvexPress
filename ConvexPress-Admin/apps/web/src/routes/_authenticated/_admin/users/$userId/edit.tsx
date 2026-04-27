@@ -13,7 +13,8 @@
 
 import { useCallback, useState, useEffect } from "react";
 import { createFileRoute, useParams, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation, useAction } from "convex/react";
+import { useMutation, useAction } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { toast } from "sonner";
 import {

@@ -8,7 +8,8 @@
 
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 
 import { api } from "@backend/convex/_generated/api";
 import { Button } from "@/components/ui/button";

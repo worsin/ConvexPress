@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { AlertTriangleIcon, LoaderIcon } from "lucide-react";

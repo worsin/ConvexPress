@@ -4,7 +4,7 @@
  * Wraps useQuery(api.seo.queries.getPostSeo) for the editor metabox.
  */
 
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 

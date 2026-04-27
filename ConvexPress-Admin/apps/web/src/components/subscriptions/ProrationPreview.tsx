@@ -9,7 +9,7 @@
  *   - No change (equal prices): flat info card
  */
 
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { ArrowUpRight, Clock, DollarSign } from "lucide-react";
 
 import { api } from "@backend/convex/_generated/api";

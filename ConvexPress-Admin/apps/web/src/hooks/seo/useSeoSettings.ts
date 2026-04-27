@@ -4,7 +4,7 @@
  * Wraps useQuery(api.seo.queries.getSettings) for single or all keys.
  */
 
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 
 /**

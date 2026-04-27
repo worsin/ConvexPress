@@ -11,7 +11,7 @@
  */
 
 import * as React from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import {
   Search,
   MousePointerClick,

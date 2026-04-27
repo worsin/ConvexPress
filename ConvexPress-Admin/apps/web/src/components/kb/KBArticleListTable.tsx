@@ -12,7 +12,7 @@
  * will implement the full component using the shared list table patterns.
  */
 
-import { usePaginatedQuery } from "convex/react";
+import { usePaginatedQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { useNavigate } from "@tanstack/react-router";

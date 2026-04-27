@@ -17,7 +17,8 @@
  *     The normal login page handles unauthenticated users.
  */
 
-import { useAction, useQuery } from "convex/react";
+import { useAction } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";

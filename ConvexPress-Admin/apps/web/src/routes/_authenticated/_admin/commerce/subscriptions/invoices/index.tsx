@@ -7,7 +7,7 @@
 
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { ChevronRight, Receipt, Search } from "lucide-react";
 
 import { api } from "@backend/convex/_generated/api";

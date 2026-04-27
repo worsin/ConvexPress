@@ -8,7 +8,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { Search, FileText, FileCode, Link as LinkIcon, Box } from "lucide-react";
 
 import { api } from "@backend/convex/_generated/api";

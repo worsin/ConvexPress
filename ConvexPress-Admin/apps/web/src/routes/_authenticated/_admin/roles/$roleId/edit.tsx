@@ -14,7 +14,8 @@
 
 import { useCallback, useState, useTransition } from "react";
 import { createFileRoute, Link, useParams, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { toast } from "sonner";
 import { ArrowLeftIcon, LoaderIcon, ShieldIcon } from "lucide-react";
 

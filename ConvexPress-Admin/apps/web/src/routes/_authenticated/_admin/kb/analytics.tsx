@@ -6,7 +6,7 @@
  */
 
 import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { BookOpen, Eye, Search, ThumbsUp, TrendingUp, FileText } from "lucide-react";

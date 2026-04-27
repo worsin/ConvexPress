@@ -9,7 +9,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { Link } from "@tanstack/react-router";
 import { Mail, ChevronDown, Search } from "lucide-react";
 

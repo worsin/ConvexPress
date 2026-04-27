@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { FieldRendererProps } from "./index";
 import { FieldWrapper } from "./FieldWrapper";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { cn } from "@/lib/utils";
 

@@ -4,7 +4,7 @@
  * Wraps the Convex pages.getTemplates query for the template dropdown.
  */
 
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 
 /**

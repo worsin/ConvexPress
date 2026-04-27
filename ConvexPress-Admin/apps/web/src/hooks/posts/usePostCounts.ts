@@ -5,7 +5,7 @@
  * on the All Posts list table.
  */
 
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { PostCounts } from "@/lib/posts/types";
 

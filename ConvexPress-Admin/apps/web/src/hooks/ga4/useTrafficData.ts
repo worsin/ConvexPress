@@ -8,7 +8,8 @@
  * field ("ga4" | "builtin") for the DataSourceIndicator.
  */
 
-import { useQuery, useAction } from "convex/react";
+import { useAction } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { useEffect, useRef } from "react";
 import type { Id } from "@backend/convex/_generated/dataModel";

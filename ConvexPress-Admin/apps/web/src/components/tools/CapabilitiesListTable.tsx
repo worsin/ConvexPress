@@ -6,7 +6,7 @@
  */
 
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { useSearch } from "@tanstack/react-router";
 
 import { api } from "@backend/convex/_generated/api";

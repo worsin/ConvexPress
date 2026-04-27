@@ -1,5 +1,6 @@
 // @ts-nocheck
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { PencilIcon, Trash2Icon } from "lucide-react";

@@ -5,7 +5,7 @@
  * state derived from route URL search params.
  */
 
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { useAuth } from "@/lib/auth-context";
 import { SORT_FIELD_MAP } from "@/lib/posts/constants";

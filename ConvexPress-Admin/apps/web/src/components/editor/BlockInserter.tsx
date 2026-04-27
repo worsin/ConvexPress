@@ -11,7 +11,7 @@
  */
 
 import { useState, useMemo, useRef, useEffect, type ReactNode } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import {
   Pilcrow,

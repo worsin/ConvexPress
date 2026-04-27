@@ -1,4 +1,3 @@
-import { Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isMacElectron } from "@/lib/electron";
 
@@ -22,9 +21,12 @@ export function SidebarHeader({ collapsed }: SidebarHeaderProps) {
       )}
     >
       {!hideLogo && (
-        <Shield
-          className="size-5 shrink-0 text-sidebar-primary-foreground"
+        <img
+          src="/brand-flame.png"
+          alt=""
           aria-hidden="true"
+          className="size-5 shrink-0"
+          draggable={false}
         />
       )}
       {!collapsed && (

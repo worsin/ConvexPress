@@ -5,7 +5,7 @@
  * Used by the parent page dropdown and admin hierarchical list.
  */
 
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 
 interface UsePageTreeArgs {

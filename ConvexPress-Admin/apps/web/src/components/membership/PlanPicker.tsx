@@ -9,7 +9,7 @@
  * Data source (when `plans` omitted): api.membership.queries.listPlans({ status: "active" })
  */
 
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { Check, ShieldCheck } from "lucide-react";
 
 import { api } from "@backend/convex/_generated/api";

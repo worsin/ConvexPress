@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { ArrowLeft } from "lucide-react";
 import { api } from "@backend/convex/_generated/api";
 

@@ -10,7 +10,8 @@
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef, useTransition } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { FIELD_RENDERERS } from "../fields";
 import { ChevronDownIcon } from "lucide-react";

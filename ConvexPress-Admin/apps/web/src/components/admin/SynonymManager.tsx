@@ -13,7 +13,8 @@
 
 import * as React from "react";
 import { useTransition } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { Plus, Trash2, ToggleLeft, ToggleRight, X } from "lucide-react";
 import { toast } from "sonner";
 

@@ -6,7 +6,7 @@
  * is being fetched.
  */
 
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { Loader2 } from "lucide-react";
 

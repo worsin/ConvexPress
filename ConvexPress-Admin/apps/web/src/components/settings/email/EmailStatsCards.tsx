@@ -5,7 +5,7 @@
  * Wired to the Convex stats query with a 7-day default window.
  */
 
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import {
   Send,
   AlertTriangle,

@@ -10,7 +10,7 @@
  */
 
 import { Fragment, useState } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import {
   CheckCircle2Icon,
   XCircleIcon,

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, memo } from "react";
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { MessageSquareIcon } from "lucide-react";
 import type { Id } from "@backend/convex/_generated/dataModel";

@@ -9,7 +9,7 @@
 import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
 import { z } from "zod";
 import { useState, useRef, useCallback } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";

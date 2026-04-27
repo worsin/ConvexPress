@@ -5,7 +5,7 @@
  * local defaults while loading.
  */
 
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { DEFAULT_SITEMAP_SETTINGS } from "@/lib/sitemaps/constants";
 import type { SitemapSettings } from "@/lib/sitemaps/types";

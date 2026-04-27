@@ -1,6 +1,6 @@
 import { api } from "@backend/convex/_generated/api";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { Package, Settings, ShoppingCart, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/_admin/commerce/")({

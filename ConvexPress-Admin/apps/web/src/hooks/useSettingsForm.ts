@@ -15,7 +15,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm, useStore } from "@tanstack/react-form";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
 import { toast } from "sonner";
 import type { z } from "zod";
 
