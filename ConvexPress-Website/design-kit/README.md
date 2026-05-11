@@ -16,6 +16,7 @@ design-kit/
 ├── DATA-API.md         ← the verified Convex API surface (every callable query/mutation)
 ├── WORKFLOW.md         ← end-to-end sequence for a new site
 ├── TROUBLESHOOTING.md  ← failure modes + fixes
+├── EXTENDING.md        ← the four content patterns + which skill to use for each
 └── references/         ← real, working example templates (read these to learn patterns)
     ├── homepage.example.tsx
     ├── single-post.example.tsx
@@ -26,7 +27,10 @@ design-kit/
     ├── search.example.tsx
     ├── header.example.tsx
     ├── footer.example.tsx
-    └── not-found.example.tsx
+    ├── not-found.example.tsx
+    ├── custom-post-type-archive.example.tsx
+    ├── custom-post-type-single.example.tsx
+    └── page-feature.example.tsx
 ```
 
 ## Reading order for any `design:*` invocation
@@ -71,6 +75,12 @@ leaks, and what to do when no skill matches a request.
 
 See **`WORKFLOW.md`**. The order is: prerequisites → brand discovery →
 chrome (header/footer) → core body templates → commerce → audit.
+
+## Which skill for which content shape?
+
+See **`EXTENDING.md`**. Four patterns: built-in blog post, vanilla
+page, page-with-custom-feature, and custom post type. Includes a
+decision tree so you don't have to guess which skill to invoke.
 
 ## What you write
 
