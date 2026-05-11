@@ -125,18 +125,9 @@ export function useSettingsForm<T extends object>(
   const schemaRef = useRef(validationSchema);
   schemaRef.current = validationSchema;
 
-  // --- React 19: Adjust state during render instead of useEffect (Fix A1) ---
-  //
-  // Instead of a useEffect that fires *after* render to sync settingsData into
-  // form state, we track the previous settingsData reference and update state
-  // synchronously during render when it changes. This is the "adjust state
-  // during render" pattern recommended by React docs:
-  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
-  //
-  // Benefits:
-  // - No extra render cycle (useEffect fires after paint, causing a flash)
-  // - No stale closure issues with isDirty
-  // - Simpler data flow: props change -> state updates -> single render
+  // Track the previous settingsData JSON shape so we know when the server
+  // emitted a change. This ref is mutated during render (ref writes are safe)
+  // and read during the effect below.
   const prevSettingsJsonRef = useRef<string | null>(null);
 
   // Create TanStack Form instance
@@ -165,40 +156,54 @@ export function useSettingsForm<T extends object>(
   // Loading state: settingsData is undefined while Convex query is in flight
   const isLoading = settingsData === undefined;
 
-  // Sync server data during render (not in useEffect)
-  if (settingsData) {
-    const serverValues = stripMetadataFields(settingsData as Record<string, unknown>);
-    const incomingJson = JSON.stringify(serverValues);
+  // Sync server data into form state.
+  //
+  // Why useEffect (not "adjust state during render"):
+  //   form.reset() updates the TanStack Form's external store. Other
+  //   components subscribed to that store via useStore — including the
+  //   useStore call a few lines above — receive a setState while the parent
+  //   is still rendering, which trips React's "Cannot update a component
+  //   while rendering a different component" warning. Deferring into an
+  //   effect lets the current render finish committing first.
+  //
+  // Serialize defaults once so the effect's deps stay stable across renders.
+  const defaultsJson = JSON.stringify(defaults);
+  const incomingServerJson = settingsData
+    ? JSON.stringify(stripMetadataFields(settingsData as Record<string, unknown>))
+    : null;
+
+  useEffect(() => {
+    if (incomingServerJson === null) return;
+
+    const parsedDefaults = JSON.parse(defaultsJson) as Record<string, unknown>;
+    const serverValues = JSON.parse(incomingServerJson) as Record<string, unknown>;
 
     if (prevSettingsJsonRef.current === null) {
-      // First load -- initialize form with server data merged over defaults
-      const values = { ...defaults, ...serverValues } as T;
-      prevSettingsJsonRef.current = incomingJson;
-      // setState during render is fine when conditioned on changed input
+      // First load — initialize form with server data merged over defaults.
+      const values = { ...parsedDefaults, ...serverValues } as T;
+      prevSettingsJsonRef.current = incomingServerJson;
       setInitialValues(cloneValues(values));
       form.reset(cloneValues(values));
-    } else if (incomingJson !== prevSettingsJsonRef.current) {
-      // Data changed on server (another admin saved)
-      prevSettingsJsonRef.current = incomingJson;
-
-      // We read isDirty inline here because we need the *current* dirty state,
-      // not a potentially stale closure value from a useEffect dependency array
-      const currentlyDirty = !deepEqual(form.state.values, initialValues);
-
-      if (!currentlyDirty) {
-        // No local edits -- silently update
-        const values = { ...defaults, ...serverValues } as T;
-        setInitialValues(cloneValues(values));
-        form.reset(cloneValues(values));
-      } else {
-        // User has unsaved changes -- warn but don't overwrite.
-        // Toast is a side effect, so we schedule it rather than calling during render.
-        queueMicrotask(() => {
-          toast.info("Settings were updated by another administrator.");
-        });
-      }
+      return;
     }
-  }
+
+    if (incomingServerJson === prevSettingsJsonRef.current) return;
+
+    // Data changed on the server (another admin saved).
+    prevSettingsJsonRef.current = incomingServerJson;
+    const currentlyDirty = !deepEqual(form.state.values, initialValues);
+
+    if (!currentlyDirty) {
+      const values = { ...parsedDefaults, ...serverValues } as T;
+      setInitialValues(cloneValues(values));
+      form.reset(cloneValues(values));
+    } else {
+      toast.info("Settings were updated by another administrator.");
+    }
+    // form is a stable instance from useForm; initialValues changes are
+    // intentional inputs we read inside the effect body.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingServerJson, defaultsJson]);
 
   const persistValues = useCallback(
     async (

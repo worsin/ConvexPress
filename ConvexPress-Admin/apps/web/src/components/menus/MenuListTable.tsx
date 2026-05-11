@@ -130,6 +130,7 @@ export function MenuListTable() {
                     <Button
                       variant="ghost"
                       size="icon-xs"
+                      nativeButton={false}
                       render={
                         <Link
                           to="/menus/$menuId/edit"
