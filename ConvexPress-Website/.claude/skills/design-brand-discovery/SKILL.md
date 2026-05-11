@@ -12,7 +12,7 @@ via `settings:setBrand` (or fallback to writing a local draft).
 
 ## Why this skill exists
 
-Every other design skill reads `api.settings.queries.getBrand`. If that
+Every other design skill reads `api.settings.queries.getBySection`. If that
 returns `null` or is stale, downstream skills can't produce coherent
 designs. This skill is the *only* one that authors the brand. The user
 should run it once at site setup and re-run it whenever the brand
@@ -25,7 +25,7 @@ shifts.
 
 2. **Pull the existing brand doc** (if any):
    ```bash
-   bunx convex run settings:getBrand
+   bunx convex run settings:queries:getBySection '{"section":"brand"}'
    ```
    If it exists, ask the user whether they want to "extend" (update
    selected fields) or "redo" (start fresh). Default: extend.
@@ -61,7 +61,7 @@ shifts.
 
 5. **Write the brand doc** via:
    ```bash
-   bunx convex run settings:setBrand '<JSON of the brand doc>'
+   bunx convex run settings:mutations:updateSection '{"section":"brand","values":<JSON of the brand doc>}'
    ```
    If `settings:setBrand` does not exist (you'll get "Could not find
    function"), this means the admin backend hasn't built the brand

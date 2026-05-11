@@ -20,9 +20,9 @@ author archives; the data source changes, the layout is consistent.
 
 3. **Pull brand + sample data:**
    ```bash
-   bunx convex run settings:getBrand
+   bunx convex run settings:queries:getBySection '{"section":"brand"}'
    bunx convex run posts:queries:listPublished '{"paginationOpts":{"numItems":12,"cursor":null}}'
-   bunx convex run categories:queries:list
+   bunx convex run commerce:categories:list
    ```
 
 4. **Read current files** for whichever archives you're regenerating.

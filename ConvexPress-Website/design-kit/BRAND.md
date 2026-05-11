@@ -9,14 +9,36 @@ How brand inputs translate into design decisions. This doc has two parts:
 
 ## 1. The brand doc
 
-Pull it live at generation time:
+The brand doc is stored as a **section** inside the `settings` table,
+keyed `section: "brand"`. There is no dedicated `getBrand` endpoint;
+read and write through the standard settings mechanism. See
+`DATA-API.md` for the exact API surface.
+
+**Pull at generation time** (from `ConvexPress-Admin/packages/backend/`):
 
 ```bash
-bunx convex run settings:getBrand
+bunx convex run settings:queries:getBySection '{"section":"brand"}'
 ```
 
-(Run from any directory; Convex CLI uses `CONVEX_DEPLOY_KEY` from
-`.env`.)
+**Read from a template** (TS):
+
+```ts
+import { convexQuery } from "@convex-dev/react-query";
+import { api } from "@convexpress-website/backend/generated/api";
+
+const brand = useTanStackQuery(
+	convexQuery(api.settings.queries.getBySection, { section: "brand" }),
+).data;
+```
+
+**Save (only done by `design:brand-discovery`):**
+
+```bash
+bunx convex run settings:mutations:updateSection '{
+	"section": "brand",
+	"values": { "moodPrompt": "...", "voice": "...", ... }
+}'
+```
 
 ### Shape
 

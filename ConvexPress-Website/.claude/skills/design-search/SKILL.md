@@ -15,7 +15,7 @@ You are generating the **search results** template. Output:
 
 2. **Pull brand + run a sample search:**
    ```bash
-   bunx convex run settings:getBrand
+   bunx convex run settings:queries:getBySection '{"section":"brand"}'
    bunx convex run search:queries:search '{"query":"the"}'
    ```
 

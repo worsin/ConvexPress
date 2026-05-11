@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_marketing/blog/$slug")({
 
 	loader: async ({ context: { queryClient }, params: { slug } }) => {
 		await Promise.all([
-			queryClient.ensureQueryData(convexQuery(api.settings.queries.getBrand, {})),
+			queryClient.ensureQueryData(convexQuery(api.settings.queries.getBySection, { section: "brand" })),
 			queryClient.ensureQueryData(convexQuery(api.posts.queries.getPublished, { slug })),
 		]);
 	},
@@ -64,7 +64,7 @@ export const Route = createFileRoute("/_marketing/blog/$slug")({
 function SinglePost() {
 	const { slug } = Route.useParams();
 	const { data: brand } = useTanStackQuery(
-		convexQuery(api.settings.queries.getBrand, {}),
+		convexQuery(api.settings.queries.getBySection, { section: "brand" }),
 	);
 	const { data: post } = useTanStackQuery(
 		convexQuery(api.posts.queries.getPublished, { slug }),

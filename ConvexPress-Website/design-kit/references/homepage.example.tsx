@@ -34,10 +34,14 @@ export const Route = createFileRoute("/_marketing/")({
 		// same query key the component will read, so React hydrates rather
 		// than refetching client-side.
 		await Promise.all([
-			queryClient.ensureQueryData(convexQuery(api.settings.queries.getBrand, {})),
-			queryClient.ensureQueryData(convexQuery(api.settings.queries.getSiteIdentity, {})),
 			queryClient.ensureQueryData(
-				convexQuery(api.posts.queries.listFeatured, { limit: 3 }),
+				convexQuery(api.settings.queries.getBySection, { section: "brand" }),
+			),
+			queryClient.ensureQueryData(
+				convexQuery(api.settings.queries.getBySection, { section: "general" }),
+			),
+			queryClient.ensureQueryData(
+				convexQuery(api.posts.queries.getSticky, {}),
 			),
 		]);
 	},
@@ -62,13 +66,13 @@ export const Route = createFileRoute("/_marketing/")({
 
 function HomePage() {
 	const { data: brand } = useTanStackQuery(
-		convexQuery(api.settings.queries.getBrand, {}),
+		convexQuery(api.settings.queries.getBySection, { section: "brand" }),
 	);
 	const { data: site } = useTanStackQuery(
-		convexQuery(api.settings.queries.getSiteIdentity, {}),
+		convexQuery(api.settings.queries.getBySection, { section: "general" }),
 	);
 	const { data: featured } = useTanStackQuery(
-		convexQuery(api.posts.queries.listFeatured, { limit: 3 }),
+		convexQuery(api.posts.queries.getSticky, {}),
 	);
 
 	// Loading: the loader ran, but in dev/HMR scenarios queries can still be

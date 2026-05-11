@@ -25,7 +25,7 @@ doc. Typical reasons:
 
 2. **Pull the brand doc:**
    ```bash
-   bunx convex run settings:getBrand
+   bunx convex run settings:queries:getBySection '{"section":"brand"}'
    ```
    If `null`, STOP. Tell the user to run `design:brand-discovery` first.
 

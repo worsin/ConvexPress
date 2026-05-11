@@ -16,9 +16,9 @@ products with filters/sort. Output:
 
 2. **Pull brand + sample data:**
    ```bash
-   bunx convex run settings:getBrand
-   bunx convex run products:queries:list '{"paginationOpts":{"numItems":24,"cursor":null}}'
-   bunx convex run categories:queries:list
+   bunx convex run settings:queries:getBySection '{"section":"brand"}'
+   bunx convex run commerce:products:list '{"paginationOpts":{"numItems":24,"cursor":null}}'
+   bunx convex run commerce:categories:list
    ```
 
 3. **Read current file** at `apps/web/src/routes/_marketing/products/index.tsx`.

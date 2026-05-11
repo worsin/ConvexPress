@@ -17,7 +17,7 @@ legacy `templates/` file that stays, because it's already wired into
 
 2. **Pull brand + recent posts (for the hint):**
    ```bash
-   bunx convex run settings:getBrand
+   bunx convex run settings:queries:getBySection '{"section":"brand"}'
    bunx convex run posts:queries:listPublished '{"paginationOpts":{"numItems":3,"cursor":null}}'
    ```
 

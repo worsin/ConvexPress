@@ -26,8 +26,8 @@ import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import { cn } from "@/lib/utils";
 
 export function SiteHeader() {
-	const identity = useQuery(api.settings.queries.getSiteIdentity);
-	const primaryMenu = useQuery(api.menus.queries.getByLocation, { location: "primary" });
+	const identity = useQuery(api.settings.queries.getBySection, { section: "general" });
+	const primaryMenu = useQuery(api.menus.queries.getMenuForLocation, { location: "primary" });
 
 	return (
 		<header

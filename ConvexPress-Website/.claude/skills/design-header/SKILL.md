@@ -16,9 +16,9 @@ marketing layout route.
 
 2. **Pull brand + supporting data:**
    ```bash
-   bunx convex run settings:getBrand
-   bunx convex run settings:getSiteIdentity
-   bunx convex run menus:queries:getByLocation '{"location":"primary"}'
+   bunx convex run settings:queries:getBySection '{"section":"brand"}'
+   bunx convex run settings:queries:getBySection '{"section":"general"}'
+   bunx convex run menus:queries:getMenuForLocation '{"location":"primary"}'
    ```
 
 3. **Inspect the marketing layout** at

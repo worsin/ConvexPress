@@ -29,7 +29,7 @@ already know the patterns.
 ### 2. Pull the brand doc
 
 ```bash
-bunx convex run settings:getBrand
+bunx convex run settings:queries:getBySection '{"section":"brand"}'
 ```
 
 If the brand doc is `null` or missing, STOP. Report to the user:
@@ -42,8 +42,8 @@ Don't generate a homepage from defaults.
 ### 3. Pull a sample of the data this route uses
 
 ```bash
-bunx convex run settings:getSiteIdentity
-bunx convex run posts:queries:listFeatured '{"limit": 3}'
+bunx convex run settings:queries:getBySection '{"section":"general"}'
+bunx convex run posts:queries:getSticky '{}'
 bunx convex run pages:queries:getFrontPage
 ```
 

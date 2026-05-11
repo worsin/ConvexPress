@@ -13,6 +13,9 @@ design-kit/
 ├── ARCHITECTURE.md     ← how this site is wired (data, routing, SSR, styling, auth)
 ├── CONTRACTS.md        ← what a template MUST satisfy to be considered done
 ├── BRAND.md            ← shape of the brand doc + how brand inputs drive design
+├── DATA-API.md         ← the verified Convex API surface (every callable query/mutation)
+├── WORKFLOW.md         ← end-to-end sequence for a new site
+├── TROUBLESHOOTING.md  ← failure modes + fixes
 └── references/         ← real, working example templates (read these to learn patterns)
     ├── homepage.example.tsx
     ├── single-post.example.tsx
@@ -39,20 +42,35 @@ design-kit/
    fields to design choices (palette, typography, density, voice). This
    tells you HOW to translate the site's brand into visual decisions.
 
-4. **The relevant reference in `references/`** — this is your working
+4. **`DATA-API.md`** — the **verified** Convex queries and mutations you
+   can call. **If a name isn't on this list, it doesn't exist.** Always
+   check here before writing a Convex call into a template.
+
+5. **The relevant reference in `references/`** — this is your working
    example. Copy its structure (loader, SEO, layout, query patterns).
    Replace its visuals with whatever the brand calls for.
 
-5. **The brand doc itself** — pull it live from Convex via:
+6. **The brand doc itself** — pull it live from Convex:
    ```bash
-   bunx convex run settings:getBrand
+   bunx convex run settings:queries:getBySection '{"section":"brand"}'
    ```
-   (Pull through whatever CLI command the project actually exposes —
-   see `BRAND.md` if the command name has changed.)
+   See `BRAND.md` for the schema; see `DATA-API.md` for why this is the
+   correct call (and not the imaginary `settings:getBrand`).
 
-6. **The current state of the file you're writing** — read what exists in
+7. **The current state of the file you're writing** — read what exists in
    `apps/web/src/routes/...` for the route you're regenerating. You don't
    have to preserve it, but be aware of what's there before you replace it.
+
+## When something goes wrong
+
+See **`TROUBLESHOOTING.md`**. Covers: missing Convex functions, null
+brand doc, type errors after generation, blank pages, deprecated-module
+leaks, and what to do when no skill matches a request.
+
+## End-to-end pipeline for a new site
+
+See **`WORKFLOW.md`**. The order is: prerequisites → brand discovery →
+chrome (header/footer) → core body templates → commerce → audit.
 
 ## What you write
 

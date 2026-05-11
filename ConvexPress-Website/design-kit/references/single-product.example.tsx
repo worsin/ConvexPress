@@ -32,8 +32,8 @@ export const Route = createFileRoute("/_marketing/products/$slug")({
 
 	loader: async ({ context: { queryClient }, params: { slug } }) => {
 		await Promise.all([
-			queryClient.ensureQueryData(convexQuery(api.settings.queries.getBrand, {})),
-			queryClient.ensureQueryData(convexQuery(api.products.queries.getBySlug, { slug })),
+			queryClient.ensureQueryData(convexQuery(api.settings.queries.getBySection, { section: "brand" })),
+			queryClient.ensureQueryData(convexQuery(api.commerce.products.getBySlug, { slug })),
 		]);
 	},
 
@@ -54,7 +54,7 @@ export const Route = createFileRoute("/_marketing/products/$slug")({
 function SingleProduct() {
 	const { slug } = Route.useParams();
 	const { data: product } = useTanStackQuery(
-		convexQuery(api.products.queries.getBySlug, { slug }),
+		convexQuery(api.commerce.products.getBySlug, { slug }),
 	);
 
 	if (product === undefined) return <ProductSkeleton />;

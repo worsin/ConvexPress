@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_marketing/blog/")({
 	loader: async ({ context: { queryClient } }) => {
 		await Promise.all([
-			queryClient.ensureQueryData(convexQuery(api.settings.queries.getBrand, {})),
+			queryClient.ensureQueryData(convexQuery(api.settings.queries.getBySection, { section: "brand" })),
 			queryClient.ensureQueryData(
 				convexQuery(api.posts.queries.listPublished, { paginationOpts: { numItems: 12, cursor: null } }),
 			),

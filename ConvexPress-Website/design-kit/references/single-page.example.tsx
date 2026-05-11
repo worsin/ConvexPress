@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_marketing/page/$")({
 		// $ params come through as `_splat` joined with slashes
 		const path = `/${params._splat ?? ""}`;
 		await Promise.all([
-			queryClient.ensureQueryData(convexQuery(api.settings.queries.getBrand, {})),
+			queryClient.ensureQueryData(convexQuery(api.settings.queries.getBySection, { section: "brand" })),
 			queryClient.ensureQueryData(convexQuery(api.pages.queries.getByPath, { path })),
 		]);
 	},
@@ -55,7 +55,7 @@ function SinglePage() {
 		convexQuery(api.pages.queries.getByPath, { path }),
 	);
 	const { data: brand } = useTanStackQuery(
-		convexQuery(api.settings.queries.getBrand, {}),
+		convexQuery(api.settings.queries.getBySection, { section: "brand" }),
 	);
 
 	if (page === undefined || brand === undefined) {

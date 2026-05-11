@@ -16,7 +16,7 @@ a complete `apps/web/src/routes/_marketing/page/$.tsx`.
 
 2. **Pull brand + sample data:**
    ```bash
-   bunx convex run settings:getBrand
+   bunx convex run settings:queries:getBySection '{"section":"brand"}'
    bunx convex run pages:queries:getByPath '{"path":"/about"}'
    ```
    (Substitute a real path if `/about` doesn't exist. List pages with

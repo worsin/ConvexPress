@@ -22,10 +22,10 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { cn } from "@/lib/utils";
 
 export function SiteFooter() {
-	const identity = useQuery(api.settings.queries.getSiteIdentity);
-	const colA = useQuery(api.menus.queries.getByLocation, { location: "footer-primary" });
-	const colB = useQuery(api.menus.queries.getByLocation, { location: "footer-secondary" });
-	const colC = useQuery(api.menus.queries.getByLocation, { location: "footer-tertiary" });
+	const identity = useQuery(api.settings.queries.getBySection, { section: "general" });
+	const colA = useQuery(api.menus.queries.getMenuForLocation, { location: "footer-primary" });
+	const colB = useQuery(api.menus.queries.getMenuForLocation, { location: "footer-secondary" });
+	const colC = useQuery(api.menus.queries.getMenuForLocation, { location: "footer-tertiary" });
 
 	const year = new Date().getFullYear();
 

@@ -15,10 +15,10 @@ You are generating the **single-product** template. Output: a complete
 
 2. **Pull brand + sample data:**
    ```bash
-   bunx convex run settings:getBrand
-   bunx convex run products:queries:list '{"paginationOpts":{"numItems":1,"cursor":null}}'
+   bunx convex run settings:queries:getBySection '{"section":"brand"}'
+   bunx convex run commerce:products:list '{"paginationOpts":{"numItems":1,"cursor":null}}'
    # Then for a real slug from the result:
-   bunx convex run products:queries:getBySlug '{"slug":"<real slug>"}'
+   bunx convex run commerce:products:getBySlug '{"slug":"<real slug>"}'
    ```
 
 3. **Read current file** at `apps/web/src/routes/_marketing/products/$slug.tsx`.

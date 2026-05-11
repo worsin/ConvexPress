@@ -16,7 +16,7 @@ one blog post by slug. Output: a complete
 
 2. **Pull brand + sample data:**
    ```bash
-   bunx convex run settings:getBrand
+   bunx convex run settings:queries:getBySection '{"section":"brand"}'
    bunx convex run posts:queries:getPublished '{"slug": "<any real post slug from the site>"}'
    ```
    To find a real slug, list a few:

@@ -24,11 +24,11 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_marketing/products/")({
 	loader: async ({ context: { queryClient } }) => {
 		await Promise.all([
-			queryClient.ensureQueryData(convexQuery(api.settings.queries.getBrand, {})),
+			queryClient.ensureQueryData(convexQuery(api.settings.queries.getBySection, { section: "brand" })),
 			queryClient.ensureQueryData(
-				convexQuery(api.products.queries.list, { paginationOpts: { numItems: 24, cursor: null } }),
+				convexQuery(api.commerce.products.list, { paginationOpts: { numItems: 24, cursor: null } }),
 			),
-			queryClient.ensureQueryData(convexQuery(api.categories.queries.list, {})),
+			queryClient.ensureQueryData(convexQuery(api.commerce.categories.list, {})),
 		]);
 	},
 
@@ -48,9 +48,9 @@ export const Route = createFileRoute("/_marketing/products/")({
 
 function Catalog() {
 	const { data: products } = useTanStackQuery(
-		convexQuery(api.products.queries.list, { paginationOpts: { numItems: 24, cursor: null } }),
+		convexQuery(api.commerce.products.list, { paginationOpts: { numItems: 24, cursor: null } }),
 	);
-	const { data: categories } = useTanStackQuery(convexQuery(api.categories.queries.list, {}));
+	const { data: categories } = useTanStackQuery(convexQuery(api.commerce.categories.list, {}));
 
 	if (products === undefined || categories === undefined) return <CatalogSkeleton />;
 
