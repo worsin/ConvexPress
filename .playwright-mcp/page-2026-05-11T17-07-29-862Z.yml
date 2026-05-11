@@ -1,0 +1,806 @@
+- generic [active]:
+  - generic:
+    - link "Skip to main content" [ref=e19] [cursor=pointer]:
+      - /url: "#admin-content"
+    - generic [ref=e20]:
+      - navigation "Admin navigation" [ref=e21]:
+        - generic [ref=e22]:
+          - img [ref=e23]
+          - generic [ref=e24]: ConvexPress
+        - list [ref=e26]:
+          - listitem [ref=e27]:
+            - link "Dashboard" [ref=e28] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e29]
+              - generic [ref=e34]: Dashboard
+          - listitem [ref=e35]:
+            - button "Posts" [ref=e37]:
+              - img [ref=e38]
+              - generic [ref=e41]: Posts
+              - img [ref=e42]
+            - list:
+              - listitem [ref=e44]:
+                - link "All Posts" [ref=e45] [cursor=pointer]:
+                  - /url: /posts
+                  - generic [ref=e46]: All Posts
+              - listitem [ref=e47]:
+                - link "Add New Post" [ref=e48] [cursor=pointer]:
+                  - /url: /posts/new
+                  - img [ref=e49]
+                  - generic [ref=e50]: Add New Post
+              - listitem [ref=e51]:
+                - link "Categories" [ref=e52] [cursor=pointer]:
+                  - /url: /posts/categories
+                  - generic [ref=e53]: Categories
+              - listitem [ref=e54]:
+                - link "Tags" [ref=e55] [cursor=pointer]:
+                  - /url: /posts/tags
+                  - generic [ref=e56]: Tags
+          - listitem [ref=e57]:
+            - button "Media" [ref=e58]:
+              - img [ref=e59]
+              - generic [ref=e63]: Media
+              - img [ref=e64]
+            - list:
+              - listitem [ref=e66]:
+                - link "Library" [ref=e67] [cursor=pointer]:
+                  - /url: /media
+                  - generic [ref=e68]: Library
+              - listitem [ref=e69]:
+                - link "Add New" [ref=e70] [cursor=pointer]:
+                  - /url: /media/upload
+                  - img [ref=e71]
+                  - generic [ref=e72]: Add New
+          - listitem [ref=e73]:
+            - button "Pages" [ref=e74]:
+              - img [ref=e75]
+              - generic [ref=e78]: Pages
+              - img [ref=e79]
+            - list:
+              - listitem [ref=e81]:
+                - link "All Pages" [ref=e82] [cursor=pointer]:
+                  - /url: /pages
+                  - generic [ref=e83]: All Pages
+              - listitem [ref=e84]:
+                - link "Add New Page" [ref=e85] [cursor=pointer]:
+                  - /url: /pages/new
+                  - img [ref=e86]
+                  - generic [ref=e87]: Add New Page
+          - listitem [ref=e88]:
+            - button "Commerce" [ref=e90]:
+              - img [ref=e91]
+              - generic [ref=e95]: Commerce
+              - img [ref=e96]
+            - list:
+              - listitem [ref=e98]:
+                - link "Overview" [ref=e99] [cursor=pointer]:
+                  - /url: /commerce
+                  - generic [ref=e100]: Overview
+              - listitem [ref=e101]:
+                - link "Orders" [ref=e102] [cursor=pointer]:
+                  - /url: /commerce/orders
+                  - generic [ref=e103]: Orders
+              - listitem [ref=e104]:
+                - link "Abandoned Carts" [ref=e105] [cursor=pointer]:
+                  - /url: /commerce/orders/abandoned
+                  - generic [ref=e106]: Abandoned Carts
+              - listitem [ref=e107]:
+                - link "Customers" [ref=e108] [cursor=pointer]:
+                  - /url: /commerce/customers
+                  - generic [ref=e109]: Customers
+              - listitem [ref=e110]:
+                - link "Discounts" [ref=e111] [cursor=pointer]:
+                  - /url: /commerce/discounts
+                  - generic [ref=e112]: Discounts
+              - listitem [ref=e113]:
+                - link "Wishlists" [ref=e114] [cursor=pointer]:
+                  - /url: /commerce/wishlists
+                  - generic [ref=e115]: Wishlists
+              - listitem [ref=e116]:
+                - link "Returns" [ref=e117] [cursor=pointer]:
+                  - /url: /commerce/returns
+                  - generic [ref=e118]: Returns
+              - listitem [ref=e119]:
+                - link "Payments" [ref=e120] [cursor=pointer]:
+                  - /url: /commerce/payments
+                  - generic [ref=e121]: Payments
+              - listitem [ref=e122]:
+                - link "Settings" [ref=e123] [cursor=pointer]:
+                  - /url: /commerce/settings
+                  - generic [ref=e124]: Settings
+              - listitem [ref=e125]:
+                - link "Shipping" [ref=e126] [cursor=pointer]:
+                  - /url: /commerce/settings/shipping
+                  - generic [ref=e127]: Shipping
+              - listitem [ref=e128]:
+                - link "Tax" [ref=e129] [cursor=pointer]:
+                  - /url: /commerce/settings/tax
+                  - generic [ref=e130]: Tax
+          - listitem [ref=e131]:
+            - button "Products" [ref=e132]:
+              - img [ref=e133]
+              - generic [ref=e136]: Products
+              - img [ref=e137]
+            - list:
+              - listitem [ref=e139]:
+                - link "All Products" [ref=e140] [cursor=pointer]:
+                  - /url: /commerce/products
+                  - generic [ref=e141]: All Products
+              - listitem [ref=e142]:
+                - link "Add New" [ref=e143] [cursor=pointer]:
+                  - /url: /commerce/products/new
+                  - img [ref=e144]
+                  - generic [ref=e145]: Add New
+              - listitem [ref=e146]:
+                - link "Categories" [ref=e147] [cursor=pointer]:
+                  - /url: /commerce/categories
+                  - generic [ref=e148]: Categories
+              - listitem [ref=e149]:
+                - link "Attributes" [ref=e150] [cursor=pointer]:
+                  - /url: /commerce/attributes
+                  - generic [ref=e151]: Attributes
+              - listitem [ref=e152]:
+                - link "Reviews" [ref=e153] [cursor=pointer]:
+                  - /url: /commerce/reviews
+                  - generic [ref=e154]: Reviews
+              - listitem [ref=e155]:
+                - link "Bundles" [ref=e156] [cursor=pointer]:
+                  - /url: /commerce/bundles
+                  - generic [ref=e157]: Bundles
+              - listitem [ref=e158]:
+                - link "Digital Products" [ref=e159] [cursor=pointer]:
+                  - /url: /commerce/digital
+                  - generic [ref=e160]: Digital Products
+          - listitem [ref=e161]:
+            - button "Knowledge Base" [ref=e162]:
+              - img [ref=e163]
+              - generic [ref=e165]: Knowledge Base
+              - img [ref=e166]
+            - list:
+              - listitem [ref=e168]:
+                - link "All Articles" [ref=e169] [cursor=pointer]:
+                  - /url: /kb
+                  - generic [ref=e170]: All Articles
+              - listitem [ref=e171]:
+                - link "Add New" [ref=e172] [cursor=pointer]:
+                  - /url: /kb/new
+                  - img [ref=e173]
+                  - generic [ref=e174]: Add New
+              - listitem [ref=e175]:
+                - link "Categories" [ref=e176] [cursor=pointer]:
+                  - /url: /kb/categories
+                  - generic [ref=e177]: Categories
+              - listitem [ref=e178]:
+                - link "Tags" [ref=e179] [cursor=pointer]:
+                  - /url: /kb/tags
+                  - generic [ref=e180]: Tags
+              - listitem [ref=e181]:
+                - link "Collections" [ref=e182] [cursor=pointer]:
+                  - /url: /kb/collections
+                  - generic [ref=e183]: Collections
+              - listitem [ref=e184]:
+                - link "Templates" [ref=e185] [cursor=pointer]:
+                  - /url: /kb/templates
+                  - generic [ref=e186]: Templates
+              - listitem [ref=e187]:
+                - link "Workflows" [ref=e188] [cursor=pointer]:
+                  - /url: /kb/workflows
+                  - generic [ref=e189]: Workflows
+              - listitem [ref=e190]:
+                - link "Analytics" [ref=e191] [cursor=pointer]:
+                  - /url: /kb/analytics
+                  - generic [ref=e192]: Analytics
+              - listitem [ref=e193]:
+                - link "Settings" [ref=e194] [cursor=pointer]:
+                  - /url: /kb/settings
+                  - generic [ref=e195]: Settings
+          - listitem [ref=e196]:
+            - button "Support Tickets" [ref=e197]:
+              - img [ref=e198]
+              - generic [ref=e201]: Support Tickets
+              - img [ref=e202]
+            - list:
+              - listitem [ref=e204]:
+                - link "All Tickets" [ref=e205] [cursor=pointer]:
+                  - /url: /tickets
+                  - generic [ref=e206]: All Tickets
+              - listitem [ref=e207]:
+                - link "Canned Responses" [ref=e208] [cursor=pointer]:
+                  - /url: /tickets/canned-responses
+                  - generic [ref=e209]: Canned Responses
+              - listitem [ref=e210]:
+                - link "Analytics" [ref=e211] [cursor=pointer]:
+                  - /url: /tickets/analytics
+                  - generic [ref=e212]: Analytics
+              - listitem [ref=e213]:
+                - link "Deflection Analytics" [ref=e214] [cursor=pointer]:
+                  - /url: /support/analytics
+                  - generic [ref=e215]: Deflection Analytics
+              - listitem [ref=e216]:
+                - link "Support Settings" [ref=e217] [cursor=pointer]:
+                  - /url: /support/settings
+                  - generic [ref=e218]: Support Settings
+              - listitem [ref=e219]:
+                - link "Settings" [ref=e220] [cursor=pointer]:
+                  - /url: /tickets/settings
+                  - generic [ref=e221]: Settings
+          - listitem [ref=e222]:
+            - button "Comments 3" [ref=e223]:
+              - img [ref=e224]
+              - generic [ref=e226]: Comments
+              - generic [ref=e227]: "3"
+              - img [ref=e228]
+            - list:
+              - listitem [ref=e230]:
+                - link "All Comments" [ref=e231] [cursor=pointer]:
+                  - /url: /comments
+                  - generic [ref=e232]: All Comments
+              - listitem [ref=e233]:
+                - link "Pending" [ref=e234] [cursor=pointer]:
+                  - /url: /comments/pending
+                  - generic [ref=e235]: Pending
+          - listitem [ref=e236]:
+            - button "Users" [ref=e238]:
+              - img [ref=e239]
+              - generic [ref=e244]: Users
+              - img [ref=e245]
+            - list:
+              - listitem [ref=e247]:
+                - link "All Users" [ref=e248] [cursor=pointer]:
+                  - /url: /users
+                  - generic [ref=e249]: All Users
+              - listitem [ref=e250]:
+                - link "Add New User" [ref=e251] [cursor=pointer]:
+                  - /url: /users/new
+                  - img [ref=e252]
+                  - generic [ref=e253]: Add New User
+              - listitem [ref=e254]:
+                - link "Your Profile" [ref=e255] [cursor=pointer]:
+                  - /url: /profile
+                  - generic [ref=e256]: Your Profile
+              - listitem [ref=e257]:
+                - link "Roles & Capabilities" [ref=e258] [cursor=pointer]:
+                  - /url: /roles
+                  - generic [ref=e259]: Roles & Capabilities
+              - listitem [ref=e260]:
+                - link "Add New Role" [ref=e261] [cursor=pointer]:
+                  - /url: /roles/new
+                  - img [ref=e262]
+                  - generic [ref=e263]: Add New Role
+          - listitem [ref=e264]:
+            - button "Appearance" [ref=e266]:
+              - img [ref=e267]
+              - generic [ref=e273]: Appearance
+              - img [ref=e274]
+            - list:
+              - listitem [ref=e276]:
+                - link "Themes" [ref=e277] [cursor=pointer]:
+                  - /url: /appearance/themes
+                  - generic [ref=e278]: Themes
+              - listitem [ref=e279]:
+                - link "Website Colors" [ref=e280] [cursor=pointer]:
+                  - /url: /appearance/colors
+                  - generic [ref=e281]: Website Colors
+              - listitem [ref=e282]:
+                - link "Layouts" [ref=e283] [cursor=pointer]:
+                  - /url: /layouts
+                  - generic [ref=e284]: Layouts
+              - listitem [ref=e285]:
+                - link "Header" [ref=e286] [cursor=pointer]:
+                  - /url: /appearance/header
+                  - generic [ref=e287]: Header
+              - listitem [ref=e288]:
+                - link "Footer" [ref=e289] [cursor=pointer]:
+                  - /url: /appearance/footer
+                  - generic [ref=e290]: Footer
+              - listitem [ref=e291]:
+                - link "Menus" [ref=e292] [cursor=pointer]:
+                  - /url: /menus
+                  - generic [ref=e293]: Menus
+              - listitem [ref=e294]:
+                - link "Menu Locations" [ref=e295] [cursor=pointer]:
+                  - /url: /menus/locations
+                  - generic [ref=e296]: Menu Locations
+          - listitem [ref=e297]:
+            - button "SEO" [ref=e298]:
+              - img [ref=e299]
+              - generic [ref=e302]: SEO
+              - img [ref=e303]
+            - list:
+              - listitem [ref=e305]:
+                - link "Dashboard" [ref=e306] [cursor=pointer]:
+                  - /url: /seo
+                  - generic [ref=e307]: Dashboard
+              - listitem [ref=e308]:
+                - link "Settings" [ref=e309] [cursor=pointer]:
+                  - /url: /seo/settings
+                  - generic [ref=e310]: Settings
+              - listitem [ref=e311]:
+                - link "Sitemap" [ref=e312] [cursor=pointer]:
+                  - /url: /seo/sitemap
+                  - generic [ref=e313]: Sitemap
+          - listitem [ref=e314]:
+            - link "Extensions" [ref=e316] [cursor=pointer]:
+              - /url: /plugins
+              - img [ref=e317]
+              - generic [ref=e319]: Extensions
+          - listitem [ref=e320]:
+            - button "Settings" [ref=e321]:
+              - img [ref=e322]
+              - generic [ref=e325]: Settings
+              - img [ref=e326]
+            - list:
+              - listitem [ref=e328]:
+                - link "Overview" [ref=e329] [cursor=pointer]:
+                  - /url: /settings
+                  - generic [ref=e330]: Overview
+              - listitem [ref=e331]:
+                - link "General" [ref=e332] [cursor=pointer]:
+                  - /url: /settings/general
+                  - generic [ref=e333]: General
+              - listitem [ref=e334]:
+                - link "Reading" [ref=e335] [cursor=pointer]:
+                  - /url: /settings/reading
+                  - generic [ref=e336]: Reading
+              - listitem [ref=e337]:
+                - link "Writing" [ref=e338] [cursor=pointer]:
+                  - /url: /settings/writing
+                  - generic [ref=e339]: Writing
+              - listitem [ref=e340]:
+                - link "Discussion" [ref=e341] [cursor=pointer]:
+                  - /url: /settings/discussion
+                  - generic [ref=e342]: Discussion
+              - listitem [ref=e343]:
+                - link "Notifications" [ref=e344] [cursor=pointer]:
+                  - /url: /settings/notifications
+                  - generic [ref=e345]: Notifications
+              - listitem [ref=e346]:
+                - link "Permalinks" [ref=e347] [cursor=pointer]:
+                  - /url: /settings/permalinks
+                  - generic [ref=e348]: Permalinks
+              - listitem [ref=e349]:
+                - link "Privacy" [ref=e350] [cursor=pointer]:
+                  - /url: /settings/privacy
+                  - generic [ref=e351]: Privacy
+              - listitem [ref=e352]:
+                - link "Email" [ref=e353] [cursor=pointer]:
+                  - /url: /settings/email
+                  - generic [ref=e354]: Email
+              - listitem [ref=e355]:
+                - link "Media" [ref=e356] [cursor=pointer]:
+                  - /url: /settings/media
+                  - generic [ref=e357]: Media
+              - listitem [ref=e358]:
+                - link "Search" [ref=e359] [cursor=pointer]:
+                  - /url: /settings/search
+                  - generic [ref=e360]: Search
+              - listitem [ref=e361]:
+                - link "Analytics" [ref=e362] [cursor=pointer]:
+                  - /url: /settings/analytics
+                  - generic [ref=e363]: Analytics
+              - listitem [ref=e364]:
+                - link "AI Providers" [ref=e365] [cursor=pointer]:
+                  - /url: /settings/ai
+                  - generic [ref=e366]: AI Providers
+              - listitem [ref=e367]:
+                - link "Integrations" [ref=e368] [cursor=pointer]:
+                  - /url: /settings/integrations
+                  - generic [ref=e369]: Integrations
+              - listitem [ref=e370]:
+                - link "Import / Export" [ref=e371] [cursor=pointer]:
+                  - /url: /settings/tools
+                  - generic [ref=e372]: Import / Export
+          - listitem [ref=e373]:
+            - button "Tools" [ref=e375]:
+              - img [ref=e376]
+              - generic [ref=e378]: Tools
+              - img [ref=e379]
+            - list:
+              - listitem [ref=e381]:
+                - link "Website Import" [ref=e382] [cursor=pointer]:
+                  - /url: /tools/website-import
+                  - generic [ref=e383]: Website Import
+              - listitem [ref=e384]:
+                - link "Activity Log" [ref=e385] [cursor=pointer]:
+                  - /url: /tools/activity
+                  - generic [ref=e386]: Activity Log
+              - listitem [ref=e387]:
+                - link "404 Log" [ref=e388] [cursor=pointer]:
+                  - /url: /tools/404-log
+                  - generic [ref=e389]: 404 Log
+              - listitem [ref=e390]:
+                - link "Audit Log" [ref=e391] [cursor=pointer]:
+                  - /url: /tools/audit-log
+                  - generic [ref=e392]: Audit Log
+              - listitem [ref=e393]:
+                - link "Roles" [ref=e394] [cursor=pointer]:
+                  - /url: /tools/roles
+                  - generic [ref=e395]: Roles
+              - listitem [ref=e396]:
+                - link "Capabilities" [ref=e397] [cursor=pointer]:
+                  - /url: /tools/capabilities
+                  - generic [ref=e398]: Capabilities
+              - listitem [ref=e399]:
+                - link "Events" [ref=e400] [cursor=pointer]:
+                  - /url: /tools/events
+                  - generic [ref=e401]: Events
+              - listitem [ref=e402]:
+                - link "Routes" [ref=e403] [cursor=pointer]:
+                  - /url: /tools/routes
+                  - generic [ref=e404]: Routes
+              - listitem [ref=e405]:
+                - link "Email Notifications" [ref=e406] [cursor=pointer]:
+                  - /url: /tools/email-notifications
+                  - generic [ref=e407]: Email Notifications
+              - listitem [ref=e408]:
+                - link "Site Notifications" [ref=e409] [cursor=pointer]:
+                  - /url: /tools/site-notifications
+                  - generic [ref=e410]: Site Notifications
+              - listitem [ref=e411]:
+                - link "Redirects" [ref=e412] [cursor=pointer]:
+                  - /url: /tools/redirects
+                  - generic [ref=e413]: Redirects
+              - listitem [ref=e414]:
+                - link "API Keys" [ref=e415] [cursor=pointer]:
+                  - /url: /api-keys
+                  - generic [ref=e416]: API Keys
+              - listitem [ref=e417]:
+                - link "Webhooks" [ref=e418] [cursor=pointer]:
+                  - /url: /webhooks
+                  - generic [ref=e419]: Webhooks
+              - listitem [ref=e420]:
+                - link "Updates" [ref=e421] [cursor=pointer]:
+                  - /url: /updates
+                  - generic [ref=e422]: Updates
+        - button "Collapse sidebar" [ref=e424]:
+          - img [ref=e425]
+          - generic [ref=e428]: Collapse
+      - generic [ref=e429]:
+        - banner [ref=e430]:
+          - link "Lark & Ladle Studio" [ref=e432] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e433]: Lark & Ladle Studio
+            - img [ref=e434]
+          - button "Search admin content (Ctrl+K)" [ref=e440]:
+            - img [ref=e441]
+            - generic [ref=e444]: Search everything...
+            - generic [ref=e445]: ⌘K
+          - generic [ref=e446]:
+            - button "Notifications" [ref=e449]:
+              - img [ref=e450]
+            - button "Toggle theme" [ref=e454]:
+              - img
+              - generic [ref=e455]: Toggle theme
+            - button "T Troy Thomas" [ref=e457]:
+              - generic [ref=e458]: T
+              - generic [ref=e459]: Troy Thomas
+        - progressbar [ref=e460]
+        - main [ref=e461]:
+          - generic [ref=e462]:
+            - heading "Dashboard" [level=1] [ref=e464]
+            - button "Screen Options" [ref=e467]:
+              - text: Screen Options
+              - img [ref=e468]
+            - generic [ref=e470]:
+              - button "Dismiss this welcome panel" [ref=e471]:
+                - img [ref=e472]
+              - generic [ref=e475]:
+                - heading "Welcome to ConvexPress, Troy Thomas!" [level=2] [ref=e476]
+                - paragraph [ref=e477]: "Here are some links to get you started:"
+                - generic [ref=e478]:
+                  - generic [ref=e479]:
+                    - heading "Get Started" [level=3] [ref=e480]
+                    - list [ref=e481]:
+                      - listitem [ref=e482]:
+                        - link "Customize Your Site" [ref=e483] [cursor=pointer]:
+                          - /url: /settings/general
+                          - img [ref=e484]
+                          - text: Customize Your Site
+                      - listitem [ref=e490]:
+                        - link "Write Your First Post" [ref=e491] [cursor=pointer]:
+                          - /url: /posts/new
+                          - img [ref=e492]
+                          - text: Write Your First Post
+                      - listitem [ref=e494]:
+                        - link "Add a Page" [ref=e495] [cursor=pointer]:
+                          - /url: /pages/new
+                          - img [ref=e496]
+                          - text: Add a Page
+                  - generic [ref=e499]:
+                    - heading "Next Steps" [level=3] [ref=e500]
+                    - list [ref=e501]:
+                      - listitem [ref=e502]:
+                        - link "Manage Media" [ref=e503] [cursor=pointer]:
+                          - /url: /media
+                          - img [ref=e504]
+                          - text: Manage Media
+                      - listitem [ref=e508]:
+                        - link "Manage Users" [ref=e509] [cursor=pointer]:
+                          - /url: /users
+                          - img [ref=e510]
+                          - text: Manage Users
+                  - generic [ref=e515]:
+                    - heading "More Actions" [level=3] [ref=e516]
+                    - list [ref=e517]:
+                      - listitem [ref=e518]:
+                        - link "Settings" [ref=e519] [cursor=pointer]:
+                          - /url: /settings/general
+                          - img [ref=e520]
+                          - text: Settings
+              - button "Dismiss" [ref=e524]
+            - generic [ref=e525]:
+              - generic [ref=e526]:
+                - generic [ref=e529]:
+                  - generic [ref=e530]:
+                    - generic [ref=e531]:
+                      - generic "Drag to reorder" [ref=e532]:
+                        - img [ref=e533]
+                      - heading "At a Glance" [level=3] [ref=e540]
+                    - button "Collapse widget" [expanded] [ref=e541]:
+                      - img [ref=e542]
+                  - generic [ref=e546]:
+                    - link "76 Posts" [ref=e547] [cursor=pointer]:
+                      - /url: /posts
+                      - img [ref=e549]
+                      - generic [ref=e552]:
+                        - generic [ref=e553]: "76"
+                        - generic [ref=e554]: Posts
+                    - link "38 Pages" [ref=e555] [cursor=pointer]:
+                      - /url: /pages
+                      - img [ref=e557]
+                      - generic [ref=e561]:
+                        - generic [ref=e562]: "38"
+                        - generic [ref=e563]: Pages
+                    - link "89 Comments 3 pending" [ref=e564] [cursor=pointer]:
+                      - /url: /comments
+                      - img [ref=e566]
+                      - generic [ref=e568]:
+                        - generic [ref=e569]: "89"
+                        - generic [ref=e570]: Comments
+                        - generic [ref=e571]: 3 pending
+                    - link "5563 Users" [ref=e572] [cursor=pointer]:
+                      - /url: /users
+                      - img [ref=e574]
+                      - generic [ref=e579]:
+                        - generic [ref=e580]: "5563"
+                        - generic [ref=e581]: Users
+                - generic [ref=e584]:
+                  - generic [ref=e585]:
+                    - generic [ref=e586]:
+                      - generic "Drag to reorder" [ref=e587]:
+                        - img [ref=e588]
+                      - heading "Activity" [level=3] [ref=e595]
+                    - button "Collapse widget" [expanded] [ref=e596]:
+                      - img [ref=e597]
+                  - generic [ref=e600]:
+                    - generic [ref=e601]:
+                      - heading "Recently Published" [level=4] [ref=e602]
+                      - list [ref=e603]:
+                        - listitem [ref=e604]:
+                          - generic [ref=e605]: Apr 27
+                          - generic [ref=e606]:
+                            - link "ASW’s New Ultra Light Sort" [ref=e607] [cursor=pointer]:
+                              - /url: /posts/nx742xr7tegfphpbmbab6b9cqx85m9mw/edit
+                            - generic [ref=e608]: by Brent Cole
+                        - listitem [ref=e609]:
+                          - generic [ref=e610]: Jun 14
+                          - generic [ref=e611]:
+                            - link "Introducing ASW&#8217;s NEW Ultra Light Soundboard Sort." [ref=e612] [cursor=pointer]:
+                              - /url: /posts/nx7354n0m6cv8bcewfhatmq7e585nm4p/edit
+                            - generic [ref=e613]: by Brent Cole
+                        - listitem [ref=e614]:
+                          - generic [ref=e615]: Sep 16
+                          - generic [ref=e616]:
+                            - link "What Should You Consider About the Soundboard Before Buying an Acoustic Guitar?" [ref=e617] [cursor=pointer]:
+                              - /url: /posts/nx7c6ykt6fpcy6eb6dwc1jpc8d85mx3c/edit
+                            - generic [ref=e618]: by Brent Cole
+                        - listitem [ref=e619]:
+                          - generic [ref=e620]: Sep 16
+                          - generic [ref=e621]:
+                            - link "Things you probably didn&#8217;t know about Sitka Spruce" [ref=e622] [cursor=pointer]:
+                              - /url: /posts/nx710c25xxh7xpfcpabx6xx2s585nfpg/edit
+                            - generic [ref=e623]: by Brent Cole
+                        - listitem [ref=e624]:
+                          - generic [ref=e625]: Sep 16
+                          - generic [ref=e626]:
+                            - link "The Top Three Acoustic Guitars For Professional Players" [ref=e627] [cursor=pointer]:
+                              - /url: /posts/nx7eymhab6177d4wk83yacadwh85n666/edit
+                            - generic [ref=e628]: by Brent Cole
+                    - generic [ref=e629]:
+                      - heading "Recent Comments" [level=4] [ref=e630]
+                      - list [ref=e631]:
+                        - listitem [ref=e632]:
+                          - generic [ref=e633]:
+                            - generic [ref=e634]: Bubba Pearson
+                            - generic [ref=e635]: "on"
+                            - link "4 Famous Bluegrass Mandolin Players You Should Definitely Know" [ref=e636] [cursor=pointer]:
+                              - /url: /posts/nx7fs6gr6v4krrbzp0e8n0hhbx85np3p/edit
+                          - paragraph [ref=e637]: Rhonda was a star and &#8216;bluegrass queen&#8217; before Alison began her own rise to fiddle and singing stardom, so f...
+                          - generic [ref=e638]: Jan 23
+                        - listitem [ref=e639]:
+                          - generic [ref=e640]:
+                            - generic [ref=e641]: John Minger
+                            - generic [ref=e642]: "on"
+                            - link "4 Famous Bluegrass Mandolin Players You Should Definitely Know" [ref=e643] [cursor=pointer]:
+                              - /url: /posts/nx7fs6gr6v4krrbzp0e8n0hhbx85np3p/edit
+                          - paragraph [ref=e644]: One of the young pickers that is really coming on is Lauren Price Napier, of The Price Sisters.
+                          - generic [ref=e645]: Jan 22
+                        - listitem [ref=e646]:
+                          - generic [ref=e647]:
+                            - generic [ref=e648]: Gary Hunt
+                            - generic [ref=e649]: "on"
+                            - link "4 Famous Bluegrass Mandolin Players You Should Definitely Know" [ref=e650] [cursor=pointer]:
+                              - /url: /posts/nx7fs6gr6v4krrbzp0e8n0hhbx85np3p/edit
+                          - paragraph [ref=e651]: As a bluegrass picker, Sam Bush,& Jimmy Gaudreau & David Grisman are top of the list. Lots of other great players, but t...
+                          - generic [ref=e652]: Jan 20
+                        - listitem [ref=e653]:
+                          - generic [ref=e654]:
+                            - generic [ref=e655]: Robert Norton
+                            - generic [ref=e656]: "on"
+                            - link "Why Quarter-Sawn Tonewood Is Worth The Price" [ref=e657] [cursor=pointer]:
+                              - /url: /posts/nx7d3dd5d26kfhr0c0z1kd2rns85mdk4/edit
+                          - paragraph [ref=e658]: Looking for some quarter sawn stick spruce billets to make soundboards for dreadnaughts. Could you quote me some prices?
+                          - generic [ref=e659]: Jan 6
+                        - listitem [ref=e660]:
+                          - generic [ref=e661]:
+                            - generic [ref=e662]: Mike
+                            - generic [ref=e663]: "on"
+                            - link "Adirondack Spruce vs. Sitka Spruce" [ref=e664] [cursor=pointer]:
+                              - /url: /posts/nx7ctd3v2bkhekwd9hj5jey0ch85mxtq/edit
+                          - paragraph [ref=e665]: I saw a poor man on a corner with what looked like a guitar. The pick guard was gone and it was weathered to almost usel...
+                          - generic [ref=e666]: Dec 30
+              - generic [ref=e667]:
+                - generic [ref=e670]:
+                  - generic [ref=e671]:
+                    - generic [ref=e672]:
+                      - generic "Drag to reorder" [ref=e673]:
+                        - img [ref=e674]
+                      - heading "Quick Draft" [level=3] [ref=e681]
+                    - button "Collapse widget" [expanded] [ref=e682]:
+                      - img [ref=e683]
+                  - generic [ref=e686]:
+                    - generic [ref=e687]:
+                      - generic [ref=e688]:
+                        - generic [ref=e689]: Title
+                        - textbox "What's on your mind?" [ref=e690]
+                      - generic [ref=e691]:
+                        - generic [ref=e692]: Content
+                        - textbox "What would you like to say?" [ref=e693]
+                      - generic [ref=e694]:
+                        - button "Save Draft" [disabled]
+                    - generic [ref=e695]:
+                      - heading "Your Recent Drafts" [level=4] [ref=e696]
+                      - paragraph [ref=e697]: No drafts yet. Use the form above to create one.
+                - generic [ref=e700]:
+                  - generic [ref=e701]:
+                    - generic [ref=e702]:
+                      - generic "Drag to reorder" [ref=e703]:
+                        - img [ref=e704]
+                      - heading "Moderation Queue" [level=3] [ref=e711]
+                    - button "Collapse widget" [expanded] [ref=e712]:
+                      - img [ref=e713]
+                  - generic [ref=e716]:
+                    - generic [ref=e717]:
+                      - img [ref=e719]
+                      - generic [ref=e721]:
+                        - generic [ref=e722]: "3"
+                        - generic [ref=e723]: Comments awaiting moderation
+                    - link "Review pending comments" [ref=e725] [cursor=pointer]:
+                      - /url: /comments?status=pending
+                      - text: Review pending comments
+                      - img [ref=e726]
+                - generic [ref=e730]:
+                  - generic [ref=e731]:
+                    - generic [ref=e732]:
+                      - generic "Drag to reorder" [ref=e733]:
+                        - img [ref=e734]
+                      - heading "Recent Comments" [level=3] [ref=e741]
+                    - button "Collapse widget" [expanded] [ref=e742]:
+                      - img [ref=e743]
+                  - generic [ref=e746]:
+                    - list [ref=e747]:
+                      - listitem [ref=e748]:
+                        - img "dsnow3" [ref=e749]
+                        - generic [ref=e750]:
+                          - generic [ref=e751]:
+                            - generic [ref=e752]: dsnow3
+                            - generic [ref=e753]: Pending
+                          - paragraph [ref=e754]: Rhonda Vincent plays the mandolin but is known mor...
+                          - generic [ref=e755]:
+                            - img [ref=e756]
+                            - generic [ref=e758]:
+                              - text: "on"
+                              - link "4 Famous Bluegrass Mandolin Players You Should Definitely Know" [ref=e759] [cursor=pointer]:
+                                - /url: /posts/nx7fs6gr6v4krrbzp0e8n0hhbx85np3p/edit
+                            - generic [ref=e760]: 326d ago
+                      - listitem [ref=e761]:
+                        - img "dsnow3" [ref=e762]
+                        - generic [ref=e763]:
+                          - generic [ref=e764]:
+                            - generic [ref=e765]: dsnow3
+                            - generic [ref=e766]: Pending
+                          - paragraph [ref=e767]: Ralph Stanley played a banjo 🪕
+                          - generic [ref=e768]:
+                            - img [ref=e769]
+                            - generic [ref=e771]:
+                              - text: "on"
+                              - link "4 Famous Bluegrass Mandolin Players You Should Definitely Know" [ref=e772] [cursor=pointer]:
+                                - /url: /posts/nx7fs6gr6v4krrbzp0e8n0hhbx85np3p/edit
+                            - generic [ref=e773]: 326d ago
+                      - listitem [ref=e774]:
+                        - img "dsnow3" [ref=e775]
+                        - generic [ref=e776]:
+                          - generic [ref=e777]:
+                            - generic [ref=e778]: dsnow3
+                            - generic [ref=e779]: Pending
+                          - paragraph [ref=e780]: Ricky Skaggs and Bobby Osborne should be on that l...
+                          - generic [ref=e781]:
+                            - img [ref=e782]
+                            - generic [ref=e784]:
+                              - text: "on"
+                              - link "4 Famous Bluegrass Mandolin Players You Should Definitely Know" [ref=e785] [cursor=pointer]:
+                                - /url: /posts/nx7fs6gr6v4krrbzp0e8n0hhbx85np3p/edit
+                            - generic [ref=e786]: 326d ago
+                      - listitem [ref=e787]:
+                        - generic [ref=e788]: B
+                        - generic [ref=e789]:
+                          - generic [ref=e791]: Bubba Pearson
+                          - paragraph [ref=e792]: Rhonda was a star and &#8216;bluegrass queen&#8217...
+                          - generic [ref=e793]:
+                            - img [ref=e794]
+                            - generic [ref=e796]:
+                              - text: "on"
+                              - link "4 Famous Bluegrass Mandolin Players You Should Definitely Know" [ref=e797] [cursor=pointer]:
+                                - /url: /posts/nx7fs6gr6v4krrbzp0e8n0hhbx85np3p/edit
+                            - generic [ref=e798]: 839d ago
+                      - listitem [ref=e799]:
+                        - generic [ref=e800]: J
+                        - generic [ref=e801]:
+                          - generic [ref=e803]: John Minger
+                          - paragraph [ref=e804]: One of the young pickers that is really coming on ...
+                          - generic [ref=e805]:
+                            - img [ref=e806]
+                            - generic [ref=e808]:
+                              - text: "on"
+                              - link "4 Famous Bluegrass Mandolin Players You Should Definitely Know" [ref=e809] [cursor=pointer]:
+                                - /url: /posts/nx7fs6gr6v4krrbzp0e8n0hhbx85np3p/edit
+                            - generic [ref=e810]: 839d ago
+                    - link "View all comments" [ref=e812] [cursor=pointer]:
+                      - /url: /comments
+                      - text: View all comments
+                      - img [ref=e813]
+                - generic [ref=e817]:
+                  - generic [ref=e818]:
+                    - generic [ref=e819]:
+                      - generic "Drag to reorder" [ref=e820]:
+                        - img [ref=e821]
+                      - heading "System Health" [level=3] [ref=e828]
+                    - button "Collapse widget" [expanded] [ref=e829]:
+                      - img [ref=e830]
+                  - generic [ref=e833]:
+                    - generic [ref=e834]:
+                      - generic [ref=e835]:
+                        - generic [ref=e836]:
+                          - img [ref=e837]
+                          - generic [ref=e840]: Database
+                        - generic [ref=e841]: Connected
+                      - generic [ref=e842]:
+                        - generic [ref=e843]:
+                          - img [ref=e844]
+                          - generic [ref=e847]: Environment
+                        - generic [ref=e848]: Development
+                      - generic [ref=e849]:
+                        - generic [ref=e850]:
+                          - img [ref=e851]
+                          - generic [ref=e854]: CMS Version
+                        - generic [ref=e855]: ConvexPress 1.0
+                      - generic [ref=e856]:
+                        - generic [ref=e857]:
+                          - img [ref=e858]
+                          - generic [ref=e861]: Auth
+                        - generic [ref=e862]: Local JWT
+                    - paragraph [ref=e864]: For detailed system information, visit Settings.
+        - contentinfo [ref=e865]:
+          - generic [ref=e866]: Thank you for creating with ConvexPress
+          - generic [ref=e867]: Version 1.0.0
+    - region "Notifications alt+T"
