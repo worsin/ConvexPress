@@ -1,3 +1,9 @@
 {
-  "extends": "@convexpress-website/config/tsconfig.base.json"
+  "extends": "@convexpress-website/config/tsconfig.base.json",
+  "exclude": [
+    "design-kit/**",
+    "node_modules",
+    "dist",
+    "apps/web/.tanstack"
+  ]
 }

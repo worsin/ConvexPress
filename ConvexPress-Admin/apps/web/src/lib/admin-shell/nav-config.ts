@@ -330,13 +330,20 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     capability: "edit_theme_options",
     separator: true,
     children: [
-      { id: "appearance-themes", label: "Themes", to: "/appearance/themes" },
-      { id: "appearance-colors", label: "Website Colors", to: "/appearance/colors" },
-      { id: "appearance-layouts", label: "Layouts", to: "/layouts", exact: true },
-      { id: "appearance-header", label: "Header", to: "/appearance/header" },
-      { id: "appearance-footer", label: "Footer", to: "/appearance/footer" },
+      // ── Active ────────────────────────────────────────────────────────────
       { id: "appearance-menus", label: "Menus", to: "/menus", exact: true },
       { id: "appearance-menu-locations", label: "Menu Locations", to: "/menus/locations" },
+
+      // ── Deprecated ────────────────────────────────────────────────────────
+      // Legacy in-admin Theme/Template Builder. Replaced by AI-driven
+      // generation via design:* skills in ConvexPress-Website/design-kit/.
+      // Kept visible (muted) so deprecation is obvious; will be removed once
+      // at least one site is fully shipped via the skill kit.
+      { id: "appearance-themes",  label: "Themes",         to: "/appearance/themes",  deprecated: true },
+      { id: "appearance-colors",  label: "Website Colors", to: "/appearance/colors",  deprecated: true },
+      { id: "appearance-layouts", label: "Layouts",        to: "/layouts", exact: true, deprecated: true },
+      { id: "appearance-header",  label: "Header",         to: "/appearance/header",  deprecated: true },
+      { id: "appearance-footer",  label: "Footer",         to: "/appearance/footer",  deprecated: true },
     ],
   },
   {

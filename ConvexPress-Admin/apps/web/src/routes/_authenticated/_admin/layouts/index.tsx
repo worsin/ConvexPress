@@ -1,3 +1,14 @@
+/**
+ * @deprecated 2026-05-11 — Legacy in-admin Theme/Template Builder.
+ *
+ * STATUS:  Frozen. Hidden from active nav. Do NOT extend or fix issues here.
+ * REASON:  A pre-built section enum + preset theme picker limits what each
+ *          site can look like. Replaced by AI-generated React components,
+ *          one per route, generated per site by the design:* skill kit.
+ * REPLACEMENT:  See ConvexPress-Website/design-kit/README.md
+ * REMOVAL:  Safe to delete once at least one site is fully shipped via the
+ *           skill kit and nothing else references this file.
+ */
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
@@ -9,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LayoutCard } from "@/components/layouts/LayoutCard";
 import type { Layout } from "@/components/layouts/types";
+import { DeprecatedSystemBanner } from "@/components/appearance/DeprecatedSystemBanner";
 
 export const Route = createFileRoute("/_authenticated/_admin/layouts/")({
   component: LayoutLibraryPage,
@@ -36,6 +48,7 @@ function LayoutLibraryPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <DeprecatedSystemBanner />
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

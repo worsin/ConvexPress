@@ -1,5 +1,10 @@
 {
   "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": [
+    "../../design-kit/**",
+    "node_modules",
+    "dist"
+  ],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",

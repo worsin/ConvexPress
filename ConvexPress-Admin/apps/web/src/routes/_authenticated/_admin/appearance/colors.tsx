@@ -1,4 +1,15 @@
 /**
+ * @deprecated 2026-05-11 — Legacy in-admin Theme/Template Builder.
+ *
+ * STATUS:  Frozen. Hidden from active nav. Do NOT extend or fix issues here.
+ * REASON:  A pre-built section enum + preset theme picker limits what each
+ *          site can look like. Replaced by AI-generated React components,
+ *          one per route, generated per site by the design:* skill kit.
+ * REPLACEMENT:  See ConvexPress-Website/design-kit/README.md
+ * REMOVAL:  Safe to delete once at least one site is fully shipped via the
+ *           skill kit and nothing else references this file.
+ */
+/**
  * Website Colors Page
  *
  * Settings-style page for managing the website's color palette.
@@ -18,6 +29,7 @@ import { toast } from "sonner";
 
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { SettingsField } from "@/components/settings/SettingsField";
+import { DeprecatedSystemBanner } from "@/components/appearance/DeprecatedSystemBanner";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/appearance/colors",
@@ -323,6 +335,7 @@ function WebsiteColorsPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
+      <DeprecatedSystemBanner />
       {/* Page header */}
       <div>
         <h1 className="text-xl font-semibold text-foreground">Website Colors</h1>

@@ -23,6 +23,12 @@ export interface AdminNavItem {
   isAddNew?: boolean;
   /** Match exact path only (default: false, matches prefix) */
   exact?: boolean;
+  /**
+   * Marks the item as deprecated. Rendered muted with a "deprecated" tag.
+   * Used for legacy systems on hold (e.g. the in-admin theme/template builder,
+   * replaced by the design:* skill kit in the Website repo).
+   */
+  deprecated?: boolean;
 }
 
 /**

@@ -24,8 +24,15 @@ export function NavItem({ item, collapsed, depth }: NavItemProps) {
           "[&.active]:bg-sidebar-primary [&.active]:text-sidebar-primary-foreground",
           isChild && !collapsed ? "py-1.5 pl-9 pr-3" : "px-3 py-2",
           collapsed && "justify-center px-0 py-2",
+          item.deprecated && "opacity-60 italic",
         )}
-        title={collapsed ? item.label : undefined}
+        title={
+          collapsed
+            ? item.label
+            : item.deprecated
+              ? `${item.label} — deprecated`
+              : undefined
+        }
       >
         {/* Icon for top-level items */}
         {item.icon && !isChild && (
@@ -40,6 +47,13 @@ export function NavItem({ item, collapsed, depth }: NavItemProps) {
         {/* Label */}
         {!collapsed && (
           <span className="truncate">{item.label}</span>
+        )}
+
+        {/* Deprecated tag */}
+        {!collapsed && item.deprecated && (
+          <span className="ml-auto inline-flex items-center rounded-sm border border-muted-foreground/30 px-1 py-0.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+            deprecated
+          </span>
         )}
 
         {/* Badge */}
