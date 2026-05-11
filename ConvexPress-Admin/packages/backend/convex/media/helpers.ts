@@ -191,12 +191,12 @@ export async function getMediaUrl(
       .unique();
 
     if (sizeRecord) {
-      const sizeUrl = await ctx.storage.getUrl(sizeRecord.storageId);
+      const sizeUrl = (sizeRecord.storageId ? await ctx.storage.getUrl(sizeRecord.storageId) : null);
       return sizeUrl ?? sizeRecord.url;
     }
   }
 
-  const freshUrl = await ctx.storage.getUrl(media.storageId);
+  const freshUrl = (media.storageId ? await ctx.storage.getUrl(media.storageId) : null);
   return freshUrl ?? media.url;
 }
 
@@ -220,7 +220,7 @@ export async function getMediaSrc(
       .unique();
 
     if (sizeRecord) {
-      const sizeUrl = await ctx.storage.getUrl(sizeRecord.storageId);
+      const sizeUrl = (sizeRecord.storageId ? await ctx.storage.getUrl(sizeRecord.storageId) : null);
       return {
         url: sizeUrl ?? sizeRecord.url,
         width: sizeRecord.width,
@@ -229,7 +229,7 @@ export async function getMediaSrc(
     }
   }
 
-  const freshUrl = await ctx.storage.getUrl(media.storageId);
+  const freshUrl = (media.storageId ? await ctx.storage.getUrl(media.storageId) : null);
   return {
     url: freshUrl ?? media.url,
     width: media.width ?? 0,
@@ -258,7 +258,7 @@ export async function buildSrcSet(
 
   const parts: string[] = [];
   for (const size of sizes) {
-    const url = await ctx.storage.getUrl(size.storageId);
+    const url = (size.storageId ? await ctx.storage.getUrl(size.storageId) : null);
     if (url) {
       parts.push(`${url} ${size.width}w`);
     }
@@ -267,7 +267,7 @@ export async function buildSrcSet(
   // Also include the original/full size
   const media = await ctx.db.get("media", mediaId);
   if (media && media.width) {
-    const fullUrl = await ctx.storage.getUrl(media.storageId);
+    const fullUrl = (media.storageId ? await ctx.storage.getUrl(media.storageId) : null);
     if (fullUrl) {
       parts.push(`${fullUrl} ${media.width}w`);
     }

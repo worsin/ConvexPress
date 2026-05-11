@@ -53,13 +53,13 @@ export function ThemeCard({
           getGradientClass(theme),
         )}
       >
-        <h3 className="text-lg font-semibold text-white drop-shadow-md">
+        <h3 className="text-lg font-semibold text-[#ccc] drop-shadow-md">
           {theme.name}
         </h3>
 
         {/* Active badge */}
         {isActive && (
-          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-green-500/90 px-2.5 py-0.5 text-xs font-medium text-white shadow-sm">
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-green-500/90 px-2.5 py-0.5 text-xs font-medium text-[#ccc] shadow-sm">
             <Check className="size-3" />
             Active
           </span>

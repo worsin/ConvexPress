@@ -13,6 +13,7 @@ import { ChevronDown, ChevronRight, Save } from "lucide-react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
+import { useBrowserNotificationPermission } from "@/hooks/useBrowserNotificationPermission";
 import type { NotificationPreference } from "@/lib/dashboard/types";
 
 const CATEGORY_ORDER = [
@@ -22,6 +23,9 @@ const CATEGORY_ORDER = [
   "Users",
   "Security",
   "Account",
+  "Support",
+  "Knowledge Base",
+  "Commerce",
   "System",
   "Discovery",
   "Developer",
@@ -46,6 +50,13 @@ export function NotificationPreferencesSection() {
   const updatePreferences = useMutation(
     api.notifications.mutations.updatePreferences,
   );
+  const {
+    supported,
+    canRequest,
+    isGranted,
+    isDenied,
+    requestPermission,
+  } = useBrowserNotificationPermission();
 
   const isLoading = preferences === undefined;
 
@@ -108,6 +119,23 @@ export function NotificationPreferencesSection() {
     }
   }, [localChanges, updatePreferences]);
 
+  const handleEnableDesktop = useCallback(async () => {
+    const result = await requestPermission();
+    if (result === "granted") {
+      toast.success("Desktop notifications enabled");
+    } else if (result === "denied") {
+      toast.error("Desktop notifications were blocked by the browser");
+    }
+  }, [requestPermission]);
+
+  const desktopStatus = !supported
+    ? "This browser does not support desktop notifications."
+    : isGranted
+      ? "Desktop notifications are enabled for background alerts."
+      : isDenied
+        ? "Desktop notifications are blocked in browser settings."
+        : "Enable browser permission to receive desktop alerts while this tab is in the background.";
+
   return (
     <div
       data-slot="notification-preferences-section"
@@ -141,6 +169,33 @@ export function NotificationPreferencesSection() {
             </div>
           ) : (
             <div className="space-y-4">
+              <div className="border border-border bg-muted/20 px-3 py-2">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-medium text-foreground">
+                      Desktop Delivery
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      The Popup/Desktop toggle below controls foreground toasts
+                      and background desktop alerts for each notification type.
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {desktopStatus}
+                    </p>
+                  </div>
+
+                  {supported && canRequest && (
+                    <button
+                      type="button"
+                      onClick={handleEnableDesktop}
+                      className="border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-muted"
+                    >
+                      Enable Desktop Alerts
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Save button */}
               {hasPendingChanges && (
                 <div className="flex justify-end">
@@ -171,7 +226,7 @@ export function NotificationPreferencesSection() {
                     <div className="mb-1 grid grid-cols-[1fr_80px_80px] gap-2 text-[10px] font-medium text-muted-foreground">
                       <span>Type</span>
                       <span className="text-center">In-App</span>
-                      <span className="text-center">Toast</span>
+                      <span className="text-center">Popup / Desktop</span>
                     </div>
 
                     {/* Preference rows */}
@@ -206,7 +261,7 @@ export function NotificationPreferencesSection() {
                                 getEffectiveValue(pref, "toastEnabled"),
                               )
                             }
-                            label={`${pref.notificationName} toast notifications`}
+                            label={`${pref.notificationName} popup or desktop notifications`}
                           />
                         </div>
                       </div>

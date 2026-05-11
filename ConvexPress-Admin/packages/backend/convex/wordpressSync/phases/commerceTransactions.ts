@@ -130,8 +130,15 @@ export const importBatch = internalAction({
     }
 
     const cursor = progress.cursor || 0;
+    // Each sub-phase returns hasMore based on its own bucket only. We OR in
+    // whether subsequent sub-phases still have work so the orchestrator
+    // doesn't prematurely advance to reconciliation when, e.g., customers
+    // complete but orders haven't started.
+    const hasMoreOuter = (): boolean =>
+      orderTotal > 0 || couponTotal > 0 || reviewTotal > 0;
+
     if (cursor < customerTotal) {
-      return await importCustomerBatch(ctx, {
+      const result = await importCustomerBatch(ctx, {
         siteId,
         jobId,
         credentials,
@@ -141,10 +148,11 @@ export const importBatch = internalAction({
         importConfig,
         orderDateWindow,
       });
+      return { ...result, hasMore: result.hasMore || hasMoreOuter() };
     }
 
     if (cursor < customerTotal + orderTotal) {
-      return await importOrderBatch(ctx, {
+      const result = await importOrderBatch(ctx, {
         siteId,
         jobId,
         credentials,
@@ -155,10 +163,14 @@ export const importBatch = internalAction({
         importConfig,
         orderDateWindow,
       });
+      return {
+        ...result,
+        hasMore: result.hasMore || couponTotal > 0 || reviewTotal > 0,
+      };
     }
 
     if (cursor < customerTotal + orderTotal + couponTotal) {
-      return await importCouponBatch(ctx, {
+      const result = await importCouponBatch(ctx, {
         siteId,
         jobId,
         credentials,
@@ -169,6 +181,7 @@ export const importBatch = internalAction({
         isDryRun,
         importConfig,
       });
+      return { ...result, hasMore: result.hasMore || reviewTotal > 0 };
     }
 
     return await importReviewBatch(ctx, {
@@ -902,6 +915,12 @@ async function importSingleOrder(
   );
 
   for (const lineItem of order.line_items ?? []) {
+    // product_id can be 0 (deleted product) or reference a Woo product that
+    // was hard-deleted at some point. Both are common in long-running stores.
+    // Skip the line item rather than failing the whole order — the rest of
+    // the order (header, shipping, totals, refunds) is still useful.
+    if (!lineItem.product_id) continue;
+
     const productId = await ctx.runQuery(internal.wordpressSync.helpers.idMapping.getByWpId, {
       siteId,
       objectType: "commerceProduct",
@@ -909,7 +928,9 @@ async function importSingleOrder(
     });
 
     if (!productId) {
-      throw new Error(`Missing product mapping for order item product ${lineItem.product_id}`);
+      // Product was in WP but not in our import scope (or already deleted).
+      // Keep the order, drop just this line item.
+      continue;
     }
 
     const variantId =

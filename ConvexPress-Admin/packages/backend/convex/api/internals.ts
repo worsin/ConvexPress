@@ -39,6 +39,8 @@ import {
 } from "../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
+import { emitEvent } from "../helpers/events";
+import { API_EVENTS, SYSTEM } from "../events/constants";
 import {
   authenticateRequestArgs,
   deliverWebhookArgs,
@@ -537,6 +539,19 @@ export const recordDeliveryResult = internalMutation({
 
       await ctx.db.patch("webhooks", args.webhookId, patch);
     }
+
+    await emitEvent(ctx, API_EVENTS.WEBHOOK_TRIGGERED, SYSTEM.API, {
+      webhookId: args.webhookId,
+      eventId: args.eventId ?? null,
+      url: args.requestUrl,
+      endpoint: args.requestUrl,
+      statusCode: args.responseCode ?? null,
+      success: args.success,
+      error: args.error ?? null,
+      durationMs: args.duration ?? null,
+      isTest: args.isTest,
+      attempt: args.attempt,
+    });
   },
 });
 
@@ -599,6 +614,20 @@ export const recordDeliveryFailure = internalMutation({
     }
 
     await ctx.db.patch("webhooks", args.webhookId, patch);
+
+    await emitEvent(ctx, API_EVENTS.WEBHOOK_TRIGGERED, SYSTEM.API, {
+      webhookId: args.webhookId,
+      eventId: args.eventId ?? null,
+      url: args.requestUrl,
+      endpoint: args.requestUrl,
+      statusCode: null,
+      success: false,
+      error: args.error,
+      durationMs: null,
+      networkError: true,
+      isTest: args.isTest,
+      attempt: args.attempt,
+    });
   },
 });
 

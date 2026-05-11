@@ -536,9 +536,9 @@ function isQuitting() {
 }
 
 // electron/window-manager.ts
-var { app: app2, BrowserWindow: BrowserWindow2 } = require("electron");
+var { app: app2, BrowserWindow: BrowserWindow2, shell } = require("electron");
 function getPreloadPath() {
-  return import_node_path4.default.join(__dirname, "preload.cjs");
+  return import_node_path4.default.join(__dirname, "preload.js");
 }
 function getIconPath() {
   return import_node_path4.default.join(__dirname, "../resources/icon.png");
@@ -577,7 +577,7 @@ var WindowManager = class {
       }
     });
     if (!app2.isPackaged) {
-      win.loadURL("http://localhost:4105");
+      win.loadURL(process.env.CONVEXPRESS_DESKTOP_DEV_URL ?? "http://localhost:4105");
     } else {
       const indexPath = getRendererIndexPath();
       console.log(`[WindowManager] Renderer path: ${indexPath}`);
@@ -597,6 +597,18 @@ var WindowManager = class {
     });
     win.webContents.on("render-process-gone", (_event, details) => {
       console.error("[Renderer CRASHED]", details);
+    });
+    win.webContents.setWindowOpenHandler(({ url }) => {
+      void shell.openExternal(url);
+      return { action: "deny" };
+    });
+    win.webContents.on("will-navigate", (event, url) => {
+      const isDev = !app2.isPackaged;
+      const isInternal = isDev ? url.startsWith("http://localhost:") : url.startsWith("file://");
+      if (!isInternal) {
+        event.preventDefault();
+        void shell.openExternal(url);
+      }
     });
     win.on("maximize", () => {
       win.webContents.send("window:maximized", true);

@@ -36,14 +36,14 @@ export function useHeaderConfig(): HeaderConfig {
 
   // Deep merge with defaults so any missing nested fields fall back gracefully
   return {
-    layout: { ...DEFAULT_HEADER_CONFIG.layout, ...(raw.layout as object ?? {}) },
-    topBar: { ...DEFAULT_HEADER_CONFIG.topBar, ...(raw.topBar as object ?? {}) },
-    logo: { ...DEFAULT_HEADER_CONFIG.logo, ...(raw.logo as object ?? {}) },
-    navigation: { ...DEFAULT_HEADER_CONFIG.navigation, ...(raw.navigation as object ?? {}) },
-    search: { ...DEFAULT_HEADER_CONFIG.search, ...(raw.search as object ?? {}) },
-    cta: { ...DEFAULT_HEADER_CONFIG.cta, ...(raw.cta as object ?? {}) },
-    userMenu: { ...DEFAULT_HEADER_CONFIG.userMenu, ...(raw.userMenu as object ?? {}) },
-    darkModeToggle: { ...DEFAULT_HEADER_CONFIG.darkModeToggle, ...(raw.darkModeToggle as object ?? {}) },
-    mobileMenu: { ...DEFAULT_HEADER_CONFIG.mobileMenu, ...(raw.mobileMenu as object ?? {}) },
+    layout: { ...DEFAULT_HEADER_CONFIG.layout, ...(raw.layout as object) },
+    topBar: { ...DEFAULT_HEADER_CONFIG.topBar, ...(raw.topBar as object) },
+    logo: { ...DEFAULT_HEADER_CONFIG.logo, ...(raw.logo as object) },
+    navigation: { ...DEFAULT_HEADER_CONFIG.navigation, ...(raw.navigation as object) },
+    search: { ...DEFAULT_HEADER_CONFIG.search, ...(raw.search as object) },
+    cta: { ...DEFAULT_HEADER_CONFIG.cta, ...(raw.cta as object) },
+    userMenu: { ...DEFAULT_HEADER_CONFIG.userMenu, ...(raw.userMenu as object) },
+    darkModeToggle: { ...DEFAULT_HEADER_CONFIG.darkModeToggle, ...(raw.darkModeToggle as object) },
+    mobileMenu: { ...DEFAULT_HEADER_CONFIG.mobileMenu, ...(raw.mobileMenu as object) },
   } as HeaderConfig;
 }

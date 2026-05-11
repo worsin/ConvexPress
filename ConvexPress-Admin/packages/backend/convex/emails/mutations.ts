@@ -1,12 +1,13 @@
 /**
  * Email Notification System - Public Mutations
  *
- * Five mutations:
+ * Six mutations:
  *
  *   - updateTemplate: Admin updates template subject/body/active status
  *   - resetTemplate: Reset a customized template to its defaults
  *   - retryEmail: Retry a failed email by resetting it to queued
  *   - cancelEmail: Cancel a queued email before it sends
+ *   - repairSystem: Repair template/bootstrap/listener state
  *   - updateUnsubscribe: User updates their email category preferences
  *
  * Admin mutations require "settings.update_email" capability (Administrator).
@@ -20,16 +21,22 @@
 
 import { mutation } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { requireCan, getCurrentUser, getUserIdentifier } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { SETTINGS_EVENTS, SYSTEM } from "../events/constants";
+import { isPluginEnabled } from "../helpers/plugins";
+import { runBootstrapTemplates } from "./internals";
+import { registerListenerDefinitions } from "../bootstrap/registerListeners";
+import { runBootstrapShippingTemplates } from "../shipping/bootstrap";
+import { runBackfillLegacyReturns } from "../commerceReturns/migrations";
 import {
   updateTemplateArgs,
   resetTemplateArgs,
   retryEmailArgs,
   cancelEmailArgs,
   updateUnsubscribeArgs,
+  repairSystemArgs,
 } from "./validators";
 
 // ─── Security-critical categories that cannot be unsubscribed ────────────────
@@ -41,6 +48,66 @@ const UNSUBSCRIBABLE_CATEGORIES = new Set([
   "digest",
   "all",
 ]);
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+// ─── subscribeNewsletter ───────────────────────────────────────────────────
+
+/**
+ * Public newsletter signup used by the website footer. This intentionally
+ * records an anonymous subscriber row instead of creating a login-capable user.
+ */
+export const subscribeNewsletter = mutation({
+  args: {
+    email: v.string(),
+    source: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const email = normalizeEmail(args.email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Enter a valid email address.",
+      });
+    }
+
+    const now = Date.now();
+    const existing = await ctx.db
+      .query("newsletterSubscribers")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .unique();
+
+    if (existing) {
+      if (existing.status !== "subscribed") {
+        await ctx.db.patch(existing._id, {
+          status: "subscribed",
+          source: args.source ?? existing.source,
+          subscribedAt: now,
+          unsubscribedAt: undefined,
+          updatedAt: now,
+        });
+      } else if (args.source && args.source !== existing.source) {
+        await ctx.db.patch(existing._id, {
+          source: args.source,
+          updatedAt: now,
+        });
+      }
+      return { ok: true, status: "subscribed" as const };
+    }
+
+    await ctx.db.insert("newsletterSubscribers", {
+      email,
+      status: "subscribed",
+      source: args.source,
+      subscribedAt: now,
+      updatedAt: now,
+    });
+
+    return { ok: true, status: "subscribed" as const };
+  },
+});
 
 // ─── updateTemplate ──────────────────────────────────────────────────────────
 
@@ -266,6 +333,46 @@ export const cancelEmail = mutation({
     });
 
     return { success: true };
+  },
+});
+
+// ─── repairSystem ────────────────────────────────────────────────────────────
+
+/**
+ * Repair the full email subsystem in-place.
+ *
+ * Safe to run repeatedly. Re-seeds template metadata, repairs listeners,
+ * ensures shipping templates are present, and backfills returns metadata when
+ * the returns extension is enabled.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const repairSystem = mutation({
+  args: repairSystemArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx) => {
+    await requireCan(ctx, "settings.update_email");
+
+    const now = Date.now();
+    const templates = await runBootstrapTemplates(ctx, now);
+    const listeners = await registerListenerDefinitions(ctx, now);
+    const shipping = await runBootstrapShippingTemplates(ctx, now);
+
+    let returns = null;
+    if (await isPluginEnabled(ctx, "commerceReturns")) {
+      try {
+        returns = await runBackfillLegacyReturns(ctx);
+      } catch {
+        returns = null;
+      }
+    }
+
+    return {
+      success: true,
+      templates,
+      listeners,
+      shipping,
+      returns,
+    };
   },
 });
 

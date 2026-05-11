@@ -76,6 +76,18 @@ export const EMAIL_TEMPLATES = {
   SITEMAP_GENERATED: "sitemap-generated",
   WEBHOOK_FAILURE: "webhook-failure-alert",
 
+  // Tickets / Support
+  TICKET_REPLY_NOTIFICATION: "ticket_reply_notification",
+  TICKET_USER_REPLY: "ticket_user_reply",
+  TICKET_ASSIGNED: "ticket_assigned",
+  TICKET_RESOLVED: "ticket_resolved",
+
+  // Knowledge Base
+  KB_WORKFLOW_STEP_READY: "kb_workflow_step_ready",
+  KB_WORKFLOW_APPROVED: "kb_workflow_approved",
+  KB_WORKFLOW_REJECTED: "kb_workflow_rejected",
+  KB_COMMENT_NOTIFICATION: "kb_comment_notification",
+
   // Commerce Returns
   RETURN_REQUESTED_ADMIN: "commerce-return-requested-admin",
   RETURN_APPROVED: "commerce-return-approved",
@@ -86,6 +98,21 @@ export const EMAIL_TEMPLATES = {
 
   // Digest
   WEEKLY_DIGEST: "weekly-content-digest",
+
+  // Shipping
+  SHIPPING_PICKED_UP: "shipping_picked_up",
+  SHIPPING_OUT_FOR_DELIVERY: "shipping_out_for_delivery",
+  SHIPPING_DELIVERED: "shipping_delivered",
+  SHIPPING_EXCEPTION: "shipping_exception",
+  SHIPPING_RETURNED: "shipping_returned",
+
+  // Subscriptions
+  SUBSCRIPTION_WELCOME: "subscription-welcome",
+  SUBSCRIPTION_RENEWED: "subscription-renewed",
+  SUBSCRIPTION_PAYMENT_FAILED: "subscription-payment-failed",
+  SUBSCRIPTION_TRIAL_ENDING: "subscription-trial-ending",
+  SUBSCRIPTION_CANCELLED: "subscription-cancelled",
+  SUBSCRIPTION_PAUSED: "subscription-paused",
 } as const;
 
 /**
@@ -109,6 +136,11 @@ const CATEGORY_TO_UNSUBSCRIBE: Record<string, string> = {
   comment: "comment",
   security: "security",
   system: "system",
+  support: "system",
+  knowledge_base: "content",
+  commerce: "system",
+  shipping: "system",
+  subscription: "system",
 };
 
 /**

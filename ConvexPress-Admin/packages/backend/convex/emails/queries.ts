@@ -30,6 +30,12 @@ import {
   statsArgs,
   getUserPreferencesArgs,
 } from "./validators";
+import { EMAIL_TEMPLATE_REGISTRY_BY_SLUG } from "./registry";
+
+const TEMPLATE_REGISTRY = EMAIL_TEMPLATE_REGISTRY_BY_SLUG as Record<
+  string,
+  { canonicalEventCode?: string; triggerKind?: string }
+>;
 
 // ─── listQueue ───────────────────────────────────────────────────────────────
 
@@ -131,6 +137,8 @@ export const listQueue = query({
         createdAt: email.createdAt,
         sentAt: email.sentAt,
         lastError: email.lastError,
+        isTest: email.isTest ?? false,
+        testLabel: email.testLabel,
       })),
       total,
       page,
@@ -207,6 +215,9 @@ export const getEmail = query({
       lastError: email.lastError,
       eventId: email.eventId,
       correlationId: email.correlationId,
+      isTest: email.isTest ?? false,
+      testLabel: email.testLabel,
+      testMetadata: email.testMetadata,
       createdAt: email.createdAt,
       sentAt: email.sentAt,
       deliveredAt: email.deliveredAt,
@@ -264,6 +275,9 @@ export const listTemplates = query({
       isActive: template.isActive,
       isCustomized: template.isCustomized,
       eventCode: template.eventCode,
+      canonicalEventCode:
+        TEMPLATE_REGISTRY[template.slug]?.canonicalEventCode ?? template.eventCode,
+      triggerKind: TEMPLATE_REGISTRY[template.slug]?.triggerKind ?? "manual",
       lastSentAt: template.lastSentAt,
       totalSent: template.totalSent,
       updatedAt: template.updatedAt,
@@ -296,7 +310,14 @@ export const getTemplate = query({
       });
     }
 
-    return template;
+    const templateSlug = String((template as any).slug);
+    const registryEntry: any = (EMAIL_TEMPLATE_REGISTRY_BY_SLUG as any)[templateSlug] ?? {};
+
+    return {
+      ...template,
+      canonicalEventCode: registryEntry.canonicalEventCode ?? template.eventCode,
+      triggerKind: registryEntry.triggerKind ?? "manual",
+    };
   },
 });
 
@@ -338,7 +359,10 @@ export const stats = query({
     // Filter by date range
     const filtered = emails.filter(
       // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      (e) => e.createdAt >= dateFrom && e.createdAt <= dateTo,
+      (e) =>
+        e.createdAt >= dateFrom &&
+        e.createdAt <= dateTo &&
+        e.isTest !== true,
     );
 
     // Aggregate totals
@@ -392,8 +416,12 @@ export const stats = query({
     }
 
     // Fetch template names for the byTemplate breakdown
-    const byTemplate = [];
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    const byTemplate: Array<{
+      slug: string;
+      name: string;
+      sent: number;
+      failed: number;
+    }> = [];
     for (const entry of Object.values(templateMap)) {
       const template = await ctx.db
         .query("emailTemplates")
@@ -401,7 +429,6 @@ export const stats = query({
         .unique();
 
       byTemplate.push({
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         slug: entry.slug,
         name: template?.name ?? entry.slug,
         sent: entry.sent,
@@ -467,7 +494,13 @@ export const getUserPreferences = query({
     );
 
     // Build the category list with subscription status
-    const categories = [
+    const categories: Array<{
+      category: string;
+      label: string;
+      description: string;
+      isSubscribed: boolean;
+      canUnsubscribe: boolean;
+    }> = [
       {
         category: "content",
         label: "Content Notifications",

@@ -4,66 +4,123 @@
  * Configure AI provider (OpenRouter or Anthropic Direct), API keys,
  * default model, and Tavily research API key.
  *
- * Unlike standard settings pages, this uses a custom flow similar to
- * the analytics page: manual save with test connection capability.
+ * This page now autosaves provider and credential changes. Explicit buttons
+ * remain only for connection testing.
  *
  * Settings are stored in the settings table with section: "ai".
  * Keys: provider, apiKey, defaultModel, tavilyApiKey
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
-import { toast } from "sonner";
 import {
   Brain,
   CheckCircle2,
   XCircle,
   Loader2,
-  Eye,
-  EyeOff,
   ExternalLink,
   Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  CredentialField,
+  SECRET_SENTINEL,
+} from "@/components/settings/integrations/CredentialField";
+import { SaveBar } from "@/components/settings/integrations/SaveBar";
+import { useSettingsAutosaveDraft } from "@/hooks/useSettingsAutosaveDraft";
 
 export const Route = createFileRoute("/_authenticated/_admin/settings/ai")({
   component: AISettingsPage,
 });
 
 // ─── Model Options ────────────────────────────────────────────────────────────
+//
+// Sourced from:
+//   - https://openrouter.ai/api/v1/models (April 2026 snapshot)
+//   - https://platform.claude.com/docs/en/docs/about-claude/models
+//
+// When updating, prefer the "alias" form (e.g. `claude-opus-4-7` not
+// `claude-opus-4-7-20260118`) so users automatically get the latest
+// snapshot of a given model without an admin edit.
 
-const OPENROUTER_MODELS = [
+type ModelOption = { label: string; value: string };
+type ModelGroup = { label: string; options: ModelOption[] };
+type AIProvider = "openrouter" | "anthropic";
+
+const OPENROUTER_MODEL_GROUPS: ModelGroup[] = [
   {
-    label: "Claude Sonnet 4 (Recommended)",
-    value: "anthropic/claude-sonnet-4-20250514",
+    label: "Anthropic — Claude",
+    options: [
+      { label: "Claude Opus 4.7 (most capable)", value: "anthropic/claude-opus-4.7" },
+      { label: "Claude Sonnet 4.6 (balanced)", value: "anthropic/claude-sonnet-4.6" },
+      { label: "Claude Opus 4.6", value: "anthropic/claude-opus-4.6" },
+      { label: "Claude Opus 4.6 Fast", value: "anthropic/claude-4.6-opus-fast" },
+    ],
   },
-  { label: "Claude Opus 4", value: "anthropic/claude-opus-4-20250514" },
-  { label: "Claude Haiku 4", value: "anthropic/claude-haiku-4-20250414" },
-  { label: "GPT-4o", value: "openai/gpt-4o" },
-  { label: "GPT-4o Mini", value: "openai/gpt-4o-mini" },
-  { label: "Gemini 2.5 Pro", value: "google/gemini-2.5-pro-preview" },
-  { label: "Gemini 2.5 Flash", value: "google/gemini-2.5-flash-preview" },
   {
-    label: "Llama 3.1 405B Instruct",
-    value: "meta-llama/llama-3.1-405b-instruct",
+    label: "OpenAI — GPT",
+    options: [
+      { label: "GPT-5.5 Pro", value: "openai/gpt-5.5-pro" },
+      { label: "GPT-5.5", value: "openai/gpt-5.5" },
+      { label: "GPT-5.4 Pro", value: "openai/gpt-5.4-pro" },
+      { label: "GPT-5.4", value: "openai/gpt-5.4" },
+      { label: "GPT-5.4 Mini", value: "openai/gpt-5.4-mini" },
+      { label: "GPT-5.4 Nano", value: "openai/gpt-5.4-nano" },
+      { label: "GPT-5.3 Codex (coding)", value: "openai/gpt-5.3-codex" },
+      { label: "GPT-5.3 Chat", value: "openai/gpt-5.3-chat" },
+    ],
   },
   {
-    label: "DeepSeek V3",
-    value: "deepseek/deepseek-chat",
+    label: "Google — Gemini",
+    options: [
+      { label: "Gemini 3.1 Pro Preview", value: "google/gemini-3.1-pro-preview" },
+      { label: "Gemini 3.1 Flash Lite Preview", value: "google/gemini-3.1-flash-lite-preview" },
+      { label: "Gemini 3.1 Flash Image (Nano Banana 2)", value: "google/gemini-3.1-flash-image-preview" },
+    ],
+  },
+  {
+    label: "Moonshot — Kimi",
+    options: [
+      { label: "Kimi K2.6", value: "moonshotai/kimi-k2.6" },
+      { label: "Kimi K2.5", value: "moonshotai/kimi-k2.5" },
+    ],
+  },
+  {
+    label: "Zhipu — GLM",
+    options: [
+      { label: "GLM 5.1", value: "z-ai/glm-5.1" },
+      { label: "GLM 5 Turbo", value: "z-ai/glm-5-turbo" },
+      { label: "GLM 5", value: "z-ai/glm-5" },
+      { label: "GLM 5V Turbo (vision)", value: "z-ai/glm-5v-turbo" },
+    ],
   },
 ];
 
-const ANTHROPIC_MODELS = [
+const ANTHROPIC_MODEL_GROUPS: ModelGroup[] = [
   {
-    label: "Claude Sonnet 4 (Recommended)",
-    value: "claude-sonnet-4-20250514",
+    label: "Current",
+    options: [
+      { label: "Claude Opus 4.7 (most capable)", value: "claude-opus-4-7" },
+      { label: "Claude Sonnet 4.6 (balanced)", value: "claude-sonnet-4-6" },
+      { label: "Claude Haiku 4.5 (fastest)", value: "claude-haiku-4-5" },
+    ],
   },
-  { label: "Claude Opus 4", value: "claude-opus-4-20250514" },
-  { label: "Claude Haiku 4", value: "claude-haiku-4-20250414" },
+  {
+    label: "Legacy",
+    options: [
+      { label: "Claude Opus 4.6", value: "claude-opus-4-6" },
+      { label: "Claude Sonnet 4.5", value: "claude-sonnet-4-5" },
+      { label: "Claude Opus 4.5", value: "claude-opus-4-5" },
+      { label: "Claude Opus 4.1", value: "claude-opus-4-1" },
+    ],
+  },
 ];
+
+const DEFAULT_OPENROUTER_MODEL = "anthropic/claude-opus-4.7";
+const DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-7";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -73,20 +130,44 @@ function AISettingsPage() {
   });
   const updateSection = useMutation(api.settings.mutations.updateSection);
 
-  // Form state
-  const [provider, setProvider] = useState<"openrouter" | "anthropic">(
-    "openrouter",
-  );
-  const [apiKey, setApiKey] = useState("");
-  const [defaultModel, setDefaultModel] = useState(
-    "anthropic/claude-sonnet-4-20250514",
-  );
-  const [tavilyApiKey, setTavilyApiKey] = useState("");
+  const {
+    draft,
+    setDraft,
+    discardChanges,
+    isDirty,
+    autosaveStatus,
+    autosaveError,
+  } = useSettingsAutosaveDraft<
+    {
+      provider: AIProvider;
+      apiKey: string | null;
+      defaultModel: string;
+      tavilyApiKey: string | null;
+    },
+    Record<string, unknown>
+  >({
+    source: settings as Record<string, unknown> | null | undefined,
+    createDraft: (source) => ({
+      provider: (source.provider as AIProvider | undefined) ?? "openrouter",
+      apiKey: (source.apiKey as string | null) ?? "",
+      defaultModel:
+        (source.defaultModel as string | undefined) ?? DEFAULT_OPENROUTER_MODEL,
+      tavilyApiKey: (source.tavilyApiKey as string | null) ?? "",
+    }),
+    onSave: async (nextDraft) => {
+      await updateSection({
+        section: "ai" as any,
+        values: {
+          provider: nextDraft.provider,
+          apiKey: nextDraft.apiKey ?? SECRET_SENTINEL,
+          defaultModel: nextDraft.defaultModel,
+          tavilyApiKey: nextDraft.tavilyApiKey ?? SECRET_SENTINEL,
+        },
+      });
+    },
+  });
 
   // UI state
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [showTavilyKey, setShowTavilyKey] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
@@ -98,59 +179,35 @@ function AISettingsPage() {
     message: string;
   } | null>(null);
 
-  // Initialize form from stored settings
-  useEffect(() => {
-    if (settings && settings !== null) {
-      const s = settings as any;
-      if (s.provider) setProvider(s.provider);
-      if (s.apiKey) setApiKey(s.apiKey);
-      if (s.defaultModel) setDefaultModel(s.defaultModel);
-      if (s.tavilyApiKey) setTavilyApiKey(s.tavilyApiKey);
-    }
-  }, [settings]);
+  const provider = draft?.provider ?? "openrouter";
+  const apiKey = draft?.apiKey ?? "";
+  const defaultModel = draft?.defaultModel ?? DEFAULT_OPENROUTER_MODEL;
+  const tavilyApiKey = draft?.tavilyApiKey ?? "";
 
   // Reset model when provider changes
   const handleProviderChange = useCallback(
-    (newProvider: "openrouter" | "anthropic") => {
-      setProvider(newProvider);
+    (newProvider: AIProvider) => {
+      setDraft((current) =>
+        current
+          ? {
+              ...current,
+              provider: newProvider,
+              defaultModel:
+                newProvider === "openrouter"
+                  ? DEFAULT_OPENROUTER_MODEL
+                  : DEFAULT_ANTHROPIC_MODEL,
+            }
+          : current,
+      );
       setTestResult(null);
-      // Set a sensible default model for the new provider
-      if (newProvider === "openrouter") {
-        setDefaultModel("anthropic/claude-sonnet-4-20250514");
-      } else {
-        setDefaultModel("claude-sonnet-4-20250514");
-      }
     },
-    [],
+    [setDraft],
   );
-
-  // ─── Save Handler ─────────────────────────────────────────────────────────
-
-  const handleSave = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      await updateSection({
-        section: "ai" as any,
-        values: {
-          provider,
-          apiKey,
-          defaultModel,
-          tavilyApiKey,
-        },
-      });
-      toast.success("AI settings saved successfully.");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      toast.error(`Failed to save AI settings: ${msg}`);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [provider, apiKey, defaultModel, tavilyApiKey, updateSection]);
 
   // ─── Test AI Connection ───────────────────────────────────────────────────
 
   const handleTestConnection = useCallback(async () => {
-    if (!apiKey.trim()) {
+    if (!apiKey.trim() || apiKey === SECRET_SENTINEL) {
       setTestResult({ success: false, message: "Please enter an API key." });
       return;
     }
@@ -194,7 +251,7 @@ function AISettingsPage() {
             "anthropic-dangerous-direct-browser-access": "true",
           },
           body: JSON.stringify({
-            model: defaultModel || "claude-sonnet-4-20250514",
+            model: defaultModel || DEFAULT_ANTHROPIC_MODEL,
             max_tokens: 1,
             messages: [{ role: "user", content: "Hi" }],
           }),
@@ -228,7 +285,7 @@ function AISettingsPage() {
   // ─── Test Tavily Connection ───────────────────────────────────────────────
 
   const handleTestTavily = useCallback(async () => {
-    if (!tavilyApiKey.trim()) {
+    if (!tavilyApiKey.trim() || tavilyApiKey === SECRET_SENTINEL) {
       setTavilyTestResult({
         success: false,
         message: "Please enter a Tavily API key.",
@@ -290,8 +347,22 @@ function AISettingsPage() {
     );
   }
 
-  const modelOptions =
-    provider === "openrouter" ? OPENROUTER_MODELS : ANTHROPIC_MODELS;
+  if (!draft) {
+    return (
+      <div className="mx-auto max-w-3xl p-6">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 w-48 rounded bg-muted" />
+          <div className="h-64 rounded bg-muted" />
+          <div className="h-40 rounded bg-muted" />
+        </div>
+      </div>
+    );
+  }
+
+  const modelGroups =
+    provider === "openrouter"
+      ? OPENROUTER_MODEL_GROUPS
+      : ANTHROPIC_MODEL_GROUPS;
 
   return (
     <div className="mx-auto max-w-3xl p-6">
@@ -344,8 +415,9 @@ function AISettingsPage() {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Access Claude, GPT-4o, Gemini, Llama, and more through a
-                  single API key. Best for flexibility and cost management.
+                  Access Claude, GPT-5, Gemini 3.1, Kimi K2, GLM, and more
+                  through a single API key. Best for flexibility and cost
+                  management.
                 </p>
               </div>
             </label>
@@ -380,45 +452,25 @@ function AISettingsPage() {
 
           {/* API Key Input */}
           <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="ai-api-key"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
-                {provider === "openrouter"
+            <CredentialField
+              id="ai-api-key"
+              label={
+                provider === "openrouter"
                   ? "OpenRouter API Key"
-                  : "Anthropic API Key"}
-              </label>
-              <div className="relative">
-                <input
-                  id="ai-api-key"
-                  type={showApiKey ? "text" : "password"}
-                  value={apiKey}
-                  onChange={(e) => {
-                    setApiKey(e.target.value);
-                    setTestResult(null);
-                  }}
-                  placeholder={
-                    provider === "openrouter"
-                      ? "sk-or-v1-..."
-                      : "sk-ant-api03-..."
-                  }
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 pr-10 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey((v) => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
-                >
-                  {showApiKey ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {provider === "openrouter" ? (
+                  : "Anthropic API Key"
+              }
+              value={apiKey}
+              onChange={(value) => {
+                setDraft((current) =>
+                  current ? { ...current, apiKey: value } : current,
+                );
+                setTestResult(null);
+              }}
+              placeholder={
+                provider === "openrouter" ? "sk-or-v1-..." : "sk-ant-api03-..."
+              }
+              help={
+                provider === "openrouter" ? (
                   <>
                     Get your API key from{" "}
                     <a
@@ -444,9 +496,9 @@ function AISettingsPage() {
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </>
-                )}
-              </p>
-            </div>
+                )
+              }
+            />
 
             {/* Default Model */}
             <div>
@@ -459,13 +511,23 @@ function AISettingsPage() {
               <select
                 id="ai-model"
                 value={defaultModel}
-                onChange={(e) => setDefaultModel(e.target.value)}
+                onChange={(e) =>
+                  setDraft((current) =>
+                    current
+                      ? { ...current, defaultModel: e.target.value }
+                      : current,
+                  )
+                }
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
-                {modelOptions.map((model) => (
-                  <option key={model.value} value={model.value}>
-                    {model.label}
-                  </option>
+                {modelGroups.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.options.map((model) => (
+                      <option key={model.value} value={model.value}>
+                        {model.label}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -506,7 +568,9 @@ function AISettingsPage() {
             <button
               type="button"
               onClick={handleTestConnection}
-              disabled={isTesting || !apiKey.trim()}
+              disabled={
+                isTesting || !apiKey.trim() || apiKey === SECRET_SENTINEL
+              }
               className={cn(
                 "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",
                 "border border-border bg-background text-foreground hover:bg-muted",
@@ -542,50 +606,32 @@ function AISettingsPage() {
           </p>
 
           <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="tavily-api-key"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
-                Tavily API Key
-              </label>
-              <div className="relative">
-                <input
-                  id="tavily-api-key"
-                  type={showTavilyKey ? "text" : "password"}
-                  value={tavilyApiKey}
-                  onChange={(e) => {
-                    setTavilyApiKey(e.target.value);
-                    setTavilyTestResult(null);
-                  }}
-                  placeholder="tvly-..."
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 pr-10 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowTavilyKey((v) => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
-                >
-                  {showTavilyKey ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Get your API key from{" "}
-                <a
-                  href="https://app.tavily.com/home"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline inline-flex items-center gap-0.5"
-                >
-                  app.tavily.com
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </p>
-            </div>
+            <CredentialField
+              id="tavily-api-key"
+              label="Tavily API Key"
+              value={tavilyApiKey}
+              onChange={(value) => {
+                setDraft((current) =>
+                  current ? { ...current, tavilyApiKey: value } : current,
+                );
+                setTavilyTestResult(null);
+              }}
+              placeholder="tvly-..."
+              help={
+                <>
+                  Get your API key from{" "}
+                  <a
+                    href="https://app.tavily.com/home"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline inline-flex items-center gap-0.5"
+                  >
+                    app.tavily.com
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </>
+              }
+            />
 
             {/* Tavily Test Result */}
             {tavilyTestResult && (
@@ -619,7 +665,11 @@ function AISettingsPage() {
             <button
               type="button"
               onClick={handleTestTavily}
-              disabled={isTavilyTesting || !tavilyApiKey.trim()}
+              disabled={
+                isTavilyTesting ||
+                !tavilyApiKey.trim() ||
+                tavilyApiKey === SECRET_SENTINEL
+              }
               className={cn(
                 "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",
                 "border border-border bg-background text-foreground hover:bg-muted",
@@ -641,28 +691,13 @@ function AISettingsPage() {
           </div>
         </div>
 
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-md px-6 py-2.5 text-sm font-medium transition-colors",
-              "bg-primary text-primary-foreground hover:bg-primary/90",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-            )}
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Settings"
-            )}
-          </button>
-        </div>
+        <SaveBar
+          dirty={isDirty}
+          mode="autosave"
+          autosaveStatus={autosaveStatus}
+          autosaveError={autosaveError}
+          onDiscard={discardChanges}
+        />
       </div>
     </div>
   );

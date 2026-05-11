@@ -183,7 +183,7 @@ export const create = mutation({
     }
 
     // ── Resolve storage URL ──────────────────────────────────────────────
-    const url = await ctx.storage.getUrl(args.storageId);
+    const url = (args.storageId ? await ctx.storage.getUrl(args.storageId) : null);
     if (!url) {
       throw new ConvexError({
         code: "STORAGE_ERROR",
@@ -631,7 +631,7 @@ export const permanentlyDelete = mutation({
 
     // Delete original storage blob
     try {
-      await ctx.storage.delete(media.storageId);
+      (media.storageId ? await ctx.storage.delete(media.storageId) : undefined);
     } catch {
       // Orphaned; continue
     }
@@ -643,7 +643,7 @@ export const permanentlyDelete = mutation({
       .collect();
     for (const size of sizes) {
       try {
-        await ctx.storage.delete(size.storageId);
+        (size.storageId ? await ctx.storage.delete(size.storageId) : undefined);
       } catch {
         // Orphaned
       }
@@ -709,7 +709,7 @@ export const addSize = internalMutation({
     if (existing) {
       // Replace existing size: delete old storage file and record
       try {
-        await ctx.storage.delete(existing.storageId);
+        (existing.storageId ? await ctx.storage.delete(existing.storageId) : undefined);
       } catch {
         // Orphaned storage file
       }
@@ -998,14 +998,14 @@ export const bulkPermanentlyDelete = mutation({
           await clearMediaReferences(ctx, mediaId, references);
         }
 
-        try { await ctx.storage.delete(media.storageId); } catch { /* orphaned */ }
+        try { (media.storageId ? await ctx.storage.delete(media.storageId) : undefined); } catch { /* orphaned */ }
 
         const sizes = await ctx.db
           .query("mediaSizes")
           .withIndex("by_media", (q) => q.eq("mediaId", mediaId))
           .collect();
         for (const size of sizes) {
-          try { await ctx.storage.delete(size.storageId); } catch { /* orphaned */ }
+          try { (size.storageId ? await ctx.storage.delete(size.storageId) : undefined); } catch { /* orphaned */ }
           await ctx.db.delete("mediaSizes", size._id);
         }
 

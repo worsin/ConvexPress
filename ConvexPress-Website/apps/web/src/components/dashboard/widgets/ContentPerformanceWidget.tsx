@@ -37,7 +37,7 @@ export function ContentPerformanceWidget({
     );
   }
 
-  // Empty -- view tracking not yet active
+  // Empty -- tracking is active, but no pageviews have been recorded yet
   if (data.length === 0) {
     return (
       <DashboardWidget
@@ -48,7 +48,7 @@ export function ContentPerformanceWidget({
         <EmptyState
           icon={TrendingUp}
           title="No view data available yet"
-          description="Post view tracking will be available in a future update."
+          description="Views appear here after visitors read your published posts."
         />
       </DashboardWidget>
     );

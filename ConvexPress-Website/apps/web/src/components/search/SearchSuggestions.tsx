@@ -111,10 +111,10 @@ export function SearchSuggestions({
             onMouseEnter={() => setActiveIndex(i)}
             onClick={() => {
               onSelect(suggestion.text);
-              navigate({
-                to: "/search",
-                search: { q: suggestion.text },
-              });
+	              navigate({
+	                to: "/search",
+	                search: { q: suggestion.text },
+	              } as any);
               onClose();
             }}
           >

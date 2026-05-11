@@ -5,10 +5,24 @@ import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
-export const Route = createFileRoute(
-	"/_authenticated/_admin/commerce/discounts",
-)({
+import { DiscountListTable } from "@/components/commerce/DiscountListTable";
+
+const discountSearchSchema = z.object({
+	status: z.enum(["all", "active", "inactive", "scheduled", "expired"]).optional(),
+	search: z.string().optional(),
+	discountType: z
+		.enum(["fixed_cart", "percent", "fixed_product", "free_shipping"])
+		.optional(),
+	orderBy: z.enum(["code", "amount", "usage", "status", "ends", "date"]).optional(),
+	orderDir: z.enum(["asc", "desc"]).optional(),
+	page: z.number().min(1).optional(),
+	perPage: z.number().min(1).max(100).optional(),
+});
+
+export const Route = createFileRoute("/_authenticated/_admin/commerce/discounts")({
+	validateSearch: discountSearchSchema,
 	component: CommerceDiscountsPage,
 });
 
@@ -215,17 +229,14 @@ function CommerceDiscountsPage() {
 
 	return (
 		<div className="space-y-8">
-			<div className="space-y-3">
-				<h1 className="text-3xl font-bold tracking-tight">Discounts</h1>
-				<p className="max-w-3xl text-sm text-muted-foreground">
-					Build cart, product, category, threshold, and tiered bulk discount
-					codes.
-				</p>
-			</div>
+			<DiscountListTable />
 
-			<div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-				<section className="rounded-lg border border-border bg-card p-6 shadow-sm">
-					<h2 className="text-lg font-semibold">New Discount Code</h2>
+			<details className="rounded-lg border border-border bg-card p-6 shadow-sm">
+				<summary className="cursor-pointer text-lg font-semibold">
+					Add new discount code
+				</summary>
+				<div className="mt-6 space-y-4">
+					<h2 className="text-lg font-semibold sr-only">New Discount Code</h2>
 					<div className="mt-4 grid gap-4">
 						<div className="grid gap-3 md:grid-cols-2">
 							<input
@@ -446,124 +457,8 @@ function CommerceDiscountsPage() {
 							Create discount
 						</button>
 					</div>
-				</section>
-
-				<section className="rounded-lg border border-border bg-card p-6 shadow-sm">
-					<div className="flex items-center justify-between gap-3">
-						<div>
-							<h2 className="text-lg font-semibold">Codes</h2>
-							<p className="text-sm text-muted-foreground">
-								{activeCount} active code{activeCount === 1 ? "" : "s"}
-							</p>
-						</div>
-					</div>
-
-					<div className="mt-6 space-y-3">
-						{discounts === undefined ? (
-							Array.from({ length: 4 }).map((_, index) => (
-								<div
-									key={index}
-									className="h-24 animate-pulse rounded-md bg-muted"
-								/>
-							))
-						) : discounts.length === 0 ? (
-							<p className="text-sm text-muted-foreground">
-								No discount codes created yet.
-							</p>
-						) : (
-							discounts.map((discount) => (
-								<div
-									key={discount._id}
-									className="rounded-lg border border-border px-4 py-4 text-sm"
-								>
-									<div className="flex items-start justify-between gap-4">
-										<div>
-											<p className="font-semibold text-foreground">
-												{discount.code}
-											</p>
-											<p className="mt-1 text-muted-foreground">
-												{discount.description || "No description"}
-											</p>
-										</div>
-										<div className="flex flex-wrap justify-end gap-2">
-											<button
-												type="button"
-												onClick={() => void handleToggle(discount)}
-												className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground"
-											>
-												{discount.status === "active"
-													? "Deactivate"
-													: "Activate"}
-											</button>
-											<button
-												type="button"
-												onClick={() => void handleRemove(discount)}
-												className="rounded-md border border-destructive/40 px-3 py-2 text-sm font-medium text-destructive"
-											>
-												Delete
-											</button>
-										</div>
-									</div>
-
-									<div className="mt-3 flex flex-wrap gap-3 text-xs uppercase tracking-[0.16em] text-muted-foreground">
-										<span>{discount.status}</span>
-										<span>{discount.discountType}</span>
-										<span>
-											{formatAmount(discount.discountType, discount.amount)}
-										</span>
-										<span>{discount.applicability ?? "matching_items"}</span>
-										<span>
-											Used {discount.usageCount}
-											{typeof discount.usageLimit === "number"
-												? ` / ${discount.usageLimit}`
-												: ""}
-										</span>
-									</div>
-
-									<div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
-										{typeof discount.minimumSubtotalAmount === "number" ? (
-											<span>
-												Minimum subtotal: $
-												{centsToDisplay(discount.minimumSubtotalAmount)}
-											</span>
-										) : null}
-										{typeof discount.minimumQuantity === "number" ? (
-											<span>Minimum quantity: {discount.minimumQuantity}</span>
-										) : null}
-										{typeof discount.maxDiscountAmount === "number" ? (
-											<span>
-												Max discount: $
-												{centsToDisplay(discount.maxDiscountAmount)}
-											</span>
-										) : null}
-										{discount.tiers?.length ? (
-											<span>{discount.tiers.length} tiered rule(s)</span>
-										) : null}
-										{idSummary(discount.productIds) ? (
-											<span>Products: {idSummary(discount.productIds)}</span>
-										) : null}
-										{idSummary(discount.categoryIds) ? (
-											<span>Categories: {idSummary(discount.categoryIds)}</span>
-										) : null}
-										{idSummary(discount.excludedProductIds) ? (
-											<span>
-												Excluded products:{" "}
-												{idSummary(discount.excludedProductIds)}
-											</span>
-										) : null}
-										{idSummary(discount.excludedCategoryIds) ? (
-											<span>
-												Excluded categories:{" "}
-												{idSummary(discount.excludedCategoryIds)}
-											</span>
-										) : null}
-									</div>
-								</div>
-							))
-						)}
-					</div>
-				</section>
-			</div>
+				</div>
+			</details>
 		</div>
 	);
 }

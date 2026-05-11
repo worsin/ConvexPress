@@ -247,6 +247,8 @@ function EditSubscriptionOfferPage() {
     );
   }
 
+  const offerRecord = offer;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !slug.trim()) {
@@ -256,7 +258,7 @@ function EditSubscriptionOfferPage() {
     setSubmitting(true);
     try {
       await updateOffer({
-        offerId: offer._id,
+        offerId: offerRecord._id,
         title: title.trim(),
         slug: slug.trim(),
         status,
@@ -303,7 +305,7 @@ function EditSubscriptionOfferPage() {
   async function handleArchive() {
     setArchiving(true);
     try {
-      await archiveOffer({ offerId: offer._id });
+      await archiveOffer({ offerId: offerRecord._id });
       toast.success("Offer archived");
       navigate({ to: "/commerce/subscriptions/offers" });
     } catch (error) {

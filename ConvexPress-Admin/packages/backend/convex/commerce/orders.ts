@@ -16,10 +16,14 @@ import {
   getOrderArgs,
   getOrderByTrackingTokenArgs,
   listOrdersArgs,
+  orderBulkArgs,
+  orderBulkUpdateStatusArgs,
+  orderCountsArgs,
   updateShipmentStatusArgs,
   updateOrderFulfillmentArgs,
   updateOrderStatusArgs,
 } from "./validators";
+import { fulfillOrderDigitalEntitlementsHandler } from "../commerceDigital/fulfillment";
 
 async function enrichOrder(ctx: any, order: any) {
   const items = await ctx.db
@@ -264,20 +268,249 @@ function buildShipmentNumber() {
   return `SHP-${Date.now().toString().slice(-8)}`;
 }
 
+// Lightweight enrichment for list rows - only what the OrderListTable needs.
+// Skips history/transactions/refunds/shipments (heavy, only needed on detail).
+async function enrichOrderForList(ctx: any, order: any) {
+  const items = await ctx.db
+    .query("commerce_order_items")
+    .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+    .collect();
+  const customer = order.customerId ? await ctx.db.get(order.customerId) : null;
+  return {
+    ...order,
+    itemCount: items.length,
+    itemTotalQuantity: items.reduce((sum: number, item: any) => sum + (item.quantity ?? 0), 0),
+    customer: customer
+      ? {
+          _id: customer._id,
+          email: (customer as any).email,
+          firstName: (customer as any).firstName,
+          lastName: (customer as any).lastName,
+        }
+      : null,
+  };
+}
+
+const ORDERS_DEFAULT_PER_PAGE = 20;
+const ORDERS_MAX_PER_PAGE = 100;
+
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: listOrdersArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
-    let orders = await ctx.db.query("commerce_orders").take(2000);
-    if (args.status) {
-      orders = orders.filter((order: any) => order.status === args.status);
+
+    const page = Math.max(1, args.page ?? 1);
+    const perPage = Math.min(ORDERS_MAX_PER_PAGE, Math.max(1, args.perPage ?? ORDERS_DEFAULT_PER_PAGE));
+
+    // ── Search path: use search index for orderNumber matches ─────────────
+    if (args.search && args.search.trim()) {
+      const term = args.search.trim();
+      const searchResults = await ctx.db
+        .query("commerce_orders")
+        .withSearchIndex("search_orders", (q: any) => {
+          let sq = q.search("orderNumber", term);
+          if (args.status) sq = sq.eq("status", args.status);
+          return sq;
+        })
+        .take(2000);
+
+      // Also search by email (search index can't OR across fields)
+      const emailMatches = await ctx.db
+        .query("commerce_orders")
+        .withIndex("by_email", (q: any) => q.eq("email", term.toLowerCase()))
+        .take(500);
+
+      const seen = new Set<string>();
+      const merged: any[] = [];
+      for (const o of [...searchResults, ...emailMatches]) {
+        const id = o._id.toString();
+        if (seen.has(id)) continue;
+        if (args.status && o.status !== args.status) continue;
+        seen.add(id);
+        merged.push(o);
+      }
+
+      const filtered = applyOrderFilters(merged, args);
+      sortOrders(filtered, args.orderBy, args.orderDir);
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / perPage);
+      const slice = filtered.slice((page - 1) * perPage, page * perPage);
+      const items = await Promise.all(slice.map((o: any) => enrichOrderForList(ctx, o)));
+      return { items, total, page, perPage, totalPages };
     }
-    orders.sort((a: any, b: any) => b.createdAt - a.createdAt);
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-    return Promise.all(orders.map((order: any) => enrichOrder(ctx, order)));
+
+    // ── Index-scoped path ─────────────────────────────────────────────────
+    let scoped: any[];
+    if (args.status) {
+      scoped = await ctx.db
+        .query("commerce_orders")
+        .withIndex("by_status_createdAt", (q: any) => q.eq("status", args.status!))
+        .order("desc")
+        .take(20000);
+    } else if (args.customerId) {
+      scoped = await ctx.db
+        .query("commerce_orders")
+        .withIndex("by_customer", (q: any) => q.eq("customerId", args.customerId!))
+        .take(20000);
+    } else if (args.userId) {
+      scoped = await ctx.db
+        .query("commerce_orders")
+        .withIndex("by_user", (q: any) => q.eq("userId", args.userId!))
+        .take(20000);
+    } else {
+      scoped = await ctx.db
+        .query("commerce_orders")
+        .withIndex("by_createdAt")
+        .order("desc")
+        .take(20000);
+    }
+
+    const filtered = applyOrderFilters(scoped, args);
+    sortOrders(filtered, args.orderBy, args.orderDir);
+
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / perPage);
+    const slice = filtered.slice((page - 1) * perPage, page * perPage);
+    const items = await Promise.all(slice.map((o: any) => enrichOrderForList(ctx, o)));
+
+    return { items, total, page, perPage, totalPages };
+  },
+});
+
+function applyOrderFilters(orders: any[], args: any) {
+  let out = orders;
+  if (args.dateFrom) out = out.filter((o: any) => o.createdAt >= args.dateFrom);
+  if (args.dateTo) out = out.filter((o: any) => o.createdAt <= args.dateTo);
+  if (args.paymentStatus) out = out.filter((o: any) => o.paymentStatus === args.paymentStatus);
+  if (args.fulfillmentStatus) out = out.filter((o: any) => o.fulfillmentStatus === args.fulfillmentStatus);
+  if (args.customerId) out = out.filter((o: any) => o.customerId?.toString() === args.customerId.toString());
+  if (args.userId) out = out.filter((o: any) => o.userId?.toString() === args.userId.toString());
+  return out;
+}
+
+function sortOrders(orders: any[], orderBy?: string, orderDir?: "asc" | "desc") {
+  const dir = orderDir === "asc" ? 1 : -1;
+  const key = orderBy ?? "createdAt";
+  orders.sort((a: any, b: any) => {
+    let av: any;
+    let bv: any;
+    switch (key) {
+      case "orderNumber":
+        av = a.orderNumber;
+        bv = b.orderNumber;
+        break;
+      case "totalAmount":
+        av = a.totalAmount ?? 0;
+        bv = b.totalAmount ?? 0;
+        break;
+      case "status":
+        av = a.status;
+        bv = b.status;
+        break;
+      case "email":
+        av = a.email;
+        bv = b.email;
+        break;
+      case "paidAt":
+        av = a.paidAt ?? 0;
+        bv = b.paidAt ?? 0;
+        break;
+      case "createdAt":
+      default:
+        av = a.createdAt;
+        bv = b.createdAt;
+        break;
+    }
+    if (av < bv) return -1 * dir;
+    if (av > bv) return 1 * dir;
+    return 0;
+  });
+}
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const counts = query({
+  args: orderCountsArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args): Promise<any> => {
+    await requireCommerceEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    const all = await ctx.db
+      .query("commerce_orders")
+      .withIndex("by_createdAt")
+      .take(20000);
+
+    const filtered = applyOrderFilters(all, args);
+
+    const out: Record<string, number> = {
+      all: filtered.length,
+      pending: 0,
+      processing: 0,
+      paid: 0,
+      fulfilled: 0,
+      completed: 0,
+      cancelled: 0,
+      refunded: 0,
+      failed: 0,
+    };
+    for (const o of filtered) {
+      if (out[o.status] !== undefined) out[o.status]++;
+    }
+    return out;
+  },
+});
+
+// ─── Bulk mutations ─────────────────────────────────────────────────────────
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const bulkUpdateStatus = mutation({
+  args: orderBulkUpdateStatusArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args): Promise<{ count: number }> => {
+    await requireCommerceEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+    const now = Date.now();
+    let count = 0;
+    for (const id of args.orderIds) {
+      const order = await ctx.db.get(id);
+      if (!order) continue;
+      await ctx.db.patch(id, { status: args.status as any, updatedAt: now });
+      await appendOrderHistory(ctx, {
+        orderId: id,
+        eventType: "bulk_status_update",
+        message: `Status changed to ${args.status} via bulk action`,
+      });
+      count++;
+    }
+    return { count };
+  },
+});
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const bulkCancel = mutation({
+  args: orderBulkArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args): Promise<{ count: number }> => {
+    await requireCommerceEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+    const now = Date.now();
+    let count = 0;
+    for (const id of args.orderIds) {
+      const order = await ctx.db.get(id);
+      if (!order) continue;
+      if ((order as any).status === "cancelled") continue;
+      await ctx.db.patch(id, { status: "cancelled", updatedAt: now });
+      await appendOrderHistory(ctx, {
+        orderId: id,
+        eventType: "bulk_cancelled",
+        message: "Cancelled via bulk action",
+      });
+      count++;
+    }
+    return { count };
   },
 });
 
@@ -495,8 +728,24 @@ export const updateStatus = mutation({
       patch.fulfillmentStatus = "fulfilled";
     }
 
-    await ctx.db.patch(order._id, patch);
-    await appendOrderHistory(ctx, {
+	    await ctx.db.patch(order._id, patch);
+	    if (args.status === "paid") {
+	      try {
+	        await fulfillOrderDigitalEntitlementsHandler(ctx, {
+	          orderId: order._id,
+	          actorUserId: actor._id,
+	          reason: "admin_status_paid",
+	        });
+	      } catch (error) {
+	        await ctx.db.patch(order._id, {
+	          digitalFulfillmentStatus: "failed",
+	          digitalFulfillmentError:
+	            error instanceof Error ? error.message : "Digital fulfillment failed after status update.",
+	          updatedAt: now,
+	        });
+	      }
+	    }
+	    await appendOrderHistory(ctx, {
       orderId: order._id,
       eventType: "status_changed",
       message: args.note?.trim()
@@ -600,8 +849,8 @@ export const capturePayment = mutation({
       updatedAt: now,
     });
 
-    await ctx.db.patch(order._id, {
-      paymentStatus: capturedAmount >= order.totalAmount ? "paid" : "partially_paid",
+	    await ctx.db.patch(order._id, {
+	      paymentStatus: capturedAmount >= order.totalAmount ? "paid" : "partially_paid",
       status:
         order.status === "pending" || order.status === "failed"
           ? "paid"
@@ -611,10 +860,27 @@ export const capturePayment = mutation({
           ? now
           : order.inventoryCommittedAt,
       paidAt: order.paidAt ?? now,
-      updatedAt: now,
-    });
+	      updatedAt: now,
+	    });
 
-    await appendOrderHistory(ctx, {
+	    if (capturedAmount >= order.totalAmount) {
+	      try {
+	        await fulfillOrderDigitalEntitlementsHandler(ctx, {
+	          orderId: order._id,
+	          actorUserId: actor._id,
+	          reason: "manual_payment_capture",
+	        });
+	      } catch (error) {
+	        await ctx.db.patch(order._id, {
+	          digitalFulfillmentStatus: "failed",
+	          digitalFulfillmentError:
+	            error instanceof Error ? error.message : "Digital fulfillment failed after payment capture.",
+	          updatedAt: now,
+	        });
+	      }
+	    }
+	
+	    await appendOrderHistory(ctx, {
       orderId: order._id,
       eventType: "payment_captured",
       message: args.note?.trim()

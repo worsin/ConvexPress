@@ -156,8 +156,14 @@ export const voidLabelWithCarrier = action({
       });
     }
 
-    // Always mark the label voided in our system, even if carrier rejected
-    // (gives the merchant a clean audit trail and triggers retry workflows).
+    if (!voidResult.voided) {
+      throw new ConvexError({
+        code: "VOID_FAILED",
+        message: `Carrier did not confirm that the ${label.provider} label was voided.`,
+      });
+    }
+
+    // Only mark the label voided after the carrier confirms the void.
     await ctx.runMutation(
       internal.shipping.labels.mutations.markLabelVoided,
       {
@@ -247,6 +253,7 @@ export const purchaseLabel = action({
      * carrier. Lets retries from the client side not double-buy.
      */
     idempotencyKey: v.optional(v.string()),
+    rateId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // 1. Idempotency pre-check — if a prior call with the same key already
@@ -339,7 +346,13 @@ export const purchaseLabel = action({
         message: `${providerEntry.displayName} does not support label purchase.`,
       });
     }
-    const r = await providerEntry.purchaseLabel(ctx, { orderId: args.orderId });
+    const r = await providerEntry.purchaseLabel(ctx, {
+      orderId: args.orderId,
+      rateId:
+        args.rateId ??
+        order.shippingQuoteRaw?.rate_id ??
+        order.shippingQuoteRaw?.rateId,
+    });
     if (!r.success) {
       throw new ConvexError({
         code: r.errorCode ?? "LABEL_PURCHASE_FAILED",

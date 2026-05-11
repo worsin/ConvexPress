@@ -43,6 +43,9 @@ export const SYSTEM = {
   KB: "kb",
   TICKET: "ticket",
   SUPPORT: "support",
+  PRODUCT: "product",
+  CART: "cart",
+  WISHLIST: "wishlist",
 } as const;
 
 export type SystemSlug = (typeof SYSTEM)[keyof typeof SYSTEM];
@@ -249,7 +252,7 @@ export const DASHBOARD_EVENTS = {
   WELCOME_DISMISSED: "dashboard.welcome_dismissed",
 } as const;
 
-/** Knowledge Base System events (8) */
+/** Knowledge Base System events (11) */
 export const KB_EVENTS = {
   ARTICLE_CREATED: "kb.article_created",
   ARTICLE_PUBLISHED: "kb.article_published",
@@ -259,6 +262,9 @@ export const KB_EVENTS = {
   ARTICLE_DELETED: "kb.article_deleted",
   COMMENT_CREATED: "kb.comment_created",
   FEEDBACK_SUBMITTED: "kb.feedback_submitted",
+  WORKFLOW_STEP_READY: "kb.workflow_step_ready",
+  WORKFLOW_APPROVED: "kb.workflow_approved",
+  WORKFLOW_REJECTED: "kb.workflow_rejected",
 } as const;
 
 /** Ticket System events (8) */
@@ -277,6 +283,35 @@ export const TICKET_EVENTS = {
 export const SUPPORT_EVENTS = {
   DEFLECTION_ATTEMPTED: "support.deflection_attempted",
   DEFLECTION_ESCALATED: "support.deflection_escalated",
+} as const;
+
+/** Product System events (7) */
+export const PRODUCT_EVENTS = {
+  CREATED: "product.created",
+  UPDATED: "product.updated",
+  PUBLISHED: "product.published",
+  UNPUBLISHED: "product.unpublished",
+  TRASHED: "product.trashed",
+  RESTORED: "product.restored",
+  DELETED: "product.deleted",
+} as const;
+
+/** Cart System events (7) */
+export const CART_EVENTS = {
+  ITEM_ADDED: "cart.item_added",
+  ITEM_UPDATED: "cart.item_updated",
+  ITEM_REMOVED: "cart.item_removed",
+  CLEARED: "cart.cleared",
+  MERGED: "cart.merged",
+  ABANDONED: "cart.abandoned",
+  RECOVERED: "cart.recovered",
+} as const;
+
+/** Wishlist System events (3) */
+export const WISHLIST_EVENTS = {
+  ITEM_ADDED: "wishlist.item_added",
+  ITEM_REMOVED: "wishlist.item_removed",
+  MOVED_TO_CART: "wishlist.moved_to_cart",
 } as const;
 
 // ─── All Event Codes ───────────────────────────────────────────────────────
@@ -313,6 +348,9 @@ export const ALL_EVENT_CODES: string[] = [
   ...Object.values(KB_EVENTS),
   ...Object.values(TICKET_EVENTS),
   ...Object.values(SUPPORT_EVENTS),
+  ...Object.values(PRODUCT_EVENTS),
+  ...Object.values(CART_EVENTS),
+  ...Object.values(WISHLIST_EVENTS),
 ];
 
 /** Set for O(1) lookup of valid event codes. */
@@ -358,6 +396,9 @@ export const EVENT_CODES_BY_SYSTEM: Record<string, readonly string[]> = {
   [SYSTEM.KB]: Object.values(KB_EVENTS),
   [SYSTEM.TICKET]: Object.values(TICKET_EVENTS),
   [SYSTEM.SUPPORT]: Object.values(SUPPORT_EVENTS),
+  [SYSTEM.PRODUCT]: Object.values(PRODUCT_EVENTS),
+  [SYSTEM.CART]: Object.values(CART_EVENTS),
+  [SYSTEM.WISHLIST]: Object.values(WISHLIST_EVENTS),
 };
 
 // ─── Wildcard / Global Patterns ────────────────────────────────────────────

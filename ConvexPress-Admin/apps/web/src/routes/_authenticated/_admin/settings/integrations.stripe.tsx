@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
-import { toast } from "sonner";
 import { CreditCard } from "lucide-react";
 
 import {
@@ -19,6 +17,7 @@ import { TestConnectionButton } from "@/components/settings/integrations/TestCon
 import { ModeToggle } from "@/components/settings/integrations/ModeToggle";
 import { WebhookEndpointField } from "@/components/settings/integrations/WebhookEndpointField";
 import { SaveBar } from "@/components/settings/integrations/SaveBar";
+import { useSettingsAutosaveDraft } from "@/hooks/useSettingsAutosaveDraft";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/settings/integrations/stripe",
@@ -40,69 +39,43 @@ function StripeIntegrationPage() {
     (api as any).settings.integrations.testActions.testStripe,
   );
 
-  const [draft, setDraft] = useState<StripeDraft | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!settings) return;
-    setDraft({
-      stripePublishableKey: settings.stripePublishableKey ?? "",
-      stripeSecretKey: settings.stripeSecretKey ?? "",
-      stripeWebhookSecret: settings.stripeWebhookSecret ?? "",
-      stripeMode: settings.stripeMode ?? "sandbox",
-    });
-  }, [settings]);
-
-  const dirty = useMemo(() => {
-    if (!settings || !draft) return false;
-    return (
-      draft.stripePublishableKey !== (settings.stripePublishableKey ?? "") ||
-      draft.stripeSecretKey !== (settings.stripeSecretKey ?? "") ||
-      draft.stripeWebhookSecret !== (settings.stripeWebhookSecret ?? "") ||
-      draft.stripeMode !== (settings.stripeMode ?? "sandbox")
-    );
-  }, [draft, settings]);
-
-  const status: IntegrationStatus = useMemo(() => {
-    if (!settings?.stripeSecretKey) return "not_configured";
-    return "connected";
-  }, [settings]);
-
-  if (!draft) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
-
-  async function handleSave() {
-    if (!draft) return;
-    setSaving(true);
-    try {
+  const {
+    draft,
+    setDraft,
+    discardChanges,
+    isDirty,
+    autosaveStatus,
+    autosaveError,
+  } = useSettingsAutosaveDraft<StripeDraft, Record<string, unknown>>({
+    source: settings,
+    createDraft: (source) => ({
+      stripePublishableKey: (source.stripePublishableKey as string | null) ?? "",
+      stripeSecretKey: (source.stripeSecretKey as string | null) ?? "",
+      stripeWebhookSecret: (source.stripeWebhookSecret as string | null) ?? "",
+      stripeMode:
+        (source.stripeMode as "sandbox" | "production" | undefined) ?? "sandbox",
+    }),
+    onSave: async (nextDraft) => {
       await updateSection({
         section: "commerce.payments" as any,
         values: {
           ...(settings ?? {}),
-          stripePublishableKey: draft.stripePublishableKey ?? "",
-          stripeSecretKey:
-            draft.stripeSecretKey === null ? "" : draft.stripeSecretKey,
+          stripePublishableKey:
+            nextDraft.stripePublishableKey ?? SECRET_SENTINEL,
+          stripeSecretKey: nextDraft.stripeSecretKey ?? SECRET_SENTINEL,
           stripeWebhookSecret:
-            draft.stripeWebhookSecret === null ? "" : draft.stripeWebhookSecret,
-          stripeMode: draft.stripeMode,
+            nextDraft.stripeWebhookSecret ?? SECRET_SENTINEL,
+          stripeMode: nextDraft.stripeMode,
         },
       });
-      toast.success("Stripe settings saved.");
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to save.");
-    } finally {
-      setSaving(false);
-    }
-  }
+    },
+  });
 
-  function handleDiscard() {
-    if (!settings) return;
-    setDraft({
-      stripePublishableKey: settings.stripePublishableKey ?? "",
-      stripeSecretKey: settings.stripeSecretKey ?? "",
-      stripeWebhookSecret: settings.stripeWebhookSecret ?? "",
-      stripeMode: settings.stripeMode ?? "sandbox",
-    });
-  }
+  const status: IntegrationStatus = settings?.stripeSecretKey
+    ? "connected"
+    : "not_configured";
+
+  if (!draft) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
 
   const webhookUrl =
     typeof window !== "undefined"
@@ -133,7 +106,11 @@ function StripeIntegrationPage() {
       >
         <ModeToggle
           value={draft.stripeMode}
-          onChange={(v) => setDraft({ ...draft, stripeMode: v })}
+          onChange={(v) =>
+            setDraft((current) =>
+              current ? { ...current, stripeMode: v } : current,
+            )
+          }
         />
       </SettingsSection>
 
@@ -145,7 +122,11 @@ function StripeIntegrationPage() {
           id="stripe-publishable"
           label="Publishable key"
           value={draft.stripePublishableKey}
-          onChange={(v) => setDraft({ ...draft, stripePublishableKey: v })}
+          onChange={(v) =>
+            setDraft((current) =>
+              current ? { ...current, stripePublishableKey: v } : current,
+            )
+          }
           placeholder={draft.stripeMode === "production" ? "pk_live_…" : "pk_test_…"}
           inputType="text"
           help="Safe to expose to the browser. Starts with pk_test_ for sandbox or pk_live_ for production."
@@ -154,7 +135,11 @@ function StripeIntegrationPage() {
           id="stripe-secret"
           label="Secret key"
           value={draft.stripeSecretKey}
-          onChange={(v) => setDraft({ ...draft, stripeSecretKey: v })}
+          onChange={(v) =>
+            setDraft((current) =>
+              current ? { ...current, stripeSecretKey: v } : current,
+            )
+          }
           placeholder={draft.stripeMode === "production" ? "sk_live_…" : "sk_test_…"}
           help="Server-only. Starts with sk_test_ for sandbox or sk_live_ for production."
         />
@@ -174,17 +159,22 @@ function StripeIntegrationPage() {
           id="stripe-webhook-secret"
           label="Webhook signing secret"
           value={draft.stripeWebhookSecret}
-          onChange={(v) => setDraft({ ...draft, stripeWebhookSecret: v })}
+          onChange={(v) =>
+            setDraft((current) =>
+              current ? { ...current, stripeWebhookSecret: v } : current,
+            )
+          }
           placeholder="whsec_…"
           help="Found under the webhook endpoint's 'Signing secret' section in Stripe."
         />
       </SettingsSection>
 
       <SaveBar
-        dirty={dirty}
-        saving={saving}
-        onSave={handleSave}
-        onDiscard={handleDiscard}
+        dirty={isDirty}
+        mode="autosave"
+        autosaveStatus={autosaveStatus}
+        autosaveError={autosaveError}
+        onDiscard={discardChanges}
       />
     </div>
   );

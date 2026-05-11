@@ -107,7 +107,14 @@ export const importBatch = internalAction({
       if (!result.hasMore && !isDryRun) {
         await repairCommerceCategoryHierarchy(ctx, siteId, credentials);
       }
-      return result;
+      // BUGFIX: importCategoryBatch returns hasMore=false when the last
+      // category is processed, but products still need importing. Force
+      // hasMore=true if products remain so the orchestrator schedules the
+      // next batch (which falls through to importProductBatch).
+      return {
+        ...result,
+        hasMore: result.hasMore || productTotal > 0,
+      };
     }
 
     const result = await importProductBatch(ctx, {

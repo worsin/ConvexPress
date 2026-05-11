@@ -57,6 +57,7 @@ export async function resolveNotificationRecipients(
   ctx: ReadCtx,
   recipientType: "admin" | "employee" | "customer",
   payload: Record<string, unknown>,
+  recipientPayloadKeys?: string[],
 ): Promise<string[]> {
   if (recipientType === "admin") {
     // All active administrators
@@ -77,22 +78,20 @@ export async function resolveNotificationRecipients(
       .map((u) => getUserIdentifier(u));
   }
 
-  if (recipientType === "employee") {
-    // Specific user from payload (post author, uploader, etc.)
-    const userId =
-      (payload.authorId as string) ??
-      (payload.userId as string);
+  if (recipientType === "employee" || recipientType === "customer") {
+    const fallbackKeys =
+      recipientType === "employee"
+        ? ["authorId", "userId"]
+        : ["targetUserId", "userId"];
 
-    return userId ? [userId] : [];
-  }
+    for (const key of recipientPayloadKeys ?? fallbackKeys) {
+      const value = payload[key];
+      if (typeof value === "string" && value.length > 0) {
+        return [value];
+      }
+    }
 
-  if (recipientType === "customer") {
-    // Specific affected user from payload
-    const userId =
-      (payload.targetUserId as string) ??
-      (payload.userId as string);
-
-    return userId ? [userId] : [];
+    return [];
   }
 
   return [];

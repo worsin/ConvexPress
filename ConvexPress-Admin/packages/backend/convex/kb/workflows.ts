@@ -15,7 +15,9 @@
 
 import { ConvexError } from "convex/values";
 import { mutation, query } from "../_generated/server";
+import { emitEvent } from "../helpers/events";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
+import { KB_EVENTS, SYSTEM } from "../events/constants";
 import {
   createWorkflowArgs,
   updateWorkflowArgs,
@@ -279,6 +281,19 @@ export const startWorkflow = mutation({
       updatedAt: now,
     });
 
+    if (firstStep?.assigneeId) {
+      await emitEvent(ctx, KB_EVENTS.WORKFLOW_STEP_READY, SYSTEM.KB, {
+        articleWorkflowId,
+        articleId: args.articleId,
+        workflowId: workflow._id,
+        assigneeId: firstStep.assigneeId,
+        stepIndex: 0,
+        stepName: firstStep.name,
+        authorId: article.authorId,
+        articleTitle: article.title,
+      });
+    }
+
     return articleWorkflowId;
   },
 });
@@ -320,6 +335,7 @@ export const approveStep = mutation({
       });
     }
 
+    const article = await ctx.db.get("kb_articles", articleWorkflow.articleId);
     const newApprovals = [...articleWorkflow.approvals, user._id];
     const now = Date.now();
 
@@ -336,7 +352,6 @@ export const approveStep = mutation({
         });
 
         // Publish the article
-        const article = await ctx.db.get("kb_articles", articleWorkflow.articleId);
         if (article) {
           // Don't publish if article has been archived or deleted in the meantime
           if (article.status === "archived") {
@@ -362,6 +377,17 @@ export const approveStep = mutation({
               });
             }
           }
+
+          await emitEvent(ctx, KB_EVENTS.WORKFLOW_APPROVED, SYSTEM.KB, {
+            articleWorkflowId: args.articleWorkflowId,
+            articleId: articleWorkflow.articleId,
+            workflowId: workflow._id,
+            reviewerId: user._id,
+            authorId: article.authorId,
+            articleTitle: article.title,
+            stepName: currentStep.name,
+            nextStep: null,
+          });
         }
       } else {
         // Move to next step
@@ -372,6 +398,20 @@ export const approveStep = mutation({
           assigneeId: nextStep?.assigneeId,
           updatedAt: now,
         });
+
+        if (article && nextStep?.assigneeId) {
+          await emitEvent(ctx, KB_EVENTS.WORKFLOW_STEP_READY, SYSTEM.KB, {
+            articleWorkflowId: args.articleWorkflowId,
+            articleId: articleWorkflow.articleId,
+            workflowId: workflow._id,
+            assigneeId: nextStep.assigneeId,
+            stepIndex: nextStepIndex,
+            stepName: nextStep.name,
+            authorId: article.authorId,
+            articleTitle: article.title,
+            reviewerId: user._id,
+          });
+        }
       }
     } else {
       // Record approval but wait for more
@@ -411,9 +451,20 @@ export const rejectStep = mutation({
     });
 
     // Revert article to draft
+    const article = await ctx.db.get("kb_articles", articleWorkflow.articleId);
     await ctx.db.patch("kb_articles", articleWorkflow.articleId, {
       status: "draft",
       updatedAt: now,
+    });
+
+    await emitEvent(ctx, KB_EVENTS.WORKFLOW_REJECTED, SYSTEM.KB, {
+      articleWorkflowId: args.articleWorkflowId,
+      articleId: articleWorkflow.articleId,
+      workflowId: articleWorkflow.workflowId,
+      reviewerId: user._id,
+      authorId: article?.authorId ?? null,
+      articleTitle: article?.title ?? "",
+      rejectionReason: args.reason,
     });
 
     return args.articleWorkflowId;

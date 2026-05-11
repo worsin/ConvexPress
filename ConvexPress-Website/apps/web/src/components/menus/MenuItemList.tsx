@@ -42,9 +42,10 @@ export function MenuItemList({
   if (visibleItems.length === 0) return null;
 
   return (
-    <ul
-      role="list"
-      className={cn(
+	    <ul
+	      role="list"
+	      data-show-descriptions={showDescriptions || undefined}
+	      className={cn(
         direction === "horizontal"
           ? "flex items-center gap-1"
           : "space-y-0.5",

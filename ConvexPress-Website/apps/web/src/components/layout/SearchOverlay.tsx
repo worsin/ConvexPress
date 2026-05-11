@@ -49,7 +49,7 @@ export function SearchOverlay() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      navigate({ to: "/search", search: { q: query.trim() } });
+      navigate({ to: "/search", search: { q: query.trim() } } as any);
       closeSearch();
       setQuery("");
       setSuggestionsVisible(false);

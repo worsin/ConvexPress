@@ -55,7 +55,7 @@ export function SearchFilters({
       type,
       page: 1,
     };
-    navigate({ to: "/search", search });
+    navigate({ to: "/search", search } as any);
   };
 
   const handleSortChange = (sort: string) => {
@@ -65,7 +65,7 @@ export function SearchFilters({
       sort,
       page: 1,
     };
-    navigate({ to: "/search", search });
+    navigate({ to: "/search", search } as any);
   };
 
   return (

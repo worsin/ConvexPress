@@ -27,10 +27,10 @@ export function SearchForm({ initialQuery = "", className, autoFocus }: SearchFo
     if (!trimmed) return;
 
     setSuggestionsVisible(false);
-    navigate({
-      to: "/search",
-      search: { q: trimmed },
-    });
+	    navigate({
+	      to: "/search",
+	      search: { q: trimmed },
+	    } as any);
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {

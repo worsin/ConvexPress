@@ -32,10 +32,10 @@ export function SearchFormWidget({
     const trimmed = query.trim();
     if (!trimmed) return;
 
-    navigate({
-      to: "/search",
-      search: { q: trimmed },
-    });
+	    navigate({
+	      to: "/search",
+	      search: { q: trimmed },
+	    } as any);
   };
 
   if (variant === "expanded") {

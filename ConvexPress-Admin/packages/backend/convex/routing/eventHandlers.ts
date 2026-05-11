@@ -24,6 +24,7 @@
 import { internalMutation, internalQuery, internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
+import { generatePostUrl } from "../helpers/routing";
 
 // ─── Slug Changed Handler ────────────────────────────────────────────────────
 
@@ -140,6 +141,8 @@ export const onPermalinksChanged = internalAction({
     const {
       oldStructure,
       newStructure,
+      oldCustomStructure,
+      newCustomStructure,
       oldCategoryBase,
       newCategoryBase,
       oldTagBase,
@@ -159,34 +162,32 @@ export const onPermalinksChanged = internalAction({
     // Note: This uses the posts system's internal query. If not available,
     // we gracefully skip. The batch creation is a best-effort operation.
     try {
-      // KNOWN LIMITATION: Post batch redirect generation is not yet implemented.
-      //
-      // When the permalink structure changes, individual post redirects (e.g.,
-      // /old-slug/ -> /2026/02/old-slug/) should be created for all published posts.
-      // This requires the Post System to expose an internalQuery that returns all
-      // published posts with at minimum { _id, slug, publishedAt } fields.
-      //
-      // Dependency: internal.posts.internals.getAllPublished (does not exist yet)
-      //
-      // Once the Post System provides that query, the implementation would be:
-      //
-      //   const posts = await ctx.runQuery(internal.posts.internals.getAllPublished, {});
-      //   const redirects = posts
-      //     .map(post => ({
-      //       sourceUrl: computeOldUrl(post, oldStructure),
-      //       targetUrl: computeNewUrl(post, newStructure),
-      //     }))
-      //     .filter(r => r.sourceUrl !== r.targetUrl);
-      //
-      //   for (let i = 0; i < redirects.length; i += 100) {
-      //     const batch = redirects.slice(i, i + 100);
-      //     await ctx.runMutation(internal.routing.internals.batchCreateRedirects, {
-      //       redirects: batch,
-      //       source: "permalink_change",
-      //     });
-      //   }
-      //
-      // Until then, only category base and tag base redirects are generated.
+      const posts = await ctx.runQuery(internal.posts.internals.getAllPublished, {});
+      const postRedirects = posts
+        .map((post: any) => ({
+          sourceUrl: generatePostUrl(post, {
+            structure: oldStructure,
+            customStructure: oldCustomStructure,
+            categoryBase: oldCategoryBase ?? "category",
+            tagBase: oldTagBase ?? "tag",
+          }),
+          targetUrl: generatePostUrl(post, {
+            structure: newStructure,
+            customStructure: newCustomStructure,
+            categoryBase: newCategoryBase ?? "category",
+            tagBase: newTagBase ?? "tag",
+          }),
+        }))
+        .filter((redirect: { sourceUrl: string; targetUrl: string }) =>
+          redirect.sourceUrl !== redirect.targetUrl
+        );
+
+      for (let i = 0; i < postRedirects.length; i += 100) {
+        await ctx.runMutation(internal.routing.internals.batchCreateRedirects, {
+          redirects: postRedirects.slice(i, i + 100),
+          source: "permalink_change",
+        });
+      }
 
       // Category base change redirects
       if (oldCategoryBase !== newCategoryBase && oldCategoryBase && newCategoryBase) {

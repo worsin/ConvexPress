@@ -30,6 +30,10 @@ type VerifyEmailOptions = {
   strategy: string;
 };
 
+type AttemptEmailVerificationOptions = {
+  code: string;
+};
+
 type SignInCreateResult =
   | {
       status: "complete";
@@ -47,6 +51,16 @@ type SignUpCreateResult =
     }
   | {
       status: "missing_requirements" | "missing_fields" | "needs_verification" | "abandoned";
+      createdSessionId?: never;
+    };
+
+type SignUpVerificationResult =
+  | {
+      status: "complete";
+      createdSessionId: string;
+    }
+  | {
+      status: "missing_requirements" | "needs_verification" | "abandoned";
       createdSessionId?: never;
     };
 
@@ -131,6 +145,10 @@ export function useSignUp() {
       authenticateWithRedirect: async (_options: OAuthRedirectOptions) =>
         rejectAuthRequest(),
       prepareEmailAddressVerification: async (_options: VerifyEmailOptions) =>
+        rejectAuthRequest(),
+      attemptEmailAddressVerification: async (
+        _options: AttemptEmailVerificationOptions,
+      ): Promise<SignUpVerificationResult> =>
         rejectAuthRequest(),
     },
     setActive: async (_options: SetActiveOptions) => {

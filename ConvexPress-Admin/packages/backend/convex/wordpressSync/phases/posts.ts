@@ -227,7 +227,7 @@ export const importBatch = internalAction({
           const tagIds = await resolveTermIds(ctx, siteId, wpPost.tags || [], "tag");
 
           // Create the post
-          const postId = await ctx.runMutation(internal.wordpressSync.phases.postsCreate, {
+          const postId = await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreate, {
             existingId: existingPostId,
             wpPost: {
               id: wpPost.id,
@@ -248,7 +248,7 @@ export const importBatch = internalAction({
 
           // Store Elementor data if present
           if (processedContent.elementorData) {
-            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
               postId,
               key: "_elementor_data",
               value: processedContent.elementorData,
@@ -257,7 +257,7 @@ export const importBatch = internalAction({
 
           // Store original rendered HTML for reference and future re-rendering.
           if (wpPost.content?.rendered) {
-            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
               postId,
               key: "_wp_content_rendered",
               value: wpPost.content.rendered,
@@ -266,7 +266,7 @@ export const importBatch = internalAction({
 
           // Store ACF data
           for (const acfMeta of processedContent.acfMeta) {
-            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
               postId,
               key: acfMeta.key,
               value: acfMeta.value,
@@ -275,7 +275,7 @@ export const importBatch = internalAction({
 
           // Store Yoast SEO data
           for (const seoMeta of processedContent.seoMeta) {
-            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
               postId,
               key: seoMeta.key,
               value: seoMeta.value,
@@ -290,7 +290,7 @@ export const importBatch = internalAction({
           ]);
 
           for (const sourceMeta of selectWpPostMetaForPreservation(postMeta, storedMetaKeys)) {
-            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
               postId,
               key: sourceMeta.key,
               value: sourceMeta.value,
@@ -299,7 +299,7 @@ export const importBatch = internalAction({
 
           // Create term relationships
           for (const termId of [...categoryIds, ...tagIds]) {
-            await ctx.runMutation(internal.wordpressSync.phases.postsCreateTermRelationship, {
+            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateTermRelationship, {
               postId,
               termId,
             });

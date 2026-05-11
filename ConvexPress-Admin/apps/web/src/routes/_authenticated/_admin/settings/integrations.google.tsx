@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
-import { toast } from "sonner";
 import { MapPin } from "lucide-react";
 
 import {
@@ -14,6 +12,8 @@ import { SettingsSection } from "@/components/settings/integrations/SettingsSect
 import { CredentialField } from "@/components/settings/integrations/CredentialField";
 import { TestConnectionButton } from "@/components/settings/integrations/TestConnectionButton";
 import { SaveBar } from "@/components/settings/integrations/SaveBar";
+import { SECRET_SENTINEL } from "@/components/settings/integrations/CredentialField";
+import { useSettingsAutosaveDraft } from "@/hooks/useSettingsAutosaveDraft";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/settings/integrations/google",
@@ -33,58 +33,35 @@ function GoogleIntegrationPage() {
     (api as any).settings.integrations.testActions.testGooglePlaces,
   );
 
-  const [draft, setDraft] = useState<GoogleDraft | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!settings) return;
-    setDraft({
-      placesApiKey: settings.placesApiKey ?? "",
-      geocodeApiKey: settings.geocodeApiKey ?? "",
-    });
-  }, [settings]);
-
-  const dirty = useMemo(() => {
-    if (!settings || !draft) return false;
-    return (
-      draft.placesApiKey !== (settings.placesApiKey ?? "") ||
-      draft.geocodeApiKey !== (settings.geocodeApiKey ?? "")
-    );
-  }, [draft, settings]);
+  const {
+    draft,
+    setDraft,
+    discardChanges,
+    isDirty,
+    autosaveStatus,
+    autosaveError,
+  } = useSettingsAutosaveDraft<GoogleDraft, Record<string, unknown>>({
+    source: settings,
+    createDraft: (source) => ({
+      placesApiKey: (source.placesApiKey as string | null) ?? "",
+      geocodeApiKey: (source.geocodeApiKey as string | null) ?? "",
+    }),
+    onSave: async (nextDraft) => {
+      await updateSection({
+        section: "integrations.google" as any,
+        values: {
+          placesApiKey: nextDraft.placesApiKey ?? SECRET_SENTINEL,
+          geocodeApiKey: nextDraft.geocodeApiKey ?? SECRET_SENTINEL,
+        },
+      });
+    },
+  });
 
   const status: IntegrationStatus = settings?.placesApiKey
     ? "connected"
     : "not_configured";
 
   if (!draft) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
-
-  async function handleSave() {
-    if (!draft) return;
-    setSaving(true);
-    try {
-      await updateSection({
-        section: "integrations.google" as any,
-        values: {
-          placesApiKey: draft.placesApiKey === null ? "" : draft.placesApiKey,
-          geocodeApiKey:
-            draft.geocodeApiKey === null ? "" : draft.geocodeApiKey,
-        },
-      });
-      toast.success("Google settings saved.");
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to save.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function handleDiscard() {
-    if (!settings) return;
-    setDraft({
-      placesApiKey: settings.placesApiKey ?? "",
-      geocodeApiKey: settings.geocodeApiKey ?? "",
-    });
-  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
@@ -106,7 +83,11 @@ function GoogleIntegrationPage() {
           id="google-places"
           label="Places API key"
           value={draft.placesApiKey}
-          onChange={(v) => setDraft({ ...draft, placesApiKey: v })}
+          onChange={(v) =>
+            setDraft((current) =>
+              current ? { ...current, placesApiKey: v } : current,
+            )
+          }
           placeholder="AIza…"
           help="Restrict the key to your admin and website domains in the Google Cloud Console."
         />
@@ -120,17 +101,22 @@ function GoogleIntegrationPage() {
           id="google-geocode"
           label="Geocode API key"
           value={draft.geocodeApiKey}
-          onChange={(v) => setDraft({ ...draft, geocodeApiKey: v })}
+          onChange={(v) =>
+            setDraft((current) =>
+              current ? { ...current, geocodeApiKey: v } : current,
+            )
+          }
           placeholder="AIza… (leave blank to reuse Places key)"
           help="If left blank, the Places key is used for both."
         />
       </SettingsSection>
 
       <SaveBar
-        dirty={dirty}
-        saving={saving}
-        onSave={handleSave}
-        onDiscard={handleDiscard}
+        dirty={isDirty}
+        mode="autosave"
+        autosaveStatus={autosaveStatus}
+        autosaveError={autosaveError}
+        onDiscard={discardChanges}
       />
     </div>
   );

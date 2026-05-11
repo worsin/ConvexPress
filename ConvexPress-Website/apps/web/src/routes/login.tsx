@@ -67,11 +67,11 @@ function LoginComponent() {
   });
 
   // Redirect authenticated users to their destination
-  useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      navigate({ to: safeReturnTo });
-    }
-  }, [isLoaded, isSignedIn, navigate, safeReturnTo]);
+	  useEffect(() => {
+	    if (isLoaded && isSignedIn) {
+	      navigate({ to: safeReturnTo } as any);
+	    }
+	  }, [isLoaded, isSignedIn, navigate, safeReturnTo]);
 
   // If redirected back with an error, record the failed attempt
   useEffect(() => {

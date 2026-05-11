@@ -34,6 +34,12 @@ import {
 	resolveInventoryAdjustment,
 } from "./orderBundleHelpers";
 import { appendRefundFailureNote } from "../commerceReturns/refundLifecycle";
+import {
+	EMAIL_TEMPLATES,
+	queueEmailForEvent,
+	resolveRecipients,
+} from "../helpers/email";
+import { fulfillOrderDigitalEntitlementsHandler } from "../commerceDigital/fulfillment";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // QUERIES
@@ -580,19 +586,34 @@ export const confirmPaymentSuccess = internalMutation({
 				}
 
 				// Increment bundle purchase counts now that payment is confirmed
-				for (const item of orderItems) {
-					if (isBundleLineMetadata(item.metadata) && item.metadata.bundleId) {
-						const bundle = await ctx.db.get(item.metadata.bundleId);
-						if (bundle) {
-							await ctx.db.patch(item.metadata.bundleId, {
+					for (const item of orderItems) {
+						if (isBundleLineMetadata(item.metadata) && item.metadata.bundleId) {
+							const bundle = await ctx.db.get(item.metadata.bundleId);
+							if (bundle) {
+								await ctx.db.patch(item.metadata.bundleId, {
 								purchaseCount: (bundle.purchaseCount ?? 0) + item.quantity,
 							});
+							}
 						}
 					}
-				}
 
-				// Add order history entry
-				await ctx.db.insert("commerce_order_history", {
+					try {
+						await fulfillOrderDigitalEntitlementsHandler(ctx, {
+							orderId: order._id,
+							reason: "payment_success",
+						});
+					} catch (error) {
+						console.error("[Digital Fulfillment] Payment success fulfillment failed:", error);
+						await ctx.db.patch(order._id, {
+							digitalFulfillmentStatus: "failed",
+							digitalFulfillmentError:
+								error instanceof Error ? error.message : "Digital fulfillment failed after payment success.",
+							updatedAt: now,
+						});
+					}
+	
+					// Add order history entry
+					await ctx.db.insert("commerce_order_history", {
 					orderId: transaction.orderId,
 					eventType: "payment_received",
 					message: `Payment of ${transaction.amount.amount} ${transaction.amount.currencyCode} received via ${args.provider}.`,
@@ -784,6 +805,9 @@ export const completeRefund = internalMutation({
 			if (refund?.returnId) {
 				const returnRequest = await ctx.db.get(refund.returnId);
 				if (returnRequest?.status === "refund_pending") {
+					const order = transaction.orderId
+						? await ctx.db.get(transaction.orderId)
+						: null;
 					await ctx.db.patch(refund.returnId, {
 						status: "received",
 						refundFailureReason: args.error,
@@ -803,6 +827,24 @@ export const completeRefund = internalMutation({
 						},
 						createdAt: now,
 					});
+
+					const admins = await resolveRecipients(ctx, "admin");
+					for (const admin of admins) {
+						await queueEmailForEvent(
+							ctx,
+							EMAIL_TEMPLATES.RETURN_REFUND_FAILED,
+							{
+								recipientEmail: admin.email,
+								recipientName: admin.name,
+								recipientUserId: admin.userId,
+								variables: {
+									returnNumber: returnRequest.returnNumber,
+									orderNumber: order?.orderNumber ?? "",
+									error_message: args.error ?? "Unknown error",
+								},
+							},
+						);
+					}
 				}
 			}
 		}

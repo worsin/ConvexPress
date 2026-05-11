@@ -57,6 +57,7 @@ export interface PasswordStrengthResult {
 /** Subset of settings relevant to registration gate */
 export interface RegistrationSettings {
   anyoneCanRegister: boolean;
+  registrationMode: "invite_only" | "closed";
   defaultRole: string;
   invitationExpiryDays: number;
   requireEmailVerification: boolean;

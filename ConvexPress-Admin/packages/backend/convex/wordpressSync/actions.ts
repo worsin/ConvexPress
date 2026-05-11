@@ -56,6 +56,14 @@ export const testSiteConnection = action({
     username: v.optional(v.string()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     applicationPassword: v.optional(v.string()),
+    // Optional Woo credentials for pre-save probe. Saved sites read these
+    // from the wordpressSites row instead.
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    wooConsumerKey: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    wooConsumerSecret: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
@@ -108,19 +116,32 @@ export const testSiteConnection = action({
         }
       : undefined;
 
-    // If testing an existing site with a successful connection, do a deeper capability probe
-    if (args.siteId && result.success && fullCapabilities) {
+    // Deep capability probe (WP routes + Woo auth) on a successful basic
+    // connection. Runs in two cases:
+    //   - Saved site: read Woo creds + metaEndpointPath from the row.
+    //   - Pre-save test: take Woo creds from the action args directly so the
+    //     user sees a Woo ✓/✗ before clicking Save & Connect.
+    if (result.success && fullCapabilities) {
       try {
-        // Fetch the site record to get metaEndpointPath
-        const site = await ctx.runQuery(
-          internal.wordpressSync.internals.getSiteWithCredentials,
-          { siteId: args.siteId },
-        );
+        let metaEndpointPath: string | undefined;
+        let wooKey: string | undefined;
+        let wooSecret: string | undefined;
+        let wooAuthMode: "shared" | "separate" = "shared";
 
-        const metaEndpointPath = site?.metaEndpointPath;
-        const wooKey = await decryptStoredSecret(site?.wooConsumerKey);
-        const wooSecret = await decryptStoredSecret(site?.wooConsumerSecret);
-        const wooAuthMode = (site?.wooAuthMode ?? "shared") as "shared" | "separate";
+        if (args.siteId) {
+          const site = await ctx.runQuery(
+            internal.wordpressSync.internals.getSiteWithCredentials,
+            { siteId: args.siteId },
+          );
+          metaEndpointPath = site?.metaEndpointPath;
+          wooKey = await decryptStoredSecret(site?.wooConsumerKey);
+          wooSecret = await decryptStoredSecret(site?.wooConsumerSecret);
+          wooAuthMode = (site?.wooAuthMode ?? "shared") as "shared" | "separate";
+        } else {
+          wooKey = args.wooConsumerKey?.trim() || undefined;
+          wooSecret = args.wooConsumerSecret?.trim() || undefined;
+          wooAuthMode = args.wooAuthMode ?? "shared";
+        }
 
         const adapterConfig = {
           siteUrl: credentials.siteUrl,
@@ -166,8 +187,23 @@ export const testSiteConnection = action({
       });
     }
 
+    // Strip the full WP REST `routes` map (and a few other big fields) before
+    // returning to the client. A vanilla WordPress site exposes ~150 routes
+    // and a Woo+Elementor+Yoast install exposes 1000+. Convex caps action
+    // return values at 1024 fields total, so passing siteInfo through
+    // unfiltered fails the entire action with "Object has too many fields".
+    if (result.success) {
+      const { routes: _routes, authentication: _auth, ...slimSiteInfo } =
+        result.siteInfo;
+      return {
+        success: true as const,
+        siteInfo: slimSiteInfo,
+        capabilities: fullCapabilities,
+      };
+    }
     return {
-      ...result,
+      success: false as const,
+      error: result.error,
       capabilities: fullCapabilities,
     };
   },

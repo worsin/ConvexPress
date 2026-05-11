@@ -30,11 +30,11 @@ function ForgotPasswordComponent() {
   const [oauthHint, setOauthHint] = useState(false);
 
   // Authenticated users should manage passwords in dashboard settings
-  useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      navigate({ to: "/dashboard/settings" });
-    }
-  }, [isLoaded, isSignedIn, navigate]);
+	  useEffect(() => {
+	    if (isLoaded && isSignedIn) {
+	      navigate({ to: "/dashboard/settings" } as any);
+	    }
+	  }, [isLoaded, isSignedIn, navigate]);
 
   const handleSuccess = (email: string, isOAuth?: boolean) => {
     setSubmittedEmail(email);

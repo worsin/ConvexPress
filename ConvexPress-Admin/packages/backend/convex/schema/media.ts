@@ -63,7 +63,11 @@ export const mediaTables = {
     altText: v.optional(v.string()),
 
     // ── File Storage ─────────────────────────────────────────────────────
-    storageId: v.id("_storage"),
+    // Convex storage ID. Optional because URL-only imports (used during
+    // WordPress migration before UploadThing is wired) preserve only the
+    // source URL — no Convex blob exists for those rows. Once the file
+    // is downloaded to Convex (or migrated to UploadThing), this is set.
+    storageId: v.optional(v.id("_storage")),
     url: v.string(),
     mimeType: v.string(),
     fileSize: v.number(),

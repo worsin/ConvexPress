@@ -159,6 +159,8 @@ function EditSubscriptionTemplatePage() {
     );
   }
 
+  const templateRecord = template;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !slug.trim()) {
@@ -168,7 +170,7 @@ function EditSubscriptionTemplatePage() {
     setSubmitting(true);
     try {
       await updateTemplate({
-        templateId: template._id,
+        templateId: templateRecord._id,
         title: title.trim(),
         slug: slug.trim(),
         status,
@@ -198,7 +200,7 @@ function EditSubscriptionTemplatePage() {
   async function handleArchive() {
     setArchiving(true);
     try {
-      await archiveTemplate({ templateId: template._id });
+      await archiveTemplate({ templateId: templateRecord._id });
       toast.success("Template archived");
       navigate({ to: "/commerce/subscriptions/templates" });
     } catch (error) {

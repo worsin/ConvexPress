@@ -7,7 +7,7 @@
  * Uses smaller batch sizes due to file download overhead.
  */
 
-import { internalAction, internalMutation, type ActionCtx, type MutationCtx } from "../../_generated/server";
+import { internalAction, internalMutation, internalQuery, type ActionCtx, type MutationCtx } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
@@ -194,6 +194,18 @@ export const importBatch = internalAction({
 
             created++;
             progress.imported++;
+          } else if (result.skipped) {
+            // Over the size cap. Don't count as a failure — log a finding
+            // and let the UploadThing pass pick it up later.
+            await createFinding(ctx, {
+              siteId, jobId, severity: "warning", phase: "media",
+              code: "MEDIA_SIZE_CAP_EXCEEDED" as any,
+              message: result.error ?? "Skipped (size cap)",
+              sourceType: "media", sourceId: String(wpMedia.id),
+              destinationTable: "media", wpId: wpMedia.id,
+            });
+            skipped++;
+            progress.imported++;
           } else {
             errors.push({
               phase: "media",
@@ -238,24 +250,89 @@ export const importBatch = internalAction({
 
 // ─── Download and Upload Helper ────────────────────────────────────────────
 
+// Hard size cap to keep Convex action memory under control.
+// Any file larger than this is skipped during import; we still preserve
+// the WP source URL in the mapping so a later pass (UploadThing-backed,
+// per the Media Library PRD) can re-import the skipped originals.
+// Convex actions have a 64 MB memory ceiling; a 25 MB source plus
+// sharp's working set fits comfortably.
+const MEDIA_SIZE_CAP_BYTES = 25 * 1024 * 1024;
+
+// URL-only mode: don't download the file at all. Create a media row that
+// points to the WordPress source URL. The customer's WP keeps serving the
+// images while we run the demo and plan the UploadThing migration.
+//
+// The PRD designates UploadThing as the eventual storage provider for
+// large libraries. Until that's wired, URL-only mode is the migration-
+// safe default — it lets posts/pages reference a `media._id` like normal
+// (the layer that resolves URLs is unchanged), but the underlying storage
+// is the customer's existing WP infrastructure.
+//
+// Set MEDIA_URL_ONLY_MODE=true in Convex env to enable. Default off so
+// existing single-site installs (where Convex storage is fine) keep the
+// current download behavior.
+const URL_ONLY_MODE = process.env.MEDIA_URL_ONLY_MODE === "true";
+
 async function downloadAndUpload(
   ctx: ActionCtx,
   wpMedia: WPMedia,
   siteId: Id<"wordpressSites">,
   existingId?: string,
-): Promise<{ success: boolean; mediaId?: string; error?: string }> {
+): Promise<{ success: boolean; mediaId?: string; error?: string; skipped?: boolean }> {
   try {
     // Check if media with same source URL already exists
     const existingByUrl = existingId
       ? null
       : await ctx.runQuery(
-          internal.wordpressSync.phases.mediaFindBySourceUrl,
+          internal.wordpressSync.phases.media.mediaFindBySourceUrl,
           { sourceUrl: wpMedia.source_url }
         );
 
     if (existingByUrl) {
       // Media already exists, just return the ID
       return { success: true, mediaId: existingByUrl };
+    }
+
+    // URL-only fast path: skip the download/upload, create a media row
+    // that points directly at the WordPress source URL.
+    if (URL_ONLY_MODE) {
+      const mediaId = await ctx.runMutation(
+        internal.wordpressSync.phases.media.mediaCreate,
+        {
+          existingId,
+          wpMedia: {
+            id: wpMedia.id,
+            title: wpMedia.title?.rendered || wpMedia.slug,
+            slug: wpMedia.slug,
+            fileName: wpMedia.media_details?.file || wpMedia.slug,
+            description: wpMedia.description?.rendered,
+            caption: wpMedia.caption?.rendered,
+            altText: wpMedia.alt_text,
+            mimeType: wpMedia.mime_type,
+            mediaType: determineMediaType(wpMedia.mime_type),
+            fileSize: wpMedia.media_details?.filesize ?? 0,
+            width: wpMedia.media_details?.width,
+            height: wpMedia.media_details?.height,
+            sourceUrl: wpMedia.source_url,
+            authorWpId: wpMedia.author,
+            sizes: extractWpMediaSizes(wpMedia),
+          },
+          storageId: undefined,
+          url: wpMedia.source_url,
+          siteId,
+        },
+      );
+      return { success: true, mediaId };
+    }
+
+    // Pre-flight size check from WP metadata (no download yet)
+    const declaredSize = wpMedia.media_details?.filesize;
+    if (typeof declaredSize === "number" && declaredSize > MEDIA_SIZE_CAP_BYTES) {
+      return {
+        success: false,
+        skipped: true,
+        error: `Skipped: file size ${(declaredSize / 1024 / 1024).toFixed(1)} MB exceeds ${MEDIA_SIZE_CAP_BYTES / 1024 / 1024} MB cap. Will be re-imported via UploadThing pass.`,
+      };
     }
 
     // Download the file
@@ -267,6 +344,17 @@ async function downloadAndUpload(
 
     if (!response.ok) {
       return { success: false, error: `Download failed: ${response.status}` };
+    }
+
+    // Belt-and-suspenders size check on Content-Length when WP didn't
+    // declare a filesize in media_details.
+    const contentLength = Number(response.headers.get("content-length") ?? 0);
+    if (contentLength > MEDIA_SIZE_CAP_BYTES) {
+      return {
+        success: false,
+        skipped: true,
+        error: `Skipped: download size ${(contentLength / 1024 / 1024).toFixed(1)} MB exceeds ${MEDIA_SIZE_CAP_BYTES / 1024 / 1024} MB cap. Will be re-imported via UploadThing pass.`,
+      };
     }
 
     const blob = await response.blob();
@@ -296,7 +384,7 @@ async function downloadAndUpload(
     }
 
     // Create media record
-    const mediaId = await ctx.runMutation(internal.wordpressSync.phases.mediaCreate, {
+    const mediaId = await ctx.runMutation(internal.wordpressSync.phases.media.mediaCreate, {
       existingId,
       wpMedia: {
         id: wpMedia.id,
@@ -340,7 +428,7 @@ async function updateExistingMedia(
   }
 
   try {
-    const mediaId = await ctx.runMutation(internal.wordpressSync.phases.mediaUpdateMetadata, {
+    const mediaId = await ctx.runMutation(internal.wordpressSync.phases.media.mediaUpdateMetadata, {
       mediaId: existingId,
       wpMedia: {
         id: wpMedia.id,
@@ -382,11 +470,22 @@ function extractMediaSourceUrls(wpMedia: WPMedia): string[] {
 }
 
 function extractWpMediaSizes(wpMedia: WPMedia) {
+  // WordPress occasionally serializes width/height as strings (e.g. "150")
+  // instead of numbers in the media_details.sizes payload. Coerce here so
+  // the downstream validator (v.number) doesn't reject the row.
+  const toNum = (x: unknown): number => {
+    if (typeof x === "number") return x;
+    if (typeof x === "string") {
+      const n = Number.parseFloat(x);
+      return Number.isFinite(n) ? n : 0;
+    }
+    return 0;
+  };
   return Object.entries(wpMedia.media_details?.sizes ?? {}).map(([name, size]) => ({
     name,
-    width: size.width,
-    height: size.height,
-    fileSize: wpMedia.media_details?.filesize || 0,
+    width: toNum(size.width),
+    height: toNum(size.height),
+    fileSize: toNum(wpMedia.media_details?.filesize),
     mimeType: size.mime_type || wpMedia.mime_type,
   }));
 }
@@ -422,13 +521,11 @@ function determineMediaType(
 
 // ─── Internal Queries ──────────────────────────────────────────────────────
 
-export const mediaFindBySourceUrl = internalMutation({
+export const mediaFindBySourceUrl = internalQuery({
   args: {
     sourceUrl: v.string(),
   },
   handler: async (ctx, { sourceUrl }) => {
-    // Note: This is a mutation so we can use it in actions
-    // We're just reading though - uses index for performance
     const existing = await ctx.db
       .query("media")
       .withIndex("by_wpSourceUrl", (q) => q.eq("wpSourceUrl", sourceUrl))
@@ -473,7 +570,9 @@ export const mediaCreate = internalMutation({
         mimeType: v.string(),
       }))),
     }),
-    storageId: v.id("_storage"),
+    // Optional: undefined when running in URL-only mode (the file is served
+    // by the customer's WordPress; no Convex blob exists).
+    storageId: v.optional(v.id("_storage")),
     url: v.string(),
     siteId: v.id("wordpressSites"),
   },
@@ -549,7 +648,11 @@ export const mediaCreate = internalMutation({
 
     if (existingId) {
       await ctx.db.patch(existingId as Id<"media">, fields);
-      await replaceImportedMediaSizes(ctx, existingId as Id<"media">, storageId, url, wpMedia);
+      // Skip pre-generated WP-side size variants when there's no Convex
+      // storageId (URL-only mode — the WP variants live on the WP server).
+      if (storageId) {
+        await replaceImportedMediaSizes(ctx, existingId as Id<"media">, storageId, url, wpMedia);
+      }
       return existingId;
     }
 
@@ -559,7 +662,9 @@ export const mediaCreate = internalMutation({
       createdAt: now,
     });
 
-    await replaceImportedMediaSizes(ctx, mediaId, storageId, url, wpMedia);
+    if (storageId) {
+      await replaceImportedMediaSizes(ctx, mediaId, storageId, url, wpMedia);
+    }
 
     return mediaId;
   },
@@ -628,10 +733,12 @@ export const mediaUpdateMetadata = internalMutation({
       updatedAt: Date.now(),
     });
 
-    await replaceImportedMediaSizes(ctx, existing._id, existing.storageId, existing.url, {
-      ...wpMedia,
-      fileSize: wpMedia.fileSize || existing.fileSize,
-    });
+    if (existing.storageId) {
+      await replaceImportedMediaSizes(ctx, existing._id, existing.storageId, existing.url, {
+        ...wpMedia,
+        fileSize: wpMedia.fileSize || existing.fileSize,
+      });
+    }
 
     return mediaId;
   },

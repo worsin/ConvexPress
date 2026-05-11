@@ -324,6 +324,8 @@ export const reply = mutation({
       messageId,
       senderType: "user",
       senderId: user._id,
+      ticketOwnerId: ticket.userId,
+      assignedTo: ticket.assignedTo ?? null,
     });
 
     return { messageId };
@@ -430,6 +432,8 @@ export const adminReply = mutation({
       senderType: "admin",
       senderId: user._id,
       isInternal,
+      ticketOwnerId: ticket.userId,
+      assignedTo: ticket.assignedTo ?? null,
     });
 
     return { messageId };
@@ -491,6 +495,7 @@ export const updateStatus = mutation({
       previousStatus: ticket.status,
       newStatus: args.status,
       changedBy: user._id,
+      ticketOwnerId: ticket.userId,
     });
   },
 });

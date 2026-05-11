@@ -33,18 +33,18 @@ export function useFooterConfig(): FooterConfig {
 
   // Deep merge with defaults so any missing nested fields fall back gracefully
   return {
-    layout: { ...DEFAULT_FOOTER_CONFIG.layout, ...(raw.layout as object ?? {}) },
-    branding: { ...DEFAULT_FOOTER_CONFIG.branding, ...(raw.branding as object ?? {}) },
+    layout: { ...DEFAULT_FOOTER_CONFIG.layout, ...(raw.layout as object) },
+    branding: { ...DEFAULT_FOOTER_CONFIG.branding, ...(raw.branding as object) },
     navColumns: {
       ...DEFAULT_FOOTER_CONFIG.navColumns,
-      ...(raw.navColumns as object ?? {}),
+      ...(raw.navColumns as object),
       // Ensure columns array falls back to default if not present
       columns: (raw.navColumns as Record<string, unknown>)?.columns
         ? ((raw.navColumns as Record<string, unknown>).columns as FooterConfig["navColumns"]["columns"])
         : DEFAULT_FOOTER_CONFIG.navColumns.columns,
     },
-    newsletter: { ...DEFAULT_FOOTER_CONFIG.newsletter, ...(raw.newsletter as object ?? {}) },
-    contactInfo: { ...DEFAULT_FOOTER_CONFIG.contactInfo, ...(raw.contactInfo as object ?? {}) },
-    bottomBar: { ...DEFAULT_FOOTER_CONFIG.bottomBar, ...(raw.bottomBar as object ?? {}) },
+    newsletter: { ...DEFAULT_FOOTER_CONFIG.newsletter, ...(raw.newsletter as object) },
+    contactInfo: { ...DEFAULT_FOOTER_CONFIG.contactInfo, ...(raw.contactInfo as object) },
+    bottomBar: { ...DEFAULT_FOOTER_CONFIG.bottomBar, ...(raw.bottomBar as object) },
   } as FooterConfig;
 }

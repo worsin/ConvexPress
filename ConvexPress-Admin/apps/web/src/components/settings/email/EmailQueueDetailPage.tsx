@@ -34,7 +34,7 @@ import { api } from "@backend/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 import { EMAIL_STATUS_CONFIG, EMAIL_PRIORITY_CONFIG } from "@/lib/email/constants";
 import type { EmailStatus, EmailPriority } from "@/lib/email/types";
@@ -141,6 +141,14 @@ export function EmailQueueDetailPage() {
 
   const statusConfig = EMAIL_STATUS_CONFIG[email.status as EmailStatus];
   const priorityConfig = EMAIL_PRIORITY_CONFIG[email.priority as EmailPriority];
+  let parsedTestMetadata: Record<string, string> | null = null;
+  if (email.testMetadata) {
+    try {
+      parsedTestMetadata = JSON.parse(email.testMetadata) as Record<string, string>;
+    } catch {
+      parsedTestMetadata = null;
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6 pb-10">
@@ -354,9 +362,42 @@ export function EmailQueueDetailPage() {
                     </span>
                   </InfoRow>
                 )}
+
+                {email.isTest && (
+                  <InfoRow label="Test Email">
+                    <span className="text-primary">
+                      {email.testLabel ?? "Yes"}
+                    </span>
+                  </InfoRow>
+                )}
               </div>
             </CardContent>
           </Card>
+
+          {email.isTest && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Test Metadata</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-2 text-xs">
+                  <InfoRow label="Label">
+                    <span className="text-foreground">
+                      {email.testLabel ?? "Template test"}
+                    </span>
+                  </InfoRow>
+                  {parsedTestMetadata &&
+                    Object.entries(parsedTestMetadata).map(([key, value]) => (
+                      <InfoRow key={key} label={key}>
+                        <span className="font-mono text-[10px] text-foreground">
+                          {String(value)}
+                        </span>
+                      </InfoRow>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Sender Info */}
           <Card>

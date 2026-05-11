@@ -23,6 +23,7 @@ import {
   getCommentCounts,
   getUserCount,
   getDefaultWidgetOrder,
+  aggregateContentPerformance,
 } from "./helpers";
 
 // ─── Get Widget Preferences ─────────────────────────────────────────────────
@@ -436,10 +437,41 @@ export const getWebsiteDashboard = query({
     }));
 
     // ── Content Performance ────────────────────────────────────────────────
-    // Author+ only (level 60+). Depends on view tracking which is not yet
-    // implemented, so return null for now to show "Coming soon" state.
+    // Author+ only. Uses built-in analytics pageview events from the public
+    // website tracker, scoped to the current user's published posts.
     const canEditPublished = await currentUserCan(ctx, "post.update");
-    const contentPerformance = canEditPublished ? [] : null;
+    let contentPerformance: Array<{
+      _id: string;
+      title: string;
+      views: number;
+    }> | null = null;
+
+    if (canEditPublished) {
+      const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const ownPublishedIds = new Set(publishedPosts.map((post) => post._id));
+      const recentPageviews = await ctx.db
+        .query("pageEvents")
+        .withIndex("by_eventType_timestamp", (q) =>
+          q.eq("eventType", "pageview").gte("timestamp", since),
+        )
+        .take(10000);
+
+      const viewsByItemId: Record<string, number> = {};
+      for (const event of recentPageviews) {
+        if (!event.postId || !ownPublishedIds.has(event.postId)) continue;
+        const key = String(event.postId);
+        viewsByItemId[key] = (viewsByItemId[key] ?? 0) + 1;
+      }
+
+      contentPerformance = aggregateContentPerformance(
+        publishedPosts.map((post) => ({
+          _id: String(post._id),
+          title: post.title || "(no title)",
+        })),
+        viewsByItemId,
+        5,
+      );
+    }
 
     return {
       myPosts,

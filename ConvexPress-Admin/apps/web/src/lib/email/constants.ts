@@ -48,6 +48,41 @@ export const EMAIL_TEMPLATES = {
 
   // Digest
   WEEKLY_DIGEST: "weekly-content-digest",
+
+  // Commerce returns
+  RETURN_REQUESTED_ADMIN: "commerce-return-requested-admin",
+  RETURN_APPROVED: "commerce-return-approved",
+  RETURN_REJECTED: "commerce-return-rejected",
+  RETURN_LABEL_ADDED: "commerce-return-label-added",
+  RETURN_REFUNDED: "commerce-return-refunded",
+  RETURN_REFUND_FAILED: "commerce-return-refund-failed",
+
+  // Support / tickets
+  TICKET_REPLY_NOTIFICATION: "ticket_reply_notification",
+  TICKET_USER_REPLY: "ticket_user_reply",
+  TICKET_ASSIGNED: "ticket_assigned",
+  TICKET_RESOLVED: "ticket_resolved",
+
+  // Knowledge base
+  KB_WORKFLOW_STEP_READY: "kb_workflow_step_ready",
+  KB_WORKFLOW_APPROVED: "kb_workflow_approved",
+  KB_WORKFLOW_REJECTED: "kb_workflow_rejected",
+  KB_COMMENT_NOTIFICATION: "kb_comment_notification",
+
+  // Shipping
+  SHIPPING_PICKED_UP: "shipping_picked_up",
+  SHIPPING_OUT_FOR_DELIVERY: "shipping_out_for_delivery",
+  SHIPPING_DELIVERED: "shipping_delivered",
+  SHIPPING_EXCEPTION: "shipping_exception",
+  SHIPPING_RETURNED: "shipping_returned",
+
+  // Subscriptions
+  SUBSCRIPTION_WELCOME: "subscription-welcome",
+  SUBSCRIPTION_RENEWED: "subscription-renewed",
+  SUBSCRIPTION_PAYMENT_FAILED: "subscription-payment-failed",
+  SUBSCRIPTION_TRIAL_ENDING: "subscription-trial-ending",
+  SUBSCRIPTION_CANCELLED: "subscription-cancelled",
+  SUBSCRIPTION_PAUSED: "subscription-paused",
 } as const;
 
 // ─── Unsubscribe Categories ─────────────────────────────────────────────────
@@ -153,6 +188,26 @@ export const EMAIL_CATEGORY_CONFIG: Record<
     label: "System",
     className: "bg-muted text-muted-foreground border-border",
   },
+  support: {
+    label: "Support",
+    className: "bg-sky-500/10 text-sky-700 border-sky-500/20",
+  },
+  knowledge_base: {
+    label: "Knowledge Base",
+    className: "bg-amber-500/10 text-amber-700 border-amber-500/20",
+  },
+  commerce: {
+    label: "Commerce",
+    className: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
+  },
+  shipping: {
+    label: "Shipping",
+    className: "bg-cyan-500/10 text-cyan-700 border-cyan-500/20",
+  },
+  subscription: {
+    label: "Subscription",
+    className: "bg-indigo-500/10 text-indigo-700 border-indigo-500/20",
+  },
 };
 
 // ─── Category Filter Options ────────────────────────────────────────────────
@@ -164,6 +219,11 @@ export const CATEGORY_OPTIONS = [
   { label: "Comment", value: "comment" },
   { label: "Security", value: "security" },
   { label: "System", value: "system" },
+  { label: "Support", value: "support" },
+  { label: "Knowledge Base", value: "knowledge_base" },
+  { label: "Commerce", value: "commerce" },
+  { label: "Shipping", value: "shipping" },
+  { label: "Subscription", value: "subscription" },
 ];
 
 // ─── Status Filter Options ──────────────────────────────────────────────────

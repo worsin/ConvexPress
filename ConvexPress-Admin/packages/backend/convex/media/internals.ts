@@ -682,7 +682,7 @@ export const getMediaInternal = internalQuery({
     }
 
     // Resolve fresh URL
-    const freshUrl = await ctx.storage.getUrl(media.storageId);
+    const freshUrl = (media.storageId ? await ctx.storage.getUrl(media.storageId) : null);
 
     return {
       ...media,
@@ -775,7 +775,7 @@ export const deleteMediaInternal = internalMutation({
 
     // Delete original storage file
     try {
-      await ctx.storage.delete(media.storageId);
+      (media.storageId ? await ctx.storage.delete(media.storageId) : undefined);
     } catch {
       // Orphaned storage file
     }
@@ -789,7 +789,7 @@ export const deleteMediaInternal = internalMutation({
     for (const size of sizes) {
       if (size.storageId !== media.storageId) {
         try {
-          await ctx.storage.delete(size.storageId);
+          (size.storageId ? await ctx.storage.delete(size.storageId) : undefined);
         } catch {
           // Orphaned
         }
@@ -1200,7 +1200,15 @@ export const updateDimensions = internalMutation({
 
 /**
  * Update the storageId and URL on a media record after image editing.
- * Internal-only: called by image editing actions.
+ * Internal-only: called by image editing actions and the WebP re-encode
+ * step in the sharp pipeline.
+ *
+ * Optionally accepts a new `mimeType` so the WebP optimization pipeline can
+ * mark the original as "image/webp" after re-encoding a JPEG/PNG. The
+ * `fileName` is intentionally NOT touched — we keep the original ".jpg" /
+ * ".png" extension so existing references (URLs in content blocks, exports,
+ * humans inspecting the library) don't break. Browsers honor the mimeType
+ * served by Convex storage, not the filename extension.
  */
 export const updateStorageId = internalMutation({
   args: {
@@ -1210,6 +1218,7 @@ export const updateStorageId = internalMutation({
     width: v.optional(v.number()),
     height: v.optional(v.number()),
     fileSize: v.optional(v.number()),
+    mimeType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const media = await ctx.db.get("media", args.mediaId);
@@ -1223,6 +1232,7 @@ export const updateStorageId = internalMutation({
     if (args.width !== undefined) patch.width = args.width;
     if (args.height !== undefined) patch.height = args.height;
     if (args.fileSize !== undefined) patch.fileSize = args.fileSize;
+    if (args.mimeType !== undefined) patch.mimeType = args.mimeType;
 
     await ctx.db.patch("media", args.mediaId, patch);
   },
@@ -1334,7 +1344,7 @@ export const cleanupExpiredMedia = internalMutation({
 
       // Delete the original storage file
       try {
-        await ctx.storage.delete(item.storageId);
+        (item.storageId ? await ctx.storage.delete(item.storageId) : undefined);
       } catch {
         // Storage file may already be gone
       }
@@ -1349,7 +1359,7 @@ export const cleanupExpiredMedia = internalMutation({
         // Only delete storage if it's different from the original
         if (size.storageId !== item.storageId) {
           try {
-            await ctx.storage.delete(size.storageId);
+            (size.storageId ? await ctx.storage.delete(size.storageId) : undefined);
           } catch {
             // Orphaned storage file
           }
@@ -1409,7 +1419,7 @@ export const wipeMediaSizes = internalMutation({
       .collect();
     for (const size of sizes) {
       try {
-        await ctx.storage.delete(size.storageId);
+        (size.storageId ? await ctx.storage.delete(size.storageId) : undefined);
       } catch {
         // Orphaned; ignore
       }
@@ -1462,7 +1472,7 @@ export const emptyTrashCron = internalMutation({
         continue;
       }
 
-      try { await ctx.storage.delete(item.storageId); } catch { /* orphaned */ }
+      try { (item.storageId ? await ctx.storage.delete(item.storageId) : undefined); } catch { /* orphaned */ }
 
       const sizes = await ctx.db
         .query("mediaSizes")
@@ -1470,7 +1480,7 @@ export const emptyTrashCron = internalMutation({
         .collect();
       for (const size of sizes) {
         if (size.storageId !== item.storageId) {
-          try { await ctx.storage.delete(size.storageId); } catch { /* orphaned */ }
+          try { (size.storageId ? await ctx.storage.delete(size.storageId) : undefined); } catch { /* orphaned */ }
         }
         await ctx.db.delete("mediaSizes", size._id);
       }

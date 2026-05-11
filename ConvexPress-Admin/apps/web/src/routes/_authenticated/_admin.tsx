@@ -1,10 +1,11 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 
 import { AuthProvider } from "@/lib/auth-context";
 import { AdminShellProvider } from "@/components/layout/AdminShellProvider";
 import { AdminShellErrorBoundary } from "@/components/layout/AdminShellErrorBoundary";
+import { AdminContentErrorBoundary } from "@/components/layout/AdminContentErrorBoundary";
 import { AdminShellSkeleton } from "@/components/layout/AdminShellSkeleton";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
 import { AdminBar } from "@/components/layout/AdminBar";
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/_admin")({
 });
 
 function AdminLayout() {
+  const location = useLocation();
   // Fetch site title from the Settings System
   const generalSettings = useQuery(api.settings.queries.getBySection, {
     section: "general",
@@ -53,7 +55,9 @@ function AdminLayout() {
                 className="flex-1 min-h-0 overflow-auto p-6"
               >
                 <Breadcrumbs />
-                <Outlet />
+                <AdminContentErrorBoundary routeKey={location.pathname}>
+                  <Outlet />
+                </AdminContentErrorBoundary>
               </main>
               <AdminFooter />
             </div>

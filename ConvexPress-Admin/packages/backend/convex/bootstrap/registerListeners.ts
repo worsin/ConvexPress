@@ -28,6 +28,11 @@
  */
 
 import { internalMutation } from "../_generated/server";
+import { OBSOLETE_EMAIL_LISTENERS } from "../emails/registry";
+import {
+  NOTIFICATION_ENGINE_LISTENER_DEFINITIONS,
+  isLegacyNotificationListenerDefinition,
+} from "../notificationEngine/registry";
 
 // ─── Listener Definitions ─────────────────────────────────────────────────
 
@@ -311,7 +316,6 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
     system: "email",
     description:
       "Sends new-device login alert email (security-critical, priority 5).",
-    filterCondition: JSON.stringify({ isNewDevice: "true" }),
   },
   {
     eventCode: "auth.login_failed",
@@ -326,20 +330,6 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
     system: "email",
     description:
       "Sends admin alert when multiple failed login attempts are detected.",
-  },
-  {
-    eventCode: "password.reset_requested",
-    name: "Email: Password Reset Link",
-    handlerModule: "emails/internals",
-    handlerFunction: "onPasswordResetRequested",
-    handlerType: "internal",
-    priority: 5,
-    maxRetries: 3,
-    retryDelayMs: 1000,
-    retryBackoff: "exponential",
-    system: "email",
-    description:
-      "Sends password reset link email (security-critical, priority 5).",
   },
   {
     eventCode: "password.changed",
@@ -477,7 +467,6 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
     system: "email",
     description:
       "Sends storage warning email to admins when usage exceeds 80%.",
-    filterCondition: JSON.stringify({ storageWarning: true }),
   },
   {
     eventCode: "settings.updated",
@@ -547,6 +536,98 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
     system: "email",
     description:
       "Sends account-deletion confirmation email to the user.",
+  },
+  {
+    eventCode: "ticket.replied",
+    name: "Email: Ticket Reply Notifications",
+    handlerModule: "emails/internals",
+    handlerFunction: "onTicketReplied",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description:
+      "Routes ticket reply notifications to the ticket owner or assigned agent.",
+  },
+  {
+    eventCode: "ticket.assigned",
+    name: "Email: Ticket Assigned",
+    handlerModule: "emails/internals",
+    handlerFunction: "onTicketAssigned",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description: "Sends a notification when a ticket is assigned to an agent.",
+  },
+  {
+    eventCode: "ticket.resolved",
+    name: "Email: Ticket Resolved",
+    handlerModule: "emails/internals",
+    handlerFunction: "onTicketResolved",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description: "Sends a resolution confirmation to the ticket owner.",
+  },
+  {
+    eventCode: "kb.workflow_step_ready",
+    name: "Email: KB Workflow Step Ready",
+    handlerModule: "emails/internals",
+    handlerFunction: "onKbWorkflowStepReady",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description: "Sends review-step notifications for KB workflows.",
+  },
+  {
+    eventCode: "kb.workflow_approved",
+    name: "Email: KB Workflow Approved",
+    handlerModule: "emails/internals",
+    handlerFunction: "onKbWorkflowApproved",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description: "Sends approval notifications for KB workflows.",
+  },
+  {
+    eventCode: "kb.workflow_rejected",
+    name: "Email: KB Workflow Rejected",
+    handlerModule: "emails/internals",
+    handlerFunction: "onKbWorkflowRejected",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description: "Sends rejection notifications for KB workflows.",
+  },
+  {
+    eventCode: "kb.comment_created",
+    name: "Email: KB Comment Notification",
+    handlerModule: "emails/internals",
+    handlerFunction: "onKbCommentCreated",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description: "Sends author or moderator notifications for KB comments.",
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1028,6 +1109,13 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
   },
 ];
 
+const EFFECTIVE_LISTENER_DEFINITIONS: ListenerDef[] = [
+  ...LISTENER_DEFINITIONS.filter(
+    (definition) => !isLegacyNotificationListenerDefinition(definition),
+  ),
+  ...NOTIFICATION_ENGINE_LISTENER_DEFINITIONS,
+];
+
 // ─── Bootstrap Function ───────────────────────────────────────────────────
 
 /**
@@ -1041,89 +1129,125 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
  *
  * Safe to call multiple times. Will not create duplicates.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const run = internalMutation({
-  args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx) => {
-    const now = Date.now();
-    let created = 0;
-    let reactivated = 0;
-    let skipped = 0;
+export async function registerListenerDefinitions(ctx: any, now = Date.now()) {
+  const totalDefinitions = EFFECTIVE_LISTENER_DEFINITIONS.length as number;
+  let created = 0;
+  let reactivated = 0;
+  let skipped = 0;
 
-    for (const def of LISTENER_DEFINITIONS) {
-      // Check for existing listener with same eventCode + name
-      const existingListeners = await ctx.db
-        .query("eventListeners")
-        .withIndex("by_event_code", (q: ConvexQueryBuilder) =>
-          q.eq("eventCode", def.eventCode),
-        )
-        .collect();
+  for (const def of EFFECTIVE_LISTENER_DEFINITIONS) {
+    const existingListeners = await ctx.db
+      .query("eventListeners")
+      .withIndex("by_event_code", (q: ConvexQueryBuilder) =>
+        q.eq("eventCode", def.eventCode),
+      )
+      .collect();
 
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      const existing = existingListeners.find((l) => l.name === def.name);
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
+    const existing = existingListeners.find((l) => l.name === def.name);
 
-      if (existing) {
-        if (existing.isActive) {
-          // Already registered and active. Update handler details in case they changed.
-          await ctx.db.patch("eventListeners", existing._id, {
-            handlerModule: def.handlerModule,
-            handlerFunction: def.handlerFunction,
-            handlerType: def.handlerType,
-            priority: def.priority,
-            maxRetries: def.maxRetries,
-            retryDelayMs: def.retryDelayMs,
-            retryBackoff: def.retryBackoff,
-            filterCondition: def.filterCondition,
-            description: def.description,
-            updatedAt: now,
-          });
-          skipped++;
-        } else {
-          // Exists but deactivated. Reactivate with latest config.
-          await ctx.db.patch("eventListeners", existing._id, {
-            isActive: true,
-            handlerModule: def.handlerModule,
-            handlerFunction: def.handlerFunction,
-            handlerType: def.handlerType,
-            priority: def.priority,
-            maxRetries: def.maxRetries,
-            retryDelayMs: def.retryDelayMs,
-            retryBackoff: def.retryBackoff,
-            filterCondition: def.filterCondition,
-            description: def.description,
-            updatedAt: now,
-          });
-          reactivated++;
-        }
-      } else {
-        // New listener - insert
-        await ctx.db.insert("eventListeners", {
-          eventCode: def.eventCode,
-          name: def.name,
+    if (existing) {
+      if (existing.isActive) {
+        await ctx.db.patch("eventListeners", existing._id, {
           handlerModule: def.handlerModule,
           handlerFunction: def.handlerFunction,
           handlerType: def.handlerType,
           priority: def.priority,
-          isActive: true,
           maxRetries: def.maxRetries,
           retryDelayMs: def.retryDelayMs,
           retryBackoff: def.retryBackoff,
           filterCondition: def.filterCondition,
-          system: def.system,
           description: def.description,
-          createdAt: now,
           updatedAt: now,
         });
-        created++;
+        skipped++;
+      } else {
+        await ctx.db.patch("eventListeners", existing._id, {
+          isActive: true,
+          handlerModule: def.handlerModule,
+          handlerFunction: def.handlerFunction,
+          handlerType: def.handlerType,
+          priority: def.priority,
+          maxRetries: def.maxRetries,
+          retryDelayMs: def.retryDelayMs,
+          retryBackoff: def.retryBackoff,
+          filterCondition: def.filterCondition,
+          description: def.description,
+          updatedAt: now,
+        });
+        reactivated++;
       }
+    } else {
+      await ctx.db.insert("eventListeners", {
+        eventCode: def.eventCode,
+        name: def.name,
+        handlerModule: def.handlerModule,
+        handlerFunction: def.handlerFunction,
+        handlerType: def.handlerType,
+        priority: def.priority,
+        isActive: true,
+        maxRetries: def.maxRetries,
+        retryDelayMs: def.retryDelayMs,
+        retryBackoff: def.retryBackoff,
+        filterCondition: def.filterCondition,
+        system: def.system,
+        description: def.description,
+        createdAt: now,
+        updatedAt: now,
+      });
+      created++;
     }
+  }
 
-    return {
-      total: LISTENER_DEFINITIONS.length,
-      created,
-      reactivated,
-      skipped,
-    };
+  let deactivated = 0;
+  for (const legacy of OBSOLETE_EMAIL_LISTENERS) {
+    const existing = await ctx.db
+      .query("eventListeners")
+      .withIndex("by_event_code", (q: ConvexQueryBuilder) =>
+        q.eq("eventCode", legacy.eventCode),
+      )
+      .collect();
+
+    for (const listener of existing) {
+      if (listener.name !== legacy.name || !listener.isActive) continue;
+      await ctx.db.patch("eventListeners", listener._id, {
+        isActive: false,
+        updatedAt: now,
+      });
+      deactivated++;
+    }
+  }
+
+  const activeListeners = await ctx.db
+    .query("eventListeners")
+    .withIndex("by_active", (q: ConvexQueryBuilder) => q.eq("isActive", true))
+    .collect();
+
+  for (const listener of activeListeners) {
+    if (!isLegacyNotificationListenerDefinition(listener)) continue;
+
+    await ctx.db.patch("eventListeners", listener._id, {
+      isActive: false,
+      updatedAt: now,
+    });
+    deactivated++;
+  }
+
+  return {
+    total: totalDefinitions,
+    created,
+    reactivated,
+    skipped,
+    deactivated,
+  };
+}
+
+const runConfig: any = {
+  args: {},
+  handler: async (ctx: any) => {
+    return await registerListenerDefinitions(ctx);
   },
-});
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const run = internalMutation(runConfig);

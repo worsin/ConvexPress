@@ -56,10 +56,10 @@ export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps
         password,
       });
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        navigate({ to: returnTo });
-      } else {
+	      if (result.status === "complete") {
+	        await setActive({ session: result.createdSessionId });
+	        navigate({ to: returnTo } as any);
+	      } else {
         // Handle other statuses (MFA, etc.)
         setError("Additional verification is required. Please try again.");
       }

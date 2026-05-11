@@ -125,6 +125,7 @@ export interface GeneralSettings {
   homeUrl: string;
   adminEmail: string;
   membershipEnabled: boolean;
+  registrationMode: "invite_only" | "closed";
   defaultRole: string;
   siteLanguage: string;
   timezone: string;
@@ -585,6 +586,7 @@ export const GENERAL_DEFAULTS: GeneralSettings = {
   homeUrl: "",
   adminEmail: "",
   membershipEnabled: false,
+  registrationMode: "invite_only",
   defaultRole: "subscriber",
   siteLanguage: "en-US",
   timezone: "America/New_York",
@@ -653,7 +655,7 @@ export const PRIVACY_DEFAULTS: PrivacySettings = {
 export const AI_DEFAULTS: AISettings = {
   provider: "openrouter",
   apiKey: "",
-  defaultModel: "anthropic/claude-sonnet-4-20250514",
+  defaultModel: "anthropic/claude-opus-4.7",
   tavilyApiKey: "",
 };
 

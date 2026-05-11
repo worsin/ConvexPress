@@ -36,6 +36,7 @@ import {
   NOTIFICATION_TYPES,
   NOTIFICATION_KEY_SET,
   EVENT_TO_NOTIFICATION_KEYS,
+  type NotificationTypeConfig,
 } from "./validators";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -54,6 +55,76 @@ const RATE_LIMIT_MAX = 50;
 
 /** Rate limit window (5 minutes) */
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+
+function getNotificationTypeConfig(
+  notificationKey: string,
+): NotificationTypeConfig | undefined {
+  return (NOTIFICATION_TYPES as any)[notificationKey] as
+    | NotificationTypeConfig
+    | undefined;
+}
+
+function toPayloadValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+async function hydrateNotificationPayload(
+  ctx: any,
+  eventCode: string,
+  payload: Record<string, unknown>,
+) {
+  const hydrated: Record<string, unknown> = { ...payload };
+
+  if (
+    (eventCode.startsWith("post.") || eventCode === "seo.meta_updated") &&
+    payload.postId
+  ) {
+    const post = await ctx.db.get(payload.postId as any);
+    if (post) {
+      hydrated.postTitle ??= post.title;
+      hydrated.title ??= post.title;
+      hydrated.postSlug ??= post.slug;
+      hydrated.authorId ??= post.authorId;
+    }
+  }
+
+  if (eventCode.startsWith("comment.") && payload.commentId) {
+    const comment = await ctx.db.get(payload.commentId as any);
+    if (comment) {
+      hydrated.commentAuthorId ??= comment.authorId;
+      hydrated.parentCommentId ??= comment.parentId;
+      hydrated.parentId ??= comment.parentId;
+
+      if (comment.parentId) {
+        const parentComment = await ctx.db.get(comment.parentId);
+        hydrated.parentAuthorId ??= parentComment?.authorId;
+      }
+
+      if (comment.postId) {
+        const post = await ctx.db.get(comment.postId);
+        if (post) {
+          hydrated.postId ??= comment.postId;
+          hydrated.postTitle ??= post.title;
+          hydrated.title ??= post.title;
+          hydrated.postSlug ??= post.slug;
+          hydrated.postAuthorId ??= post.authorId;
+        }
+      }
+    }
+  }
+
+  if (eventCode === "registration.user_registered" && payload.userId) {
+    const user = await ctx.db.get(payload.userId as any);
+    if (user) {
+      hydrated.userName ??=
+        user.displayName ??
+        [user.firstName, user.lastName].filter(Boolean).join(" ") ??
+        user.email;
+    }
+  }
+
+  return hydrated;
+}
 
 // ─── send ────────────────────────────────────────────────────────────────────
 
@@ -130,8 +201,7 @@ export const send = internalMutation({
         : undefined;
 
     // ─── 3. Check user preferences ─────────────────────────────────────
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-    const notificationConfig = NOTIFICATION_TYPES[args.notificationKey];
+    const notificationConfig = getNotificationTypeConfig(args.notificationKey);
     const preference = await ctx.db
       .query("notificationPreferences")
       .withIndex("by_user_key", (q: ConvexQueryBuilder) =>
@@ -381,6 +451,8 @@ export const onEvent = internalMutation({
       );
     }
 
+    payload = await hydrateNotificationPayload(ctx, event.code, payload);
+
     // ─── 3. Look up notification type config(s) ────────────────────────
     const notificationKeys = EVENT_TO_NOTIFICATION_KEYS[event.code];
     if (!notificationKeys || notificationKeys.length === 0) {
@@ -434,7 +506,7 @@ export const onEvent = internalMutation({
 
     // ─── 5. Process each notification type ─────────────────────────────
     for (const notificationKey of notificationKeys) {
-      const config = NOTIFICATION_TYPES[notificationKey];
+      const config = getNotificationTypeConfig(notificationKey);
       if (!config) continue;
 
       // ─── Determine recipients ────────────────────────────────────────
@@ -459,27 +531,25 @@ export const onEvent = internalMutation({
             }
           }
         }
-      } else if (config.recipientType === "employee") {
-        // Specific user from event payload (post author, uploader, etc.)
-        const userId =
-          (payload.authorId as string) ??
-          (payload.userId as string);
+      } else {
+        const fallbackKeys =
+          config.recipientType === "employee"
+            ? ["authorId", "userId"]
+            : ["targetUserId", "userId"];
+        const recipientKeys = config.recipientPayloadKeys ?? fallbackKeys;
 
-        if (userId) {
-          recipientIds.push(userId);
-        }
-      } else if (config.recipientType === "customer") {
-        // Specific affected user from event payload
-        const userId =
-          (payload.targetUserId as string) ??
-          (payload.userId as string);
-
-        if (userId) {
-          recipientIds.push(userId);
+        for (const key of recipientKeys) {
+          const value = toPayloadValue(payload[key]);
+          if (value) {
+            recipientIds.push(value);
+            break;
+          }
         }
       }
 
-      if (recipientIds.length === 0) {
+      const uniqueRecipientIds = Array.from(new Set(recipientIds));
+
+      if (uniqueRecipientIds.length === 0) {
         console.warn(
           `[SiteNotification] No recipients resolved for ${notificationKey} (event: ${event.code}).`,
         );
@@ -490,8 +560,8 @@ export const onEvent = internalMutation({
       // Don't notify a user about their own actions (for info/success types)
       const filteredRecipients =
         config.type === "info" || config.type === "success"
-          ? recipientIds.filter((id) => id !== event.actorId)
-          : recipientIds;
+          ? uniqueRecipientIds.filter((id) => id !== event.actorId)
+          : uniqueRecipientIds;
 
       if (filteredRecipients.length === 0) continue;
 

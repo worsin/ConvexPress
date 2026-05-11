@@ -96,7 +96,9 @@ export function SyncJobCard({ siteId, siteName, siteUrl }: SyncJobCardProps) {
     }
   };
 
-  // Calculate overall progress
+  // Calculate overall progress — phase-weighted, not item-count-weighted, so
+  // progress doesn't appear artificially high before later phases discover
+  // their totals. See SyncProgress.tsx for the full reasoning.
   const phases = Object.entries(activeJob.progress) as [
     string,
     { total: number; imported: number; failed: number },
@@ -106,7 +108,23 @@ export function SyncJobCard({ siteId, siteName, siteUrl }: SyncJobCardProps) {
     (sum, [, p]) => sum + p.imported + p.failed,
     0,
   );
-  const overallProgress = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
+  const phaseFractions = phases.map(([phase, p]) => {
+    const isComplete = p.total > 0 && p.imported + p.failed >= p.total;
+    const isCurrent = activeJob.currentPhase === phase;
+    if (isComplete) return 1;
+    if (isCurrent && p.total > 0) {
+      return Math.min(1, (p.imported + p.failed) / p.total);
+    }
+    return 0;
+  });
+  const totalPhaseSlots = phases.length || 1;
+  const overallProgressRaw =
+    (phaseFractions.reduce((a, b) => a + b, 0) / totalPhaseSlots) * 100;
+  const allPhasesComplete = phaseFractions.every((f) => f === 1);
+  const overallProgress =
+    activeJob.status === "completed" || allPhasesComplete
+      ? 100
+      : Math.min(99, Math.floor(overallProgressRaw));
 
   const isPaused = activeJob.status === "paused";
   const isRunning = activeJob.status === "running";
@@ -169,9 +187,10 @@ export function SyncJobCard({ siteId, siteName, siteUrl }: SyncJobCardProps) {
         {/* Overall progress */}
         <div className="mb-4">
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-            <span>Overall Progress</span>
+            <span>Overall Progress · {overallProgress}%</span>
             <span>
-              {completedItems.toLocaleString()} / {totalItems.toLocaleString()}
+              {completedItems.toLocaleString()} of {totalItems.toLocaleString()}{" "}
+              known
             </span>
           </div>
           <Progress value={overallProgress} className="h-2" />

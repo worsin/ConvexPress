@@ -955,7 +955,7 @@ function ProductDigitalDetail({
 
 function CommerceDigitalPage() {
   const products = useQuery(
-    (api as any).commerce.products.list,
+    (api as any).commerce.products.listAll,
     {},
   ) as
     | Array<{

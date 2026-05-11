@@ -247,6 +247,8 @@ export async function fetchUpsRatesV2(
       currency,
       estimatedDaysMin: transitDays || undefined,
       estimatedDaysMax: transitDays || undefined,
+      // UPS quotes are valid for 30 min from generation; pipeline re-quotes on expiry.
+      expiresAt: Date.now() + 30 * 60_000,
       rawQuote: { ...r, addressKey, cartKey },
     };
   });

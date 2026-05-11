@@ -127,6 +127,12 @@ const phaseProgressValidator = v.object({
   imported: v.number(),
   failed: v.number(),
   cursor: v.optional(v.number()),
+  // Per-phase counters used by some phases — kept optional so phases that
+  // don't track these don't have to fill them in.
+  created: v.optional(v.number()),
+  updated: v.optional(v.number()),
+  skipped: v.optional(v.number()),
+  conflicted: v.optional(v.number()),
 });
 
 // ─── Sync Error Shape ───────────────────────────────────────────────────────
@@ -208,8 +214,12 @@ export const wordpressSyncTables = {
     // Progress tracking per phase
     progress: v.object({
       users: phaseProgressValidator,
-      categories: phaseProgressValidator,
-      tags: phaseProgressValidator,
+      // Taxonomies phase writes here (categories + tags batched together).
+      // The legacy `categories` and `tags` slots are kept optional because
+      // existing job rows may reference them.
+      taxonomies: v.optional(phaseProgressValidator),
+      categories: v.optional(phaseProgressValidator),
+      tags: v.optional(phaseProgressValidator),
       media: phaseProgressValidator,
       posts: phaseProgressValidator,
       pages: phaseProgressValidator,

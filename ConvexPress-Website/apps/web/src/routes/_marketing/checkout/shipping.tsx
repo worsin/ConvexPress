@@ -43,10 +43,7 @@ function CheckoutShippingPage() {
     () =>
       settings?.commerceConfig?.shippingEnabled === false
         ? []
-        : settings?.commerceConfig?.shippingMethods &&
-            settings.commerceConfig.shippingMethods.length > 0
-          ? settings.commerceConfig.shippingMethods
-          : [{ code: "standard", label: "Standard shipping" }],
+        : settings?.commerceConfig?.shippingMethods ?? [],
     [
       settings?.commerceConfig?.shippingEnabled,
       settings?.commerceConfig?.shippingMethods,
@@ -71,6 +68,9 @@ function CheckoutShippingPage() {
   } | null>(null);
   const liveRateProvider =
     settings?.commerceConfig?.preferredProvider || "shipstation";
+  const shippingEnabled = settings?.commerceConfig?.shippingEnabled !== false;
+  const hasAvailableShippingOption =
+    !shippingEnabled || Boolean(quotes?.length) || shippingMethods.length > 0;
   const badgeLabels = {
     bestOption: settings?.commerceConfig?.bestOptionBadgeLabel || "Best Option",
     cheapest: settings?.commerceConfig?.cheapestBadgeLabel || "Cheapest",
@@ -154,6 +154,16 @@ function CheckoutShippingPage() {
   async function handleContinue(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!sessionToken) return;
+    if (shippingEnabled) {
+      if (!hasAvailableShippingOption) {
+        toast.error("No shipping methods are available for this order.");
+        return;
+      }
+      if (!shippingMethod) {
+        toast.error("Select a shipping method before continuing.");
+        return;
+      }
+    }
 
     const address = {
       firstName: form.firstName || undefined,
@@ -211,7 +221,7 @@ function CheckoutShippingPage() {
           onSubmit={(event) => void handleContinue(event)}
           className="grid gap-4 rounded-[2rem] border border-border bg-card p-8 shadow-sm md:grid-cols-2"
         >
-          {settings?.commerceConfig?.shippingEnabled !== false ? (
+          {shippingEnabled ? (
             <div className="space-y-3 md:col-span-2">
               <div className="flex items-center justify-between gap-4">
                 <span className="block text-sm font-medium text-foreground">
@@ -370,7 +380,8 @@ function CheckoutShippingPage() {
           <div className="md:col-span-2">
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground"
+              disabled={shippingEnabled && (!shippingMethod || !hasAvailableShippingOption)}
+              className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
             >
               Continue to payment
             </button>

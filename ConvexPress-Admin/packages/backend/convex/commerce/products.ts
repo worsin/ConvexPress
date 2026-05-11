@@ -14,6 +14,8 @@ import {
 } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 import { sanitizeSlug } from "../helpers/slug";
+import { emitEvent } from "../helpers/events";
+import { PRODUCT_EVENTS, SYSTEM } from "../events/constants";
 import {
   ensureDefaultProductCategory,
   recomputeAllProductCategoryCounts,
@@ -34,6 +36,9 @@ import {
   getCommerceProductBySlugArgs,
   listCommerceProductsArgs,
   listPublishedCommerceProductsArgs,
+  productBulkArgs,
+  productBulkUpdateStatusArgs,
+  productCountsArgs,
   updateCommerceProductArgs,
 } from "./validators";
 
@@ -55,6 +60,22 @@ async function listVariantsByProduct(ctx: any, productId: any) {
     .query("commerce_product_variants")
     .withIndex("by_product", (q: any) => q.eq("productId", productId))
     .collect();
+}
+
+function getProductStatusEvent(previousStatus: string | undefined, nextStatus: string | undefined) {
+  if (previousStatus === nextStatus) return PRODUCT_EVENTS.UPDATED;
+  if (nextStatus === "publish") return PRODUCT_EVENTS.PUBLISHED;
+  if (nextStatus === "trash") return PRODUCT_EVENTS.TRASHED;
+  if (previousStatus === "trash") return PRODUCT_EVENTS.RESTORED;
+  if (previousStatus === "publish" && nextStatus !== "publish") {
+    return PRODUCT_EVENTS.UNPUBLISHED;
+  }
+  return PRODUCT_EVENTS.UPDATED;
+}
+
+async function getProductSlugForEvent(ctx: any, productId: any) {
+  const product = await ctx.db.get(productId);
+  return product?.slug;
 }
 
 function validateVariantSelections(optionTypes: any[], selections: any[] | undefined) {
@@ -330,53 +351,221 @@ async function serializeProductDetail(ctx: any, product: any) {
   };
 }
 
+const PRODUCTS_DEFAULT_PER_PAGE = 20;
+const PRODUCTS_MAX_PER_PAGE = 100;
+
+function applyProductFilters(products: any[], args: any) {
+  let out = products;
+  if (args.status) out = out.filter((p: any) => p.status === args.status);
+  if (args.productType) out = out.filter((p: any) => p.productType === args.productType);
+  if (args.authorId) out = out.filter((p: any) => p.authorId?.toString() === args.authorId.toString());
+  return out;
+}
+
+function sortProducts(products: any[], orderBy?: string, orderDir?: "asc" | "desc") {
+  const dir = orderDir === "asc" ? 1 : -1;
+  const key = orderBy ?? "updatedAt";
+  products.sort((a: any, b: any) => {
+    let av: any;
+    let bv: any;
+    switch (key) {
+      case "title":
+        av = (a.title ?? "").toLowerCase();
+        bv = (b.title ?? "").toLowerCase();
+        break;
+      case "sku":
+        av = a.sku ?? "";
+        bv = b.sku ?? "";
+        break;
+      case "status":
+        av = a.status ?? "";
+        bv = b.status ?? "";
+        break;
+      case "createdAt":
+        av = a.createdAt ?? 0;
+        bv = b.createdAt ?? 0;
+        break;
+      case "updatedAt":
+      default:
+        av = a.updatedAt ?? 0;
+        bv = b.updatedAt ?? 0;
+        break;
+    }
+    if (av < bv) return -1 * dir;
+    if (av > bv) return 1 * dir;
+    return 0;
+  });
+}
+
+/**
+ * Lightweight unpaginated list for pickers (bundle component picker,
+ * digital file picker, membership resource picker, etc.). Returns up to
+ * 5000 products as a plain array. Each item has only identification +
+ * status fields — no category/price enrichment. Use `list` for paginated
+ * admin tables; use this for searchable pickers that need the whole set.
+ */
+export const listAll = query({
+  args: {
+    status: v.optional(v.string()),
+    isDownloadable: v.optional(v.boolean()),
+  },
+  handler: async (ctx: any, args: any) => {
+    await requireCommerceEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    let products: any[];
+    if (args.status) {
+      products = await ctx.db
+        .query("commerce_products")
+        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .take(5000);
+    } else {
+      products = await ctx.db.query("commerce_products").take(5000);
+    }
+    if (args.isDownloadable !== undefined) {
+      products = products.filter((p: any) => Boolean(p.isDownloadable) === args.isDownloadable);
+    }
+    products.sort((a: any, b: any) => (a.title ?? "").localeCompare(b.title ?? ""));
+    return products.map((p: any) => ({
+      _id: p._id,
+      title: p.title,
+      slug: p.slug,
+      status: p.status,
+      sku: p.sku,
+      productType: p.productType,
+      isDownloadable: p.isDownloadable,
+    }));
+  },
+});
+
 export const list = query({
   args: listCommerceProductsArgs,
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
-    let products = await ctx.db.query("commerce_products").take(2000);
+    const page = Math.max(1, args.page ?? 1);
+    const perPage = Math.min(PRODUCTS_MAX_PER_PAGE, Math.max(1, args.perPage ?? PRODUCTS_DEFAULT_PER_PAGE));
 
-    if (args.status) {
-      products = products.filter((product: any) => product.status === args.status);
+    let scoped: any[];
+
+    // ── Search path ──────────────────────────────────────────────────────
+    if (args.search && args.search.trim()) {
+      const term = args.search.trim();
+      scoped = await ctx.db
+        .query("commerce_products")
+        .withSearchIndex("search_commerce_products", (q: any) => {
+          let sq = q.search("title", term);
+          if (args.status) sq = sq.eq("status", args.status);
+          if (args.authorId) sq = sq.eq("authorId", args.authorId);
+          return sq;
+        })
+        .take(2000);
+    } else if (args.status) {
+      scoped = await ctx.db
+        .query("commerce_products")
+        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .take(20000);
+    } else {
+      scoped = await ctx.db.query("commerce_products").take(20000);
     }
 
-    if (args.search?.trim()) {
-      const search = args.search.trim().toLowerCase();
-      products = products.filter((product: any) => {
-        const haystack = [
-          product.title,
-          product.slug,
-          product.sku,
-          product.excerpt,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return haystack.includes(search);
-      });
-    }
+    const filtered = applyProductFilters(scoped, args);
+    sortProducts(filtered, args.orderBy, args.orderDir);
 
-    products.sort((a: any, b: any) => b.updatedAt - a.updatedAt);
-    return Promise.all(products.map((product: any) => serializeProductSummary(ctx, product)));
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / perPage);
+    const slice = filtered.slice((page - 1) * perPage, page * perPage);
+    const items = await Promise.all(slice.map((p: any) => serializeProductSummary(ctx, p)));
+
+    return { items, total, page, perPage, totalPages };
   },
 });
 
 export const counts = query({
-  args: {},
-  handler: async (ctx: any) => {
+  args: productCountsArgs,
+  handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
-    const products = await ctx.db.query("commerce_products").take(5000);
-    return {
-      all: products.length,
-      draft: products.filter((product: any) => product.status === "draft").length,
-      published: products.filter((product: any) => product.status === "publish").length,
-      private: products.filter((product: any) => product.status === "private").length,
-      trash: products.filter((product: any) => product.status === "trash").length,
+    let products: any[];
+    if (args.search && args.search.trim()) {
+      products = await ctx.db
+        .query("commerce_products")
+        .withSearchIndex("search_commerce_products", (q: any) =>
+          q.search("title", args.search.trim()),
+        )
+        .take(2000);
+    } else {
+      products = await ctx.db.query("commerce_products").take(20000);
+    }
+
+    const filtered = applyProductFilters(products, { productType: args.productType, authorId: args.authorId });
+
+    const out: Record<string, number> = {
+      all: filtered.length,
+      draft: 0,
+      publish: 0,
+      private: 0,
+      trash: 0,
     };
+    for (const p of filtered) {
+      if (out[p.status] !== undefined) out[p.status]++;
+    }
+    // Compatibility alias used by older UI code
+    out.published = out.publish;
+    return out;
+  },
+});
+
+// ─── Bulk mutations ─────────────────────────────────────────────────────────
+// Note: bulkUpdateStatus and bulkDelete are defined later in this file with
+// richer logic (publishedAt handling, variant cascade, bundle lifecycle).
+// Trash + Restore are added here since the existing file did not have them.
+
+export const bulkTrash = mutation({
+  args: productBulkArgs,
+  handler: async (ctx: any, args: any): Promise<{ count: number }> => {
+    await requireCommerceEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+    const now = Date.now();
+    let count = 0;
+    for (const id of args.productIds) {
+      const product = await ctx.db.get(id);
+      if (!product) continue;
+      if ((product as any).status === "trash") continue;
+      await ctx.db.patch(id, { status: "trash", updatedAt: now });
+      await emitEvent(ctx, PRODUCT_EVENTS.TRASHED, SYSTEM.PRODUCT, {
+        productId: id,
+        previousStatus: product.status,
+        nextStatus: "trash",
+      });
+      count++;
+    }
+    return { count };
+  },
+});
+
+export const bulkRestore = mutation({
+  args: productBulkArgs,
+  handler: async (ctx: any, args: any): Promise<{ count: number }> => {
+    await requireCommerceEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+    const now = Date.now();
+    let count = 0;
+    for (const id of args.productIds) {
+      const product = await ctx.db.get(id);
+      if (!product) continue;
+      if ((product as any).status !== "trash") continue;
+      await ctx.db.patch(id, { status: "draft", updatedAt: now });
+      await emitEvent(ctx, PRODUCT_EVENTS.RESTORED, SYSTEM.PRODUCT, {
+        productId: id,
+        previousStatus: product.status,
+        nextStatus: "draft",
+      });
+      count++;
+    }
+    return { count };
   },
 });
 
@@ -539,17 +728,30 @@ export const create = mutation({
       trackInventory: args.trackInventory ?? true,
       stockQuantity: args.trackInventory === false ? undefined : args.stockQuantity,
       allowBackorders: args.allowBackorders ?? false,
-      isVirtual: args.isVirtual ?? false,
-      shippingWeightOz:
-        args.isVirtual === true ? undefined : args.shippingWeightOz,
-      isDownloadable: args.isDownloadable ?? false,
-      taxClass: args.taxClass?.trim() || undefined,
+	      isVirtual: args.isVirtual ?? false,
+	      shippingWeightOz:
+	        args.isVirtual === true ? undefined : args.shippingWeightOz,
+	      isDownloadable: args.isDownloadable ?? false,
+	      requiresLicense: args.requiresLicense,
+	      digitalDeliveryMode: args.digitalDeliveryMode,
+	      downloadLimit: args.downloadLimit,
+	      downloadExpiryDays: args.downloadExpiryDays,
+	      licenseKeyType: args.licenseKeyType,
+	      maxActivations: args.maxActivations,
+	      licenseExpiresAfterDays: args.licenseExpiresAfterDays,
+	      taxClass: args.taxClass?.trim() || undefined,
       publishedAt: status === "publish" ? now : undefined,
       createdAt: now,
       updatedAt: now,
     });
 
     await recomputeCategoryCounts(ctx, categoryIds);
+    await emitEvent(ctx, PRODUCT_EVENTS.CREATED, SYSTEM.PRODUCT, {
+      productId,
+      title,
+      slug: await getProductSlugForEvent(ctx, productId),
+      status,
+    });
     return productId;
   },
 });
@@ -616,11 +818,18 @@ export const update = mutation({
     if (args.salePrice !== undefined) patch.salePrice = args.salePrice ?? undefined;
     if (args.trackInventory !== undefined) patch.trackInventory = args.trackInventory;
     if (args.stockQuantity !== undefined) patch.stockQuantity = args.stockQuantity ?? undefined;
-    if (args.allowBackorders !== undefined) patch.allowBackorders = args.allowBackorders;
-    if (args.isVirtual !== undefined) patch.isVirtual = args.isVirtual;
-    if (args.shippingWeightOz !== undefined) patch.shippingWeightOz = args.shippingWeightOz ?? undefined;
-    if (args.isDownloadable !== undefined) patch.isDownloadable = args.isDownloadable;
-    if (args.taxClass !== undefined) patch.taxClass = args.taxClass?.trim() || undefined;
+	    if (args.allowBackorders !== undefined) patch.allowBackorders = args.allowBackorders;
+	    if (args.isVirtual !== undefined) patch.isVirtual = args.isVirtual;
+	    if (args.shippingWeightOz !== undefined) patch.shippingWeightOz = args.shippingWeightOz ?? undefined;
+	    if (args.isDownloadable !== undefined) patch.isDownloadable = args.isDownloadable;
+	    if (args.requiresLicense !== undefined) patch.requiresLicense = args.requiresLicense;
+	    if (args.digitalDeliveryMode !== undefined) patch.digitalDeliveryMode = args.digitalDeliveryMode;
+	    if (args.downloadLimit !== undefined) patch.downloadLimit = args.downloadLimit ?? undefined;
+	    if (args.downloadExpiryDays !== undefined) patch.downloadExpiryDays = args.downloadExpiryDays ?? undefined;
+	    if (args.licenseKeyType !== undefined) patch.licenseKeyType = args.licenseKeyType;
+	    if (args.maxActivations !== undefined) patch.maxActivations = args.maxActivations ?? undefined;
+	    if (args.licenseExpiresAfterDays !== undefined) patch.licenseExpiresAfterDays = args.licenseExpiresAfterDays ?? undefined;
+	    if (args.taxClass !== undefined) patch.taxClass = args.taxClass?.trim() || undefined;
 
     if (args.categoryIds !== undefined) {
       patch.categoryIds = await resolveProductCategoryIds(ctx, args.categoryIds);
@@ -652,6 +861,18 @@ export const update = mutation({
     }
 
     await ctx.db.patch("commerce_products", args.productId, patch);
+    const nextStatus = (patch.status as string | undefined) ?? product.status;
+    await emitEvent(
+      ctx,
+      getProductStatusEvent(product.status, nextStatus),
+      SYSTEM.PRODUCT,
+      {
+        productId: args.productId,
+        previousStatus: product.status,
+        nextStatus,
+        changedFields: Object.keys(patch).filter((key) => key !== "updatedAt"),
+      },
+    );
 
     const nextCategoryIds = (patch.categoryIds as any[] | undefined) ?? product.categoryIds;
     const affectedCategoryIds = dedupeIds([
@@ -1058,11 +1279,30 @@ export const createVariant = mutation({
     lowStockAmount: v.optional(v.number()),
     taxClass: v.optional(v.string()),
     shippingClassId: v.optional(v.string()),
-    isVirtual: v.optional(v.boolean()),
-    isDownloadable: v.optional(v.boolean()),
-    downloadLimit: v.optional(v.number()),
-    downloadExpiry: v.optional(v.number()),
-    status: v.optional(
+	    isVirtual: v.optional(v.boolean()),
+	    isDownloadable: v.optional(v.boolean()),
+	    requiresLicense: v.optional(v.boolean()),
+	    digitalDeliveryMode: v.optional(
+	      v.union(
+	        v.literal("download"),
+	        v.literal("license"),
+	        v.literal("download_and_license"),
+	      ),
+	    ),
+	    downloadLimit: v.optional(v.number()),
+	    downloadExpiry: v.optional(v.number()),
+	    downloadExpiryDays: v.optional(v.number()),
+	    licenseKeyType: v.optional(
+	      v.union(
+	        v.literal("single"),
+	        v.literal("multi"),
+	        v.literal("unlimited"),
+	        v.literal("subscription"),
+	      ),
+	    ),
+	    maxActivations: v.optional(v.number()),
+	    licenseExpiresAfterDays: v.optional(v.number()),
+	    status: v.optional(
       v.union(v.literal("publish"), v.literal("private"), v.literal("draft")),
     ),
     menuOrder: v.optional(v.number()),
@@ -1138,11 +1378,17 @@ export const createVariant = mutation({
       lowStockAmount: args.lowStockAmount,
       taxClass: args.taxClass,
       shippingClassId: args.shippingClassId,
-      isVirtual: args.isVirtual,
-      isDownloadable: args.isDownloadable,
-      downloadLimit: args.downloadLimit,
-      downloadExpiry: args.downloadExpiry,
-      status: args.status,
+	      isVirtual: args.isVirtual,
+	      isDownloadable: args.isDownloadable,
+	      requiresLicense: args.requiresLicense,
+	      digitalDeliveryMode: args.digitalDeliveryMode,
+	      downloadLimit: args.downloadLimit,
+	      downloadExpiry: args.downloadExpiry,
+	      downloadExpiryDays: args.downloadExpiryDays,
+	      licenseKeyType: args.licenseKeyType,
+	      maxActivations: args.maxActivations,
+	      licenseExpiresAfterDays: args.licenseExpiresAfterDays,
+	      status: args.status,
       menuOrder: args.menuOrder,
       isDefault: shouldBeDefault,
       createdAt: now,
@@ -1210,11 +1456,30 @@ export const updateVariant = mutation({
     lowStockAmount: v.optional(v.number()),
     taxClass: v.optional(v.string()),
     shippingClassId: v.optional(v.string()),
-    isVirtual: v.optional(v.boolean()),
-    isDownloadable: v.optional(v.boolean()),
-    downloadLimit: v.optional(v.number()),
-    downloadExpiry: v.optional(v.number()),
-    status: v.optional(
+	    isVirtual: v.optional(v.boolean()),
+	    isDownloadable: v.optional(v.boolean()),
+	    requiresLicense: v.optional(v.boolean()),
+	    digitalDeliveryMode: v.optional(
+	      v.union(
+	        v.literal("download"),
+	        v.literal("license"),
+	        v.literal("download_and_license"),
+	      ),
+	    ),
+	    downloadLimit: v.optional(v.number()),
+	    downloadExpiry: v.optional(v.number()),
+	    downloadExpiryDays: v.optional(v.number()),
+	    licenseKeyType: v.optional(
+	      v.union(
+	        v.literal("single"),
+	        v.literal("multi"),
+	        v.literal("unlimited"),
+	        v.literal("subscription"),
+	      ),
+	    ),
+	    maxActivations: v.optional(v.number()),
+	    licenseExpiresAfterDays: v.optional(v.number()),
+	    status: v.optional(
       v.union(v.literal("publish"), v.literal("private"), v.literal("draft")),
     ),
     menuOrder: v.optional(v.number()),
@@ -1280,10 +1545,16 @@ export const updateVariant = mutation({
     if (args.lowStockAmount !== undefined) updates.lowStockAmount = args.lowStockAmount;
     if (args.taxClass !== undefined) updates.taxClass = args.taxClass;
     if (args.shippingClassId !== undefined) updates.shippingClassId = args.shippingClassId;
-    if (args.isVirtual !== undefined) updates.isVirtual = args.isVirtual;
-    if (args.isDownloadable !== undefined) updates.isDownloadable = args.isDownloadable;
-    if (args.downloadLimit !== undefined) updates.downloadLimit = args.downloadLimit;
-    if (args.downloadExpiry !== undefined) updates.downloadExpiry = args.downloadExpiry;
+	    if (args.isVirtual !== undefined) updates.isVirtual = args.isVirtual;
+	    if (args.isDownloadable !== undefined) updates.isDownloadable = args.isDownloadable;
+	    if (args.requiresLicense !== undefined) updates.requiresLicense = args.requiresLicense;
+	    if (args.digitalDeliveryMode !== undefined) updates.digitalDeliveryMode = args.digitalDeliveryMode;
+	    if (args.downloadLimit !== undefined) updates.downloadLimit = args.downloadLimit;
+	    if (args.downloadExpiry !== undefined) updates.downloadExpiry = args.downloadExpiry;
+	    if (args.downloadExpiryDays !== undefined) updates.downloadExpiryDays = args.downloadExpiryDays;
+	    if (args.licenseKeyType !== undefined) updates.licenseKeyType = args.licenseKeyType;
+	    if (args.maxActivations !== undefined) updates.maxActivations = args.maxActivations;
+	    if (args.licenseExpiresAfterDays !== undefined) updates.licenseExpiresAfterDays = args.licenseExpiresAfterDays;
     if (args.status !== undefined) updates.status = args.status;
     if (args.menuOrder !== undefined) updates.menuOrder = args.menuOrder;
 
@@ -1512,6 +1783,11 @@ export const bulkUpdateStatus = mutation({
       }
 
       await ctx.db.patch(id, patch);
+      await emitEvent(ctx, getProductStatusEvent(product.status, args.status), SYSTEM.PRODUCT, {
+        productId: id,
+        previousStatus: product.status,
+        nextStatus: args.status,
+      });
       updated++;
     }
 
@@ -1549,6 +1825,11 @@ export const bulkDelete = mutation({
         }
 
         await ctx.db.delete(id);
+        await emitEvent(ctx, PRODUCT_EVENTS.DELETED, SYSTEM.PRODUCT, {
+          productId: id,
+          previousStatus: product.status,
+          title: product.title,
+        });
         deleted++;
       } catch (e: any) {
         errors.push(`${id}: ${e?.message ?? "Unknown error"}`);
@@ -1576,6 +1857,11 @@ export const archiveProduct = mutation({
       status: "trash",
       updatedAt: Date.now(),
     });
+    await emitEvent(ctx, PRODUCT_EVENTS.TRASHED, SYSTEM.PRODUCT, {
+      productId: args.productId,
+      previousStatus: product.status,
+      nextStatus: "trash",
+    });
 
     return { success: true };
   },
@@ -1600,6 +1886,11 @@ export const restoreProduct = mutation({
     await ctx.db.patch(args.productId, {
       status: "draft",
       updatedAt: Date.now(),
+    });
+    await emitEvent(ctx, PRODUCT_EVENTS.RESTORED, SYSTEM.PRODUCT, {
+      productId: args.productId,
+      previousStatus: product.status,
+      nextStatus: "draft",
     });
 
     return { success: true };

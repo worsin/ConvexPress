@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useUser } from "@clerk/clerk-react";
 
 import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
@@ -66,7 +66,6 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
   const layoutConfig = useLayoutConfig();
   const { mobileNavOpen } = useLayoutShell();
   const { overrides } = usePageOverrides();
-  const location = useLocation();
   const { user, isLoaded } = useUser();
 
   const hideHeader = overrides.hideHeader === true;

@@ -35,6 +35,7 @@ import { MediaDetails } from "@/components/media/MediaDetails";
 import { ExifPanel } from "@/components/media/ExifPanel";
 import { ImageSizesPanel } from "@/components/media/ImageSizesPanel";
 import { ImageEditor } from "@/components/media/ImageEditor";
+import { ImageLightbox } from "@/components/media/ImageLightbox";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/media/$mediaId/edit",
@@ -61,6 +62,7 @@ function EditMediaPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showImageEditor, setShowImageEditor] = useState(false);
+  const [showLightbox, setShowLightbox] = useState(false);
 
   // Initialize form fields when media loads
   if (media && !hasInitialized) {
@@ -186,12 +188,31 @@ function EditMediaPage() {
             <CopyIcon className="size-3.5 mr-1.5" />
             Copy URL
           </Button>
-          <a href={media.url} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="sm">
+          {isImage ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowLightbox(true)}
+            >
               <ExternalLinkIcon className="size-3.5 mr-1.5" />
               View
             </Button>
-          </a>
+          ) : (
+            <a
+              href={media.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                e.preventDefault();
+                window.open(media.url, "_blank", "noopener,noreferrer");
+              }}
+            >
+              <Button variant="outline" size="sm">
+                <ExternalLinkIcon className="size-3.5 mr-1.5" />
+                View
+              </Button>
+            </a>
+          )}
         </div>
       </div>
 
@@ -212,11 +233,18 @@ function EditMediaPage() {
             <div className="border border-border bg-card p-4">
               <div className="flex items-center justify-center min-h-[200px] bg-muted/30">
                 {isImage ? (
-                  <img
-                    src={media.url}
-                    alt={media.altText || media.title}
-                    className="max-w-full max-h-[600px] object-contain"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLightbox(true)}
+                    className="block max-w-full max-h-[600px] cursor-zoom-in"
+                    aria-label="Open image preview"
+                  >
+                    <img
+                      src={media.url}
+                      alt={media.altText || media.title}
+                      className="max-w-full max-h-[600px] object-contain"
+                    />
+                  </button>
                 ) : isVideo ? (
                   <video
                     src={media.url}
@@ -377,6 +405,16 @@ function EditMediaPage() {
         confirmLabel="Delete"
         destructive
       />
+
+      {isImage && (
+        <ImageLightbox
+          src={media.url}
+          alt={media.altText || media.title}
+          open={showLightbox}
+          onClose={() => setShowLightbox(false)}
+          caption={media.caption || media.title}
+        />
+      )}
     </div>
   );
 }

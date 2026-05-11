@@ -12,15 +12,13 @@ import {
   User,
   Search,
   Library,
-  Save,
   Info,
 } from "lucide-react";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Layout } from "@/components/layouts/types";
+import { useDebouncedAutosave } from "@/hooks/useDebouncedAutosave";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/layouts/assign"
@@ -103,24 +101,51 @@ function LayoutAssignmentsPage() {
   const updateSettings = useMutation(api.settings.mutations.updateSection);
 
   const [assignments, setAssignments] = useState<Record<string, string>>({});
-  const [saving, setSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [savedAssignments, setSavedAssignments] = useState<Record<string, string>>({});
+  const [initialized, setInitialized] = useState(false);
 
-  // Initialize assignments from current settings
   useEffect(() => {
-    if (currentSettings && typeof currentSettings === "object") {
-      const initial: Record<string, string> = {};
-      for (const ct of CONTENT_TYPES) {
-        const settingValue = (currentSettings as Record<string, unknown>)[
-          ct.settingKey
-        ];
-        if (typeof settingValue === "string") {
-          initial[ct.settingKey] = settingValue;
-        }
-      }
-      setAssignments(initial);
+    if (currentSettings === undefined || typeof currentSettings !== "object") {
+      return;
     }
-  }, [currentSettings]);
+
+    const nextAssignments: Record<string, string> = {};
+    for (const ct of CONTENT_TYPES) {
+      const settingValue = (currentSettings as Record<string, unknown>)[
+        ct.settingKey
+      ];
+      if (typeof settingValue === "string") {
+        nextAssignments[ct.settingKey] = settingValue;
+      }
+    }
+
+    if (!initialized) {
+      setAssignments(nextAssignments);
+      setSavedAssignments(nextAssignments);
+      setInitialized(true);
+      return;
+    }
+
+    const serverJson = JSON.stringify(nextAssignments);
+    const localJson = JSON.stringify(savedAssignments);
+    if (serverJson !== localJson) {
+      setAssignments(nextAssignments);
+      setSavedAssignments(nextAssignments);
+    }
+  }, [currentSettings, initialized, savedAssignments]);
+
+  const { isDirty, status, error } = useDebouncedAutosave({
+    value: assignments,
+    baseline: savedAssignments,
+    isReady: initialized,
+    onSave: async (nextAssignments) => {
+      await updateSettings({
+        section: "layout",
+        values: nextAssignments,
+      });
+      setSavedAssignments(nextAssignments);
+    },
+  });
 
   const handleChange = (settingKey: string, layoutId: string) => {
     setAssignments((prev) => {
@@ -132,27 +157,6 @@ function LayoutAssignmentsPage() {
       }
       return next;
     });
-    setHasChanges(true);
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await updateSettings({
-        section: "layout",
-        settings: assignments,
-      });
-      toast.success("Layout assignments saved");
-      setHasChanges(false);
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to save layout assignments"
-      );
-    } finally {
-      setSaving(false);
-    }
   };
 
   const isLoading = layouts === undefined || currentSettings === undefined;
@@ -255,16 +259,33 @@ function LayoutAssignmentsPage() {
         </div>
       </div>
 
-      {/* Save button */}
-      <div className="flex justify-end">
-        <Button
-          onClick={handleSave}
-          disabled={saving || !hasChanges}
-        >
-          <Save className="size-4" data-icon="inline-start" />
-          {saving ? "Saving..." : "Save Assignments"}
-        </Button>
+      <div className="flex items-center justify-between border-t border-border pt-3 text-xs">
+        <span className={cn("text-muted-foreground", getStatusClassName(status))}>
+          {getStatusMessage(status, error, isDirty)}
+        </span>
+        <span className="text-muted-foreground">
+          Changes save automatically.
+        </span>
       </div>
     </div>
   );
+}
+
+function getStatusMessage(
+  status: "idle" | "pending" | "saving" | "saved" | "blocked" | "error",
+  error: string | null,
+  isDirty: boolean,
+) {
+  if (status === "saving") return "Saving layout assignments...";
+  if (status === "pending" || isDirty) return "Saving shortly...";
+  if (status === "error") return error ?? "Autosave failed.";
+  return "All layout assignments saved.";
+}
+
+function getStatusClassName(
+  status: "idle" | "pending" | "saving" | "saved" | "blocked" | "error",
+) {
+  if (status === "error") return "text-destructive";
+  if (status === "saved") return "text-success";
+  return "text-muted-foreground";
 }

@@ -2,12 +2,12 @@
  * Stripe Elements wrapper for the subscription signup flow (Wave 10.1).
  *
  * Contract:
- *   - Parent calls `publicCharge.beginFirstCharge` to create a PaymentIntent.
+ *   - Parent calls `publicCharge.beginFirstCharge` to create a PaymentIntent
+ *     for first charges, or a SetupIntent for paid trials / $0 initial flows.
  *   - Parent passes the returned `clientSecret` + `publishableKey` here.
- *   - On submit, we call `stripe.confirmPayment` with the PaymentElement.
- *   - On success, Stripe fires `payment_intent.succeeded` to our webhook,
- *     which activates the checkout intent into a subscription. The
- *     customer is then redirected to `returnUrl` by Stripe.
+ *   - On submit, we confirm the matching Stripe intent with the PaymentElement.
+ *   - On success, Stripe fires the webhook that activates the checkout intent
+ *     into a subscription, then redirects the customer to `returnUrl`.
  *
  * We do NOT activate client-side — the webhook is the source of truth.
  */
@@ -24,6 +24,7 @@ import {
 interface Props {
   publishableKey: string;
   clientSecret: string;
+  mode: "payment" | "setup";
   returnUrl: string;
   onError: (message: string) => void;
 }
@@ -42,12 +43,17 @@ export function StripePaymentForm(props: Props) {
       stripe={stripePromise}
       options={{ clientSecret: props.clientSecret }}
     >
-      <PaymentFormInner returnUrl={props.returnUrl} onError={props.onError} />
+      <PaymentFormInner
+        mode={props.mode}
+        returnUrl={props.returnUrl}
+        onError={props.onError}
+      />
     </Elements>
   );
 }
 
 function PaymentFormInner(props: {
+  mode: "payment" | "setup";
   returnUrl: string;
   onError: (m: string) => void;
 }) {
@@ -59,10 +65,16 @@ function PaymentFormInner(props: {
     e.preventDefault();
     if (!stripe || !elements) return;
     setSubmitting(true);
-    const result = await stripe.confirmPayment({
-      elements,
-      confirmParams: { return_url: props.returnUrl },
-    });
+    const result =
+      props.mode === "setup"
+        ? await stripe.confirmSetup({
+            elements,
+            confirmParams: { return_url: props.returnUrl },
+          })
+        : await stripe.confirmPayment({
+            elements,
+            confirmParams: { return_url: props.returnUrl },
+          });
     if (result.error) {
       props.onError(result.error.message ?? "Payment failed");
       setSubmitting(false);

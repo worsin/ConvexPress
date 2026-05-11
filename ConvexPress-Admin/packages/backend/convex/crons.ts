@@ -341,6 +341,14 @@ crons.interval(
   {},
 );
 
+// Mark carts abandoned after 24h of inactivity so recovery flows can run.
+crons.hourly(
+  "commerce:mark-abandoned-carts",
+  { minuteUTC: 20 },
+  (internal as any).commerce.cart.markAbandonedCarts,
+  {},
+);
+
 // Remove abandoned configurable bundle selections that were never converted
 // into order items.
 crons.daily(

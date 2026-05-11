@@ -78,9 +78,9 @@ function ShippingIntegrationsPage() {
 
       <div className="rounded-xl border border-dashed border-border bg-card/60 p-5">
         <p className="text-sm text-muted-foreground">
-          ShipStation is fully active. UPS, USPS, FedEx, and DHL all support
-          direct live rating. UPS and FedEx also support label purchase and
-          tracking. USPS supports tracking. DHL is rates-only.
+          ShipStation, UPS, USPS, FedEx, and DHL all support direct live
+          rating. ShipStation, UPS, and FedEx support labels and tracking.
+          USPS supports tracking and US address validation. DHL is rates-only.
         </p>
         <div className="mt-3">
           <Link

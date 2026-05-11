@@ -187,13 +187,181 @@ async function ensureUniqueCode(ctx: any, code: string, excludeId?: string) {
 }
 
 export const list = query({
-	args: {},
-	handler: async (ctx) => {
+	args: {
+		status: v.optional(v.string()),
+		discountType: v.optional(v.string()),
+		search: v.optional(v.string()),
+		orderBy: v.optional(v.string()),
+		orderDir: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+		page: v.optional(v.number()),
+		perPage: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		await requireCan(ctx, "commerce.discount.update");
-		const discounts = await ctx.db.query("commerce_discount_codes").take(500);
-		discounts.sort((a: any, b: any) => b.updatedAt - a.updatedAt);
-		return discounts;
+
+		const page = Math.max(1, args.page ?? 1);
+		const perPage = Math.min(100, Math.max(1, args.perPage ?? 20));
+
+		let scoped: any[];
+		if (args.search && args.search.trim()) {
+			const term = args.search.trim();
+			scoped = await ctx.db
+				.query("commerce_discount_codes")
+				.withSearchIndex("search_discount_codes", (q: any) => {
+					let sq = q.search("code", term);
+					if (args.status) sq = sq.eq("status", args.status);
+					if (args.discountType) sq = sq.eq("discountType", args.discountType);
+					return sq;
+				})
+				.take(2000);
+		} else if (args.status) {
+			scoped = await ctx.db
+				.query("commerce_discount_codes")
+				.withIndex("by_status", (q: any) => q.eq("status", args.status as any))
+				.take(20000);
+		} else {
+			scoped = await ctx.db
+				.query("commerce_discount_codes")
+				.withIndex("by_updatedAt")
+				.order("desc")
+				.take(20000);
+		}
+
+		let filtered = scoped;
+		if (args.discountType) {
+			filtered = filtered.filter((d: any) => d.discountType === args.discountType);
+		}
+		// Search needs to ALSO match description, plus an extra filter pass
+		if (args.search && args.search.trim()) {
+			const term = args.search.trim().toLowerCase();
+			filtered = filtered.filter((d: any) => {
+				const haystack = [d.code, d.description].filter(Boolean).join(" ").toLowerCase();
+				return haystack.includes(term);
+			});
+		}
+
+		const dir = args.orderDir === "asc" ? 1 : -1;
+		const key = args.orderBy ?? "updatedAt";
+		filtered.sort((a: any, b: any) => {
+			let av: any;
+			let bv: any;
+			switch (key) {
+				case "code":
+					av = (a.code ?? "").toLowerCase();
+					bv = (b.code ?? "").toLowerCase();
+					break;
+				case "amount":
+					av = a.amount ?? 0;
+					bv = b.amount ?? 0;
+					break;
+				case "usage":
+					av = a.usageCount ?? 0;
+					bv = b.usageCount ?? 0;
+					break;
+				case "status":
+					av = a.status ?? "";
+					bv = b.status ?? "";
+					break;
+				case "endsAt":
+					av = a.endsAt ?? Number.MAX_SAFE_INTEGER;
+					bv = b.endsAt ?? Number.MAX_SAFE_INTEGER;
+					break;
+				case "updatedAt":
+				default:
+					av = a.updatedAt ?? 0;
+					bv = b.updatedAt ?? 0;
+					break;
+			}
+			if (av < bv) return -1 * dir;
+			if (av > bv) return 1 * dir;
+			return 0;
+		});
+
+		const total = filtered.length;
+		const totalPages = Math.ceil(total / perPage);
+		const slice = filtered.slice((page - 1) * perPage, page * perPage);
+		return { items: slice, total, page, perPage, totalPages };
+	},
+});
+
+export const counts = query({
+	args: {
+		search: v.optional(v.string()),
+		discountType: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		await requireCommerceEnabled(ctx);
+		await requireCan(ctx, "commerce.discount.update");
+
+		let pool: any[];
+		if (args.search && args.search.trim()) {
+			const term = args.search.trim();
+			pool = await ctx.db
+				.query("commerce_discount_codes")
+				.withSearchIndex("search_discount_codes", (q: any) => q.search("code", term))
+				.take(2000);
+		} else {
+			pool = await ctx.db.query("commerce_discount_codes").take(20000);
+		}
+
+		if (args.discountType) {
+			pool = pool.filter((d: any) => d.discountType === args.discountType);
+		}
+
+		const now = Date.now();
+		const out = {
+			all: pool.length,
+			active: 0,
+			inactive: 0,
+			scheduled: 0,
+			expired: 0,
+		};
+		for (const d of pool) {
+			if (d.status === "active") out.active++;
+			else out.inactive++;
+			if (d.startsAt && d.startsAt > now) out.scheduled++;
+			if (d.endsAt && d.endsAt < now) out.expired++;
+		}
+		return out;
+	},
+});
+
+export const bulkSetStatus = mutation({
+	args: {
+		discountIds: v.array(v.id("commerce_discount_codes")),
+		status: v.union(v.literal("active"), v.literal("inactive")),
+	},
+	handler: async (ctx, args) => {
+		await requireCommerceEnabled(ctx);
+		await requireCan(ctx, "commerce.discount.update");
+		const now = Date.now();
+		let count = 0;
+		for (const id of args.discountIds) {
+			const existing = await ctx.db.get(id);
+			if (!existing) continue;
+			await ctx.db.patch(id, { status: args.status, updatedAt: now });
+			count++;
+		}
+		return { count };
+	},
+});
+
+export const bulkDelete = mutation({
+	args: {
+		discountIds: v.array(v.id("commerce_discount_codes")),
+	},
+	handler: async (ctx, args) => {
+		await requireCommerceEnabled(ctx);
+		await requireCan(ctx, "commerce.discount.update");
+		let count = 0;
+		for (const id of args.discountIds) {
+			const existing = await ctx.db.get(id);
+			if (!existing) continue;
+			await ctx.db.delete(id);
+			count++;
+		}
+		return { count };
 	},
 });
 

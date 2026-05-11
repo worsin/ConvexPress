@@ -740,7 +740,7 @@ async function syncFedexTrackingInternal(ctx: any, args: { shipmentId: any }) {
   };
 }
 
-async function createUpsLabelForOrderInternal(ctx: any, args: { orderId: any }) {
+async function createUpsLabelForOrderInternal(ctx: any, args: { orderId: any; rateId?: string }) {
   const actorUserId = await requireShippingAdminAction(ctx);
   const { accessToken, credentials } = await getUpsAccessToken(ctx);
   const labelContext = await ctx.runQuery(
@@ -988,7 +988,7 @@ async function createUpsLabelForOrderInternal(ctx: any, args: { orderId: any }) 
   };
 }
 
-async function createFedexLabelForOrderInternal(ctx: any, args: { orderId: any }) {
+async function createFedexLabelForOrderInternal(ctx: any, args: { orderId: any; rateId?: string }) {
   const actorUserId = await requireShippingAdminAction(ctx);
   const { accessToken, credentials } = await getFedexAccessToken(ctx);
   const labelContext = await ctx.runQuery(
@@ -1325,7 +1325,7 @@ async function syncUpsTrackingInternal(ctx: any, args: { shipmentId: any }) {
   };
 }
 
-async function createShipStationLabelForOrderInternal(ctx: any, args: { orderId: any }) {
+async function createShipStationLabelForOrderInternal(ctx: any, args: { orderId: any; rateId?: string }) {
   const actorUserId = await requireShippingAdminAction(ctx);
   const payload = await getShipStationCredentials(ctx);
   const labelContext = await ctx.runQuery(
@@ -1355,6 +1355,7 @@ async function createShipStationLabelForOrderInternal(ctx: any, args: { orderId:
   }
 
   const rateId =
+    args.rateId ??
     labelContext.quote?.rawQuote?.rate_id ??
     labelContext.order.shippingQuoteRaw?.rate_id ??
     labelContext.order.selectedShippingMethodCode;

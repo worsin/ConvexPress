@@ -4,13 +4,12 @@
  * GA4 connection management: configure property ID, upload service account
  * credentials, test connection, view status, and disconnect.
  *
- * Also shows built-in analytics tracking toggle.
- *
- * Unlike other settings pages, this does NOT use the useSettingsForm hook
- * because GA4 connection has a custom flow (test -> connect, not autosave).
+ * Also shows built-in analytics tracking settings, which now autosave.
+ * The GA4 connect/disconnect flow remains explicit because it is an action,
+ * not ordinary settings persistence.
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useAction } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
@@ -27,6 +26,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SaveBar } from "@/components/settings/integrations/SaveBar";
+import { useSettingsAutosaveDraft } from "@/hooks/useSettingsAutosaveDraft";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/settings/analytics",
@@ -57,43 +58,38 @@ function AnalyticsSettingsPage() {
   const [serviceAccountJson, setServiceAccountJson] = useState("");
   const [isTesting, setIsTesting] = useState(false);
   const [testError, setTestError] = useState<string | null>(null);
-  const [trackingEnabled, setTrackingEnabled] = useState(true);
-  const [respectDoNotTrack, setRespectDoNotTrack] = useState(true);
-  const [retentionDays, setRetentionDays] = useState(90);
-  const [isSavingAnalytics, setIsSavingAnalytics] = useState(false);
-
-  // Disconnect confirmation
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+  const {
+    draft,
+    setDraft,
+    discardChanges,
+    isDirty,
+    autosaveStatus,
+    autosaveError,
+  } = useSettingsAutosaveDraft<
+    {
+      trackingEnabled: boolean;
+      respectDoNotTrack: boolean;
+      retentionDays: number;
+    },
+    {
+      trackingEnabled?: boolean;
+      respectDoNotTrack?: boolean;
+      retentionDays?: number;
+    }
+  >({
+    source: analyticsSettings,
+    createDraft: (source) => ({
+      trackingEnabled: source.trackingEnabled ?? true,
+      respectDoNotTrack: source.respectDoNotTrack ?? true,
+      retentionDays: source.retentionDays ?? 90,
+    }),
+    onSave: async (nextDraft) => {
+      await updateAnalyticsSettings(nextDraft);
+    },
+  });
 
   const isConnected = connectionStatus?.connected ?? false;
-
-  useEffect(() => {
-    if (!analyticsSettings) return;
-    setTrackingEnabled(analyticsSettings.trackingEnabled ?? true);
-    setRespectDoNotTrack(analyticsSettings.respectDoNotTrack ?? true);
-    setRetentionDays(analyticsSettings.retentionDays ?? 90);
-  }, [analyticsSettings]);
-
-  const handleSaveAnalyticsSettings = useCallback(async () => {
-    setIsSavingAnalytics(true);
-    try {
-      await updateAnalyticsSettings({
-        trackingEnabled,
-        respectDoNotTrack,
-        retentionDays,
-      });
-      toast.success("Analytics settings saved.");
-    } catch {
-      toast.error("Failed to save analytics settings.");
-    } finally {
-      setIsSavingAnalytics(false);
-    }
-  }, [
-    trackingEnabled,
-    respectDoNotTrack,
-    retentionDays,
-    updateAnalyticsSettings,
-  ]);
 
   // ─── Handle Test & Connect ───────────────────────────────────────────
 
@@ -195,6 +191,17 @@ function AnalyticsSettingsPage() {
     );
   }
 
+  if (!draft) {
+    return (
+      <div className="mx-auto max-w-3xl p-6">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 w-48 rounded bg-muted" />
+          <div className="h-32 rounded bg-muted" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-3xl p-6">
       {/* Page Header */}
@@ -229,8 +236,14 @@ function AnalyticsSettingsPage() {
             </span>
             <input
               type="checkbox"
-              checked={trackingEnabled}
-              onChange={(event) => setTrackingEnabled(event.target.checked)}
+              checked={draft.trackingEnabled}
+              onChange={(event) =>
+                setDraft((current) =>
+                  current
+                    ? { ...current, trackingEnabled: event.target.checked }
+                    : current,
+                )
+              }
               className="mt-1 h-4 w-4 rounded border-border"
             />
           </label>
@@ -246,8 +259,14 @@ function AnalyticsSettingsPage() {
             </span>
             <input
               type="checkbox"
-              checked={respectDoNotTrack}
-              onChange={(event) => setRespectDoNotTrack(event.target.checked)}
+              checked={draft.respectDoNotTrack}
+              onChange={(event) =>
+                setDraft((current) =>
+                  current
+                    ? { ...current, respectDoNotTrack: event.target.checked }
+                    : current,
+                )
+              }
               className="mt-1 h-4 w-4 rounded border-border"
             />
           </label>
@@ -264,23 +283,23 @@ function AnalyticsSettingsPage() {
               type="number"
               min={1}
               max={3650}
-              value={retentionDays}
-              onChange={(event) => setRetentionDays(Number(event.target.value))}
+              value={draft.retentionDays}
+              onChange={(event) =>
+                setDraft((current) =>
+                  current
+                    ? {
+                        ...current,
+                        retentionDays: Number(event.target.value) || 0,
+                      }
+                    : current,
+                )
+              }
               className="mt-1 w-full max-w-xs rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
             <p className="mt-1 text-xs text-muted-foreground">
               Raw page events older than this are purged by the scheduled job.
             </p>
           </div>
-
-          <button
-            type="button"
-            onClick={handleSaveAnalyticsSettings}
-            disabled={isSavingAnalytics}
-            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-          >
-            {isSavingAnalytics ? "Saving..." : "Save Analytics Settings"}
-          </button>
         </div>
       </div>
 
@@ -371,7 +390,7 @@ function AnalyticsSettingsPage() {
                 <button
                   type="button"
                   onClick={handleDisconnect}
-                  className="rounded-md bg-destructive px-3 py-2 text-sm font-medium text-white hover:bg-destructive/90 transition-colors"
+                  className="rounded-md bg-destructive px-3 py-2 text-sm font-medium text-[#ccc] hover:bg-destructive/90 transition-colors"
                 >
                   Yes, Disconnect
                 </button>
@@ -542,6 +561,14 @@ function AnalyticsSettingsPage() {
           </div>
         </div>
       )}
+
+      <SaveBar
+        dirty={isDirty}
+        mode="autosave"
+        autosaveStatus={autosaveStatus}
+        autosaveError={autosaveError}
+        onDiscard={discardChanges}
+      />
     </div>
   );
 }

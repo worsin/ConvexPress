@@ -10,7 +10,7 @@ import { NotFoundTemplate } from "./templates/NotFoundTemplate";
 import "./index.css";
 import { routeTree } from "./routeTree.gen";
 
-export function getRouter() {
+export function getRouter(): any {
   const convexUrl = env.VITE_CONVEX_URL;
   if (!convexUrl) {
     throw new Error("VITE_CONVEX_URL is not set");
@@ -28,7 +28,7 @@ export function getRouter() {
   });
   convexQueryClient.connect(queryClient);
 
-  const router = createTanStackRouter({
+  const router: any = createTanStackRouter({
     routeTree,
     defaultPreload: "intent",
     // Avoid forcing slash normalization redirects that can loop with stale browser redirect cache.

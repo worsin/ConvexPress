@@ -27,7 +27,7 @@ import { api } from "@backend/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 import { EMAIL_STATUS_CONFIG, STATUS_OPTIONS } from "@/lib/email/constants";
 import type { EmailStatus, EmailQueueListItem } from "@/lib/email/types";
@@ -217,7 +217,14 @@ function QueueRow({
       </div>
 
       {/* Template slug */}
-      <div className="truncate text-muted-foreground">{email.templateSlug}</div>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="truncate text-muted-foreground">{email.templateSlug}</span>
+        {email.isTest && (
+          <span className="truncate text-[10px] text-primary">
+            {email.testLabel ?? "Test email"}
+          </span>
+        )}
+      </div>
 
       {/* Status badge */}
       <div>

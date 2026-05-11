@@ -364,10 +364,17 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
   {
     id: "settings",
     label: "Settings",
-    to: "/settings/general",
+    to: "/settings",
     icon: Settings,
     capability: "manage_settings",
     children: [
+      {
+        id: "settings-overview",
+        label: "Overview",
+        to: "/settings",
+        exact: true,
+        capability: "manage_options",
+      },
       {
         id: "settings-general",
         label: "General",
@@ -469,6 +476,13 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     capability: "manage_options",
     separator: true,
     children: [
+      {
+        id: "tools-website-import",
+        label: "Website Import",
+        to: "/tools/website-import",
+        icon: RefreshCcw,
+        capability: "manage_options",
+      },
       { id: "tools-activity", label: "Activity Log", to: "/tools/activity" },
       { id: "tools-404-log", label: "404 Log", to: "/tools/404-log" },
       { id: "tools-audit-log", label: "Audit Log", to: "/tools/audit-log" },
@@ -507,13 +521,6 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         label: "Webhooks",
         to: "/webhooks",
         capability: "api.create_webhook",
-      },
-      {
-        id: "tools-website-import",
-        label: "Website Import",
-        to: "/tools/website-import",
-        icon: RefreshCcw,
-        capability: "manage_options",
       },
       {
         id: "tools-updates",

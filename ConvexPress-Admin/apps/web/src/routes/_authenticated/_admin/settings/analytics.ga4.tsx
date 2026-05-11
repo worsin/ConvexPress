@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
@@ -11,15 +11,13 @@ import {
   type IntegrationStatus,
 } from "@/components/settings/integrations/IntegrationHeader";
 import { SettingsSection } from "@/components/settings/integrations/SettingsSection";
-import {
-  CredentialField,
-  SECRET_SENTINEL,
-} from "@/components/settings/integrations/CredentialField";
+import { SECRET_SENTINEL } from "@/components/settings/integrations/CredentialField";
 import { TestConnectionButton } from "@/components/settings/integrations/TestConnectionButton";
 import { SaveBar } from "@/components/settings/integrations/SaveBar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useSettingsAutosaveDraft } from "@/hooks/useSettingsAutosaveDraft";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/settings/analytics/ga4",
@@ -34,24 +32,36 @@ function Ga4IntegrationPage() {
     (api as any).settings.integrations.testActions.testGa4,
   );
 
-  const [json, setJson] = useState<string | null>(null);
-  const [propertyId, setPropertyId] = useState("");
-  const [saving, setSaving] = useState(false);
   const [uploadedName, setUploadedName] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!settings) return;
-    setJson(settings.ga4ServiceAccountJson ?? "");
-    setPropertyId(settings.ga4PropertyId ?? "");
-  }, [settings]);
-
-  const dirty = useMemo(() => {
-    if (!settings) return false;
-    return (
-      json !== (settings.ga4ServiceAccountJson ?? "") ||
-      propertyId !== (settings.ga4PropertyId ?? "")
-    );
-  }, [json, propertyId, settings]);
+  const {
+    draft,
+    setDraft,
+    discardChanges,
+    isDirty,
+    autosaveStatus,
+    autosaveError,
+  } = useSettingsAutosaveDraft<
+    { ga4ServiceAccountJson: string; ga4PropertyId: string },
+    Record<string, unknown>
+  >({
+    source: settings,
+    createDraft: (source) => ({
+      ga4ServiceAccountJson:
+        (source.ga4ServiceAccountJson as string | undefined) ?? "",
+      ga4PropertyId: (source.ga4PropertyId as string | undefined) ?? "",
+    }),
+    onSave: async (nextDraft) => {
+      await updateSection({
+        section: "analytics.ga4" as any,
+        values: {
+          ga4ServiceAccountJson:
+            nextDraft.ga4ServiceAccountJson || SECRET_SENTINEL,
+          ga4PropertyId: nextDraft.ga4PropertyId,
+        },
+      });
+      setUploadedName(null);
+    },
+  });
 
   const status: IntegrationStatus = settings?.ga4ServiceAccountJson
     ? "connected"
@@ -65,35 +75,13 @@ function Ga4IntegrationPage() {
       toast.error("Not a valid JSON file.");
       return;
     }
-    setJson(text);
+    setDraft((current) =>
+      current ? { ...current, ga4ServiceAccountJson: text } : current,
+    );
     setUploadedName(file.name);
   }
 
-  async function handleSave() {
-    setSaving(true);
-    try {
-      await updateSection({
-        section: "analytics.ga4" as any,
-        values: {
-          ga4ServiceAccountJson: json === null ? "" : json,
-          ga4PropertyId: propertyId,
-        },
-      });
-      toast.success("GA4 settings saved.");
-      setUploadedName(null);
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to save.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function handleDiscard() {
-    if (!settings) return;
-    setJson(settings.ga4ServiceAccountJson ?? "");
-    setPropertyId(settings.ga4PropertyId ?? "");
-    setUploadedName(null);
-  }
+  if (!draft) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
@@ -109,7 +97,7 @@ function Ga4IntegrationPage() {
         title="Service account"
         description="GA4 uses a Google Cloud service account with Read access to your property. Upload the JSON keyfile here."
       >
-        {json === SECRET_SENTINEL && !uploadedName ? (
+        {draft.ga4ServiceAccountJson === SECRET_SENTINEL && !uploadedName ? (
           <div className="flex flex-wrap items-center gap-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1.5 text-xs font-mono">
               •••• service account saved
@@ -118,7 +106,11 @@ function Ga4IntegrationPage() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setJson("")}
+              onClick={() =>
+                setDraft((current) =>
+                  current ? { ...current, ga4ServiceAccountJson: "" } : current,
+                )
+              }
             >
               Replace
             </Button>
@@ -160,18 +152,28 @@ function Ga4IntegrationPage() {
           </Label>
           <Input
             id="ga4-prop"
-            value={propertyId}
-            onChange={(e) => setPropertyId(e.target.value)}
+            value={draft.ga4PropertyId}
+            onChange={(e) =>
+              setDraft((current) =>
+                current
+                  ? { ...current, ga4PropertyId: e.target.value }
+                  : current,
+              )
+            }
             placeholder="987654321"
           />
         </div>
       </SettingsSection>
 
       <SaveBar
-        dirty={dirty}
-        saving={saving}
-        onSave={handleSave}
-        onDiscard={handleDiscard}
+        dirty={isDirty}
+        mode="autosave"
+        autosaveStatus={autosaveStatus}
+        autosaveError={autosaveError}
+        onDiscard={() => {
+          discardChanges();
+          setUploadedName(null);
+        }}
       />
     </div>
   );
@@ -179,6 +181,3 @@ function Ga4IntegrationPage() {
 
 // Also re-export as a bridge for backwards-compatible analytics route.
 export default Ga4IntegrationPage;
-
-// `CredentialField` not used but imported via bundle; keep noted:
-void CredentialField;

@@ -72,6 +72,7 @@ export const commerceDigitalTables = {
   })
     .index("by_token", ["token"])
     .index("by_order", ["orderId"])
+    .index("by_order_item", ["orderItemId"])
     .index("by_user", ["userId"])
     .index("by_file", ["digitalFileId"]),
 

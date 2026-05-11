@@ -73,6 +73,16 @@ export const emailCategoryValidator = v.union(
   v.literal("security"),
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("system"),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  v.literal("support"),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  v.literal("knowledge_base"),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  v.literal("commerce"),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  v.literal("shipping"),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  v.literal("subscription"),
 );
 
 /**
@@ -190,6 +200,8 @@ export const updateUnsubscribeArgs = {
   subscribed: v.boolean(),
 };
 
+export const repairSystemArgs = {};
+
 // ─── Internal Function Argument Validators ───────────────────────────────────
 
 /**
@@ -204,6 +216,23 @@ export const queueEmailInternalArgs = {
   eventId: v.optional(v.id("events")),
   correlationId: v.optional(v.string()),
   scheduledFor: v.optional(v.number()),
+};
+
+export const queueRenderedEmailArgs = {
+  recipientEmail: v.string(),
+  recipientName: v.optional(v.string()),
+  recipientUserId: v.optional(v.string()),
+  subject: v.string(),
+  bodyHtml: v.string(),
+  bodyText: v.optional(v.string()),
+  templateSlug: v.string(),
+  templateVariables: v.string(),
+  priority: v.optional(emailPriorityValidator),
+  eventId: v.optional(v.id("events")),
+  correlationId: v.optional(v.string()),
+  isTest: v.optional(v.boolean()),
+  testLabel: v.optional(v.string()),
+  testMetadata: v.optional(v.string()),
 };
 
 /**

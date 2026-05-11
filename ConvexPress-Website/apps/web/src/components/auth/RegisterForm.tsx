@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { useSignUp } from "@clerk/clerk-react";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -10,6 +9,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AuthError } from "./AuthError";
 import { AuthLink } from "./AuthLink";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
+import {
+  clearPendingVerificationContext,
+  writePendingVerificationContext,
+} from "@/lib/auth/verification";
 import { cn } from "@/lib/utils";
 import type { InvitationData } from "@/lib/auth/types";
 
@@ -31,7 +34,6 @@ export function RegisterForm({
   className,
 }: RegisterFormProps) {
   const { signUp, setActive, isLoaded } = useSignUp();
-  const navigate = useNavigate();
   const [email, setEmail] = useState(invitation?.email ?? "");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -81,14 +83,26 @@ export function RegisterForm({
 
       if (result.status === "complete") {
         // Registration complete (no email verification required)
+        clearPendingVerificationContext();
         await setActive({ session: result.createdSessionId });
-        navigate({ to: returnTo });
+        if (typeof window !== "undefined") {
+          window.location.assign(returnTo);
+        }
       } else if (result.status === "missing_requirements") {
         // Email verification needed - prepare the verification
         await signUp.prepareEmailAddressVerification({
           strategy: "email_code",
         });
-        navigate({ to: "/verify-email" });
+        writePendingVerificationContext({
+          email: email.trim(),
+          returnTo,
+          source: "register",
+        });
+        if (typeof window !== "undefined") {
+          const url = new URL("/verify-email", window.location.origin);
+          url.searchParams.set("returnTo", returnTo);
+          window.location.assign(url.toString());
+        }
       } else {
         setError("Registration requires additional steps. Please try again.");
       }

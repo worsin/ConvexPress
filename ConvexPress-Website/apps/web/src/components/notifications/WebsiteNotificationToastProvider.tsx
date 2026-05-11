@@ -17,11 +17,17 @@ import { toast } from "sonner";
 
 interface NotificationData {
   _id: string;
+  notificationKey: string;
   type: "info" | "success" | "warning" | "error";
   title: string;
   message: string;
   actionUrl?: string;
   actionLabel?: string;
+}
+
+interface NotificationPreference {
+  notificationKey: string;
+  toastEnabled: boolean;
 }
 
 const TOAST_DURATIONS: Record<string, number> = {
@@ -37,6 +43,9 @@ function NotificationToastListener() {
   const router = useRouter();
 
   const result = useQuery(api.notifications.queries.list, { limit: 1 });
+  const preferences = useQuery(api.notifications.queries.getPreferences, {}) as
+    | NotificationPreference[]
+    | undefined;
 
   useEffect(() => {
     if (!result) return;
@@ -57,6 +66,40 @@ function NotificationToastListener() {
     if (latest._id !== latestIdRef.current) {
       latestIdRef.current = latest._id;
 
+      const preference = preferences?.find(
+        (entry) => entry.notificationKey === latest.notificationKey,
+      );
+      if (preference && !preference.toastEnabled) {
+        return;
+      }
+
+      const navigate = (to: string) => {
+        router.navigate({ to });
+      };
+      const shouldUseDesktop =
+        typeof document !== "undefined" &&
+        document.visibilityState === "hidden" &&
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        window.Notification.permission === "granted";
+
+      if (shouldUseDesktop) {
+        const desktopNotification = new window.Notification(latest.title, {
+          body: latest.message,
+          icon: "/favicon.ico",
+          tag: latest._id,
+        });
+
+        desktopNotification.onclick = () => {
+          window.focus();
+          if (latest.actionUrl) {
+            navigate(latest.actionUrl);
+          }
+          desktopNotification.close();
+        };
+        return;
+      }
+
       const duration = TOAST_DURATIONS[latest.type] ?? 5000;
       const toastFn =
         latest.type === "success"
@@ -71,16 +114,16 @@ function NotificationToastListener() {
         description: latest.message,
         duration,
         action: latest.actionUrl
-          ? {
-              label: latest.actionLabel ?? "View",
-              onClick: () => {
-                router.navigate({ to: latest.actionUrl! });
-              },
-            }
-          : undefined,
+            ? {
+                label: latest.actionLabel ?? "View",
+                onClick: () => {
+                  navigate(latest.actionUrl!);
+                },
+              }
+            : undefined,
       });
     }
-  }, [result, router]);
+  }, [preferences, result, router]);
 
   return null;
 }

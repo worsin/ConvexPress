@@ -34,7 +34,7 @@ async function purchaseLabelViaLegacy(
 ): Promise<LabelPurchaseResult> {
   const r: any = await ctx.runAction(
     (api as any).shipping.actions.createShippingLabelForOrder,
-    { orderId: args.orderId },
+    { orderId: args.orderId, rateId: args.rateId },
   );
   return {
     success: Boolean(r?.success ?? true),
@@ -189,7 +189,8 @@ const fedex: LiveRateProvider = {
     labels: true,
     tracking: true,
     manifests: true,
-    addressValidation: true,
+    // FedEx direct address validation is not wired into the validation chain yet.
+    addressValidation: false,
   },
   fetchRates: (ctx, args) => fetchFedexRatesV2(ctx, args),
   purchaseLabel: (ctx, args) => purchaseLabelViaLegacy(ctx, args),

@@ -52,13 +52,13 @@ export function useAuthRedirect(): UseAuthRedirectResult {
     [search?.returnTo],
   );
 
-  const redirectAfterAuth = useCallback(() => {
-    if (returnTo) {
-      navigate({ to: returnTo });
-    } else {
-      navigate({ to: "/" });
-    }
-  }, [returnTo, navigate]);
+	  const redirectAfterAuth = useCallback(() => {
+	    if (returnTo) {
+	      navigate({ to: returnTo } as any);
+	    } else {
+	      navigate({ to: "/" } as any);
+	    }
+	  }, [returnTo, navigate]);
 
   return { returnTo, redirectAfterAuth };
 }

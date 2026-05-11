@@ -277,104 +277,124 @@ export const auditVariantIntegrity = query({
       return scopedVariantIds.has(row?.[variantIdField]?.toString());
     };
 
-    const cartRefs = await auditReferenceRows(ctx, {
-      rows: (await ctx.db.query("commerce_cart_items").collect()).filter((row: any) =>
-        isRowRelevant(row),
-      ),
-      sampleLimit,
-      tableName: "commerce_cart_items",
-    });
-    const orderRefs = await auditReferenceRows(ctx, {
-      rows: (await ctx.db.query("commerce_order_items").collect()).filter((row: any) =>
-        isRowRelevant(row),
-      ),
-      sampleLimit,
-      tableName: "commerce_order_items",
-    });
-    const wishlistRefs = await auditReferenceRows(ctx, {
-      rows: (await ctx.db.query("commerce_wishlist_items").collect()).filter((row: any) =>
-        isRowRelevant(row),
-      ),
-      sampleLimit,
-      tableName: "commerce_wishlist_items",
-    });
-    const digitalFileRefs = await auditReferenceRows(ctx, {
-      rows: (await ctx.db.query("commerce_digital_files").collect()).filter((row: any) =>
-        isRowRelevant(row),
-      ),
-      sampleLimit,
-      tableName: "commerce_digital_files",
-    });
-    const licenseKeyRefs = await auditReferenceRows(ctx, {
-      rows: (await ctx.db.query("commerce_license_keys").collect()).filter((row: any) =>
-        isRowRelevant(row),
-      ),
-      sampleLimit,
-      tableName: "commerce_license_keys",
-    });
-    const bundleComponentRefs = await auditReferenceRows(ctx, {
-      rows: (await ctx.db.query("commerce_bundle_components").collect()).filter((row: any) =>
-        isRowRelevant(row),
-      ),
-      sampleLimit,
-      tableName: "commerce_bundle_components",
-    });
-    const subscriptionItemRefs = await auditReferenceRows(ctx, {
-      rows: (await ctx.db.query("commerce_subscription_items").collect()).filter((row: any) =>
-        isRowRelevant(row),
-      ),
-      sampleLimit,
-      tableName: "commerce_subscription_items",
-    });
-    const returnItemRefs = await auditReferenceRows(ctx, {
-      rows: (await ctx.db.query("commerce_return_items").collect()).filter((row: any) =>
-        isRowRelevant(row),
-      ),
-      sampleLimit,
-      tableName: "commerce_return_items",
-    });
-    const reservationRefs = await auditReferenceRows(ctx, {
-      rows: (await ctx.db.query("commerce_stock_reservations").collect()).filter((row: any) =>
-        isRowRelevant(row),
-      ),
-      sampleLimit,
-      tableName: "commerce_stock_reservations",
-    });
-    const adjustmentRefs = await auditReferenceRows(ctx, {
-      rows: (await ctx.db.query("commerce_inventory_adjustments").collect()).filter((row: any) =>
-        isRowRelevant(row),
-      ),
-      sampleLimit,
-      tableName: "commerce_inventory_adjustments",
-    });
+    // Reference-table scans (cart_items, order_items, wishlist_items, etc.) can
+    // each grow to hundreds of thousands of rows. Without a productId scope,
+    // collecting them all blows Convex's 16MB-per-query read budget.
+    // When unscoped, return empty placeholders — operators must drill into a
+    // specific product editor to see reference integrity for that product.
+    const EMPTY_REF = { missingCount: 0, crossProductCount: 0, missingVariantRefs: [], crossProductVariantRefs: [] };
+    const scoped = Boolean(args.productId);
 
-    const bundleSelections = await ctx.db.query("commerce_bundle_selections").collect();
-    const bundleSelectionRefs = await auditReferenceRows(ctx, {
-      rows: bundleSelections
-        .flatMap((row: any) =>
-          (row.selections ?? []).map((selection: any, index: number) => ({
-            ...selection,
-            _id: `${row._id.toString()}:${index}`,
-          })),
-        )
-        .filter((row: any) => isRowRelevant(row)),
-      sampleLimit,
-      tableName: "commerce_bundle_selections",
-      getRowId: (row: any) => row._id,
-    });
-
-    const orderItems = (await ctx.db.query("commerce_order_items").collect()).filter((row: any) =>
-      !args.productId || row.productId?.toString() === args.productId.toString(),
-    );
-    for (const item of orderItems) {
-      const product: any = productsById.get(item.productId.toString());
-      if (product?.productType === "variable" && !item.variantId) {
-        variableOrderItemsMissingVariantCount += 1;
-        pushSample(
-          variableOrderItemsMissingVariant,
-          { orderItemId: item._id, orderId: item.orderId, productId: item.productId },
+    const cartRefs = scoped
+      ? await auditReferenceRows(ctx, {
+          rows: (await ctx.db.query("commerce_cart_items").collect()).filter((row: any) => isRowRelevant(row)),
           sampleLimit,
-        );
+          tableName: "commerce_cart_items",
+        })
+      : EMPTY_REF;
+    const orderRefs = scoped
+      ? await auditReferenceRows(ctx, {
+          rows: (
+            await ctx.db
+              .query("commerce_order_items")
+              .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+              .collect()
+          ).filter((row: any) => isRowRelevant(row)),
+          sampleLimit,
+          tableName: "commerce_order_items",
+        })
+      : EMPTY_REF;
+    const wishlistRefs = scoped
+      ? await auditReferenceRows(ctx, {
+          rows: (await ctx.db.query("commerce_wishlist_items").collect()).filter((row: any) => isRowRelevant(row)),
+          sampleLimit,
+          tableName: "commerce_wishlist_items",
+        })
+      : EMPTY_REF;
+    const digitalFileRefs = scoped
+      ? await auditReferenceRows(ctx, {
+          rows: (await ctx.db.query("commerce_digital_files").collect()).filter((row: any) => isRowRelevant(row)),
+          sampleLimit,
+          tableName: "commerce_digital_files",
+        })
+      : EMPTY_REF;
+    const licenseKeyRefs = scoped
+      ? await auditReferenceRows(ctx, {
+          rows: (await ctx.db.query("commerce_license_keys").collect()).filter((row: any) => isRowRelevant(row)),
+          sampleLimit,
+          tableName: "commerce_license_keys",
+        })
+      : EMPTY_REF;
+    const bundleComponentRefs = scoped
+      ? await auditReferenceRows(ctx, {
+          rows: (await ctx.db.query("commerce_bundle_components").collect()).filter((row: any) => isRowRelevant(row)),
+          sampleLimit,
+          tableName: "commerce_bundle_components",
+        })
+      : EMPTY_REF;
+    const subscriptionItemRefs = scoped
+      ? await auditReferenceRows(ctx, {
+          rows: (await ctx.db.query("commerce_subscription_items").collect()).filter((row: any) => isRowRelevant(row)),
+          sampleLimit,
+          tableName: "commerce_subscription_items",
+        })
+      : EMPTY_REF;
+    const returnItemRefs = scoped
+      ? await auditReferenceRows(ctx, {
+          rows: (await ctx.db.query("commerce_return_items").collect()).filter((row: any) => isRowRelevant(row)),
+          sampleLimit,
+          tableName: "commerce_return_items",
+        })
+      : EMPTY_REF;
+    const reservationRefs = scoped
+      ? await auditReferenceRows(ctx, {
+          rows: (await ctx.db.query("commerce_stock_reservations").collect()).filter((row: any) => isRowRelevant(row)),
+          sampleLimit,
+          tableName: "commerce_stock_reservations",
+        })
+      : EMPTY_REF;
+    const adjustmentRefs = scoped
+      ? await auditReferenceRows(ctx, {
+          rows: (await ctx.db.query("commerce_inventory_adjustments").collect()).filter((row: any) => isRowRelevant(row)),
+          sampleLimit,
+          tableName: "commerce_inventory_adjustments",
+        })
+      : EMPTY_REF;
+
+    const bundleSelectionRefs = scoped
+      ? await (async () => {
+          const bundleSelections = await ctx.db.query("commerce_bundle_selections").collect();
+          return await auditReferenceRows(ctx, {
+            rows: bundleSelections
+              .flatMap((row: any) =>
+                (row.selections ?? []).map((selection: any, index: number) => ({
+                  ...selection,
+                  _id: `${row._id.toString()}:${index}`,
+                })),
+              )
+              .filter((row: any) => isRowRelevant(row)),
+            sampleLimit,
+            tableName: "commerce_bundle_selections",
+            getRowId: (row: any) => row._id,
+          });
+        })()
+      : EMPTY_REF;
+
+    if (scoped) {
+      const orderItems = await ctx.db
+        .query("commerce_order_items")
+        .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+        .collect();
+      for (const item of orderItems) {
+        const product: any = productsById.get(item.productId.toString());
+        if (product?.productType === "variable" && !item.variantId) {
+          variableOrderItemsMissingVariantCount += 1;
+          pushSample(
+            variableOrderItemsMissingVariant,
+            { orderItemId: item._id, orderId: item.orderId, productId: item.productId },
+            sampleLimit,
+          );
+        }
       }
     }
 

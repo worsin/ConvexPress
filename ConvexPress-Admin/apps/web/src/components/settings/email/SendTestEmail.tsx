@@ -45,7 +45,7 @@ export function SendTestEmail() {
     try {
       await sendTestEmail({ recipientEmail: email.trim() });
       setStatus("success");
-      toast.success(`Test email sent to ${email.trim()}`);
+      toast.success(`Test email queued for ${email.trim()}. Check the delivery queue for status.`);
     } catch (error: unknown) {
       setStatus("error");
       const msg =
@@ -117,7 +117,7 @@ export function SendTestEmail() {
           <div className="mt-3 flex items-center gap-2 text-xs text-success">
             <CheckCircle className="size-3.5" />
             <span>
-              Test email sent successfully. Check your inbox.
+              Test email queued successfully. Monitor delivery from the queue below.
             </span>
           </div>
         )}

@@ -5,6 +5,8 @@
  * archive pages, and search results.
  */
 
+import type { PageSection } from "@/lib/page-builder/types";
+
 // ---------------------------------------------------------------------------
 // Block Content Types (TipTap JSON)
 // ---------------------------------------------------------------------------
@@ -343,6 +345,7 @@ export interface PageDetail {
   ogImageUrl?: string;
   canonicalUrl?: string;
   isPasswordProtected?: boolean;
+  pageSections?: PageSection[];
   /** Breadcrumbs for hierarchical navigation */
   breadcrumbs?: Array<{
     _id: string;

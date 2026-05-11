@@ -15,6 +15,7 @@
  *   await updateSettings({ section: "general", values: { siteTitle: "New Title" } });
  */
 
+import { internal } from "../_generated/api";
 import { mutation } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { requireCan } from "../helpers/permissions";
@@ -30,6 +31,7 @@ import {
 import { computeChanges } from "./helpers";
 import { validateSectionValues } from "./validation";
 import { runBootstrapShippingTemplates } from "../shipping/bootstrap";
+import { isPluginEnabled } from "../helpers/plugins";
 import {
   SECRET_SENTINEL,
   encryptSettingSecret,
@@ -212,6 +214,22 @@ export const updateSection = mutation({
     if (section === "integrations.shipping") {
       await runBootstrapShippingTemplates(ctx, now);
     }
+    if (section === "email") {
+      await ctx.scheduler.runAfter(0, internal.emails.internals.bootstrapTemplates, {});
+      await ctx.scheduler.runAfter(0, internal.bootstrap.registerListeners.run, {});
+      await ctx.scheduler.runAfter(
+        0,
+        internal.shipping.bootstrap.bootstrapShippingTemplates,
+        {},
+      );
+      if (await isPluginEnabled(ctx, "commerceReturns")) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.commerceReturns.migrations.backfillLegacyReturns,
+          {},
+        );
+      }
+    }
 
     // 11. Emit event
     // Permalinks section emits settings.permalinks_changed (distinct event)
@@ -221,6 +239,8 @@ export const updateSection = mutation({
       await emitEvent(ctx, SETTINGS_EVENTS.PERMALINKS_CHANGED, SYSTEM.SETTINGS, {
         oldStructure: oldValues.structure,
         newStructure: newValues.structure,
+        oldCustomStructure: oldValues.customStructure,
+        newCustomStructure: newValues.customStructure,
         oldCategoryBase: oldValues.categoryBase,
         newCategoryBase: newValues.categoryBase,
         oldTagBase: oldValues.tagBase,

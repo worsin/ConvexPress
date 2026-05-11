@@ -293,7 +293,7 @@ function ProductSearch({
   const [query, setQuery] = useState("");
 
   const allProducts = useQuery(
-    (api as any)["commerce/products"].list,
+    (api as any)["commerce/products"].listAll,
     {},
   ) as
     | Array<{

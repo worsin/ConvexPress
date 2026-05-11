@@ -20,7 +20,7 @@ async function resolveAiSettings(ctx: {
       | "anthropic",
     apiKey: resolveServiceKey(settings, "apiKey", "ANTHROPIC_API_KEY") ?? "",
     defaultModel:
-      (settings?.defaultModel as string) || "claude-sonnet-4-20250514",
+      (settings?.defaultModel as string) || "claude-opus-4-7",
   };
 }
 

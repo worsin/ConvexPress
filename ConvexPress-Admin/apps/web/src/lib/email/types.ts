@@ -25,7 +25,14 @@ export type EmailCategory =
   | "content"
   | "comment"
   | "security"
-  | "system";
+  | "system"
+  | "support"
+  | "knowledge_base"
+  | "commerce"
+  | "shipping"
+  | "subscription";
+
+export type EmailTemplateTriggerKind = "event" | "direct" | "digest" | "manual";
 
 export type UnsubscribeCategory =
   | "content"
@@ -48,6 +55,8 @@ export interface EmailTemplateListItem {
   isActive: boolean;
   isCustomized: boolean;
   eventCode?: string;
+  canonicalEventCode?: string;
+  triggerKind?: EmailTemplateTriggerKind;
   lastSentAt?: number;
   totalSent: number;
   updatedAt: number;
@@ -85,6 +94,8 @@ export interface EmailQueueListItem {
   createdAt: number;
   sentAt?: number;
   lastError?: string;
+  isTest?: boolean;
+  testLabel?: string;
 }
 
 export interface EmailQueueDetail extends EmailQueueListItem {
@@ -103,6 +114,9 @@ export interface EmailQueueDetail extends EmailQueueListItem {
   nextRetryAt?: number;
   eventId?: string;
   correlationId?: string;
+  isTest?: boolean;
+  testLabel?: string;
+  testMetadata?: string;
   deliveredAt?: number;
   openedAt?: number;
   event?: {

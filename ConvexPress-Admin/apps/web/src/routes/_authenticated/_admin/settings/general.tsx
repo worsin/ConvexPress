@@ -44,6 +44,12 @@ const roleOptions = [
   { label: "Editor", value: "editor" },
 ];
 
+const registrationModeOptions = [
+  { label: "Invite-only", value: "invite_only" },
+  { label: "Closed", value: "closed" },
+];
+
+
 const languageOptions = [
   { label: "English (United States)", value: "en-US" },
   { label: "English (United Kingdom)", value: "en-GB" },
@@ -228,6 +234,21 @@ function GeneralSettingsPage() {
                 field={field}
                 label="Anyone can register"
                 description="Allow public user registration on the site."
+              />
+            </SettingsField>
+          )}
+        </form.Field>
+
+        <form.Field name="registrationMode">
+          {(field) => (
+            <SettingsField
+              label="When Public Registration Is Off"
+              layout="stacked"
+              error={getFieldError(field.state.meta.errors)}
+            >
+              <RadioGroupField
+                field={field}
+                options={registrationModeOptions}
               />
             </SettingsField>
           )}

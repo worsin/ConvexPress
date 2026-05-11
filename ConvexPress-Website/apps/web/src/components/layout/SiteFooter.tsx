@@ -1,5 +1,8 @@
+import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
+import { useMutation } from "convex/react";
 import { Mail, MapPin, Phone } from "lucide-react";
+import { api } from "@convexpress-website/backend/generated/api";
 
 import { cn } from "@/lib/utils";
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
@@ -96,6 +99,35 @@ function FooterContent({ footerConfig, siteIdentity, siteTitle }: FooterContentP
   const showNavColumns = footerConfig.navColumns.enabled;
   const showNewsletter = footerConfig.newsletter.enabled;
   const showContact = footerConfig.contactInfo.enabled;
+  const subscribeNewsletter = useMutation(
+    (api as any).emails.mutations.subscribeNewsletter,
+  );
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterStatus, setNewsletterStatus] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
+  const [newsletterMessage, setNewsletterMessage] = useState("");
+
+  async function handleNewsletterSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setNewsletterStatus("submitting");
+    setNewsletterMessage("");
+    try {
+      await subscribeNewsletter({
+        email: newsletterEmail,
+        source: "site_footer",
+      });
+      setNewsletterEmail("");
+      setNewsletterStatus("success");
+      setNewsletterMessage("You're subscribed.");
+    } catch (error) {
+      setNewsletterStatus("error");
+      setNewsletterMessage(
+        (error as { data?: { message?: string } })?.data?.message ??
+          "Could not subscribe. Please try again.",
+      );
+    }
+  }
 
   // If nothing is enabled, just show the nav links (backwards compatible)
   if (!showBranding && !showNavColumns && !showNewsletter && !showContact) {
@@ -156,25 +188,46 @@ function FooterContent({ footerConfig, siteIdentity, siteTitle }: FooterContentP
             </p>
           )}
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              // TODO: Wire up newsletter subscription
-            }}
+            onSubmit={handleNewsletterSubmit}
             className="flex gap-2"
           >
             <input
               type="email"
               placeholder="you@example.com"
+              value={newsletterEmail}
+              onChange={(event) => {
+                setNewsletterEmail(event.target.value);
+                if (newsletterStatus !== "submitting") {
+                  setNewsletterStatus("idle");
+                  setNewsletterMessage("");
+                }
+              }}
               className="flex-1 border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               required
             />
             <button
               type="submit"
+              disabled={newsletterStatus === "submitting"}
               className="bg-foreground px-3 py-1.5 text-xs font-medium text-background transition-colors hover:bg-foreground/90"
             >
-              {footerConfig.newsletter.buttonText}
+              {newsletterStatus === "submitting"
+                ? "Subscribing"
+                : footerConfig.newsletter.buttonText}
             </button>
           </form>
+          {newsletterMessage && (
+            <p
+              className={cn(
+                "text-xs",
+                newsletterStatus === "error"
+                  ? "text-destructive"
+                  : "text-muted-foreground",
+              )}
+              role={newsletterStatus === "error" ? "alert" : "status"}
+            >
+              {newsletterMessage}
+            </p>
+          )}
         </div>
       )}
 

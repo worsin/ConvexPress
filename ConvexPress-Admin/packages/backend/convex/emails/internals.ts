@@ -21,11 +21,12 @@
 import {
   internalMutation,
   internalAction,
+  internalQuery,
 } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { emitEvent } from "../helpers/events";
-import { SYSTEM, EMAIL_EVENTS } from "../events/constants";
+import { SYSTEM } from "../events/constants";
 import {
   queueEmailForEvent,
   getEmailSettings,
@@ -46,9 +47,14 @@ import {
   markSentArgs,
   handleSendFailureArgs,
   updateQueueStatusArgs,
+  queueRenderedEmailArgs,
   emailStatusValidator,
 } from "./validators";
 import { DEFAULT_TEMPLATES } from "./templateDefaults";
+import {
+  EMAIL_TEMPLATE_REGISTRY_BY_SLUG,
+} from "./registry";
+import { buildTemplateSampleVariables } from "./testData";
 
 // ─── Retry Constants ─────────────────────────────────────────────────────────
 
@@ -57,6 +63,227 @@ const RETRY_BASE_DELAY_MS = 5000;
 
 /** HTTP status codes that are retryable */
 const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
+
+function parsePayload(payload: string | undefined) {
+  if (!payload) return {} as Record<string, any>;
+  try {
+    return JSON.parse(payload) as Record<string, any>;
+  } catch {
+    return {} as Record<string, any>;
+  }
+}
+
+function toDisplayName(user: any) {
+  return (
+    user?.displayName ??
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ??
+    user?.email ??
+    ""
+  );
+}
+
+function buildWebsiteUrl(siteUrl: string, path: string) {
+  const base = siteUrl.replace(/\/$/, "");
+  const nextPath = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${nextPath}`;
+}
+
+function excerptText(value: string | undefined, maxLength = 180) {
+  if (!value) return "";
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 1).trim()}…`;
+}
+
+async function getEventRecord(ctx: any, eventId: any) {
+  const event = await ctx.db.get("events", eventId);
+  if (!event) return null;
+  return {
+    event,
+    payload: parsePayload(event.payload),
+  };
+}
+
+async function getTemplateRecord(ctx: any, templateSlug: string) {
+  return await ctx.db
+    .query("emailTemplates")
+    .withIndex("by_slug", (q: any) => q.eq("slug", templateSlug))
+    .unique();
+}
+
+async function getUserByAnyId(ctx: any, identifier: any) {
+  if (!identifier) return null;
+  try {
+    return await lookupUserByIdentifier(ctx, String(identifier));
+  } catch {
+    return null;
+  }
+}
+
+async function getPostContext(ctx: any, postId: any, siteUrl: string) {
+  if (!postId) return null;
+  const post = await ctx.db.get(postId);
+  if (!post) return null;
+  const author = post.authorId ? await ctx.db.get(post.authorId) : null;
+  return {
+    post,
+    author,
+    postUrl: buildWebsiteUrl(siteUrl, `/blog/${post.slug}`),
+    excerpt:
+      excerptText(post.excerpt) ||
+      excerptText(stripHtmlToText(post.content ?? "")) ||
+      excerptText(post.title),
+  };
+}
+
+async function getCommentContext(ctx: any, commentId: any, siteUrl: string) {
+  if (!commentId) return null;
+  const comment = await ctx.db.get(commentId);
+  if (!comment) return null;
+  const postContext = await getPostContext(ctx, comment.postId, siteUrl);
+  if (!postContext) return null;
+  const author = comment.authorId ? await ctx.db.get(comment.authorId) : null;
+  return {
+    comment,
+    post: postContext.post,
+    postAuthor: postContext.author,
+    commentAuthor: author,
+    postUrl: postContext.postUrl,
+    commentUrl: `${postContext.postUrl}#comment-${comment._id}`,
+    commentExcerpt: excerptText(comment.content),
+  };
+}
+
+async function getTicketContext(ctx: any, ticketId: any, siteUrl: string) {
+  if (!ticketId) return null;
+  const ticket = await ctx.db.get(ticketId);
+  if (!ticket) return null;
+  const assignee = ticket.assignedTo ? await ctx.db.get(ticket.assignedTo) : null;
+  const owner = ticket.userId ? await ctx.db.get(ticket.userId) : null;
+  return {
+    ticket,
+    assignee,
+    owner,
+    ticketUrl: buildWebsiteUrl(siteUrl, `/support/tickets/${ticketId}`),
+  };
+}
+
+async function getKbArticleContext(ctx: any, articleId: any, siteUrl: string) {
+  if (!articleId) return null;
+  const article = await ctx.db.get(articleId);
+  if (!article) return null;
+  const author = article.authorId ? await ctx.db.get(article.authorId) : null;
+  const category = article.categoryId ? await ctx.db.get(article.categoryId) : null;
+  const categorySlug = category?.slug ?? "general";
+  return {
+    article,
+    author,
+    category,
+    articleUrl: buildWebsiteUrl(
+      siteUrl,
+      `/help/${categorySlug}/${article.slug}`,
+    ),
+  };
+}
+
+async function getCustomerRecipients(ctx: any) {
+  const recipientMap = new Map<
+    string,
+    { email: string; name?: string; userId: string }
+  >();
+
+  for (const roleSlug of ["subscriber", "customer"]) {
+    const role = await ctx.db
+      .query("roles")
+      .withIndex("by_slug", (q: any) => q.eq("slug", roleSlug))
+      .unique();
+    if (!role || role.status !== "active") continue;
+
+    const users = await ctx.db
+      .query("users")
+      .withIndex("by_roleId", (q: any) => q.eq("roleId", role._id))
+      .collect();
+
+    for (const user of users) {
+      if (!user.email || user.status !== "active") continue;
+      const userId = getUserIdentifier(user);
+      recipientMap.set(userId, {
+        email: user.email,
+        name: toDisplayName(user),
+        userId,
+      });
+    }
+  }
+
+  return Array.from(recipientMap.values());
+}
+
+export async function runBootstrapTemplates(ctx: any, now = Date.now()) {
+  let created = 0;
+  let updated = 0;
+
+  for (const templateDef of DEFAULT_TEMPLATES) {
+    const existing = await getTemplateRecord(ctx, templateDef.slug);
+    if (!existing) {
+      await ctx.db.insert("emailTemplates", {
+        slug: templateDef.slug,
+        name: templateDef.name,
+        description: templateDef.description,
+        subjectTemplate: templateDef.subjectTemplate,
+        bodyHtml: templateDef.bodyHtml,
+        bodyText: undefined,
+        preheaderText: templateDef.preheaderText,
+        availableVariables: templateDef.availableVariables,
+        priority: templateDef.priority,
+        recipientType: templateDef.recipientType,
+        isActive: true,
+        eventCode: templateDef.eventCode,
+        isCustomized: false,
+        defaultSubjectTemplate: templateDef.subjectTemplate,
+        defaultBodyHtml: templateDef.bodyHtml,
+        category: templateDef.category,
+        lastSentAt: undefined,
+        totalSent: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+      created++;
+      continue;
+    }
+
+    const registryEntry = EMAIL_TEMPLATE_REGISTRY_BY_SLUG[templateDef.slug];
+    const nextEventCode = registryEntry?.canonicalEventCode ?? templateDef.eventCode;
+    const shouldPatch =
+      existing.name !== templateDef.name ||
+      existing.description !== templateDef.description ||
+      existing.eventCode !== nextEventCode ||
+      existing.category !== templateDef.category ||
+      existing.priority !== templateDef.priority ||
+      existing.recipientType !== templateDef.recipientType ||
+      JSON.stringify(existing.availableVariables) !==
+        JSON.stringify(templateDef.availableVariables) ||
+      existing.defaultSubjectTemplate !== templateDef.subjectTemplate ||
+      existing.defaultBodyHtml !== templateDef.bodyHtml;
+
+    if (!shouldPatch) continue;
+
+    await ctx.db.patch("emailTemplates", existing._id, {
+      name: templateDef.name,
+      description: templateDef.description,
+      availableVariables: templateDef.availableVariables,
+      priority: templateDef.priority,
+      recipientType: templateDef.recipientType,
+      eventCode: nextEventCode,
+      category: templateDef.category,
+      defaultSubjectTemplate: templateDef.subjectTemplate,
+      defaultBodyHtml: templateDef.bodyHtml,
+      updatedAt: now,
+    });
+    updated++;
+  }
+
+  return { created, updated };
+}
 
 // ─── queueEmail (Internal Mutation) ──────────────────────────────────────────
 
@@ -82,6 +309,142 @@ export const queueEmail = internalMutation({
     });
   },
 });
+
+const queueRenderedEmailConfig: any = {
+  args: queueRenderedEmailArgs,
+  handler: async (ctx: any, args: any) => {
+    if (!isValidEmail(args.recipientEmail)) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Invalid recipient email address.",
+      });
+    }
+
+    const settings = await getEmailSettings(ctx);
+    const queueId = await ctx.db.insert("emailQueue", {
+      to: args.recipientEmail,
+      toName: args.recipientName,
+      toUserId: args.recipientUserId,
+      from: settings.fromAddress,
+      fromName: settings.fromName,
+      replyTo: settings.replyTo,
+      subject: args.subject,
+      bodyHtml: args.bodyHtml,
+      bodyText: args.bodyText ?? stripHtmlToText(args.bodyHtml),
+      templateSlug: args.templateSlug,
+      templateVariables: args.templateVariables,
+      status: "queued",
+      priority: args.priority ?? "immediate",
+      attempts: 0,
+      maxAttempts: 3,
+      eventId: args.eventId,
+      correlationId: args.correlationId,
+      isTest: args.isTest,
+      testLabel: args.testLabel,
+      testMetadata: args.testMetadata,
+      createdAt: Date.now(),
+    });
+
+    await ctx.scheduler.runAfter(0, internal.emails.internals.sendEmail, {
+      queueId,
+    });
+
+    return queueId;
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const queueRenderedEmail = internalMutation(queueRenderedEmailConfig);
+
+const getTemplateForTestingConfig: any = {
+  args: {
+    templateSlug: v.string(),
+  },
+  handler: async (ctx: any, args: { templateSlug: string }) => {
+    return await getTemplateRecord(ctx, args.templateSlug);
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const getTemplateForTesting = internalQuery(getTemplateForTestingConfig);
+
+const queueTemplateTestEmailConfig: any = {
+  args: {
+    templateSlug: v.string(),
+    recipientEmail: v.string(),
+    recipientName: v.optional(v.string()),
+    samplePreset: v.optional(v.string()),
+    variableOverrides: v.optional(v.string()),
+  },
+  handler: async (ctx: any, args: any) => {
+    const template = await getTemplateRecord(ctx, args.templateSlug);
+    if (!template) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: `Email template "${args.templateSlug}" was not found.`,
+      });
+    }
+
+    let parsedOverrides: Record<string, string> | undefined;
+    if (args.variableOverrides) {
+      parsedOverrides = JSON.parse(args.variableOverrides) as Record<
+        string,
+        string
+      >;
+    }
+
+    const settings = await getEmailSettings(ctx);
+    const variables = injectGlobalVariables(
+      buildTemplateSampleVariables(template.availableVariables, parsedOverrides),
+      {
+        siteName: settings.siteName,
+        siteUrl: settings.siteUrl,
+        unsubscribeUrl: settings.unsubscribeUrl,
+      },
+      args.recipientName,
+    );
+
+    const subject = renderTemplate(template.subjectTemplate, variables);
+    const bodyHtml = renderTemplate(template.bodyHtml, variables);
+    const bodyText = template.bodyText
+      ? renderTemplate(template.bodyText, variables)
+      : stripHtmlToText(bodyHtml);
+
+    const queueId = await ctx.db.insert("emailQueue", {
+      to: args.recipientEmail,
+      toName: args.recipientName,
+      from: settings.fromAddress,
+      fromName: settings.fromName,
+      replyTo: settings.replyTo,
+      subject,
+      bodyHtml,
+      bodyText,
+      templateSlug: template.slug,
+      templateVariables: JSON.stringify(variables),
+      status: "queued",
+      priority: "immediate",
+      attempts: 0,
+      maxAttempts: 3,
+      isTest: true,
+      testLabel: `Template test: ${template.name}`,
+      testMetadata: JSON.stringify({
+        source: "settings.email.template_test",
+        templateSlug: template.slug,
+        samplePreset: args.samplePreset ?? "default",
+      }),
+      createdAt: Date.now(),
+    });
+
+    await ctx.scheduler.runAfter(0, internal.emails.internals.sendEmail, {
+      queueId,
+    });
+
+    return queueId;
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const queueTemplateTestEmail = internalMutation(queueTemplateTestEmailConfig);
 
 // ─── sendEmail (Internal Action) ─────────────────────────────────────────────
 
@@ -304,17 +667,20 @@ export const markSent = internalMutation({
       attempts: email.attempts + 1,
     });
 
-    // Update template stats
-    const template = await ctx.db
-      .query("emailTemplates")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", email.templateSlug))
-      .unique();
+    // Production sends update template stats; admin tests stay visible in the
+    // queue but do not pollute operational metrics.
+    if (!email.isTest) {
+      const template = await ctx.db
+        .query("emailTemplates")
+        .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", email.templateSlug))
+        .unique();
 
-    if (template) {
-      await ctx.db.patch("emailTemplates", template._id, {
-        lastSentAt: now,
-        totalSent: template.totalSent + 1,
-      });
+      if (template) {
+        await ctx.db.patch("emailTemplates", template._id, {
+          lastSentAt: now,
+          totalSent: template.totalSent + 1,
+        });
+      }
     }
 
     // Emit notification.email_sent event
@@ -506,6 +872,7 @@ export const generateDigest = internalMutation({
     const now = Date.now();
     const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
     const settings = await getEmailSettings(ctx);
+    if (!settings.digestEnabled) return;
 
     // ─── 1. Weekly Content Digest ──────────────────────────────────────
     // Fetch posts published in the last 7 days
@@ -525,7 +892,7 @@ export const generateDigest = internalMutation({
       const postList = postsThisWeek
         .slice(0, 20)
         // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-        .map((p) => `<li><a href="${settings.siteUrl}/posts/${p.slug}">${p.title}</a></li>`)
+        .map((p) => `<li><a href="${buildWebsiteUrl(settings.siteUrl, `/blog/${p.slug}`)}">${p.title}</a></li>`)
         .join("\n");
 
       // Get the weekly digest template
@@ -537,19 +904,12 @@ export const generateDigest = internalMutation({
         .unique();
 
       if (digestTemplate && digestTemplate.isActive) {
-        // Get all active users who haven't unsubscribed from digest
-        const allUsers = await ctx.db
-          .query("users")
-          .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "active"))
-          .take(1000); // H-17 FIX: bounded query
-
-        for (const user of allUsers) {
-          if (!user.email) continue;
-
+        const customers = await getCustomerRecipients(ctx);
+        for (const user of customers) {
           // Check unsubscribe
           const isUnsubscribed = await checkUnsubscribed(
             ctx,
-            getUserIdentifier(user),
+            user.userId,
             "digest",
           );
           if (isUnsubscribed) continue;
@@ -564,8 +924,7 @@ export const generateDigest = internalMutation({
               siteUrl: settings.siteUrl,
               unsubscribeUrl: settings.unsubscribeUrl,
             },
-            user.displayName ??
-              [user.firstName, user.lastName].filter(Boolean).join(" "),
+            user.name,
           );
 
           const subject = renderTemplate(
@@ -577,8 +936,8 @@ export const generateDigest = internalMutation({
 
           await ctx.db.insert("emailQueue", {
             to: user.email,
-            toName: user.displayName,
-            toUserId: getUserIdentifier(user),
+            toName: user.name,
+            toUserId: user.userId,
             from: settings.fromAddress,
             fromName: settings.fromName,
             replyTo: settings.replyTo,
@@ -609,8 +968,6 @@ export const generateDigest = internalMutation({
       .unique();
 
     if (commentDigestTemplate && commentDigestTemplate.isActive && employees.length > 0) {
-      // For each employee, we would aggregate comments on their posts
-      // This is a simplified version - in production, we'd query the comments table
       for (const employee of employees) {
         const isUnsubscribed = await checkUnsubscribed(
           ctx,
@@ -619,10 +976,46 @@ export const generateDigest = internalMutation({
         );
         if (isUnsubscribed) continue;
 
-        // Queue the comment digest (variables would be populated with actual comment data)
+        const employeeUser = await getUserByAnyId(ctx, employee.userId);
+        if (!employeeUser?._id) continue;
+
+        const posts = await ctx.db
+          .query("posts")
+          .withIndex("by_author", (q: any) =>
+            q.eq("authorId", employeeUser._id).eq("type", "post").eq("status", "publish"),
+          )
+          .collect();
+
+        const recentComments: any[] = [];
+        const touchedPosts = new Set<string>();
+        for (const post of posts) {
+          const comments = await ctx.db
+            .query("comments")
+            .withIndex("by_post", (q: any) => q.eq("postId", post._id))
+            .collect();
+
+          for (const comment of comments) {
+            if (
+              comment.createdAt >= oneWeekAgo &&
+              comment.status !== "spam" &&
+              comment.status !== "trash"
+            ) {
+              recentComments.push(comment);
+              touchedPosts.add(String(post._id));
+            }
+          }
+        }
+
+        if (recentComments.length === 0) continue;
+
+        const recentReplies = recentComments.filter((comment) => comment.parentId).length;
+        const pendingComments = recentComments.filter(
+          (comment) => comment.status === "pending",
+        ).length;
+
         const variables = injectGlobalVariables(
           {
-            comment_summary: "You have new comments on your posts this week.",
+            comment_summary: `${recentComments.length} comments were posted across ${touchedPosts.size} of your posts this week, including ${recentReplies} replies and ${pendingComments} awaiting moderation.`,
           },
           {
             siteName: settings.siteName,
@@ -723,42 +1116,7 @@ export const bootstrapTemplates = internalMutation({
   args: {},
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
-    const now = Date.now();
-
-    for (const templateDef of DEFAULT_TEMPLATES) {
-      // Check if template already exists
-      const existing = await ctx.db
-        .query("emailTemplates")
-        .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", templateDef.slug))
-        .unique();
-
-      if (existing) {
-        continue; // Skip existing templates
-      }
-
-      await ctx.db.insert("emailTemplates", {
-        slug: templateDef.slug,
-        name: templateDef.name,
-        description: templateDef.description,
-        subjectTemplate: templateDef.subjectTemplate,
-        bodyHtml: templateDef.bodyHtml,
-        bodyText: undefined,
-        preheaderText: templateDef.preheaderText,
-        availableVariables: templateDef.availableVariables,
-        priority: templateDef.priority,
-        recipientType: templateDef.recipientType,
-        isActive: true,
-        eventCode: templateDef.eventCode,
-        isCustomized: false,
-        defaultSubjectTemplate: templateDef.subjectTemplate,
-        defaultBodyHtml: templateDef.bodyHtml,
-        category: templateDef.category,
-        lastSentAt: undefined,
-        totalSent: 0,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
+    return await runBootstrapTemplates(ctx);
   },
 });
 
@@ -773,36 +1131,44 @@ export const onUserRegistered = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
+    const { event, payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const user =
+      (await getUserByAnyId(ctx, payload.userId ?? event.actorId)) ??
+      null;
+    const recipientEmail = user?.email ?? payload.email ?? "";
+    const recipientName = toDisplayName(user);
+    const recipientUserId = user ? getUserIdentifier(user) : undefined;
 
-    // 1. Welcome email to the user
-    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.WELCOME, {
-      recipientEmail: payload.email ?? "",
-      recipientName: payload.name ?? payload.displayName,
-      recipientUserId: event.actorId,
-      variables: {
-        user_name: payload.name ?? payload.displayName ?? "",
-        user_email: payload.email ?? "",
-      },
-      eventId: args.eventId,
-    });
+    if (recipientEmail) {
+      await queueEmailForEvent(ctx, EMAIL_TEMPLATES.WELCOME, {
+        recipientEmail,
+        recipientName,
+        recipientUserId,
+        variables: {
+          user_name: recipientName,
+          user_email: recipientEmail,
+        },
+        eventId: args.eventId,
+      });
 
-    // 2. Email verification
-    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.VERIFICATION, {
-      recipientEmail: payload.email ?? "",
-      recipientName: payload.name ?? payload.displayName,
-      recipientUserId: event.actorId,
-      variables: {
-        user_name: payload.name ?? payload.displayName ?? "",
-        verification_url: payload.verificationUrl ?? "",
-      },
-      eventId: args.eventId,
-    });
+      await queueEmailForEvent(ctx, EMAIL_TEMPLATES.VERIFICATION, {
+        recipientEmail,
+        recipientName,
+        recipientUserId,
+        variables: {
+          user_name: recipientName,
+          verification_url:
+            payload.verificationUrl ??
+            buildWebsiteUrl(settings.siteUrl, "/verify-email"),
+        },
+        eventId: args.eventId,
+      });
+    }
 
-    // 3. Admin notification (batched)
     const admins = await resolveRecipients(ctx, "admin");
     for (const admin of admins) {
       await queueEmailForEvent(ctx, EMAIL_TEMPLATES.NEW_USER_ADMIN, {
@@ -810,8 +1176,8 @@ export const onUserRegistered = internalMutation({
         recipientName: admin.name,
         recipientUserId: admin.userId,
         variables: {
-          user_email: payload.email ?? "",
-          user_name: payload.name ?? payload.displayName ?? "",
+          user_email: recipientEmail,
+          user_name: recipientName,
         },
         eventId: args.eventId,
       });
@@ -828,17 +1194,34 @@ export const onUserInvited = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
+    const { payload } = eventRecord;
+    if (payload.sendNotification === false) return;
+
+    const invitation = payload.invitationId
+      ? await ctx.db.get(payload.invitationId)
+      : null;
+    const inviter = payload.invitedBy
+      ? await ctx.db.get(payload.invitedBy)
+      : null;
+    const settings = await getEmailSettings(ctx);
+    const inviteToken =
+      invitation?.token ?? payload.token ?? payload.invitationToken ?? "";
 
     await queueEmailForEvent(ctx, EMAIL_TEMPLATES.INVITATION, {
       recipientEmail: payload.email ?? "",
-      recipientName: payload.name,
+      recipientName:
+        [payload.firstName, payload.lastName].filter(Boolean).join(" ") ||
+        undefined,
       variables: {
-        inviter_name: payload.inviterName ?? "",
-        invite_url: payload.inviteUrl ?? "",
+        inviter_name: toDisplayName(inviter),
+        invite_url:
+          payload.inviteUrl ??
+          (inviteToken
+            ? buildWebsiteUrl(settings.siteUrl, `/register?token=${inviteToken}`)
+            : buildWebsiteUrl(settings.siteUrl, "/register")),
         role: payload.role ?? "",
       },
       eventId: args.eventId,
@@ -856,28 +1239,46 @@ export const onLoggedIn = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
-
-    // In a full implementation, check if this device/IP has been seen before
-    // For now, only queue if payload explicitly indicates a new device
-    if (payload.isNewDevice !== "true") return;
-
-    if (!event.actorId) return;
-    const user = await lookupUserByIdentifier(ctx, event.actorId!);
+    const { event, payload } = eventRecord;
+    const user = await getUserByAnyId(ctx, payload.userId ?? event.actorId);
     if (!user || !user.email) return;
+
+    const device = payload.device ?? payload.userAgent ?? "Unknown device";
+    const ipAddress = payload.ip ?? payload.ipAddress ?? event.actorIp ?? "Unknown";
+
+    const recentAlerts = await ctx.db
+      .query("emailQueue")
+      .withIndex("by_recipient", (q: any) => q.eq("to", user.email))
+      .order("desc")
+      .take(25);
+
+    const alreadySeen = recentAlerts.some((queuedEmail: any) => {
+      if (queuedEmail.templateSlug !== EMAIL_TEMPLATES.LOGIN_NEW_DEVICE) {
+        return false;
+      }
+      const variables = parsePayload(queuedEmail.templateVariables);
+      return (
+        variables.device === device &&
+        variables.ip_address === ipAddress &&
+        queuedEmail.status !== "failed" &&
+        queuedEmail.status !== "cancelled"
+      );
+    });
+
+    if (alreadySeen) return;
 
     await queueEmailForEvent(ctx, EMAIL_TEMPLATES.LOGIN_NEW_DEVICE, {
       recipientEmail: user.email,
-      recipientName: user.displayName,
+      recipientName: toDisplayName(user),
       recipientUserId: getUserIdentifier(user),
       variables: {
-        device: payload.device ?? "Unknown device",
-        ip_address: payload.ipAddress ?? event.actorIp ?? "Unknown",
+        device,
+        ip_address: ipAddress,
         location: payload.location ?? "Unknown location",
-        login_time: new Date().toISOString(),
+        login_time: new Date(payload.loginAt ?? event.emittedAt).toISOString(),
       },
       eventId: args.eventId,
     });
@@ -894,44 +1295,38 @@ export const onLoginFailed = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
+    const { event, payload } = eventRecord;
     const targetEmail = payload.email;
     if (!targetEmail) return;
 
-    // Check if this is an auth.login_failed event type
-    // The event constants have auth.login but no auth.login_failed
-    // We check the payload for a failure indicator
-    if (payload.success !== "false" && payload.failed !== "true") return;
-
     // Count recent failures for this email (last 15 minutes)
     const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
-    const recentEvents = await ctx.db
-      .query("events")
-      .withIndex("by_code_emitted", (q: ConvexQueryBuilder) => q.eq("code", event.code))
-      .order("desc")
-      .take(100);
-
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-    const recentFailures = recentEvents.filter((e) => {
-      if (e.emittedAt < fifteenMinutesAgo) return false;
-      try {
-        const p = JSON.parse(e.payload);
-        return (
-          (p.email === targetEmail) &&
-          (p.success === "false" || p.failed === "true")
-        );
-      } catch {
-        return false;
-      }
-    });
+    const recentFailures = await ctx.db
+      .query("failedLoginAttempts")
+      .withIndex("by_email", (q: any) =>
+        q.eq("email", targetEmail).gte("attemptedAt", fifteenMinutesAgo),
+      )
+      .take(25);
 
     // Only send if 5+ failures
     if (recentFailures.length < 5) return;
 
-    // Check for duplicate alert (don't re-send within the same 15-minute window)
+    const existingAlerts = await ctx.db
+      .query("emailQueue")
+      .withIndex("by_template", (q: any) =>
+        q.eq("templateSlug", EMAIL_TEMPLATES.FAILED_LOGIN).gte("createdAt", fifteenMinutesAgo),
+      )
+      .take(50);
+
+    const alreadyAlerted = existingAlerts.some((queuedEmail: any) => {
+      const variables = parsePayload(queuedEmail.templateVariables);
+      return variables.target_email === targetEmail;
+    });
+    if (alreadyAlerted) return;
+
     const admins = await resolveRecipients(ctx, "admin");
     for (const admin of admins) {
       await queueEmailForEvent(ctx, EMAIL_TEMPLATES.FAILED_LOGIN, {
@@ -941,7 +1336,7 @@ export const onLoginFailed = internalMutation({
         variables: {
           target_email: targetEmail,
           attempt_count: String(recentFailures.length),
-          ip_address: event.actorIp ?? "Unknown",
+          ip_address: payload.ip ?? event.actorIp ?? "Unknown",
         },
         eventId: args.eventId,
       });
@@ -956,23 +1351,10 @@ export const onLoginFailed = internalMutation({
 export const onPasswordResetRequested = internalMutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
-
-    const payload = JSON.parse(event.payload) as Record<string, string>;
-
-    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.PASSWORD_RESET, {
-      recipientEmail: payload.email ?? "",
-      recipientName: payload.name,
-      recipientUserId: event.actorId,
-      variables: {
-        reset_url: payload.resetUrl ?? "",
-        expiry_hours: payload.expiryHours ?? "24",
-      },
-      eventId: args.eventId,
-    });
+  handler: async () => {
+    // Password reset emails are queued directly at the point where the secure
+    // reset URL is generated. Keeping this listener active would create a
+    // second, often incomplete copy of the email.
   },
 });
 
@@ -985,22 +1367,20 @@ export const onPasswordChanged = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
-
-    if (!event.actorId) return;
-    const user = await lookupUserByIdentifier(ctx, event.actorId!);
+    const { event, payload } = eventRecord;
+    const user = await getUserByAnyId(ctx, payload.userId ?? event.actorId);
     if (!user || !user.email) return;
 
     await queueEmailForEvent(ctx, EMAIL_TEMPLATES.PASSWORD_CHANGED, {
       recipientEmail: user.email,
-      recipientName: user.displayName,
+      recipientName: toDisplayName(user),
       recipientUserId: getUserIdentifier(user),
       variables: {
-        ip_address: event.actorIp ?? "Unknown",
-        changed_at: new Date().toISOString(),
+        ip_address: event.actorIp ?? payload.ip ?? "Unknown",
+        changed_at: new Date(event.emittedAt).toISOString(),
       },
       eventId: args.eventId,
     });
@@ -1016,49 +1396,57 @@ export const onPostPublished = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
+    const { event, payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const postContext = await getPostContext(
+      ctx,
+      payload.postId,
+      settings.siteUrl,
+    );
+    if (!postContext) return;
 
-    // 1. Author notification
-    if (event.actorId) {
-      const author = await lookupUserByIdentifier(ctx, event.actorId!);
+    const author =
+      postContext.author ??
+      (await getUserByAnyId(
+        ctx,
+        payload.authorId ?? event.actorId ?? postContext.post.authorId,
+      ));
 
-      if (author && author.email) {
-        await queueEmailForEvent(ctx, EMAIL_TEMPLATES.POST_PUBLISHED_AUTHOR, {
-          recipientEmail: author.email,
-          recipientName: author.displayName,
-          recipientUserId: getUserIdentifier(author),
-          variables: {
-            title: payload.title ?? "",
-            post_url: payload.postUrl ?? payload.url ?? "",
-          },
-          eventId: args.eventId,
-        });
-      }
+    if (author?.email) {
+      await queueEmailForEvent(ctx, EMAIL_TEMPLATES.POST_PUBLISHED_AUTHOR, {
+        recipientEmail: author.email,
+        recipientName: toDisplayName(author),
+        recipientUserId: getUserIdentifier(author),
+        variables: {
+          title: postContext.post.title,
+          post_title: postContext.post.title,
+          post_url: postContext.postUrl,
+          published_at: new Date(
+            postContext.post.publishedAt ?? event.emittedAt,
+          ).toISOString(),
+        },
+        eventId: args.eventId,
+      });
     }
 
-    // 2. Subscriber notification (batched) - all active users except the author
-    const allUsers = await ctx.db
-      .query("users")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "active"))
-      .take(1000); // H-17 FIX: bounded query
-
-    for (const user of allUsers) {
-      if (!user.email) continue;
-      // Don't send to the author
-      if (event.actorId && getUserIdentifier(user) === event.actorId) continue;
+    const customers = await getCustomerRecipients(ctx);
+    for (const user of customers) {
+      if (author && user.userId === getUserIdentifier(author)) continue;
 
       await queueEmailForEvent(ctx, EMAIL_TEMPLATES.POST_PUBLISHED_SUBSCRIBERS, {
         recipientEmail: user.email,
-        recipientName: user.displayName,
-        recipientUserId: getUserIdentifier(user),
+        recipientName: user.name,
+        recipientUserId: user.userId,
         variables: {
-          title: payload.title ?? "",
-          excerpt: payload.excerpt ?? "",
-          post_url: payload.postUrl ?? payload.url ?? "",
-          author_name: payload.authorName ?? "",
+          title: postContext.post.title,
+          post_title: postContext.post.title,
+          excerpt: postContext.excerpt,
+          post_excerpt: postContext.excerpt,
+          post_url: postContext.postUrl,
+          author_name: author ? toDisplayName(author) : "",
         },
         eventId: args.eventId,
         correlationId: event.correlationId,
@@ -1076,22 +1464,41 @@ export const onPostScheduled = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
-
-    if (!event.actorId) return;
-    const author = await lookupUserByIdentifier(ctx, event.actorId!);
+    const { event, payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const postContext = await getPostContext(
+      ctx,
+      payload.postId,
+      settings.siteUrl,
+    );
+    const author = await getUserByAnyId(
+      ctx,
+      payload.authorId ?? event.actorId ?? postContext?.post.authorId,
+    );
     if (!author || !author.email) return;
 
     await queueEmailForEvent(ctx, EMAIL_TEMPLATES.POST_SCHEDULED, {
       recipientEmail: author.email,
-      recipientName: author.displayName,
+      recipientName: toDisplayName(author),
       recipientUserId: getUserIdentifier(author),
       variables: {
-        title: payload.title ?? "",
-        date: payload.scheduledDate ?? payload.publishDate ?? "",
+        title: postContext?.post.title ?? payload.title ?? "",
+        post_title: postContext?.post.title ?? payload.title ?? "",
+        date:
+          payload.scheduledDate ??
+          payload.publishDate ??
+          String(postContext?.post.scheduledAt ?? ""),
+        scheduled_date:
+          payload.scheduledDate ??
+          payload.publishDate ??
+          String(postContext?.post.scheduledAt ?? ""),
+        edit_url: buildWebsiteUrl(
+          settings.siteUrl,
+          `/admin/posts/${payload.postId ?? ""}/edit`,
+        ),
       },
       eventId: args.eventId,
     });
@@ -1107,33 +1514,40 @@ export const onCommentCreated = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
+    const { payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const commentContext = await getCommentContext(
+      ctx,
+      payload.commentId,
+      settings.siteUrl,
+    );
+    if (!commentContext) return;
 
-    // 1. Notify the post author
-    if (payload.postAuthorId && payload.postAuthorId !== event.actorId) {
-      const author = await lookupUserByIdentifier(ctx, payload.postAuthorId);
-
-      if (author && author.email) {
-        await queueEmailForEvent(ctx, EMAIL_TEMPLATES.NEW_COMMENT_AUTHOR, {
-          recipientEmail: author.email,
-          recipientName: author.displayName,
-          recipientUserId: getUserIdentifier(author),
-          variables: {
-            post_title: payload.postTitle ?? "",
-            commenter_name: payload.commenterName ?? "",
-            comment_excerpt: payload.commentExcerpt ?? payload.content ?? "",
-            post_url: payload.postUrl ?? "",
-          },
-          eventId: args.eventId,
-        });
-      }
+    if (
+      commentContext.postAuthor?.email &&
+      commentContext.postAuthor._id !== commentContext.commentAuthor?._id
+    ) {
+      await queueEmailForEvent(ctx, EMAIL_TEMPLATES.NEW_COMMENT_AUTHOR, {
+        recipientEmail: commentContext.postAuthor.email,
+        recipientName: toDisplayName(commentContext.postAuthor),
+        recipientUserId: getUserIdentifier(commentContext.postAuthor),
+        variables: {
+          post_title: commentContext.post.title,
+          commenter_name:
+            commentContext.comment.authorName ??
+            toDisplayName(commentContext.commentAuthor),
+          comment_excerpt: commentContext.commentExcerpt,
+          post_url: commentContext.postUrl,
+          comment_url: commentContext.commentUrl,
+        },
+        eventId: args.eventId,
+      });
     }
 
-    // 2. Moderation notification (if comment requires moderation)
-    if (payload.requiresModeration === "true") {
+    if (commentContext.comment.status !== "approved") {
       const admins = await resolveRecipients(ctx, "admin");
       for (const admin of admins) {
         await queueEmailForEvent(ctx, EMAIL_TEMPLATES.COMMENT_MODERATION, {
@@ -1141,9 +1555,15 @@ export const onCommentCreated = internalMutation({
           recipientName: admin.name,
           recipientUserId: admin.userId,
           variables: {
-            post_title: payload.postTitle ?? "",
-            commenter_name: payload.commenterName ?? "",
-            comment_excerpt: payload.commentExcerpt ?? payload.content ?? "",
+            post_title: commentContext.post.title,
+            commenter_name:
+              commentContext.comment.authorName ??
+              toDisplayName(commentContext.commentAuthor),
+            comment_excerpt: commentContext.commentExcerpt,
+            moderation_url: buildWebsiteUrl(
+              settings.siteUrl,
+              "/admin/comments?status=pending",
+            ),
           },
           eventId: args.eventId,
         });
@@ -1161,27 +1581,29 @@ export const onCommentApproved = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
+    const { payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const commentContext = await getCommentContext(
+      ctx,
+      payload.commentId,
+      settings.siteUrl,
+    );
+    if (!commentContext?.commentAuthor?.email) return;
 
-    if (payload.commenterUserId) {
-      const commenter = await lookupUserByIdentifier(ctx, payload.commenterUserId);
-
-      if (commenter && commenter.email) {
-        await queueEmailForEvent(ctx, EMAIL_TEMPLATES.COMMENT_APPROVED, {
-          recipientEmail: commenter.email,
-          recipientName: commenter.displayName,
-          recipientUserId: getUserIdentifier(commenter),
-          variables: {
-            post_title: payload.postTitle ?? "",
-            comment_url: payload.commentUrl ?? "",
-          },
-          eventId: args.eventId,
-        });
-      }
-    }
+    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.COMMENT_APPROVED, {
+      recipientEmail: commentContext.commentAuthor.email,
+      recipientName: toDisplayName(commentContext.commentAuthor),
+      recipientUserId: getUserIdentifier(commentContext.commentAuthor),
+      variables: {
+        post_title: commentContext.post.title,
+        comment_url: commentContext.commentUrl,
+        comment_excerpt: commentContext.commentExcerpt,
+      },
+      eventId: args.eventId,
+    });
   },
 });
 
@@ -1195,33 +1617,39 @@ export const onCommentReplied = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
+    const { payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const commentContext = await getCommentContext(
+      ctx,
+      payload.commentId,
+      settings.siteUrl,
+    );
+    if (!commentContext?.comment.parentId) return;
 
-    // Only process if this is a reply (has parent comment reference)
-    if (!payload.parentCommentAuthorId) return;
+    const parentComment = await ctx.db.get(commentContext.comment.parentId);
+    if (!parentComment?.authorId) return;
+    if (parentComment.authorId === commentContext.comment.authorId) return;
 
-    // Don't notify if the replier is the same as the parent author
-    if (event.actorId === payload.parentCommentAuthorId) return;
+    const parentAuthor = await getUserByAnyId(ctx, parentComment.authorId);
+    if (!parentAuthor?.email) return;
 
-    const parentAuthor = await lookupUserByIdentifier(ctx, payload.parentCommentAuthorId);
-
-    if (parentAuthor && parentAuthor.email) {
-      await queueEmailForEvent(ctx, EMAIL_TEMPLATES.COMMENT_REPLY, {
-        recipientEmail: parentAuthor.email,
-        recipientName: parentAuthor.displayName,
-        recipientUserId: getUserIdentifier(parentAuthor),
-        variables: {
-          replier_name: payload.commenterName ?? "",
-          post_title: payload.postTitle ?? "",
-          reply_excerpt: payload.commentExcerpt ?? payload.content ?? "",
-          comment_url: payload.commentUrl ?? "",
-        },
-        eventId: args.eventId,
-      });
-    }
+    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.COMMENT_REPLY, {
+      recipientEmail: parentAuthor.email,
+      recipientName: toDisplayName(parentAuthor),
+      recipientUserId: getUserIdentifier(parentAuthor),
+      variables: {
+        replier_name:
+          commentContext.comment.authorName ??
+          toDisplayName(commentContext.commentAuthor),
+        post_title: commentContext.post.title,
+        reply_excerpt: commentContext.commentExcerpt,
+        comment_url: commentContext.commentUrl,
+      },
+      eventId: args.eventId,
+    });
   },
 });
 
@@ -1234,24 +1662,32 @@ export const onRoleAssigned = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
-
+    const { payload } = eventRecord;
     const targetUserId = payload.userId ?? payload.targetUserId;
     if (!targetUserId) return;
 
-    const user = await lookupUserByIdentifier(ctx, targetUserId);
+    const user = await getUserByAnyId(ctx, targetUserId);
 
     if (user && user.email) {
       await queueEmailForEvent(ctx, EMAIL_TEMPLATES.ROLE_CHANGED, {
         recipientEmail: user.email,
-        recipientName: user.displayName,
+        recipientName: toDisplayName(user),
         recipientUserId: getUserIdentifier(user),
         variables: {
-          role: payload.newRole ?? payload.roleName ?? "",
-          old_role: payload.oldRole ?? "",
+          role:
+            payload.newRole ??
+            payload.newRoleName ??
+            payload.newRoleSlug ??
+            payload.roleName ??
+            "",
+          old_role:
+            payload.oldRole ??
+            payload.previousRole ??
+            payload.oldRoleName ??
+            "",
         },
         eventId: args.eventId,
       });
@@ -1268,14 +1704,14 @@ export const onRevisionRestored = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
-
-    // Notify employees (Editor+)
+    const { payload } = eventRecord;
+    const post = payload.postId ? await ctx.db.get(payload.postId) : null;
     const employees = await resolveRecipients(ctx, "employee");
-    const actorName = payload.restoredBy ?? "Someone";
+    const actor = await getUserByAnyId(ctx, payload.restoredBy);
+    const actorName = toDisplayName(actor) || "Someone";
 
     for (const emp of employees) {
       await queueEmailForEvent(ctx, EMAIL_TEMPLATES.REVISION_RESTORED, {
@@ -1284,8 +1720,10 @@ export const onRevisionRestored = internalMutation({
         recipientUserId: emp.userId,
         variables: {
           user: actorName,
-          post_title: payload.postTitle ?? "",
-          revision_date: payload.revisionDate ?? "",
+          post_title: post?.title ?? payload.postTitle ?? "",
+          revision_date:
+            payload.revisionDate ??
+            (post?.updatedAt ? new Date(post.updatedAt).toISOString() : ""),
         },
         eventId: args.eventId,
       });
@@ -1303,13 +1741,28 @@ export const onMediaUploaded = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
+    const mediaSettingsDoc = await ctx.db
+      .query("settings")
+      .withIndex("by_section", (q: any) => q.eq("section", "media"))
+      .unique();
+    const mediaSettings = (mediaSettingsDoc?.values ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const storageQuotaBytes =
+      typeof mediaSettings.storageQuotaBytes === "number"
+        ? mediaSettings.storageQuotaBytes
+        : 5 * 1024 * 1024 * 1024;
 
-    // Only send if storage usage is flagged as high
-    const usagePercent = Number(payload.storageUsagePercent ?? "0");
+    const mediaRows = await ctx.db.query("media").take(5000);
+    const usedBytes = mediaRows.reduce(
+      (sum: number, media: any) => sum + (media.fileSize ?? 0),
+      0,
+    );
+    const usagePercent = Math.round((usedBytes / storageQuotaBytes) * 100);
     if (usagePercent < 80) return;
 
     // Check for deduplication: at most once per 24 hours
@@ -1333,8 +1786,8 @@ export const onMediaUploaded = internalMutation({
         recipientUserId: admin.userId,
         variables: {
           usage_percent: String(usagePercent),
-          used_space: payload.usedSpace ?? "",
-          total_space: payload.totalSpace ?? "",
+          used_space: `${(usedBytes / (1024 * 1024 * 1024)).toFixed(1)} GB`,
+          total_space: `${(storageQuotaBytes / (1024 * 1024 * 1024)).toFixed(1)} GB`,
         },
         eventId: args.eventId,
       });
@@ -1351,14 +1804,15 @@ export const onSettingsUpdated = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
+    const { event, payload } = eventRecord;
 
     // Don't send email for email template changes (avoid noise)
     if (payload.section === "email_templates") return;
 
+    const actor = await getUserByAnyId(ctx, payload.updatedBy ?? event.actorId);
     const admins = await resolveRecipients(ctx, "admin");
     for (const admin of admins) {
       // Don't notify the admin who made the change
@@ -1370,7 +1824,7 @@ export const onSettingsUpdated = internalMutation({
         recipientUserId: admin.userId,
         variables: {
           section: payload.section ?? "",
-          changed_by: payload.updatedBy ?? event.actorId ?? "Unknown",
+          changed_by: toDisplayName(actor) || "Unknown",
         },
         eventId: args.eventId,
       });
@@ -1387,10 +1841,10 @@ export const onSitemapGenerated = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
+    const { payload } = eventRecord;
 
     const admins = await resolveRecipients(ctx, "admin");
     for (const admin of admins) {
@@ -1399,8 +1853,8 @@ export const onSitemapGenerated = internalMutation({
         recipientName: admin.name,
         recipientUserId: admin.userId,
         variables: {
-          url_count: payload.urlCount ?? "",
-          sitemap_url: payload.sitemapUrl ?? "",
+          url_count: String(payload.urlCount ?? payload.pageCount ?? ""),
+          sitemap_url: payload.sitemapUrl ?? payload.url ?? "",
         },
         eventId: args.eventId,
       });
@@ -1418,15 +1872,15 @@ export const onWebhookTriggered = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
+    const { payload } = eventRecord;
 
     // Only send for failures
-    const statusCode = Number(payload.statusCode ?? "200");
+    const statusCode = Number(payload.statusCode ?? "0");
     const isFailure =
-      statusCode >= 400 || payload.networkError === "true";
+      statusCode >= 400 || payload.networkError === true || payload.success === false;
     if (!isFailure) return;
 
     const admins = await resolveRecipients(ctx, "admin");
@@ -1437,8 +1891,8 @@ export const onWebhookTriggered = internalMutation({
         recipientUserId: admin.userId,
         variables: {
           endpoint: payload.endpoint ?? payload.url ?? "",
-          status_code: String(statusCode),
-          error: payload.error ?? "",
+          status_code: statusCode > 0 ? String(statusCode) : "",
+          error: payload.error ?? payload.errorMessage ?? "",
         },
         eventId: args.eventId,
       });
@@ -1455,20 +1909,19 @@ export const onProfileDeactivated = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
-
+    const { event, payload } = eventRecord;
     const targetUserId = payload.userId ?? payload.targetUserId ?? event.actorId;
     if (!targetUserId) return;
 
-    const user = await lookupUserByIdentifier(ctx, targetUserId);
+    const user = await getUserByAnyId(ctx, targetUserId);
 
     if (user && user.email) {
       await queueEmailForEvent(ctx, EMAIL_TEMPLATES.ACCOUNT_DEACTIVATED, {
         recipientEmail: user.email,
-        recipientName: user.displayName,
+        recipientName: toDisplayName(user),
         recipientUserId: getUserIdentifier(user),
         variables: {
           reason: payload.reason ?? "",
@@ -1491,11 +1944,10 @@ export const onProfileDeleted = internalMutation({
   args: { eventId: v.id("events") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const event = await ctx.db.get("events", args.eventId);
-    if (!event) return;
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
 
-    const payload = JSON.parse(event.payload) as Record<string, string>;
-
+    const { payload } = eventRecord;
     // The user may already be deleted, so use the payload email
     const email = payload.email;
     const name = payload.name ?? payload.displayName;
@@ -1512,3 +1964,288 @@ export const onProfileDeleted = internalMutation({
     });
   },
 });
+
+const onTicketRepliedConfig: any = {
+  args: { eventId: v.id("events") },
+  handler: async (ctx: any, args: any) => {
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
+
+    const { payload } = eventRecord;
+    if (payload.isInternal === true) return;
+
+    const settings = await getEmailSettings(ctx);
+    const ticketContext = await getTicketContext(
+      ctx,
+      payload.ticketId,
+      settings.siteUrl,
+    );
+    if (!ticketContext) return;
+
+    const message = payload.messageId ? await ctx.db.get(payload.messageId) : null;
+    const replyExcerpt = excerptText(message?.content);
+
+    if (payload.senderType === "admin" && ticketContext.owner?.email) {
+      await queueEmailForEvent(ctx, EMAIL_TEMPLATES.TICKET_REPLY_NOTIFICATION, {
+        recipientEmail: ticketContext.owner.email,
+        recipientName: toDisplayName(ticketContext.owner),
+        recipientUserId: getUserIdentifier(ticketContext.owner),
+        variables: {
+          user_name: toDisplayName(ticketContext.owner),
+          ticket_id: ticketContext.ticket.ticketNumber,
+          subject: ticketContext.ticket.subject,
+          reply_excerpt: replyExcerpt,
+          ticket_url: ticketContext.ticketUrl,
+        },
+        eventId: args.eventId,
+      });
+    }
+
+    if (payload.senderType === "user" && ticketContext.assignee?.email) {
+      await queueEmailForEvent(ctx, EMAIL_TEMPLATES.TICKET_USER_REPLY, {
+        recipientEmail: ticketContext.assignee.email,
+        recipientName: toDisplayName(ticketContext.assignee),
+        recipientUserId: getUserIdentifier(ticketContext.assignee),
+        variables: {
+          agent_name: toDisplayName(ticketContext.assignee),
+          ticket_id: ticketContext.ticket.ticketNumber,
+          subject: ticketContext.ticket.subject,
+          user_name:
+            ticketContext.owner?.displayName ??
+            ticketContext.ticket.userNameSnapshot,
+          reply_excerpt: replyExcerpt,
+          ticket_url: ticketContext.ticketUrl,
+        },
+        eventId: args.eventId,
+      });
+    }
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onTicketReplied = internalMutation(onTicketRepliedConfig);
+
+const onTicketAssignedConfig: any = {
+  args: { eventId: v.id("events") },
+  handler: async (ctx: any, args: any) => {
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
+
+    const { payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const ticketContext = await getTicketContext(
+      ctx,
+      payload.ticketId,
+      settings.siteUrl,
+    );
+    if (!ticketContext?.assignee?.email) return;
+
+    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.TICKET_ASSIGNED, {
+      recipientEmail: ticketContext.assignee.email,
+      recipientName: toDisplayName(ticketContext.assignee),
+      recipientUserId: getUserIdentifier(ticketContext.assignee),
+      variables: {
+        agent_name: toDisplayName(ticketContext.assignee),
+        ticket_id: ticketContext.ticket.ticketNumber,
+        subject: ticketContext.ticket.subject,
+        priority: ticketContext.ticket.priority,
+        category: ticketContext.ticket.category,
+        ticket_url: ticketContext.ticketUrl,
+      },
+      eventId: args.eventId,
+    });
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onTicketAssigned = internalMutation(onTicketAssignedConfig);
+
+const onTicketResolvedConfig: any = {
+  args: { eventId: v.id("events") },
+  handler: async (ctx: any, args: any) => {
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
+
+    const { payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const ticketContext = await getTicketContext(
+      ctx,
+      payload.ticketId,
+      settings.siteUrl,
+    );
+    if (!ticketContext?.owner?.email) return;
+
+    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.TICKET_RESOLVED, {
+      recipientEmail: ticketContext.owner.email,
+      recipientName: toDisplayName(ticketContext.owner),
+      recipientUserId: getUserIdentifier(ticketContext.owner),
+      variables: {
+        user_name: toDisplayName(ticketContext.owner),
+        ticket_id: ticketContext.ticket.ticketNumber,
+        subject: ticketContext.ticket.subject,
+        rating_url: ticketContext.ticketUrl,
+        ticket_url: ticketContext.ticketUrl,
+      },
+      eventId: args.eventId,
+    });
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onTicketResolved = internalMutation(onTicketResolvedConfig);
+
+const onKbWorkflowStepReadyConfig: any = {
+  args: { eventId: v.id("events") },
+  handler: async (ctx: any, args: any) => {
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
+
+    const { payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const articleContext = await getKbArticleContext(
+      ctx,
+      payload.articleId,
+      settings.siteUrl,
+    );
+    const reviewer = payload.assigneeId
+      ? await ctx.db.get(payload.assigneeId)
+      : null;
+    if (!articleContext || !reviewer?.email) return;
+
+    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.KB_WORKFLOW_STEP_READY, {
+      recipientEmail: reviewer.email,
+      recipientName: toDisplayName(reviewer),
+      recipientUserId: getUserIdentifier(reviewer),
+      variables: {
+        reviewer_name: toDisplayName(reviewer),
+        article_title: articleContext.article.title,
+        article_url: articleContext.articleUrl,
+        step_name: payload.stepName ?? payload.workflowStep ?? "Review",
+        author_name: articleContext.author ? toDisplayName(articleContext.author) : "",
+      },
+      eventId: args.eventId,
+    });
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onKbWorkflowStepReady = internalMutation(onKbWorkflowStepReadyConfig);
+
+const onKbWorkflowApprovedConfig: any = {
+  args: { eventId: v.id("events") },
+  handler: async (ctx: any, args: any) => {
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
+
+    const { payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const articleContext = await getKbArticleContext(
+      ctx,
+      payload.articleId,
+      settings.siteUrl,
+    );
+    const reviewer = await getUserByAnyId(ctx, payload.reviewerId);
+    if (!articleContext?.author?.email) return;
+
+    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.KB_WORKFLOW_APPROVED, {
+      recipientEmail: articleContext.author.email,
+      recipientName: toDisplayName(articleContext.author),
+      recipientUserId: getUserIdentifier(articleContext.author),
+      variables: {
+        author_name: toDisplayName(articleContext.author),
+        article_title: articleContext.article.title,
+        article_url: articleContext.articleUrl,
+        reviewer_name: toDisplayName(reviewer),
+        next_step: payload.nextStep ?? "Published",
+      },
+      eventId: args.eventId,
+    });
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onKbWorkflowApproved = internalMutation(onKbWorkflowApprovedConfig);
+
+const onKbWorkflowRejectedConfig: any = {
+  args: { eventId: v.id("events") },
+  handler: async (ctx: any, args: any) => {
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
+
+    const { payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const articleContext = await getKbArticleContext(
+      ctx,
+      payload.articleId,
+      settings.siteUrl,
+    );
+    const reviewer = await getUserByAnyId(ctx, payload.reviewerId);
+    if (!articleContext?.author?.email) return;
+
+    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.KB_WORKFLOW_REJECTED, {
+      recipientEmail: articleContext.author.email,
+      recipientName: toDisplayName(articleContext.author),
+      recipientUserId: getUserIdentifier(articleContext.author),
+      variables: {
+        author_name: toDisplayName(articleContext.author),
+        article_title: articleContext.article.title,
+        article_url: articleContext.articleUrl,
+        reviewer_name: toDisplayName(reviewer),
+        rejection_reason: payload.rejectionReason ?? "",
+      },
+      eventId: args.eventId,
+    });
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onKbWorkflowRejected = internalMutation(onKbWorkflowRejectedConfig);
+
+const onKbCommentCreatedConfig: any = {
+  args: { eventId: v.id("events") },
+  handler: async (ctx: any, args: any) => {
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
+
+    const { payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const articleContext = await getKbArticleContext(
+      ctx,
+      payload.articleId,
+      settings.siteUrl,
+    );
+    const comment = payload.commentId ? await ctx.db.get(payload.commentId) : null;
+    const commentAuthor = payload.userId ? await ctx.db.get(payload.userId) : null;
+    if (!articleContext || !comment) return;
+
+    const recipients =
+      articleContext.author && articleContext.author.email
+        ? [
+            {
+              email: articleContext.author.email,
+              name: toDisplayName(articleContext.author),
+              userId: getUserIdentifier(articleContext.author),
+            },
+          ]
+        : await resolveRecipients(ctx, "admin");
+
+    for (const recipient of recipients) {
+      await queueEmailForEvent(ctx, EMAIL_TEMPLATES.KB_COMMENT_NOTIFICATION, {
+        recipientEmail: recipient.email,
+        recipientName: recipient.name,
+        recipientUserId: recipient.userId,
+        variables: {
+          recipient_name: recipient.name ?? "",
+          article_title: articleContext.article.title,
+          article_url: articleContext.articleUrl,
+          comment_author: toDisplayName(commentAuthor),
+          comment_excerpt: excerptText(comment.content),
+        },
+        eventId: args.eventId,
+      });
+    }
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onKbCommentCreated = internalMutation(onKbCommentCreatedConfig);

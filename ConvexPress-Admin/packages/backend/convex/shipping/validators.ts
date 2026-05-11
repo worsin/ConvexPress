@@ -38,6 +38,7 @@ export const saveProviderSecretArgs = {
 
 export const createShipStationLabelForOrderArgs = {
   orderId: v.id("commerce_orders"),
+  rateId: v.optional(v.string()),
 };
 
 export const syncShipStationTrackingArgs = {
@@ -46,6 +47,7 @@ export const syncShipStationTrackingArgs = {
 
 export const createShippingLabelForOrderArgs = {
   orderId: v.id("commerce_orders"),
+  rateId: v.optional(v.string()),
 };
 
 export const syncShipmentTrackingArgs = {

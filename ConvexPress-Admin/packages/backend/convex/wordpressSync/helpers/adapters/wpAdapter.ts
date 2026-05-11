@@ -336,7 +336,13 @@ export class WPAdapter extends BaseAdapter {
   ): Promise<FullDetectedCapabilities> {
     const basic = this.detectCapabilities(siteInfo);
 
-    // Detect Elementor by checking first post's meta for _elementor_data
+    // Detect Elementor — two strategies:
+    //   1. Custom postmeta endpoint (plugin-installed): authoritative, looks
+    //      for the `_elementor_data` meta key directly.
+    //   2. Content sniff: fetch a published page's rendered content and look
+    //      for Elementor's signature CSS classes. Works on any WordPress
+    //      install without extra plugins, which matches what we'll see on
+    //      most customer sites.
     let elementorDetected = false;
     if (basic.customMetaEndpoint) {
       try {
@@ -346,7 +352,15 @@ export class WPAdapter extends BaseAdapter {
           elementorDetected = meta !== null && "_elementor_data" in meta;
         }
       } catch {
-        /* non-critical — Elementor detection is best-effort */
+        /* non-critical */
+      }
+    }
+    if (!elementorDetected) {
+      try {
+        const sniff = await this.sniffElementorInContent();
+        elementorDetected = sniff;
+      } catch {
+        /* non-critical */
       }
     }
 
@@ -370,5 +384,52 @@ export class WPAdapter extends BaseAdapter {
       elementorDetected,
       mediaAccessible,
     };
+  }
+
+  /**
+   * Sniff Elementor by looking for its signature CSS classes in rendered
+   * page or post content. Works without any plugin on the source site.
+   *
+   * Elementor wraps every section, column, and widget in elements with a
+   * stable `elementor-element` (or `elementor-section`, `elementor-widget`)
+   * class. If we see any of those in the rendered HTML of the first
+   * published page or post, Elementor is in use.
+   */
+  private async sniffElementorInContent(): Promise<boolean> {
+    const baseUrl = this.config.siteUrl.replace(/\/$/, "");
+    const credentials = btoa(
+      `${this.config.username}:${this.config.password}`,
+    );
+    const headers = {
+      Authorization: `Basic ${credentials}`,
+      Accept: "application/json",
+    };
+
+    const sniffEndpoints = [
+      `${baseUrl}/wp-json/wp/v2/pages?per_page=3&_fields=content,id`,
+      `${baseUrl}/wp-json/wp/v2/posts?per_page=3&_fields=content,id`,
+    ];
+
+    const elementorRegex =
+      /elementor-(?:element|section|widget|column|container|kit-)/i;
+
+    for (const url of sniffEndpoints) {
+      try {
+        const res = await fetch(url, { headers });
+        if (!res.ok) continue;
+        const data = (await res.json()) as Array<{
+          content?: { rendered?: string };
+        }>;
+        for (const item of data) {
+          const html = item.content?.rendered ?? "";
+          if (elementorRegex.test(html)) {
+            return true;
+          }
+        }
+      } catch {
+        /* non-critical */
+      }
+    }
+    return false;
   }
 }

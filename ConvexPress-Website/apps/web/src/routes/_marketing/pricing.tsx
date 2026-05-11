@@ -29,20 +29,16 @@ export const Route = createFileRoute("/_marketing/pricing")({
   loader: async ({ context: { queryClient } }) => {
     // Pre-fetch both queries in parallel for SSR
     await Promise.all([
-      queryClient.ensureQueryData(
-        // @ts-expect-error — type-gen gap between admin/website; Wave 7 removes
-        convexQuery((api as any).commerceSubscriptions.pricingCards.getPricingCardConfig, {}),
-      ),
-      queryClient.ensureQueryData(
-        // @ts-expect-error — type-gen gap between admin/website; Wave 7 removes
-        convexQuery((api as any).commerceSubscriptions.offers.listOffersForPricing, {}),
-      ),
-    ]);
-  },
-  head: ({ loaderData }) => {
-    // loaderData is not typed here due to the (api as any) pattern.
-    // We rely on the page component to read the headline/subheadline.
-    return {
+	      queryClient.ensureQueryData(
+	        convexQuery((api as any).commerceSubscriptions.pricingCards.getPricingCardConfig, {}),
+	      ),
+	      queryClient.ensureQueryData(
+	        convexQuery((api as any).commerceSubscriptions.offers.listOffersForPricing, {}),
+	      ),
+	    ]);
+	  },
+	  head: () => {
+	    return {
       meta: [
         { title: "Pricing - ConvexPress" },
         {

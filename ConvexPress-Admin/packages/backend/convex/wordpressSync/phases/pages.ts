@@ -238,7 +238,7 @@ export const importBatch = internalAction({
           }
 
           // Create the page
-          const pageId = await ctx.runMutation(internal.wordpressSync.phases.pagesCreate, {
+          const pageId = await ctx.runMutation(internal.wordpressSync.phases.pages.pagesCreate, {
             existingId: existingPageId,
             wpPage: {
               id: wpPage.id,
@@ -261,14 +261,14 @@ export const importBatch = internalAction({
 
           // Store Elementor data if present (this is critical for pages!)
           if (processedContent.elementorData) {
-            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
               postId: pageId,
               key: "_elementor_data",
               value: processedContent.elementorData,
             });
 
             // Mark this page as using Elementor
-            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
               postId: pageId,
               key: "_elementor_edit_mode",
               value: "builder",
@@ -277,7 +277,7 @@ export const importBatch = internalAction({
 
           // Store original rendered HTML for reference and future re-rendering.
           if (wpPage.content?.rendered) {
-            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
               postId: pageId,
               key: "_wp_content_rendered",
               value: wpPage.content.rendered,
@@ -286,7 +286,7 @@ export const importBatch = internalAction({
 
           // Store ACF data
           for (const acfMeta of processedContent.acfMeta) {
-            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
               postId: pageId,
               key: acfMeta.key,
               value: acfMeta.value,
@@ -295,7 +295,7 @@ export const importBatch = internalAction({
 
           // Store Yoast SEO data
           for (const seoMeta of processedContent.seoMeta) {
-            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
               postId: pageId,
               key: seoMeta.key,
               value: seoMeta.value,
@@ -311,7 +311,7 @@ export const importBatch = internalAction({
           ]);
 
           for (const sourceMeta of selectWpPostMetaForPreservation(pageMeta, storedMetaKeys)) {
-            await ctx.runMutation(internal.wordpressSync.phases.postsCreateMeta, {
+            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
               postId: pageId,
               key: sourceMeta.key,
               value: sourceMeta.value,

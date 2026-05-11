@@ -23,6 +23,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   BookOpenIcon,
+  ShoppingCartIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,9 @@ interface FormData {
   siteUrl: string;
   username: string;
   applicationPassword: string;
+  wooAuthMode: "shared" | "separate";
+  wooConsumerKey: string;
+  wooConsumerSecret: string;
 }
 
 export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
@@ -51,6 +55,9 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
     siteUrl: "",
     username: "",
     applicationPassword: "",
+    wooAuthMode: "shared",
+    wooConsumerKey: "",
+    wooConsumerSecret: "",
   });
   const [testStatus, setTestStatus] = useState<TestStatus>("idle");
   const [testError, setTestError] = useState<string | null>(null);
@@ -58,8 +65,12 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
     siteName?: string;
     siteDescription?: string;
     wpVersion?: string;
+    wooDetected?: boolean;
+    wooAuthValid?: boolean;
+    elementorDetected?: boolean;
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showWooHelp, setShowWooHelp] = useState(false);
 
   const createSite = useMutation(api.wordpressSync.mutations.createSite);
   const testConnection = useAction(
@@ -71,7 +82,10 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
     if (
       field === "siteUrl" ||
       field === "username" ||
-      field === "applicationPassword"
+      field === "applicationPassword" ||
+      field === "wooConsumerKey" ||
+      field === "wooConsumerSecret" ||
+      field === "wooAuthMode"
     ) {
       setTestStatus("idle");
       setTestError(null);
@@ -97,9 +111,19 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
         siteUrl: formData.siteUrl,
         username: formData.username,
         applicationPassword: formData.applicationPassword,
+        wooAuthMode: formData.wooAuthMode,
+        wooConsumerKey:
+          formData.wooAuthMode === "separate"
+            ? formData.wooConsumerKey || undefined
+            : undefined,
+        wooConsumerSecret:
+          formData.wooAuthMode === "separate"
+            ? formData.wooConsumerSecret || undefined
+            : undefined,
       });
 
       if (result.success) {
+        const caps = (result as any).capabilities ?? {};
         setTestStatus("success");
         setTestDetails({
           siteName: result.siteInfo.name,
@@ -107,6 +131,9 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
           wpVersion: result.siteInfo.namespaces?.includes("wp/v2")
             ? "5.0+"
             : "Unknown",
+          wooDetected: Boolean(caps.woocommerceApi),
+          wooAuthValid: Boolean(caps.wooAuthValid),
+          elementorDetected: Boolean(caps.elementorDetected),
         });
         // Auto-fill name if empty
         if (!formData.name && result.siteInfo.name) {
@@ -151,6 +178,15 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
         siteUrl: formData.siteUrl,
         username: formData.username,
         applicationPassword: formData.applicationPassword,
+        wooAuthMode: formData.wooAuthMode,
+        wooConsumerKey:
+          formData.wooAuthMode === "separate"
+            ? formData.wooConsumerKey || undefined
+            : undefined,
+        wooConsumerSecret:
+          formData.wooAuthMode === "separate"
+            ? formData.wooConsumerSecret || undefined
+            : undefined,
       });
 
       toast.success("WordPress site added successfully");
@@ -171,6 +207,9 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
       siteUrl: "",
       username: "",
       applicationPassword: "",
+      wooAuthMode: "shared",
+      wooConsumerKey: "",
+      wooConsumerSecret: "",
     });
     setTestStatus("idle");
     setTestError(null);
@@ -274,6 +313,117 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
             </div>
           </div>
 
+          {/* WooCommerce credentials */}
+          <div className="rounded-lg border border-border bg-card/50 p-4 space-y-4">
+            <div className="flex items-start gap-3">
+              <ShoppingCartIcon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-foreground">
+                  WooCommerce credentials
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Required to import products with prices, variants, attributes,
+                  orders, and customers. Skip if this is a content-only site.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-xs font-medium text-foreground">
+                Authentication mode
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleChange("wooAuthMode", "shared")}
+                  className={`text-left rounded-md border p-3 transition-colors ${
+                    formData.wooAuthMode === "shared"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/40"
+                  }`}
+                >
+                  <div className="text-sm font-medium text-foreground">
+                    Shared (use WP password)
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Re-uses the WordPress application password above. Works
+                    when the Woo REST API accepts Basic Auth (most sites).
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleChange("wooAuthMode", "separate")}
+                  className={`text-left rounded-md border p-3 transition-colors ${
+                    formData.wooAuthMode === "separate"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/40"
+                  }`}
+                >
+                  <div className="text-sm font-medium text-foreground">
+                    Separate (Consumer Key/Secret)
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use a dedicated Woo REST API key generated in WooCommerce
+                    settings. Recommended for production.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {formData.wooAuthMode === "separate" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="wooKey" className="flex items-center gap-1.5">
+                    <KeyIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                    Consumer Key
+                  </Label>
+                  <Input
+                    id="wooKey"
+                    placeholder="ck_..."
+                    value={formData.wooConsumerKey}
+                    onChange={(e) => handleChange("wooConsumerKey", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="wooSecret" className="flex items-center gap-1.5">
+                    <KeyIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                    Consumer Secret
+                  </Label>
+                  <Input
+                    id="wooSecret"
+                    type="password"
+                    placeholder="cs_..."
+                    value={formData.wooConsumerSecret}
+                    onChange={(e) => handleChange("wooConsumerSecret", e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowWooHelp((v) => !v)}
+              className="text-xs text-primary hover:underline"
+            >
+              {showWooHelp ? "Hide" : "Show"} how to generate a Woo REST API key
+            </button>
+            {showWooHelp && (
+              <div className="rounded-md bg-muted p-3 text-xs text-muted-foreground space-y-1">
+                <p>
+                  In <strong>WooCommerce → Settings → Advanced → REST API</strong>:
+                </p>
+                <ol className="list-decimal list-inside space-y-0.5 ml-1">
+                  <li>Click <strong>Add Key</strong></li>
+                  <li>Description: <code>ConvexPress Sync</code></li>
+                  <li>User: an administrator</li>
+                  <li>Permissions: <strong>Read/Write</strong></li>
+                  <li>Click <strong>Generate API Key</strong></li>
+                  <li>Copy the Consumer Key (<code>ck_...</code>) and Consumer Secret (<code>cs_...</code>) — they're shown only once.</li>
+                </ol>
+              </div>
+            )}
+          </div>
+
           {/* Test Connection Button */}
           <div className="space-y-3">
             <Button
@@ -301,20 +451,52 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
 
             {/* Test Result - Success */}
             {testStatus === "success" && testDetails && (
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-success/10 border border-success/20">
-                <CheckCircleIcon className="h-5 w-5 text-success flex-shrink-0" />
-                <div className="text-sm">
-                  <p className="font-medium text-success">
-                    Connection successful!
-                  </p>
-                  <p className="text-muted-foreground">
-                    {testDetails.siteName}
-                    {testDetails.siteDescription &&
-                      ` -- ${testDetails.siteDescription}`}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    WordPress {testDetails.wpVersion}
-                  </p>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-success/10 border border-success/20">
+                <CheckCircleIcon className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
+                <div className="text-sm flex-1 space-y-2">
+                  <div>
+                    <p className="font-medium text-success">
+                      Connection successful!
+                    </p>
+                    <p className="text-muted-foreground">
+                      {testDetails.siteName}
+                      {testDetails.siteDescription &&
+                        ` -- ${testDetails.siteDescription}`}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      WordPress {testDetails.wpVersion}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <CapabilityBadge label="WP REST" ok={true} />
+                    <CapabilityBadge
+                      label={
+                        testDetails.wooDetected
+                          ? testDetails.wooAuthValid
+                            ? "WooCommerce auth ✓"
+                            : "WooCommerce detected — auth failed"
+                          : "WooCommerce not detected"
+                      }
+                      ok={Boolean(testDetails.wooDetected && testDetails.wooAuthValid)}
+                      neutral={!testDetails.wooDetected}
+                    />
+                    <CapabilityBadge
+                      label={
+                        testDetails.elementorDetected
+                          ? "Elementor detected"
+                          : "No Elementor"
+                      }
+                      ok={Boolean(testDetails.elementorDetected)}
+                      neutral={!testDetails.elementorDetected}
+                    />
+                  </div>
+                  {testDetails.wooDetected && !testDetails.wooAuthValid && (
+                    <p className="text-xs text-warning">
+                      Woo REST API was detected but authentication failed. Try
+                      switching to <strong>Separate</strong> mode and entering a
+                      Consumer Key + Secret generated in WooCommerce settings.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -407,6 +589,34 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
         </CardContent>
       )}
     </Card>
+  );
+}
+
+function CapabilityBadge({
+  label,
+  ok,
+  neutral,
+}: {
+  label: string;
+  ok: boolean;
+  neutral?: boolean;
+}) {
+  const cls = neutral
+    ? "bg-muted text-muted-foreground border-border"
+    : ok
+      ? "bg-success/10 text-success border-success/30"
+      : "bg-warning/10 text-warning border-warning/30";
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${cls}`}
+    >
+      {neutral ? null : ok ? (
+        <CheckCircleIcon className="size-3" />
+      ) : (
+        <XCircleIcon className="size-3" />
+      )}
+      {label}
+    </span>
   );
 }
 

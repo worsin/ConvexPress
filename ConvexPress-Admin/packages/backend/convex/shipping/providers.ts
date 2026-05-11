@@ -61,9 +61,9 @@ export const SHIPPING_PROVIDER_DESCRIPTORS: Record<
       rates: "implemented",
       labels: "implemented",
       tracking: "implemented",
-      manifests: "planned",
+      manifests: "implemented",
       returns: "planned",
-      address_validation: "planned",
+      address_validation: "not_supported",
     },
     primaryUseCase:
       "Best first-party path for multi-carrier rate shopping and label buying without binding checkout to one carrier API.",
@@ -97,6 +97,8 @@ export const SHIPPING_PROVIDER_DESCRIPTORS: Record<
       rates: "implemented",
       labels: "implemented",
       tracking: "implemented",
+      manifests: "implemented",
+      address_validation: "not_supported",
     },
     primaryUseCase:
       "Direct enterprise UPS integrations where negotiated contracts or account-level controls need to bypass aggregators.",
@@ -140,6 +142,8 @@ export const SHIPPING_PROVIDER_DESCRIPTORS: Record<
     operations: {
       ...PLANNED_OPERATIONS,
       rates: "implemented",
+      tracking: "implemented",
+      address_validation: "implemented",
     },
     primaryUseCase:
       "Postal-first stores that need direct USPS behavior or service-level tuning separate from aggregator defaults.",
@@ -178,13 +182,15 @@ export const SHIPPING_PROVIDER_DESCRIPTORS: Record<
     summary:
       "Direct carrier adapter for FedEx rating, labels, tracking, and service-level shipping workflows.",
     modeNotes:
-      "Direct FedEx OAuth verification, rate shopping, and label purchase are live. Tracking remains a planned follow-up slice behind the same provider contract.",
+      "Direct FedEx OAuth verification, rate shopping, label purchase, tracking sync, and closeout are live behind the normalized provider contract.",
     implementationStatus: "active",
     operations: {
       ...PLANNED_OPERATIONS,
       rates: "implemented",
       labels: "implemented",
       tracking: "implemented",
+      manifests: "implemented",
+      address_validation: "not_supported",
     },
     primaryUseCase:
       "Direct FedEx accounts with negotiated rates, service controls, or enterprise operational requirements.",
@@ -228,6 +234,11 @@ export const SHIPPING_PROVIDER_DESCRIPTORS: Record<
     operations: {
       ...PLANNED_OPERATIONS,
       rates: "implemented",
+      labels: "not_supported",
+      tracking: "not_supported",
+      manifests: "not_supported",
+      returns: "not_supported",
+      address_validation: "not_supported",
     },
     primaryUseCase:
       "International shipping flows where direct DHL Express integration matters for cost, service mapping, or customs handling.",

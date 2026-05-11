@@ -10,7 +10,6 @@ import { MobileNav } from "@/components/layout/MobileNav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SkipToContent } from "@/components/layout/SkipToContent";
-import { WebsiteNotificationToastProvider } from "@/components/notifications/WebsiteNotificationToastProvider";
 import { useMenuForLocation } from "@/hooks/layout/useMenuForLocation";
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
 import { ThemeProvider } from "@/lib/theme-context";
@@ -26,11 +25,11 @@ function DashboardLayout() {
   const headerMenu = useMenuForLocation("header");
 
   // Redirect unauthenticated users to login
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      navigate({ to: "/login" });
-    }
-  }, [isLoaded, isSignedIn, navigate]);
+	  useEffect(() => {
+	    if (isLoaded && !isSignedIn) {
+	      navigate({ to: "/login" } as any);
+	    }
+	  }, [isLoaded, isSignedIn, navigate]);
 
   // Don't render dashboard content until auth is loaded and confirmed
   if (!isLoaded || !isSignedIn) {
@@ -40,7 +39,6 @@ function DashboardLayout() {
   return (
     <ThemeProvider>
     <LayoutShellProvider>
-      <WebsiteNotificationToastProvider>
         <SkipToContent />
         <SiteHeader siteIdentity={siteIdentity} menu={headerMenu} />
         <MobileNav menu={headerMenu} siteIdentity={siteIdentity} />
@@ -57,7 +55,6 @@ function DashboardLayout() {
         </div>
         <SiteFooter variant="minimal" />
         <LoginTracker />
-      </WebsiteNotificationToastProvider>
     </LayoutShellProvider>
     </ThemeProvider>
   );

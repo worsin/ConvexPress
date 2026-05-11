@@ -223,6 +223,8 @@ function EditCouponPage() {
     );
   }
 
+  const couponRecord = coupon;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmedCode = code.trim().toUpperCase();
@@ -260,7 +262,7 @@ function EditCouponPage() {
     setSubmitting(true);
     try {
       await updateCoupon({
-        couponId: coupon._id,
+        couponId: couponRecord._id,
         code: trimmedCode,
         status,
         discountType,
@@ -301,7 +303,7 @@ function EditCouponPage() {
   async function handleArchive() {
     setArchiving(true);
     try {
-      await archiveCoupon({ couponId: coupon._id });
+      await archiveCoupon({ couponId: couponRecord._id });
       toast.success("Coupon archived");
       navigate({ to: "/commerce/subscriptions/coupons" });
     } catch (error) {

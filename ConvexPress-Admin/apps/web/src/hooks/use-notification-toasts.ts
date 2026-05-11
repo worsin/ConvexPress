@@ -15,7 +15,40 @@ import { api } from "@backend/convex/_generated/api";
 import { toast } from "sonner";
 
 import { TOAST_DURATIONS } from "@/lib/notifications/constants";
-import type { NotificationType, SiteNotification } from "@/lib/notifications/types";
+import type {
+  NotificationPreference,
+  NotificationType,
+  SiteNotification,
+} from "@/lib/notifications/types";
+
+function showDesktopNotification(
+  notification: SiteNotification,
+  navigate: (to: string) => void,
+) {
+  if (
+    typeof window === "undefined" ||
+    !("Notification" in window) ||
+    window.Notification.permission !== "granted"
+  ) {
+    return false;
+  }
+
+  const desktopNotification = new window.Notification(notification.title, {
+    body: notification.message,
+    icon: "/favicon.ico",
+    tag: notification._id,
+  });
+
+  desktopNotification.onclick = () => {
+    window.focus();
+    if (notification.actionUrl) {
+      navigate(notification.actionUrl);
+    }
+    desktopNotification.close();
+  };
+
+  return true;
+}
 
 /**
  * Hook that monitors the user's notification feed and triggers
@@ -32,6 +65,9 @@ export function useNotificationToasts() {
 
   // Subscribe to the single most recent notification
   const result = useQuery(api.notifications.queries.list, { limit: 1 });
+  const preferences = useQuery(api.notifications.queries.getPreferences, {}) as
+    | NotificationPreference[]
+    | undefined;
 
   useEffect(() => {
     if (!result || result.notifications.length === 0) return;
@@ -48,6 +84,25 @@ export function useNotificationToasts() {
     // If the latest notification is new (different ID), show toast
     if (latest._id !== latestIdRef.current) {
       latestIdRef.current = latest._id;
+
+      const preference = preferences?.find(
+        (entry) => entry.notificationKey === latest.notificationKey,
+      );
+
+      if (preference && !preference.toastEnabled) {
+        return;
+      }
+
+      const navigate = (to: string) => {
+        router.navigate({ to });
+      };
+      const shouldUseDesktop =
+        typeof document !== "undefined" &&
+        document.visibilityState === "hidden";
+
+      if (shouldUseDesktop && showDesktopNotification(latest, navigate)) {
+        return;
+      }
 
       const notificationType = latest.type as NotificationType;
       const duration = TOAST_DURATIONS[notificationType] ?? 5000;
@@ -69,11 +124,11 @@ export function useNotificationToasts() {
           ? {
               label: latest.actionLabel ?? "View",
               onClick: () => {
-                router.navigate({ to: latest.actionUrl! });
+                navigate(latest.actionUrl!);
               },
             }
           : undefined,
       });
     }
-  }, [result, router]);
+  }, [preferences, result, router]);
 }

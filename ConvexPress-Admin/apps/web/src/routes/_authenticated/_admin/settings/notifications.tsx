@@ -27,6 +27,7 @@ import {
   useNotificationPreferences,
   useNotificationMutations,
 } from "@/hooks/use-notifications";
+import { useBrowserNotificationPermission } from "@/hooks/use-browser-notification-permission";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notifications/constants";
 import type { NotificationPreference } from "@/lib/notifications/types";
 
@@ -67,6 +68,9 @@ function NotificationSettingsPage() {
 
       {/* Preferences section */}
       <PreferencesSection />
+
+      {/* Desktop delivery */}
+      <DesktopDeliverySection />
 
       {/* Test notification */}
       <TestNotificationSection />
@@ -253,7 +257,7 @@ function PreferencesSection() {
               <div className="mb-1 grid grid-cols-[1fr_80px_80px] gap-2 text-[10px] font-medium text-muted-foreground">
                 <span>Notification</span>
                 <span className="text-center">In-App</span>
-                <span className="text-center">Toast</span>
+                <span className="text-center">Popup / Desktop</span>
               </div>
 
               {/* Preference rows */}
@@ -288,7 +292,7 @@ function PreferencesSection() {
                           getEffectiveValue(pref, "toastEnabled"),
                         )
                       }
-                      label={`${pref.notificationName} toast`}
+                      label={`${pref.notificationName} popup or desktop alert`}
                     />
                   </div>
                 </div>
@@ -296,6 +300,69 @@ function PreferencesSection() {
             </div>
           );
         })}
+      </div>
+    </section>
+  );
+}
+
+function DesktopDeliverySection() {
+  const {
+    supported,
+    canRequest,
+    isGranted,
+    isDenied,
+    requestPermission,
+  } = useBrowserNotificationPermission();
+  const [requesting, setRequesting] = useState(false);
+
+  const handleEnable = async () => {
+    setRequesting(true);
+    try {
+      const result = await requestPermission();
+      if (result === "granted") {
+        toast.success("Desktop notifications enabled");
+      } else if (result === "denied") {
+        toast.error("Desktop notifications were blocked by the browser");
+      }
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  const statusText = !supported
+    ? "This environment does not support browser desktop notifications."
+    : isGranted
+      ? "Desktop notifications are enabled for background alerts."
+      : isDenied
+        ? "Desktop notifications are blocked in browser settings."
+        : "Desktop notifications are available but not enabled yet.";
+
+  return (
+    <section className="border border-border bg-card px-4 py-3">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-sm font-medium text-foreground">
+            Desktop Delivery
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Popup/Desktop preferences below govern foreground toasts and
+            background desktop alerts. Browser permission controls whether
+            background alerts can appear outside the app window.
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">{statusText}</p>
+        </div>
+
+        {supported && canRequest && (
+          <button
+            type="button"
+            onClick={handleEnable}
+            disabled={requesting}
+            className="inline-flex items-center gap-1.5 border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+          >
+            <Bell className="size-3" />
+            {requesting ? "Enabling..." : "Enable Desktop Alerts"}
+          </button>
+        )}
       </div>
     </section>
   );

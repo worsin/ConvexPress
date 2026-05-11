@@ -80,7 +80,7 @@ export const list = query({
       // Enrich with storage URLs and uploader names (M7)
       const enrichedPage = await Promise.all(
         page.map(async (item) => {
-          const freshUrl = await ctx.storage.getUrl(item.storageId);
+          const freshUrl = (item.storageId ? await ctx.storage.getUrl(item.storageId) : null);
           const uploader = await ctx.db.get("users", item.uploadedBy);
           const uploaderName =
             uploader?.displayName ||
@@ -285,7 +285,7 @@ export const get = query({
     }
 
     // ── Refresh URL from storage (in case cached URL is stale) ───────────
-    const freshUrl = await ctx.storage.getUrl(media.storageId);
+    const freshUrl = (media.storageId ? await ctx.storage.getUrl(media.storageId) : null);
 
     return {
       ...media,
@@ -321,7 +321,7 @@ export const getByIds = query({
         if (!media) return null;
 
         // Refresh URL
-        const freshUrl = await ctx.storage.getUrl(media.storageId);
+        const freshUrl = (media.storageId ? await ctx.storage.getUrl(media.storageId) : null);
         return {
           ...media,
           url: freshUrl ?? media.url,
@@ -452,14 +452,14 @@ export const getUrl = query({
         .unique();
 
       if (size) {
-        const sizeUrl = await ctx.storage.getUrl(size.storageId);
+        const sizeUrl = (size.storageId ? await ctx.storage.getUrl(size.storageId) : null);
         return sizeUrl ?? size.url;
       }
       // Size not found, fall through to original
     }
 
     // Return original URL
-    const freshUrl = await ctx.storage.getUrl(media.storageId);
+    const freshUrl = (media.storageId ? await ctx.storage.getUrl(media.storageId) : null);
     return freshUrl ?? media.url;
   },
 });
@@ -489,7 +489,7 @@ export const getSrcSet = query({
 
     const parts: string[] = [];
     for (const size of sizes) {
-      const url = await ctx.storage.getUrl(size.storageId);
+      const url = (size.storageId ? await ctx.storage.getUrl(size.storageId) : null);
       if (url) {
         parts.push(`${url} ${size.width}w`);
       }
@@ -497,7 +497,7 @@ export const getSrcSet = query({
 
     // Include the original/full size
     if (media.width) {
-      const fullUrl = await ctx.storage.getUrl(media.storageId);
+      const fullUrl = (media.storageId ? await ctx.storage.getUrl(media.storageId) : null);
       if (fullUrl) {
         parts.push(`${fullUrl} ${media.width}w`);
       }

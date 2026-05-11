@@ -160,7 +160,7 @@ export const importBatch = internalAction({
 
         if (!isDryRun) {
           // Create user
-          const userId = await ctx.runMutation(internal.wordpressSync.phases.usersCreate, {
+          const userId = await ctx.runMutation(internal.wordpressSync.phases.users.usersCreate, {
             wpUser: {
               id: wpUser.id,
               username: wpUser.username,

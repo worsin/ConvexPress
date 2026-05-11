@@ -26,6 +26,7 @@ export type SettingsSection =
   | "search"
   | "commerce.general"
   | "commerce.payments"
+  | "commerce.subscriptions.counters"
   | "integrations.shipping"
   | "integrations.shipping.shipstation"
   | "integrations.shipping.ups"
@@ -208,6 +209,7 @@ export interface GeneralSettings {
   homeUrl: string;
   adminEmail: string;
   membershipEnabled: boolean;
+  registrationMode: "invite_only" | "closed";
   defaultRole: string;
   siteLanguage: string;
   timezone: string;

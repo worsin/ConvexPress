@@ -152,7 +152,7 @@ export const importBatch = internalAction({
 
         if (!isDryRun) {
           // Create the menu
-          const menuId = await ctx.runMutation(internal.wordpressSync.phases.menusCreate, {
+          const menuId = await ctx.runMutation(internal.wordpressSync.phases.menus.menusCreate, {
             existingId: existingMenuId,
             wpMenu: {
               id: wpMenu.id,
@@ -239,7 +239,7 @@ export const importBatch = internalAction({
                 const linkedObject = await resolveLinkedObject(ctx, siteId, wpItem);
 
                 // Create menu item
-                const itemId = await ctx.runMutation(internal.wordpressSync.phases.menusCreateItem, {
+                const itemId = await ctx.runMutation(internal.wordpressSync.phases.menus.menusCreateItem, {
                   existingId: existingItemMapping?.convexId,
                   wpItem: {
                     id: wpItem.id,
@@ -286,7 +286,7 @@ export const importBatch = internalAction({
             }
 
             // Update menu item count
-            await ctx.runMutation(internal.wordpressSync.phases.menusUpdateCount, {
+            await ctx.runMutation(internal.wordpressSync.phases.menus.menusUpdateCount, {
               menuId,
               count: sorted.length,
             });

@@ -8,10 +8,11 @@
  *   - getByToken: Public lookup by token (for invitation acceptance page)
  *   - counts: Invitation counts by status (admin dashboard)
  *   - isRegistrationOpen: Public query checking if self-registration is enabled
+ *   - getRegistrationStatus: Public structured registration mode
  *
  * Authorization:
  *   - Admin queries require `registration.invite` capability
- *   - getByToken and isRegistrationOpen are PUBLIC (no auth required)
+ *   - getByToken, isRegistrationOpen, and getRegistrationStatus are PUBLIC
  */
 
 import { query } from "../_generated/server";
@@ -281,6 +282,28 @@ export const isRegistrationOpen = query({
   handler: async (ctx) => {
     const settings = await getRegistrationSettings(ctx);
     return settings.anyoneCanRegister;
+  },
+});
+
+/**
+ * Structured public registration mode for the website gate.
+ *
+ * `membershipEnabled=true` means open registration. When public registration is
+ * disabled, `registrationMode` distinguishes invite-only from fully closed.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const getRegistrationStatus = query({
+  args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx) => {
+    const settings = await getRegistrationSettings(ctx);
+    return {
+      status: settings.status as "open" | "invite_only" | "closed",
+      canRegister: settings.status === "open",
+      inviteOnly: settings.status === "invite_only",
+      defaultRole: settings.defaultRole,
+      requireEmailVerification: settings.requireEmailVerification,
+    };
   },
 });
 

@@ -36,10 +36,9 @@ export function PageChildrenList({ children, className }: PageChildrenListProps)
       <ul className="flex flex-col gap-1">
         {children.map((child) => (
           <li key={child._id}>
-            <Link
-            // @ts-expect-error - Dynamic route string
-              to={`/page${child.path}`}
-              className="group flex items-center gap-2 py-2 text-xs transition-colors hover:text-primary"
+	            <Link
+	              to={`/page${child.path}`}
+	              className="group flex items-center gap-2 py-2 text-xs transition-colors hover:text-primary"
             >
               <ChevronRight className="size-3 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               {child.title}

@@ -83,13 +83,42 @@ export function SyncProgress({ job }: SyncProgressProps) {
   }, [job.status]);
 
   // Calculate overall progress
+  //
+  // Item-count progress (sum of imported / sum of total) is misleading early
+  // in the run because phases that haven't started yet have total=0 and so
+  // don't contribute to the denominator. The percentage looks artificially
+  // high (e.g. "100% complete" when only users + taxonomies have started).
+  //
+  // Instead we use phase-weighted progress: each phase that's in scope gets
+  // an equal slice of the bar. Completed phases contribute 1.0; the current
+  // phase contributes its own fractional progress; pending phases contribute
+  // 0. The item counts are still shown alongside as a secondary metric.
   const phases = Object.entries(job.progress) as [string, PhaseProgress][];
-  const totalItems = phases.reduce((sum, [, p]) => sum + p.total, 0);
   const importedItems = phases.reduce((sum, [, p]) => sum + p.imported, 0);
   const failedItems = phases.reduce((sum, [, p]) => sum + p.failed, 0);
-  const completedItems = importedItems + failedItems;
+  const totalKnownItems = phases.reduce((sum, [, p]) => sum + p.total, 0);
+
+  const phaseFractions = phases.map(([phase, p]) => {
+    const isComplete =
+      p.total > 0 && p.imported + p.failed >= p.total;
+    const isCurrent = job.currentPhase === phase;
+    if (isComplete) return 1;
+    if (isCurrent && p.total > 0) {
+      return Math.min(1, (p.imported + p.failed) / p.total);
+    }
+    return 0;
+  });
+  const totalPhaseSlots = phases.length || 1;
+  const overallProgressRaw =
+    (phaseFractions.reduce((a, b) => a + b, 0) / totalPhaseSlots) * 100;
+  // Show 99% when very close but not actually done — only show 100% when
+  // every phase reports complete or the job status itself is "completed".
+  const allPhasesComplete = phaseFractions.every((f) => f === 1);
   const overallProgress =
-    totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
+    job.status === "completed" || allPhasesComplete
+      ? 100
+      : Math.min(99, Math.floor(overallProgressRaw));
+  const completedPhasesCount = phaseFractions.filter((f) => f === 1).length;
 
   // Calculate elapsed time
   const startedAt = job.startedAt;
@@ -141,8 +170,13 @@ export function SyncProgress({ job }: SyncProgressProps) {
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="font-medium">Overall Progress</span>
             <span className="text-muted-foreground tabular-nums">
-              {importedItems.toLocaleString()} / {totalItems.toLocaleString()}
-              {" imported"}
+              Phase {Math.min(completedPhasesCount + 1, totalPhaseSlots)} of{" "}
+              {totalPhaseSlots}
+              <span className="text-foreground/60 ml-2">
+                ·{" "}
+                {importedItems.toLocaleString()} of{" "}
+                {totalKnownItems.toLocaleString()} known items
+              </span>
               {failedItems > 0 && (
                 <span className="text-destructive ml-2">
                   ({failedItems} failed)
@@ -159,7 +193,12 @@ export function SyncProgress({ job }: SyncProgressProps) {
             )}
           />
           <p className="text-xs text-muted-foreground mt-1">
-            {Math.round(overallProgress)}% complete
+            {overallProgress}% complete
+            {job.status === "running" && totalKnownItems > 0 && (
+              <span className="ml-2">
+                · later phases will add to this total as they start
+              </span>
+            )}
           </p>
         </div>
 

@@ -1,4 +1,4 @@
-﻿import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "isomorphic-dompurify";
 import { MessageSquare, Pencil } from "lucide-react";
 import { useMemo } from "react";
 

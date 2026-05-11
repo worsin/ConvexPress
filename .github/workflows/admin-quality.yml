@@ -31,9 +31,15 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Type check
-        # TODO: Remove continue-on-error once the ~150+ existing TS errors are fixed
-        continue-on-error: true
         run: bun run check-types
+
+      - name: Admin guardrails
+        working-directory: ConvexPress-Admin
+        run: bun run check:guardrails
+
+      - name: Admin smoke checks
+        working-directory: ConvexPress-Admin
+        run: bun run check:smoke
 
       - name: Build
         run: bun run build

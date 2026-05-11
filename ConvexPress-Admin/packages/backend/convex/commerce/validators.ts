@@ -8,6 +8,19 @@ export const commercePriceInputValidator = v.object({
   currencyCode: v.string(),
 });
 
+export const digitalDeliveryModeValidator = v.union(
+  v.literal("download"),
+  v.literal("license"),
+  v.literal("download_and_license"),
+);
+
+export const licenseKeyTypeValidator = v.union(
+  v.literal("single"),
+  v.literal("multi"),
+  v.literal("unlimited"),
+  v.literal("subscription"),
+);
+
 export const commerceProductCreateValidator = v.object({
   title: v.string(),
   slug: commerceSlugValidator,
@@ -25,6 +38,13 @@ export const commerceProductCreateValidator = v.object({
   isVirtual: v.boolean(),
   shippingWeightOz: v.optional(v.number()),
   isDownloadable: v.boolean(),
+  requiresLicense: v.optional(v.boolean()),
+  digitalDeliveryMode: v.optional(digitalDeliveryModeValidator),
+  downloadLimit: v.optional(v.number()),
+  downloadExpiryDays: v.optional(v.number()),
+  licenseKeyType: v.optional(licenseKeyTypeValidator),
+  maxActivations: v.optional(v.number()),
+  licenseExpiresAfterDays: v.optional(v.number()),
 });
 
 export const listCommerceProductsArgs = {
@@ -37,6 +57,27 @@ export const listCommerceProductsArgs = {
       v.literal("trash"),
     ),
   ),
+  productType: v.optional(v.string()),
+  authorId: v.optional(v.id("users")),
+  orderBy: v.optional(v.string()),
+  orderDir: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+  page: v.optional(v.number()),
+  perPage: v.optional(v.number()),
+};
+
+export const productCountsArgs = {
+  search: v.optional(v.string()),
+  productType: v.optional(v.string()),
+  authorId: v.optional(v.id("users")),
+};
+
+export const productBulkArgs = {
+  productIds: v.array(v.id("commerce_products")),
+};
+
+export const productBulkUpdateStatusArgs = {
+  productIds: v.array(v.id("commerce_products")),
+  status: v.string(),
 };
 
 export const getCommerceProductArgs = {
@@ -118,6 +159,13 @@ export const createCommerceProductArgs = {
   isVirtual: v.optional(v.boolean()),
   shippingWeightOz: v.optional(v.number()),
   isDownloadable: v.optional(v.boolean()),
+  requiresLicense: v.optional(v.boolean()),
+  digitalDeliveryMode: v.optional(digitalDeliveryModeValidator),
+  downloadLimit: v.optional(v.number()),
+  downloadExpiryDays: v.optional(v.number()),
+  licenseKeyType: v.optional(licenseKeyTypeValidator),
+  maxActivations: v.optional(v.number()),
+  licenseExpiresAfterDays: v.optional(v.number()),
   isNonReturnable: v.optional(v.boolean()),
   taxClass: v.optional(v.string()),
   status: v.optional(
@@ -148,6 +196,13 @@ export const updateCommerceProductArgs = {
   isVirtual: v.optional(v.boolean()),
   shippingWeightOz: v.optional(v.union(v.number(), v.null())),
   isDownloadable: v.optional(v.boolean()),
+  requiresLicense: v.optional(v.boolean()),
+  digitalDeliveryMode: v.optional(digitalDeliveryModeValidator),
+  downloadLimit: v.optional(v.union(v.number(), v.null())),
+  downloadExpiryDays: v.optional(v.union(v.number(), v.null())),
+  licenseKeyType: v.optional(licenseKeyTypeValidator),
+  maxActivations: v.optional(v.union(v.number(), v.null())),
+  licenseExpiresAfterDays: v.optional(v.union(v.number(), v.null())),
   isNonReturnable: v.optional(v.boolean()),
   taxClass: v.optional(v.union(v.string(), v.null())),
   status: v.optional(
@@ -209,6 +264,15 @@ export const removeCartDiscountCodeArgs = {
   sessionToken: v.string(),
 };
 
+export const mergeCartArgs = {
+  sessionToken: v.string(),
+};
+
+export const markAbandonedCartsArgs = {
+  olderThanMs: v.optional(v.number()),
+  limit: v.optional(v.number()),
+};
+
 export const createCheckoutSessionArgs = {
   sessionToken: v.string(),
   email: v.optional(v.string()),
@@ -264,6 +328,34 @@ export const completeCheckoutArgs = {
 
 export const listOrdersArgs = {
   status: v.optional(v.string()),
+  search: v.optional(v.string()),
+  orderBy: v.optional(v.string()),
+  orderDir: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+  page: v.optional(v.number()),
+  perPage: v.optional(v.number()),
+  customerId: v.optional(v.id("commerce_customer_profiles")),
+  userId: v.optional(v.id("users")),
+  dateFrom: v.optional(v.number()),
+  dateTo: v.optional(v.number()),
+  paymentStatus: v.optional(v.string()),
+  fulfillmentStatus: v.optional(v.string()),
+};
+
+export const orderCountsArgs = {
+  search: v.optional(v.string()),
+  customerId: v.optional(v.id("commerce_customer_profiles")),
+  userId: v.optional(v.id("users")),
+  dateFrom: v.optional(v.number()),
+  dateTo: v.optional(v.number()),
+};
+
+export const orderBulkArgs = {
+  orderIds: v.array(v.id("commerce_orders")),
+};
+
+export const orderBulkUpdateStatusArgs = {
+  orderIds: v.array(v.id("commerce_orders")),
+  status: v.string(),
 };
 
 export const getOrderArgs = {

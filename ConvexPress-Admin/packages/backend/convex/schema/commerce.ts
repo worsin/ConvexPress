@@ -128,6 +128,26 @@ export const commerceTables = {
     // Preserved source metadata for fields we don't have dedicated columns for
     rawSourceMeta: v.optional(v.string()),
     isDownloadable: v.boolean(),
+    requiresLicense: v.optional(v.boolean()),
+    digitalDeliveryMode: v.optional(
+      v.union(
+        v.literal("download"),
+        v.literal("license"),
+        v.literal("download_and_license"),
+      ),
+    ),
+    downloadLimit: v.optional(v.number()),
+    downloadExpiryDays: v.optional(v.number()),
+    licenseKeyType: v.optional(
+      v.union(
+        v.literal("single"),
+        v.literal("multi"),
+        v.literal("unlimited"),
+        v.literal("subscription"),
+      ),
+    ),
+    maxActivations: v.optional(v.number()),
+    licenseExpiresAfterDays: v.optional(v.number()),
     isNonReturnable: v.optional(v.boolean()),
     taxClass: v.optional(v.string()),
     isTaxable: v.optional(v.boolean()),
@@ -144,6 +164,7 @@ export const commerceTables = {
     updatedAt: v.number(),
   })
     .index("by_slug", ["slug"])
+    .index("by_sku", ["sku"])
     .index("by_status", ["status"])
     .index("by_author", ["authorId"])
     .index("by_shipping_class", ["shippingClassId"])
@@ -198,8 +219,27 @@ export const commerceTables = {
     isTaxable: v.optional(v.boolean()),
     isVirtual: v.optional(v.boolean()),
     isDownloadable: v.optional(v.boolean()),
+    requiresLicense: v.optional(v.boolean()),
+    digitalDeliveryMode: v.optional(
+      v.union(
+        v.literal("download"),
+        v.literal("license"),
+        v.literal("download_and_license"),
+      ),
+    ),
     downloadLimit: v.optional(v.number()),
     downloadExpiry: v.optional(v.number()),
+    downloadExpiryDays: v.optional(v.number()),
+    licenseKeyType: v.optional(
+      v.union(
+        v.literal("single"),
+        v.literal("multi"),
+        v.literal("unlimited"),
+        v.literal("subscription"),
+      ),
+    ),
+    maxActivations: v.optional(v.number()),
+    licenseExpiresAfterDays: v.optional(v.number()),
     featuredMediaId: v.optional(v.id("media")),
     galleryMediaIds: v.optional(v.array(v.id("media"))),
     status: v.optional(
@@ -240,12 +280,19 @@ export const commerceTables = {
     totalAmount: v.number(),
     itemCount: v.number(),
     lastActiveAt: v.number(),
+    abandonedAt: v.optional(v.number()),
+    abandonedEmailSentAt: v.optional(v.number()),
+    recoveredAt: v.optional(v.number()),
+    convertedAt: v.optional(v.number()),
+    orderId: v.optional(v.id("commerce_orders")),
+    mergedIntoCartId: v.optional(v.id("commerce_carts")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_session", ["sessionToken"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_status_lastActiveAt", ["status", "lastActiveAt"]),
 
   commerce_cart_items: defineTable({
     cartId: v.id("commerce_carts"),
@@ -306,7 +353,14 @@ export const commerceTables = {
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_createdAt", ["createdAt"])
+    .index("by_totalSpent", ["totalSpentAmount"])
+    .index("by_totalOrders", ["totalOrders"])
+    .searchIndex("search_customers", {
+      searchField: "email",
+      filterFields: ["isGuest"],
+    }),
 
   commerce_customer_addresses: defineTable({
     customerId: v.id("commerce_customer_profiles"),
@@ -386,6 +440,18 @@ export const commerceTables = {
     totalAmount: v.number(),
     paymentStatus: v.string(),
     fulfillmentStatus: v.string(),
+    digitalFulfillmentStatus: v.optional(
+      v.union(
+        v.literal("not_required"),
+        v.literal("pending"),
+        v.literal("completed"),
+        v.literal("partial"),
+        v.literal("needs_review"),
+        v.literal("failed"),
+      ),
+    ),
+    digitalFulfilledAt: v.optional(v.number()),
+    digitalFulfillmentError: v.optional(v.string()),
     inventoryCommittedAt: v.optional(v.number()),
     inventoryReleasedAt: v.optional(v.number()),
     discountUsageCountedAt: v.optional(v.number()),
@@ -398,7 +464,14 @@ export const commerceTables = {
     .index("by_trackingToken", ["trackingToken"])
     .index("by_customer", ["customerId"])
     .index("by_user", ["userId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_status_createdAt", ["status", "createdAt"])
+    .index("by_createdAt", ["createdAt"])
+    .index("by_email", ["email"])
+    .searchIndex("search_orders", {
+      searchField: "orderNumber",
+      filterFields: ["status", "email"],
+    }),
 
   commerce_order_items: defineTable({
     orderId: v.id("commerce_orders"),
@@ -412,7 +485,9 @@ export const commerceTables = {
     lineTotalAmount: v.number(),
     metadata: v.optional(v.any()),
     createdAt: v.number(),
-  }).index("by_order", ["orderId"]),
+  })
+    .index("by_order", ["orderId"])
+    .index("by_product", ["productId"]),
 
   commerce_order_history: defineTable({
     orderId: v.id("commerce_orders"),
@@ -529,7 +604,12 @@ export const commerceTables = {
     .index("by_code", ["code"])
     .index("by_status", ["status"])
     .index("by_auto", ["auto"])
-    .index("by_stripe_coupon", ["stripeCouponId"]),
+    .index("by_stripe_coupon", ["stripeCouponId"])
+    .index("by_updatedAt", ["updatedAt"])
+    .searchIndex("search_discount_codes", {
+      searchField: "code",
+      filterFields: ["status", "discountType"],
+    }),
 
   // Wave 11.2: per-usage history for reporting + perUserUsageLimit enforcement.
   commerce_discount_usages: defineTable({

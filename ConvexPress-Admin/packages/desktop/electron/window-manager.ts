@@ -1,10 +1,10 @@
 import path from "node:path";
 import { isQuitting } from "./utils/app-state.js";
 
-const { app, BrowserWindow } = require("electron") as typeof import("electron");
+const { app, BrowserWindow, shell } = require("electron") as typeof import("electron");
 
 function getPreloadPath(): string {
-  return path.join(__dirname, "preload.cjs");
+  return path.join(__dirname, "preload.js");
 }
 
 function getIconPath(): string {
@@ -13,7 +13,7 @@ function getIconPath(): string {
 
 /**
  * Resolve the path to the renderer's index.html.
- * In dev mode: Vite dev server URL (http://localhost:5173).
+ * In dev mode: Vite dev server URL (http://localhost:4105 by default).
  * In packaged mode: load from the bundled web app dist.
  */
 function getRendererIndexPath(): string {
@@ -56,7 +56,7 @@ class WindowManager {
     });
 
     if (!app.isPackaged) {
-      win.loadURL("http://localhost:4105");
+      win.loadURL(process.env.CONVEXPRESS_DESKTOP_DEV_URL ?? "http://localhost:4105");
     } else {
       const indexPath = getRendererIndexPath();
       console.log(`[WindowManager] Renderer path: ${indexPath}`);
@@ -81,6 +81,27 @@ class WindowManager {
 
     win.webContents.on("render-process-gone", (_event, details) => {
       console.error("[Renderer CRASHED]", details);
+    });
+
+    // Open `target="_blank"` and window.open() in the user's default browser
+    // instead of letting them hijack the admin window. Without this, clicking
+    // a link or image URL navigates the entire app away with no way back.
+    win.webContents.setWindowOpenHandler(({ url }) => {
+      void shell.openExternal(url);
+      return { action: "deny" };
+    });
+
+    // Block any in-window navigation away from localhost (dev) or the
+    // bundled file:// URL (prod). External URLs go to the system browser.
+    win.webContents.on("will-navigate", (event, url) => {
+      const isDev = !app.isPackaged;
+      const isInternal = isDev
+        ? url.startsWith("http://localhost:")
+        : url.startsWith("file://");
+      if (!isInternal) {
+        event.preventDefault();
+        void shell.openExternal(url);
+      }
     });
 
     // Forward maximize/unmaximize state to the renderer

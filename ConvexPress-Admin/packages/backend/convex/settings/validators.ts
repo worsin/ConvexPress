@@ -70,6 +70,7 @@ export const generalValuesValidator = v.object({
   homeUrl: v.string(),
   adminEmail: v.string(),
   membershipEnabled: v.boolean(),
+  registrationMode: v.union(v.literal("invite_only"), v.literal("closed")),
   defaultRole: v.string(),
   siteLanguage: v.string(),
   timezone: v.string(),

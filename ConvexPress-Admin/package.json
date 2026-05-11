@@ -10,7 +10,7 @@
       "dotenv": "^17.2.2",
       "zod": "^4.1.13",
       "typescript": "^5",
-      "convex": "^1.35.1"
+      "convex": "^1.36.1"
     }
   },
   "type": "module",
@@ -18,7 +18,10 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
-    "dev:native": "turbo -F native dev",
+    "check:guardrails": "node scripts/check-admin-guardrails.mjs",
+    "check:smoke": "node scripts/check-admin-smoke.mjs",
+    "check:smoke:browser": "node scripts/admin-browser-smoke.mjs",
+    "dev:native": "turbo -F @convexpress/desktop dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F @convexpress-admin/backend dev",
     "dev:setup": "turbo -F @convexpress-admin/backend dev:setup"
@@ -34,8 +37,9 @@
   },
   "devDependencies": {
     "@convexpress-admin/config": "workspace:*",
+    "@playwright/test": "^1.59.1",
     "@types/node": "^22.13.14",
-    "convex": "^1.35.1",
+    "convex": "^1.36.1",
     "turbo": "^2.6.3",
     "typescript": "catalog:"
   },

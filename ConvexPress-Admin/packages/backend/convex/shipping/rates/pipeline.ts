@@ -235,6 +235,7 @@ export const calculateRates = action({
       error?: string;
     }> = [];
     const collected: NormalizedShippingQuote[] = [];
+    const warnings: string[] = [];
 
     // Stage 2: resolve cart + pack into real boxes + resolve ship-from
     // BEFORE live-rate provider calls, so every carrier receives the actual
@@ -321,6 +322,12 @@ export const calculateRates = action({
         : cartItems.length > 0
           ? [{ weightOz: totalWeightOzAll }]
           : undefined;
+    if (packResultPre.unfit.length > 0 && packTemplatesPre.length > 0) {
+      warnings.push(`${packResultPre.unfit.length} cart line(s) did not fit configured package templates.`);
+    }
+    if (cartItems.length > 0 && packTemplatesPre.length === 0) {
+      warnings.push("No package templates were available; provider rates used weight-only packages.");
+    }
     recordStage(
       "pack_cart_for_providers",
       packStartPre,
@@ -527,7 +534,9 @@ export const calculateRates = action({
         const packStart = now();
         const candidatePackages = (await ctx.runQuery(
           internal.shipping.packages.internals.listAvailablePackages,
-          {},
+          pipelineShipFromLocationId
+            ? { shipFromLocationId: pipelineShipFromLocationId as any }
+            : {},
         )) as any[];
 
         const packTemplates: PackageTemplate[] = candidatePackages
@@ -569,6 +578,9 @@ export const calculateRates = action({
           packTemplates.length > 0
             ? packCart(packInputs, packTemplates, defaultPkgId)
             : { boxes: [], unfit: packInputs };
+        if (packResult.unfit.length > 0 && packTemplates.length > 0) {
+          warnings.push(`${packResult.unfit.length} cart line(s) did not fit method package templates.`);
+        }
 
         // No hidden hardcoded production dimensions. If packCart produced
         // boxes, use their real outer dims. Otherwise, dimensional rates
@@ -972,6 +984,7 @@ export const calculateRates = action({
       shipFromLocationId:
         (pipelineShipFromLocationId as any) ?? undefined,
       selectedPackageIds,
+      warnings: warnings.length > 0 ? warnings : undefined,
       zeroQuoteReasons: zeroQuoteReasons.length > 0 ? zeroQuoteReasons : undefined,
       requestContext: {
         shippingAddress: args.shippingAddress,

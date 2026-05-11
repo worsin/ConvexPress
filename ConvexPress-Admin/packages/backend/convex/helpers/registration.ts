@@ -211,6 +211,7 @@ async function getSettingValue(
  *
  * Settings mapping:
  *   - "general" / "membershipEnabled"        -> anyoneCanRegister (PRD name)
+ *   - "general" / "registrationMode"         -> invite-only vs closed when public registration is off
  *   - "general" / "defaultRole"              -> defaultRole
  *   - "general" / "invitationExpiryDays"     -> invitationExpiryDays
  *   - "general" / "maxResendsPerInvitation"  -> maxResendsPerInvitation
@@ -234,6 +235,11 @@ export async function getRegistrationSettings(ctx: ReadCtx) {
     "membershipEnabled",
   );
   const defaultRole = await getSettingValue(ctx, "general", "defaultRole");
+  const registrationMode = await getSettingValue(
+    ctx,
+    "general",
+    "registrationMode",
+  );
 
   // Registration-specific settings also stored in "general" section
   // because there is no "registration" section in the settings schema.
@@ -255,10 +261,16 @@ export async function getRegistrationSettings(ctx: ReadCtx) {
     "requireEmailVerification",
   );
 
+  const anyoneCanRegister =
+    (membershipEnabled as boolean | undefined) ??
+    REGISTRATION_DEFAULTS.anyoneCanRegister;
+  const closedMode =
+    registrationMode === "closed" ? "closed" : "invite_only";
+
   return {
-    anyoneCanRegister:
-      (membershipEnabled as boolean | undefined) ??
-      REGISTRATION_DEFAULTS.anyoneCanRegister,
+    anyoneCanRegister,
+    status: anyoneCanRegister ? "open" : closedMode,
+    inviteOnly: !anyoneCanRegister && closedMode === "invite_only",
     defaultRole:
       (defaultRole as string | undefined) ?? REGISTRATION_DEFAULTS.defaultRole,
     invitationExpiryDays:

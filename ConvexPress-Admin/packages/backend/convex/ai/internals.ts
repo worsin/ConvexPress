@@ -37,7 +37,7 @@ async function resolveAiSettings(ctx: {
   return {
     provider: ((settings?.provider as string) || "anthropic") as "openrouter" | "anthropic",
     apiKey: resolveServiceKey(settings, "apiKey", "ANTHROPIC_API_KEY") ?? "",
-    defaultModel: (settings?.defaultModel as string) || "claude-sonnet-4-20250514",
+    defaultModel: (settings?.defaultModel as string) || "claude-opus-4-7",
     tavilyApiKey: resolveServiceKey(settings, "tavilyApiKey", "TAVILY_API_KEY") ?? "",
   };
 }
@@ -180,8 +180,8 @@ async function generateWithAnthropic(
  *
  * Reads provider and API key from settings, falling back to env vars.
  * Supports:
- *   - "anthropic": Direct Anthropic SDK (model format: "claude-sonnet-4-20250514")
- *   - "openrouter": OpenAI-compatible API (model format: "anthropic/claude-sonnet-4-20250514")
+ *   - "anthropic": Direct Anthropic SDK (model format: "claude-opus-4-7")
+ *   - "openrouter": OpenAI-compatible API (model format: "anthropic/claude-opus-4.7")
  */
 export const generateWithClaude = internalAction({
   args: {

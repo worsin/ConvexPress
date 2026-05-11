@@ -59,10 +59,9 @@ export function PageBreadcrumbs({
       {ancestors.map((ancestor) => (
         <span key={ancestor._id} className="flex items-center gap-1">
           <ChevronRight className="size-3 text-muted-foreground/50" aria-hidden="true" />
-          <Link
-          // @ts-expect-error - Dynamic route string
-            to={`/page${ancestor.path}`}
-            className="transition-colors hover:text-foreground"
+	          <Link
+	            to={`/page${ancestor.path}`}
+	            className="transition-colors hover:text-foreground"
           >
             {ancestor.title}
           </Link>

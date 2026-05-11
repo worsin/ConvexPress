@@ -7,6 +7,7 @@ import { ClerkProvider, useAuth } from "@clerk/clerk-react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 
 import { Toaster } from "@/components/ui/sonner";
+import { WebsiteNotificationToastProvider } from "@/components/notifications/WebsiteNotificationToastProvider";
 import { NotFoundTemplate } from "@/templates/NotFoundTemplate";
 import { ErrorTemplate } from "@/templates/ErrorTemplate";
 import { SupportWidget } from "@/components/support/widget/SupportWidget";
@@ -117,7 +118,9 @@ function RootDocument() {
               <HeadContent />
             </head>
             <body className="min-h-svh" suppressHydrationWarning>
-              <Outlet />
+              <WebsiteNotificationToastProvider>
+                <Outlet />
+              </WebsiteNotificationToastProvider>
               <SupportWidget />
               <Toaster richColors />
               <Scripts />

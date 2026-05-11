@@ -14,7 +14,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef, useTransition } from "react";
 import { useParams, Link } from "@tanstack/react-router";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { toast } from "sonner";
 import {
@@ -32,8 +32,11 @@ import { api } from "@backend/convex/_generated/api";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 import {
   EMAIL_CATEGORY_CONFIG,
@@ -50,6 +53,7 @@ export function EmailTemplateEditorPage() {
   const template = useQuery(api.emails.queries.getTemplate, { templateSlug });
   const updateTemplate = useMutation(api.emails.mutations.updateTemplate);
   const resetTemplate = useMutation(api.emails.mutations.resetTemplate);
+  const sendTemplateTestEmail = useAction(api.emails.actions.sendTemplateTestEmail);
 
   const [subjectTemplate, setSubjectTemplate] = useState<string | null>(null);
   const [bodyHtml, setBodyHtml] = useState<string | null>(null);
@@ -58,6 +62,10 @@ export function EmailTemplateEditorPage() {
   const [isResetting, startResetTransition] = useTransition();
   const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
   const [copiedVar, setCopiedVar] = useState<string | null>(null);
+  const [testRecipientEmail, setTestRecipientEmail] = useState("");
+  const [testRecipientName, setTestRecipientName] = useState("");
+  const [testVariableOverrides, setTestVariableOverrides] = useState("");
+  const [isSendingTest, setIsSendingTest] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<
     "idle" | "pending" | "saving" | "saved" | "error"
   >("idle");
@@ -193,6 +201,39 @@ export function EmailTemplateEditorPage() {
     setCopiedVar(varName);
     setTimeout(() => setCopiedVar(null), 2000);
   }, []);
+
+  const handleSendTemplateTest = useCallback(async () => {
+    if (!template) return;
+    if (!testRecipientEmail.trim()) {
+      toast.error("Enter a recipient email address for the test send.");
+      return;
+    }
+
+    setIsSendingTest(true);
+    try {
+      await sendTemplateTestEmail({
+        templateSlug: template.slug,
+        recipientEmail: testRecipientEmail.trim(),
+        recipientName: testRecipientName.trim() || undefined,
+        variableOverridesJson: testVariableOverrides.trim() || undefined,
+      });
+      toast.success(
+        `Queued test send for ${testRecipientEmail.trim()}. Check the delivery queue for status.`,
+      );
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to send template test email.",
+      );
+    } finally {
+      setIsSendingTest(false);
+    }
+  }, [
+    template,
+    testRecipientEmail,
+    testRecipientName,
+    testVariableOverrides,
+    sendTemplateTestEmail,
+  ]);
 
   // Loading state
   if (template === undefined) {
@@ -446,7 +487,16 @@ export function EmailTemplateEditorPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Event</span>
                     <span className="font-mono text-foreground text-[10px]">
-                      {template.eventCode}
+                      {template.canonicalEventCode ?? template.eventCode}
+                    </span>
+                  </div>
+                )}
+
+                {template.triggerKind && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Trigger</span>
+                    <span className="text-foreground capitalize">
+                      {template.triggerKind}
                     </span>
                   </div>
                 )}
@@ -563,6 +613,68 @@ export function EmailTemplateEditorPage() {
                     ))}
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Send Test</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="template-test-email">Recipient Email</Label>
+                  <Input
+                    id="template-test-email"
+                    type="email"
+                    value={testRecipientEmail}
+                    onChange={(e) => setTestRecipientEmail(e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="template-test-name">Recipient Name</Label>
+                  <Input
+                    id="template-test-name"
+                    type="text"
+                    value={testRecipientName}
+                    onChange={(e) => setTestRecipientName(e.target.value)}
+                    placeholder="Alex Example"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="template-test-overrides">
+                    Variable Overrides
+                  </Label>
+                  <Textarea
+                    id="template-test-overrides"
+                    value={testVariableOverrides}
+                    onChange={(e) => setTestVariableOverrides(e.target.value)}
+                    placeholder={`{\n  "user_name": "Alex Example"\n}`}
+                    className="min-h-[120px] font-mono text-xs"
+                    spellCheck={false}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Optional JSON object. Any provided keys override the built-in
+                    sample data for this template.
+                  </p>
+                </div>
+
+                <Button
+                  size="sm"
+                  onClick={handleSendTemplateTest}
+                  disabled={isSendingTest}
+                >
+                  {isSendingTest ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Check className="size-3.5" />
+                  )}
+                  <span>{isSendingTest ? "Queueing..." : "Send Template Test"}</span>
+                </Button>
               </div>
             </CardContent>
           </Card>

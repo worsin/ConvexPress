@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
-import { toast } from "sonner";
 import { Wallet } from "lucide-react";
 
 import {
@@ -18,6 +16,8 @@ import { TestConnectionButton } from "@/components/settings/integrations/TestCon
 import { ModeToggle } from "@/components/settings/integrations/ModeToggle";
 import { WebhookEndpointField } from "@/components/settings/integrations/WebhookEndpointField";
 import { SaveBar } from "@/components/settings/integrations/SaveBar";
+import { SECRET_SENTINEL } from "@/components/settings/integrations/CredentialField";
+import { useSettingsAutosaveDraft } from "@/hooks/useSettingsAutosaveDraft";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/settings/integrations/paypal",
@@ -39,68 +39,41 @@ function PayPalIntegrationPage() {
     (api as any).settings.integrations.testActions.testPayPal,
   );
 
-  const [draft, setDraft] = useState<PayPalDraft | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!settings) return;
-    setDraft({
-      paypalClientId: settings.paypalClientId ?? "",
-      paypalClientSecret: settings.paypalClientSecret ?? "",
-      paypalWebhookId: settings.paypalWebhookId ?? "",
-      paypalMode: settings.paypalMode ?? "sandbox",
-    });
-  }, [settings]);
-
-  const dirty = useMemo(() => {
-    if (!settings || !draft) return false;
-    return (
-      draft.paypalClientId !== (settings.paypalClientId ?? "") ||
-      draft.paypalClientSecret !== (settings.paypalClientSecret ?? "") ||
-      draft.paypalWebhookId !== (settings.paypalWebhookId ?? "") ||
-      draft.paypalMode !== (settings.paypalMode ?? "sandbox")
-    );
-  }, [draft, settings]);
+  const {
+    draft,
+    setDraft,
+    discardChanges,
+    isDirty,
+    autosaveStatus,
+    autosaveError,
+  } = useSettingsAutosaveDraft<PayPalDraft, Record<string, unknown>>({
+    source: settings,
+    createDraft: (source) => ({
+      paypalClientId: (source.paypalClientId as string | null) ?? "",
+      paypalClientSecret: (source.paypalClientSecret as string | null) ?? "",
+      paypalWebhookId: (source.paypalWebhookId as string | null) ?? "",
+      paypalMode:
+        (source.paypalMode as "sandbox" | "production" | undefined) ?? "sandbox",
+    }),
+    onSave: async (nextDraft) => {
+      await updateSection({
+        section: "commerce.payments" as any,
+        values: {
+          ...(settings ?? {}),
+          paypalClientId: nextDraft.paypalClientId ?? SECRET_SENTINEL,
+          paypalClientSecret: nextDraft.paypalClientSecret ?? SECRET_SENTINEL,
+          paypalWebhookId: nextDraft.paypalWebhookId ?? SECRET_SENTINEL,
+          paypalMode: nextDraft.paypalMode,
+        },
+      });
+    },
+  });
 
   const status: IntegrationStatus = settings?.paypalClientSecret
     ? "connected"
     : "not_configured";
 
   if (!draft) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
-
-  async function handleSave() {
-    if (!draft) return;
-    setSaving(true);
-    try {
-      await updateSection({
-        section: "commerce.payments" as any,
-        values: {
-          ...(settings ?? {}),
-          paypalClientId: draft.paypalClientId ?? "",
-          paypalClientSecret:
-            draft.paypalClientSecret === null ? "" : draft.paypalClientSecret,
-          paypalWebhookId:
-            draft.paypalWebhookId === null ? "" : draft.paypalWebhookId,
-          paypalMode: draft.paypalMode,
-        },
-      });
-      toast.success("PayPal settings saved.");
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to save.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function handleDiscard() {
-    if (!settings) return;
-    setDraft({
-      paypalClientId: settings.paypalClientId ?? "",
-      paypalClientSecret: settings.paypalClientSecret ?? "",
-      paypalWebhookId: settings.paypalWebhookId ?? "",
-      paypalMode: settings.paypalMode ?? "sandbox",
-    });
-  }
 
   const webhookUrl =
     typeof window !== "undefined"
@@ -127,7 +100,11 @@ function PayPalIntegrationPage() {
       >
         <ModeToggle
           value={draft.paypalMode}
-          onChange={(v) => setDraft({ ...draft, paypalMode: v })}
+          onChange={(v) =>
+            setDraft((current) =>
+              current ? { ...current, paypalMode: v } : current,
+            )
+          }
         />
       </SettingsSection>
 
@@ -139,7 +116,11 @@ function PayPalIntegrationPage() {
           id="paypal-client-id"
           label="Client ID"
           value={draft.paypalClientId}
-          onChange={(v) => setDraft({ ...draft, paypalClientId: v })}
+          onChange={(v) =>
+            setDraft((current) =>
+              current ? { ...current, paypalClientId: v } : current,
+            )
+          }
           placeholder="A…Ec"
           inputType="text"
           help="Safe to expose to the browser."
@@ -148,7 +129,11 @@ function PayPalIntegrationPage() {
           id="paypal-secret"
           label="Client Secret"
           value={draft.paypalClientSecret}
-          onChange={(v) => setDraft({ ...draft, paypalClientSecret: v })}
+          onChange={(v) =>
+            setDraft((current) =>
+              current ? { ...current, paypalClientSecret: v } : current,
+            )
+          }
           placeholder="E…Aw"
           help="Server-only. PayPal shows this once on app creation; rotate if lost."
         />
@@ -168,7 +153,11 @@ function PayPalIntegrationPage() {
           id="paypal-webhook-id"
           label="Webhook ID"
           value={draft.paypalWebhookId}
-          onChange={(v) => setDraft({ ...draft, paypalWebhookId: v })}
+          onChange={(v) =>
+            setDraft((current) =>
+              current ? { ...current, paypalWebhookId: v } : current,
+            )
+          }
           placeholder="8NY…123"
           inputType="text"
           help="The numeric/alphanumeric ID PayPal shows next to your webhook after creation."
@@ -176,10 +165,11 @@ function PayPalIntegrationPage() {
       </SettingsSection>
 
       <SaveBar
-        dirty={dirty}
-        saving={saving}
-        onSave={handleSave}
-        onDiscard={handleDiscard}
+        dirty={isDirty}
+        mode="autosave"
+        autosaveStatus={autosaveStatus}
+        autosaveError={autosaveError}
+        onDiscard={discardChanges}
       />
     </div>
   );

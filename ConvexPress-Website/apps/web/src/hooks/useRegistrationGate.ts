@@ -11,14 +11,8 @@ import type { RegistrationMode } from "@/lib/auth/types";
  * "invite_only" -- Registration requires an invitation token.
  * "closed"      -- Registration is completely disabled.
  *
- * NOTE: The current backend query (`isRegistrationOpen`) returns a simple
- * boolean. To properly distinguish "closed" from "invite_only", the backend
- * should return a structured enum (e.g., `{ status: "open" | "closed" | "invite_only" }`).
- * Until that backend change is made, this hook infers the status:
- *   - `true`  -> "open"
- *   - `false` -> "invite_only" (assumes invitations are always accepted when reg is off)
- *
- * TODO: Update when backend returns structured registration status.
+ * Backed by `registration.queries.getRegistrationStatus`, which distinguishes
+ * fully closed registration from invite-only registration.
  */
 export type RegistrationStatus = "open" | "invite_only" | "closed";
 
@@ -31,14 +25,20 @@ interface UseRegistrationGateResult {
 }
 
 export function useRegistrationGate(): UseRegistrationGateResult {
-  // Reactive subscription to the registration open/closed state.
-  // This is a PUBLIC query -- no auth required.
-  // Returns a boolean: true if self-registration is enabled.
-  const isOpen = useQuery(api.registration.queries.isRegistrationOpen);
+  const statusResult = useQuery(
+    (api as any).registration.queries.getRegistrationStatus,
+  ) as
+    | {
+        status: RegistrationStatus;
+        canRegister: boolean;
+        inviteOnly: boolean;
+        defaultRole: string;
+      }
+    | undefined;
 
   return useMemo(() => {
     // Still loading from Convex
-    if (isOpen === undefined) {
+    if (statusResult === undefined) {
       return {
         isLoading: true,
         canRegister: false,
@@ -48,16 +48,12 @@ export function useRegistrationGate(): UseRegistrationGateResult {
       };
     }
 
-    // Determine registration status from the boolean.
-    // When the backend is updated to return a structured enum, replace this logic.
-    const registrationStatus: RegistrationStatus = isOpen
-      ? "open"
-      : "invite_only"; // Cannot distinguish "closed" vs "invite_only" with boolean API
+    const registrationStatus = statusResult.status;
 
     const registrationMode: RegistrationMode = {
-      open: isOpen,
-      inviteOnly: registrationStatus === "invite_only",
-      defaultRole: "subscriber",
+      open: statusResult.canRegister,
+      inviteOnly: statusResult.inviteOnly,
+      defaultRole: statusResult.defaultRole,
     };
 
     return {
@@ -67,5 +63,5 @@ export function useRegistrationGate(): UseRegistrationGateResult {
       registrationStatus,
       registrationMode,
     };
-  }, [isOpen]);
+  }, [statusResult]);
 }

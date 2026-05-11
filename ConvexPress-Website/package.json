@@ -31,9 +31,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@convexpress-website/config": "workspace:*",
+    "@playwright/test": "^1.59.1",
     "@types/dompurify": "^3.2.0",
     "@types/node": "^22.13.14",
-    "@convexpress-website/config": "workspace:*",
     "turbo": "^2.6.3",
     "typescript": "catalog:"
   },

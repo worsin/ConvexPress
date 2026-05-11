@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
@@ -167,10 +167,9 @@ export function UserCommentItem({ comment }: UserCommentItemProps) {
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
             <span>
               On:{" "}
-              <Link
-                // @ts-expect-error - Dynamic route string
-                to={`/blog/${comment.postSlug}`}
-                className="text-primary hover:underline"
+	              <Link
+	                to={`/blog/${comment.postSlug}`}
+	                className="text-primary hover:underline"
               >
                 {comment.postTitle}
               </Link>
@@ -190,11 +189,10 @@ export function UserCommentItem({ comment }: UserCommentItemProps) {
           )}
 
           {/* Actions */}
-          <div className="flex items-center gap-2 pt-1">
-            <Link
-            // @ts-expect-error - Dynamic route string
-              to={`/blog/${comment.postSlug}#comment-${comment._id}`}
-              className="text-[10px] text-primary hover:underline"
+	          <div className="flex items-center gap-2 pt-1">
+	            <Link
+	              to={`/blog/${comment.postSlug}#comment-${comment._id}`}
+	              className="text-[10px] text-primary hover:underline"
             >
               View
             </Link>

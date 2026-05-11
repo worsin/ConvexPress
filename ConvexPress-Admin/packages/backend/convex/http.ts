@@ -549,6 +549,7 @@ http.route({
         case "setup_intent.succeeded": {
           const setupIntent = event.data.object;
           const intentId = setupIntent.metadata?.checkoutIntentId;
+          const kind = setupIntent.metadata?.kind;
           const paymentMethodId =
             typeof setupIntent.payment_method === "string"
               ? setupIntent.payment_method
@@ -565,6 +566,8 @@ http.route({
                 checkoutIntentId: intentId as any,
                 stripeCustomerId: customerId,
                 paymentMethodId,
+                setupIntentId: setupIntent.id,
+                activateCheckout: kind === "subscription_setup",
               },
             );
           }

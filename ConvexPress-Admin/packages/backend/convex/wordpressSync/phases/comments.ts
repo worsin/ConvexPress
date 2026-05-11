@@ -184,7 +184,7 @@ export const importBatch = internalAction({
           }
 
           // Create comment
-          const commentId = await ctx.runMutation(internal.wordpressSync.phases.commentsCreate, {
+          const commentId = await ctx.runMutation(internal.wordpressSync.phases.comments.commentsCreate, {
             existingId: existingCommentId,
             wpComment: {
               id: wpComment.id,

@@ -51,14 +51,30 @@ export const importBatch = internalAction({
     const importConfig = normalizeImportConfig(job?.importConfig);
     const isDryRun = importConfig.behavior.dryRun;
 
-    // We process categories first, then tags
-    const categoriesProgress = { ...job.progress.categories };
-    const tagsProgress = { ...job.progress.tags };
+    // We process categories first, then tags.
+    //
+    // Architecture note: this phase tracks two sub-buckets (categories + tags)
+    // but the orchestrator's `updatePhaseProgress` only writes one slot per
+    // run. To avoid the orchestrator's write clobbering our state and to
+    // keep the next batch reading current data, we persist sub-bucket
+    // progress directly to `.categories` and `.tags` slots BEFORE returning
+    // to the orchestrator. The orchestrator will still write the returned
+    // PhaseProgress to `.taxonomies` (per `getProgressKey`); that becomes a
+    // combined-summary slot we don't read from here.
+    const categoriesProgress = { ...(job.progress.categories ?? { total: 0, imported: 0, failed: 0 }) };
+    const tagsProgress = { ...(job.progress.tags ?? { total: 0, imported: 0, failed: 0 }) };
 
     // Process categories if not done
     if (categoriesProgress.imported + categoriesProgress.failed < categoriesProgress.total || categoriesProgress.total === 0) {
       const result = await importCategories(ctx, siteId, jobId, credentials, categoriesProgress, isDryRun, importConfig);
       errors.push(...result.errors);
+
+      // Persist categories progress so the next batch reads up-to-date state.
+      await ctx.runMutation(internal.wordpressSync.internals.updatePhaseProgress, {
+        jobId,
+        phase: "categories",
+        progress: result.progress,
+      });
 
       // Return categories progress if still more to do
       if (result.hasMore) {
@@ -84,10 +100,30 @@ export const importBatch = internalAction({
     const tagsResult = await importTags(ctx, siteId, jobId, credentials, tagsProgress, isDryRun, importConfig);
     errors.push(...tagsResult.errors);
 
-    // Combine progress for reporting
-    // Use tags progress since that's what we're currently working on
-    return {
+    // Persist tags progress so the next batch reads up-to-date state.
+    await ctx.runMutation(internal.wordpressSync.internals.updatePhaseProgress, {
+      jobId,
+      phase: "tags",
       progress: tagsResult.progress,
+    });
+
+    // Return combined progress to the orchestrator. The orchestrator will
+    // write this to `.taxonomies` for display; the per-sub-bucket truth is
+    // already stored in `.categories` and `.tags`.
+    const combinedTotal =
+      (categoriesProgress.total || 0) + (tagsResult.progress.total || 0);
+    const combinedImported =
+      (categoriesProgress.imported || 0) + (tagsResult.progress.imported || 0);
+    const combinedFailed =
+      (categoriesProgress.failed || 0) + (tagsResult.progress.failed || 0);
+    return {
+      progress: {
+        total: combinedTotal,
+        imported: combinedImported,
+        failed: combinedFailed,
+        cursor:
+          (categoriesProgress.cursor || 0) + (tagsResult.progress.cursor || 0),
+      },
       errors,
       hasMore: tagsResult.hasMore,
     };
@@ -218,7 +254,7 @@ async function importCategories(
         }
 
         // Create term
-        const termId = await ctx.runMutation(internal.wordpressSync.phases.taxonomiesCreateTerm, {
+        const termId = await ctx.runMutation(internal.wordpressSync.phases.taxonomies.taxonomiesCreateTerm, {
           existingId: existingTermId,
           wpTerm: {
             id: wpCategory.id,
@@ -384,7 +420,7 @@ async function importTags(
 
       if (!isDryRun) {
         // Create term
-        const termId = await ctx.runMutation(internal.wordpressSync.phases.taxonomiesCreateTerm, {
+        const termId = await ctx.runMutation(internal.wordpressSync.phases.taxonomies.taxonomiesCreateTerm, {
           existingId: existingTermId,
           wpTerm: {
             id: wpTag.id,
@@ -470,7 +506,7 @@ async function repairCategoryHierarchy(
         ) ?? undefined;
       }
 
-      await ctx.runMutation(internal.wordpressSync.phases.taxonomiesSetParent, {
+      await ctx.runMutation(internal.wordpressSync.phases.taxonomies.taxonomiesSetParent, {
         termId,
         parentId,
       });

@@ -404,7 +404,7 @@ function CreateBundleForm({ onCreated }: { onCreated?: () => void }) {
 /* ------------------------------------------------------------------ */
 
 function AddComponentForm({ bundleId }: { bundleId: string }) {
-	const products = useQuery((api as any).commerce.products.list, {}) as
+	const products = useQuery((api as any).commerce.products.listAll, {}) as
 		| Array<{ _id: string; title: string }>
 		| undefined;
 

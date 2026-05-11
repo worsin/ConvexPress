@@ -44,6 +44,7 @@ export function EmailSettingsForm() {
     section: "email",
   });
   const updateSettings = useMutation(api.settings.mutations.updateSection);
+  const repairEmailSystem = useMutation(api.emails.mutations.repairSystem);
 
   // Form state for editable fields
   const [resendApiKey, setResendApiKey] = useState("");
@@ -51,6 +52,7 @@ export function EmailSettingsForm() {
   const [fromAddress, setFromAddress] = useState("");
   const [fromName, setFromName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isRepairing, setIsRepairing] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
 
@@ -106,6 +108,22 @@ export function EmailSettingsForm() {
       setIsSaving(false);
     }
   }, [emailSettings, updateSettings, resendApiKey, webhookSecret, fromAddress, fromName]);
+
+  const handleRepair = useCallback(async () => {
+    setIsRepairing(true);
+    try {
+      const result = await repairEmailSystem({});
+      const templateSummary = `${result.templates.created} created, ${result.templates.updated} updated`;
+      const listenerSummary = `${result.listeners.created} listeners added, ${result.listeners.reactivated} reactivated`;
+      toast.success(`Email system repaired: ${templateSummary}; ${listenerSummary}.`);
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error ? error.message : "Failed to repair email system.";
+      toast.error(msg);
+    } finally {
+      setIsRepairing(false);
+    }
+  }, [repairEmailSystem]);
 
   // Loading state
   if (emailSettings === undefined) {
@@ -267,7 +285,20 @@ export function EmailSettingsForm() {
             </div>
 
             {/* Save Button */}
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRepair}
+                disabled={isRepairing}
+              >
+                {isRepairing ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Shield className="size-3.5" />
+                )}
+                <span>{isRepairing ? "Repairing..." : "Repair Email System"}</span>
+              </Button>
               <Button size="sm" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? (
                   <Loader2 className="size-3.5 animate-spin" />

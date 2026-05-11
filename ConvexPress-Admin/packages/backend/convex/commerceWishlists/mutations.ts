@@ -23,6 +23,8 @@ import { mutation } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { requireCommerceWishlistsEnabled } from "./helpers";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { emitEvent } from "../helpers/events";
+import { CART_EVENTS, SYSTEM, WISHLIST_EVENTS } from "../events/constants";
 
 // ============================================
 // HELPER: Generate share token
@@ -194,12 +196,12 @@ export const addItem = mutation({
       });
     }
 
-    // Verify product exists
+    // Verify product exists and is publicly purchasable.
     const product = await ctx.db.get(args.productId);
-    if (!product) {
+    if (!product || product.status !== "publish") {
       throw new ConvexError({
-        code: "not_found",
-        message: "Product not found.",
+        code: "product_unavailable",
+        message: "Product is not available.",
       });
     }
 
@@ -252,13 +254,22 @@ export const addItem = mutation({
 
     const now = Date.now();
 
-    return await ctx.db.insert("commerce_wishlist_items", {
+    const itemId = await ctx.db.insert("commerce_wishlist_items", {
       wishlistId: wishlistId!,
       productId: args.productId,
       variantId: args.variantId,
       notes: args.notes,
       addedAt: now,
     });
+
+    await emitEvent(ctx, WISHLIST_EVENTS.ITEM_ADDED, SYSTEM.WISHLIST, {
+      wishlistId,
+      itemId,
+      productId: args.productId,
+      variantId: args.variantId,
+    });
+
+    return itemId;
   },
 });
 
@@ -304,6 +315,12 @@ export const removeItem = mutation({
     }
 
     await ctx.db.delete(args.itemId);
+    await emitEvent(ctx, WISHLIST_EVENTS.ITEM_REMOVED, SYSTEM.WISHLIST, {
+      wishlistId: item.wishlistId,
+      itemId: args.itemId,
+      productId: item.productId,
+      variantId: item.variantId,
+    });
     return args.itemId;
   },
 });
@@ -381,7 +398,7 @@ export const moveToCart = mutation({
     const quantity = args.quantity || 1;
 
     // Add to cart
-    await ctx.db.insert("commerce_cart_items", {
+    const cartItemId = await ctx.db.insert("commerce_cart_items", {
       cartId: cart._id,
       productId: item.productId,
       variantId: item.variantId,
@@ -394,6 +411,22 @@ export const moveToCart = mutation({
 
     // Remove from wishlist
     await ctx.db.delete(args.itemId);
+    await emitEvent(ctx, CART_EVENTS.ITEM_ADDED, SYSTEM.CART, {
+      cartId: cart._id,
+      cartItemId,
+      productId: item.productId,
+      variantId: item.variantId,
+      quantity,
+    });
+    await emitEvent(ctx, WISHLIST_EVENTS.MOVED_TO_CART, SYSTEM.WISHLIST, {
+      wishlistId: item.wishlistId,
+      itemId: args.itemId,
+      cartId: cart._id,
+      cartItemId,
+      productId: item.productId,
+      variantId: item.variantId,
+      quantity,
+    });
 
     return { success: true };
   },
@@ -496,7 +529,7 @@ export const mergeGuestWishlist = mutation({
     let mergedCount = 0;
     for (const productId of args.guestProductIds) {
       const product = await ctx.db.get(productId);
-      if (!product) continue;
+      if (!product || product.status !== "publish") continue;
 
       // Check if already exists
       const existing = await ctx.db
@@ -508,10 +541,16 @@ export const mergeGuestWishlist = mutation({
         .first();
 
       if (!existing) {
-        await ctx.db.insert("commerce_wishlist_items", {
+        const itemId = await ctx.db.insert("commerce_wishlist_items", {
           wishlistId,
           productId,
           addedAt: now,
+        });
+        await emitEvent(ctx, WISHLIST_EVENTS.ITEM_ADDED, SYSTEM.WISHLIST, {
+          wishlistId,
+          itemId,
+          productId,
+          source: "guest_merge",
         });
         mergedCount++;
       }

@@ -111,7 +111,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     priority: "immediate",
     recipientType: "customer",
     category: "registration",
-    eventCode: "registration.registered",
+    eventCode: "registration.user_registered",
   },
 
   {
@@ -138,7 +138,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     priority: "immediate",
     recipientType: "customer",
     category: "registration",
-    eventCode: "registration.registered",
+    eventCode: "registration.user_registered",
   },
 
   {
@@ -163,7 +163,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     priority: "batched",
     recipientType: "admin",
     category: "registration",
-    eventCode: "registration.registered",
+    eventCode: "registration.user_registered",
   },
 
   {
@@ -187,7 +187,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     priority: "immediate",
     recipientType: "customer",
     category: "registration",
-    eventCode: "registration.invited",
+    eventCode: "registration.user_invited",
   },
 
   // ═══ Security ════════════════════════════════════════════════════════════════
@@ -220,7 +220,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     priority: "immediate",
     recipientType: "customer",
     category: "security",
-    eventCode: "auth.login",
+    eventCode: "auth.login_failed",
   },
 
   {
@@ -715,7 +715,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     priority: "immediate",
     recipientType: "customer",
     category: "support",
-    eventCode: "ticket.reply_added",
+    eventCode: "ticket.replied",
   },
 
   {
@@ -737,7 +737,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     priority: "immediate",
     recipientType: "employee",
     category: "support",
-    eventCode: "ticket.reply_added",
+    eventCode: "ticket.replied",
   },
 
   {
@@ -865,7 +865,7 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     priority: "immediate",
     recipientType: "employee",
     category: "knowledge_base",
-    eventCode: "kb.comment_added",
+    eventCode: "kb.comment_created",
   },
 
   // ═══ Commerce Returns ═══════════════════════════════════════════════════════

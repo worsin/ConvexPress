@@ -16,7 +16,7 @@
     "dotenv": "catalog:",
     "googleapis": "^171.4.0",
     "jose": "^6.2.2",
-    "sharp": "^0.33.5",
+    "sharp": "^0.34.5",
     "svix": "^1.89.0",
     "zod": "catalog:"
   },

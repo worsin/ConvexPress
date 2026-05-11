@@ -45,6 +45,13 @@ export const Route = createFileRoute(
 const inputClass =
   "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
+type PricingCardOfferRow = PricingCardOffer & {
+  _id: Id<"commerce_subscription_offers">;
+  slug: string;
+  status: "draft" | "active" | "archived";
+  pricingCardVisible?: boolean;
+};
+
 function PricingCardsPage() {
   const config = useQuery(
     (api as any).commerceSubscriptions.pricingCards.getPricingCardConfig,
@@ -65,12 +72,7 @@ function PricingCardsPage() {
   const offers = useQuery(
     (api as any).commerceSubscriptions.offers.listOffers,
     {},
-  ) as Array<PricingCardOffer & {
-    _id: Id<"commerce_subscription_offers">;
-    slug: string;
-    status: "draft" | "active" | "archived";
-    pricingCardVisible?: boolean;
-  }> | null | undefined;
+  ) as Array<PricingCardOfferRow> | null | undefined;
 
   const updateConfig = useMutation(
     (api as any).commerceSubscriptions.pricingCards.updatePricingCardConfig,
@@ -97,7 +99,7 @@ function PricingCardsPage() {
   const pluginDisabled = config === null;
 
   const offerById = useMemo(() => {
-    const map = new Map<string, typeof offers extends Array<infer T> ? T : never>();
+    const map = new Map<string, PricingCardOfferRow>();
     (offers ?? []).forEach((o) => map.set(String(o._id), o));
     return map;
   }, [offers]);

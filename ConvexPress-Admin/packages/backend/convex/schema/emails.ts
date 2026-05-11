@@ -3,7 +3,7 @@
  *
  * Three tables powering the transactional email infrastructure:
  *
- *   - emailTemplates: 25 pre-defined email notification templates with
+ *   - emailTemplates: 50 pre-defined email notification templates with
  *     customizable subject/body, variable definitions, and delivery config.
  *
  *   - emailQueue: Persistent email queue with full delivery tracking,
@@ -13,7 +13,7 @@
  *
  * ConvexPress replaces WordPress's fire-and-forget `wp_mail()` with a
  * persistent queue backed by Convex. Every email is stored, tracked,
- * and retryable. Delivery status is visible in the admin panel.
+ * retryable, and test-sendable. Delivery status is visible in the admin panel.
  *
  * Owned by the Email Notification System.
  */
@@ -186,6 +186,14 @@ export const emailTables = {
     /** For linking related emails (e.g., bulk sends) */
     correlationId: v.optional(v.string()),
 
+    // --- Test Metadata ---
+    /** Whether this queue row was created from an admin test send */
+    isTest: v.optional(v.boolean()),
+    /** Optional human-readable label for the test run */
+    testLabel: v.optional(v.string()),
+    /** Optional JSON metadata captured for the test send */
+    testMetadata: v.optional(v.string()),
+
     // --- Timestamps ---
     /** When queued */
     createdAt: v.number(),
@@ -217,4 +225,20 @@ export const emailTables = {
   })
     .index("by_user", ["userId"])
     .index("by_user_category", ["userId", "category"]),
+
+  // ─── Anonymous Newsletter Subscribers ───────────────────────────────────
+  newsletterSubscribers: defineTable({
+    email: v.string(),
+    status: v.union(
+      v.literal("subscribed"),
+      v.literal("unsubscribed"),
+      v.literal("bounced"),
+    ),
+    source: v.optional(v.string()),
+    subscribedAt: v.number(),
+    unsubscribedAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_status", ["status"]),
 };

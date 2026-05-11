@@ -41,8 +41,8 @@ export function EmailTemplatePreview({
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const sampleVars = useMemo(
-    () => getSampleVariables(templateSlug),
-    [templateSlug],
+    () => getSampleVariables(templateSlug, bodyHtml, subjectTemplate),
+    [templateSlug, bodyHtml, subjectTemplate],
   );
 
   const renderedSubject = useMemo(

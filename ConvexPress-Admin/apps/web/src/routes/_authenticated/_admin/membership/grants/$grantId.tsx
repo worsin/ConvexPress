@@ -155,13 +155,15 @@ function GrantDetailPage() {
     );
   }
 
-  const isTerminal = grant.status === "revoked" || grant.status === "expired";
+  const grantRecord = grant;
+  const isTerminal =
+    grantRecord.status === "revoked" || grantRecord.status === "expired";
 
   async function handleRevoke() {
     setRevoking(true);
     try {
       await revokeMutation({
-        grantId: grant._id,
+        grantId: grantRecord._id,
         reason: revokeReason.trim() || undefined,
       });
       toast.success("Grant revoked");
@@ -190,7 +192,7 @@ function GrantDetailPage() {
     setExtending(true);
     try {
       await extendMutation({
-        grantId: grant._id,
+        grantId: grantRecord._id,
         newExpiresAt: new Date(extendDate).getTime(),
         reason: extendReason.trim(),
       });

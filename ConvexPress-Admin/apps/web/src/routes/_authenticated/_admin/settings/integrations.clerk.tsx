@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
-import { toast } from "sonner";
 import { ShieldCheck } from "lucide-react";
 
 import {
@@ -15,8 +13,10 @@ import { CredentialField } from "@/components/settings/integrations/CredentialFi
 import { TestConnectionButton } from "@/components/settings/integrations/TestConnectionButton";
 import { WebhookEndpointField } from "@/components/settings/integrations/WebhookEndpointField";
 import { SaveBar } from "@/components/settings/integrations/SaveBar";
+import { SECRET_SENTINEL } from "@/components/settings/integrations/CredentialField";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useSettingsAutosaveDraft } from "@/hooks/useSettingsAutosaveDraft";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/settings/integrations/clerk",
@@ -37,63 +37,37 @@ function ClerkIntegrationPage() {
     (api as any).settings.integrations.testActions.testClerk,
   );
 
-  const [draft, setDraft] = useState<ClerkDraft | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!settings) return;
-    setDraft({
-      clerkSecretKey: settings.clerkSecretKey ?? "",
-      clerkWebhookSecret: settings.clerkWebhookSecret ?? "",
-      clerkJwtIssuerDomain: settings.clerkJwtIssuerDomain ?? "",
-    });
-  }, [settings]);
-
-  const dirty = useMemo(() => {
-    if (!settings || !draft) return false;
-    return (
-      draft.clerkSecretKey !== (settings.clerkSecretKey ?? "") ||
-      draft.clerkWebhookSecret !== (settings.clerkWebhookSecret ?? "") ||
-      draft.clerkJwtIssuerDomain !== (settings.clerkJwtIssuerDomain ?? "")
-    );
-  }, [draft, settings]);
+  const {
+    draft,
+    setDraft,
+    discardChanges,
+    isDirty,
+    autosaveStatus,
+    autosaveError,
+  } = useSettingsAutosaveDraft<ClerkDraft, Record<string, unknown>>({
+    source: settings,
+    createDraft: (source) => ({
+      clerkSecretKey: (source.clerkSecretKey as string | null) ?? "",
+      clerkWebhookSecret: (source.clerkWebhookSecret as string | null) ?? "",
+      clerkJwtIssuerDomain: (source.clerkJwtIssuerDomain as string | undefined) ?? "",
+    }),
+    onSave: async (nextDraft) => {
+      await updateSection({
+        section: "integrations.clerk" as any,
+        values: {
+          clerkSecretKey: nextDraft.clerkSecretKey ?? SECRET_SENTINEL,
+          clerkWebhookSecret: nextDraft.clerkWebhookSecret ?? SECRET_SENTINEL,
+          clerkJwtIssuerDomain: nextDraft.clerkJwtIssuerDomain,
+        },
+      });
+    },
+  });
 
   const status: IntegrationStatus = settings?.clerkSecretKey
     ? "connected"
     : "not_configured";
 
   if (!draft) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
-
-  async function handleSave() {
-    if (!draft) return;
-    setSaving(true);
-    try {
-      await updateSection({
-        section: "integrations.clerk" as any,
-        values: {
-          clerkSecretKey:
-            draft.clerkSecretKey === null ? "" : draft.clerkSecretKey,
-          clerkWebhookSecret:
-            draft.clerkWebhookSecret === null ? "" : draft.clerkWebhookSecret,
-          clerkJwtIssuerDomain: draft.clerkJwtIssuerDomain,
-        },
-      });
-      toast.success("Clerk settings saved.");
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to save.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function handleDiscard() {
-    if (!settings) return;
-    setDraft({
-      clerkSecretKey: settings.clerkSecretKey ?? "",
-      clerkWebhookSecret: settings.clerkWebhookSecret ?? "",
-      clerkJwtIssuerDomain: settings.clerkJwtIssuerDomain ?? "",
-    });
-  }
 
   const webhookUrl =
     typeof window !== "undefined"
@@ -122,7 +96,11 @@ function ClerkIntegrationPage() {
           id="clerk-secret"
           label="Secret key"
           value={draft.clerkSecretKey}
-          onChange={(v) => setDraft({ ...draft, clerkSecretKey: v })}
+          onChange={(v) =>
+            setDraft((current) =>
+              current ? { ...current, clerkSecretKey: v } : current,
+            )
+          }
           placeholder="sk_test_… or sk_live_…"
           help="Server-only. Starts with sk_test_ for dev, sk_live_ for production."
         />
@@ -143,7 +121,11 @@ function ClerkIntegrationPage() {
             id="clerk-issuer"
             value={draft.clerkJwtIssuerDomain}
             onChange={(e) =>
-              setDraft({ ...draft, clerkJwtIssuerDomain: e.target.value })
+              setDraft((current) =>
+                current
+                  ? { ...current, clerkJwtIssuerDomain: e.target.value }
+                  : current,
+              )
             }
             placeholder="https://clerk.yourdomain.com"
           />
@@ -167,17 +149,22 @@ function ClerkIntegrationPage() {
           id="clerk-webhook-secret"
           label="Signing secret"
           value={draft.clerkWebhookSecret}
-          onChange={(v) => setDraft({ ...draft, clerkWebhookSecret: v })}
+          onChange={(v) =>
+            setDraft((current) =>
+              current ? { ...current, clerkWebhookSecret: v } : current,
+            )
+          }
           placeholder="whsec_…"
           help="Clerk → Webhooks → your endpoint → Signing secret."
         />
       </SettingsSection>
 
       <SaveBar
-        dirty={dirty}
-        saving={saving}
-        onSave={handleSave}
-        onDiscard={handleDiscard}
+        dirty={isDirty}
+        mode="autosave"
+        autosaveStatus={autosaveStatus}
+        autosaveError={autosaveError}
+        onDiscard={discardChanges}
       />
     </div>
   );

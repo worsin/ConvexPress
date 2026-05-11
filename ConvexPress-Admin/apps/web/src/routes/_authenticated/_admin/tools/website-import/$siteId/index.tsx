@@ -112,7 +112,10 @@ function WebsiteImportSiteDetail() {
       toast.success("Import started");
       setShowConfig(false);
     } catch (error) {
-      toast.error("Failed to start import");
+      toast.error(
+        `Failed to start import: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+      console.error("[startSync]", error);
     }
   };
 
@@ -122,7 +125,10 @@ function WebsiteImportSiteDetail() {
       await pauseJob({ jobId: activeJob._id });
       toast.success("Import paused");
     } catch (error) {
-      toast.error("Failed to pause import");
+      toast.error(
+        `Failed to pause import: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+      console.error("[pauseJob]", error);
     }
   };
 
@@ -132,7 +138,10 @@ function WebsiteImportSiteDetail() {
       await resumeSync({ jobId: activeJob._id });
       toast.success("Import resumed");
     } catch (error) {
-      toast.error("Failed to resume import");
+      toast.error(
+        `Failed to resume import: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+      console.error("[resumeSync]", error);
     }
   };
 
@@ -142,7 +151,10 @@ function WebsiteImportSiteDetail() {
       await cancelJob({ jobId: activeJob._id });
       toast.success("Import cancelled");
     } catch (error) {
-      toast.error("Failed to cancel import");
+      toast.error(
+        `Failed to cancel import: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+      console.error("[cancelJob]", error);
     }
   };
 

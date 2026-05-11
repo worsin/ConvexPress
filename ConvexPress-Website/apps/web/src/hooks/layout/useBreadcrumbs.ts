@@ -20,14 +20,14 @@ export function useBreadcrumbs(
   const segments: BreadcrumbSegment[] = [{ label: "Home", to: "/" }];
 
   for (const match of matches) {
-    const routeId = match.routeId;
+    const routeId = String(match.routeId);
 
     // Skip root route
     if (routeId === "__root__") continue;
 
     // Remove internal layout segments (e.g. "_marketing") from breadcrumb generation
     const parts = routeId.split("/").filter(Boolean);
-    const publicParts = parts.filter((part) => !part.startsWith("_"));
+    const publicParts = parts.filter((part: string) => !part.startsWith("_"));
     const lastPart = publicParts[publicParts.length - 1];
 
     if (!lastPart || lastPart === "index") continue;
@@ -46,7 +46,7 @@ export function useBreadcrumbs(
         const paramValue = (match.params as Record<string, string | undefined>)?.[paramName];
         if (paramValue && typeof paramValue === "string") {
           segments.push({
-            label: paramValue.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+            label: paramValue.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
           });
         }
       }
@@ -54,7 +54,7 @@ export function useBreadcrumbs(
       // Static segment - look up in the label map
       const label =
         ROUTE_LABEL_MAP[lastPart] ||
-        lastPart.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        lastPart.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
 
       const to = `/${publicParts.join("/")}`;
 

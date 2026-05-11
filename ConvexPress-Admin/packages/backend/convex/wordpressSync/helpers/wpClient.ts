@@ -579,10 +579,15 @@ export function fetchWPMedia(
   perPage = 100,
   options?: WPContentFetchOptions,
 ): Promise<WPFetchResult<WPMedia[]>> {
+  // WP `/wp/v2/media` accepts only `inherit`, `private`, `trash` for the
+  // `status` param. The post-style `any` keyword is rejected with
+  // "Invalid parameter(s): status". We pass `inherit,private` to capture
+  // both attached and private media; trashed items are intentionally
+  // excluded from imports.
   return fetchWPEndpoint<WPMedia[]>(config, "media", {
     page,
     per_page: perPage,
-    status: "any",
+    status: "inherit,private",
     orderby: "id",
     order: "asc",
     ...contentDateParams(options),

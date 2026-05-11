@@ -15,15 +15,167 @@ import { requireCommerceEnabled } from "./helpers";
 // ============================================
 
 /**
- * List all customer profiles (admin only).
- * Kept from original stub.
+ * List customer profiles (admin only) — paginated/sortable/filterable.
+ * Returns { items, total, page, perPage, totalPages } for the standardized
+ * list-table UI. Replaces the old `take(500)` stub.
  */
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    search: v.optional(v.string()),
+    isGuest: v.optional(v.boolean()),
+    hasOrders: v.optional(v.boolean()),
+    orderBy: v.optional(v.string()),
+    orderDir: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+    page: v.optional(v.number()),
+    perPage: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
-    return ctx.db.query("commerce_customer_profiles").take(500);
+
+    const page = Math.max(1, args.page ?? 1);
+    const perPage = Math.min(100, Math.max(1, args.perPage ?? 20));
+
+    let scoped: any[];
+    if (args.search && args.search.trim()) {
+      const term = args.search.trim().toLowerCase();
+      scoped = await ctx.db
+        .query("commerce_customer_profiles")
+        .withSearchIndex("search_customers", (q: any) =>
+          q.search("email", term),
+        )
+        .take(2000);
+    } else {
+      scoped = await ctx.db
+        .query("commerce_customer_profiles")
+        .withIndex("by_createdAt")
+        .order("desc")
+        .take(20000);
+    }
+
+    let filtered = scoped;
+    if (args.isGuest !== undefined) {
+      filtered = filtered.filter((c: any) => Boolean(c.isGuest) === args.isGuest);
+    }
+    if (args.hasOrders !== undefined) {
+      filtered = filtered.filter((c: any) =>
+        args.hasOrders ? (c.totalOrders ?? 0) > 0 : (c.totalOrders ?? 0) === 0,
+      );
+    }
+
+    // Also search firstName/lastName client-side since search index can only target one field
+    if (args.search && args.search.trim()) {
+      const term = args.search.trim().toLowerCase();
+      filtered = filtered.filter((c: any) => {
+        const haystack = [c.email, c.firstName, c.lastName].filter(Boolean).join(" ").toLowerCase();
+        return haystack.includes(term);
+      });
+    }
+
+    const dir = args.orderDir === "asc" ? 1 : -1;
+    const key = args.orderBy ?? "createdAt";
+    filtered.sort((a: any, b: any) => {
+      let av: any;
+      let bv: any;
+      switch (key) {
+        case "email":
+          av = (a.email ?? "").toLowerCase();
+          bv = (b.email ?? "").toLowerCase();
+          break;
+        case "name":
+          av = `${a.firstName ?? ""} ${a.lastName ?? ""}`.toLowerCase();
+          bv = `${b.firstName ?? ""} ${b.lastName ?? ""}`.toLowerCase();
+          break;
+        case "totalSpent":
+        case "totalSpentAmount":
+          av = a.totalSpentAmount ?? 0;
+          bv = b.totalSpentAmount ?? 0;
+          break;
+        case "totalOrders":
+          av = a.totalOrders ?? 0;
+          bv = b.totalOrders ?? 0;
+          break;
+        case "createdAt":
+        default:
+          av = a.createdAt ?? 0;
+          bv = b.createdAt ?? 0;
+          break;
+      }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / perPage);
+    const slice = filtered.slice((page - 1) * perPage, page * perPage);
+
+    return {
+      items: slice.map((c: any) => ({
+        _id: c._id,
+        userId: c.userId,
+        email: c.email,
+        firstName: c.firstName,
+        lastName: c.lastName,
+        phone: c.phone,
+        isGuest: c.isGuest,
+        totalOrders: c.totalOrders ?? 0,
+        totalSpentAmount: c.totalSpentAmount ?? 0,
+        currencyCode: c.currencyCode ?? "USD",
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+      })),
+      total,
+      page,
+      perPage,
+      totalPages,
+    };
+  },
+});
+
+/**
+ * Customer status counts for the list-table status tabs.
+ */
+export const counts = query({
+  args: {
+    search: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireCommerceEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    let pool: any[];
+    if (args.search && args.search.trim()) {
+      const term = args.search.trim().toLowerCase();
+      pool = await ctx.db
+        .query("commerce_customer_profiles")
+        .withSearchIndex("search_customers", (q: any) => q.search("email", term))
+        .take(2000);
+      pool = pool.filter((c: any) => {
+        const haystack = [c.email, c.firstName, c.lastName].filter(Boolean).join(" ").toLowerCase();
+        return haystack.includes(term);
+      });
+    } else {
+      pool = await ctx.db.query("commerce_customer_profiles").take(20000);
+    }
+
+    let withOrders = 0;
+    let noOrders = 0;
+    let guests = 0;
+    let registered = 0;
+    for (const c of pool) {
+      if ((c.totalOrders ?? 0) > 0) withOrders++;
+      else noOrders++;
+      if (c.isGuest) guests++;
+      else if (c.userId) registered++;
+    }
+    return {
+      all: pool.length,
+      with_orders: withOrders,
+      no_orders: noOrders,
+      guests,
+      registered,
+    };
   },
 });
 

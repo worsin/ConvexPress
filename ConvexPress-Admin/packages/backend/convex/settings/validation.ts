@@ -132,6 +132,14 @@ function validateGeneral(values: Record<string, unknown>): ValidationError[] {
     errors.push({ field: "membershipEnabled", message: "Membership must be a boolean." });
   }
 
+  if (
+    values.registrationMode !== undefined &&
+    values.registrationMode !== "invite_only" &&
+    values.registrationMode !== "closed"
+  ) {
+    errors.push({ field: "registrationMode", message: "Registration mode must be invite-only or closed." });
+  }
+
   // defaultRole: valid role
   if (isString(values.defaultRole) && !VALID_ROLES.includes(values.defaultRole)) {
     errors.push({ field: "defaultRole", message: `Default role must be one of: ${VALID_ROLES.join(", ")}.` });

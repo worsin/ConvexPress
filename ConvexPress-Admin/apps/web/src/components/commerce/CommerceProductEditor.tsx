@@ -26,6 +26,8 @@ import { MediaPicker } from "@/components/media/MediaPicker";
 
 type EditorMode = "create" | "edit";
 type ProductStatus = "draft" | "publish" | "private";
+type DigitalDeliveryMode = "download" | "license" | "download_and_license";
+type LicenseKeyType = "single" | "multi" | "unlimited" | "subscription";
 type Money = { amount?: number; currency?: string };
 type Category = {
 	_id: Id<"commerce_product_categories">;
@@ -90,6 +92,13 @@ type Product = {
 	isVirtual?: boolean;
 	shippingWeightOz?: number;
 	isDownloadable?: boolean;
+	requiresLicense?: boolean;
+	digitalDeliveryMode?: DigitalDeliveryMode;
+	downloadLimit?: number;
+	downloadExpiryDays?: number;
+	licenseKeyType?: LicenseKeyType;
+	maxActivations?: number;
+	licenseExpiresAfterDays?: number;
 	taxClass?: string;
 	categoryIds?: Id<"commerce_product_categories">[];
 	featuredMediaId?: Id<"media">;
@@ -198,6 +207,15 @@ export function CommerceProductEditor({
 	const [isVirtual, setIsVirtual] = useState(false);
 	const [shippingWeightOz, setShippingWeightOz] = useState("");
 	const [isDownloadable, setIsDownloadable] = useState(false);
+	const [requiresLicense, setRequiresLicense] = useState(false);
+	const [digitalDeliveryMode, setDigitalDeliveryMode] =
+		useState<DigitalDeliveryMode>("download");
+	const [downloadLimit, setDownloadLimit] = useState("");
+	const [downloadExpiryDays, setDownloadExpiryDays] = useState("");
+	const [licenseKeyType, setLicenseKeyType] =
+		useState<LicenseKeyType>("single");
+	const [maxActivations, setMaxActivations] = useState("1");
+	const [licenseExpiresAfterDays, setLicenseExpiresAfterDays] = useState("");
 	const [taxClass, setTaxClass] = useState("");
 	const [selectedCategoryIds, setSelectedCategoryIds] = useState<
 		Id<"commerce_product_categories">[]
@@ -318,6 +336,29 @@ export function CommerceProductEditor({
 				: "",
 		);
 		setIsDownloadable(product.isDownloadable ?? false);
+		setRequiresLicense(product.requiresLicense ?? false);
+		setDigitalDeliveryMode(product.digitalDeliveryMode ?? "download");
+		setDownloadLimit(
+			typeof product.downloadLimit === "number"
+				? String(product.downloadLimit)
+				: "",
+		);
+		setDownloadExpiryDays(
+			typeof product.downloadExpiryDays === "number"
+				? String(product.downloadExpiryDays)
+				: "",
+		);
+		setLicenseKeyType(product.licenseKeyType ?? "single");
+		setMaxActivations(
+			typeof product.maxActivations === "number"
+				? String(product.maxActivations)
+				: "1",
+		);
+		setLicenseExpiresAfterDays(
+			typeof product.licenseExpiresAfterDays === "number"
+				? String(product.licenseExpiresAfterDays)
+				: "",
+		);
 		setTaxClass(product.taxClass ?? "");
 		setSelectedCategoryIds(product.categoryIds ?? []);
 		setFeaturedMediaId(product.featuredMediaId);
@@ -417,6 +458,17 @@ export function CommerceProductEditor({
 				: [],
 		[variantIntegrity],
 	);
+
+	function handleDownloadableChange(checked: boolean) {
+		setIsDownloadable(checked);
+		if (checked && !isVirtual) {
+			setIsVirtual(true);
+		}
+		if (!checked) {
+			setRequiresLicense(false);
+			setDigitalDeliveryMode("download");
+		}
+	}
 
 	const handleCategoryToggle = (categoryId: Id<"commerce_product_categories">) => {
 		setSelectedCategoryIds((current) =>
@@ -1001,12 +1053,32 @@ export function CommerceProductEditor({
 			basePrice: displayToMoney(basePrice),
 			trackInventory,
 			allowBackorders,
-			isVirtual,
-			shippingWeightOz: shippingWeightOz.trim()
-				? Number(shippingWeightOz)
-				: undefined,
-			isDownloadable,
-			taxClass: taxClass.trim() || undefined,
+				isVirtual,
+				shippingWeightOz: shippingWeightOz.trim()
+					? Number(shippingWeightOz)
+					: undefined,
+				isDownloadable,
+				requiresLicense,
+				digitalDeliveryMode: isDownloadable ? digitalDeliveryMode : undefined,
+				downloadLimit:
+					isDownloadable && downloadLimit.trim()
+						? Number(downloadLimit)
+						: undefined,
+				downloadExpiryDays:
+					isDownloadable && downloadExpiryDays.trim()
+						? Number(downloadExpiryDays)
+						: undefined,
+				licenseKeyType:
+					isDownloadable && requiresLicense ? licenseKeyType : undefined,
+				maxActivations:
+					isDownloadable && requiresLicense && maxActivations.trim()
+						? Number(maxActivations)
+						: undefined,
+				licenseExpiresAfterDays:
+					isDownloadable && requiresLicense && licenseExpiresAfterDays.trim()
+						? Number(licenseExpiresAfterDays)
+						: undefined,
+				taxClass: taxClass.trim() || undefined,
 			featuredMediaId:
 				mode === "edit" ? (featuredMediaId ?? null) : featuredMediaId,
 			galleryMediaIds,
@@ -2411,15 +2483,186 @@ export function CommerceProductEditor({
 								/>
 								Virtual product
 							</label>
-							<label className="flex items-center gap-3 text-sm">
-								<input
-									type="checkbox"
-									checked={isDownloadable}
-									onChange={(event) => setIsDownloadable(event.target.checked)}
-								/>
-								Downloadable product
-							</label>
-							<div className="grid gap-2">
+								<label className="flex items-center gap-3 text-sm">
+									<input
+										type="checkbox"
+										checked={isDownloadable}
+										onChange={(event) =>
+											handleDownloadableChange(event.target.checked)
+										}
+									/>
+									Downloadable product
+								</label>
+								{isDownloadable ? (
+									<div className="rounded-2xl border border-border bg-muted/20 p-4">
+										<div className="flex items-start justify-between gap-4">
+											<div>
+												<h3 className="text-sm font-semibold text-foreground">
+													Digital delivery
+												</h3>
+												<p className="mt-1 text-xs text-muted-foreground">
+													Configure downloads and software license fulfillment
+													for paid orders.
+												</p>
+											</div>
+											{mode === "edit" ? (
+												<Link
+													to="/commerce/digital"
+													className="text-xs font-medium text-primary hover:underline"
+												>
+													Manage files & keys
+												</Link>
+											) : null}
+										</div>
+										<div className="mt-4 grid gap-4 md:grid-cols-2">
+											<div className="grid gap-2">
+												<label
+													className="text-sm font-medium"
+													htmlFor="commerce-digital-delivery-mode"
+												>
+													Delivery mode
+												</label>
+												<select
+													id="commerce-digital-delivery-mode"
+													value={digitalDeliveryMode}
+													onChange={(event) => {
+														const next = event.target
+															.value as DigitalDeliveryMode;
+														setDigitalDeliveryMode(next);
+														setRequiresLicense(next !== "download");
+													}}
+													className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+												>
+													<option value="download">Download only</option>
+													<option value="license">License only</option>
+													<option value="download_and_license">
+														Download and license
+													</option>
+												</select>
+											</div>
+											<div className="grid gap-2">
+												<label
+													className="text-sm font-medium"
+													htmlFor="commerce-download-limit"
+												>
+													Download limit
+												</label>
+												<Input
+													id="commerce-download-limit"
+													type="number"
+													min="1"
+													value={downloadLimit}
+													onChange={(event) =>
+														setDownloadLimit(event.target.value)
+													}
+													placeholder="Unlimited"
+												/>
+											</div>
+											<div className="grid gap-2">
+												<label
+													className="text-sm font-medium"
+													htmlFor="commerce-download-expiry-days"
+												>
+													Download expiry
+												</label>
+												<Input
+													id="commerce-download-expiry-days"
+													type="number"
+													min="1"
+													value={downloadExpiryDays}
+													onChange={(event) =>
+														setDownloadExpiryDays(event.target.value)
+													}
+													placeholder="Never expires"
+												/>
+												<p className="text-xs text-muted-foreground">
+													Number of days after purchase.
+												</p>
+											</div>
+											<label className="flex items-center gap-3 self-start pt-8 text-sm">
+												<input
+													type="checkbox"
+													checked={requiresLicense}
+													onChange={(event) => {
+														setRequiresLicense(event.target.checked);
+														if (
+															event.target.checked &&
+															digitalDeliveryMode === "download"
+														) {
+															setDigitalDeliveryMode("download_and_license");
+														}
+													}}
+												/>
+												Requires license key
+											</label>
+										</div>
+										{requiresLicense ? (
+											<div className="mt-4 grid gap-4 border-t border-border pt-4 md:grid-cols-3">
+												<div className="grid gap-2">
+													<label
+														className="text-sm font-medium"
+														htmlFor="commerce-license-key-type"
+													>
+														License type
+													</label>
+													<select
+														id="commerce-license-key-type"
+														value={licenseKeyType}
+														onChange={(event) =>
+															setLicenseKeyType(
+																event.target.value as LicenseKeyType,
+															)
+														}
+														className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+													>
+														<option value="single">Single device</option>
+														<option value="multi">Multiple devices</option>
+														<option value="unlimited">Unlimited</option>
+														<option value="subscription">Subscription</option>
+													</select>
+												</div>
+												<div className="grid gap-2">
+													<label
+														className="text-sm font-medium"
+														htmlFor="commerce-max-activations"
+													>
+														Max activations
+													</label>
+													<Input
+														id="commerce-max-activations"
+														type="number"
+														min="1"
+														value={maxActivations}
+														onChange={(event) =>
+															setMaxActivations(event.target.value)
+														}
+														disabled={licenseKeyType === "unlimited"}
+														placeholder="1"
+													/>
+												</div>
+												<div className="grid gap-2">
+													<label
+														className="text-sm font-medium"
+														htmlFor="commerce-license-expiry-days"
+													>
+														License expiry
+													</label>
+													<Input
+														id="commerce-license-expiry-days"
+														type="number"
+														min="1"
+														value={licenseExpiresAfterDays}
+														onChange={(event) =>
+															setLicenseExpiresAfterDays(event.target.value)
+														}
+														placeholder="Never expires"
+													/>
+												</div>
+											</div>
+										) : null}
+									</div>
+								) : null}
+								<div className="grid gap-2">
 								<label
 									className="text-sm font-medium"
 									htmlFor="commerce-product-tax-class"

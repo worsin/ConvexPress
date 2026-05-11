@@ -11,8 +11,7 @@ import { cn } from "@/lib/utils";
  * contracts. Uses `portal.listMyInvoices` so no fan-out queries are needed.
  *
  * The "Download" button calls `portal.getInvoicePdf` (an action) and
- * triggers a file download using a client-side Blob. Real PDF rendering is
- * a Wave 7 concern — today we ship the text placeholder the backend returns.
+ * triggers a file download using a client-side PDF Blob.
  *
  * Theme-token colours only.
  */
@@ -84,11 +83,11 @@ function StatusBadge({ status }: { status: string }) {
 
 // ─── Download helper ────────────────────────────────────────────────────────
 
-function downloadTextFile(filename: string, content: string) {
+function downloadFile(filename: string, content: string, contentType: string) {
   // SSR safety: only run in the browser. The table is interactive and won't
   // reach this code until after hydration, but belt-and-braces.
   if (typeof window === "undefined") return;
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const blob = new Blob([content], { type: contentType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -127,7 +126,11 @@ export function InvoiceHistoryTable({
     setDownloadingId(invoiceId);
     try {
       const result = await getInvoicePdf({ invoiceId: invoiceId as any });
-      downloadTextFile(result.filename, result.content);
+      downloadFile(
+        result.filename,
+        result.content,
+        result.contentType ?? "application/pdf",
+      );
     } catch (error) {
       toast.error(
         (error as { data?: { message?: string } })?.data?.message ??

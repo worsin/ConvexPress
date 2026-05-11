@@ -251,16 +251,17 @@ export const beginSubscriptionFirstCharge = internalAction({
     checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (
-    ctx,
-    args,
-  ): Promise<{
-    clientSecret: string | null;
-    paymentIntentId: string;
-    amount: number;
-    currency: string;
-    stripeCustomerId: string;
-  }> => {
+	handler: async (
+		ctx,
+		args,
+	): Promise<{
+		clientSecret: string | null;
+		paymentIntentId: string;
+		amount: number;
+		currency: string;
+		stripeCustomerId: string;
+		mode: "payment" | "setup";
+	}> => {
     const stripeKey = await getStripeSecretKey(ctx);
     if (!stripeKey) {
       throw new Error("stripe_not_configured");
@@ -270,6 +271,7 @@ export const beginSubscriptionFirstCharge = internalAction({
       _id: string;
       email?: string;
       initialAmount: number;
+      recurringAmount?: number;
       currencyCode: string;
     } | null = (await ctx.runQuery(
       internal.commerceSubscriptions.internals.getCheckoutIntentForCharge,
@@ -278,11 +280,6 @@ export const beginSubscriptionFirstCharge = internalAction({
 
     if (!intent) throw new Error("checkout_intent_not_found");
     if (!intent.email) throw new Error("missing_email_on_intent");
-    if (intent.initialAmount <= 0) {
-      // Free trial or $0 initial — no Stripe charge needed. Caller should
-      // proceed directly to activateFromIntent with a zero-amount result.
-      throw new Error("no_charge_needed_free_initial_amount");
-    }
 
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(stripeKey);
@@ -298,6 +295,44 @@ export const beginSubscriptionFirstCharge = internalAction({
     } else {
       const created = await stripe.customers.create({ email: intent.email });
       stripeCustomerId = created.id;
+    }
+
+    if (intent.initialAmount <= 0) {
+      if ((intent.recurringAmount ?? 0) <= 0) {
+        // Truly free checkout: no payment method is needed.
+        throw new Error("no_charge_needed_free_initial_amount");
+      }
+
+      const setupIntent = await stripe.setupIntents.create(
+        {
+          customer: stripeCustomerId,
+          automatic_payment_methods: { enabled: true },
+          usage: "off_session",
+          metadata: {
+            kind: "subscription_setup",
+            checkoutIntentId: String(args.checkoutIntentId),
+          },
+        },
+        { idempotencyKey: `sub_setup_${String(args.checkoutIntentId)}` },
+      );
+
+      await ctx.runMutation(
+        internal.commerceSubscriptions.internals.recordFirstChargeIntent,
+        {
+          checkoutIntentId: args.checkoutIntentId,
+          stripeCustomerId,
+          paymentIntentId: setupIntent.id,
+        },
+      );
+
+      return {
+        clientSecret: setupIntent.client_secret,
+        paymentIntentId: setupIntent.id,
+        amount: 0,
+        currency: intent.currencyCode,
+        stripeCustomerId,
+        mode: "setup",
+      };
     }
 
     const paymentIntent = await stripe.paymentIntents.create(
@@ -331,6 +366,7 @@ export const beginSubscriptionFirstCharge = internalAction({
       amount: intent.initialAmount,
       currency: intent.currencyCode,
       stripeCustomerId,
+      mode: "payment",
     };
   },
 });
@@ -342,6 +378,8 @@ export const saveSetupIntentResult = internalAction({
     checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
     stripeCustomerId: v.string(),
     paymentMethodId: v.string(),
+    setupIntentId: v.optional(v.string()),
+    activateCheckout: v.optional(v.boolean()),
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args): Promise<void> => {
@@ -354,5 +392,17 @@ export const saveSetupIntentResult = internalAction({
         paymentMethodId: args.paymentMethodId,
       },
     );
+    if (args.activateCheckout && args.setupIntentId) {
+      await ctx.runMutation(
+        (internal.commerceSubscriptions.internals as any)
+          .activateCheckoutIntentFromStripeSetup,
+        {
+          checkoutIntentId: args.checkoutIntentId,
+          stripeCustomerId: args.stripeCustomerId,
+          paymentMethodId: args.paymentMethodId,
+          setupIntentId: args.setupIntentId,
+        },
+      );
+    }
   },
 });

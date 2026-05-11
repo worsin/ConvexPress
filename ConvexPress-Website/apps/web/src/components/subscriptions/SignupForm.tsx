@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { useAuth, useSignUp } from "@clerk/clerk-react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
@@ -13,38 +12,22 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AuthError } from "@/components/auth/AuthError";
 import { StripePaymentForm } from "./StripePaymentForm";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
+import {
+  clearPendingSubscriptionIntent,
+  clearPendingVerificationContext,
+  getPendingVerificationCouponCodeForOffer,
+  PENDING_SUBSCRIPTION_INTENT_STORAGE_KEY,
+  writePendingVerificationContext,
+} from "@/lib/auth/verification";
 import { cn } from "@/lib/utils";
 
 /**
- * Direct-signup form for a subscription offer (Wave 5 Task 5.2).
+ * Direct-signup form for a subscription offer.
  *
- * Two distinct flows hang off a single `createCheckoutIntent` → (payment
- * stub) → `activateFromIntent` pipeline:
- *
- *   A. Anonymous visitor flow:
- *      1. Fill in name / email / password / coupon.
- *      2. We call Clerk's `signUp.create` first (this also
- *         triggers the Clerk webhook → `users` row in Convex).
- *      3. After Clerk returns `status === "complete"` we call
- *         `createCheckoutIntent` with the email.
- *      4. Stub payment (simulate "succeeded") then
- *         `activateFromIntent` with the stub payment result.
- *      5. Redirect to `/dashboard/subscriptions`.
- *      If Clerk signup ends in `missing_requirements` (email verification),
- *      we still create the intent so the user can complete payment later —
- *      but the `activateFromIntent` will throw USER_NOT_FOUND until the
- *      Clerk webhook has run. In that case we stash the intent id in
- *      sessionStorage and forward to /verify-email.
- *
- *   B. Already-signed-in visitor flow:
- *      1. We skip the name / email / password fields entirely.
- *      2. `createCheckoutIntent` is called with no email (the backend picks
- *         up the current user).
- *      3. Stub payment → `activateFromIntent` → redirect.
- *
- * Payment is stubbed end-to-end (Wave 5 constraint). Wave 7 replaces the
- * stub block with a real processor (Stripe/Paddle/etc.) and the flow will
- * wait on redirect callback before calling `activateFromIntent`.
+ * Checkout always starts with `createCheckoutIntent`. Live charging uses
+ * Stripe Elements and lets the webhook activate the intent. Zero-amount
+ * initial checkouts activate with the explicit `free` provider. The `stub`
+ * provider is kept only for local development when live charging is disabled.
  *
  * Colours: theme tokens only (primary / foreground / muted / destructive).
  */
@@ -105,7 +88,6 @@ function trialCopy(offer: Offer): string | null {
 // ─── Form ───────────────────────────────────────────────────────────────────
 
 export function SignupForm({ offer, className }: SignupFormProps) {
-  const navigate = useNavigate();
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { signUp, setActive, isLoaded: signUpLoaded } = useSignUp();
 
@@ -125,6 +107,7 @@ export function SignupForm({ offer, className }: SignupFormProps) {
   const [stripeContext, setStripeContext] = useState<{
     clientSecret: string;
     publishableKey: string;
+    mode: "payment" | "setup";
   } | null>(null);
 
   const [email, setEmail] = useState("");
@@ -132,7 +115,9 @@ export function SignupForm({ offer, className }: SignupFormProps) {
   const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [couponCode, setCouponCode] = useState("");
+  const [couponCode, setCouponCode] = useState(
+    () => getPendingVerificationCouponCodeForOffer(offer._id) ?? "",
+  );
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -185,27 +170,36 @@ export function SignupForm({ offer, className }: SignupFormProps) {
         await setActive({ session: result.createdSessionId });
         await runCheckout({ forEmail: email.trim() });
       } else if (result.status === "missing_requirements") {
-        // Email verification required. Create the intent so we have a
-        // pending-payment row, stash the id, redirect to verify-email.
-        // After verification the Clerk webhook creates the users row,
-        // and a follow-up visit to /dashboard/subscriptions can then
-        // activate the intent. (Wave 7 improves this by adding a
-        // "resume pending signup" screen.)
+        // Email verification required. Create the intent so pricing and
+        // coupon checks happen now, then redirect into the verification
+        // screen. After verification we return the user to this same offer
+        // page and let them complete checkout while signed in.
         const intent = await createCheckoutIntent({
           offerId: offer._id as any,
           customerEmail: email.trim(),
           couponCode: couponCode.trim() || undefined,
         });
+        writePendingVerificationContext({
+          email: email.trim(),
+          returnTo: `/signup/${offer._id}`,
+          source: "subscription",
+          offerId: offer._id,
+          couponCode: couponCode.trim() || undefined,
+        });
         if (typeof window !== "undefined") {
           window.sessionStorage.setItem(
-            "pending_subscription_intent_id",
+            PENDING_SUBSCRIPTION_INTENT_STORAGE_KEY,
             String(intent.intentId),
           );
         }
         await signUp.prepareEmailAddressVerification({
           strategy: "email_code",
         });
-        navigate({ to: "/verify-email" });
+        if (typeof window !== "undefined") {
+          const url = new URL("/verify-email", window.location.origin);
+          url.searchParams.set("returnTo", `/signup/${offer._id}`);
+          window.location.assign(url.toString());
+        }
       } else {
         setError("Signup requires additional steps. Please try again.");
       }
@@ -230,25 +224,61 @@ export function SignupForm({ offer, className }: SignupFormProps) {
         couponCode: couponCode.trim() || undefined,
       });
 
-      // Live path (Wave 10.1): call Stripe to get a client_secret and
-      // render Stripe Elements inside this form. The webhook activates
-      // the intent on payment_intent.succeeded.
+      // Live path: call Stripe to get a client_secret and render Stripe
+      // Elements inside this form. The webhook activates the intent after the
+      // PaymentIntent or SetupIntent succeeds.
       if (chargingStatus?.live && chargingStatus.publishableKey) {
-        const charge = await beginFirstCharge({
-          checkoutIntentId: intent.intentId as any,
-        });
-        if (!charge?.clientSecret) {
-          setError("Could not start payment. Please try again.");
+        try {
+          const charge = (await beginFirstCharge({
+            checkoutIntentId: intent.intentId as any,
+          })) as { clientSecret?: string | null; mode?: "payment" | "setup" };
+          if (!charge?.clientSecret) {
+            setError("Could not start payment. Please try again.");
+            return;
+          }
+          setStripeContext({
+            clientSecret: charge.clientSecret,
+            publishableKey: chargingStatus.publishableKey,
+            mode: charge.mode ?? "payment",
+          });
+          return;
+        } catch (err: unknown) {
+          const message = extractErrorMessage(err);
+          if (!message.includes("no_charge_needed_free_initial_amount")) {
+            throw err;
+          }
+          if ((intent.recurringAmount ?? offer.recurringAmount ?? 0) > 0) {
+            throw err;
+          }
+
+          const activation = await activateFromIntent({
+            intentId: intent.intentId as any,
+            paymentResult: {
+              provider: "free",
+              providerTransactionId: `free_${Date.now()}`,
+              status: "succeeded" as const,
+            },
+          });
+
+          if (activation?.ok) {
+            clearPendingVerificationContext();
+            clearPendingSubscriptionIntent();
+            toast.success("Subscription activated");
+            if (typeof window !== "undefined") {
+              window.location.assign("/dashboard/subscriptions");
+            }
+            return;
+          }
+
+          setError(
+            "Subscription could not be activated. Please try again or contact support.",
+          );
           return;
         }
-        setStripeContext({
-          clientSecret: charge.clientSecret,
-          publishableKey: chargingStatus.publishableKey,
-        });
-        return;
       }
 
-      // Stub path (dev): activate immediately with a stub payment result.
+      // Local development path only. The backend rejects this for paid intents
+      // whenever live subscription charging is enabled.
       const paymentResult = {
         provider: "stub",
         providerTransactionId: `stub_${Date.now()}_${Math.random()
@@ -263,8 +293,12 @@ export function SignupForm({ offer, className }: SignupFormProps) {
       });
 
       if (activation?.ok) {
+        clearPendingVerificationContext();
+        clearPendingSubscriptionIntent();
         toast.success("Subscription activated");
-        navigate({ to: "/dashboard/subscriptions" });
+        if (typeof window !== "undefined") {
+          window.location.assign("/dashboard/subscriptions");
+        }
       } else {
         setError(
           "Subscription could not be activated. Please try again or contact support.",
@@ -349,6 +383,7 @@ export function SignupForm({ offer, className }: SignupFormProps) {
         <StripePaymentForm
           publishableKey={stripeContext.publishableKey}
           clientSecret={stripeContext.clientSecret}
+          mode={stripeContext.mode}
           returnUrl={
             typeof window !== "undefined"
               ? `${window.location.origin}/dashboard/subscriptions?welcome=1`
@@ -511,10 +546,11 @@ export function SignupForm({ offer, className }: SignupFormProps) {
         )}
       </Button>
 
-      <p className="text-center text-[10px] text-muted-foreground">
-        Payment processing is in preview — your subscription will activate
-        immediately for testing.
-      </p>
+      {!chargingStatus?.live && (
+        <p className="text-center text-[10px] text-muted-foreground">
+          Development checkout is active. Live payments are not enabled.
+        </p>
+      )}
       </>}
     </form>
   );

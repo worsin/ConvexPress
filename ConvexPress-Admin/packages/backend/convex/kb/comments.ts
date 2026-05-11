@@ -129,6 +129,8 @@ export const create = mutation({
       articleId: args.articleId,
       userId: user._id,
       parentId: args.parentId,
+      authorId: article.authorId,
+      articleTitle: article.title,
     });
 
     return commentId;
