@@ -5,19 +5,36 @@ database; the Website app at `../ConvexPress-Website/` is a consumer.
 
 ## Building or auditing extensions
 
-This repo ships with an **extension-kit** at `extension-kit/` and a
+This repo ships with an **extension-kit (v2)** at `extension-kit/` and a
 matching skill set at `.claude/skills/extension-*`. Use them when the
-user asks to build, extend, or audit any toggleable feature module
-(commerce, knowledge base, events, recipes, gallery, etc.).
+user asks to build, extend, or audit any toggleable feature module.
+
+**v2 contract** (the version of the kit currently active): extensions
+are **scanner-discovered, additive-only**. They live in one of two
+roots:
+
+- `apps/web/src/extensions/<id>/` + `packages/backend/convex/extensions/<id>/`
+  for **official** extensions (tracked, ships with platform)
+- `apps/web/src/extensions.local/<id>/` + `packages/backend/convex/extensions.local/<id>/`
+  for **user-installed** extensions (gitignored, survives auto-update)
+
+Extensions never modify `schema.ts`, `lib/plugins/registry.ts`, or
+`lib/admin-shell/nav-config.ts`. Scanners (Vite `import.meta.glob` on
+the frontend + a codegen script on the backend) merge platform v1
+entries with v2-discovered ones.
 
 | Skill | When to invoke (auto-routes via skill descriptions) |
 |---|---|
 | `extension:build` | "build a new extension for X", "create the Y feature module" |
-| `extension:add-feature` | "add bulk delete to events", "extend recipes with X" |
-| `extension:audit` | "audit the gallery extension", "verify Y is wired correctly" |
+| `extension:add-feature` | "add bulk delete to events", "extend X with Y" |
+| `extension:audit` | "audit the X extension", "verify Y is wired correctly" |
 
 The kit's reading order: `README.md` → `ARCHITECTURE.md` →
-`CONTRACTS.md` → `DATA-API.md` → relevant `references/*.example.*`.
+`CONTRACTS.md` → `DATA-API.md` → `WORKFLOW.md` → relevant `references/*.example.*`.
+
+**Platform v1 extensions** (commerce, kb, recipes, gallery, tickets,
+etc.) remain hand-edited in the hub files. They coexist with v2. No
+migration is planned in the current scope.
 
 ## Hard rules (admin-side specific)
 

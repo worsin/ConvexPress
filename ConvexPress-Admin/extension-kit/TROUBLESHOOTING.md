@@ -1,228 +1,275 @@
-# Troubleshooting
+# Troubleshooting (v2)
 
-Failure modes you'll hit building extensions, and what to do about each.
+Failure modes you'll hit with the v2 scanner-based architecture, and
+what to do about each.
 
 ---
 
-## 1. "Type 'X' is not assignable to type 'AdminPluginId'"
+## 1. Extension's tables don't appear after deploy
 
 **Symptom**
-```
-error TS2322: Type '"yourExtension"' is not assignable to type 'AdminPluginId'.
-```
+Convex deploy succeeds but your new extension's tables don't show up
+when you query them, and admin pages show "table not found" errors.
 
 **Cause**
-You used the new extension's id somewhere but forgot to add it to the
-`AdminPluginId` union in `apps/web/src/lib/plugins/registry.ts`.
+The generated schema index is stale or missing. The codegen script
+didn't run before `convex deploy`.
 
 **Fix**
-Add `| "yourExtension"` to the union. TypeScript should then flow the
-new value through all the case statements that handle `AdminPluginId`.
+1. Run codegen manually:
+   ```bash
+   cd ConvexPress-Admin/packages/backend
+   bun run codegen:extensions
+   ```
+2. Verify the output:
+   ```bash
+   cat convex/schema/_extensionsIndex.generated.ts
+   ```
+   Should contain an `import` for your extension's `schema` and an
+   entry in `extensionTables`.
+3. Re-deploy: `bun run deploy` (which runs codegen + `convex deploy`).
+4. If you used `bunx convex deploy` directly, switch to `bun run deploy`
+   so codegen always runs first. Document this for operators.
 
 ---
 
-## 2. Extension shows in nav even when disabled
+## 2. Manifest scanner can't find your extension
 
 **Symptom**
-Toggle the extension off at `/plugins`, the nav section is still there.
+`/plugins` page doesn't show your extension as a toggleable feature.
+The plugin settings still default to `false`. Your nav section doesn't
+appear in the sidebar.
 
 **Cause**
-The nav section entry in `nav-config.ts` doesn't have `pluginId` set,
-or the value doesn't match the registry's id.
+Vite's `import.meta.glob` didn't pick up your manifest. Most common
+reasons:
+1. File path is wrong — manifest must be at
+   `apps/web/src/extensions[.local]/<id>/manifest.ts` (no other depth)
+2. The manifest doesn't have a `default` export
+3. The dev server / build needs a fresh pass to pick up the new glob
 
 **Fix**
-1. In `nav-config.ts`, add `pluginId: "<exactRegistryId>"` to the
-   section entry.
-2. Confirm the registry's `navSectionIds[0]` is the same string as the
-   nav section's `id`.
+1. Confirm the file is at the right path
+2. Confirm the export pattern:
+   ```ts
+   const manifest: AdminPluginDefinition = { ... };
+   export default manifest;
+   ```
+3. Restart `bun run dev:web` — Vite's `import.meta.glob` is evaluated
+   at module-load time and may not hot-reload new manifest files (it
+   should, but worst case is a restart)
+4. Check the browser DevTools console for any module-loading errors
 
 ---
 
-## 3. Admin route loads even when extension is disabled
+## 3. Nav section appears but extension toggle hides it via plugin guard, even when enabled
+
+**Symptom**
+The extension is toggled ON at `/plugins`, but its nav section is
+still hidden in the sidebar.
+
+**Cause**
+The `nav.ts` `AdminNavSection.pluginId` doesn't match the manifest's
+`id`. The auto-hide logic relies on string-equality on the id.
+
+**Fix**
+- Open `apps/web/src/extensions[.local]/<id>/manifest.ts` — check `id` field
+- Open `apps/web/src/extensions[.local]/<id>/nav.ts` — check `pluginId` field
+- Both must be the same string
+
+---
+
+## 4. Admin route loads even when extension is disabled
 
 **Symptom**
 You can navigate directly to `/yourExtension/...` even after disabling
 in `/plugins`.
 
 **Cause**
-The route component isn't wrapped with `<PluginGuard>` or doesn't call
-`requirePluginEnabled` in `beforeLoad`.
+The route component isn't wrapped with `<PluginGuard>`.
 
 **Fix**
-Wrap each route's component in `<PluginGuard pluginId="<id>">…</PluginGuard>`
-from `@/components/plugins/PluginGuard`. For SSR fail-closed behavior,
-also add a `beforeLoad` that calls `requirePluginEnabled`.
+Wrap each route's component:
+```tsx
+import { PluginGuard } from "@/components/plugins/PluginGuard";
+
+function MyExtensionPage() {
+  return (
+    <PluginGuard pluginId="<id>">
+      <MyExtensionContent />
+    </PluginGuard>
+  );
+}
+```
+
+This is **non-negotiable** per CONTRACTS.md §5.
 
 ---
 
-## 4. "requireCan is not defined" / mutation runs without capability check
+## 5. `requireCan is not defined` / mutation runs without capability check
 
 **Symptom**
-A mutation is callable by users who shouldn't be able to call it. Or
+A mutation is callable by users who shouldn't be able to. Or
 TypeScript flags a missing import.
 
 **Cause**
 You forgot to import + call `requireCan` at the top of the mutation
-handler.
+handler. Note the import path depth:
 
-**Fix**
 ```ts
-import { requireCan } from "../helpers/permissions";
-
-export const create = mutation({
-  args: { ... },
-  handler: async (ctx, args) => {
-    const user = await requireCan(ctx, "yourExtension.create");
-    // ... rest of handler
-  },
-});
+// In packages/backend/convex/extensions[.local]/<id>/mutations.ts:
+import { requireCan } from "../../helpers/permissions";  // two `../`
 ```
 
-This is **non-negotiable** per CONTRACTS.md — every mutation MUST start
-with a capability check.
+**Fix**
+Every mutation starts with:
+```ts
+handler: async (ctx, args) => {
+  const user = await requireCan(ctx, "<extension>.<action>");
+  // ...
+}
+```
 
 ---
 
-## 5. "api.<extension>.queries.X" doesn't exist after generation
+## 6. "api.extensions.\<id\>.queries.X" not in `api` type
 
 **Symptom**
-You generated the queries file but `api.events.queries.list` shows up as
-undefined / type error in admin UI components.
+Compile error like `Property 'extensions' does not exist on type ...`
+when calling your extension's queries from the admin UI.
 
 **Cause**
-Convex's `_generated/api.ts` is stale — it regenerates on the next
+Convex's `_generated/api.d.ts` is stale — types regenerate on next
 deploy.
 
 **Fix**
-1. **Don't deploy yourself.** Surface this in the generation report and
-   hand off to the Convex Deployment Expert via
-   `/experts:convex-deployment`.
-2. If you're in dev and the convex dev server isn't running, the types
-   won't update until you run `npx convex dev` (which the user
-   typically has running in another terminal).
-3. As a temporary measure during dev, the convex dev server should
-   auto-refresh types when it picks up the new file.
+1. Don't deploy yourself — surface in the generation report
+2. The Convex Deployment Expert (`/experts:convex-deployment`) runs
+   `bun run deploy` which kicks off codegen + Convex deploy
+3. If you're in dev and `convex dev` is running, types should refresh
+   automatically when files change
 
 ---
 
-## 6. Schema deploy fails with "Could not find function" for cross-system reference
+## 7. `git reset --hard` wiped your work
 
 **Symptom**
-After generating the extension, deploying Convex errors with something
-like:
-```
-Could not find function for 'someOther:queries:get' referenced in <extension>/queries.ts
-```
+You worked on an extension; an update ran via the in-app updater; now
+your extension is gone.
 
-**Cause**
-Your queries.ts references functions in another system that don't exist
-yet, OR the file order in deploy isn't what you expect.
+**Cause(s)** — pick one:
 
-**Fix**
-1. Verify the cross-system query exists in the admin backend.
-2. If it doesn't, surface as a backend gap. Don't fake the call.
-3. The legitimate Convex pattern during incremental builds is to deploy
-   with `--typecheck=disable` — but that's the Convex Deployment
-   Expert's call, not yours.
+- **A** — You put the extension in `extensions/` instead of `extensions.local/`.
+  The `extensions/` folder is tracked; `git reset --hard origin/<branch>`
+  reset your local additions there.
+
+  **Fix:** Move the extension to `extensions.local/`. Re-run codegen.
+
+- **B** — You modified one of the hub files (`schema.ts`,
+  `registry.ts`, `nav-config.ts`) — those are tracked, so reset wiped
+  your modifications. You weren't using v2; you reverted to v1
+  behavior.
+
+  **Fix:** Move your registration into the extension's own
+  `manifest.ts` / `nav.ts` / `schema.ts` files under
+  `extensions.local/<id>/`. The scanner picks them up.
+
+- **C** — Routes you added under `apps/web/src/routes/_authenticated/_admin/<prefix>/`
+  were tracked because someone committed them. Untracked routes
+  survive; tracked ones don't.
+
+  **Fix:** If routes were committed locally (uncommon for user
+  extensions), back them up before update. Better long-term: ensure
+  the workflow keeps user route files untracked.
 
 ---
 
-## 7. Settings page form doesn't save
+## 8. Codegen failed mid-update
 
 **Symptom**
-The extension's settings page accepts input but values don't persist.
+The in-app updater shows a "regenerating-extensions" warning but
+continues to build. After build, extensions don't work.
 
 **Cause**
-Most common: form submits but doesn't call the right mutation, or the
-mutation writes to the wrong section.
+The codegen step failed (syntax error in a `schema.ts`, missing import,
+etc.) and the updater fell through to the build step with a stale or
+empty generated index.
 
 **Fix**
-1. Confirm the settings page uses `useSettingsForm(<section>, schema)`
-   where `<section>` is your extension's id.
-2. Confirm `settings:mutations:updateSection` is being called with
-   `section: "<extensionId>"`.
-3. Check the `<section>` value matches what the settings registry
-   expects (in `apps/web/src/lib/settings/registry.ts`).
+1. After update completes, run codegen manually and read the error:
+   ```bash
+   cd ConvexPress-Admin/packages/backend
+   bun run codegen:extensions
+   ```
+2. Fix the offending extension's `schema.ts`
+3. Re-run codegen
+4. Rebuild: `bun --filter web build` (or restart the dev server)
+
+The updater intentionally doesn't fail-the-whole-update on codegen
+errors — it warns and continues. This is so a single bad user
+extension doesn't block a platform update.
 
 ---
 
-## 8. Nav appears for users who shouldn't see it
+## 9. "I don't know which root to use"
 
 **Symptom**
-A role without the required capability still sees the extension's nav
-entry.
-
-**Cause**
-The nav section's `capability` field is missing or wrong.
+Building a new extension and unsure whether it goes in `extensions/`
+or `extensions.local/`.
 
 **Fix**
-Set `capability: "<highestRequiredCap>"` on the section. The nav
-filter ANDs section capability with the user's capabilities — missing
-the cap hides the section.
+- **`extensions/`** — you're the maintainer of ConvexPress and this
+  extension will ship with the platform. Commit + push it upstream.
+- **`extensions.local/`** — you're an operator on a self-hosted install
+  who's adding functionality just for your install. Don't commit; this
+  folder is gitignored.
+
+If you're not sure, default to `extensions.local/`. You can always
+move it to `extensions/` later if you decide to upstream it.
 
 ---
 
-## 9. Two extensions claim the same nav section id
+## 10. Multiple extensions with the same id
 
 **Symptom**
-Toggling one extension off hides another extension's nav.
+Two extensions both named `events` — one in `extensions/`, one in
+`extensions.local/`. Scanner picks up both, but only one wins, behavior
+is unpredictable.
 
 **Cause**
-Two `AdminPluginDefinition` entries have overlapping `navSectionIds`,
-OR the section in `nav-config.ts` has an `id` that two extensions
-claim.
+Id collisions across the two roots. The scanner doesn't currently
+de-dupe; it concatenates lists.
 
 **Fix**
-Each section id is owned by exactly one extension. Rename the colliding
-section, update both the registry entry and the nav config to match.
+Don't name a local extension the same as an existing official one.
+Pick a unique id. The `extension:build` skill validates this in
+Phase 0 — if you're hitting this, you bypassed the check.
 
 ---
 
-## 10. Capability doesn't seem to do anything
+## 11. The deprecated v1 hand-edited hubs
 
 **Symptom**
-You added `requireCan(ctx, "newCap")` but the call always succeeds —
-even for users who shouldn't have it.
+You're reading the existing platform extensions (commerce, kb,
+recipes, gallery, etc.) and notice they're hand-edited into
+`registry.ts`, `nav-config.ts`, and `schema.ts`. You wonder if v2 is
+breaking them.
 
 **Cause**
-The capability hasn't been added to the central role registry yet.
-`requireCan` falls back to "allowed" when the cap doesn't exist in the
-registry (or, depending on impl, fails everyone — verify with the Role
-expert).
+It isn't. v1 platform extensions and v2 scanner-discovered extensions
+coexist. Both sources are merged into the running registries.
 
 **Fix**
-List the new capabilities in your generation report and invoke the
-Role expert (`/experts:role-capability-system`) to add them. Don't
-self-add to the registry — that's the Role expert's domain.
-
----
-
-## 11. Extension works in admin but not on Website
-
-**Symptom**
-You shipped the admin side perfectly, but the matching public URL
-404s or shows the wrong template.
-
-**Cause**
-Extension kit's job ended at admin. The Website-side templates haven't
-been generated yet.
-
-**Fix**
-1. Invoke `/design:custom-post-type` in the Website repo, passing the
-   extension's id as the CPT name.
-2. That skill generates the archive + single routes for the public
-   surface.
-3. If the Website-side queries don't exist (e.g., your extension only
-   exposes admin queries), you'll need to add public-safe queries to
-   `<extension>/queries.ts` first.
+Nothing to fix. Use v2 for new extensions; leave v1 platform
+extensions alone until/unless a separate migration is planned.
 
 ---
 
 ## When in doubt
 
-1. Read `ARCHITECTURE.md` again — most issues are a missing layer.
-2. Run `extension:audit` on the extension; it walks all 7 layers and
-   reports gaps without modifying anything.
-3. If you can't reconcile what you see with what you expect, surface
-   it in the generation report. Confidently-wrong code is worse than
-   "I don't know, here's what I'd verify."
+1. Read the relevant kit doc first.
+2. Verify the actual API in `DATA-API.md`.
+3. Run `extension:audit` on the suspect extension — it walks the v2
+   5-layer contract and reports gaps without modifying anything.
+4. Honest "I don't know, here's what I'd verify next" beats
+   fabrication.

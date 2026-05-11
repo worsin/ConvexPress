@@ -1,0 +1,6 @@
+# User-installed extensions (Convex backend) live here. Never tracked
+# in the upstream repo — local to each install. Survives `git reset
+# --hard` updates because gitignored content is untouched.
+*
+!.gitignore
+!README.md

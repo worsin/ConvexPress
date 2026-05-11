@@ -1,18 +1,22 @@
 /**
- * REFERENCE — Extension schema (Layer 1)
+ * REFERENCE — Extension schema (v2 Layer 1)
  *
  * Example uses a hypothetical "events" extension. Substitute names for
  * your actual extension.
  *
- * Path it lives at in real code:
- *   packages/backend/convex/schema/events.ts
+ * Path it lives at in real code (pick one based on distribution scope):
+ *   Official:  packages/backend/convex/extensions/<id>/schema.ts
+ *   Local:     packages/backend/convex/extensions.local/<id>/schema.ts
  *
- * After creating this file, you MUST also modify the schema hub at
- *   packages/backend/convex/schema.ts
- * to import + spread `eventsTables` into the default export.
+ * Export shape: a single named export `tables` (a record of
+ * `defineTable(...)` calls). The codegen script
+ * `packages/backend/scripts/generate-extension-index.mjs` scans both
+ * extension roots, imports your `tables` export, and merges it into
+ * the schema hub. **You do NOT edit packages/backend/convex/schema.ts.**
  *
  * What this reference demonstrates:
- *   1. The named export convention (eventsTables) so the hub can spread
+ *   1. The v2 named export convention: `tables` (the codegen script
+ *      imports this exact name)
  *   2. Typed validators for every field (no v.any unless justified)
  *   3. Explicit indexes for every query path the queries.ts will use
  *   4. Cross-system references via v.id("users")
@@ -22,7 +26,7 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
-export const eventsTables = {
+export const tables = {
 	events: defineTable({
 		// ── Core fields ──────────────────────────────────────────────────────
 		title: v.string(),
@@ -88,14 +92,18 @@ export const eventsTables = {
 };
 
 /**
- * After saving this file, modify packages/backend/convex/schema.ts:
+ * After saving this file, the v2 codegen does the rest:
  *
- *   import { eventsTables } from "./schema/events";
+ *   cd ConvexPress-Admin/packages/backend
+ *   bun run codegen:extensions
  *
- *   export default defineSchema({
- *     ...existingTables,
- *     ...eventsTables,
- *   });
+ * The script discovers your `tables` export and rewrites
+ *   convex/schema/_extensionsIndex.generated.ts
+ * which the main schema.ts imports and spreads into `defineSchema`.
  *
- * The kit's WORKFLOW.md covers this as Phase 2.
+ * Codegen also runs automatically as a `predev` / `predeploy` hook,
+ * so in normal flows you don't need to run it by hand.
+ *
+ * **Do not** edit packages/backend/convex/schema.ts or the generated
+ * index file. The kit's WORKFLOW.md covers this as Phase 3.
  */

@@ -1,10 +1,17 @@
 /**
- * REFERENCE — Extension queries (Layer 2)
+ * REFERENCE — Extension queries (v2 Layer 2)
  *
  * Example uses the "events" extension. Substitute names for yours.
  *
- * Path in real code:
- *   packages/backend/convex/events/queries.ts
+ * Path in real code (pick one based on distribution scope):
+ *   Official:  packages/backend/convex/extensions/<id>/queries.ts
+ *   Local:     packages/backend/convex/extensions.local/<id>/queries.ts
+ *
+ * The Convex API path exposed at runtime is:
+ *   api.extensions.<id>.queries.*
+ *
+ * Note the helper import paths use `../../helpers/...` (two levels up)
+ * because extensions live two folders below `convex/`.
  *
  * What this reference demonstrates:
  *   1. Public-safe `listPublished` (filters by status, projects fields)
@@ -15,7 +22,7 @@
  *   6. Indexed reads — every query uses an index, no full scans
  */
 
-import { query } from "../_generated/server";
+import { query } from "../../_generated/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 

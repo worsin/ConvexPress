@@ -1,10 +1,17 @@
 /**
- * REFERENCE — Extension mutations (Layer 3)
+ * REFERENCE — Extension mutations (v2 Layer 3)
  *
  * Example uses the "events" extension.
  *
- * Path in real code:
- *   packages/backend/convex/events/mutations.ts
+ * Path in real code (pick one based on distribution scope):
+ *   Official:  packages/backend/convex/extensions/<id>/mutations.ts
+ *   Local:     packages/backend/convex/extensions.local/<id>/mutations.ts
+ *
+ * The Convex API path exposed at runtime is:
+ *   api.extensions.<id>.mutations.*
+ *
+ * Note the helper import paths use `../../helpers/...` (two levels up)
+ * because extensions live two folders below `convex/`.
  *
  * What this reference demonstrates:
  *   1. requireCan(ctx, "<capability>") at the TOP of every handler
@@ -14,11 +21,11 @@
  *   5. Returning the created/updated doc so the client doesn't re-fetch
  */
 
-import { mutation } from "../_generated/server";
+import { mutation } from "../../_generated/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
-import { requireCan } from "../helpers/permissions";
-import { emitEvent } from "../helpers/events";
+import { requireCan } from "../../helpers/permissions";
+import { emitEvent } from "../../helpers/events";
 // Event/system constants — if these don't exist for your domain yet,
 // add them to convex/events/constants.ts following existing naming.
 // import { EVENT_EVENTS, SYSTEM } from "../events/constants";

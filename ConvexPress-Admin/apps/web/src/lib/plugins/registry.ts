@@ -15,7 +15,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export type AdminPluginId =
+/**
+ * Platform-shipped plugin ids — the closed union of extensions that
+ * ship hand-edited into this file. v2 user-added extensions discovered
+ * by the scanner at the bottom of this file widen `AdminPluginId` at
+ * runtime to any string.
+ */
+export type BuiltinAdminPluginId =
   | "commerce"
   | "commerceDigital"
   | "commerceReviews"
@@ -30,7 +36,21 @@ export type AdminPluginId =
   | "recipes"
   | "gallery";
 
-export interface PluginSettingsValues {
+/**
+ * Union of platform-shipped + v2 extension ids. Retains literal
+ * autocomplete on the builtins via the `BuiltinAdminPluginId | (string & {})`
+ * pattern (which is a known TS trick to keep literals while accepting any
+ * string) so consumers passing one of the builtins still get type-safe
+ * narrowing.
+ */
+export type AdminPluginId = BuiltinAdminPluginId | (string & {});
+
+/**
+ * Platform-shipped settings keys, strongly typed. v2 extensions add
+ * their own `<id>Enabled` keys at runtime via a `Record<string, boolean>`
+ * intersection so the type stays open.
+ */
+export interface BuiltinPluginSettingsValues {
   commerceEnabled: boolean;
   commerceDigitalEnabled: boolean;
   commerceReviewsEnabled: boolean;
@@ -46,15 +66,39 @@ export interface PluginSettingsValues {
   galleryEnabled: boolean;
 }
 
+export type PluginSettingsValues = BuiltinPluginSettingsValues & Record<string, boolean>;
+
+/**
+ * The contract a plugin/extension must satisfy. Identical for platform
+ * plugins (hand-edited in `PLATFORM_PLUGINS` below) and v2 extensions
+ * (default-exported from `extensions[.local]/<id>/manifest.ts`).
+ *
+ * v2 extension manifests should export an `AdminPluginDefinition` as
+ * their default export — see `extension-kit/references/manifest.example.ts`.
+ */
 export interface AdminPluginDefinition {
   id: AdminPluginId;
   title: string;
   description: string;
   icon: LucideIcon;
-  settingsKey: keyof PluginSettingsValues;
+  /** Key into PluginSettingsValues. By convention: `<id>Enabled`. */
+  settingsKey: string;
   navSectionIds: string[];
   adminAccessPrefixes: string[];
   routePrefixes: string[];
+  /**
+   * Optional. Whether the extension is enabled by default on a fresh
+   * install. v2 extensions should set this in their manifest; platform
+   * plugins set it via `DEFAULT_PLUGIN_SETTINGS` below.
+   */
+  defaultEnabled?: boolean;
+  /**
+   * Optional. Source: "platform" = hand-edited in this repo;
+   * "official" = scanner-discovered from apps/web/src/extensions/;
+   * "local" = scanner-discovered from apps/web/src/extensions.local/.
+   * Populated automatically — extensions don't need to set this.
+   */
+  source?: "platform" | "official" | "local";
 }
 
 /*
@@ -72,7 +116,12 @@ export interface AdminPluginDefinition {
  *     plugin being enabled. Phase 1 guard will enforce this via a parent-
  *     plugin check in requirePluginEnabled.
  */
-export const ADMIN_PLUGINS: AdminPluginDefinition[] = [
+/**
+ * Hand-edited list of platform-shipped plugins. v2 extensions are
+ * discovered by the scanner below and merged into the exported
+ * `ADMIN_PLUGINS` array at module load.
+ */
+const PLATFORM_PLUGINS: AdminPluginDefinition[] = [
   {
     id: "commerce",
     title: "Commerce",
@@ -223,6 +272,54 @@ export const ADMIN_PLUGINS: AdminPluginDefinition[] = [
   },
 ];
 
+// ─── Extension v2 scanner ────────────────────────────────────────────────────
+//
+// User-shipped extensions discovered at build time from two roots:
+//
+//   apps/web/src/extensions/<id>/manifest.ts        (official, tracked)
+//   apps/web/src/extensions.local/<id>/manifest.ts  (user, gitignored)
+//
+// Each manifest must default-export an AdminPluginDefinition. Vite's
+// `import.meta.glob` resolves these statically at build time, so the
+// scanner is zero-cost at runtime. Empty folders produce no entries.
+
+interface ManifestModule {
+  default: AdminPluginDefinition;
+}
+
+const officialExtensionModules = import.meta.glob<ManifestModule>(
+  "../../extensions/*/manifest.ts",
+  { eager: true },
+);
+const localExtensionModules = import.meta.glob<ManifestModule>(
+  "../../extensions.local/*/manifest.ts",
+  { eager: true },
+);
+
+function pluginsFromModules(
+  modules: Record<string, ManifestModule>,
+  source: "official" | "local",
+): AdminPluginDefinition[] {
+  return Object.values(modules)
+    .map((mod) => mod.default)
+    .filter((manifest): manifest is AdminPluginDefinition => Boolean(manifest))
+    .map((manifest) => ({ ...manifest, source }));
+}
+
+const OFFICIAL_EXTENSIONS = pluginsFromModules(officialExtensionModules, "official");
+const LOCAL_EXTENSIONS = pluginsFromModules(localExtensionModules, "local");
+
+/**
+ * The merged plugin registry: platform-shipped + v2 official extensions
+ * + v2 local extensions. Consumers of this app refer to this array; they
+ * cannot tell the difference between platform and v2 entries.
+ */
+export const ADMIN_PLUGINS: AdminPluginDefinition[] = [
+  ...PLATFORM_PLUGINS.map<AdminPluginDefinition>((p) => ({ ...p, source: "platform" })),
+  ...OFFICIAL_EXTENSIONS,
+  ...LOCAL_EXTENSIONS,
+];
+
 export const PLUGINS_NAV_SECTION = {
   id: "plugins",
   label: "Extensions",
@@ -231,7 +328,8 @@ export const PLUGINS_NAV_SECTION = {
   capability: "manage_options",
 } as const;
 
-export const DEFAULT_PLUGIN_SETTINGS: PluginSettingsValues = {
+/** Platform-shipped default-enabled state for each builtin plugin. */
+const PLATFORM_DEFAULT_SETTINGS: BuiltinPluginSettingsValues = {
   commerceEnabled: false,
   commerceDigitalEnabled: false,
   commerceReviewsEnabled: false,
@@ -247,7 +345,27 @@ export const DEFAULT_PLUGIN_SETTINGS: PluginSettingsValues = {
   galleryEnabled: true,
 };
 
-export const PLUGIN_PARENT: Partial<Record<AdminPluginId, AdminPluginId>> = {
+/**
+ * Default settings for ALL plugins — built by merging platform defaults
+ * with each v2 extension's manifest `defaultEnabled`. v2 extensions that
+ * omit `defaultEnabled` default to `false`.
+ */
+export const DEFAULT_PLUGIN_SETTINGS: PluginSettingsValues = (() => {
+  const merged: Record<string, boolean> = { ...PLATFORM_DEFAULT_SETTINGS };
+  for (const ext of [...OFFICIAL_EXTENSIONS, ...LOCAL_EXTENSIONS]) {
+    if (!merged.hasOwnProperty(ext.settingsKey)) {
+      merged[ext.settingsKey] = ext.defaultEnabled ?? false;
+    }
+  }
+  return merged as PluginSettingsValues;
+})();
+
+/**
+ * Parent-dependency map. A child plugin is only considered enabled if
+ * its parent is also enabled. v2 extensions can declare a parent in
+ * their manifest (TBD field); for now this is the platform list.
+ */
+export const PLUGIN_PARENT: Partial<Record<string, AdminPluginId>> = {
   commerceDigital: "commerce",
   commerceReviews: "commerce",
   commerceWishlists: "commerce",

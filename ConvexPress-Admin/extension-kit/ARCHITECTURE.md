@@ -1,262 +1,199 @@
-# Extension Architecture — the 7 layers
+# Extension Architecture (v2 — scanner-based)
 
-Every extension in ConvexPress touches the same 7 layers. Building an
-extension means producing the right artifact at each layer in the right
-order. Skipping a layer = the extension half-works (typical failure
-mode: extension's admin UI loads but nav doesn't hide it when disabled,
-or mutations don't check capabilities, etc.).
+Every extension in ConvexPress consists of files in two coordinated
+folders — one for the backend, one for the frontend manifest. Routes
+live at their canonical TanStack Router path. Capabilities are surfaced
+to the Role expert.
 
-This doc explains each layer. `CONTRACTS.md` turns each into a
-validation rule. `WORKFLOW.md` orders them for execution.
+**v2 is additive only.** Extensions never modify shared registry files.
+Discovery is automatic: scanners at build time pick up every manifest
+and schema, merging them into the running registries. The legacy v1
+"modify the hub files in place" approach is deprecated; existing
+platform extensions remain hand-edited but new extensions use v2.
+
+This doc explains the v2 layout and contracts. `CONTRACTS.md` turns
+each into a verifiable rule. `WORKFLOW.md` orders them for execution.
 
 ---
 
-## Layer 1 — Backend schema
+## Where v2 extensions land
 
-**File:** `packages/backend/convex/schema/<extension>.ts`
+Two roots — one for **official** (maintainer-shipped, tracked in
+upstream) extensions and one for **user** (local install, gitignored)
+extensions. The contract is identical; only the gitignore status
+differs.
 
-The extension's data lives in dedicated tables. Each table is defined
-with `defineTable(...)` plus typed validators (`v.string`, `v.id`, etc.)
-and indexes for the queries that will read it.
-
-### Rules
-
-- Schema file exports a single named object, e.g. `eventsTables`, that
-  groups every table belonging to the extension.
-- The main `convex/schema.ts` imports + spreads it. Each system owns
-  ONLY its own file; never edit other systems' schemas.
-- Tables are named globally — no two systems can use the same table
-  name. Prefer prefixed names if collision risk exists
-  (`commerceBundles` not `bundles`).
-- Indexes follow `by_<column>` naming.
-- Cross-system references use `v.id("<otherTable>")`.
-
-### Example pattern
-
-```ts
-// schema/events.ts
-import { defineTable } from "convex/server";
-import { v } from "convex/values";
-
-export const eventsTables = {
-  events: defineTable({
-    title: v.string(),
-    slug: v.string(),
-    startsAt: v.number(),
-    endsAt: v.number(),
-    venue: v.optional(v.string()),
-    description: v.optional(v.string()),
-    status: v.union(v.literal("draft"), v.literal("published")),
-    createdBy: v.id("users"),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_slug", ["slug"])
-    .index("by_status_startsAt", ["status", "startsAt"]),
-};
 ```
+Official (tracked):
+├── apps/web/src/extensions/<id>/
+│   ├── manifest.ts        — default-exports AdminPluginDefinition
+│   └── nav.ts             — default-exports AdminNavSection (optional)
+└── packages/backend/convex/extensions/<id>/
+    ├── schema.ts          — exports `tables` (Convex table defs)
+    ├── queries.ts         — public queries
+    ├── mutations.ts       — write operations
+    └── internals.ts       — optional system-to-system functions
 
-Then in `schema.ts`:
-```ts
-import { eventsTables } from "./schema/events";
-export default defineSchema({
-  ...otherTables,
-  ...eventsTables,
-});
+User (gitignored, lives in extensions.local/):
+├── apps/web/src/extensions.local/<id>/
+│   ├── manifest.ts
+│   └── nav.ts             (optional)
+└── packages/backend/convex/extensions.local/<id>/
+    ├── schema.ts
+    ├── queries.ts
+    ├── mutations.ts
+    └── internals.ts       (optional)
+
+Routes (either source — canonical location):
+└── apps/web/src/routes/_authenticated/_admin/<route-prefix>/
+    ├── index.tsx
+    ├── new.tsx
+    └── $<id>/edit.tsx
 ```
 
 ---
 
-## Layer 2 — Convex queries
+## The five v2 layers
 
-**File:** `packages/backend/convex/<extension>/queries.ts`
+### Layer 1 — Backend schema
 
-Reads from the extension's tables. Two flavors: admin-side queries
-(authenticated, can return everything) and public-safe queries (used
-by the Website, must omit secrets and respect content gating).
+**File:** `packages/backend/convex/extensions[.local]/<id>/schema.ts`
+**Exports:** `tables` — a record of `defineTable(...)` calls
 
-### Rules
+A codegen script (`packages/backend/scripts/generate-extension-index.mjs`)
+runs as a `predev` / `predeploy` hook. It scans both extension roots,
+imports every `schema.ts`'s `tables` export, and writes a single index
+file at `packages/backend/convex/schema/_extensionsIndex.generated.ts`.
+The main schema hub imports `extensionTables` from that index and
+spreads it into `defineSchema`.
 
-- Always import `query` (not `internalQuery`) for client-callable reads.
-- Public-safe reads should explicitly filter and project — never `.collect()`
-  raw documents and return them.
-- Naming conventions match the rest of the codebase:
-  - `list` — paginated, admin-facing
-  - `listPublished` — paginated, public-safe (status=published, etc.)
-  - `get` — single by id (admin)
-  - `getBySlug` — single by slug (public-safe)
-  - `counts` — aggregate counts for the admin dashboard
-- Use pagination via `paginationOpts` for any list that can grow large.
+You never edit the index file. You never edit `schema.ts` (the hub).
+The codegen runs automatically.
 
-### Example pattern
+### Layer 2 — Convex queries
 
-See `references/queries.example.ts`.
+**File:** `packages/backend/convex/extensions[.local]/<id>/queries.ts`
+**API path:** `api.extensions.<id>.queries.*` (Convex's automatic
+path-based discovery handles this — no registration step).
 
----
+Same rules as the rest of the codebase:
+- Public-safe reads project explicit fields; no raw doc dumps
+- Paginated reads use `paginationOpts`
+- No query returns secrets to public callers
 
-## Layer 3 — Convex mutations
+### Layer 3 — Convex mutations
 
-**File:** `packages/backend/convex/<extension>/mutations.ts`
+**File:** `packages/backend/convex/extensions[.local]/<id>/mutations.ts`
+**API path:** `api.extensions.<id>.mutations.*`
 
-Writes to the extension's tables.
+**Every** mutation handler must start with
+`requireCan(ctx, "<capability>")`. State-changing mutations emit
+`emitEvent(...)`. No exceptions.
 
-### Rules
+### Layer 4 — Frontend manifest + optional nav
 
-- Every mutation calls `requireCan(ctx, "<capability>")` or a similar
-  helper from `convex/helpers/permissions.ts` at the top of the handler.
-  No mutation is unauthenticated.
-- Emit events via `emitEvent(ctx, ...)` for anything other systems
-  should react to (audit log, notifications, downstream sync).
-- Validate inputs with `v.*` validators — even fields you're sure about.
-  The Convex validator is the contract.
+**Manifest file:** `apps/web/src/extensions[.local]/<id>/manifest.ts`
+**Default export:** `AdminPluginDefinition`
 
-### Example pattern
+The scanner in `apps/web/src/lib/plugins/registry.ts` globs every
+`manifest.ts` in both extension roots and appends them to
+`ADMIN_PLUGINS`. The manifest provides id, title, description, icon,
+settingsKey, navSectionIds, adminAccessPrefixes, routePrefixes, and
+an optional `defaultEnabled`.
 
-See `references/mutations.example.ts`.
+**Nav file (optional):** `apps/web/src/extensions[.local]/<id>/nav.ts`
+**Default export:** `AdminNavSection`
 
----
+If the extension wants a sidebar section, default-export one here. The
+scanner in `apps/web/src/lib/admin-shell/nav-config.ts` globs every
+`nav.ts` and appends to `ADMIN_NAV_SECTIONS`. Omit the file if the
+extension shouldn't appear in the sidebar (rare).
 
-## Layer 4 — Admin UI routes
+### Layer 5 — Admin UI routes (canonical TanStack Router path)
 
-**Folder:** `apps/web/src/routes/_authenticated/_admin/<extension>/`
+**Folder:** `apps/web/src/routes/_authenticated/_admin/<route-prefix>/`
 
-The extension's admin pages: list, edit, settings, etc. Use TanStack
-Router's `createFileRoute` pattern.
+Routes are NOT under the `extensions[.local]/` folders. They live at
+their canonical TanStack Router path because the router's vite plugin
+auto-discovers anything in `src/routes/`. For user extensions, the
+route files are simply new untracked `.tsx` files — they survive
+`git reset --hard` because they're untracked, and the router picks
+them up automatically.
 
-### Rules
+For toggleable extensions, every route component MUST wrap with
+`<PluginGuard pluginId="<id>">`. See `references/admin-list-route.example.tsx`.
 
-- Routes live under `_authenticated/_admin/` so they inherit auth and
-  admin-only gating.
-- For routes that should fail closed when the extension is disabled,
-  wrap with `<PluginGuard pluginId="<id>">...</PluginGuard>` or call the
-  `requirePluginEnabled` route helper. **This is non-negotiable** for
-  extensions that can be toggled off.
-- Use Base UI for interactive components — never `@radix-ui/*`.
-- Full-page navigation only — no modal/dialog for content management.
-  Confirmation dialogs (delete, etc.) are the only allowed popup.
-- Reuse list-table, settings, and editor primitives where possible.
+### Layer 6 (separate concern) — Capabilities
 
-### Example pattern
+The extension defines what capabilities it uses (via `requireCan`
+calls in Layer 3 and `<RoutePermissionGuard>` / `useCan` in Layer 5).
+It does NOT add them to the central role registry — that's the Role &
+Capability System Expert's domain.
 
-See `references/admin-list-route.example.tsx`.
-
----
-
-## Layer 5 — Plugin registry entry
-
-**File:** `apps/web/src/lib/plugins/registry.ts` (MODIFY in place)
-
-The single source of truth that says "this extension exists." Without
-this entry, the `/plugins` page can't toggle it on/off and gating
-helpers don't know about it.
-
-### What you add
-
-1. The extension's id to the `AdminPluginId` union type
-2. The `<id>Enabled` boolean to `PluginSettingsValues`
-3. A new `AdminPluginDefinition` entry in `ADMIN_PLUGINS`:
-   ```ts
-   {
-     id: "events",
-     title: "Events",
-     description: "Time-based event content with start/end and venue.",
-     icon: Calendar,
-     settingsKey: "eventsEnabled",
-     navSectionIds: ["events"],            // matches nav section id
-     adminAccessPrefixes: ["/events"],     // admin URL prefixes gated
-     routePrefixes: ["/events"],           // public URL prefixes gated
-   }
-   ```
-4. The default-enabled state in `DEFAULT_PLUGIN_SETTINGS`
-5. Optional parent dependency in `PLUGIN_PARENT` (e.g.,
-   `commerceReviews` depends on `commerce`)
-
-See `references/registry-entry.example.ts` for the full pattern.
-
-### Rules
-
-- The `id` is camelCase and matches the convex folder name.
-- `settingsKey` is `<id>Enabled` (boolean).
-- `navSectionIds` MUST match the `id` of the nav section in
-  `nav-config.ts` (Layer 6).
-- `adminAccessPrefixes` are the URL paths the gating helper checks —
-  set this to whatever URLs the admin routes (Layer 4) live at.
-- `routePrefixes` are Website-side URL prefixes — set only if the
-  extension exposes a public surface.
+Your generation report lists every new capability the extension
+references so the Role expert can register them. Recommend role
+grants per capability.
 
 ---
 
-## Layer 6 — Admin nav entry
+## Why this works for auto-updates
 
-**File:** `apps/web/src/lib/admin-shell/nav-config.ts` (MODIFY in place)
+The in-app updater (`packages/desktop/electron/app-updater.ts`) does:
 
-Adds the extension to the admin sidebar. The nav helper auto-hides
-sections whose `pluginId` is disabled.
+1. `git fetch` + `git reset --hard origin/<branch>`
+2. `bun install`
+3. `bun run codegen:extensions` (regen the schema index)
+4. `bun run build`
 
-### What you add
+`git reset --hard` only touches **tracked** files. User extensions in
+`extensions.local/` are gitignored, so their files survive. Official
+extensions in `extensions/` are tracked — they get updated by the
+reset (which is correct; official updates ship via upstream).
 
-A new entry to `ADMIN_NAV_SECTIONS` with:
-- `id` matching the registry's `navSectionIds[0]`
-- `pluginId` set to the extension's id (this triggers auto-hide)
-- `capability` set to the highest-required capability for any child
-- `children` covering the typical list / Add New / settings sub-routes
-
-### Rules
-
-- `pluginId` is mandatory if the section belongs to an extension. Without
-  it, the section will appear even when the extension is disabled.
-- Children point to the routes you created in Layer 4.
-- Use the appropriate Lucide icon from `lucide-react`.
+After reset, the codegen step re-scans both roots and regenerates the
+schema index. The build step picks up the new manifests via
+`import.meta.glob`. User extensions stay wired in across updates.
 
 ---
 
-## Layer 7 — Capabilities
+## How v2 coexists with platform extensions
 
-**Files:** Various; coordinated by `/experts:role-capability-system`.
+Platform extensions (commerce, kb, recipes, gallery, etc.) ship today
+as **hand-edited** entries in `registry.ts`, `nav-config.ts`, and
+`schema.ts`. These are NOT being migrated in this round — they stay as
+v1.
 
-Each mutation, query, and route that the extension creates needs a
-capability. The Role & Capability System manages the central registry;
-your extension's job is to **define + use** capabilities, not to
-register them in the system itself.
+The merged registries are:
 
-### What an extension typically needs
+```
+ADMIN_PLUGINS = [
+  ...PLATFORM_PLUGINS,           // v1 hand-edited
+  ...OFFICIAL_EXTENSIONS,        // v2 from extensions/*/manifest.ts
+  ...LOCAL_EXTENSIONS,           // v2 from extensions.local/*/manifest.ts
+]
 
-- One capability per major action: `event.create`, `event.update`,
-  `event.delete`, `event.publish`, `event.view_unpublished`, etc.
-- Capability used at the top of every mutation handler:
-  ```ts
-  const user = await requireCan(ctx, "event.create");
-  ```
-- Capability checked at the route level via the route's `beforeLoad`
-  or by `<RoutePermissionGuard capability="...">`.
+ADMIN_NAV_SECTIONS = [
+  ...PLATFORM_NAV_SECTIONS,      // v1 hand-edited
+  ...EXTENSION_NAV_SECTIONS,     // v2 from extensions[.local]/*/nav.ts
+]
 
-### Rules
+extensionTables (in schema.ts) = merged from both v2 roots
+```
 
-- New capabilities are added to the role registry by the role expert,
-  not by the extension's own code. Your generation report SHOULD list
-  the new capabilities the role expert needs to add.
-- All five built-in roles (administrator, editor, author, contributor,
-  subscriber) should be considered when granting the new capability —
-  default to administrator-only and surface in the report which roles
-  the user wants to grant access to.
+Consumers of `ADMIN_PLUGINS` and `ADMIN_NAV_SECTIONS` cannot tell the
+difference. The `source` field on each plugin (`"platform"` /
+`"official"` / `"local"`) is populated by the scanner for diagnostics.
 
 ---
 
-## How these 7 layers interact at runtime
+## Type system notes
 
-1. User visits `/events`.
-2. Route guard checks `isPluginEnabled("events", settings)`. If
-   disabled, route 404s (or shows "Extension disabled" component).
-3. Component renders, calls `useQuery(api.events.queries.list, …)`.
-4. Convex query handler runs in the backend, also gated by
-   `requirePluginEnabled` if implemented at the query level.
-5. User submits a form — mutation fires. Mutation checks
-   `requireCan(ctx, "event.create")` before writing.
-6. Sidebar shows or hides the "Events" section based on plugin
-   settings, evaluated by `isPluginNavSectionEnabled`.
-7. If the extension has a Website surface, the Website's marketing
-   layout may also call helpers to gate `routePrefixes`.
+`AdminPluginId` is now `BuiltinAdminPluginId | (string & {})` — keeps
+literal autocomplete on the builtins while accepting any string for
+v2 extensions. `PluginSettingsValues` is
+`BuiltinPluginSettingsValues & Record<string, boolean>` — strong types
+on the builtins, open record for extension settings keys.
 
-The result: turning the toggle off at `/plugins` removes the
-extension's presence everywhere. Turning it on restores everything.
-That guarantee is what makes the 7-layer contract worth following.
+`DEFAULT_PLUGIN_SETTINGS` is built at module load: starts from the
+platform defaults, then merges each v2 extension's
+`defaultEnabled` (defaulting to `false` if omitted).

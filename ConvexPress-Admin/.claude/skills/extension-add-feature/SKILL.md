@@ -1,75 +1,74 @@
 ---
 name: extension-add-feature
-description: Use when the user asks to add a new feature, function, mutation, query, route, or capability to an existing extension. Triggers on "add bulk delete to events", "add a new admin page to gallery", "the recipes extension needs an import button", "extend the kb extension with X". Modifies the existing extension's files in place; does NOT re-scaffold the extension or duplicate registry entries.
+description: Use when the user asks to add a new feature, function, mutation, query, route, or capability to an existing v2 extension. Triggers on "add bulk delete to events", "add a new admin page to my custom extension", "extend the X extension with Y", "the events extension needs an import button". Modifies the existing extension's files in place; does NOT re-scaffold or duplicate manifest entries.
 ---
 
 # extension-add-feature
 
 You are adding functionality to an extension that already exists.
-Output: additions / modifications inside the existing extension's files
-+ a clear report.
+Output: additions inside the existing extension's folders + a clear
+report.
 
-This skill is the surgical counterpart to `extension-build`. Don't
-re-create the schema or registry entries — the extension is already
-registered. Just slot the new feature into the right files.
+The v2 contract still holds: no edits to `schema.ts`,
+`plugins/registry.ts`, or `nav-config.ts`. Everything goes in the
+extension's own folders.
 
 ## Prerequisites
 
 Confirm with the user:
 
-- **Which extension** is being extended (the id, e.g., `events`)
+- **Which extension** is being extended (the id)
+- **Is it official or local?** (Lives in `extensions/<id>/` vs
+  `extensions.local/<id>/` — affects whether changes get committed
+  to upstream or are local-only.)
 - **What the feature is** (e.g., "bulk publish", "ICS export endpoint",
   "venue manager sub-screen")
-- **What layers it touches** (a new mutation? a new admin route? both?
-  a new capability?)
+- **Layers it touches** (new mutation? new admin route? new capability?)
 
-If unclear, ASK. Don't guess scope.
+If unclear, ASK.
 
 ## Workflow
 
 ### Step 1 — Read the kit
 
-In order:
-1. `extension-kit/README.md`
-2. `extension-kit/ARCHITECTURE.md` (skim — focus on layers the feature
-   touches)
-3. `extension-kit/CONTRACTS.md` (the rules still apply to anything you
-   add)
+Skim the relevant docs for the layers you're touching:
+1. `extension-kit/README.md` (entry)
+2. `extension-kit/ARCHITECTURE.md` (the 5 v2 layers)
+3. `extension-kit/CONTRACTS.md` (rules still apply to additions)
 4. `extension-kit/DATA-API.md`
 5. The reference for each layer you're modifying
 
 ### Step 2 — Read the existing extension
 
-Before writing anything, READ:
-- `packages/backend/convex/schema/<ext>.ts` (current schema)
-- `packages/backend/convex/<ext>/queries.ts`
-- `packages/backend/convex/<ext>/mutations.ts`
-- `apps/web/src/routes/_authenticated/_admin/<ext>/` (every file)
-- The extension's entry in `apps/web/src/lib/plugins/registry.ts`
-- The extension's section in `apps/web/src/lib/admin-shell/nav-config.ts`
+Before writing anything, READ both folders:
+- `packages/backend/convex/<root>/<id>/` — every file (`schema.ts`,
+  `queries.ts`, `mutations.ts`, optional `internals.ts`)
+- `apps/web/src/<root>/<id>/` — `manifest.ts`, `nav.ts` (if present)
+- `apps/web/src/routes/_authenticated/_admin/<route-prefix>/` — all
+  route files
 
-Know what's already there. Match its style.
+Know what's already there. Match its style and conventions.
 
-### Step 3 — Decide where the new code goes
+### Step 3 — Decide where the addition lives
 
-**New schema field?** Patch the existing table in `schema/<ext>.ts`.
-Add an optional field (`v.optional(...)`) so existing records remain
-valid. Don't add required fields without a migration plan — flag that
-in the report.
+| Addition | File to modify |
+|---|---|
+| New schema field | Patch the existing table in `convex/<root>/<id>/schema.ts`. Add optional fields (`v.optional(...)`); flag if a required field is needed (migration concern). |
+| New query | Append to `convex/<root>/<id>/queries.ts`. |
+| New mutation | Append to `convex/<root>/<id>/mutations.ts`. `requireCan` at the top. |
+| New admin route | New file at `apps/web/src/routes/_authenticated/_admin/<route-prefix>/<new>.tsx`. Wrap with `<PluginGuard>`. |
+| New nav child | Edit `apps/web/src/<root>/<id>/nav.ts` (the extension's own nav file — not the platform's). |
+| New capability | Use it in your code; list in the report for the Role expert to register. |
+| New settings field | Wire via `api.settings.queries.getBySection` + `updateSection`. Add a Settings page if not already present. |
 
-**New mutation?** Append to `mutations.ts`. Use the same patterns as
-existing mutations. `requireCan(ctx, "<existing or new capability>")`
-at the top.
+**Don't touch:**
+- `packages/backend/convex/schema.ts` (hub)
+- `packages/backend/convex/schema/_extensionsIndex.generated.ts` (autogen)
+- `apps/web/src/lib/plugins/registry.ts` (scanner appends to it)
+- `apps/web/src/lib/admin-shell/nav-config.ts` (scanner appends to it)
 
-**New query?** Append to `queries.ts`. Use existing index conventions.
-
-**New admin route?** Add a new file under
-`_authenticated/_admin/<ext>/`. Wrap in `<PluginGuard>`. Add a nav
-entry under the existing section's `children` if the route should be
-discoverable.
-
-**New capability?** Use it in your new code. List it in the report
-for the Role expert to register.
+If you need a change there, you're using v1 thinking. Stop and reread
+ARCHITECTURE.md.
 
 ### Step 4 — Generate the additions
 
@@ -77,12 +76,18 @@ Write the new code following the same style as the existing extension.
 Don't change formatting, naming conventions, or imports of unrelated
 code.
 
-### Step 5 — Modify the nav-config if needed
+### Step 5 — Re-run codegen if schema changed
 
-If the new feature is a new admin sub-route that the user should be
-able to navigate to, add it as a child to the existing section in
-`nav-config.ts`. If it's an action button on an existing list (e.g.,
-"Bulk publish"), no nav change is needed.
+If you modified `schema.ts`:
+
+```bash
+cd ConvexPress-Admin/packages/backend
+bun run codegen:extensions
+```
+
+The generated index file's imports don't change (it imports from
+`<root>/<id>/schema` regardless of what's inside), but running codegen
+proves nothing else broke.
 
 ### Step 6 — Verify
 
@@ -92,32 +97,27 @@ bun --filter web check-types
 ```
 
 Must exit 0. Generated types may be stale for new queries/mutations —
-expected, surface in report.
+expected; surface in report.
 
 ### Step 7 — Report
 
-Cover:
-- Files modified (with paths) — the actual edits, not just paths
+- Files modified (paths)
 - New capabilities to register (if any)
-- Schema migration concerns (if any)
-- Whether existing tests still apply or need updates (note only — don't
-  write tests in this skill)
+- Schema migration concerns (if schema changed in a non-additive way)
+- Whether existing tests still apply (don't write tests here)
 - Deploy ask for `/experts:convex-deployment`
 
 ## Output contract
 
-- Edits scoped to the existing extension's files
-- No new files outside the extension's folders
-- No registry-entry duplication
-- CONTRACTS.md rules still satisfied for whatever layer you touched
+- Edits scoped to the existing extension's folders + canonical routes
+- No new files outside the extension's scope
+- **No edits to the hub registry files** (`schema.ts`, `registry.ts`,
+  `nav-config.ts`)
+- CONTRACTS.md rules satisfied for whichever layer you touched
 
 ## When NOT to use this skill
 
 - **Building a brand new extension** → `extension:build`
-- **Auditing whether an existing extension is correctly wired** →
-  `extension:audit`
-- **Adding capabilities to roles** → the Role expert handles the role
-  registry; this skill uses caps but doesn't define them at the
-  platform level.
-- **Generating Website-side templates** → handoff to the design-kit in
-  the Website repo.
+- **Auditing wiring of an existing extension** → `extension:audit`
+- **Adding capabilities to the role registry** → Role expert's domain
+- **Generating Website-side templates** → handoff to design-kit

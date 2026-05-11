@@ -3,7 +3,14 @@ import type {} from "./types/convexQueryBuilder";
 
 // ─── Modular Schema Imports ──────────────────────────────────────────────────
 // Each system owns its own schema file in convex/schema/
-// Add new system tables by creating a file and spreading here
+// Add new system tables by creating a file and spreading here.
+//
+// Extension v2 tables (anything under convex/extensions/* or
+// convex/extensions.local/*) are merged via the auto-generated index
+// file. The codegen script runs as a predev/predeploy hook:
+//   packages/backend/scripts/generate-extension-index.mjs
+// Generated output is gitignored. Hand-edits will be overwritten.
+import { extensionTables } from "./schema/_extensionsIndex.generated";
 import { usersTables } from "./schema/users";
 import { rolesTables } from "./schema/roles";
 import { eventsTables } from "./schema/events";
@@ -103,4 +110,9 @@ export default defineSchema({
   ...commerceBundlesTables,
   ...commerceReturnsTables,
   ...productAttributesTables,
+
+  // ─── Extension v2 tables (discovered via codegen scanner) ────────────────
+  // Merges both extensions/* (official) and extensions.local/* (user).
+  // See _extensionsIndex.generated.ts header for the regen command.
+  ...extensionTables,
 });

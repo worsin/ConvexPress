@@ -33,8 +33,17 @@ import { PLUGINS_NAV_SECTION } from "@/lib/plugins/registry";
  * Admin sidebar navigation configuration.
  * Mirrors WordPress admin menu structure.
  * Items are filtered at render time by user capabilities.
+ *
+ * ─── Extension v2 nav scanner ───────────────────────────────────────────────
+ * User and official v2 extensions discovered at build time from two roots:
+ *   apps/web/src/extensions/<id>/nav.ts        (official, tracked)
+ *   apps/web/src/extensions.local/<id>/nav.ts  (user, gitignored)
+ * Each `nav.ts` must default-export an AdminNavSection. The scanner appends
+ * discovered sections to PLATFORM_NAV_SECTIONS at the bottom of this module,
+ * exported as ADMIN_NAV_SECTIONS. Sections without `nav.ts` simply don't
+ * appear in the sidebar — useful for plugin-only extensions with no nav.
  */
-export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
+const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
   {
     id: "dashboard",
     label: "Dashboard",
@@ -541,4 +550,43 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       },
     ],
   },
+];
+
+// ─── Extension v2 nav scanner ────────────────────────────────────────────────
+
+interface NavModule {
+  default: AdminNavSection;
+}
+
+const officialNavModules = import.meta.glob<NavModule>(
+  "../../extensions/*/nav.ts",
+  { eager: true },
+);
+const localNavModules = import.meta.glob<NavModule>(
+  "../../extensions.local/*/nav.ts",
+  { eager: true },
+);
+
+function navSectionsFromModules(
+  modules: Record<string, NavModule>,
+): AdminNavSection[] {
+  return Object.values(modules)
+    .map((mod) => mod.default)
+    .filter((section): section is AdminNavSection => Boolean(section));
+}
+
+const EXTENSION_NAV_SECTIONS: AdminNavSection[] = [
+  ...navSectionsFromModules(officialNavModules),
+  ...navSectionsFromModules(localNavModules),
+];
+
+/**
+ * The merged sidebar configuration. Consumers should refer to this
+ * exported array; they cannot tell platform sections from extension
+ * sections. The order is: platform sections in their hand-edited order,
+ * then official extensions, then local extensions, all appended.
+ */
+export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
+  ...PLATFORM_NAV_SECTIONS,
+  ...EXTENSION_NAV_SECTIONS,
 ];

@@ -27,6 +27,7 @@ export interface UpdateProgress {
     | "checking"
     | "pulling"
     | "installing-deps"
+    | "regenerating-extensions"
     | "building"
     | "finalizing"
     | "rolling-back"
@@ -143,6 +144,37 @@ export class AppUpdater extends EventEmitter {
           cwd: this.installPath,
           shell: true,
         });
+
+        // ── Extension v2: regenerate the Convex schema index ─────────────
+        // The backend codegen aggregates schemas from both extension roots
+        // (extensions/* and extensions.local/*) into a single index file
+        // that schema.ts imports. The codegen runs as a `predev`/`predeploy`
+        // hook in normal flows, but the updater is neither — call it
+        // explicitly here so the post-update build sees the right schema.
+        this.emit("update-progress", {
+          phase: "regenerating-extensions",
+          message: "Regenerating extension index...",
+          percent: 50,
+        } satisfies UpdateProgress);
+
+        try {
+          await execFileAsync(
+            pm,
+            ["run", "--filter", "@convexpress-admin/backend", "codegen:extensions"],
+            { cwd: this.installPath, shell: true },
+          );
+        } catch (extErr) {
+          // Don't fail the whole update on a codegen miss — surface a
+          // warning event and continue. A missing/empty index file falls
+          // through to `export const extensionTables = {}` which is valid.
+          // The rebuild will succeed; the user's extensions just won't be
+          // active until they re-run codegen.
+          this.emit("update-progress", {
+            phase: "regenerating-extensions",
+            message: `Extension regen warning: ${extErr instanceof Error ? extErr.message : String(extErr)}`,
+            percent: 55,
+          } satisfies UpdateProgress);
+        }
 
         this.emit("update-progress", {
           phase: "building",

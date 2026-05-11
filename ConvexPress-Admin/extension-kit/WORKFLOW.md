@@ -1,7 +1,7 @@
-# Workflow — building a new extension end-to-end
+# Workflow — building a new extension end-to-end (v2)
 
-The execution order for `extension:build`. Follow these phases in order;
-each builds on the previous. Skipping ahead = an extension that
+The execution order for `extension:build`. Follow these phases in
+order; each builds on the previous. Skipping ahead = an extension that
 half-works.
 
 ---
@@ -10,190 +10,195 @@ half-works.
 
 Before generating any code, gather:
 
-1. **Extension id** (camelCase, e.g., `events`, `caseStudies`,
-   `inventory`). Must be unique — check `AdminPluginId` in
-   `apps/web/src/lib/plugins/registry.ts` to confirm.
-2. **Display title** (e.g., "Events")
-3. **One-line description** (for the `/plugins` toggle page)
-4. **Lucide icon name** (suggest one based on the domain)
-5. **Tables** the extension owns (names + main fields). At minimum,
-   one primary table.
-6. **Whether it has a public surface** (the Website renders it). If
-   yes, what URL prefix.
-7. **Whether it depends on another extension** (e.g., subscriptions
-   depends on commerce).
-8. **Capabilities the extension defines** (e.g., `event.create`,
-   `event.publish`).
-9. **Default-enabled state** (most extensions default to `false`;
-   built-in essentials may default to `true`).
+1. **Extension id** (camelCase, e.g., `events`). Confirm uniqueness:
+   - Not already in `apps/web/src/lib/plugins/registry.ts`'s
+     `PLATFORM_PLUGINS` (platform-shipped)
+   - Not already a folder name under `apps/web/src/extensions/` or
+     `apps/web/src/extensions.local/`
+2. **Distribution scope:**
+   - **Official** (committed to upstream, maintainer-shipped) →
+     `extensions/<id>/`
+   - **Local** (user-installed, gitignored) → `extensions.local/<id>/`
+3. **Display title** (e.g., "Events")
+4. **One-line description** (for the `/plugins` toggle page)
+5. **Lucide icon name** (suggest one based on the domain)
+6. **Tables** the extension owns (names + main fields)
+7. **Whether it has a public Website surface**, and if so, what URL prefix
+8. **Whether it depends on another extension**
+9. **Capabilities the extension defines** (e.g., `event.create`,
+   `event.publish`)
+10. **Default-enabled state** (`true` / `false`)
 
-If any of these are unclear, ASK the user before generating. Don't
-fabricate.
+Ask if anything is unclear. Don't fabricate.
 
 ---
 
 ## Phase 1 — Read the kit
 
 1. `extension-kit/README.md`
-2. `extension-kit/ARCHITECTURE.md` (especially the 7-layer overview)
+2. `extension-kit/ARCHITECTURE.md` (especially the 5 v2 layers)
 3. `extension-kit/CONTRACTS.md`
 4. `extension-kit/DATA-API.md`
-5. The relevant reference files in `extension-kit/references/`
-6. Look at an EXISTING similar extension in the codebase for a real
-   example. Good models to study: `recipes`, `gallery`, `kb`. Read
-   one end-to-end before generating your new one.
+5. Reference files:
+   - `references/schema.example.ts`
+   - `references/queries.example.ts`
+   - `references/mutations.example.ts`
+   - `references/manifest.example.ts`
+   - `references/nav.example.ts`
+   - `references/admin-list-route.example.tsx`
+
+Skip the reading you've genuinely done this session.
 
 ---
 
-## Phase 2 — Schema (Layer 1)
+## Phase 2 — Pick the root + create the folders
 
-1. Create `packages/backend/convex/schema/<extension>.ts`
-2. Define every table the extension owns
-3. Add a named exports object (e.g., `eventsTables`)
-4. Modify `packages/backend/convex/schema.ts` to import + spread the
-   new tables object
+Based on Phase 0's distribution scope, pick ONE of:
 
-**Verify:** the file is syntactically valid TS. (Full typecheck comes
-later.)
+- **Official:** `<root>` = `extensions`
+- **Local:** `<root>` = `extensions.local`
 
----
+Then create the two extension folders:
 
-## Phase 3 — Queries + Mutations (Layers 2-3)
+- `packages/backend/convex/<root>/<id>/`
+- `apps/web/src/<root>/<id>/`
 
-1. Create the folder: `packages/backend/convex/<extension>/`
-2. Create `queries.ts` with at minimum: `list`, `getBySlug`,
-   plus any other reads the admin UI needs
-3. Create `mutations.ts` with: `create`, `update`, `remove` (or soft
-   delete equivalent), plus extension-specific mutations
-4. Every mutation handler MUST start with `requireCan(ctx, "<capability>")`
-5. State-changing mutations MUST emit at least one event via
-   `emitEvent(...)`
-
-Don't deploy yet. Convex `_generated/api` types regenerate on next
-deploy.
+Both are new — `mkdir -p` if your tooling doesn't auto-create.
 
 ---
 
-## Phase 4 — Admin UI routes (Layer 4)
+## Phase 3 — Backend (Layers 1-3)
 
-1. Create the folder:
-   `apps/web/src/routes/_authenticated/_admin/<extension>/`
-2. Create at minimum:
-   - `index.tsx` — list page
-   - `new.tsx` or `$<id>/edit.tsx` — create/edit page
-   - `settings.tsx` — if the extension has settings
-3. Each route uses `createFileRoute` + (for toggleable extensions)
-   wraps content with `<PluginGuard pluginId="<id>">`
-4. Use existing primitives:
-   - List tables: study how `posts/index.tsx` and `commerce/products.tsx`
-     compose list, sort, bulk actions, filters
-   - Settings forms: `SettingsPageLayout` + `SettingsSection` + `SettingsField`
-   - Editor screens: `EditorLayout` from `@/components/editor`
+Create the four backend files:
 
----
+1. `packages/backend/convex/<root>/<id>/schema.ts` — exports `tables`
+2. `packages/backend/convex/<root>/<id>/queries.ts` — public + admin queries
+3. `packages/backend/convex/<root>/<id>/mutations.ts` — `requireCan` at top of every handler; `emitEvent` for state changes
+4. `packages/backend/convex/<root>/<id>/internals.ts` — optional
 
-## Phase 5 — Plugin registry (Layer 5)
+Match the patterns in `references/schema.example.ts`,
+`queries.example.ts`, `mutations.example.ts`.
 
-Modify `apps/web/src/lib/plugins/registry.ts`:
-
-1. Add the new id to `AdminPluginId` union (string literal)
-2. Add `<id>Enabled: boolean` to `PluginSettingsValues` interface
-3. Push a new `AdminPluginDefinition` onto `ADMIN_PLUGINS` with:
-   - `id`, `title`, `description`, `icon`
-   - `settingsKey: "<id>Enabled"`
-   - `navSectionIds`: array containing the nav section id (Layer 6)
-   - `adminAccessPrefixes`: ["/<extension>"] (or whatever URL prefix
-     the admin routes use)
-   - `routePrefixes`: ["/<public-url-prefix>"] if it has a public
-     surface; `[]` otherwise
-4. Add `<id>Enabled` to `DEFAULT_PLUGIN_SETTINGS` with the default
-   boolean
-5. If dependency: add to `PLUGIN_PARENT`
-
-**Verify:** the AdminPluginId union exhaustiveness checks pass. If TS
-complains anywhere about a missing case, fix it (don't `// @ts-ignore`).
+If event constants need to be added for this extension's events (e.g.,
+`EVENT_EVENTS.CREATED`), add them to
+`packages/backend/convex/events/constants.ts` following the existing
+naming pattern.
 
 ---
 
-## Phase 6 — Admin nav (Layer 6)
+## Phase 4 — Frontend manifest + nav (Layer 4)
 
-Modify `apps/web/src/lib/admin-shell/nav-config.ts`:
+Create:
 
-1. Import the Lucide icon
-2. Add a new entry to `ADMIN_NAV_SECTIONS` with:
-   - `id` — matches the registry's `navSectionIds[0]`
-   - `label`, `to`, `icon`
-   - `pluginId: "<id>"` — **mandatory** for toggleable extensions
-   - `capability` — the highest required cap among children
-   - `children` — array of links matching the routes created in Phase 4
+1. `apps/web/src/<root>/<id>/manifest.ts` — default-exports
+   `AdminPluginDefinition`
+2. `apps/web/src/<root>/<id>/nav.ts` — default-exports
+   `AdminNavSection` (skip this file if the extension has no sidebar
+   presence — set the manifest's `navSectionIds: []` instead)
 
-**Verify:** browse to `/plugins` and toggle the extension; the new nav
-section should appear/disappear.
+Match the patterns in `references/manifest.example.ts` and
+`references/nav.example.ts`.
 
 ---
 
-## Phase 7 — Capabilities (Layer 7)
+## Phase 5 — Admin routes (Layer 5)
 
-The extension defines what capabilities it uses (Phases 3 + 4); the
-Role expert adds them to the central registry.
+Create the admin routes at their CANONICAL TanStack Router path:
 
-1. List every new capability the extension uses in the generation
-   report
-2. For each, recommend which built-in roles should get it by default:
-   - Administrator: usually yes
-   - Editor: usually for content-management caps
-   - Author: usually for own-content caps
-   - Contributor: usually for draft-only caps
-   - Subscriber: rarely
-3. Note in the report: "Invoke `/experts:role-capability-system` to add
-   these to the central registry before the extension is fully gated."
+- `apps/web/src/routes/_authenticated/_admin/<route-prefix>/index.tsx` — list
+- `apps/web/src/routes/_authenticated/_admin/<route-prefix>/new.tsx` — create
+- `apps/web/src/routes/_authenticated/_admin/<route-prefix>/$<id>/edit.tsx` — edit
+- `apps/web/src/routes/_authenticated/_admin/<route-prefix>/settings.tsx` — optional settings
+
+Each wraps with `<PluginGuard pluginId="<id>">` as shown in
+`references/admin-list-route.example.tsx`.
+
+Routes live under their canonical path because TanStack Router's vite
+plugin auto-discovers `src/routes/**`. Putting routes in
+`extensions[.local]/<id>/` would NOT work — the router doesn't scan
+there.
 
 ---
 
-## Phase 8 — Compile + verify
+## Phase 6 — Capabilities (Layer 6 — surface only)
+
+List every new capability the extension uses (via `requireCan` in your
+mutations and `useCan` / `<RoutePermissionGuard>` in your routes).
+
+Recommend role grants per capability. Default to administrator-only;
+surface in the report which roles the maintainer might want to grant
+broader access to.
+
+You do NOT add capabilities to the central role registry. Surface them
+in the report so `/experts:role-capability-system` can register them.
+
+---
+
+## Phase 7 — Codegen + verify
 
 ```bash
-cd ConvexPress-Admin
+cd ConvexPress-Admin/packages/backend
+bun run codegen:extensions
+# Verify: convex/schema/_extensionsIndex.generated.ts now references
+# your new extension's schema
+
+cd ..
 bun --filter web check-types
+# Must exit 0
 ```
 
-Must exit 0. Any TS errors get fixed in-place before declaring done.
+The codegen script imports + spreads your `schema.ts`'s `tables`
+export into the generated index. If typecheck fails on a missing field
+or type, fix it in your extension's files — never in the hubs.
 
-Convex's generated types will be stale until next deploy — that's
-expected. If you see errors specifically about `api.<extension>.queries.X`
-not existing, those resolve after `npx convex deploy --typecheck=disable`.
-**You don't run the deploy yourself** — surface this in your report so
-the Convex Deployment Expert runs it.
+The `_generated/api` types for `api.extensions.<id>.queries.*` will be
+stale until the next Convex deploy. That's expected; surface it in the
+report. The Convex Deployment Expert handles the deploy.
 
 ---
 
-## Phase 9 — Report
+## Phase 8 — Report
 
-Write a clear report:
+Cover:
 
-- All files created (paths)
-- All files modified in place (registry, nav-config, schema hub)
-- New capabilities the Role expert needs to add, with role grant
-  recommendations
-- Whether a public Website surface exists, and if so a clear handoff to
-  `/design:custom-post-type` in the Website repo
-- Deploy instructions for the Convex Deployment Expert
-- Any deviations from the kit standard, with justification
+- **Distribution scope** (official vs local) and which root the files
+  landed in
+- **Files created** (full paths, both backend and frontend)
+- **New capabilities** the Role expert needs to register, with
+  recommended role grants
+- **Public surface handoff** — if `routePrefixes` is non-empty, hand
+  off to `/design:custom-post-type` in
+  `ConvexPress-Website/.claude/skills/`
+- **Codegen + typecheck status**
+- **Deploy instructions** — explicit ask for
+  `/experts:convex-deployment` to run `bun run deploy` in
+  `packages/backend/` (which runs codegen + `convex deploy`)
+- **Deviations from kit standard**, with justification
 
 ---
 
 ## When to invoke `extension:add-feature` instead
 
 Don't use `extension:build` to add functionality to an existing
-extension. Use `extension:add-feature` — it knows which extension already
-exists, doesn't duplicate registry entries, and only adds the new
-mutation / query / route / capability you need.
+extension. Use `extension:add-feature` — it knows the extension's
+folder structure and only adds the new mutation / query / route /
+capability you specified.
 
 ---
 
 ## When to invoke `extension:audit` instead
 
-If something feels off about an existing extension (nav not hiding,
-mutations not gated, settings not respected), don't rebuild — audit.
-`extension:audit` walks an existing extension's 7 layers and reports
-gaps without modifying anything.
+If something feels off about an existing extension (codegen failing,
+nav not appearing, mutations not gated), use `extension:audit`. It
+walks the v2 5-layer contract and reports gaps without modifying
+anything.
+
+---
+
+## Hand-edited platform extensions (v1)
+
+The extensions that ship with the platform today (commerce, kb,
+recipes, gallery, etc.) are v1 — hand-edited into the hub files. They
+coexist with v2 via the merged registries. **Don't migrate them as
+part of an `extension:build` run.** That's a separate migration
+concern not covered by this skill.

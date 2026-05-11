@@ -5,8 +5,13 @@
   "license": "ISC",
   "author": "",
   "scripts": {
+    "codegen:extensions": "node scripts/generate-extension-index.mjs",
+    "predev": "node scripts/generate-extension-index.mjs",
+    "predev:setup": "node scripts/generate-extension-index.mjs",
+    "predeploy": "node scripts/generate-extension-index.mjs",
     "dev": "convex dev",
-    "dev:setup": "convex dev --configure --until-success"
+    "dev:setup": "convex dev --configure --until-success",
+    "deploy": "node scripts/generate-extension-index.mjs && convex deploy"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.81.0",

@@ -1,156 +1,166 @@
-# Extension Contracts
+# Extension Contracts (v2)
 
 The validation checklist. An extension is "done" only when every item
 below holds. Treat each as a hard requirement.
 
-`ARCHITECTURE.md` describes the 7 layers; this doc turns each into a
-verifiable rule.
+`ARCHITECTURE.md` describes the 5 v2 layers + capabilities. This doc
+turns each into a verifiable rule.
 
 ---
 
 ## 1. Schema (Layer 1)
 
-- [ ] File at `packages/backend/convex/schema/<extension>.ts` exists
-- [ ] Exports a single named object (`<extension>Tables`) grouping every
-  table the extension owns
-- [ ] Object spread into the root `packages/backend/convex/schema.ts`
-- [ ] Every table has at least one explicit index (none rely on the
-  implicit `by_creation_time` for queryable fields)
-- [ ] Table names are globally unique (grep the rest of the schema
-  directory to confirm)
-- [ ] Cross-system references use `v.id("<otherTable>")`, never plain
-  `v.string`
+- [ ] File at `packages/backend/convex/extensions[.local]/<id>/schema.ts`
+  exists (either `extensions/` for official or `extensions.local/` for user)
+- [ ] Exports a `tables` named export (the record of Convex
+  `defineTable(...)` calls). The codegen scanner uses this name.
+- [ ] Every table has at least one explicit index
+- [ ] Table names are globally unique (grep `convex/schema/` and both
+  `convex/extensions/` roots to confirm)
+- [ ] No `v.any` without inline justification
+- [ ] You do NOT edit `packages/backend/convex/schema.ts` or the
+  generated index file
 
 ---
 
 ## 2. Queries (Layer 2)
 
-- [ ] File at `packages/backend/convex/<extension>/queries.ts` exists
+- [ ] File at `packages/backend/convex/extensions[.local]/<id>/queries.ts`
+  exists
 - [ ] At minimum, exports `list` (admin paginated) and `getBySlug`
-  (public single)
+  (public single) — or domain-appropriate equivalents
 - [ ] Public-safe queries explicitly project fields — no raw doc returns
 - [ ] Paginated queries accept `paginationOpts`
-- [ ] No query returns secrets (api keys, internal flags) to public
-  callers
+- [ ] Convex API path will be `api.extensions.<id>.queries.*`
 
 ---
 
 ## 3. Mutations (Layer 3)
 
-- [ ] File at `packages/backend/convex/<extension>/mutations.ts` exists
+- [ ] File at `packages/backend/convex/extensions[.local]/<id>/mutations.ts`
+  exists
 - [ ] **Every** mutation handler calls `requireCan(ctx, "<capability>")`
-  (or a stricter helper) at the top
-- [ ] Inputs validated with `v.*` validators (never `v.any` unless
-  absolutely necessary; if used, justified inline)
-- [ ] State-changing mutations emit at least one event via `emitEvent`
-  for the audit log to capture
-- [ ] Soft-delete is preferred over hard-delete for user-facing content
-  (use a `status` field; only hard-delete if no other system can
-  reference the row)
+  at the top — no exceptions
+- [ ] Inputs validated with `v.*` validators
+- [ ] State-changing mutations emit `emitEvent` for the audit log
+- [ ] Soft-delete preferred over hard-delete
 
 ---
 
-## 4. Admin UI routes (Layer 4)
+## 4a. Manifest (Layer 4)
 
-- [ ] Routes live under `apps/web/src/routes/_authenticated/_admin/<extension>/`
+- [ ] File at `apps/web/src/extensions[.local]/<id>/manifest.ts` exists
+- [ ] Default-exports an `AdminPluginDefinition`
+- [ ] `id` matches the extension's folder name (camelCase)
+- [ ] `settingsKey` follows convention: `<id>Enabled`
+- [ ] `navSectionIds` matches the `id` of the section in your `nav.ts`
+  (if one exists)
+- [ ] `adminAccessPrefixes` covers every admin URL the extension exposes
+- [ ] `routePrefixes` lists public URL prefixes (or `[]` if none)
+- [ ] `defaultEnabled` set (or omitted; default is `false`)
+- [ ] Icon imported from `lucide-react`
+
+## 4b. Nav (Layer 4, optional)
+
+If the extension has a sidebar presence:
+
+- [ ] File at `apps/web/src/extensions[.local]/<id>/nav.ts` exists
+- [ ] Default-exports an `AdminNavSection`
+- [ ] `id` matches the manifest's `navSectionIds[0]`
+- [ ] `pluginId` is set to the extension's id (enables auto-hide when
+  the extension is disabled)
+- [ ] `capability` set to a sensible top-level cap
+- [ ] `children` list the routes the extension exposes
+
+If the extension has NO sidebar presence (rare):
+
+- [ ] `nav.ts` is omitted entirely
+- [ ] Manifest's `navSectionIds: []`
+
+---
+
+## 5. Admin UI routes (Layer 5)
+
+- [ ] Routes live under
+  `apps/web/src/routes/_authenticated/_admin/<route-prefix>/`
+  (NOT under `extensions[.local]/`)
 - [ ] Each route uses `createFileRoute` (TanStack Router)
 - [ ] For toggleable extensions: every admin route is wrapped with
-  `<PluginGuard pluginId="<id>">` or has a `beforeLoad` calling
-  `requirePluginEnabled`
-- [ ] List pages use existing list-table primitives (don't reinvent
-  pagination + sort + bulk actions)
-- [ ] Settings pages use the settings-form primitives
-  (`SettingsPageLayout`, `SettingsSection`, `SettingsField`, etc.)
+  `<PluginGuard pluginId="<id>">` or has `requirePluginEnabled` in
+  `beforeLoad`
+- [ ] Reuses existing list-table / settings / editor primitives
 - [ ] All interactive UI from `@base-ui/react` — never `@radix-ui/*`
-- [ ] Content management is full-page navigation — no modal-based
-  editors. (Confirmation dialogs for destructive actions are the only
-  allowed popup.)
-- [ ] No hardcoded colors (use CSS variables: `bg-card`, `text-foreground`,
-  etc.)
+- [ ] Content management uses full-page navigation, not modals
+- [ ] No hardcoded color literals (uses CSS variables)
+- [ ] Routes are untracked (user extensions) or tracked (official
+  extensions) — they survive update cycles either way
 
 ---
 
-## 5. Plugin registry (Layer 5)
-
-- [ ] Extension `id` added to `AdminPluginId` union in
-  `apps/web/src/lib/plugins/registry.ts`
-- [ ] `<id>Enabled: boolean` added to `PluginSettingsValues`
-- [ ] New `AdminPluginDefinition` pushed onto `ADMIN_PLUGINS` with all
-  required fields populated
-- [ ] `DEFAULT_PLUGIN_SETTINGS` includes the `<id>Enabled` default
-- [ ] If extension depends on another (e.g., commerce sub-features),
-  added to `PLUGIN_PARENT` map
-- [ ] `navSectionIds` value(s) MATCH the `id` of the corresponding nav
-  section in `nav-config.ts` (Layer 6) — string-level equality
-
----
-
-## 6. Admin nav (Layer 6)
-
-- [ ] New entry added to `ADMIN_NAV_SECTIONS` in
-  `apps/web/src/lib/admin-shell/nav-config.ts`
-- [ ] `pluginId` field set to the extension's id (this is what auto-hides
-  the section when the extension is disabled)
-- [ ] `capability` set to the highest required capability among the
-  section's children (so the whole section disappears for roles that
-  can't access it)
-- [ ] Children list at least the typical `list`, `Add New`, and
-  `Settings` routes (where applicable)
-- [ ] Icon imported from `lucide-react`; no SVG imports
-
----
-
-## 7. Capabilities (Layer 7)
+## 6. Capabilities (separate concern)
 
 - [ ] Every new capability the extension uses is **listed** in the
   generation report (the Role expert adds them to the central registry;
-  the extension just uses them)
+  this skill just surfaces them)
 - [ ] All five built-in roles considered: report should state which
   roles get the new capability and which don't
-- [ ] No mutation, query, or route is gated by `isInternal === true` /
-  `internalRole === "admin"` as the only check; capability checks
-  are mandatory
+- [ ] No mutation, query, or route is gated by `isInternal === true`
+  alone — capability checks are mandatory
 
 ---
 
-## 8. Type union maintenance
+## 7. What you do NOT touch (v2 invariant)
 
-- [ ] The `AdminPluginId` union type is exhaustive — TypeScript would
-  catch a missing case if you used the type elsewhere; verify by
-  running `bun --filter web check-types`
-- [ ] No `as AdminPluginId` casts to bypass the union check
+These files **must not be modified by an extension**:
+
+- ❌ `packages/backend/convex/schema.ts` (hub)
+- ❌ `packages/backend/convex/schema/_extensionsIndex.generated.ts` (autogen)
+- ❌ `apps/web/src/lib/plugins/registry.ts` (only the scanner appends)
+- ❌ `apps/web/src/lib/admin-shell/nav-config.ts` (only the scanner appends)
+
+If you find yourself wanting to edit any of these, you're using the v1
+pattern. Stop and reread `ARCHITECTURE.md`.
+
+---
+
+## 8. Codegen + typecheck
+
+- [ ] `bun run codegen:extensions` (in `packages/backend/`) succeeds
+  and writes a valid generated index
+- [ ] `bun --filter web check-types` (in `ConvexPress-Admin/`) exits 0
+- [ ] Schema index file is consistent with on-disk extensions
 
 ---
 
 ## 9. Generation report
 
-After generating an extension, the skill writes a report that lists:
+After generating an extension, the skill writes a report covering:
 
-- All files created (with paths)
-- All files modified in place (registry, nav-config)
-- New capabilities the Role expert needs to add, with suggested role
-  grants
-- Whether the extension exposes a public surface (and if so, hand off
-  to design-kit for Website-side templates)
-- Any deviations from the kit standard (with justification)
-- Convex deployment instructions: the file changes will require
-  `npx convex deploy --typecheck=disable` or full type-check pass, and
-  whether the Convex Deployment Expert should be invoked
+- All files created (paths, both backend and frontend)
+- Whether the extension is "official" (committed to upstream) or
+  "user" (lives in `.local/`)
+- New capabilities the Role expert needs to add, with grant
+  recommendations per role
+- Whether the extension exposes a public Website surface (and if so,
+  handoff to `/design:custom-post-type` in the Website repo)
+- Codegen + typecheck pass confirmation
+- Deploy instructions for the Convex Deployment Expert
+  (`bun run deploy` in `packages/backend/` runs codegen + convex deploy)
+- Any deviations from the kit standard, with justification
 
 ---
 
-## 10. The "don't"s
+## 10. The "don't"s (refreshed for v2)
 
-- ❌ Don't deploy. Your job ends at "code written + types pass."
-- ❌ Don't add capabilities to the central role registry yourself.
-  Surface them; let the Role expert add them.
-- ❌ Don't generate Website-side routes. Hand off to design-kit via
-  the report.
-- ❌ Don't skip the registry entry — the extension WILL appear to work
-  in dev (routes load) but will not be toggleable, which means it's
-  broken at the platform level.
-- ❌ Don't reuse another extension's id, capability namespace, or
-  table names.
-- ❌ Don't reach for `@ts-ignore` to silence type union errors after
-  adding the new id — those errors mean a switch somewhere needs the
-  new case.
+- ❌ Don't deploy. Code-written + types-pass; deploy is the Convex
+  expert's job
+- ❌ Don't add capabilities to the central role registry. Surface them;
+  Role expert registers
+- ❌ Don't generate Website-side routes. Hand off to design-kit
+- ❌ Don't modify any of the hub files listed in §7. v2 is additive only.
+- ❌ Don't put admin routes under `extensions[.local]/`. They go in
+  `apps/web/src/routes/_authenticated/_admin/<prefix>/`
+- ❌ Don't put schema or queries under `apps/web/`. Backend lives in
+  `packages/backend/convex/`
+- ❌ Don't commit anything inside `extensions.local/`. Per-folder
+  `.gitignore` prevents this, but be aware
