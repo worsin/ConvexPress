@@ -84,7 +84,8 @@ export function SiteHeader() {
 						className="relative rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
 					>
 						<ShoppingCart className="size-4" />
-						{/* Cart count badge — wire via api.cart.queries.getCount */}
+						{/* Cart count badge — wire via api.commerce.cart.getMine
+						    (read the cart and use cart?.items?.length as the count). */}
 					</Link>
 
 					<SignedOut>
