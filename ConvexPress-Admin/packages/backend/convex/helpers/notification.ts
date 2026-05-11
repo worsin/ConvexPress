@@ -1,0 +1,217 @@
+/**
+ * Site Notification System - Helper Functions
+ *
+ * Cross-system helpers for working with notifications:
+ *
+ *   - resolveNotificationRecipients: Resolve recipient type to user IDs
+ *   - shouldDeliver: Check user preferences before creating a notification
+ *   - buildNotificationFromEvent: Map event data to notification fields
+ *   - interpolateTemplate: Replace {variable} placeholders in templates
+ *
+ * These helpers are used by the notification internals and can be used by
+ * other systems that need to interact with the notification system.
+ *
+ * Usage:
+ *   import { resolveNotificationRecipients, shouldDeliver } from "../helpers/notification";
+ */
+
+import type { QueryCtx } from "../_generated/server";
+import {
+  NOTIFICATION_TYPES,
+  type NotificationTypeConfig,
+} from "../notifications/validators";
+import { getUserIdentifier } from "./permissions";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type ReadCtx = Pick<QueryCtx, "db">;
+
+export interface NotificationRecipient {
+  /** User identifier string (clerkUserId or Convex _id) */
+  userId: string;
+  displayName?: string;
+}
+
+export interface NotificationBuildResult {
+  title: string;
+  message: string;
+  type: "info" | "success" | "warning" | "error";
+  icon?: string;
+  actionUrl?: string;
+  actionLabel?: string;
+  groupKey?: string;
+  persistent: boolean;
+}
+
+// ─── resolveNotificationRecipients ───────────────────────────────────────────
+
+/**
+ * Resolve a recipient type to a list of user identifier strings.
+ *
+ * @param ctx - Query or mutation context
+ * @param recipientType - "admin", "employee", or "customer"
+ * @param payload - Event payload containing user references
+ * @returns Array of user identifier strings
+ */
+export async function resolveNotificationRecipients(
+  ctx: ReadCtx,
+  recipientType: "admin" | "employee" | "customer",
+  payload: Record<string, unknown>,
+  recipientPayloadKeys?: string[],
+): Promise<string[]> {
+  if (recipientType === "admin") {
+    // All active administrators
+    const adminRole = await ctx.db
+      .query("roles")
+      .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
+      .unique();
+
+    if (!adminRole) return [];
+
+    const admins = await ctx.db
+      .query("users")
+      .withIndex("by_roleId", (q) => q.eq("roleId", adminRole._id))
+      .take(50);
+
+    return admins
+      .filter((u) => u.status === "active")
+      .map((u) => getUserIdentifier(u));
+  }
+
+  if (recipientType === "employee" || recipientType === "customer") {
+    const fallbackKeys =
+      recipientType === "employee"
+        ? ["authorId", "userId"]
+        : ["targetUserId", "userId"];
+
+    for (const key of recipientPayloadKeys ?? fallbackKeys) {
+      const value = payload[key];
+      if (typeof value === "string" && value.length > 0) {
+        return [value];
+      }
+    }
+
+    return [];
+  }
+
+  return [];
+}
+
+// ─── shouldDeliver ───────────────────────────────────────────────────────────
+
+/**
+ * Check if a notification should be delivered to a user based on their preferences.
+ *
+ * @param ctx - Query or mutation context
+ * @param userId - User identifier string of the recipient
+ * @param notificationKey - The notification type key
+ * @returns Object with siteEnabled and toastEnabled booleans
+ */
+export async function shouldDeliver(
+  ctx: ReadCtx,
+  userId: string,
+  notificationKey: string,
+): Promise<{ siteEnabled: boolean; toastEnabled: boolean }> {
+  // Look up saved preference
+  const preference = await ctx.db
+    .query("notificationPreferences")
+    .withIndex("by_user_key", (q) =>
+      q.eq("userId", userId).eq("notificationKey", notificationKey),
+    )
+    .unique();
+
+  if (preference) {
+    return {
+      siteEnabled: preference.siteEnabled,
+      toastEnabled: preference.toastEnabled,
+    };
+  }
+
+  // Fall back to defaults from NOTIFICATION_TYPES
+  const config = NOTIFICATION_TYPES[notificationKey];
+  if (config) {
+    return {
+      siteEnabled: config.defaultSiteEnabled,
+      toastEnabled: config.defaultToastEnabled,
+    };
+  }
+
+  // Unknown key: default to enabled
+  return { siteEnabled: true, toastEnabled: true };
+}
+
+// ─── buildNotificationFromEvent ──────────────────────────────────────────────
+
+/**
+ * Build notification fields from event data using the notification type config.
+ *
+ * Interpolates template variables with values from the event payload.
+ * Returns all fields needed to create a notification record.
+ *
+ * @param eventCode - The event code (e.g., "post.published")
+ * @param notificationKey - The notification type key
+ * @param payload - Parsed event payload
+ * @returns NotificationBuildResult or null if config not found
+ */
+export function buildNotificationFromEvent(
+  eventCode: string,
+  notificationKey: string,
+  payload: Record<string, unknown>,
+): NotificationBuildResult | null {
+  const config = NOTIFICATION_TYPES[notificationKey];
+  if (!config) return null;
+
+  return {
+    title: config.name,
+    message: interpolateTemplate(config.messageTemplate, payload),
+    type: config.type,
+    icon: config.icon,
+    actionUrl: config.actionUrlTemplate
+      ? interpolateTemplate(config.actionUrlTemplate, payload)
+      : undefined,
+    actionLabel: config.actionLabel,
+    groupKey: config.groupKeyTemplate
+      ? interpolateTemplate(config.groupKeyTemplate, payload)
+      : undefined,
+    persistent: config.persistent,
+  };
+}
+
+// ─── interpolateTemplate ─────────────────────────────────────────────────────
+
+/**
+ * Replace {variableName} placeholders in a template string with payload values.
+ *
+ * Unknown variables are left as-is (e.g., "{unknown}" stays as "{unknown}").
+ * Values are converted to strings via String().
+ *
+ * @param template - Template string with {variable} placeholders
+ * @param payload - Object with values to interpolate
+ * @returns Interpolated string
+ */
+export function interpolateTemplate(
+  template: string,
+  payload: Record<string, unknown>,
+): string {
+  return template.replace(/\{(\w+)\}/g, (match, key) => {
+    const value = payload[key];
+    if (value !== undefined && value !== null) {
+      return String(value);
+    }
+    return match;
+  });
+}
+
+// ─── getNotificationConfig ───────────────────────────────────────────────────
+
+/**
+ * Get the notification type configuration for a given key.
+ *
+ * @param notificationKey - The notification type key
+ * @returns NotificationTypeConfig or undefined if not found
+ */
+export function getNotificationConfig(
+  notificationKey: string,
+): NotificationTypeConfig | undefined {
+  return NOTIFICATION_TYPES[notificationKey];
+}

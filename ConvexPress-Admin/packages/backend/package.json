@@ -1,0 +1,33 @@
+{
+  "name": "@convexpress-admin/backend",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "scripts": {
+    "dev": "convex dev",
+    "dev:setup": "convex dev --configure --until-success"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.81.0",
+    "@tavily/core": "0.7.2",
+    "bcryptjs": "^3.0.3",
+    "convex": "catalog:",
+    "dotenv": "catalog:",
+    "googleapis": "^171.4.0",
+    "jose": "^6.2.2",
+    "sharp": "^0.34.5",
+    "svix": "^1.89.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@convexpress-admin/config": "workspace:*",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/node": "^24.3.0",
+    "typescript": "catalog:"
+  },
+  "optionalDependencies": {
+    "@img/sharp-libvips-linux-arm64": "^1.2.4",
+    "@img/sharp-linux-arm64": "^0.34.5"
+  }
+}

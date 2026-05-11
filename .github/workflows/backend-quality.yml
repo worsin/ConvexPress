@@ -1,0 +1,34 @@
+name: Backend Quality
+
+on:
+  pull_request:
+    paths:
+      - "ConvexPress-Admin/packages/backend/**"
+      - ".github/workflows/backend-quality.yml"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "ConvexPress-Admin/packages/backend/**"
+      - ".github/workflows/backend-quality.yml"
+
+jobs:
+  backend-quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ConvexPress-Admin/packages/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ConvexPress-Admin/.bun-version
+
+      - name: Install workspace dependencies
+        working-directory: ConvexPress-Admin
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck Convex functions
+        run: bunx convex typecheck

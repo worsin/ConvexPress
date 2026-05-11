@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ConvexPress Layout System — Mockup</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg-raised: #161822;
+    --bg-card: #1c1f2e;
+    --bg-input: #232639;
+    --bg-hover: #272b40;
+    --border: #2a2e42;
+    --border-active: #5b6abf;
+    --text: #e2e4ed;
+    --text-muted: #8b90a8;
+    --text-dim: #5c6180;
+    --accent: #6c7bf0;
+    --accent-hover: #8590f7;
+    --accent-muted: rgba(108,123,240,0.15);
+    --green: #4ade80;
+    --green-muted: rgba(74,222,128,0.15);
+    --amber: #fbbf24;
+    --amber-muted: rgba(251,191,36,0.12);
+    --red: #f87171;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ─── Top Nav ────────────────────────────────────────── */
+  .topnav {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 24px;
+    background: var(--bg-raised);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topnav-logo {
+    font-weight: 700; font-size: 15px; color: var(--accent);
+    margin-right: 8px;
+  }
+  .topnav-sep { color: var(--text-dim); }
+  .topnav-title { font-size: 14px; color: var(--text-muted); }
+
+  .topnav-tabs {
+    display: flex; gap: 2px; margin-left: auto;
+    background: var(--bg-input); border-radius: 8px; padding: 3px;
+  }
+  .topnav-tab {
+    padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    cursor: pointer; color: var(--text-muted); transition: all 0.15s;
+    border: none; background: none;
+  }
+  .topnav-tab:hover { color: var(--text); }
+  .topnav-tab.active { background: var(--accent); color: #fff; }
+
+  /* ─── View Container ─────────────────────────────────── */
+  .view { display: none; padding: 28px; max-width: 1400px; margin: 0 auto; }
+  .view.active { display: block; }
+
+  /* ─── Library View ───────────────────────────────────── */
+  .library-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .library-header h1 { font-size: 22px; font-weight: 700; }
+  .btn-primary {
+    padding: 9px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+    background: var(--accent); color: #fff; border: none; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+
+  .library-filters {
+    display: flex; gap: 8px; margin-bottom: 20px;
+  }
+  .filter-chip {
+    padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    background: var(--bg-input); color: var(--text-muted); border: 1px solid var(--border);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .filter-chip:hover { border-color: var(--border-active); color: var(--text); }
+  .filter-chip.active { background: var(--accent-muted); color: var(--accent); border-color: var(--accent); }
+
+  .layout-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;
+  }
+  .layout-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; cursor: pointer; transition: all 0.2s;
+    position: relative;
+  }
+  .layout-card:hover { border-color: var(--border-active); transform: translateY(-2px); }
+
+  .layout-card-preview {
+    height: 180px; background: var(--bg-input); padding: 12px;
+    display: flex; flex-direction: column; gap: 4px;
+    position: relative; overflow: hidden;
+  }
+
+  .layout-card-info {
+    padding: 14px 16px;
+  }
+  .layout-card-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .layout-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+  .layout-card-meta {
+    display: flex; gap: 8px; margin-top: 10px;
+  }
+  .layout-badge {
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .badge-preset { background: var(--accent-muted); color: var(--accent); }
+  .badge-custom { background: var(--green-muted); color: var(--green); }
+  .badge-ai { background: var(--amber-muted); color: var(--amber); }
+
+  /* Mini layout previews inside cards */
+  .mini-layout { display: flex; flex-direction: column; height: 100%; gap: 3px; }
+  .mini-row { display: flex; gap: 3px; }
+  .mini-block {
+    border-radius: 3px; background: rgba(108,123,240,0.12);
+    min-height: 8px;
+  }
+  .mini-hero { width: 100%; height: 40px; background: rgba(108,123,240,0.18); border-radius: 3px; }
+  .mini-hero-split { display: flex; gap: 3px; height: 40px; }
+  .mini-hero-split > div { flex: 1; border-radius: 3px; }
+  .mini-content { flex: 1; border-radius: 3px; background: rgba(108,123,240,0.1); }
+  .mini-sidebar { width: 30%; border-radius: 3px; background: rgba(108,123,240,0.08); }
+  .mini-grid { display: grid; gap: 3px; flex: 1; }
+  .mini-grid-2 { grid-template-columns: 1fr 1fr; }
+  .mini-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .mini-grid-item { border-radius: 3px; background: rgba(108,123,240,0.12); min-height: 24px; }
+  .mini-summary { width: 100%; height: 20px; background: rgba(74,222,128,0.12); border-radius: 3px; }
+  .mini-sources { width: 100%; height: 14px; background: rgba(251,191,36,0.1); border-radius: 3px; }
+  .mini-toc { width: 25%; border-radius: 3px; background: rgba(251,191,36,0.08); min-height: 40px; }
+  .mini-breadcrumb { width: 40%; height: 6px; background: rgba(108,123,240,0.08); border-radius: 3px; }
+
+  /* ─── Composer View ──────────────────────────────────── */
+  .composer {
+    display: grid; grid-template-columns: 340px 1fr; gap: 20px;
+    height: calc(100vh - 70px);
+  }
+
+  .composer-sidebar {
+    background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow-y: auto; padding: 0;
+  }
+
+  .composer-sidebar-header {
+    padding: 16px 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--bg-raised); z-index: 10;
+  }
+  .composer-sidebar-header h2 { font-size: 14px; font-weight: 700; }
+
+  .section-group {
+    border-bottom: 1px solid var(--border);
+  }
+  .section-group:last-child { border-bottom: none; }
+
+  .section-header {
+    display: flex; align-items: center; padding: 12px 18px; cursor: pointer;
+    transition: background 0.1s; gap: 10px;
+  }
+  .section-header:hover { background: var(--bg-hover); }
+
+  .section-toggle {
+    width: 36px; height: 20px; border-radius: 10px; position: relative;
+    background: var(--bg-input); border: 1px solid var(--border); cursor: pointer;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .section-toggle.on { background: var(--accent); border-color: var(--accent); }
+  .section-toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; border-radius: 50%; background: #fff;
+    transition: transform 0.2s;
+  }
+  .section-toggle.on::after { transform: translateX(16px); }
+
+  .section-name { font-size: 13px; font-weight: 600; flex: 1; }
+  .section-chevron {
+    font-size: 11px; color: var(--text-dim); transition: transform 0.2s;
+  }
+  .section-chevron.open { transform: rotate(90deg); }
+
+  .section-body {
+    padding: 0 18px 14px 18px; display: none;
+  }
+  .section-body.open { display: block; }
+
+  .variant-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  }
+  .variant-option {
+    padding: 8px 10px; border-radius: var(--radius-sm);
+    background: var(--bg-input); border: 1px solid var(--border);
+    font-size: 11px; font-weight: 500; cursor: pointer;
+    text-align: center; transition: all 0.15s; color: var(--text-muted);
+  }
+  .variant-option:hover { border-color: var(--border-active); color: var(--text); }
+  .variant-option.selected { background: var(--accent-muted); border-color: var(--accent); color: var(--accent); }
+
+  .section-option {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0; font-size: 12px; color: var(--text-muted);
+  }
+  .section-option-label { font-weight: 500; }
+  .mini-select {
+    padding: 4px 8px; border-radius: 4px; font-size: 11px;
+    background: var(--bg-input); border: 1px solid var(--border); color: var(--text);
+    cursor: pointer;
+  }
+
+  /* ─── Preview Pane ───────────────────────────────────── */
+  .composer-preview {
+    background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow-y: auto; position: relative;
+  }
+
+  .preview-toolbar {
+    display: flex; align-items: center; padding: 10px 18px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg-raised); z-index: 10; gap: 10px;
+  }
+  .preview-toolbar-title { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+  .preview-device-toggle {
+    display: flex; gap: 2px; margin-left: auto;
+    background: var(--bg-input); border-radius: 6px; padding: 2px;
+  }
+  .device-btn {
+    padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 500;
+    cursor: pointer; color: var(--text-dim); transition: all 0.15s;
+    border: none; background: none;
+  }
+  .device-btn:hover { color: var(--text-muted); }
+  .device-btn.active { background: var(--bg-card); color: var(--text); }
+
+  .preview-canvas {
+    padding: 24px; min-height: 500px;
+  }
+
+  /* Live preview blocks */
+  .preview-section {
+    margin-bottom: 16px; border-radius: 8px; overflow: hidden;
+    transition: all 0.3s;
+  }
+
+  .preview-hero-full {
+    background: linear-gradient(135deg, rgba(108,123,240,0.2), rgba(108,123,240,0.05));
+    border: 1px solid rgba(108,123,240,0.15);
+    padding: 48px 32px; text-align: center;
+  }
+  .preview-hero-full h2 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  .preview-hero-full p { color: var(--text-muted); font-size: 15px; margin-bottom: 16px; }
+  .preview-hero-full .cta-btn {
+    display: inline-block; padding: 10px 24px; background: var(--accent); color: #fff;
+    border-radius: 6px; font-size: 13px; font-weight: 600;
+  }
+
+  .preview-hero-split {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    border: 1px solid rgba(108,123,240,0.15); min-height: 200px;
+  }
+  .preview-hero-split-text {
+    padding: 32px; display: flex; flex-direction: column; justify-content: center;
+    background: rgba(108,123,240,0.05);
+  }
+  .preview-hero-split-text h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .preview-hero-split-text p { color: var(--text-muted); font-size: 13px; }
+  .preview-hero-split-image {
+    background: linear-gradient(135deg, rgba(108,123,240,0.15), rgba(108,123,240,0.05));
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim); font-size: 12px;
+  }
+
+  .preview-breadcrumb {
+    padding: 8px 0; font-size: 12px; color: var(--text-dim);
+    display: flex; gap: 6px; align-items: center;
+  }
+  .preview-breadcrumb span { color: var(--accent); }
+
+  .preview-content-area {
+    display: flex; gap: 20px;
+  }
+  .preview-main { flex: 1; }
+  .preview-sidebar-pane {
+    width: 260px; flex-shrink: 0;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px;
+  }
+  .preview-sidebar-pane h4 {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 10px;
+  }
+  .preview-sidebar-item {
+    padding: 6px 0; font-size: 12px; color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .preview-sidebar-item:last-child { border-bottom: none; }
+
+  .preview-topics-grid {
+    display: grid; gap: 12px;
+    margin-bottom: 16px;
+  }
+  .preview-topics-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .preview-topics-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .preview-topics-grid.cols-1 { grid-template-columns: 1fr; }
+
+  .preview-topic-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; transition: border-color 0.15s;
+  }
+  .preview-topic-card:hover { border-color: var(--border-active); }
+  .preview-topic-image {
+    height: 80px; background: linear-gradient(135deg, rgba(108,123,240,0.1), rgba(74,222,128,0.05));
+  }
+  .preview-topic-body { padding: 12px; }
+  .preview-topic-body h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .preview-topic-body p { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+  .preview-topic-accordion {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 6px; overflow: hidden;
+  }
+  .preview-accordion-header {
+    padding: 12px 16px; font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
+  }
+  .preview-accordion-header .chevron { color: var(--text-dim); font-size: 11px; }
+  .preview-accordion-body {
+    padding: 0 16px 12px; font-size: 12px; color: var(--text-muted); line-height: 1.6;
+    display: none;
+  }
+  .preview-topic-accordion.open .preview-accordion-body { display: block; }
+  .preview-topic-accordion.open .chevron { transform: rotate(90deg); }
+
+  .preview-summary {
+    background: var(--green-muted); border: 1px solid rgba(74,222,128,0.2);
+    border-radius: 8px; padding: 18px 20px; margin-bottom: 16px;
+  }
+  .preview-summary h4 {
+    font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .preview-summary p { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+
+  .preview-sources {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 18px; margin-bottom: 16px;
+  }
+  .preview-sources h4 {
+    font-size: 12px; font-weight: 700; color: var(--text-dim); margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .preview-source-item {
+    padding: 4px 0; font-size: 11px; color: var(--accent);
+    border-bottom: 1px dotted var(--border);
+  }
+  .preview-source-item:last-child { border-bottom: none; }
+
+  .preview-toc {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 18px; margin-bottom: 16px;
+  }
+  .preview-toc h4 {
+    font-size: 12px; font-weight: 700; color: var(--text-dim); margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .preview-toc-item {
+    padding: 3px 0; font-size: 12px; color: var(--text-muted);
+    padding-left: 0;
+  }
+  .preview-toc-item.indent { padding-left: 14px; font-size: 11px; color: var(--text-dim); }
+
+  .preview-related {
+    margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);
+  }
+  .preview-related h4 {
+    font-size: 13px; font-weight: 700; margin-bottom: 12px;
+  }
+  .preview-related-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+  }
+  .preview-related-item {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+    overflow: hidden;
+  }
+  .preview-related-thumb {
+    height: 50px; background: linear-gradient(135deg, rgba(108,123,240,0.08), rgba(251,191,36,0.05));
+  }
+  .preview-related-title { padding: 8px 10px; font-size: 11px; font-weight: 600; }
+
+  /* ─── Assign View ────────────────────────────────────── */
+  .assign-section {
+    margin-bottom: 24px;
+  }
+  .assign-section h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .assign-section p { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+
+  .assign-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px;
+  }
+  .assign-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 20px; display: flex; align-items: center; gap: 16px;
+  }
+  .assign-icon {
+    width: 40px; height: 40px; border-radius: 8px; background: var(--accent-muted);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .assign-info { flex: 1; }
+  .assign-info h4 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .assign-info p { font-size: 11px; color: var(--text-muted); }
+  .assign-select {
+    padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12px;
+    background: var(--bg-input); border: 1px solid var(--border); color: var(--text);
+    cursor: pointer; min-width: 160px;
+  }
+
+  .per-page-section {
+    margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border);
+  }
+  .per-page-note {
+    background: var(--amber-muted); border: 1px solid rgba(251,191,36,0.2);
+    border-radius: 8px; padding: 14px 18px; font-size: 12px; color: var(--text-muted);
+    line-height: 1.6; margin-top: 12px;
+  }
+  .per-page-note strong { color: var(--amber); }
+
+  /* Save bar */
+  .save-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px; border-top: 1px solid var(--border);
+    background: var(--bg-raised); position: sticky; bottom: 0;
+  }
+  .save-bar input {
+    flex: 1; padding: 8px 12px; border-radius: var(--radius-sm);
+    background: var(--bg-input); border: 1px solid var(--border); color: var(--text);
+    font-size: 13px;
+  }
+  .save-bar input::placeholder { color: var(--text-dim); }
+  .btn-ghost {
+    padding: 8px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 500;
+    background: none; border: 1px solid var(--border); color: var(--text-muted); cursor: pointer;
+  }
+  .btn-ghost:hover { border-color: var(--border-active); color: var(--text); }
+
+  /* Utility */
+  .mt-12 { margin-top: 12px; }
+  .gap-6 { gap: 6px; }
+  .text-xs { font-size: 11px; }
+  .text-dim { color: var(--text-dim); }
+
+  /* ─── Section explanation tooltip ────────────────────── */
+  .section-hint {
+    font-size: 11px; color: var(--text-dim); padding: 4px 0 8px;
+    line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- TOP NAV                                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<nav class="topnav">
+  <div class="topnav-logo">ConvexPress</div>
+  <span class="topnav-sep">/</span>
+  <span class="topnav-title">Layout System</span>
+  <div class="topnav-tabs">
+    <button class="topnav-tab active" onclick="switchView('library')">Library</button>
+    <button class="topnav-tab" onclick="switchView('composer')">Composer</button>
+    <button class="topnav-tab" onclick="switchView('assign')">Assign</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- VIEW 1: LAYOUT LIBRARY                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="view active" id="view-library">
+  <div class="library-header">
+    <h1>Layout Library</h1>
+    <button class="btn-primary" onclick="switchView('composer')">+ New Layout</button>
+  </div>
+
+  <div class="library-filters">
+    <button class="filter-chip active">All</button>
+    <button class="filter-chip">Presets</button>
+    <button class="filter-chip">Custom</button>
+    <button class="filter-chip">AI Generated</button>
+    <button class="filter-chip">Blog Post</button>
+    <button class="filter-chip">Page</button>
+    <button class="filter-chip">Archive</button>
+  </div>
+
+  <div class="layout-grid">
+    <!-- Preset 1: Magazine -->
+    <div class="layout-card" onclick="switchView('composer')">
+      <div class="layout-card-preview">
+        <div class="mini-layout">
+          <div class="mini-hero"></div>
+          <div class="mini-breadcrumb"></div>
+          <div class="mini-row" style="flex:1; gap:3px;">
+            <div style="flex:1; display:flex; flex-direction:column; gap:3px;">
+              <div class="mini-grid mini-grid-2" style="flex:1;">
+                <div class="mini-grid-item"></div>
+                <div class="mini-grid-item"></div>
+                <div class="mini-grid-item"></div>
+                <div class="mini-grid-item"></div>
+              </div>
+              <div class="mini-summary"></div>
+            </div>
+            <div class="mini-sidebar"></div>
+          </div>
+          <div class="mini-sources"></div>
+        </div>
+      </div>
+      <div class="layout-card-info">
+        <div class="layout-card-name">Magazine</div>
+        <div class="layout-card-desc">Full hero banner, 2-column topic grid with right sidebar, summary callout, and sources.</div>
+        <div class="layout-card-meta">
+          <span class="layout-badge badge-preset">Preset</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preset 2: Clean Blog -->
+    <div class="layout-card">
+      <div class="layout-card-preview">
+        <div class="mini-layout">
+          <div class="mini-hero-split">
+            <div style="background:rgba(108,123,240,0.12);"></div>
+            <div style="background:rgba(108,123,240,0.18);"></div>
+          </div>
+          <div class="mini-breadcrumb"></div>
+          <div style="flex:1; display:flex; flex-direction:column; gap:3px;">
+            <div class="mini-block" style="height:20px; background:rgba(108,123,240,0.1);"></div>
+            <div class="mini-block" style="height:20px; background:rgba(108,123,240,0.08);"></div>
+            <div class="mini-block" style="height:20px; background:rgba(108,123,240,0.06);"></div>
+            <div class="mini-summary"></div>
+          </div>
+        </div>
+      </div>
+      <div class="layout-card-info">
+        <div class="layout-card-name">Clean Blog</div>
+        <div class="layout-card-desc">Split hero, stacked topics (no images), no sidebar. Minimal and readable.</div>
+        <div class="layout-card-meta">
+          <span class="layout-badge badge-preset">Preset</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preset 3: Documentation -->
+    <div class="layout-card">
+      <div class="layout-card-preview">
+        <div class="mini-layout">
+          <div class="mini-breadcrumb"></div>
+          <div class="mini-row" style="flex:1; gap:3px;">
+            <div class="mini-toc"></div>
+            <div style="flex:1; display:flex; flex-direction:column; gap:3px;">
+              <div class="mini-block" style="height:14px; background:rgba(108,123,240,0.12);"></div>
+              <div class="mini-block" style="height:14px; background:rgba(108,123,240,0.08);"></div>
+              <div class="mini-block" style="height:14px; background:rgba(108,123,240,0.1);"></div>
+              <div class="mini-block" style="height:14px; background:rgba(108,123,240,0.06);"></div>
+              <div class="mini-sources"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="layout-card-info">
+        <div class="layout-card-name">Documentation</div>
+        <div class="layout-card-desc">Left table of contents, stacked topics, sources at bottom. Great for reference content.</div>
+        <div class="layout-card-meta">
+          <span class="layout-badge badge-preset">Preset</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preset 4: Landing Page -->
+    <div class="layout-card">
+      <div class="layout-card-preview">
+        <div class="mini-layout">
+          <div class="mini-hero" style="height:50px;"></div>
+          <div class="mini-grid mini-grid-3" style="flex:1;">
+            <div class="mini-grid-item"></div>
+            <div class="mini-grid-item"></div>
+            <div class="mini-grid-item"></div>
+          </div>
+          <div class="mini-summary" style="height:28px;"></div>
+          <div style="display:flex; justify-content:center; padding:4px 0;">
+            <div style="width:60px; height:12px; background:rgba(108,123,240,0.25); border-radius:3px;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="layout-card-info">
+        <div class="layout-card-name">Landing Page</div>
+        <div class="layout-card-desc">Big hero with CTA, 3-column topic cards, summary banner, centered call-to-action.</div>
+        <div class="layout-card-meta">
+          <span class="layout-badge badge-preset">Preset</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preset 5: Sidebar Focus -->
+    <div class="layout-card">
+      <div class="layout-card-preview">
+        <div class="mini-layout">
+          <div class="mini-block" style="height:18px; background:rgba(108,123,240,0.1);"></div>
+          <div class="mini-row" style="flex:1; gap:3px;">
+            <div class="mini-sidebar" style="width:35%;"></div>
+            <div style="flex:1; display:flex; flex-direction:column; gap:3px;">
+              <div class="mini-grid mini-grid-2" style="flex:1;">
+                <div class="mini-grid-item"></div>
+                <div class="mini-grid-item"></div>
+              </div>
+              <div class="mini-summary"></div>
+              <div class="mini-sources"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="layout-card-info">
+        <div class="layout-card-name">Sidebar Focus</div>
+        <div class="layout-card-desc">Minimal hero, left sidebar with ToC + related posts, 2-col topic grid on right.</div>
+        <div class="layout-card-meta">
+          <span class="layout-badge badge-preset">Preset</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preset 6: Visual Story -->
+    <div class="layout-card">
+      <div class="layout-card-preview">
+        <div class="mini-layout">
+          <div class="mini-hero" style="height:55px; background:rgba(108,123,240,0.22);"></div>
+          <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+            <div style="display:flex; gap:3px; height:32px;">
+              <div style="flex:1; background:rgba(108,123,240,0.15); border-radius:3px;"></div>
+              <div style="flex:1.5; background:rgba(108,123,240,0.08); border-radius:3px;"></div>
+            </div>
+            <div style="display:flex; gap:3px; height:32px;">
+              <div style="flex:1.5; background:rgba(108,123,240,0.08); border-radius:3px;"></div>
+              <div style="flex:1; background:rgba(108,123,240,0.15); border-radius:3px;"></div>
+            </div>
+          </div>
+          <div class="mini-summary"></div>
+        </div>
+      </div>
+      <div class="layout-card-info">
+        <div class="layout-card-name">Visual Story</div>
+        <div class="layout-card-desc">Full hero, alternating image-text topics (zigzag), summary footer. Immersive reading.</div>
+        <div class="layout-card-meta">
+          <span class="layout-badge badge-preset">Preset</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preset 7: Compact -->
+    <div class="layout-card">
+      <div class="layout-card-preview">
+        <div class="mini-layout">
+          <div class="mini-breadcrumb"></div>
+          <div class="mini-block" style="height:16px; background:rgba(108,123,240,0.12);"></div>
+          <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
+            <div class="mini-block" style="height:10px; background:rgba(108,123,240,0.08);"></div>
+            <div class="mini-block" style="height:10px; background:rgba(108,123,240,0.06);"></div>
+            <div class="mini-block" style="height:10px; background:rgba(108,123,240,0.08);"></div>
+            <div class="mini-block" style="height:10px; background:rgba(108,123,240,0.06);"></div>
+          </div>
+          <div class="mini-sources" style="height:10px;"></div>
+        </div>
+      </div>
+      <div class="layout-card-info">
+        <div class="layout-card-name">Compact</div>
+        <div class="layout-card-desc">No hero, no sidebar. Accordion topics, inline sources. Dense information layout.</div>
+        <div class="layout-card-meta">
+          <span class="layout-badge badge-preset">Preset</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom 1: AI Generated -->
+    <div class="layout-card">
+      <div class="layout-card-preview">
+        <div class="mini-layout">
+          <div class="mini-hero-split">
+            <div style="background:rgba(251,191,36,0.12);"></div>
+            <div style="background:rgba(251,191,36,0.06);"></div>
+          </div>
+          <div class="mini-grid mini-grid-3" style="flex:1;">
+            <div class="mini-grid-item" style="background:rgba(251,191,36,0.08);"></div>
+            <div class="mini-grid-item" style="background:rgba(251,191,36,0.08);"></div>
+            <div class="mini-grid-item" style="background:rgba(251,191,36,0.08);"></div>
+          </div>
+          <div class="mini-summary" style="background:rgba(251,191,36,0.1);"></div>
+        </div>
+      </div>
+      <div class="layout-card-info">
+        <div class="layout-card-name">Product Showcase</div>
+        <div class="layout-card-desc">AI-generated layout for product pages. Split hero, 3-col feature cards, CTA summary.</div>
+        <div class="layout-card-meta">
+          <span class="layout-badge badge-ai">AI Generated</span>
+          <span class="layout-badge badge-custom">Custom</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- VIEW 2: LAYOUT COMPOSER                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="view" id="view-composer">
+  <div class="composer">
+    <!-- Left: Section Controls -->
+    <div class="composer-sidebar">
+      <div class="composer-sidebar-header">
+        <h2>Sections</h2>
+        <button class="btn-ghost" style="padding:4px 10px; font-size:11px;">Start from Preset</button>
+      </div>
+
+      <!-- Hero Section -->
+      <div class="section-group">
+        <div class="section-header" onclick="toggleSection(this)">
+          <div class="section-toggle on" onclick="event.stopPropagation(); this.classList.toggle('on');"></div>
+          <span class="section-name">Hero</span>
+          <span class="section-chevron open">&#9654;</span>
+        </div>
+        <div class="section-body open">
+          <div class="section-hint">Banner area at the top. Uses hero title, subtitle, image, and CTA from post data.</div>
+          <div class="variant-grid">
+            <div class="variant-option selected">Full Banner</div>
+            <div class="variant-option" onclick="this.parentElement.querySelector('.selected')?.classList.remove('selected'); this.classList.add('selected');">Split</div>
+            <div class="variant-option" onclick="this.parentElement.querySelector('.selected')?.classList.remove('selected'); this.classList.add('selected');">Minimal</div>
+            <div class="variant-option" onclick="this.parentElement.querySelector('.selected')?.classList.remove('selected'); this.classList.add('selected');">Video BG</div>
+          </div>
+          <div class="section-option mt-12">
+            <span class="section-option-label">Height</span>
+            <select class="mini-select">
+              <option>Short</option>
+              <option selected>Medium</option>
+              <option>Tall</option>
+              <option>Full Screen</option>
+            </select>
+          </div>
+          <div class="section-option">
+            <span class="section-option-label">Overlay</span>
+            <select class="mini-select">
+              <option selected>Dark</option>
+              <option>Light</option>
+              <option>None</option>
+            </select>
+          </div>
+          <div class="section-option">
+            <span class="section-option-label">Show CTA</span>
+            <select class="mini-select">
+              <option selected>Yes</option>
+              <option>No</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Breadcrumbs -->
+      <div class="section-group">
+        <div class="section-header" onclick="toggleSection(this)">
+          <div class="section-toggle on" onclick="event.stopPropagation(); this.classList.toggle('on');"></div>
+          <span class="section-name">Breadcrumbs</span>
+          <span class="section-chevron">&#9654;</span>
+        </div>
+        <div class="section-body">
+          <div class="section-hint">Navigation trail showing page hierarchy.</div>
+        </div>
+      </div>
+
+      <!-- Table of Contents -->
+      <div class="section-group">
+        <div class="section-header" onclick="toggleSection(this)">
+          <div class="section-toggle" onclick="event.stopPropagation(); this.classList.toggle('on');"></div>
+          <span class="section-name">Table of Contents</span>
+          <span class="section-chevron">&#9654;</span>
+        </div>
+        <div class="section-body">
+          <div class="section-hint">Auto-generated from topic titles. Shows as sidebar or inline block.</div>
+          <div class="variant-grid">
+            <div class="variant-option selected">Sidebar</div>
+            <div class="variant-option">Inline</div>
+            <div class="variant-option">Floating</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Topics -->
+      <div class="section-group">
+        <div class="section-header" onclick="toggleSection(this)">
+          <div class="section-toggle on" onclick="event.stopPropagation(); this.classList.toggle('on');"></div>
+          <span class="section-name">Topics</span>
+          <span class="section-chevron open">&#9654;</span>
+        </div>
+        <div class="section-body open">
+          <div class="section-hint">Up to 5 content sections, each with title, subtitle, content, and optional image/video.</div>
+          <div class="variant-grid">
+            <div class="variant-option selected">Grid</div>
+            <div class="variant-option">Stacked</div>
+            <div class="variant-option">Accordion</div>
+            <div class="variant-option">Cards</div>
+            <div class="variant-option">Timeline</div>
+            <div class="variant-option">Zigzag</div>
+          </div>
+          <div class="section-option mt-12">
+            <span class="section-option-label">Columns</span>
+            <select class="mini-select">
+              <option>1</option>
+              <option selected>2</option>
+              <option>3</option>
+            </select>
+          </div>
+          <div class="section-option">
+            <span class="section-option-label">Show Images</span>
+            <select class="mini-select">
+              <option selected>Yes</option>
+              <option>No</option>
+            </select>
+          </div>
+          <div class="section-option">
+            <span class="section-option-label">Show Subtitles</span>
+            <select class="mini-select">
+              <option selected>Yes</option>
+              <option>No</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="section-group">
+        <div class="section-header" onclick="toggleSection(this)">
+          <div class="section-toggle on" onclick="event.stopPropagation(); this.classList.toggle('on');"></div>
+          <span class="section-name">Summary</span>
+          <span class="section-chevron">&#9654;</span>
+        </div>
+        <div class="section-body">
+          <div class="section-hint">Key takeaways or conclusion block. Uses summary title and content.</div>
+          <div class="variant-grid">
+            <div class="variant-option selected">Callout Box</div>
+            <div class="variant-option">Banner</div>
+            <div class="variant-option">Inline</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sources -->
+      <div class="section-group">
+        <div class="section-header" onclick="toggleSection(this)">
+          <div class="section-toggle on" onclick="event.stopPropagation(); this.classList.toggle('on');"></div>
+          <span class="section-name">Sources</span>
+          <span class="section-chevron">&#9654;</span>
+        </div>
+        <div class="section-body">
+          <div class="section-hint">Cited references and links.</div>
+          <div class="variant-grid">
+            <div class="variant-option selected">List</div>
+            <div class="variant-option">Expandable</div>
+            <div class="variant-option">Footnotes</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="section-group">
+        <div class="section-header" onclick="toggleSection(this)">
+          <div class="section-toggle on" onclick="event.stopPropagation(); this.classList.toggle('on');"></div>
+          <span class="section-name">Sidebar</span>
+          <span class="section-chevron">&#9654;</span>
+        </div>
+        <div class="section-body">
+          <div class="section-hint">Sidebar panel alongside the main content area.</div>
+          <div class="variant-grid">
+            <div class="variant-option">Left</div>
+            <div class="variant-option selected">Right</div>
+          </div>
+          <div class="section-option mt-12">
+            <span class="section-option-label">Width</span>
+            <select class="mini-select">
+              <option>Narrow</option>
+              <option selected>Standard</option>
+              <option>Wide</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Related Content -->
+      <div class="section-group">
+        <div class="section-header" onclick="toggleSection(this)">
+          <div class="section-toggle on" onclick="event.stopPropagation(); this.classList.toggle('on');"></div>
+          <span class="section-name">Related Content</span>
+          <span class="section-chevron">&#9654;</span>
+        </div>
+        <div class="section-body">
+          <div class="section-hint">Suggested related posts/pages at the bottom.</div>
+          <div class="variant-grid">
+            <div class="variant-option selected">Grid</div>
+            <div class="variant-option">List</div>
+            <div class="variant-option">Carousel</div>
+          </div>
+          <div class="section-option mt-12">
+            <span class="section-option-label">Count</span>
+            <select class="mini-select">
+              <option>2</option>
+              <option selected>3</option>
+              <option>4</option>
+              <option>6</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Content Width -->
+      <div class="section-group">
+        <div class="section-header" onclick="toggleSection(this)">
+          <div class="section-toggle on" onclick="event.stopPropagation(); this.classList.toggle('on');"></div>
+          <span class="section-name">Content Width</span>
+          <span class="section-chevron">&#9654;</span>
+        </div>
+        <div class="section-body">
+          <div class="section-hint">Maximum width of the main content area.</div>
+          <div class="variant-grid">
+            <div class="variant-option">Narrow</div>
+            <div class="variant-option">Medium</div>
+            <div class="variant-option selected">Wide</div>
+            <div class="variant-option">Full</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Bar -->
+      <div class="save-bar">
+        <input type="text" placeholder="Layout name..." value="Magazine">
+        <button class="btn-ghost">Duplicate</button>
+        <button class="btn-primary">Save</button>
+      </div>
+    </div>
+
+    <!-- Right: Live Preview -->
+    <div class="composer-preview">
+      <div class="preview-toolbar">
+        <span class="preview-toolbar-title">Live Preview</span>
+        <div class="preview-device-toggle">
+          <button class="device-btn active">Desktop</button>
+          <button class="device-btn">Tablet</button>
+          <button class="device-btn">Mobile</button>
+        </div>
+      </div>
+
+      <div class="preview-canvas">
+        <!-- Hero -->
+        <div class="preview-section">
+          <div class="preview-hero-full">
+            <h2>The Future of Real-Time Web Apps</h2>
+            <p>How reactive databases are changing the way we build modern applications</p>
+            <span class="cta-btn">Read More</span>
+          </div>
+        </div>
+
+        <!-- Breadcrumbs -->
+        <div class="preview-section">
+          <div class="preview-breadcrumb">
+            Home &rsaquo; <span>Blog</span> &rsaquo; <span>Technology</span> &rsaquo; The Future of Real-Time Web Apps
+          </div>
+        </div>
+
+        <!-- Content Area with Sidebar -->
+        <div class="preview-content-area">
+          <div class="preview-main">
+            <!-- Topics as Grid -->
+            <div class="preview-section">
+              <div class="preview-topics-grid cols-2">
+                <div class="preview-topic-card">
+                  <div class="preview-topic-image"></div>
+                  <div class="preview-topic-body">
+                    <h4>Reactive Data Streams</h4>
+                    <p>How real-time subscriptions replace traditional request-response patterns for live data.</p>
+                  </div>
+                </div>
+                <div class="preview-topic-card">
+                  <div class="preview-topic-image"></div>
+                  <div class="preview-topic-body">
+                    <h4>Server Functions</h4>
+                    <p>Writing backend logic as pure TypeScript functions with automatic validation.</p>
+                  </div>
+                </div>
+                <div class="preview-topic-card">
+                  <div class="preview-topic-image"></div>
+                  <div class="preview-topic-body">
+                    <h4>Edge Deployment</h4>
+                    <p>Deploying globally without managing infrastructure or container orchestration.</p>
+                  </div>
+                </div>
+                <div class="preview-topic-card">
+                  <div class="preview-topic-image"></div>
+                  <div class="preview-topic-body">
+                    <h4>Type-Safe Schemas</h4>
+                    <p>End-to-end TypeScript types from database schema to React components.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="preview-section">
+              <div class="preview-summary">
+                <h4>&#10003; Key Takeaways</h4>
+                <p>Real-time databases fundamentally change application architecture by eliminating the need for manual cache invalidation, polling, and complex state synchronization. The result is simpler code, faster UIs, and happier developers.</p>
+              </div>
+            </div>
+
+            <!-- Sources -->
+            <div class="preview-section">
+              <div class="preview-sources">
+                <h4>Sources</h4>
+                <div class="preview-source-item">Convex Documentation — convex.dev/docs</div>
+                <div class="preview-source-item">State of JS 2025 — Real-time Database Trends</div>
+                <div class="preview-source-item">ACM Queue — Reactive Data Systems in Practice</div>
+              </div>
+            </div>
+
+            <!-- Related -->
+            <div class="preview-section">
+              <div class="preview-related">
+                <h4>Related Posts</h4>
+                <div class="preview-related-grid">
+                  <div class="preview-related-item">
+                    <div class="preview-related-thumb"></div>
+                    <div class="preview-related-title">Building with Convex Auth</div>
+                  </div>
+                  <div class="preview-related-item">
+                    <div class="preview-related-thumb"></div>
+                    <div class="preview-related-title">SSR vs. SPA in 2025</div>
+                  </div>
+                  <div class="preview-related-item">
+                    <div class="preview-related-thumb"></div>
+                    <div class="preview-related-title">Type-Safe Full Stack</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="preview-sidebar-pane">
+            <h4>Table of Contents</h4>
+            <div class="preview-toc-item">Reactive Data Streams</div>
+            <div class="preview-toc-item">Server Functions</div>
+            <div class="preview-toc-item">Edge Deployment</div>
+            <div class="preview-toc-item">Type-Safe Schemas</div>
+            <div style="margin-top:16px;">
+              <h4>About the Author</h4>
+              <div class="preview-sidebar-item">John Smith</div>
+              <div class="preview-sidebar-item" style="font-size:11px; color:var(--text-dim);">Senior Developer</div>
+            </div>
+            <div style="margin-top:16px;">
+              <h4>Categories</h4>
+              <div class="preview-sidebar-item">Technology</div>
+              <div class="preview-sidebar-item">Web Development</div>
+              <div class="preview-sidebar-item">Databases</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- VIEW 3: ASSIGN LAYOUTS                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="view" id="view-assign">
+  <div class="assign-section">
+    <h2>Default Layouts</h2>
+    <p>Choose which layout to use for each content type. Individual posts and pages can override these defaults.</p>
+
+    <div class="assign-grid">
+      <div class="assign-card">
+        <div class="assign-icon">&#128196;</div>
+        <div class="assign-info">
+          <h4>Blog Posts</h4>
+          <p>Single post detail pages</p>
+        </div>
+        <select class="assign-select">
+          <option selected>Magazine</option>
+          <option>Clean Blog</option>
+          <option>Documentation</option>
+          <option>Visual Story</option>
+          <option>Compact</option>
+          <option>Product Showcase</option>
+        </select>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-icon">&#128209;</div>
+        <div class="assign-info">
+          <h4>Pages</h4>
+          <p>Static pages (About, Contact, etc.)</p>
+        </div>
+        <select class="assign-select">
+          <option>Magazine</option>
+          <option selected>Clean Blog</option>
+          <option>Documentation</option>
+          <option>Landing Page</option>
+          <option>Compact</option>
+        </select>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-icon">&#128218;</div>
+        <div class="assign-info">
+          <h4>Blog Index</h4>
+          <p>Main blog listing page</p>
+        </div>
+        <select class="assign-select">
+          <option selected>Magazine</option>
+          <option>Clean Blog</option>
+          <option>Sidebar Focus</option>
+          <option>Compact</option>
+        </select>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-icon">&#127991;</div>
+        <div class="assign-info">
+          <h4>Category Archives</h4>
+          <p>Posts filtered by category</p>
+        </div>
+        <select class="assign-select">
+          <option>Magazine</option>
+          <option selected>Sidebar Focus</option>
+          <option>Clean Blog</option>
+          <option>Compact</option>
+        </select>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-icon">&#128278;</div>
+        <div class="assign-info">
+          <h4>Tag Archives</h4>
+          <p>Posts filtered by tag</p>
+        </div>
+        <select class="assign-select">
+          <option>Magazine</option>
+          <option selected>Sidebar Focus</option>
+          <option>Clean Blog</option>
+          <option>Compact</option>
+        </select>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-icon">&#128100;</div>
+        <div class="assign-info">
+          <h4>Author Archives</h4>
+          <p>Posts by a specific author</p>
+        </div>
+        <select class="assign-select">
+          <option selected>Clean Blog</option>
+          <option>Magazine</option>
+          <option>Compact</option>
+        </select>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-icon">&#128269;</div>
+        <div class="assign-info">
+          <h4>Search Results</h4>
+          <p>Search results listing</p>
+        </div>
+        <select class="assign-select">
+          <option selected>Compact</option>
+          <option>Clean Blog</option>
+          <option>Sidebar Focus</option>
+        </select>
+      </div>
+
+      <div class="assign-card">
+        <div class="assign-icon">&#128218;</div>
+        <div class="assign-info">
+          <h4>Knowledge Base</h4>
+          <p>KB article detail pages</p>
+        </div>
+        <select class="assign-select">
+          <option selected>Documentation</option>
+          <option>Clean Blog</option>
+          <option>Sidebar Focus</option>
+          <option>Compact</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="per-page-section">
+    <div class="assign-section">
+      <h2>Per-Page Overrides</h2>
+      <p>Individual posts and pages can override the default layout from their editor.</p>
+
+      <div class="per-page-note">
+        <strong>How it works:</strong> When editing any post or page, the Layout metabox in the editor sidebar lets the author pick a specific layout for that content. If no override is set, the default layout for that content type (configured above) is used.
+        <br><br>
+        Additionally, each page can toggle <strong>Hide Header</strong> and <strong>Hide Footer</strong> independently — useful for landing pages, funnels, or embedded content.
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:24px; display:flex; gap:10px; justify-content:flex-end;">
+    <button class="btn-primary">Save Assignments</button>
+  </div>
+</div>
+
+<script>
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.topnav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.topnav-tab').forEach(t => {
+    if (t.textContent.toLowerCase() === name) t.classList.add('active');
+  });
+}
+
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.section-chevron');
+  body.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+</script>
+
+</body>
+</html>

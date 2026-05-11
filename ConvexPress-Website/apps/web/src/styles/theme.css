@@ -1,0 +1,42 @@
+/**
+ * Theme CSS - Tailwind CSS v4 Integration
+ *
+ * Maps ConvexPress theme CSS custom properties (--sh-*) to Tailwind v4 @theme tokens.
+ * These variables are injected by ThemeStyleInjector from Convex theme data.
+ *
+ * Usage in components:
+ *   font-heading text-heading text-4xl
+ *   font-body text-text
+ *   text-primary hover:text-primary/80
+ *   bg-surface
+ */
+
+@theme inline {
+  /* Color Palette */
+  --color-sh-primary: var(--sh-color-primary, #1e40af);
+  --color-sh-secondary: var(--sh-color-secondary, #7c3aed);
+  --color-sh-accent: var(--sh-color-accent, #f59e0b);
+  --color-sh-neutral: var(--sh-color-neutral, #6b7280);
+  --color-sh-background: var(--sh-color-background, #ffffff);
+  --color-sh-surface: var(--sh-color-surface, #f9fafb);
+  --color-sh-text: var(--sh-color-text, #111827);
+  --color-sh-text-muted: var(--sh-color-text-muted, #6b7280);
+
+  /* Element Colors */
+  --color-sh-link: var(--sh-color-link, #1e40af);
+  --color-sh-heading: var(--sh-color-heading, #111827);
+  --color-sh-button-bg: var(--sh-color-button-bg, #1e40af);
+  --color-sh-button-text: var(--sh-color-button-text, #ffffff);
+
+  /* Typography */
+  --font-sh-body: var(--sh-font-body, 'Inter', sans-serif);
+  --font-sh-heading: var(--sh-font-heading, 'Inter', sans-serif);
+  --font-sh-mono: var(--sh-font-mono, 'JetBrains Mono', monospace);
+
+  /* Spacing */
+  --spacing-sh-block-gap: var(--sh-spacing-block-gap, 1.5rem);
+
+  /* Layout */
+  --sh-layout-content: var(--sh-layout-content, 720px);
+  --sh-layout-wide: var(--sh-layout-wide, 1200px);
+}

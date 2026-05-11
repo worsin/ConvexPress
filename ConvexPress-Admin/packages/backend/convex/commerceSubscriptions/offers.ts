@@ -1,0 +1,600 @@
+/**
+ * Commerce Subscriptions — Offers CRUD (Wave 2).
+ *
+ * Manages the "Offer" (the sellable package — Starter / Growth / Scale /
+ * custom). Offers are the consumer-facing thing; contracts reference an
+ * offer via items.sourceOfferId, and the pricing card page renders offers
+ * in the configured order.
+ *
+ * Immutability invariant (Rule #9 of the expert profile):
+ *   Once ANY contract references an offer via `commerce_subscription_items.
+ *   sourceOfferId`, the following fields become LOCKED:
+ *     - recurringAmount
+ *     - setupFeeAmount
+ *     - currencyCode
+ *     - templateId
+ *     - minimumQuantity / maximumQuantity
+ *   Features, visibility, title, description, excludedPlanFeatureIds,
+ *   and availability flags remain editable.
+ *
+ * Plugin gate: every public handler starts with
+ *   await requirePluginEnabled(ctx, "commerceSubscriptions")
+ * Admin handlers additionally require the "manage_options" capability.
+ * Wave 7 will swap in the fine-grained
+ *   commerceSubscriptions.offers.manage
+ * capability.
+ *
+ * `@ts-nocheck` is set because generated API types may not be emitted yet
+ * for new modules; Wave 7 removes it across all subscriptions backend
+ * files in one pass (Rule #14).
+ */
+
+import { ConvexError, v } from "convex/values";
+
+import { mutation, query } from "../_generated/server";
+import { requireCan } from "../helpers/permissions";
+import { requirePluginEnabled, isPluginEnabled } from "../helpers/plugins";
+import {
+  commerceSubscriptionOfferStatusValidator,
+  commerceSubscriptionOfferSourceTypeValidator,
+} from "../schema/commerceSubscriptions";
+import { requireCommerceSubscriptionsEnabled } from "./helpers";
+import { getDisplayableBenefitsForCodesHelper } from "../membership/helpers";
+
+// ─── Shared shape validators ────────────────────────────────────────────────
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+const featureValidator = v.object({
+  text: v.string(),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  highlighted: v.optional(v.boolean()),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  icon: v.optional(v.string()),
+});
+
+// ─── Immutability check ─────────────────────────────────────────────────────
+
+type OfferActiveStatuses = "active" | "trialing" | "past_due" | "paused";
+const OFFER_ACTIVE_CONTRACT_STATUSES: OfferActiveStatuses[] = [
+  "active",
+  "trialing",
+  "past_due",
+  "paused",
+];
+
+/**
+ * Returns true if any active-ish contract item still references this offer.
+ * Used to gate price/interval/template mutations — see immutability rule above.
+ */
+async function hasActiveContractReferencingOffer(
+  ctx: any,
+  offerId: any,
+): Promise<boolean> {
+  const items = await ctx.db
+    .query("commerce_subscription_items")
+    .withIndex("by_source_offer", (q: any) => q.eq("sourceOfferId", offerId))
+    .collect();
+
+  for (const item of items) {
+    const subscription = await ctx.db.get(item.subscriptionId);
+    if (!subscription) continue;
+    if (OFFER_ACTIVE_CONTRACT_STATUSES.includes(subscription.status)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// ─── Mutations ──────────────────────────────────────────────────────────────
+
+/**
+ * Create a new subscription offer (admin).
+ *
+ * Validates that `templateId` exists. All Wave 1 fields are supported:
+ *   `features`, `pricingCardVisible`, `excludedPlanFeatureIds`.
+ */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const createOffer = mutation({
+  args: {
+    title: v.string(),
+    slug: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    status: v.optional(commerceSubscriptionOfferStatusValidator),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    templateId: v.id("commerce_subscription_templates"),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    description: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    publicSummary: v.optional(v.string()),
+    sourceType: commerceSubscriptionOfferSourceTypeValidator,
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    productId: v.optional(v.id("commerce_products")),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    variantId: v.optional(v.id("commerce_product_variants")),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    bundleId: v.optional(v.id("commerce_bundles")),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    availableInCart: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    availableInDirectForms: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    availableForAdminProvisioning: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    createNewSubscription: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    allowAddToExistingSubscription: v.optional(v.boolean()),
+    currencyCode: v.string(),
+    recurringAmount: v.number(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    setupFeeAmount: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    trialDaysOverride: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    minimumQuantity: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    maximumQuantity: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    entitlementCodes: v.optional(v.array(v.string())),
+    // Wave 1 extensions:
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    features: v.optional(v.array(featureValidator)),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    pricingCardVisible: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    excludedPlanFeatureIds: v.optional(
+      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+      v.array(v.id("membership_plan_benefits")),
+    ),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    metadata: v.optional(v.any()),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
+    await requireCommerceSubscriptionsEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    // Template must exist.
+    const template = await ctx.db.get(args.templateId);
+    if (!template) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Subscription template not found.",
+      });
+    }
+
+    // Slug must be unique.
+    const existingBySlug = await ctx.db
+      .query("commerce_subscription_offers")
+      .withIndex("by_slug", (q: any) => q.eq("slug", args.slug))
+      .first();
+    if (existingBySlug) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `An offer with slug "${args.slug}" already exists.`,
+      });
+    }
+
+    const now = Date.now();
+    return ctx.db.insert("commerce_subscription_offers", {
+      title: args.title,
+      slug: args.slug,
+      status: args.status ?? "draft",
+      templateId: args.templateId,
+      description: args.description,
+      publicSummary: args.publicSummary,
+      sourceType: args.sourceType,
+      productId: args.productId,
+      variantId: args.variantId,
+      bundleId: args.bundleId,
+      availableInCart: args.availableInCart ?? true,
+      availableInDirectForms: args.availableInDirectForms ?? true,
+      availableForAdminProvisioning: args.availableForAdminProvisioning ?? true,
+      createNewSubscription: args.createNewSubscription ?? true,
+      allowAddToExistingSubscription:
+        args.allowAddToExistingSubscription ?? false,
+      currencyCode: args.currencyCode,
+      recurringAmount: args.recurringAmount,
+      setupFeeAmount: args.setupFeeAmount,
+      trialDaysOverride: args.trialDaysOverride,
+      minimumQuantity: args.minimumQuantity,
+      maximumQuantity: args.maximumQuantity,
+      entitlementCodes: args.entitlementCodes,
+      features: args.features,
+      pricingCardVisible: args.pricingCardVisible,
+      excludedPlanFeatureIds: args.excludedPlanFeatureIds,
+      metadata: args.metadata,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+/**
+ * Update an existing subscription offer (admin).
+ *
+ * When ANY active-ish contract references this offer, the following fields
+ * are IMMUTABLE and will throw IMMUTABLE_FIELD on attempted change:
+ *   recurringAmount, setupFeeAmount, currencyCode, templateId,
+ *   minimumQuantity, maximumQuantity.
+ *
+ * All other fields (including features, pricingCardVisible, title,
+ * description, excludedPlanFeatureIds, availability flags, entitlementCodes)
+ * remain editable.
+ */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const updateOffer = mutation({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    offerId: v.id("commerce_subscription_offers"),
+    // Always-editable:
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    title: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    slug: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    status: v.optional(commerceSubscriptionOfferStatusValidator),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    description: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    publicSummary: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    availableInCart: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    availableInDirectForms: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    availableForAdminProvisioning: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    createNewSubscription: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    allowAddToExistingSubscription: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    trialDaysOverride: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    entitlementCodes: v.optional(v.array(v.string())),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    features: v.optional(v.array(featureValidator)),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    pricingCardVisible: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    excludedPlanFeatureIds: v.optional(
+      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+      v.array(v.id("membership_plan_benefits")),
+    ),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    metadata: v.optional(v.any()),
+    // Immutable-if-hot:
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    templateId: v.optional(v.id("commerce_subscription_templates")),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    currencyCode: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    recurringAmount: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    setupFeeAmount: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    minimumQuantity: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    maximumQuantity: v.optional(v.number()),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
+    await requireCommerceSubscriptionsEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    const existing = await ctx.db.get(args.offerId);
+    if (!existing) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Offer not found.",
+      });
+    }
+
+    const now = Date.now();
+    const patch: Record<string, unknown> = { updatedAt: now };
+
+    // Collect proposed changes to immutable-if-hot fields.
+    const immutableAttempted: string[] = [];
+    const checkImmutable = (
+      fieldName: string,
+      newValue: any,
+      oldValue: any,
+    ) => {
+      if (newValue !== undefined && newValue !== oldValue) {
+        immutableAttempted.push(fieldName);
+      }
+    };
+    checkImmutable("templateId", args.templateId, existing.templateId);
+    checkImmutable("currencyCode", args.currencyCode, existing.currencyCode);
+    checkImmutable(
+      "recurringAmount",
+      args.recurringAmount,
+      existing.recurringAmount,
+    );
+    checkImmutable(
+      "setupFeeAmount",
+      args.setupFeeAmount,
+      existing.setupFeeAmount,
+    );
+    checkImmutable(
+      "minimumQuantity",
+      args.minimumQuantity,
+      existing.minimumQuantity,
+    );
+    checkImmutable(
+      "maximumQuantity",
+      args.maximumQuantity,
+      existing.maximumQuantity,
+    );
+
+    if (immutableAttempted.length > 0) {
+      const hotContract = await hasActiveContractReferencingOffer(
+        ctx,
+        args.offerId,
+      );
+      if (hotContract) {
+        throw new ConvexError({
+          code: "IMMUTABLE_FIELD",
+          message: `Cannot modify [${immutableAttempted.join(", ")}] — this offer has active contracts. Archive and create a new offer instead.`,
+          attemptedFields: immutableAttempted,
+        });
+      }
+    }
+
+    // If templateId is being changed (and allowed), validate the new template exists.
+    if (args.templateId !== undefined && args.templateId !== existing.templateId) {
+      const tmpl = await ctx.db.get(args.templateId);
+      if (!tmpl) {
+        throw new ConvexError({
+          code: "NOT_FOUND",
+          message: "Subscription template not found.",
+        });
+      }
+      patch.templateId = args.templateId;
+    }
+
+    // If slug is being changed, enforce uniqueness.
+    if (args.slug !== undefined && args.slug !== existing.slug) {
+      const existingBySlug = await ctx.db
+        .query("commerce_subscription_offers")
+        .withIndex("by_slug", (q: any) => q.eq("slug", args.slug))
+        .first();
+      if (existingBySlug && existingBySlug._id !== existing._id) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: `An offer with slug "${args.slug}" already exists.`,
+        });
+      }
+      patch.slug = args.slug;
+    }
+
+    // Copy all other updatable fields if provided.
+    const maybeFields: Array<keyof typeof args> = [
+      "title",
+      "status",
+      "description",
+      "publicSummary",
+      "availableInCart",
+      "availableInDirectForms",
+      "availableForAdminProvisioning",
+      "createNewSubscription",
+      "allowAddToExistingSubscription",
+      "trialDaysOverride",
+      "entitlementCodes",
+      "features",
+      "pricingCardVisible",
+      "excludedPlanFeatureIds",
+      "metadata",
+      "currencyCode",
+      "recurringAmount",
+      "setupFeeAmount",
+      "minimumQuantity",
+      "maximumQuantity",
+    ];
+    for (const field of maybeFields) {
+      if (args[field] !== undefined) {
+        (patch as any)[field] = args[field];
+      }
+    }
+
+    await ctx.db.patch(args.offerId, patch);
+    return args.offerId;
+  },
+});
+
+/**
+ * Soft-delete: archive an offer. Existing contracts are untouched — they
+ * keep their pricing snapshot. Archived offers are hidden from the pricing
+ * card loader and listing queries (unless filtered explicitly).
+ */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const archiveOffer = mutation({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    offerId: v.id("commerce_subscription_offers"),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "commerceSubscriptions");
+    await requireCommerceSubscriptionsEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    const existing = await ctx.db.get(args.offerId);
+    if (!existing) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Offer not found.",
+      });
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(args.offerId, {
+      status: "archived",
+      updatedAt: now,
+    });
+    return { success: true };
+  },
+});
+
+// ─── Queries ────────────────────────────────────────────────────────────────
+
+/**
+ * Admin listing. Filter by template, status, or search string.
+ */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const listOffers = query({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    templateId: v.optional(v.id("commerce_subscription_templates")),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    status: v.optional(commerceSubscriptionOfferStatusValidator),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    search: v.optional(v.string()),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
+    await requireCommerceSubscriptionsEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    let offers: any[];
+    if (args.templateId) {
+      offers = await ctx.db
+        .query("commerce_subscription_offers")
+        .withIndex("by_template", (q: any) =>
+          q.eq("templateId", args.templateId),
+        )
+        .collect();
+    } else if (args.status) {
+      offers = await ctx.db
+        .query("commerce_subscription_offers")
+        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .collect();
+    } else {
+      offers = await ctx.db.query("commerce_subscription_offers").collect();
+    }
+
+    // Post-filter for cross-criteria and search.
+    if (args.status) {
+      offers = offers.filter((o) => o.status === args.status);
+    }
+    if (args.search && args.search.trim().length > 0) {
+      const needle = args.search.trim().toLowerCase();
+      offers = offers.filter(
+        (o) =>
+          (o.title ?? "").toLowerCase().includes(needle) ||
+          (o.slug ?? "").toLowerCase().includes(needle),
+      );
+    }
+
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
+    return offers.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+  },
+});
+
+/**
+ * Fetch a single offer by ID.
+ */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const getOffer = query({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    offerId: v.id("commerce_subscription_offers"),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
+    await requireCommerceSubscriptionsEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+    return ctx.db.get(args.offerId);
+  },
+});
+
+/**
+ * Public (no auth, no capability) query feeding the `/pricing` page.
+ * Plugin-gated — disabled commerce subscriptions returns `[]`.
+ *
+ * Surfaces only offers with `status === "active"` AND
+ * `pricingCardVisible !== false`. Treats absence of `pricingCardVisible`
+ * as visible.
+ *
+ * Wave 6 enriches each offer with:
+ *   1. `planBenefits` — displayable benefits pulled from any membership
+ *      plans linked via `entitlementCodes`. The `excludedPlanFeatureIds`
+ *      field on the offer suppresses specific benefit IDs from surfacing.
+ *   2. `billingInterval`, `billingIntervalCount`, `templateTrialDays` —
+ *      copied from the linked `commerce_subscription_templates` row so the
+ *      pricing card can render "/ month", "/ year", etc. without a second
+ *      round-trip. `trialDaysOverride` (on the offer) still wins over
+ *      `templateTrialDays` when both are set.
+ *
+ * Return shape per offer (all existing fields +):
+ *   planBenefits:        Array<{ _id, label, description?, sourcePlanId }>
+ *   billingInterval:     "week" | "month" | "year" | null
+ *   billingIntervalCount: number | null
+ *   templateTrialDays:   number | null
+ *
+ * Offer's own `features` array is unchanged.
+ */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const listOffersForPricing = query({
+  args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
+
+    const offers = await ctx.db
+      .query("commerce_subscription_offers")
+      .withIndex("by_status", (q: any) => q.eq("status", "active"))
+      .collect();
+
+    const visible = offers
+      .filter((o: any) => o.pricingCardVisible !== false)
+      .sort((a: any, b: any) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+
+    // Batch-load templates so we can surface billingInterval / trialDays.
+    // Uses a Map keyed by templateId (deduped across offers sharing one).
+    const uniqueTemplateIds = Array.from(
+      new Set(visible.map((o: any) => o.templateId).filter(Boolean)),
+    );
+    const templateMap = new Map<string, any>();
+    await Promise.all(
+      uniqueTemplateIds.map(async (tid: any) => {
+        const t = await ctx.db.get(tid);
+        if (t) templateMap.set(String(tid), t);
+      }),
+    );
+
+    // Enrich each offer with displayable plan benefits + template fields.
+    // When the membership plugin is disabled, the benefit helper returns []
+    // gracefully; when a template is missing (orphan offer) the interval
+    // fields are null so the UI can fall back to a generic label.
+    const enriched = await Promise.all(
+      visible.map(async (offer: any) => {
+        const allPlanBenefits = await getDisplayableBenefitsForCodesHelper(
+          ctx,
+          offer.entitlementCodes ?? [],
+        );
+
+        // Filter out any benefits the offer has explicitly excluded.
+        const excluded: string[] = offer.excludedPlanFeatureIds ?? [];
+        const planBenefits = allPlanBenefits.filter(
+          (b) => !excluded.includes(b._id),
+        );
+
+        const template = templateMap.get(String(offer.templateId));
+
+        return {
+          ...offer,
+          planBenefits,
+          billingInterval: template?.billingInterval ?? null,
+          billingIntervalCount: template?.billingIntervalCount ?? null,
+          templateTrialDays: template?.trialDays ?? null,
+        };
+      }),
+    );
+
+    return enriched;
+  },
+});

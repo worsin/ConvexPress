@@ -1,0 +1,37 @@
+/**
+ * Maps route path segments to human-readable breadcrumb labels.
+ * Dynamic segments ($param) are resolved from route data at runtime.
+ */
+export const BREADCRUMB_LABELS: Record<string, string> = {
+  dashboard: "Dashboard",
+  posts: "Posts",
+  new: "Add New",
+  edit: "Edit",
+  categories: "Categories",
+  tags: "Tags",
+  revisions: "Revisions",
+  media: "Media",
+  pages: "Pages",
+  comments: "Comments",
+  users: "Users",
+  profile: "Your Profile",
+  appearance: "Appearance",
+  menus: "Menus",
+  locations: "Menu Locations",
+  settings: "Settings",
+  general: "General",
+  reading: "Reading",
+  writing: "Writing",
+  discussion: "Discussion",
+  permalinks: "Permalinks",
+  privacy: "Privacy",
+  tools: "Tools",
+  activity: "Activity Log",
+  roles: "Roles & Capabilities",
+  capabilities: "Capabilities",
+  events: "Events",
+  routes: "Routes",
+  "email-notifications": "Email Notifications",
+  "site-notifications": "Site Notifications",
+  notifications: "Notifications",
+};

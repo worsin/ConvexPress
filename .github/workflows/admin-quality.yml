@@ -1,0 +1,45 @@
+name: Admin Quality
+
+on:
+  pull_request:
+    paths:
+      - "ConvexPress-Admin/**"
+      - ".github/workflows/admin-quality.yml"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "ConvexPress-Admin/**"
+      - ".github/workflows/admin-quality.yml"
+
+jobs:
+  admin-quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ConvexPress-Admin/apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ConvexPress-Admin/.bun-version
+
+      - name: Install workspace dependencies
+        working-directory: ConvexPress-Admin
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run check-types
+
+      - name: Admin guardrails
+        working-directory: ConvexPress-Admin
+        run: bun run check:guardrails
+
+      - name: Admin smoke checks
+        working-directory: ConvexPress-Admin
+        run: bun run check:smoke
+
+      - name: Build
+        run: bun run build

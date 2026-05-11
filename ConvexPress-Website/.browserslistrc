@@ -1,0 +1,13 @@
+# Modern browsers only (for Vite/esbuild)
+# https://browserslist.dev/
+
+# Targets roughly 95%+ of users
+defaults
+not dead
+not op_mini all
+
+# Specific version floors
+chrome >= 100
+firefox >= 100
+safari >= 15
+edge >= 100

@@ -1,0 +1,28 @@
+{
+  "name": "@convexpress/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "postinstall": "node scripts/patch-electron-mac.cjs",
+    "dev": "node scripts/dev.mjs",
+    "build:electron": "tsup electron/main.ts --outDir dist-electron --format cjs --external electron --external electron-updater --external fix-path && tsup electron/preload.ts --outDir dist-electron --format cjs --external electron && rm -rf dist-electron/wizard && cp -r electron/wizard dist-electron/wizard",
+    "build:web": "cd ../../apps/web && ELECTRON_BUILD=true bun run build && cp -r dist ../../packages/desktop/dist",
+    "build": "bun run build:web && bun run build:electron",
+    "package:mac": "electron-builder --mac",
+    "package:win": "electron-builder --win",
+    "package:linux": "electron-builder --linux"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.0",
+    "fix-path": "3"
+  },
+  "devDependencies": {
+    "@electron/notarize": "^3.1.1",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,649 @@
+/**
+ * Knowledge Base System - Article Mutations
+ *
+ * All write operations for the KB article lifecycle:
+ *   create           - Create a new article (draft)
+ *   update           - Update an existing article
+ *   publish          - Publish an article (immediate or scheduled)
+ *   unpublish        - Revert a published article to draft
+ *   archive          - Archive an article
+ *   remove           - Permanently delete an article and related data
+ *   toggleFeatured   - Toggle the featured flag
+ *   createVersion    - Create a version snapshot
+ *
+ * Authorization:
+ *   - create: kb.create
+ *   - update: kb.edit (any) or kb.editOwn (own only)
+ *   - publish/unpublish: kb.publish
+ *   - archive/remove: kb.delete
+ *   - toggleFeatured: kb.publish
+ *   - createVersion: kb.edit or kb.editOwn
+ */
+
+import { ConvexError } from "convex/values";
+import { mutation } from "../_generated/server";
+import { requireCan, getCurrentUser } from "../helpers/permissions";
+import { emitEvent } from "../helpers/events";
+import { KB_EVENTS, SYSTEM } from "../events/constants";
+import {
+  generateArticleSlug,
+  extractPlainText,
+  calculateReadingTime,
+  generateExcerpt,
+} from "./helpers/utils";
+import { sanitizeTipTapContent } from "../helpers/sanitize";
+import {
+  createArticleArgs,
+  updateArticleArgs,
+  publishArticleArgs,
+  unpublishArticleArgs,
+  archiveArticleArgs,
+  removeArticleArgs,
+  toggleFeaturedArgs,
+  createVersionArgs,
+  MAX_KB_TITLE_LENGTH,
+  MAX_KB_EXCERPT_LENGTH,
+  MAX_KEYWORDS,
+} from "./validators";
+import { requirePluginEnabled } from "../helpers/plugins";
+
+// ─── Create ─────────────────────────────────────────────────────────────────
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const create = mutation({
+  args: createArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
+    const user = await requireCan(ctx, "kb.create");
+
+    const title = (args.title ?? "").trim();
+    if (!title || title.length === 0) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Title is required" });
+    }
+    if (title.length > MAX_KB_TITLE_LENGTH) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `Title must be ${MAX_KB_TITLE_LENGTH} characters or fewer`,
+      });
+    }
+
+    if (args.excerpt && args.excerpt.length > MAX_KB_EXCERPT_LENGTH) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `Excerpt must be ${MAX_KB_EXCERPT_LENGTH} characters or fewer`,
+      });
+    }
+
+    if (args.keywords && args.keywords.length > MAX_KEYWORDS) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `Maximum ${MAX_KEYWORDS} keywords allowed`,
+      });
+    }
+
+    const MAX_KB_CONTENT_LENGTH = 5 * 1024 * 1024; // 5MB
+    if (args.content && args.content.length > MAX_KB_CONTENT_LENGTH) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Content exceeds maximum length" });
+    }
+
+    const slug = await generateArticleSlug(ctx, title || "untitled");
+    let content = args.content ?? "";
+    let contentPlainText = args.contentPlainText ?? extractPlainText(content);
+    let readingTimeMinutes = calculateReadingTime(contentPlainText);
+
+    // If a template was specified, increment its usage count and apply content
+    if (args.templateId) {
+      const template = await ctx.db.get("kb_templates", args.templateId);
+      if (template) {
+        await ctx.db.patch("kb_templates", args.templateId, {
+          usageCount: template.usageCount + 1,
+          updatedAt: Date.now(),
+        });
+        // Apply template content if caller didn't provide their own
+        if (!args.content && template.content) {
+          content = template.content;
+          contentPlainText = extractPlainText(template.content);
+          readingTimeMinutes = calculateReadingTime(contentPlainText);
+        }
+      }
+    }
+
+    // Sanitize TipTap content to prevent XSS
+    content = sanitizeTipTapContent(content);
+
+    const plainText = contentPlainText;
+    const excerpt = args.excerpt ?? generateExcerpt(plainText);
+
+    const now = Date.now();
+    const articleId = await ctx.db.insert("kb_articles", {
+      title: title || "Untitled Article",
+      slug,
+      excerpt,
+      content,
+      contentPlainText: plainText,
+      status: "draft",
+      authorId: user._id,
+      contributors: [],
+      categoryId: args.categoryId,
+      parentArticleId: args.parentArticleId,
+      metaTitle: args.metaTitle,
+      metaDescription: args.metaDescription,
+      keywords: args.keywords ?? [],
+      featuredImageId: args.featuredImageId,
+      scheduledAt: undefined,
+      publishedAt: undefined,
+      viewCount: 0,
+      uniqueViewCount: 0,
+      helpfulVotes: 0,
+      notHelpfulVotes: 0,
+      readingTimeMinutes: readingTimeMinutes,
+      version: 1,
+      lastMajorUpdate: undefined,
+      isFeatured: false,
+      sortOrder: 0,
+      meilisearchSynced: false,
+      meilisearchSyncedAt: undefined,
+      ragSynced: false,
+      ragSyncedAt: undefined,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await emitEvent(ctx, KB_EVENTS.ARTICLE_CREATED, SYSTEM.KB, {
+      articleId,
+      title: title || "Untitled Article",
+      authorId: user._id,
+    });
+
+    return articleId;
+  },
+});
+
+// ─── Update ─────────────────────────────────────────────────────────────────
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const update = mutation({
+  args: updateArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
+    }
+
+    const article = await ctx.db.get("kb_articles", args.articleId);
+    if (!article) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+    }
+
+    // Check edit permission: kb.edit for any article, kb.editOwn for own articles
+    const isOwner = article.authorId === user._id;
+    if (!isOwner) {
+      await requireCan(ctx, "kb.edit");
+    } else {
+      await requireCan(ctx, "kb.editOwn");
+    }
+
+    const updates: Record<string, unknown> = { updatedAt: Date.now() };
+
+    if (args.title !== undefined) {
+      const title = args.title.trim();
+      if (title.length > MAX_KB_TITLE_LENGTH) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: `Title must be ${MAX_KB_TITLE_LENGTH} characters or fewer`,
+        });
+      }
+      updates.title = title;
+      updates.slug = await generateArticleSlug(ctx, title, args.articleId);
+    }
+
+    if (args.excerpt !== undefined) {
+      if (args.excerpt.length > MAX_KB_EXCERPT_LENGTH) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: `Excerpt must be ${MAX_KB_EXCERPT_LENGTH} characters or fewer`,
+        });
+      }
+      updates.excerpt = args.excerpt;
+    }
+
+    if (args.content !== undefined) {
+      // Sanitize TipTap content to prevent XSS
+      updates.content = sanitizeTipTapContent(args.content);
+      const plainText = args.contentPlainText ?? extractPlainText(args.content);
+      updates.contentPlainText = plainText;
+      updates.readingTimeMinutes = calculateReadingTime(plainText);
+      // Mark search sync as stale
+      updates.meilisearchSynced = false;
+      updates.ragSynced = false;
+    }
+
+    if (args.categoryId !== undefined) {
+      updates.categoryId = args.categoryId;
+      // Update category article counts if category changed and article is published
+      if (article.status === "published" && args.categoryId !== article.categoryId) {
+        const now = Date.now();
+        // Decrement old category count
+        if (article.categoryId) {
+          const oldCategory = await ctx.db.get("kb_categories", article.categoryId);
+          if (oldCategory && oldCategory.articleCount > 0) {
+            await ctx.db.patch("kb_categories", article.categoryId, {
+              articleCount: oldCategory.articleCount - 1,
+              updatedAt: now,
+            });
+          }
+        }
+        // Increment new category count
+        if (args.categoryId) {
+          const newCategory = await ctx.db.get("kb_categories", args.categoryId);
+          if (newCategory) {
+            await ctx.db.patch("kb_categories", args.categoryId, {
+              articleCount: newCategory.articleCount + 1,
+              updatedAt: now,
+            });
+          }
+        }
+      }
+    }
+    if (args.parentArticleId !== undefined) updates.parentArticleId = args.parentArticleId;
+    if (args.metaTitle !== undefined) updates.metaTitle = args.metaTitle;
+    if (args.metaDescription !== undefined) updates.metaDescription = args.metaDescription;
+    if (args.featuredImageId !== undefined) updates.featuredImageId = args.featuredImageId;
+    if (args.sortOrder !== undefined) updates.sortOrder = args.sortOrder;
+
+    if (args.keywords !== undefined) {
+      if (args.keywords.length > MAX_KEYWORDS) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: `Maximum ${MAX_KEYWORDS} keywords allowed`,
+        });
+      }
+      updates.keywords = args.keywords;
+    }
+
+    // Track contributors
+    if (!article.contributors.includes(user._id) && user._id !== article.authorId) {
+      updates.contributors = [...article.contributors, user._id];
+    }
+
+    await ctx.db.patch("kb_articles", args.articleId, updates);
+
+    await emitEvent(ctx, KB_EVENTS.ARTICLE_UPDATED, SYSTEM.KB, {
+      articleId: args.articleId,
+      title: updates.title ?? article.title,
+      authorId: user._id,
+    });
+
+    return args.articleId;
+  },
+});
+
+// ─── Publish ────────────────────────────────────────────────────────────────
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const publish = mutation({
+  args: publishArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
+    const user = await requireCan(ctx, "kb.publish");
+
+    const article = await ctx.db.get("kb_articles", args.articleId);
+    if (!article) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+    }
+
+    if (article.status === "published") {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Article is already published" });
+    }
+
+    if (!article.content || article.contentPlainText.trim().length === 0) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Cannot publish an article with no content" });
+    }
+
+    const now = Date.now();
+    const updates: Record<string, unknown> = {
+      status: "published" as const,
+      publishedAt: args.scheduledAt ?? now,
+      scheduledAt: args.scheduledAt ?? undefined,
+      updatedAt: now,
+      meilisearchSynced: false,
+      ragSynced: false,
+    };
+
+    // If scheduled for the future, don't set status to published yet
+    if (args.scheduledAt && args.scheduledAt > now) {
+      updates.status = "draft";
+      updates.publishedAt = undefined;
+      // Schedule the publish via internal function
+      // (actual scheduling handled by the internals cron)
+    } else {
+      // Immediate publish: clear scheduledAt so it doesn't linger
+      updates.scheduledAt = undefined;
+    }
+
+    await ctx.db.patch("kb_articles", args.articleId, updates);
+
+    // Update category article count only when publishing immediately (not scheduling for future)
+    if (!args.scheduledAt || args.scheduledAt <= now) {
+      if (article.categoryId) {
+        const category = await ctx.db.get("kb_categories", article.categoryId);
+        if (category) {
+          await ctx.db.patch("kb_categories", article.categoryId, {
+            articleCount: category.articleCount + 1,
+            updatedAt: now,
+          });
+        }
+      }
+    }
+
+    await emitEvent(ctx, KB_EVENTS.ARTICLE_PUBLISHED, SYSTEM.KB, {
+      articleId: args.articleId,
+      title: article.title,
+      authorId: user._id,
+      publishedAt: updates.publishedAt ?? now,
+    });
+
+    return args.articleId;
+  },
+});
+
+// ─── Unpublish ──────────────────────────────────────────────────────────────
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const unpublish = mutation({
+  args: unpublishArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
+    const user = await requireCan(ctx, "kb.publish");
+
+    const article = await ctx.db.get("kb_articles", args.articleId);
+    if (!article) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+    }
+
+    if (article.status !== "published") {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Article is not published" });
+    }
+
+    const now = Date.now();
+    await ctx.db.patch("kb_articles", args.articleId, {
+      status: "draft",
+      publishedAt: undefined,
+      updatedAt: now,
+      meilisearchSynced: false,
+      ragSynced: false,
+    });
+
+    // Decrement category article count
+    if (article.categoryId) {
+      const category = await ctx.db.get("kb_categories", article.categoryId);
+      if (category && category.articleCount > 0) {
+        await ctx.db.patch("kb_categories", article.categoryId, {
+          articleCount: category.articleCount - 1,
+          updatedAt: now,
+        });
+      }
+    }
+
+    await emitEvent(ctx, KB_EVENTS.ARTICLE_UNPUBLISHED, SYSTEM.KB, {
+      articleId: args.articleId,
+      title: article.title,
+    });
+
+    return args.articleId;
+  },
+});
+
+// ─── Archive ────────────────────────────────────────────────────────────────
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const archive = mutation({
+  args: archiveArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
+    const user = await requireCan(ctx, "kb.delete");
+
+    const article = await ctx.db.get("kb_articles", args.articleId);
+    if (!article) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+    }
+
+    const wasPublished = article.status === "published";
+    const now = Date.now();
+
+    await ctx.db.patch("kb_articles", args.articleId, {
+      status: "archived",
+      updatedAt: now,
+      meilisearchSynced: false,
+      ragSynced: false,
+    });
+
+    // Decrement category count if was published
+    if (wasPublished && article.categoryId) {
+      const category = await ctx.db.get("kb_categories", article.categoryId);
+      if (category && category.articleCount > 0) {
+        await ctx.db.patch("kb_categories", article.categoryId, {
+          articleCount: category.articleCount - 1,
+          updatedAt: now,
+        });
+      }
+    }
+
+    await emitEvent(ctx, KB_EVENTS.ARTICLE_ARCHIVED, SYSTEM.KB, {
+      articleId: args.articleId,
+      title: article.title,
+      authorId: user._id,
+    });
+
+    return args.articleId;
+  },
+});
+
+// ─── Remove (Permanent Delete) ──────────────────────────────────────────────
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const remove = mutation({
+  args: removeArticleArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
+    const user = await requireCan(ctx, "kb.delete");
+
+    const article = await ctx.db.get("kb_articles", args.articleId);
+    if (!article) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+    }
+
+    // Delete all related data
+    const articleTags = await ctx.db
+      .query("kb_articleTags")
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .take(1000);
+    for (const at of articleTags) {
+      // Decrement tag article count
+      const tag = await ctx.db.get("kb_tags", at.tagId);
+      if (tag && tag.articleCount > 0) {
+        await ctx.db.patch("kb_tags", at.tagId, { articleCount: tag.articleCount - 1, updatedAt: Date.now() });
+      }
+      await ctx.db.delete("kb_articleTags", at._id);
+    }
+
+    const relatedFrom = await ctx.db
+      .query("kb_relatedArticles")
+      .withIndex("by_source", (q: ConvexQueryBuilder) => q.eq("sourceArticleId", args.articleId))
+      .take(1000);
+    for (const r of relatedFrom) await ctx.db.delete("kb_relatedArticles", r._id);
+
+    const relatedTo = await ctx.db
+      .query("kb_relatedArticles")
+      .withIndex("by_related", (q: ConvexQueryBuilder) => q.eq("relatedArticleId", args.articleId))
+      .take(1000);
+    for (const r of relatedTo) await ctx.db.delete("kb_relatedArticles", r._id);
+
+    const versions = await ctx.db
+      .query("kb_articleVersions")
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .take(1000);
+    for (const v of versions) await ctx.db.delete("kb_articleVersions", v._id);
+
+    const collectionArticles = await ctx.db
+      .query("kb_collectionArticles")
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .take(1000);
+    for (const ca of collectionArticles) {
+      const collection = await ctx.db.get("kb_collections", ca.collectionId);
+      if (collection && collection.articleCount > 0) {
+        await ctx.db.patch("kb_collections", ca.collectionId, {
+          articleCount: collection.articleCount - 1,
+          updatedAt: Date.now(),
+        });
+      }
+      await ctx.db.delete("kb_collectionArticles", ca._id);
+    }
+
+    const feedback = await ctx.db
+      .query("kb_articleFeedback")
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .take(1000);
+    for (const f of feedback) await ctx.db.delete("kb_articleFeedback", f._id);
+
+    const bookmarks = await ctx.db
+      .query("kb_bookmarks")
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .take(1000);
+    for (const b of bookmarks) await ctx.db.delete("kb_bookmarks", b._id);
+
+    const progress = await ctx.db
+      .query("kb_userProgress")
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .take(1000);
+    for (const p of progress) await ctx.db.delete("kb_userProgress", p._id);
+
+    const views = await ctx.db
+      .query("kb_pageViews")
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .take(1000);
+    for (const pv of views) await ctx.db.delete("kb_pageViews", pv._id);
+
+    const comments = await ctx.db
+      .query("kb_comments")
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .take(1000);
+    for (const c of comments) {
+      const votes = await ctx.db
+        .query("kb_commentVotes")
+        .withIndex("by_comment", (q: ConvexQueryBuilder) => q.eq("commentId", c._id))
+        .take(1000);
+      for (const cv of votes) await ctx.db.delete("kb_commentVotes", cv._id);
+      await ctx.db.delete("kb_comments", c._id);
+    }
+
+    const ragChunks = await ctx.db
+      .query("kb_ragChunks")
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .take(1000);
+    for (const rc of ragChunks) await ctx.db.delete("kb_ragChunks", rc._id);
+
+    // Clean up article workflows
+    const articleWorkflows = await ctx.db
+      .query("kb_articleWorkflows")
+      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .take(1000);
+    for (const aw of articleWorkflows) {
+      await ctx.db.delete("kb_articleWorkflows", aw._id);
+    }
+
+    // Decrement category article count if was published
+    if (article.status === "published" && article.categoryId) {
+      const category = await ctx.db.get("kb_categories", article.categoryId);
+      if (category && category.articleCount > 0) {
+        await ctx.db.patch("kb_categories", article.categoryId, {
+          articleCount: category.articleCount - 1,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    await ctx.db.delete("kb_articles", args.articleId);
+
+    await emitEvent(ctx, KB_EVENTS.ARTICLE_DELETED, SYSTEM.KB, { articleId: args.articleId });
+
+    return args.articleId;
+  },
+});
+
+// ─── Toggle Featured ────────────────────────────────────────────────────────
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const toggleFeatured = mutation({
+  args: toggleFeaturedArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
+    const user = await requireCan(ctx, "kb.publish");
+
+    const article = await ctx.db.get("kb_articles", args.articleId);
+    if (!article) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+    }
+
+    await ctx.db.patch("kb_articles", args.articleId, {
+      isFeatured: !article.isFeatured,
+      updatedAt: Date.now(),
+    });
+
+    return !article.isFeatured;
+  },
+});
+
+// ─── Create Version ─────────────────────────────────────────────────────────
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const createVersion = mutation({
+  args: createVersionArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "knowledgeBase");
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
+    }
+
+    const article = await ctx.db.get("kb_articles", args.articleId);
+    if (!article) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+    }
+
+    const isOwner = article.authorId === user._id;
+    if (!isOwner) {
+      await requireCan(ctx, "kb.edit");
+    } else {
+      await requireCan(ctx, "kb.editOwn");
+    }
+
+    const now = Date.now();
+    const versionId = await ctx.db.insert("kb_articleVersions", {
+      articleId: args.articleId,
+      version: article.version,
+      title: article.title,
+      content: article.content,
+      changeSummary: args.changeSummary,
+      authorId: user._id,
+      createdAt: now,
+    });
+
+    await ctx.db.patch("kb_articles", args.articleId, {
+      version: article.version + 1,
+      lastMajorUpdate: now,
+      updatedAt: now,
+    });
+
+    return versionId;
+  },
+});

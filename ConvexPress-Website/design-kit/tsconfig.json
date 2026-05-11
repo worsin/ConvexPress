@@ -1,0 +1,20 @@
+{
+	"//": "Standalone tsconfig for design-kit reference files. These files are NEVER part of the production build — they are pattern references read by the design:* skills. This config exists only so the editor/LSP treats .example.tsx files as valid React and stops flagging JSX errors. The Website's root tsconfig.json explicitly excludes this folder.",
+	"compilerOptions": {
+		"target": "ES2022",
+		"jsx": "react-jsx",
+		"module": "ESNext",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"moduleResolution": "bundler",
+		"allowImportingTsExtensions": true,
+		"verbatimModuleSyntax": true,
+		"noEmit": true,
+		"skipLibCheck": true,
+		"strict": false,
+		"baseUrl": "../apps/web",
+		"paths": {
+			"@/*": ["./src/*"]
+		}
+	},
+	"include": ["**/*.tsx", "**/*.ts"]
+}
