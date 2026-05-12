@@ -299,6 +299,12 @@ type CommerceReviewsCapability =
   | "commerce.reviews.moderate"
   | "commerce.reviews.delete";
 
+// ─── Commerce Wishlists Capabilities (2) ────────────────────────────────────
+
+type CommerceWishlistsCapability =
+  | "commerce.wishlists.view"
+  | "commerce.wishlists.manage";
+
 // ─── Commerce Tax Capabilities (Wave 12.4) ──────────────────────────────────
 
 type CommerceTaxCapability =
@@ -422,6 +428,7 @@ export type Capability =
   | CommerceReturnsCapability
   | CommerceBundlesCapability
   | CommerceReviewsCapability
+  | CommerceWishlistsCapability
   | CommerceTaxCapability
   | CommerceDiscountCapability
   | SettingsManageCapability
@@ -646,6 +653,9 @@ export const ALL_CAPABILITIES: Capability[] = [
   "commerce.reviews.view",
   "commerce.reviews.moderate",
   "commerce.reviews.delete",
+  // Commerce Wishlists (2)
+  "commerce.wishlists.view",
+  "commerce.wishlists.manage",
   // Commerce Tax (Wave 12.4) (3)
   "commerce.tax.view",
   "commerce.tax.manage",
@@ -957,6 +967,10 @@ export const CAPABILITY_DOMAINS: Record<string, Capability[]> = {
     "commerce.bundles.create",
     "commerce.bundles.edit",
     "commerce.bundles.delete",
+  ],
+  "Commerce Wishlists": [
+    "commerce.wishlists.view",
+    "commerce.wishlists.manage",
   ],
   "Settings Management": ["manage_options"],
 };

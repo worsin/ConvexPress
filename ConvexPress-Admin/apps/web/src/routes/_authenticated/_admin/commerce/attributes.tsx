@@ -77,7 +77,7 @@ function CommerceAttributesPage() {
   const attributes = useQuery(
     (api as any).productAttributes.queries.listAttributes,
     {},
-  ) as Attribute[] | undefined;
+  ) as Attribute[] | null | undefined;
 
   const createAttribute = useMutation(
     (api as any).productAttributes.mutations.createAttribute,
@@ -336,6 +336,13 @@ function CommerceAttributesPage() {
                   className="h-12 animate-pulse rounded-xl bg-muted"
                 />
               ))}
+            </div>
+          ) : attributes === null ? (
+            <div className="p-10 text-center">
+              <p className="text-sm text-muted-foreground">
+                The Custom Fields plugin is required to manage attributes.
+                Enable it in Plugins to continue.
+              </p>
             </div>
           ) : attributes.length === 0 ? (
             <div className="p-10 text-center">
