@@ -378,7 +378,9 @@ export const saveSetupIntentResult = internalAction({
     checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
     stripeCustomerId: v.string(),
     paymentMethodId: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     setupIntentId: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     activateCheckout: v.optional(v.boolean()),
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.

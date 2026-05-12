@@ -59,11 +59,14 @@ function normalizeEmail(email: string): string {
  * Public newsletter signup used by the website footer. This intentionally
  * records an anonymous subscriber row instead of creating a login-capable user.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const subscribeNewsletter = mutation({
   args: {
     email: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     source: v.optional(v.string()),
   },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const email = normalizeEmail(args.email);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -76,7 +79,7 @@ export const subscribeNewsletter = mutation({
     const now = Date.now();
     const existing = await ctx.db
       .query("newsletterSubscribers")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email))
       .unique();
 
     if (existing) {

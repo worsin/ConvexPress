@@ -12,6 +12,9 @@
     "check:bundle": "node ./scripts/check-bundle.mjs",
     "check:smoke:browser": "node ./scripts/website-browser-smoke.mjs",
     "smoke:ssr": "node ./scripts/smoke-ssr.mjs",
+    "test:smoke": "playwright test",
+    "test:smoke:ui": "playwright test --ui",
+    "test:smoke:headed": "playwright test --headed",
     "quality": "bun run lint && bun run check-types && bun run build && bun run check:seo && bun run check:bundle && bun run smoke:ssr",
     "auth:provision": "echo 'User provisioning is now handled via Clerk dashboard'",
     "auth:list": "echo 'User listing is now handled via Clerk dashboard'"
@@ -54,13 +57,14 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@convexpress-website/config": "workspace:*",
+    "@playwright/test": "1.59.1",
     "@tanstack/react-router-devtools": "^1.141.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.2.0",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "^5.0.4",
-    "@convexpress-website/config": "workspace:*",
     "babel-plugin-react-compiler": "^1.0.0",
     "jsdom": "^26.0.0",
     "typescript": "^5.9.3",

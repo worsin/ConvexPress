@@ -11,6 +11,12 @@
 # Testing
 /coverage
 
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+tests/smoke/.auth/
+
 # Build outputs
 /.next/
 /out/

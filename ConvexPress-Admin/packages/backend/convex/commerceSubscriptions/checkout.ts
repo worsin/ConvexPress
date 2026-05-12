@@ -511,7 +511,7 @@ export const activateFromIntent = mutation({
 				? addDays(now, trialDays)
 				: addBillingPeriod(now, billingInterval, billingIntervalCount);
 
-		const recurringAmount =
+		const resolvedRecurringAmount =
 			intent.recurringAmount ?? offer.recurringAmount ?? 0;
 		const setupFeeAmount = intent.setupFeeAmount ?? offer.setupFeeAmount ?? 0;
 		const currencyCode = intent.currencyCode ?? offer.currencyCode ?? "USD";
@@ -519,7 +519,7 @@ export const activateFromIntent = mutation({
 		const pricingSnapshot = {
 			offerId,
 			offerSlug: offer.slug,
-			recurringAmount,
+			recurringAmount: resolvedRecurringAmount,
 			setupFeeAmount,
 			currencyCode,
 			billingInterval,
@@ -544,7 +544,7 @@ export const activateFromIntent = mutation({
 			templateVersion: template?.version,
 			status,
 			currencyCode,
-			recurringAmount,
+			recurringAmount: resolvedRecurringAmount,
 			setupFeeAmount,
 			billingInterval,
 			billingIntervalCount,
@@ -594,8 +594,8 @@ export const activateFromIntent = mutation({
 			bundleId: offer.bundleId,
 			titleSnapshot: offer.title,
 			quantity: 1,
-			unitAmount: recurringAmount,
-			unitRecurringAmount: recurringAmount,
+			unitAmount: resolvedRecurringAmount,
+			unitRecurringAmount: resolvedRecurringAmount,
 			unitSetupFeeAmount: setupFeeAmount,
 			currencyCode,
 			status: "active",
