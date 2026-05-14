@@ -1,8 +1,8 @@
 /**
  * AI Provider Settings Page
  *
- * Configure AI provider (OpenRouter or Anthropic Direct), API keys,
- * default model, and Tavily research API key.
+ * Configure AI provider (OpenRouter, OpenAI Direct, or Anthropic Direct),
+ * API keys, default model, and Tavily research API key.
  *
  * This page now autosaves provider and credential changes. Explicit buttons
  * remain only for connection testing.
@@ -48,7 +48,7 @@ export const Route = createFileRoute("/_authenticated/_admin/settings/ai")({
 
 type ModelOption = { label: string; value: string };
 type ModelGroup = { label: string; options: ModelOption[] };
-type AIProvider = "openrouter" | "anthropic";
+type AIProvider = "openrouter" | "anthropic" | "openai";
 
 const OPENROUTER_MODEL_GROUPS: ModelGroup[] = [
   {
@@ -119,8 +119,42 @@ const ANTHROPIC_MODEL_GROUPS: ModelGroup[] = [
   },
 ];
 
+const OPENAI_MODEL_GROUPS: ModelGroup[] = [
+  {
+    label: "Current",
+    options: [
+      { label: "GPT-5.5 Pro (most capable)", value: "gpt-5.5-pro" },
+      { label: "GPT-5.5", value: "gpt-5.5" },
+      { label: "GPT-5.4 Pro", value: "gpt-5.4-pro" },
+      { label: "GPT-5.4 (balanced)", value: "gpt-5.4" },
+      { label: "GPT-5.4 Mini (fastest)", value: "gpt-5.4-mini" },
+      { label: "GPT-5.4 Nano", value: "gpt-5.4-nano" },
+    ],
+  },
+  {
+    label: "Specialty",
+    options: [
+      { label: "GPT-5.3 Codex (coding)", value: "gpt-5.3-codex" },
+      { label: "GPT-5.3 Chat", value: "gpt-5.3-chat" },
+    ],
+  },
+];
+
 const DEFAULT_OPENROUTER_MODEL = "anthropic/claude-opus-4.7";
 const DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-7";
+const DEFAULT_OPENAI_MODEL = "gpt-5.5";
+
+function defaultModelForProvider(provider: AIProvider): string {
+  if (provider === "anthropic") return DEFAULT_ANTHROPIC_MODEL;
+  if (provider === "openai") return DEFAULT_OPENAI_MODEL;
+  return DEFAULT_OPENROUTER_MODEL;
+}
+
+function modelGroupsForProvider(provider: AIProvider): ModelGroup[] {
+  if (provider === "anthropic") return ANTHROPIC_MODEL_GROUPS;
+  if (provider === "openai") return OPENAI_MODEL_GROUPS;
+  return OPENROUTER_MODEL_GROUPS;
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -192,10 +226,7 @@ function AISettingsPage() {
           ? {
               ...current,
               provider: newProvider,
-              defaultModel:
-                newProvider === "openrouter"
-                  ? DEFAULT_OPENROUTER_MODEL
-                  : DEFAULT_ANTHROPIC_MODEL,
+              defaultModel: defaultModelForProvider(newProvider),
             }
           : current,
       );
@@ -216,14 +247,9 @@ function AISettingsPage() {
     setTestResult(null);
 
     try {
-      const baseUrl =
-        provider === "openrouter"
-          ? "https://openrouter.ai/api/v1"
-          : "https://api.anthropic.com/v1";
-
       if (provider === "openrouter") {
         // Test OpenRouter by listing models
-        const response = await fetch(`${baseUrl}/models`, {
+        const response = await fetch("https://openrouter.ai/api/v1/models", {
           headers: { Authorization: `Bearer ${apiKey.trim()}` },
         });
         if (response.ok) {
@@ -240,9 +266,28 @@ function AISettingsPage() {
               `HTTP ${response.status}: ${response.statusText}`,
           });
         }
+      } else if (provider === "openai") {
+        // Test OpenAI by listing models
+        const response = await fetch("https://api.openai.com/v1/models", {
+          headers: { Authorization: `Bearer ${apiKey.trim()}` },
+        });
+        if (response.ok) {
+          setTestResult({
+            success: true,
+            message: "OpenAI connection successful. API key is valid.",
+          });
+        } else {
+          const data = await response.json().catch(() => ({}));
+          setTestResult({
+            success: false,
+            message:
+              (data as any)?.error?.message ??
+              `HTTP ${response.status}: ${response.statusText}`,
+          });
+        }
       } else {
         // Test Anthropic by sending a minimal message
-        const response = await fetch(`${baseUrl}/messages`, {
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
             "x-api-key": apiKey.trim(),
@@ -359,10 +404,7 @@ function AISettingsPage() {
     );
   }
 
-  const modelGroups =
-    provider === "openrouter"
-      ? OPENROUTER_MODEL_GROUPS
-      : ANTHROPIC_MODEL_GROUPS;
+  const modelGroups = modelGroupsForProvider(provider);
 
   return (
     <div className="mx-auto max-w-3xl p-6">
@@ -425,6 +467,38 @@ function AISettingsPage() {
             <label
               className={cn(
                 "flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors",
+                provider === "openai"
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:bg-muted/50",
+              )}
+            >
+              <input
+                type="radio"
+                name="provider"
+                value="openai"
+                checked={provider === "openai"}
+                onChange={() => handleProviderChange("openai")}
+                className="mt-0.5"
+              />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-foreground">
+                    OpenAI Direct
+                  </span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    Fallback
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Connect directly to OpenAI's API. Only GPT models available.
+                  Useful as a fallback if OpenRouter is unavailable.
+                </p>
+              </div>
+            </label>
+
+            <label
+              className={cn(
+                "flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors",
                 provider === "anthropic"
                   ? "border-primary bg-primary/5"
                   : "border-border hover:bg-muted/50",
@@ -457,7 +531,9 @@ function AISettingsPage() {
               label={
                 provider === "openrouter"
                   ? "OpenRouter API Key"
-                  : "Anthropic API Key"
+                  : provider === "openai"
+                    ? "OpenAI API Key"
+                    : "Anthropic API Key"
               }
               value={apiKey}
               onChange={(value) => {
@@ -467,7 +543,11 @@ function AISettingsPage() {
                 setTestResult(null);
               }}
               placeholder={
-                provider === "openrouter" ? "sk-or-v1-..." : "sk-ant-api03-..."
+                provider === "openrouter"
+                  ? "sk-or-v1-..."
+                  : provider === "openai"
+                    ? "sk-proj-..."
+                    : "sk-ant-api03-..."
               }
               help={
                 provider === "openrouter" ? (
@@ -480,6 +560,19 @@ function AISettingsPage() {
                       className="text-primary underline inline-flex items-center gap-0.5"
                     >
                       openrouter.ai/keys
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </>
+                ) : provider === "openai" ? (
+                  <>
+                    Get your API key from{" "}
+                    <a
+                      href="https://platform.openai.com/api-keys"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline inline-flex items-center gap-0.5"
+                    >
+                      platform.openai.com/api-keys
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </>

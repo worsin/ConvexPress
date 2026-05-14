@@ -222,7 +222,11 @@ export const emailValuesValidator = v.object({
  * Controls AI provider configuration: provider selection, API keys, model.
  */
 export const aiValuesValidator = v.object({
-  provider: v.union(v.literal("openrouter"), v.literal("anthropic")),
+  provider: v.union(
+    v.literal("openrouter"),
+    v.literal("anthropic"),
+    v.literal("openai"),
+  ),
   apiKey: v.string(),
   defaultModel: v.string(),
   tavilyApiKey: v.string(),

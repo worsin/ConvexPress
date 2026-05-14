@@ -7,6 +7,20 @@ import { resolveServiceKey } from "../helpers/serviceKeys";
 import { extractRecipeFromImageArgs } from "./validators";
 import { requirePluginEnabled } from "../helpers/plugins";
 
+type AiProvider = "openrouter" | "anthropic" | "openai";
+
+function envVarForProvider(provider: AiProvider): string {
+  if (provider === "anthropic") return "ANTHROPIC_API_KEY";
+  if (provider === "openai") return "OPENAI_API_KEY";
+  return "OPENROUTER_API_KEY";
+}
+
+function fallbackModelForProvider(provider: AiProvider): string {
+  if (provider === "anthropic") return "claude-opus-4-7";
+  if (provider === "openai") return "gpt-5.5";
+  return "anthropic/claude-opus-4.7";
+}
+
 async function resolveAiSettings(ctx: {
   runQuery: (queryRef: any, args?: any) => Promise<any>;
 }) {
@@ -14,15 +28,9 @@ async function resolveAiSettings(ctx: {
     section: "ai",
   })) as Record<string, unknown> | null;
 
-  const provider = ((settings?.provider as string) || "openrouter") as
-    | "openrouter"
-    | "anthropic";
-
-  const envVarName =
-    provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY";
-
-  const fallbackModel =
-    provider === "anthropic" ? "claude-opus-4-7" : "anthropic/claude-opus-4.7";
+  const provider = ((settings?.provider as string) || "openrouter") as AiProvider;
+  const envVarName = envVarForProvider(provider);
+  const fallbackModel = fallbackModelForProvider(provider);
 
   return {
     provider,
@@ -98,6 +106,74 @@ async function extractWithAnthropic(
   }
 
   return textBlock.text;
+}
+
+async function extractWithOpenAI(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  mimeType: string,
+  base64Data: string,
+) {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You extract structured recipe data from photographed or scanned recipe cards. Return valid JSON only.",
+        },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${mimeType};base64,${base64Data}`,
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 1800,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new ConvexError({
+      code: "PROVIDER_ERROR",
+      message: `OpenAI API error (${response.status}): ${errorText}`,
+    });
+  }
+
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    error?: { message?: string };
+  };
+
+  if (data.error) {
+    throw new ConvexError({
+      code: "PROVIDER_ERROR",
+      message: `OpenAI error: ${data.error.message}`,
+    });
+  }
+
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new ConvexError({
+      code: "PROVIDER_ERROR",
+      message: "The AI provider did not return recipe data",
+    });
+  }
+  return content;
 }
 
 async function extractWithOpenRouter(
@@ -228,21 +304,29 @@ Rules:
 - Return JSON only, with no markdown fences.`;
 
     const raw =
-      provider === "openrouter"
-        ? await extractWithOpenRouter(
+      provider === "anthropic"
+        ? await extractWithAnthropic(
             apiKey,
             defaultModel,
             prompt,
             media.mimeType,
             base64Data,
           )
-        : await extractWithAnthropic(
-            apiKey,
-            defaultModel,
-            prompt,
-            media.mimeType,
-            base64Data,
-          );
+        : provider === "openai"
+          ? await extractWithOpenAI(
+              apiKey,
+              defaultModel,
+              prompt,
+              media.mimeType,
+              base64Data,
+            )
+          : await extractWithOpenRouter(
+              apiKey,
+              defaultModel,
+              prompt,
+              media.mimeType,
+              base64Data,
+            );
 
     const parsed = parseJsonResponse(raw);
     return {

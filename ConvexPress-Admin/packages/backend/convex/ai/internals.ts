@@ -11,6 +11,8 @@
  *
  * Supported providers:
  *   - "openrouter" (default): OpenAI-compatible chat completions API at openrouter.ai
+ *   - "openai": Direct OpenAI chat completions API at api.openai.com.
+ *     Available as a fallback when an admin prefers to bypass OpenRouter.
  *   - "anthropic": Uses the Anthropic SDK directly (only when an admin
  *     explicitly opts in via Settings > AI). No code path falls back to
  *     Anthropic; an unconfigured install routes through OpenRouter.
@@ -33,6 +35,20 @@ import { resolveServiceKey } from "../helpers/serviceKeys";
  * code path is for an admin to explicitly select provider="anthropic"
  * in Settings > AI.
  */
+type AiProvider = "openrouter" | "anthropic" | "openai";
+
+function envVarForProvider(provider: AiProvider): string {
+  if (provider === "anthropic") return "ANTHROPIC_API_KEY";
+  if (provider === "openai") return "OPENAI_API_KEY";
+  return "OPENROUTER_API_KEY";
+}
+
+function fallbackModelForProvider(provider: AiProvider): string {
+  if (provider === "anthropic") return "claude-opus-4-7";
+  if (provider === "openai") return "gpt-5.5";
+  return "anthropic/claude-opus-4.7";
+}
+
 async function resolveAiSettings(ctx: {
   runQuery: (query: any, args?: any) => Promise<any>;
 }) {
@@ -41,15 +57,9 @@ async function resolveAiSettings(ctx: {
     { section: "ai" },
   )) as Record<string, unknown> | null;
 
-  const provider = ((settings?.provider as string) || "openrouter") as
-    | "openrouter"
-    | "anthropic";
-
-  const envVarName =
-    provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY";
-
-  const fallbackModel =
-    provider === "anthropic" ? "claude-opus-4-7" : "anthropic/claude-opus-4.7";
+  const provider = ((settings?.provider as string) || "openrouter") as AiProvider;
+  const envVarName = envVarForProvider(provider);
+  const fallbackModel = fallbackModelForProvider(provider);
 
   return {
     provider,
@@ -165,6 +175,59 @@ async function generateWithOpenRouter(
   return data.choices?.[0]?.message?.content || "";
 }
 
+// ─── OpenAI Generation ──────────────────────────────────────────────────────
+
+/**
+ * Generate text using the OpenAI chat completions API directly
+ * (no OpenRouter proxy). Same wire shape as the OpenRouter path, but
+ * hits api.openai.com and skips the OpenRouter-specific headers.
+ */
+async function generateWithOpenAI(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+  maxTokens: number,
+): Promise<string> {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      max_tokens: maxTokens,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new ConvexError({
+      code: "PROVIDER_ERROR",
+      message: `OpenAI API error (${response.status}): ${errorText}`,
+    });
+  }
+
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    error?: { message?: string };
+  };
+
+  if (data.error) {
+    throw new ConvexError({
+      code: "PROVIDER_ERROR",
+      message: `OpenAI error: ${data.error.message}`,
+    });
+  }
+
+  return data.choices?.[0]?.message?.content || "";
+}
+
 // ─── Anthropic Generation ───────────────────────────────────────────────────
 
 /**
@@ -220,8 +283,8 @@ export const generateWithClaude = internalAction({
 
     const maxTokens = args.maxTokens ?? 1024;
 
-    if (provider === "openrouter") {
-      return await generateWithOpenRouter(
+    if (provider === "openai") {
+      return await generateWithOpenAI(
         apiKey,
         defaultModel,
         args.systemPrompt,
@@ -230,8 +293,18 @@ export const generateWithClaude = internalAction({
       );
     }
 
-    // Default: Anthropic direct
-    return await generateWithAnthropic(
+    if (provider === "anthropic") {
+      return await generateWithAnthropic(
+        apiKey,
+        defaultModel,
+        args.systemPrompt,
+        args.userPrompt,
+        maxTokens,
+      );
+    }
+
+    // Default: OpenRouter
+    return await generateWithOpenRouter(
       apiKey,
       defaultModel,
       args.systemPrompt,

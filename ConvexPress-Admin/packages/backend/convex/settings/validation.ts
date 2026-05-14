@@ -439,10 +439,10 @@ function validateEmail(values: Record<string, unknown>): ValidationError[] {
 function validateAI(values: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
 
-  // provider: must be "openrouter" or "anthropic"
+  // provider: must be "openrouter", "anthropic", or "openai"
   if (values.provider !== undefined &&
-    (!isString(values.provider) || !["openrouter", "anthropic"].includes(values.provider))) {
-    errors.push({ field: "provider", message: "Provider must be 'openrouter' or 'anthropic'." });
+    (!isString(values.provider) || !["openrouter", "anthropic", "openai"].includes(values.provider))) {
+    errors.push({ field: "provider", message: "Provider must be 'openrouter', 'anthropic', or 'openai'." });
   }
 
   // apiKey: string, max 500

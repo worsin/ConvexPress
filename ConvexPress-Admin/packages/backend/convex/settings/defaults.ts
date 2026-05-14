@@ -225,8 +225,8 @@ export interface PrivacySettings {
 }
 
 export interface AISettings {
-  /** AI provider: "openrouter" or "anthropic" */
-  provider: "openrouter" | "anthropic";
+  /** AI provider: "openrouter" (default), "anthropic", or "openai" */
+  provider: "openrouter" | "anthropic" | "openai";
   /** API key for the selected provider */
   apiKey: string;
   /** Default model identifier */
