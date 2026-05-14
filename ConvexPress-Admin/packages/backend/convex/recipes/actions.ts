@@ -14,13 +14,21 @@ async function resolveAiSettings(ctx: {
     section: "ai",
   })) as Record<string, unknown> | null;
 
+  const provider = ((settings?.provider as string) || "openrouter") as
+    | "openrouter"
+    | "anthropic";
+
+  const envVarName =
+    provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY";
+
+  const fallbackModel =
+    provider === "anthropic" ? "claude-opus-4-7" : "anthropic/claude-opus-4.7";
+
   return {
-    provider: ((settings?.provider as string) || "anthropic") as
-      | "openrouter"
-      | "anthropic",
-    apiKey: resolveServiceKey(settings, "apiKey", "ANTHROPIC_API_KEY") ?? "",
-    defaultModel:
-      (settings?.defaultModel as string) || "claude-opus-4-7",
+    provider,
+    envVarName,
+    apiKey: resolveServiceKey(settings, "apiKey", envVarName) ?? "",
+    defaultModel: (settings?.defaultModel as string) || fallbackModel,
   };
 }
 

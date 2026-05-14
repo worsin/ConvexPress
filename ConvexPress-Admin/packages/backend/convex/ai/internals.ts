@@ -10,8 +10,10 @@
  * to environment variables for backward compatibility.
  *
  * Supported providers:
- *   - "anthropic" (default): Uses the Anthropic SDK directly
- *   - "openrouter": Uses the OpenAI-compatible chat completions API at openrouter.ai
+ *   - "openrouter" (default): OpenAI-compatible chat completions API at openrouter.ai
+ *   - "anthropic": Uses the Anthropic SDK directly (only when an admin
+ *     explicitly opts in via Settings > AI). No code path falls back to
+ *     Anthropic; an unconfigured install routes through OpenRouter.
  */
 
 import { internalAction } from "../_generated/server";
@@ -25,6 +27,11 @@ import { resolveServiceKey } from "../helpers/serviceKeys";
  * Read AI settings from the settings table, falling back to env vars.
  * Uses the shared resolveServiceKey helper for consistent key resolution.
  * Returns resolved provider, apiKey, model, and tavilyApiKey.
+ *
+ * Provider is OpenRouter by default. Env-var fallback and the model
+ * fallback are provider-aware, so the only way to reach an Anthropic
+ * code path is for an admin to explicitly select provider="anthropic"
+ * in Settings > AI.
  */
 async function resolveAiSettings(ctx: {
   runQuery: (query: any, args?: any) => Promise<any>;
@@ -34,10 +41,21 @@ async function resolveAiSettings(ctx: {
     { section: "ai" },
   )) as Record<string, unknown> | null;
 
+  const provider = ((settings?.provider as string) || "openrouter") as
+    | "openrouter"
+    | "anthropic";
+
+  const envVarName =
+    provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY";
+
+  const fallbackModel =
+    provider === "anthropic" ? "claude-opus-4-7" : "anthropic/claude-opus-4.7";
+
   return {
-    provider: ((settings?.provider as string) || "anthropic") as "openrouter" | "anthropic",
-    apiKey: resolveServiceKey(settings, "apiKey", "ANTHROPIC_API_KEY") ?? "",
-    defaultModel: (settings?.defaultModel as string) || "claude-opus-4-7",
+    provider,
+    envVarName,
+    apiKey: resolveServiceKey(settings, "apiKey", envVarName) ?? "",
+    defaultModel: (settings?.defaultModel as string) || fallbackModel,
     tavilyApiKey: resolveServiceKey(settings, "tavilyApiKey", "TAVILY_API_KEY") ?? "",
   };
 }
@@ -190,13 +208,13 @@ export const generateWithClaude = internalAction({
     maxTokens: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { provider, apiKey, defaultModel } = await resolveAiSettings(ctx);
+    const { provider, apiKey, defaultModel, envVarName } =
+      await resolveAiSettings(ctx);
 
     if (!apiKey) {
       throw new ConvexError({
         code: "CONFIGURATION_ERROR",
-        message:
-          "AI API key not configured. Set it in Settings > AI or as ANTHROPIC_API_KEY environment variable.",
+        message: `AI API key not configured. Set it in Settings > AI or as ${envVarName} environment variable.`,
       });
     }
 
