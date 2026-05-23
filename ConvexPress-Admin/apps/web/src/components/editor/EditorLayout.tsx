@@ -84,7 +84,7 @@ function EditorLayoutInner({
   autosaveData,
 }: EditorLayoutProps) {
   // Auth context - provides role, user, and capability checks
-  const { role, user, can, isLoading: authLoading } = useAuth();
+  const { role, user } = useAuth();
   const userRole = role?.slug ?? "subscriber";
   const currentUserId = user?._id ?? "";
 
@@ -127,7 +127,6 @@ function EditorLayoutInner({
     handlePublish,
     handleUpdate,
     handleSubmitForReview,
-    handleSchedule,
     handleTrash,
   } = useEditorForm({
     contentType,
@@ -271,7 +270,6 @@ function EditorLayoutInner({
   // Metabox ordering with @dnd-kit
   const {
     metaboxes,
-    moveMetabox,
     toggleCollapse,
     sensors,
     handleDragEnd,
@@ -291,7 +289,6 @@ function EditorLayoutInner({
   }, [status, handleUpdate, handleSaveDraft]);
 
   const handlePreview = useCallback(() => {
-    // TODO: Open preview in new tab
     const previewUrl =
       contentType === "post"
         ? `/blog/${postId ?? "preview"}?preview=true`

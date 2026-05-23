@@ -1,6 +1,5 @@
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
-import { execFileSync } from "node:child_process";
 
 const repoRoot = process.cwd();
 const allowlistPath = join(repoRoot, "type-honesty-allowlist.txt");
@@ -34,40 +33,75 @@ function isAllowlisted(path, allowlist) {
   return allowlist.some(({ regex }) => regex.test(path));
 }
 
-function findSuppressions() {
-  const output = execFileSync(
-    "rg",
-    [
-      "-n",
-      "@ts-nocheck|@ts-ignore|@ts-expect-error",
-      repoRoot,
-      "--glob",
-      "!**/node_modules/**",
-      "--glob",
-      "!**/.turbo/**",
-      "--glob",
-      "!**/dist/**",
-    ],
-    { encoding: "utf8" },
-  );
+const SUPPRESSION_RE = /@ts-(?:nocheck|ignore|expect-error)/;
+const SKIP_DIRS = new Set([
+  "node_modules",
+  ".turbo",
+  "dist",
+  ".vinxi",
+  ".output",
+  ".next",
+  "dist-electron",
+  ".git",
+]);
+const SCAN_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".mts",
+  ".cts",
+]);
 
-  return output
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const firstColon = line.indexOf(":");
-      const secondColon = line.indexOf(":", firstColon + 1);
-      const absolutePath = line.slice(0, firstColon);
-      const lineNumber = line.slice(firstColon + 1, secondColon);
-      const content = line.slice(secondColon + 1);
-      return {
-        path: toPosix(relative(repoRoot, absolutePath)),
-        lineNumber,
-        content,
-      };
-    })
-    .filter((entry) => entry.path !== "scripts/check-type-honesty.mjs");
+function* walk(dir) {
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    const full = join(dir, entry.name);
+    if (entry.isSymbolicLink()) continue;
+    if (entry.isDirectory()) {
+      if (SKIP_DIRS.has(entry.name)) continue;
+      yield* walk(full);
+    } else if (entry.isFile()) {
+      const dotIndex = entry.name.lastIndexOf(".");
+      if (dotIndex === -1) continue;
+      const ext = entry.name.slice(dotIndex);
+      if (!SCAN_EXTENSIONS.has(ext)) continue;
+      yield full;
+    }
+  }
+}
+
+function findSuppressions() {
+  const results = [];
+  for (const file of walk(repoRoot)) {
+    let contents;
+    try {
+      contents = readFileSync(file, "utf8");
+    } catch {
+      continue;
+    }
+    if (!SUPPRESSION_RE.test(contents)) continue;
+    const lines = contents.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (!SUPPRESSION_RE.test(line)) continue;
+      results.push({
+        path: toPosix(relative(repoRoot, file)),
+        lineNumber: String(i + 1),
+        content: line.trim(),
+      });
+    }
+  }
+  return results.filter(
+    (entry) => entry.path !== "scripts/check-type-honesty.mjs",
+  );
 }
 
 function main() {

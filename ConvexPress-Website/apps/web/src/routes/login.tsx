@@ -10,6 +10,7 @@ import { OAuthButtons } from "@/components/auth/OAuthButtons";
 import { AuthDivider } from "@/components/auth/AuthDivider";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { sanitizeRedirectUrl } from "@/lib/security/redirect";
+import { buildRestrictedPageHead } from "@/lib/seo/head";
 
 /**
  * Search params schema for the login page.
@@ -21,16 +22,9 @@ const loginSearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/login")({
-  head: () => ({
-    meta: [
-      {
-        name: "robots",
-        content: "noindex",
-      },
-      {
-        title: "Sign In - ConvexPress",
-      },
-    ],
+  head: () => buildRestrictedPageHead({
+    title: "Sign In - ConvexPress",
+    path: "/login",
   }),
   validateSearch: loginSearchSchema,
   component: LoginComponent,

@@ -50,6 +50,34 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       target: "esnext",
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes("/node_modules/")) {
+              return undefined;
+            }
+            if (id.includes("/@tanstack/")) {
+              return "vendor-tanstack";
+            }
+            if (id.includes("/@clerk/")) {
+              return "vendor-clerk";
+            }
+            if (id.includes("/convex/") || id.includes("/@convex-dev/")) {
+              return "vendor-convex";
+            }
+            if (id.includes("/@base-ui/")) {
+              return "vendor-base-ui";
+            }
+            if (id.includes("/lucide-react/") || id.includes("/@icons-pack/")) {
+              return "vendor-icons";
+            }
+            if (id.includes("/react/") || id.includes("/react-dom/")) {
+              return "vendor-react";
+            }
+            return "vendor";
+          },
+        },
+      },
     },
   };
 });

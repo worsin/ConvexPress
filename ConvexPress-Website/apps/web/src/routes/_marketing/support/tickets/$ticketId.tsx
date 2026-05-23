@@ -6,14 +6,16 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Send, Star } from "lucide-react";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
+import { buildSeoHead } from "@/lib/seo/head";
 
 export const Route = createFileRoute(
   "/_marketing/support/tickets/$ticketId",
 )({
   component: TicketThreadPage,
   errorComponent: ErrorComponent,
-  head: () => ({
-    meta: [{ title: "Ticket - Support" }],
+  head: () => buildSeoHead({
+    title: "Ticket - Support",
+    robots: "noindex, nofollow",
   }),
 });
 

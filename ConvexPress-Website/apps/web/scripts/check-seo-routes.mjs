@@ -6,7 +6,7 @@ const projectRoot = process.cwd();
 const checks = [
   {
     file: "src/routes/_marketing/index.tsx",
-    patterns: ["buildSeoHead", "loaderData?.seoHead"],
+    patterns: ["buildIndexablePageHead", "loaderData?.seoHead"],
   },
   {
     file: "src/routes/_marketing/blog/index.tsx",

@@ -37,6 +37,7 @@ import type {
 import { parseTipTapDocument } from "@/lib/schemas/content";
 import { slugParamsSchema } from "@/lib/schemas/routeParams";
 import type { PostSeoData, SeoSettings } from "@/lib/seo/resolve";
+import { buildSeoHead } from "@/lib/seo/head";
 import {
 	buildArticleJsonLd,
 	createFallbackSeo,
@@ -64,21 +65,34 @@ export const Route = createFileRoute("/_marketing/blog/$slug")({
 				}),
 			);
 		}
+		return {
+			seoHead: buildSeoHead({
+				title:
+					post && typeof post === "object" && "title" in post
+						? `${post.title} - ConvexPress`
+						: `${slug} - ConvexPress`,
+				description:
+					post && typeof post === "object" && "excerpt" in post
+						? post.excerpt
+						: undefined,
+				ogType: "article",
+			}),
+		};
 	},
-	head: ({ params }) => ({
-		meta: [{ title: `${params.slug} - ConvexPress` }],
+	head: ({ loaderData }) => ({
+		...loaderData?.seoHead,
 		links: [
 			{
 				rel: "alternate",
 				type: "application/rss+xml",
-				title: `Comments on ${params.slug} RSS Feed`,
-				href: `/api/blog/${params.slug}/feed`,
+				title: "Comments RSS Feed",
+				href: "/api/blog/feed",
 			},
 			{
 				rel: "alternate",
 				type: "application/atom+xml",
-				title: `Comments on ${params.slug} Atom Feed`,
-				href: `/api/blog/${params.slug}/feed/atom`,
+				title: "Comments Atom Feed",
+				href: "/api/blog/feed/atom",
 			},
 		],
 	}),

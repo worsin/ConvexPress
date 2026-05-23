@@ -3,10 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountSettingsForm } from "@/components/dashboard/settings/AccountSettingsForm";
+import { buildRestrictedPageHead } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/dashboard/settings")({
-  head: () => ({
-    meta: [{ name: "robots", content: "noindex" }],
+  head: () => buildRestrictedPageHead({
+    title: "Account Settings - ConvexPress",
+    path: "/dashboard/settings",
   }),
   component: SettingsPage,
 });

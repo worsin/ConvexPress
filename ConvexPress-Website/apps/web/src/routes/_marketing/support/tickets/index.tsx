@@ -5,6 +5,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { formatRelativeTime } from "@/lib/format";
 import { z } from "zod";
 import { Loader2, MessageSquarePlus } from "lucide-react";
+import { buildRestrictedPageHead } from "@/lib/seo/head";
 
 const searchSchema = z.object({
   status: z
@@ -15,11 +16,15 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/_marketing/support/tickets/")({
   validateSearch: searchSchema,
+  loader: () => ({
+    seoHead: buildRestrictedPageHead({
+      title: "My Tickets - Support",
+      path: "/support/tickets",
+    }),
+  }),
   component: MyTicketsPage,
   errorComponent: ErrorComponent,
-  head: () => ({
-    meta: [{ title: "My Tickets - Support" }],
-  }),
+  head: ({ loaderData }) => loaderData?.seoHead ?? {},
 });
 
 const STATUS_LABELS: Record<string, string> = {

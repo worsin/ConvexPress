@@ -31,9 +31,21 @@ function DashboardLayout() {
 	    }
 	  }, [isLoaded, isSignedIn, navigate]);
 
-  // Don't render dashboard content until auth is loaded and confirmed
+  // Keep protected routes from rendering a blank page while auth loads or the
+  // client-side login redirect is in progress.
   if (!isLoaded || !isSignedIn) {
-    return null;
+    return (
+      <ThemeProvider>
+        <div className="flex min-h-svh items-center justify-center bg-background px-4 text-center">
+          <div className="flex max-w-sm flex-col items-center gap-3">
+            <div className="size-5 animate-spin rounded-none border-2 border-muted border-t-primary" />
+            <p className="text-sm text-muted-foreground">
+              {!isLoaded ? "Loading your dashboard..." : "Redirecting to sign in..."}
+            </p>
+          </div>
+        </div>
+      </ThemeProvider>
+    );
   }
 
   return (

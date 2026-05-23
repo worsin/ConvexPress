@@ -1,13 +1,19 @@
 import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { useAuth } from "@clerk/clerk-react";
 import { LifeBuoy, Loader2, MessageSquarePlus, List, Search } from "lucide-react";
+import { buildIndexablePageHead } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/support/")({
+  loader: () => ({
+    seoHead: buildIndexablePageHead({
+      title: "Support - ConvexPress",
+      description: "Find help, search the knowledge base, or submit a support ticket.",
+      path: "/support",
+    }),
+  }),
   component: SupportLandingPage,
   errorComponent: ErrorComponent,
-  head: () => ({
-    meta: [{ title: "Support - ConvexPress" }],
-  }),
+  head: ({ loaderData }) => loaderData?.seoHead ?? {},
 });
 
 function SupportLandingPage() {

@@ -109,9 +109,8 @@ export interface AdminPluginDefinition {
  *   - Gallery no longer claims `/admin/media`. The core Media Library is
  *     not a Gallery sub-resource and must remain available when Gallery is
  *     disabled.
- *   - Wishlist admin prefix `/commerce/wishlists` is retained. The matching
- *     admin route set is TODO (Phase 3.8 — Wishlists admin pages) per the
- *     no-feature-removal rule: we build the route, we do not drop the claim.
+ *   - Wishlist admin prefix `/commerce/wishlists` is retained with a
+ *     matching admin route and nav entry.
  *   - Every commerce sub-extension also implicitly depends on the `commerce`
  *     plugin being enabled. Phase 1 guard will enforce this via a parent-
  *     plugin check in requirePluginEnabled.
@@ -163,7 +162,6 @@ const PLATFORM_PLUGINS: AdminPluginDefinition[] = [
     icon: Heart,
     settingsKey: "commerceWishlistsEnabled",
     navSectionIds: [],
-    // TODO (Phase 3.8): Build the admin wishlist pages to match this claim.
     adminAccessPrefixes: ["/commerce/wishlists"],
     routePrefixes: ["/dashboard/wishlist", "/wishlist"],
   },

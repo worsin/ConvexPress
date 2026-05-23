@@ -19,8 +19,25 @@ import { api } from "@convexpress-website/backend/generated/api";
 import type { PageDetail, BlockDocument } from "@/lib/blog/types";
 import { PageRenderer } from "@/components/pages/PageRenderer";
 import { Skeleton } from "@/components/ui/skeleton";
+import { buildIndexablePageHead } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/")({
+  loader: async ({ context: { queryClient } }) => {
+    const frontPage = await queryClient.ensureQueryData(
+      convexQuery(api.pages.queries.getFrontPage, {}),
+    );
+
+    return {
+      seoHead: buildIndexablePageHead({
+        title: frontPage?.title
+          ? `${frontPage.title} - ConvexPress`
+          : "ConvexPress",
+        description: frontPage?.excerpt ?? "ConvexPress website.",
+        path: "/",
+      }),
+    };
+  },
+  head: ({ loaderData }) => loaderData?.seoHead ?? {},
   component: HomeComponent,
 });
 

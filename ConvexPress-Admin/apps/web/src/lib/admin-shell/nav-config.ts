@@ -515,6 +515,12 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
         icon: RefreshCcw,
         capability: "manage_options",
       },
+      {
+        id: "tools-wordpress-sync",
+        label: "WordPress Sync",
+        to: "/tools/wordpress-sync",
+        capability: "manage_options",
+      },
       { id: "tools-activity", label: "Activity Log", to: "/tools/activity" },
       { id: "tools-404-log", label: "404 Log", to: "/tools/404-log" },
       { id: "tools-audit-log", label: "Audit Log", to: "/tools/audit-log" },

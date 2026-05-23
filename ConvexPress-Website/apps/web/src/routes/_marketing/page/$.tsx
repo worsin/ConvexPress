@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePageOverrides } from "@/contexts/PageOverridesContext";
 import type { BlockContent, PageDetail } from "@/lib/blog/types";
 import { parseTipTapDocument } from "@/lib/schemas/content";
+import { buildSeoHead, humanizeSlug } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/page/$")({
 	component: SinglePage,
@@ -59,20 +60,21 @@ export const Route = createFileRoute("/_marketing/page/$")({
 				}),
 			);
 		}
-	},
-	head: ({ params }) => {
-		// Extract a human-readable title from the splat path
-		const splatPath = params._splat ?? "";
-		const segments = splatPath.split("/").filter(Boolean);
-		const lastSegment = segments[segments.length - 1] ?? "Page";
-		const displayTitle = lastSegment
-			.replace(/-/g, " ")
-			.replace(/\b\w/g, (c) => c.toUpperCase());
 
 		return {
-			meta: [{ title: `${displayTitle} - ConvexPress` }],
+			seoHead: buildSeoHead({
+				title:
+					page && typeof page === "object" && "title" in page
+						? `${page.title} - ConvexPress`
+						: `${humanizeSlug(segments.at(-1) ?? "Page")} - ConvexPress`,
+				description:
+					page && typeof page === "object" && "excerpt" in page
+						? page.excerpt
+						: undefined,
+			}),
 		};
 	},
+	head: ({ loaderData }) => loaderData?.seoHead ?? {},
 });
 
 function SinglePage() {

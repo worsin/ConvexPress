@@ -5,12 +5,14 @@ import { useAuth } from "@clerk/clerk-react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Send } from "lucide-react";
+import { buildSeoHead } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/support/new")({
   component: CreateTicketPage,
   errorComponent: ErrorComponent,
-  head: () => ({
-    meta: [{ title: "New Ticket - Support" }],
+  head: () => buildSeoHead({
+    title: "New Ticket - Support",
+    robots: "noindex, nofollow",
   }),
 });
 

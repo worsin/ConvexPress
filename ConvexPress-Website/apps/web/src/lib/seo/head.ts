@@ -1,6 +1,7 @@
 import { buildJsonLdString } from "@/lib/seo/jsonld";
 
 const FALLBACK_SITE_NAME = "ConvexPress";
+const DEFAULT_LOCAL_SITE_URL = "http://localhost:4106";
 
 export interface SeoHeadInput {
   title: string;
@@ -45,6 +46,14 @@ export function toAbsoluteUrl(path: string, siteUrl?: string | null): string | n
   } catch {
     return null;
   }
+}
+
+export function getRouteSiteUrl(): string {
+  return (
+    import.meta.env.VITE_APP_URL ||
+    import.meta.env.VITE_PUBLIC_APP_URL ||
+    DEFAULT_LOCAL_SITE_URL
+  );
 }
 
 export function humanizeSlug(slug: string): string {
@@ -117,19 +126,21 @@ export function buildSeoHead(input: SeoHeadInput) {
 }
 
 export function buildIndexablePageHead(input: RouteSeoInput) {
+  const siteUrl = input.siteUrl ?? getRouteSiteUrl();
   return buildSeoHead({
     ...input,
     canonical:
-      input.path && input.siteUrl ? toAbsoluteUrl(input.path, input.siteUrl) : undefined,
+      input.path ? toAbsoluteUrl(input.path, siteUrl) : undefined,
     robots: input.robots ?? "index, follow",
   });
 }
 
 export function buildRestrictedPageHead(input: RouteSeoInput) {
+  const siteUrl = input.siteUrl ?? getRouteSiteUrl();
   return buildSeoHead({
     ...input,
     canonical:
-      input.path && input.siteUrl ? toAbsoluteUrl(input.path, input.siteUrl) : undefined,
+      input.path ? toAbsoluteUrl(input.path, siteUrl) : undefined,
     robots: input.robots ?? "noindex, nofollow",
   });
 }

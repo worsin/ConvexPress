@@ -9,6 +9,7 @@ import { AuthDivider } from "@/components/auth/AuthDivider";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { RegistrationGate } from "@/components/auth/RegistrationGate";
 import { sanitizeRedirectUrl } from "@/lib/security/redirect";
+import { buildRestrictedPageHead } from "@/lib/seo/head";
 
 const searchSchema = z.object({
   token: z.string().optional(),
@@ -16,16 +17,9 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/register")({
-  head: () => ({
-    meta: [
-      {
-        name: "robots",
-        content: "noindex, nofollow",
-      },
-      {
-        title: "Create Account - ConvexPress",
-      },
-    ],
+  head: () => buildRestrictedPageHead({
+    title: "Create Account - ConvexPress",
+    path: "/register",
   }),
   validateSearch: searchSchema,
   component: RegisterComponent,

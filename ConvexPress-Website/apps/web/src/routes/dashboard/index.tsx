@@ -4,10 +4,12 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUserDashboard } from "@/hooks/useUserDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserDashboard } from "@/components/dashboard/UserDashboard";
+import { buildRestrictedPageHead } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/dashboard/")({
-  head: () => ({
-    meta: [{ name: "robots", content: "noindex" }],
+  head: () => buildRestrictedPageHead({
+    title: "Dashboard - ConvexPress",
+    path: "/dashboard",
   }),
   component: DashboardHomePage,
 });

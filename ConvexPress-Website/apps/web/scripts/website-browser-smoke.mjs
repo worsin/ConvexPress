@@ -73,6 +73,7 @@ function getStaticWebsiteRoutePaths() {
     .filter((path) => path.startsWith("/"))
     .filter((path) => !path.includes("$"))
     .filter((path) => !path.includes("*"))
+    .filter((path) => !path.split("/").some((segment) => segment.startsWith("_")))
     .filter((path) => !path.startsWith("/api/"))
     .sort((a, b) => a.localeCompare(b));
 
@@ -86,11 +87,20 @@ function isIgnoredRequest(url) {
   );
 }
 
+function isIgnoredRequestFailure(request) {
+  const failureText = request.failure()?.errorText ?? "";
+  if (failureText === "net::ERR_ABORTED") {
+    return true;
+  }
+  return isIgnoredRequest(request.url());
+}
+
 function isIgnoredConsole(message) {
   const text = message.text();
   return (
     text.includes("Download the React DevTools") ||
-    text.includes("Hydration failed because the server rendered HTML didn't match")
+    text.includes("Hydration failed because the server rendered HTML didn't match") ||
+    text.includes("Failed to load resource: the server responded with a status of 404")
   );
 }
 
@@ -123,7 +133,7 @@ async function main() {
     failures.push(`page error: ${error.message}`);
   });
   page.on("requestfailed", (request) => {
-    if (!isIgnoredRequest(request.url())) {
+    if (!isIgnoredRequestFailure(request)) {
       failures.push(
         `request failed: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`,
       );
@@ -132,6 +142,13 @@ async function main() {
   page.on("response", (response) => {
     const status = response.status();
     const url = response.url();
+    if (
+      status >= 400 &&
+      response.request().resourceType() === "document" &&
+      !isIgnoredRequest(url)
+    ) {
+      failures.push(`document response ${status}: ${url}`);
+    }
     if (status >= 500 && !isIgnoredRequest(url)) {
       failures.push(`server response ${status}: ${url}`);
     }

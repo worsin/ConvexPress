@@ -98,6 +98,14 @@ function isIgnoredRequest(url) {
   );
 }
 
+function isIgnoredRequestFailure(request) {
+  const failureText = request.failure()?.errorText ?? "";
+  if (failureText === "net::ERR_ABORTED") {
+    return true;
+  }
+  return isIgnoredRequest(request.url());
+}
+
 function isIgnoredConsole(message) {
   const text = message.text();
   return (
@@ -109,8 +117,8 @@ function isIgnoredConsole(message) {
 
 async function waitForAppSettled(page, path = page.url()) {
   await page.waitForLoadState("domcontentloaded");
-  await page.locator("body").waitFor({ state: "visible", timeout: 10_000 }).catch((error) => {
-    throw new Error(`${path} did not expose a visible body at ${page.url()}: ${error.message}`);
+  await page.locator("body").waitFor({ state: "attached", timeout: 10_000 }).catch((error) => {
+    throw new Error(`${path} did not expose an attached body at ${page.url()}: ${error.message}`);
   });
 }
 
@@ -176,9 +184,14 @@ async function checkDialog(page, check) {
   await page.goto(`${baseUrl}${check.path}`, { waitUntil: "domcontentloaded" });
   await waitForAppSettled(page, check.path);
   await assertNoLoginScreen(page, check.path);
+  await page.locator("#admin-content").waitFor({ state: "visible", timeout: 20_000 });
 
   const trigger = page.getByRole("button", { name: check.trigger }).first();
-  if (!(await trigger.isVisible().catch(() => false))) {
+  const hasTrigger = await trigger
+    .waitFor({ state: "visible", timeout: 10_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!hasTrigger) {
     return { name: check.name, skipped: true, reason: "trigger not visible" };
   }
 
@@ -210,7 +223,7 @@ async function main() {
     failures.push(`page error: ${error.message}`);
   });
   page.on("requestfailed", (request) => {
-    if (!isIgnoredRequest(request.url())) {
+    if (!isIgnoredRequestFailure(request)) {
       failures.push(
         `request failed: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`,
       );

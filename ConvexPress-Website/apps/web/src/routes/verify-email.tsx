@@ -17,6 +17,7 @@ import {
   writePendingVerificationContext,
 } from "@/lib/auth/verification";
 import { sanitizeRedirectUrl } from "@/lib/security/redirect";
+import { buildRestrictedPageHead } from "@/lib/seo/head";
 
 const verifyEmailSearchSchema = z.object({
   returnTo: z.string().optional(),
@@ -24,16 +25,9 @@ const verifyEmailSearchSchema = z.object({
 
 export const Route = createFileRoute("/verify-email")({
   validateSearch: verifyEmailSearchSchema,
-  head: () => ({
-    meta: [
-      {
-        name: "robots",
-        content: "noindex",
-      },
-      {
-        title: "Verify Email - ConvexPress",
-      },
-    ],
+  head: () => buildRestrictedPageHead({
+    title: "Verify Email - ConvexPress",
+    path: "/verify-email",
   }),
   component: VerifyEmailComponent,
 });
