@@ -11,13 +11,20 @@ import { NavDropdown } from "./NavDropdown";
 interface DesktopNavProps {
   menu: ResolvedMenu | undefined;
   className?: string;
+  linkStyle?: "inline" | "pills" | "underline";
+  dropdownStyle?: "flyout" | "mega";
 }
 
 /**
  * Horizontal navigation bar with dropdown submenus for desktop viewports.
  * Hidden on mobile (< lg breakpoint).
  */
-export function DesktopNav({ menu, className }: DesktopNavProps) {
+export function DesktopNav({
+  menu,
+  className,
+  linkStyle = "inline",
+  dropdownStyle = "flyout",
+}: DesktopNavProps) {
   if (!menu) {
     // No menu assigned or still loading — render empty nav to avoid layout shift
     return (
@@ -41,7 +48,12 @@ export function DesktopNav({ menu, className }: DesktopNavProps) {
     >
       <ul role="list" className="flex items-center gap-1">
         {visibleItems.map((item) => (
-          <DesktopNavItem key={item.id} item={item} />
+          <DesktopNavItem
+            key={item.id}
+            item={item}
+            linkStyle={linkStyle}
+            dropdownStyle={dropdownStyle}
+          />
         ))}
       </ul>
     </nav>
@@ -50,9 +62,11 @@ export function DesktopNav({ menu, className }: DesktopNavProps) {
 
 interface DesktopNavItemProps {
   item: ResolvedMenuItem;
+  linkStyle: "inline" | "pills" | "underline";
+  dropdownStyle: "flyout" | "mega";
 }
 
-function DesktopNavItem({ item }: DesktopNavItemProps) {
+function DesktopNavItem({ item, linkStyle, dropdownStyle }: DesktopNavItemProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -116,6 +130,29 @@ function DesktopNavItem({ item }: DesktopNavItemProps) {
     ...(item.rel ? { rel: item.rel } : {}),
   };
 
+  const isExternal =
+    item.url.startsWith("http://") || item.url.startsWith("https://");
+  const linkClassName = cn(
+    "flex items-center gap-1 px-3 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    linkStyle === "pills" && "rounded-full border border-transparent hover:border-border hover:bg-muted",
+    linkStyle === "underline" && "border-b border-transparent px-2 hover:border-foreground",
+    item.cssClasses,
+  );
+
+  const linkContent = (
+    <>
+      <span>{item.label}</span>
+      {hasChildren && (
+        <ChevronDown
+          className={cn(
+            "size-3 opacity-60 transition-transform",
+            isOpen && "rotate-180",
+          )}
+        />
+      )}
+    </>
+  );
+
   return (
     <li
       data-slot="desktop-nav-item"
@@ -123,33 +160,39 @@ function DesktopNavItem({ item }: DesktopNavItemProps) {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <Link
-        to={item.url}
-        className={cn(
-          "flex items-center gap-1 px-3 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground",
-          item.cssClasses,
-        )}
-        activeProps={{
-          className: "text-foreground font-medium",
-          "aria-current": "page" as const,
-        }}
-        onKeyDown={handleKeyDown}
-        aria-expanded={hasChildren ? isOpen : undefined}
-        aria-haspopup={hasChildren ? "true" : undefined}
-        {...linkProps}
-      >
-        <span>{item.label}</span>
-        {hasChildren && (
-          <ChevronDown
-            className={cn(
-              "size-3 opacity-60 transition-transform",
-              isOpen && "rotate-180",
-            )}
-          />
-        )}
-      </Link>
+      {isExternal ? (
+        <a
+          href={item.url}
+          className={linkClassName}
+          onKeyDown={handleKeyDown}
+          aria-expanded={hasChildren ? isOpen : undefined}
+          aria-haspopup={hasChildren ? "true" : undefined}
+          {...linkProps}
+        >
+          {linkContent}
+        </a>
+      ) : (
+        <Link
+          to={item.url}
+          className={linkClassName}
+          activeProps={{
+            className: "text-foreground font-medium",
+            "aria-current": "page" as const,
+          }}
+          onKeyDown={handleKeyDown}
+          aria-expanded={hasChildren ? isOpen : undefined}
+          aria-haspopup={hasChildren ? "true" : undefined}
+          {...linkProps}
+        >
+          {linkContent}
+        </Link>
+      )}
       {hasChildren && isOpen && (
-        <NavDropdown items={item.children} depth={0} />
+        <NavDropdown
+          items={item.children}
+          depth={0}
+          className={dropdownStyle === "mega" ? "grid min-w-72 grid-cols-2" : undefined}
+        />
       )}
     </li>
   );

@@ -18,6 +18,7 @@ export const commerceCartStatusValidator = v.union(
   v.literal("active"),
   v.literal("pending_payment"),
   v.literal("abandoned"),
+  v.literal("merged"),
   v.literal("converted"),
 );
 
@@ -66,6 +67,72 @@ export const commerceAddressValidator = v.object({
 export const commerceMoneyValidator = v.object({
   amount: v.number(),
   currencyCode: v.string(),
+});
+
+const commerceDynamicPricingConditionValidator = v.object({
+  kind: v.union(
+    v.literal("cart_subtotal"),
+    v.literal("cart_item_count"),
+    v.literal("matching_quantity"),
+    v.literal("matching_subtotal"),
+    v.literal("customer_group"),
+    v.literal("user_role"),
+    v.literal("specific_customer"),
+    v.literal("first_order"),
+    v.literal("purchase_history_orders"),
+    v.literal("purchase_history_spend"),
+    v.literal("shipping_country"),
+    v.literal("coupon_present"),
+  ),
+  operator: v.union(
+    v.literal("eq"),
+    v.literal("neq"),
+    v.literal("gt"),
+    v.literal("gte"),
+    v.literal("lt"),
+    v.literal("lte"),
+    v.literal("in"),
+    v.literal("not_in"),
+    v.literal("contains"),
+    v.literal("not_contains"),
+    v.literal("is_true"),
+    v.literal("is_false"),
+  ),
+  numberValue: v.optional(v.number()),
+  stringValue: v.optional(v.string()),
+  stringValues: v.optional(v.array(v.string())),
+  booleanValue: v.optional(v.boolean()),
+});
+
+const commerceDynamicPricingActionValidator = v.object({
+  type: v.union(
+    v.literal("percentage_discount"),
+    v.literal("fixed_discount"),
+    v.literal("fixed_price"),
+    v.literal("percentage_markup"),
+    v.literal("fixed_markup"),
+    v.literal("free_shipping"),
+  ),
+  target: v.union(
+    v.literal("matching_items"),
+    v.literal("cart_subtotal"),
+    v.literal("cheapest_matching_item"),
+    v.literal("shipping"),
+  ),
+  amount: v.optional(v.number()),
+  maxDiscountAmount: v.optional(v.number()),
+});
+
+const commerceDynamicPricingScopeValidator = v.object({
+  appliesTo: v.union(
+    v.literal("all_products"),
+    v.literal("specific_products"),
+    v.literal("specific_categories"),
+  ),
+  productIds: v.optional(v.array(v.id("commerce_products"))),
+  categoryIds: v.optional(v.array(v.id("commerce_product_categories"))),
+  excludedProductIds: v.optional(v.array(v.id("commerce_products"))),
+  excludedCategoryIds: v.optional(v.array(v.id("commerce_product_categories"))),
 });
 
 export const commerceTables = {
@@ -271,8 +338,15 @@ export const commerceTables = {
     sessionToken: v.string(),
     status: commerceCartStatusValidator,
     currencyCode: v.string(),
+    regionId: v.optional(v.id("commerce_regions")),
+    salesChannelId: v.optional(v.id("commerce_sales_channels")),
+    customerGroupId: v.optional(v.id("commerce_customer_groups")),
     appliedDiscountCode: v.optional(v.string()),
     appliedDiscountDescription: v.optional(v.string()),
+    dynamicPricingDiscountAmount: v.optional(v.number()),
+    dynamicPricingRuleIds: v.optional(v.array(v.id("commerce_dynamic_pricing_rules"))),
+    dynamicPricingDescription: v.optional(v.string()),
+    freeShippingByDynamicPricing: v.optional(v.boolean()),
     subtotalAmount: v.number(),
     discountAmount: v.number(),
     shippingAmount: v.number(),
@@ -286,11 +360,16 @@ export const commerceTables = {
     convertedAt: v.optional(v.number()),
     orderId: v.optional(v.id("commerce_orders")),
     mergedIntoCartId: v.optional(v.id("commerce_carts")),
+    shareToken: v.optional(v.string()),
+    isShared: v.optional(v.boolean()),
+    sharedAt: v.optional(v.number()),
+    shareDisabledAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_session", ["sessionToken"])
+    .index("by_share_token", ["shareToken"])
     .index("by_status", ["status"])
     .index("by_status_lastActiveAt", ["status", "lastActiveAt"]),
 
@@ -299,6 +378,10 @@ export const commerceTables = {
     productId: v.id("commerce_products"),
     variantId: v.optional(v.id("commerce_product_variants")),
     quantity: v.number(),
+    baseUnitPriceAmount: v.optional(v.number()),
+    dynamicPricingAdjustmentAmount: v.optional(v.number()),
+    dynamicPricingRuleIds: v.optional(v.array(v.id("commerce_dynamic_pricing_rules"))),
+    dynamicPricingDescription: v.optional(v.string()),
     unitPriceAmount: v.number(),
     lineTotalAmount: v.number(),
     metadata: v.optional(v.any()),
@@ -314,6 +397,9 @@ export const commerceTables = {
     sessionToken: v.string(),
     status: commerceCheckoutStatusValidator,
     currencyCode: v.string(),
+    regionId: v.optional(v.id("commerce_regions")),
+    salesChannelId: v.optional(v.id("commerce_sales_channels")),
+    customerGroupId: v.optional(v.id("commerce_customer_groups")),
     email: v.optional(v.string()),
     shippingAddress: v.optional(commerceAddressValidator),
     billingAddress: v.optional(commerceAddressValidator),
@@ -323,6 +409,10 @@ export const commerceTables = {
     selectedPaymentMethodLabel: v.optional(v.string()),
     appliedDiscountCode: v.optional(v.string()),
     appliedDiscountDescription: v.optional(v.string()),
+    dynamicPricingDiscountAmount: v.optional(v.number()),
+    dynamicPricingRuleIds: v.optional(v.array(v.id("commerce_dynamic_pricing_rules"))),
+    dynamicPricingDescription: v.optional(v.string()),
+    freeShippingByDynamicPricing: v.optional(v.boolean()),
     notes: v.optional(v.string()),
     subtotalAmount: v.number(),
     discountAmount: v.number(),
@@ -332,10 +422,53 @@ export const commerceTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
     completedAt: v.optional(v.number()),
+    expiresAt: v.optional(v.number()),
+    abandonedAt: v.optional(v.number()),
+    failedAt: v.optional(v.number()),
+    failureReason: v.optional(v.string()),
+    orderId: v.optional(v.id("commerce_orders")),
   })
     .index("by_cart", ["cartId"])
     .index("by_session", ["sessionToken"])
     .index("by_user", ["userId"]),
+
+  commerce_checkout_shipping_methods: defineTable({
+    checkoutSessionId: v.id("commerce_checkout_sessions"),
+    cartId: v.id("commerce_carts"),
+    status: v.union(
+      v.literal("active"),
+      v.literal("stale"),
+      v.literal("converted"),
+    ),
+    source: v.union(v.literal("live_quote"), v.literal("manual_method")),
+    code: v.string(),
+    label: v.string(),
+    amount: v.number(),
+    currencyCode: v.string(),
+    quoteId: v.optional(v.id("commerce_shipping_rate_quotes")),
+    quoteKey: v.optional(v.string()),
+    provider: v.optional(v.string()),
+    carrierCode: v.optional(v.string()),
+    carrierName: v.optional(v.string()),
+    serviceCode: v.optional(v.string()),
+    serviceName: v.optional(v.string()),
+    accountId: v.optional(v.string()),
+    packages: v.optional(v.any()),
+    origin: v.optional(v.any()),
+    rawQuote: v.optional(v.any()),
+    addressKey: v.optional(v.string()),
+    cartKey: v.optional(v.string()),
+    expiresAt: v.optional(v.number()),
+    selectedAt: v.number(),
+    invalidatedAt: v.optional(v.number()),
+    convertedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_checkout", ["checkoutSessionId"])
+    .index("by_checkout_status", ["checkoutSessionId", "status"])
+    .index("by_cart_status", ["cartId", "status"])
+    .index("by_quote_key", ["quoteKey"]),
 
   commerce_customer_profiles: defineTable({
     userId: v.optional(v.id("users")),
@@ -380,6 +513,10 @@ export const commerceTables = {
     customerId: v.optional(v.id("commerce_customer_profiles")),
     userId: v.optional(v.id("users")),
     checkoutSessionId: v.optional(v.id("commerce_checkout_sessions")),
+    paymentCollectionId: v.optional(v.id("commerce_payment_collections")),
+    regionId: v.optional(v.id("commerce_regions")),
+    salesChannelId: v.optional(v.id("commerce_sales_channels")),
+    customerGroupId: v.optional(v.id("commerce_customer_groups")),
     status: commerceOrderStatusValidator,
     currencyCode: v.string(),
     email: v.string(),
@@ -433,6 +570,10 @@ export const commerceTables = {
     selectedPaymentMethodLabel: v.optional(v.string()),
     appliedDiscountCode: v.optional(v.string()),
     appliedDiscountDescription: v.optional(v.string()),
+    dynamicPricingDiscountAmount: v.optional(v.number()),
+    dynamicPricingRuleIds: v.optional(v.array(v.id("commerce_dynamic_pricing_rules"))),
+    dynamicPricingDescription: v.optional(v.string()),
+    freeShippingByDynamicPricing: v.optional(v.boolean()),
     subtotalAmount: v.number(),
     discountAmount: v.number(),
     shippingAmount: v.number(),
@@ -462,6 +603,7 @@ export const commerceTables = {
   })
     .index("by_orderNumber", ["orderNumber"])
     .index("by_trackingToken", ["trackingToken"])
+    .index("by_checkout", ["checkoutSessionId"])
     .index("by_customer", ["customerId"])
     .index("by_user", ["userId"])
     .index("by_status", ["status"])
@@ -635,9 +777,267 @@ export const commerceTables = {
     .index("by_subscription", ["subscriptionId"])
     .index("by_applied_at", ["appliedAt"]),
 
+  commerce_regions: defineTable({
+    name: v.string(),
+    currencyCode: v.string(),
+    countryCodes: v.array(v.string()),
+    automaticTaxes: v.boolean(),
+    isDefault: v.optional(v.boolean()),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_currency", ["currencyCode"])
+    .index("by_default", ["isDefault"]),
+
+  commerce_sales_channels: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    isDefault: v.optional(v.boolean()),
+    isDisabled: v.boolean(),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_default", ["isDefault"])
+    .index("by_disabled", ["isDisabled"]),
+
+  commerce_product_sales_channels: defineTable({
+    productId: v.id("commerce_products"),
+    channelId: v.id("commerce_sales_channels"),
+    isAvailable: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_product", ["productId"])
+    .index("by_channel", ["channelId"])
+    .index("by_product_channel", ["productId", "channelId"]),
+
+  commerce_customer_groups: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).searchIndex("search_customer_groups", {
+    searchField: "name",
+  }),
+
+  commerce_customer_group_members: defineTable({
+    groupId: v.id("commerce_customer_groups"),
+    customerId: v.id("commerce_customer_profiles"),
+    addedBy: v.optional(v.id("users")),
+    addedAt: v.number(),
+  })
+    .index("by_group", ["groupId"])
+    .index("by_customer", ["customerId"])
+    .index("by_group_customer", ["groupId", "customerId"]),
+
+  commerce_price_lists: defineTable({
+    title: v.string(),
+    description: v.optional(v.string()),
+    status: v.union(v.literal("draft"), v.literal("active"), v.literal("inactive")),
+    type: v.union(v.literal("sale"), v.literal("override")),
+    startsAt: v.optional(v.number()),
+    endsAt: v.optional(v.number()),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_type", ["type"]),
+
+  commerce_price_sets: defineTable({
+    title: v.optional(v.string()),
+    productId: v.optional(v.id("commerce_products")),
+    variantId: v.optional(v.id("commerce_product_variants")),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_product", ["productId"])
+    .index("by_variant", ["variantId"]),
+
+  commerce_prices: defineTable({
+    priceSetId: v.id("commerce_price_sets"),
+    priceListId: v.optional(v.id("commerce_price_lists")),
+    currencyCode: v.string(),
+    amount: v.number(),
+    minQuantity: v.optional(v.number()),
+    maxQuantity: v.optional(v.number()),
+    startsAt: v.optional(v.number()),
+    endsAt: v.optional(v.number()),
+    status: v.union(v.literal("draft"), v.literal("active"), v.literal("inactive")),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_price_set", ["priceSetId"])
+    .index("by_price_list", ["priceListId"])
+    .index("by_currency", ["currencyCode"])
+    .index("by_status", ["status"]),
+
+  commerce_price_rules: defineTable({
+    priceId: v.id("commerce_prices"),
+    attribute: v.string(),
+    operator: v.union(
+      v.literal("eq"),
+      v.literal("neq"),
+      v.literal("in"),
+      v.literal("not_in"),
+      v.literal("gte"),
+      v.literal("lte"),
+    ),
+    value: v.any(),
+    priority: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_price", ["priceId"])
+    .index("by_attribute", ["attribute"]),
+
+  commerce_dynamic_pricing_rules: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    status: v.union(v.literal("draft"), v.literal("active"), v.literal("inactive")),
+    priority: v.number(),
+    processingMode: v.union(
+      v.literal("all_applicable"),
+      v.literal("first_match"),
+      v.literal("best_discount"),
+    ),
+    exclusive: v.boolean(),
+    stackWithCoupons: v.boolean(),
+    startsAt: v.optional(v.number()),
+    endsAt: v.optional(v.number()),
+    scope: commerceDynamicPricingScopeValidator,
+    conditionsMatch: v.union(v.literal("all"), v.literal("any")),
+    conditions: v.array(commerceDynamicPricingConditionValidator),
+    action: commerceDynamicPricingActionValidator,
+    customerMessage: v.optional(v.string()),
+    adminNotes: v.optional(v.string()),
+    usageCount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_priority", ["priority"])
+    .index("by_updatedAt", ["updatedAt"])
+    .searchIndex("search_dynamic_pricing_rules", {
+      searchField: "name",
+      filterFields: ["status"],
+    }),
+
+  commerce_payment_collections: defineTable({
+    orderId: v.optional(v.id("commerce_orders")),
+    checkoutSessionId: v.optional(v.id("commerce_checkout_sessions")),
+    currencyCode: v.string(),
+    amount: v.number(),
+    authorizedAmount: v.optional(v.number()),
+    capturedAmount: v.optional(v.number()),
+    refundedAmount: v.optional(v.number()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("authorized"),
+      v.literal("partially_captured"),
+      v.literal("captured"),
+      v.literal("partially_refunded"),
+      v.literal("refunded"),
+      v.literal("canceled"),
+      v.literal("failed"),
+    ),
+    completedAt: v.optional(v.number()),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_order", ["orderId"])
+    .index("by_checkout", ["checkoutSessionId"])
+    .index("by_status", ["status"]),
+
+  commerce_payment_sessions: defineTable({
+    collectionId: v.id("commerce_payment_collections"),
+    orderId: v.optional(v.id("commerce_orders")),
+    checkoutSessionId: v.optional(v.id("commerce_checkout_sessions")),
+    provider: v.string(),
+    providerSessionId: v.optional(v.string()),
+    clientSecret: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("authorized"),
+      v.literal("captured"),
+      v.literal("failed"),
+      v.literal("canceled"),
+    ),
+    amount: commerceMoneyValidator,
+    data: v.optional(v.any()),
+    context: v.optional(v.any()),
+    authorizedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_collection", ["collectionId"])
+    .index("by_order", ["orderId"])
+    .index("by_checkout", ["checkoutSessionId"])
+    .index("by_provider_status", ["provider", "status"])
+    .index("by_provider_session", ["provider", "providerSessionId"]),
+
+  commerce_payment_captures: defineTable({
+    collectionId: v.id("commerce_payment_collections"),
+    sessionId: v.optional(v.id("commerce_payment_sessions")),
+    transactionId: v.optional(v.id("commerce_payment_transactions")),
+    orderId: v.optional(v.id("commerce_orders")),
+    provider: v.string(),
+    providerCaptureId: v.optional(v.string()),
+    amount: commerceMoneyValidator,
+    createdBy: v.optional(v.id("users")),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+  })
+    .index("by_collection", ["collectionId"])
+    .index("by_session", ["sessionId"])
+    .index("by_transaction", ["transactionId"])
+    .index("by_order", ["orderId"]),
+
+  commerce_applied_adjustments: defineTable({
+    context: v.union(
+      v.literal("cart"),
+      v.literal("checkout"),
+      v.literal("order"),
+      v.literal("cart_item"),
+      v.literal("order_item"),
+      v.literal("shipping"),
+    ),
+    cartId: v.optional(v.id("commerce_carts")),
+    checkoutSessionId: v.optional(v.id("commerce_checkout_sessions")),
+    orderId: v.optional(v.id("commerce_orders")),
+    cartItemId: v.optional(v.id("commerce_cart_items")),
+    orderItemId: v.optional(v.id("commerce_order_items")),
+    checkoutShippingMethodId: v.optional(v.id("commerce_checkout_shipping_methods")),
+    discountId: v.optional(v.id("commerce_discount_codes")),
+    code: v.optional(v.string()),
+    source: v.union(v.literal("discount"), v.literal("manual"), v.literal("promotion"), v.literal("system")),
+    targetType: v.union(v.literal("subtotal"), v.literal("item"), v.literal("shipping"), v.literal("tax"), v.literal("total")),
+    allocation: v.union(v.literal("cart"), v.literal("item"), v.literal("shipping")),
+    amount: v.number(),
+    currencyCode: v.string(),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+  })
+    .index("by_cart", ["cartId"])
+    .index("by_checkout", ["checkoutSessionId"])
+    .index("by_order", ["orderId"])
+    .index("by_discount", ["discountId"]),
+
   commerce_payment_transactions: defineTable({
     orderId: v.optional(v.id("commerce_orders")),
     checkoutSessionId: v.optional(v.id("commerce_checkout_sessions")),
+    collectionId: v.optional(v.id("commerce_payment_collections")),
+    sessionId: v.optional(v.id("commerce_payment_sessions")),
+    captureId: v.optional(v.id("commerce_payment_captures")),
     provider: v.string(),
     providerTransactionId: v.optional(v.string()),
     clientSecret: v.optional(v.string()),
@@ -653,12 +1053,17 @@ export const commerceTables = {
   })
     .index("by_order", ["orderId"])
     .index("by_checkout", ["checkoutSessionId"])
+    .index("by_collection", ["collectionId"])
+    .index("by_session", ["sessionId"])
     .index("by_provider_status", ["provider", "status"])
     .index("by_provider_txn", ["provider", "providerTransactionId"]),
 
   commerce_payment_refunds: defineTable({
     orderId: v.id("commerce_orders"),
     transactionId: v.optional(v.id("commerce_payment_transactions")),
+    collectionId: v.optional(v.id("commerce_payment_collections")),
+    sessionId: v.optional(v.id("commerce_payment_sessions")),
+    captureId: v.optional(v.id("commerce_payment_captures")),
     returnId: v.optional(v.id("commerce_return_requests")),
     amount: commerceMoneyValidator,
     reason: v.optional(v.string()),
@@ -671,7 +1076,64 @@ export const commerceTables = {
     updatedAt: v.number(),
   })
     .index("by_order", ["orderId"])
+    .index("by_collection", ["collectionId"])
+    .index("by_session", ["sessionId"])
     .index("by_return", ["returnId"]),
+
+  commerce_order_changes: defineTable({
+    orderId: v.id("commerce_orders"),
+    version: v.number(),
+    changeType: v.union(
+      v.literal("edit"),
+      v.literal("return"),
+      v.literal("exchange"),
+      v.literal("claim"),
+      v.literal("cancel"),
+      v.literal("refund"),
+    ),
+    status: v.union(
+      v.literal("requested"),
+      v.literal("confirmed"),
+      v.literal("declined"),
+      v.literal("canceled"),
+      v.literal("applied"),
+    ),
+    returnId: v.optional(v.id("commerce_return_requests")),
+    draftOrderId: v.optional(v.id("commerce_draft_orders")),
+    description: v.optional(v.string()),
+    internalNote: v.optional(v.string()),
+    requestedBy: v.optional(v.id("users")),
+    confirmedBy: v.optional(v.id("users")),
+    declinedBy: v.optional(v.id("users")),
+    canceledBy: v.optional(v.id("users")),
+    confirmedAt: v.optional(v.number()),
+    declinedAt: v.optional(v.number()),
+    canceledAt: v.optional(v.number()),
+    appliedAt: v.optional(v.number()),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_order", ["orderId"])
+    .index("by_order_status", ["orderId", "status"])
+    .index("by_status", ["status"]),
+
+  commerce_order_change_actions: defineTable({
+    orderChangeId: v.optional(v.id("commerce_order_changes")),
+    orderId: v.id("commerce_orders"),
+    action: v.string(),
+    reference: v.optional(v.string()),
+    referenceId: v.optional(v.string()),
+    details: v.any(),
+    amount: v.optional(v.number()),
+    ordering: v.optional(v.number()),
+    applied: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_order_change", ["orderChangeId"])
+    .index("by_order", ["orderId"])
+    .index("by_action", ["action"]),
 
   commerce_shipping_methods: defineTable({
     code: v.string(),
@@ -719,6 +1181,8 @@ export const commerceTables = {
   commerce_order_tax_lines: defineTable({
     orderId: v.id("commerce_orders"),
     orderItemId: v.optional(v.id("commerce_order_items")),
+    checkoutShippingMethodId: v.optional(v.id("commerce_checkout_shipping_methods")),
+    source: v.optional(v.union(v.literal("item"), v.literal("shipping"))),
     ruleId: v.optional(v.id("commerce_tax_rules")),
     taxClass: v.optional(v.string()),
     jurisdictionLabel: v.string(),
@@ -730,6 +1194,7 @@ export const commerceTables = {
   })
     .index("by_order", ["orderId"])
     .index("by_order_item", ["orderItemId"])
+    .index("by_checkout_shipping_method", ["checkoutShippingMethodId"])
     .index("by_rule", ["ruleId"]),
 
   // Wave 11.1: rate-history audit log so retroactive order analysis stays correct.
@@ -747,6 +1212,7 @@ export const commerceTables = {
   commerce_inventory_adjustments: defineTable({
     productId: v.id("commerce_products"),
     variantId: v.optional(v.id("commerce_product_variants")),
+    locationId: v.optional(v.id("commerce_ship_from_locations")),
     orderId: v.optional(v.id("commerce_orders")),
     adjustmentType: v.string(),
     quantityDelta: v.number(),
@@ -756,8 +1222,30 @@ export const commerceTables = {
   })
     .index("by_product", ["productId"])
     .index("by_variant", ["variantId"])
+    .index("by_location", ["locationId"])
     .index("by_type", ["adjustmentType"])
     .index("by_date", ["createdAt"]),
+
+  commerce_inventory_levels: defineTable({
+    productId: v.id("commerce_products"),
+    variantId: v.optional(v.id("commerce_product_variants")),
+    locationId: v.id("commerce_ship_from_locations"),
+    stockQuantity: v.number(),
+    incomingQuantity: v.optional(v.number()),
+    safetyStockQuantity: v.optional(v.number()),
+    allowBackorders: v.optional(v.boolean()),
+    isActive: v.boolean(),
+    externalInventoryItemId: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_product", ["productId"])
+    .index("by_product_variant", ["productId", "variantId"])
+    .index("by_location", ["locationId"])
+    .index("by_product_location", ["productId", "locationId"])
+    .index("by_variant_location", ["variantId", "locationId"])
+    .index("by_active", ["isActive"]),
 
   commerce_low_stock_alerts: defineTable({
     productId: v.id("commerce_products"),
@@ -780,6 +1268,7 @@ export const commerceTables = {
     checkoutSessionId: v.id("commerce_checkout_sessions"),
     productId: v.id("commerce_products"),
     variantId: v.optional(v.id("commerce_product_variants")),
+    locationId: v.optional(v.id("commerce_ship_from_locations")),
     quantity: v.number(),
     status: v.union(
       v.literal("active"),
@@ -792,7 +1281,84 @@ export const commerceTables = {
     updatedAt: v.number(),
   })
     .index("by_checkout", ["checkoutSessionId"])
-    .index("by_product_status", ["productId", "status"]),
+    .index("by_product_status", ["productId", "status"])
+    .index("by_location_status", ["locationId", "status"])
+    .index("by_product_location_status", ["productId", "locationId", "status"]),
+
+  commerce_draft_orders: defineTable({
+    status: v.union(
+      v.literal("open"),
+      v.literal("completed"),
+      v.literal("canceled"),
+    ),
+    customerId: v.optional(v.id("commerce_customer_profiles")),
+    userId: v.optional(v.id("users")),
+    email: v.optional(v.string()),
+    currencyCode: v.string(),
+    regionId: v.optional(v.id("commerce_regions")),
+    salesChannelId: v.optional(v.id("commerce_sales_channels")),
+    customerGroupId: v.optional(v.id("commerce_customer_groups")),
+    billingAddress: v.optional(commerceAddressValidator),
+    shippingAddress: v.optional(commerceAddressValidator),
+    subtotalAmount: v.number(),
+    discountAmount: v.number(),
+    shippingAmount: v.number(),
+    taxAmount: v.number(),
+    totalAmount: v.number(),
+    orderId: v.optional(v.id("commerce_orders")),
+    notes: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+    createdBy: v.optional(v.id("users")),
+    completedAt: v.optional(v.number()),
+    canceledAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_customer", ["customerId"])
+    .index("by_order", ["orderId"])
+    .index("by_created", ["createdAt"]),
+
+  commerce_draft_order_items: defineTable({
+    draftOrderId: v.id("commerce_draft_orders"),
+    productId: v.optional(v.id("commerce_products")),
+    variantId: v.optional(v.id("commerce_product_variants")),
+    title: v.string(),
+    quantity: v.number(),
+    unitPriceAmount: v.number(),
+    lineTotalAmount: v.number(),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_draft_order", ["draftOrderId"])
+    .index("by_product", ["productId"])
+    .index("by_variant", ["variantId"]),
+
+  commerce_workflow_runs: defineTable({
+    workflowKey: v.string(),
+    idempotencyKey: v.string(),
+    status: v.union(
+      v.literal("running"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("canceled"),
+    ),
+    entityType: v.optional(v.string()),
+    entityId: v.optional(v.string()),
+    input: v.optional(v.any()),
+    result: v.optional(v.any()),
+    error: v.optional(v.string()),
+    lockedUntil: v.optional(v.number()),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    failedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_idempotency", ["workflowKey", "idempotencyKey"])
+    .index("by_status", ["status"])
+    .index("by_entity", ["entityType", "entityId"]),
 
   commerce_saved_payment_methods: defineTable({
     userId: v.id("users"),

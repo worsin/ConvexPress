@@ -11,7 +11,12 @@
  * - Search (Meilisearch) -> /settings/search
  */
 
-import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useLocation,
+} from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import {
@@ -98,6 +103,7 @@ function IntegrationCard({
 }
 
 function IntegrationsOverviewPage() {
+  const location = useLocation();
   // Read AI settings to check if configured
   const aiSettings = useQuery(api.settings.queries.getBySection, {
     section: "ai" as any,
@@ -133,6 +139,10 @@ function IntegrationsOverviewPage() {
       }
     | undefined;
 
+  if (location.pathname !== "/settings/integrations") {
+    return <Outlet />;
+  }
+
   // Loading state
   if (
     aiSettings === undefined ||
@@ -145,7 +155,7 @@ function IntegrationsOverviewPage() {
     shippingOverview === undefined
   ) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="w-full p-6">
         <div className="animate-pulse space-y-6">
           <div className="h-8 w-48 rounded bg-muted" />
           <div className="space-y-3">
@@ -189,7 +199,7 @@ function IntegrationsOverviewPage() {
   const shippingConnected = connectedShippingProviders > 0;
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="w-full p-6">
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-foreground">Integrations</h1>

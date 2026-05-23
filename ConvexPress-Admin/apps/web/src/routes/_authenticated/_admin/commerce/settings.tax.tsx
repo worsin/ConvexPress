@@ -1,7 +1,12 @@
 import { api } from "@backend/convex/_generated/api";
-import { createFileRoute } from "@tanstack/react-router";
+import {
+	Outlet,
+	createFileRoute,
+	useLocation,
+} from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
+import { TaxSettingsTabs } from "@/components/commerce/CommerceSettingsTabs";
 import {
 	Check,
 	Database,
@@ -99,6 +104,7 @@ function displayFromCents(value: number) {
 }
 
 function TaxRulesPage() {
+	const location = useLocation();
 	const rules = useQuery(api["commerce/tax"].list, {}) as TaxRule[] | undefined;
 	const createRule = useMutation(api["commerce/tax"].create);
 	const updateRule = useMutation(api["commerce/tax"].update);
@@ -227,8 +233,26 @@ function TaxRulesPage() {
 		setEditDraft(draftFromRule(rule));
 	}
 
+	if (location.pathname !== "/commerce/settings/tax") {
+		return (
+			<div className="space-y-6">
+				<div className="space-y-2">
+					<h1 className="text-3xl font-bold tracking-tight">Tax Settings</h1>
+					<p className="max-w-3xl text-sm text-muted-foreground">
+						Configure checkout tax rules and tax classes.
+					</p>
+				</div>
+				<TaxSettingsTabs />
+				<Outlet />
+			</div>
+		);
+	}
+
 	return (
-		<div className="mx-auto max-w-6xl space-y-6 p-6">
+		<div className="w-full space-y-6 p-6">
+			<div className="space-y-3">
+				<TaxSettingsTabs />
+			</div>
 			<div className="flex flex-wrap items-center justify-between gap-3">
 				<div className="flex items-center gap-3">
 					<Receipt className="h-6 w-6 text-muted-foreground" />

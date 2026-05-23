@@ -48,6 +48,7 @@ import { Route as MarketingCategoriesRouteImport } from './routes/_marketing/cat
 import { Route as MarketingCartRouteImport } from './routes/_marketing/cart'
 import { Route as MarketingBundlesRouteImport } from './routes/_marketing/bundles'
 import { Route as MarketingArchiveRouteImport } from './routes/_marketing/archive'
+import { Route as MarketingSlugRouteImport } from './routes/_marketing/$slug'
 import { Route as ApiFeedIndexRouteImport } from './routes/api/feed/index'
 import { Route as MarketingSupportIndexRouteImport } from './routes/_marketing/support/index'
 import { Route as MarketingRecipesIndexRouteImport } from './routes/_marketing/recipes/index'
@@ -97,6 +98,7 @@ import { Route as MarketingHelpCollectionsSlugRouteImport } from './routes/_mark
 import { Route as MarketingHelpCategorySlugArticleSlugRouteImport } from './routes/_marketing/help/$categorySlug/$articleSlug'
 import { Route as MarketingGalleryCategorySlugRouteImport } from './routes/_marketing/gallery/category/$slug'
 import { Route as MarketingCheckoutConfirmationOrderIdRouteImport } from './routes/_marketing/checkout/confirmation_.$orderId'
+import { Route as MarketingCartSharedShareTokenRouteImport } from './routes/_marketing/cart/shared/$shareToken'
 import { Route as ApiTagSlugFeedIndexRouteImport } from './routes/api/tag/$slug/feed/index'
 import { Route as ApiCategorySlugFeedIndexRouteImport } from './routes/api/category/$slug/feed/index'
 import { Route as ApiBlogSlugFeedIndexRouteImport } from './routes/api/blog/$slug/feed/index'
@@ -300,6 +302,11 @@ const MarketingBundlesRoute = MarketingBundlesRouteImport.update({
 const MarketingArchiveRoute = MarketingArchiveRouteImport.update({
   id: '/archive',
   path: '/archive',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingSlugRoute = MarketingSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
   getParentRoute: () => MarketingRoute,
 } as any)
 const ApiFeedIndexRoute = ApiFeedIndexRouteImport.update({
@@ -562,6 +569,12 @@ const MarketingCheckoutConfirmationOrderIdRoute =
     path: '/confirmation/$orderId',
     getParentRoute: () => MarketingCheckoutRoute,
   } as any)
+const MarketingCartSharedShareTokenRoute =
+  MarketingCartSharedShareTokenRouteImport.update({
+    id: '/shared/$shareToken',
+    path: '/shared/$shareToken',
+    getParentRoute: () => MarketingCartRoute,
+  } as any)
 const ApiTagSlugFeedIndexRoute = ApiTagSlugFeedIndexRouteImport.update({
   id: '/api/tag/$slug/feed/',
   path: '/api/tag/$slug/feed/',
@@ -625,9 +638,10 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/$slug': typeof MarketingSlugRoute
   '/archive': typeof MarketingArchiveRoute
   '/bundles': typeof MarketingBundlesRouteWithChildren
-  '/cart': typeof MarketingCartRoute
+  '/cart': typeof MarketingCartRouteWithChildren
   '/categories': typeof MarketingCategoriesRouteWithChildren
   '/checkout': typeof MarketingCheckoutRouteWithChildren
   '/gallery': typeof MarketingGalleryRouteWithChildren
@@ -693,6 +707,7 @@ export interface FileRoutesByFullPath {
   '/recipes/': typeof MarketingRecipesIndexRoute
   '/support/': typeof MarketingSupportIndexRoute
   '/api/feed/': typeof ApiFeedIndexRoute
+  '/cart/shared/$shareToken': typeof MarketingCartSharedShareTokenRoute
   '/checkout/confirmation/$orderId': typeof MarketingCheckoutConfirmationOrderIdRoute
   '/gallery/category/$slug': typeof MarketingGalleryCategorySlugRoute
   '/help/$categorySlug/$articleSlug': typeof MarketingHelpCategorySlugArticleSlugRoute
@@ -722,8 +737,9 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/$slug': typeof MarketingSlugRoute
   '/archive': typeof MarketingArchiveRoute
-  '/cart': typeof MarketingCartRoute
+  '/cart': typeof MarketingCartRouteWithChildren
   '/pricing': typeof MarketingPricingRoute
   '/search': typeof MarketingSearchRoute
   '/shop': typeof MarketingShopRoute
@@ -782,6 +798,7 @@ export interface FileRoutesByTo {
   '/recipes': typeof MarketingRecipesIndexRoute
   '/support': typeof MarketingSupportIndexRoute
   '/api/feed': typeof ApiFeedIndexRoute
+  '/cart/shared/$shareToken': typeof MarketingCartSharedShareTokenRoute
   '/checkout/confirmation/$orderId': typeof MarketingCheckoutConfirmationOrderIdRoute
   '/gallery/category/$slug': typeof MarketingGalleryCategorySlugRoute
   '/help/$categorySlug/$articleSlug': typeof MarketingHelpCategorySlugArticleSlugRoute
@@ -814,9 +831,10 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/_marketing/$slug': typeof MarketingSlugRoute
   '/_marketing/archive': typeof MarketingArchiveRoute
   '/_marketing/bundles': typeof MarketingBundlesRouteWithChildren
-  '/_marketing/cart': typeof MarketingCartRoute
+  '/_marketing/cart': typeof MarketingCartRouteWithChildren
   '/_marketing/categories': typeof MarketingCategoriesRouteWithChildren
   '/_marketing/checkout': typeof MarketingCheckoutRouteWithChildren
   '/_marketing/gallery': typeof MarketingGalleryRouteWithChildren
@@ -883,6 +901,7 @@ export interface FileRoutesById {
   '/_marketing/recipes/': typeof MarketingRecipesIndexRoute
   '/_marketing/support/': typeof MarketingSupportIndexRoute
   '/api/feed/': typeof ApiFeedIndexRoute
+  '/_marketing/cart/shared/$shareToken': typeof MarketingCartSharedShareTokenRoute
   '/_marketing/checkout/confirmation_/$orderId': typeof MarketingCheckoutConfirmationOrderIdRoute
   '/_marketing/gallery/category/$slug': typeof MarketingGalleryCategorySlugRoute
   '/_marketing/help/$categorySlug/$articleSlug': typeof MarketingHelpCategorySlugArticleSlugRoute
@@ -916,6 +935,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/verify-email'
+    | '/$slug'
     | '/archive'
     | '/bundles'
     | '/cart'
@@ -984,6 +1004,7 @@ export interface FileRouteTypes {
     | '/recipes/'
     | '/support/'
     | '/api/feed/'
+    | '/cart/shared/$shareToken'
     | '/checkout/confirmation/$orderId'
     | '/gallery/category/$slug'
     | '/help/$categorySlug/$articleSlug'
@@ -1013,6 +1034,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/verify-email'
+    | '/$slug'
     | '/archive'
     | '/cart'
     | '/pricing'
@@ -1073,6 +1095,7 @@ export interface FileRouteTypes {
     | '/recipes'
     | '/support'
     | '/api/feed'
+    | '/cart/shared/$shareToken'
     | '/checkout/confirmation/$orderId'
     | '/gallery/category/$slug'
     | '/help/$categorySlug/$articleSlug'
@@ -1104,6 +1127,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/verify-email'
+    | '/_marketing/$slug'
     | '/_marketing/archive'
     | '/_marketing/bundles'
     | '/_marketing/cart'
@@ -1173,6 +1197,7 @@ export interface FileRouteTypes {
     | '/_marketing/recipes/'
     | '/_marketing/support/'
     | '/api/feed/'
+    | '/_marketing/cart/shared/$shareToken'
     | '/_marketing/checkout/confirmation_/$orderId'
     | '/_marketing/gallery/category/$slug'
     | '/_marketing/help/$categorySlug/$articleSlug'
@@ -1499,6 +1524,13 @@ declare module '@tanstack/react-router' {
       path: '/archive'
       fullPath: '/archive'
       preLoaderRoute: typeof MarketingArchiveRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/$slug': {
+      id: '/_marketing/$slug'
+      path: '/$slug'
+      fullPath: '/$slug'
+      preLoaderRoute: typeof MarketingSlugRouteImport
       parentRoute: typeof MarketingRoute
     }
     '/api/feed/': {
@@ -1844,6 +1876,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingCheckoutConfirmationOrderIdRouteImport
       parentRoute: typeof MarketingCheckoutRoute
     }
+    '/_marketing/cart/shared/$shareToken': {
+      id: '/_marketing/cart/shared/$shareToken'
+      path: '/shared/$shareToken'
+      fullPath: '/cart/shared/$shareToken'
+      preLoaderRoute: typeof MarketingCartSharedShareTokenRouteImport
+      parentRoute: typeof MarketingCartRoute
+    }
     '/api/tag/$slug/feed/': {
       id: '/api/tag/$slug/feed/'
       path: '/api/tag/$slug/feed'
@@ -1929,6 +1968,18 @@ const MarketingBundlesRouteChildren: MarketingBundlesRouteChildren = {
 
 const MarketingBundlesRouteWithChildren =
   MarketingBundlesRoute._addFileChildren(MarketingBundlesRouteChildren)
+
+interface MarketingCartRouteChildren {
+  MarketingCartSharedShareTokenRoute: typeof MarketingCartSharedShareTokenRoute
+}
+
+const MarketingCartRouteChildren: MarketingCartRouteChildren = {
+  MarketingCartSharedShareTokenRoute: MarketingCartSharedShareTokenRoute,
+}
+
+const MarketingCartRouteWithChildren = MarketingCartRoute._addFileChildren(
+  MarketingCartRouteChildren,
+)
 
 interface MarketingCategoriesRouteChildren {
   MarketingCategoriesSlugRoute: typeof MarketingCategoriesSlugRoute
@@ -2059,9 +2110,10 @@ const MarketingSupportRouteWithChildren =
   MarketingSupportRoute._addFileChildren(MarketingSupportRouteChildren)
 
 interface MarketingRouteChildren {
+  MarketingSlugRoute: typeof MarketingSlugRoute
   MarketingArchiveRoute: typeof MarketingArchiveRoute
   MarketingBundlesRoute: typeof MarketingBundlesRouteWithChildren
-  MarketingCartRoute: typeof MarketingCartRoute
+  MarketingCartRoute: typeof MarketingCartRouteWithChildren
   MarketingCategoriesRoute: typeof MarketingCategoriesRouteWithChildren
   MarketingCheckoutRoute: typeof MarketingCheckoutRouteWithChildren
   MarketingGalleryRoute: typeof MarketingGalleryRouteWithChildren
@@ -2087,9 +2139,10 @@ interface MarketingRouteChildren {
 }
 
 const MarketingRouteChildren: MarketingRouteChildren = {
+  MarketingSlugRoute: MarketingSlugRoute,
   MarketingArchiveRoute: MarketingArchiveRoute,
   MarketingBundlesRoute: MarketingBundlesRouteWithChildren,
-  MarketingCartRoute: MarketingCartRoute,
+  MarketingCartRoute: MarketingCartRouteWithChildren,
   MarketingCategoriesRoute: MarketingCategoriesRouteWithChildren,
   MarketingCheckoutRoute: MarketingCheckoutRouteWithChildren,
   MarketingGalleryRoute: MarketingGalleryRouteWithChildren,

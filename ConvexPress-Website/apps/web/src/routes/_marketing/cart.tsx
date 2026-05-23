@@ -73,10 +73,15 @@ function CartPage() {
   const clearCart = useMutation(api.commerce.cart.clear);
   const applyDiscountCode = useMutation(api.commerce.cart.applyDiscountCode);
   const removeDiscountCode = useMutation(api.commerce.cart.removeDiscountCode);
+  const enableSharing = useMutation((api as any).commerce.cart.enableSharing);
+  const disableSharing = useMutation((api as any).commerce.cart.disableSharing);
   const [discountCode, setDiscountCode] = useState("");
+  const [sharing, setSharing] = useState(false);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
 
   async function handleQuantity(itemId: string, quantity: number) {
     if (!sessionToken) return;
+    setBusyAction(`quantity:${itemId}`);
     try {
       await updateItemQuantity({ sessionToken, cartItemId: itemId, quantity });
     } catch (error) {
@@ -84,11 +89,14 @@ function CartPage() {
         (error as { data?: { message?: string } })?.data?.message ??
           "Failed to update quantity",
       );
+    } finally {
+      setBusyAction(null);
     }
   }
 
   async function handleRemove(itemId: string) {
     if (!sessionToken) return;
+    setBusyAction(`remove:${itemId}`);
     try {
       await removeItem({ sessionToken, cartItemId: itemId });
       toast.success("Item removed");
@@ -97,11 +105,14 @@ function CartPage() {
         (error as { data?: { message?: string } })?.data?.message ??
           "Failed to remove item",
       );
+    } finally {
+      setBusyAction(null);
     }
   }
 
   async function handleClear() {
     if (!sessionToken) return;
+    setBusyAction("clear");
     try {
       await clearCart({ sessionToken });
       toast.success("Cart cleared");
@@ -110,11 +121,14 @@ function CartPage() {
         (error as { data?: { message?: string } })?.data?.message ??
           "Failed to clear cart",
       );
+    } finally {
+      setBusyAction(null);
     }
   }
 
   async function handleApplyDiscount() {
     if (!sessionToken || !discountCode.trim()) return;
+    setBusyAction("discount");
     try {
       await applyDiscountCode({
         sessionToken,
@@ -127,11 +141,14 @@ function CartPage() {
         (error as { data?: { message?: string } })?.data?.message ??
           "Failed to apply discount",
       );
+    } finally {
+      setBusyAction(null);
     }
   }
 
   async function handleRemoveDiscount() {
     if (!sessionToken) return;
+    setBusyAction("discount");
     try {
       await removeDiscountCode({ sessionToken });
       toast.success("Discount removed");
@@ -140,6 +157,42 @@ function CartPage() {
         (error as { data?: { message?: string } })?.data?.message ??
           "Failed to remove discount",
       );
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function handleEnableSharing() {
+    if (!sessionToken) return;
+    setSharing(true);
+    try {
+      const result = await enableSharing({ sessionToken });
+      const shareUrl = `${window.location.origin}/cart/shared/${result.shareToken}`;
+      await navigator.clipboard?.writeText(shareUrl);
+      toast.success("Share link copied");
+    } catch (error) {
+      toast.error(
+        (error as { data?: { message?: string } })?.data?.message ??
+          "Failed to create share link",
+      );
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  async function handleDisableSharing() {
+    if (!sessionToken) return;
+    setSharing(true);
+    try {
+      await disableSharing({ sessionToken });
+      toast.success("Cart sharing disabled");
+    } catch (error) {
+      toast.error(
+        (error as { data?: { message?: string } })?.data?.message ??
+          "Failed to disable sharing",
+      );
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -239,6 +292,7 @@ function CartPage() {
                         <button
                           type="button"
                           onClick={() => void handleQuantity(item._id, item.quantity - 1)}
+                          disabled={busyAction !== null}
                           className="h-9 w-9 rounded-lg border border-border text-lg"
                         >
                           -
@@ -249,6 +303,7 @@ function CartPage() {
                         <button
                           type="button"
                           onClick={() => void handleQuantity(item._id, item.quantity + 1)}
+                          disabled={busyAction !== null}
                           className="h-9 w-9 rounded-lg border border-border text-lg"
                         >
                           +
@@ -256,9 +311,10 @@ function CartPage() {
                         <button
                           type="button"
                           onClick={() => void handleRemove(item._id)}
+                          disabled={busyAction !== null}
                           className="ml-3 text-sm text-destructive hover:underline"
                         >
-                          Remove
+                          {busyAction === `remove:${item._id}` ? "Removing..." : "Remove"}
                         </button>
                       </div>
                     </div>
@@ -287,9 +343,10 @@ function CartPage() {
                     <button
                       type="button"
                       onClick={() => void handleRemoveDiscount()}
+                      disabled={busyAction !== null}
                       className="inline-flex text-sm text-primary hover:underline"
                     >
-                      Remove discount
+                      {busyAction === "discount" ? "Removing..." : "Remove discount"}
                     </button>
                   </div>
                 ) : (
@@ -303,9 +360,10 @@ function CartPage() {
                     <button
                       type="button"
                       onClick={() => void handleApplyDiscount()}
+                      disabled={busyAction !== null || !discountCode.trim()}
                       className="inline-flex w-full items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-medium text-foreground"
                     >
-                      Apply discount
+                      {busyAction === "discount" ? "Applying..." : "Apply discount"}
                     </button>
                   </div>
                 )}
@@ -360,10 +418,29 @@ function CartPage() {
                 <button
                   type="button"
                   onClick={() => void handleClear()}
+                  disabled={busyAction !== null}
                   className="inline-flex w-full items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-medium text-foreground"
                 >
-                  Clear cart
+                  {busyAction === "clear" ? "Clearing..." : "Clear cart"}
                 </button>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleEnableSharing()}
+                    disabled={sharing}
+                    className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/60 disabled:opacity-50"
+                  >
+                    Copy share link
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDisableSharing()}
+                    disabled={sharing}
+                    className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/60 disabled:opacity-50"
+                  >
+                    Disable sharing
+                  </button>
+                </div>
               </div>
             </aside>
           </div>

@@ -299,6 +299,32 @@ export const get = query({
   },
 });
 
+// ─── Get Public ─────────────────────────────────────────────────────────────
+
+/**
+ * Public-safe media lookup for visitor-facing chrome and content renderers.
+ * Returns only fields needed to render an asset; no uploader or private meta.
+ */
+export const getPublic = query({
+  args: { mediaId: v.id("media") },
+  handler: async (ctx, args) => {
+    const media = await ctx.db.get(args.mediaId);
+    if (!media || media.status === "trashed") return null;
+
+    const freshUrl = media.storageId ? await ctx.storage.getUrl(media.storageId) : null;
+    return {
+      _id: media._id,
+      title: media.title,
+      altText: media.altText,
+      mediaType: media.mediaType,
+      mimeType: media.mimeType,
+      width: media.width,
+      height: media.height,
+      url: freshUrl ?? media.url,
+    };
+  },
+});
+
 // ─── Get By IDs ─────────────────────────────────────────────────────────────
 
 /**

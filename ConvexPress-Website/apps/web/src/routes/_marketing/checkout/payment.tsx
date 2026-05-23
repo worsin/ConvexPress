@@ -7,6 +7,10 @@ import { CreditCard, FileText, Truck } from "lucide-react";
 
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
+import {
+  CheckoutProgress,
+  CheckoutStatusNotice,
+} from "@/components/commerce/CheckoutProgress";
 
 export const Route = createFileRoute("/_marketing/checkout/payment")({
   component: CheckoutPaymentPage,
@@ -46,6 +50,7 @@ function CheckoutPaymentPage() {
     [settings?.commerceConfig?.paymentMethods],
   );
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (session?.selectedPaymentMethodCode) {
@@ -69,6 +74,7 @@ function CheckoutPaymentPage() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       await updateSession({
         sessionToken,
@@ -80,6 +86,8 @@ function CheckoutPaymentPage() {
         (error as { data?: { message?: string } })?.data?.message ??
           "Failed to save payment method",
       );
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -91,6 +99,7 @@ function CheckoutPaymentPage() {
           Select how you would like to pay for this order.
         </p>
       </div>
+      <CheckoutProgress currentStep="payment" />
 
       {!isReady || session === undefined ? (
         <div className="h-48 animate-pulse rounded-[2rem] bg-muted" />
@@ -107,7 +116,11 @@ function CheckoutPaymentPage() {
           onSubmit={(event) => void handleContinue(event)}
           className="rounded-[2rem] border border-border bg-card p-8 shadow-sm"
         >
-          <div className="space-y-3">
+          <CheckoutStatusNotice
+            status={session.status}
+            failureReason={session.failureReason}
+          />
+          <div className="mt-4 space-y-3">
             {paymentMethods.map((method: any) => {
               const Icon = METHOD_ICONS[method.code];
               const isSelected = paymentMethod === method.code;
@@ -156,9 +169,10 @@ function CheckoutPaymentPage() {
 
           <button
             type="submit"
-            className="mt-6 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground"
+            disabled={isSubmitting || !paymentMethod}
+            className="mt-6 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-50"
           >
-            Continue to review
+            {isSubmitting ? "Saving..." : "Continue to review"}
           </button>
         </form>
       )}

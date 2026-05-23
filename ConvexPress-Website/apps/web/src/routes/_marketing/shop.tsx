@@ -133,9 +133,9 @@ function ShopContent() {
   return (
     <div className="flex flex-col gap-8">
       {/* Hero header */}
-      <section className="grid gap-6 rounded-[2rem] border border-border/60 bg-gradient-to-br from-emerald-50 via-white to-cyan-50 p-8 shadow-sm">
+      <section className="grid gap-6 rounded-[2rem] border border-border/60 bg-card p-8 shadow-sm">
         <div className="flex flex-col gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
+          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
             Shop
           </span>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
@@ -241,21 +241,21 @@ function ShopContent() {
           {hasActiveFilters && (
             <div className="mb-6 flex flex-wrap gap-2">
               {categorySlug && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-900">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                   Category:{" "}
                   {categories?.find((c) => c.slug === categorySlug)?.name ??
                     categorySlug}
                   <button
                     type="button"
                     onClick={() => handleCategoryFilter(undefined)}
-                    className="rounded-full p-0.5 hover:bg-emerald-200"
+                    className="rounded-full p-0.5 hover:bg-primary/20"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </span>
               )}
               {searchParam && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-900">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
                   Search: {searchParam}
                   <button
                     type="button"
@@ -269,7 +269,7 @@ function ShopContent() {
                         })) as any,
                       });
                     }}
-                    className="rounded-full p-0.5 hover:bg-blue-200"
+                    className="rounded-full p-0.5 hover:bg-secondary/80"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -477,8 +477,8 @@ function ProductCard({
               sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
             />
           ) : (
-            <div className="flex h-full items-center justify-center bg-gradient-to-br from-emerald-100 to-cyan-100">
-              <ShoppingBag className="h-10 w-10 text-emerald-600/40" />
+            <div className="flex h-full items-center justify-center bg-muted">
+              <ShoppingBag className="h-10 w-10 text-muted-foreground/40" />
             </div>
           )}
         </div>
@@ -490,7 +490,7 @@ function ProductCard({
               {(product.categories ?? []).slice(0, 3).map((cat) => (
                 <span
                   key={cat._id}
-                  className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-900"
+                  className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
                 >
                   {cat.name}
                 </span>
@@ -517,7 +517,7 @@ function ProductCard({
                   </span>
                 )}
                 <span
-                  className={`text-lg font-semibold ${hasDiscount ? "text-red-600" : "text-foreground"}`}
+                  className={`text-lg font-semibold ${hasDiscount ? "text-destructive" : "text-foreground"}`}
                 >
                   {formatter.format(product.displayPrice / 100)}
                 </span>

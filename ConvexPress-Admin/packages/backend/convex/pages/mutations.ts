@@ -59,6 +59,7 @@ import {
   getMaxSubtreeDepth,
   MAX_PAGE_DEPTH,
 } from "./internals";
+import { validateBlocks, type StoredBlock } from "../blocks/helpers";
 
 // ─── Create ──────────────────────────────────────────────────────────────────
 
@@ -156,9 +157,20 @@ export const create = mutation({
       sources: args.sources,
       tableOfContents: args.tableOfContents,
       pagePrompt: args.pagePrompt,
+      contentMode: args.contentMode ?? "blocks",
+      blocks: args.blocks,
+      blocksVersion: args.blocksVersion ?? (args.blocks ? 1 : undefined),
+      blocksRevision: args.blocksRevision ?? (args.blocks ? 1 : undefined),
+      layoutId: args.layoutId || undefined,
+      hideHeader: args.hideHeader,
+      hideFooter: args.hideFooter,
       createdAt: now,
       updatedAt: now,
     };
+
+    if (args.blocks) {
+      validateBlocks(args.blocks as StoredBlock[]);
+    }
 
     // ── Insert record ─────────────────────────────────────────────────────
     // NOTE: The `as any` cast is required because pageData is built dynamically
@@ -328,6 +340,19 @@ export const update = mutation({
       changes.push("template");
     }
 
+    if (args.layoutId !== undefined && args.layoutId !== page.layoutId) {
+      patch.layoutId = args.layoutId || undefined;
+      changes.push("layoutId");
+    }
+    if (args.hideHeader !== undefined && args.hideHeader !== page.hideHeader) {
+      patch.hideHeader = args.hideHeader;
+      changes.push("hideHeader");
+    }
+    if (args.hideFooter !== undefined && args.hideFooter !== page.hideFooter) {
+      patch.hideFooter = args.hideFooter;
+      changes.push("hideFooter");
+    }
+
     if (args.featuredImageId !== undefined && args.featuredImageId !== page.featuredImageId) {
       patch.featuredImageId = args.featuredImageId;
       changes.push("featuredImage");
@@ -372,6 +397,26 @@ export const update = mutation({
     }
     if (args.pagePrompt !== undefined) {
       patch.pagePrompt = args.pagePrompt;
+    }
+    if (args.contentMode !== undefined && args.contentMode !== page.contentMode) {
+      patch.contentMode = args.contentMode;
+      changes.push("contentMode");
+    }
+    if (args.blocks !== undefined) {
+      validateBlocks(args.blocks as StoredBlock[]);
+      patch.blocks = args.blocks;
+      patch.blocksVersion = args.blocksVersion ?? page.blocksVersion ?? 1;
+      patch.blocksRevision =
+        args.blocksRevision ?? ((page.blocksRevision as number | undefined) ?? 0) + 1;
+      changes.push("blocks");
+    }
+    if (args.blocksVersion !== undefined && args.blocks === undefined) {
+      patch.blocksVersion = args.blocksVersion;
+      changes.push("blocksVersion");
+    }
+    if (args.blocksRevision !== undefined && args.blocks === undefined) {
+      patch.blocksRevision = args.blocksRevision;
+      changes.push("blocksRevision");
     }
 
     // ── Schedule auto-publish for future-dated pages ──────────────────────

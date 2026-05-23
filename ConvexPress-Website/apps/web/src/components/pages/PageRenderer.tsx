@@ -22,6 +22,7 @@ import { FullWidthTemplate } from "@/templates/FullWidthTemplate";
 import { SidebarLeftTemplate } from "@/templates/SidebarLeftTemplate";
 import { LandingTemplate } from "@/templates/LandingTemplate";
 import { BlankTemplate } from "@/templates/BlankTemplate";
+import { NoSidebarPageTemplate } from "@/templates/NoSidebarPageTemplate";
 
 interface PageRendererProps {
   page: PageDetail;
@@ -41,6 +42,9 @@ export function PageRenderer({ page, className }: PageRendererProps) {
     case "sidebar-right":
       // sidebar-right is the same layout as default (right sidebar)
       return <DefaultTemplate page={page} className={className} />;
+
+    case "no-sidebar":
+      return <NoSidebarPageTemplate page={page} className={className} />;
 
     case "landing":
       return <LandingTemplate page={page} className={className} />;

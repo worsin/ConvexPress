@@ -98,6 +98,12 @@ export interface PublicSettings {
     galleryEnabled?: boolean;
   };
 
+  // Block editor runtime config. The front-end renderer uses this to
+  // suppress blocks that an admin has disabled in Settings -> Blocks.
+  blocksConfig: {
+    disabledBlockNames: string[];
+  } | null;
+
   // Commerce runtime config (currency, tax, shipping toggles, etc.)
   commerceConfig: {
     storeName?: string;

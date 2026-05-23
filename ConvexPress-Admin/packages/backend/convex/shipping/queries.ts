@@ -102,10 +102,16 @@ export const listCheckoutQuotes = query({
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
 
-    const checkoutSession = await ctx.db
+    const checkoutSessions = await ctx.db
       .query("commerce_checkout_sessions")
       .withIndex("by_session", (q) => q.eq("sessionToken", args.sessionToken))
-      .unique();
+      .collect();
+    const checkoutSession =
+      checkoutSessions.find((session) =>
+        ["draft", "collecting_shipping", "collecting_payment", "ready_for_review", "payment_pending"].includes(session.status),
+      ) ??
+      checkoutSessions[0] ??
+      null;
 
     if (!checkoutSession) return [];
 
@@ -116,10 +122,11 @@ export const listCheckoutQuotes = query({
       .collect()).filter((quote) => Number(quote.expiresAt ?? 0) > now);
 
     quotes.sort((a, b) => {
-      if (a.isBestValue !== b.isBestValue) return a.isBestValue ? -1 : 1;
       if (a.isCheapest !== b.isCheapest) return a.isCheapest ? -1 : 1;
+      if (a.amount !== b.amount) return a.amount - b.amount;
+      if (a.isBestValue !== b.isBestValue) return a.isBestValue ? -1 : 1;
       if (a.isFastest !== b.isFastest) return a.isFastest ? -1 : 1;
-      return a.amount - b.amount;
+      return (a.estimatedDaysMax ?? 9999) - (b.estimatedDaysMax ?? 9999);
     });
 
     return quotes;

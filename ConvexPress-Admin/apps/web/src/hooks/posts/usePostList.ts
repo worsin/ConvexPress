@@ -7,6 +7,7 @@
 
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { useAuth } from "@/lib/auth-context";
 import { SORT_FIELD_MAP } from "@/lib/posts/constants";
 import type { PostListResult, PostWithAuthor } from "@/lib/posts/types";
@@ -56,6 +57,16 @@ export function usePostList(params: UsePostListParams) {
   if (params.authorId) {
     queryArgs.authorId = params.authorId;
   }
+  if (params.categoryId) {
+    queryArgs.categoryId = params.categoryId as Id<"terms">;
+  }
+  if (params.dateRange) {
+    const range = monthRangeToTimestamps(params.dateRange);
+    if (range) {
+      queryArgs.dateFrom = range.dateFrom;
+      queryArgs.dateTo = range.dateTo;
+    }
+  }
 
   // Handle "mine" filter by passing current user's ID as authorId (H10 fix)
   if (params.status === "mine" && user?._id) {
@@ -81,5 +92,19 @@ export function usePostList(params: UsePostListParams) {
     data: paginatedResult,
     isLoading: result === undefined,
     raw: result,
+  };
+}
+
+function monthRangeToTimestamps(value: string) {
+  const match = /^(\d{4})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1;
+  if (!Number.isFinite(year) || monthIndex < 0 || monthIndex > 11) return null;
+  const start = new Date(year, monthIndex, 1);
+  const end = new Date(year, monthIndex + 1, 1);
+  return {
+    dateFrom: start.getTime(),
+    dateTo: end.getTime() - 1,
   };
 }

@@ -11,7 +11,7 @@ const DEFAULT_HEADER_CONFIG: HeaderConfig = {
   layout: { style: "standard", sticky: "always", background: "solid", height: "normal", bottomBorder: "subtle" },
   topBar: { enabled: false, leftContent: "contact", rightContent: "social", email: "", phone: "", announcementText: "" },
   logo: { enabled: true, showImage: true, showTitle: true, showTagline: false, size: "medium" },
-  navigation: { enabled: true, menuSource: "primary", style: "inline", dropdownStyle: "flyout" },
+  navigation: { enabled: true, menuSource: "primary", customLocation: "header", style: "inline", dropdownStyle: "flyout" },
   search: { enabled: true, variant: "inline", placeholder: "Search..." },
   cta: { enabled: false, label: "Get Started", url: "/register", style: "filled" },
   userMenu: { enabled: true, guestDisplay: "login-register", loggedInDisplay: "avatar-dropdown", dropdownPreset: "dashboard-profile-logout" },

@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import {
+  Link,
+  Outlet,
+  createFileRoute,
+  useLocation,
+} from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { toast } from "sonner";
 
 import { api } from "@backend/convex/_generated/api";
+import { CommerceSettingsTabs } from "@/components/commerce/CommerceSettingsTabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/_admin/commerce/settings")
 });
 
 function CommerceSettingsPage() {
+  const location = useLocation();
   const settings = useQuery(api.settings.queries.getBySection, {
     section: "commerce.general" as any,
   }) as any;
@@ -130,6 +137,21 @@ function CommerceSettingsPage() {
     }
   }
 
+  if (location.pathname !== "/commerce/settings") {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Commerce Settings</h1>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Manage storefront, shipping, and tax settings.
+          </p>
+        </div>
+        <CommerceSettingsTabs />
+        <Outlet />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -138,6 +160,8 @@ function CommerceSettingsPage() {
           Manage storefront-wide defaults used by catalog and checkout.
         </p>
       </div>
+
+      <CommerceSettingsTabs />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-3xl border border-border bg-card p-6">
@@ -315,12 +339,6 @@ function CommerceSettingsPage() {
           className="ml-3 inline-flex rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
         >
           Open Shipping Settings
-        </Link>
-        <Link
-          to={"/commerce/returns/settings" as any}
-          className="ml-3 inline-flex rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          Open Returns Settings
         </Link>
       </div>
     </div>

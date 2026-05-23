@@ -268,6 +268,19 @@ export const mergeCartArgs = {
   sessionToken: v.string(),
 };
 
+export const shareCartArgs = {
+  sessionToken: v.string(),
+};
+
+export const getSharedCartArgs = {
+  shareToken: v.string(),
+};
+
+export const copySharedCartArgs = {
+  shareToken: v.string(),
+  sessionToken: v.string(),
+};
+
 export const markAbandonedCartsArgs = {
   olderThanMs: v.optional(v.number()),
   limit: v.optional(v.number()),
@@ -324,6 +337,16 @@ export const listCheckoutShippingQuotesArgs = {
 
 export const completeCheckoutArgs = {
   sessionToken: v.string(),
+};
+
+export const abandonCheckoutSessionArgs = {
+  sessionToken: v.string(),
+  reason: v.optional(v.string()),
+};
+
+export const listAbandonedCheckoutSessionsArgs = {
+  olderThanMs: v.optional(v.number()),
+  limit: v.optional(v.number()),
 };
 
 export const listOrdersArgs = {

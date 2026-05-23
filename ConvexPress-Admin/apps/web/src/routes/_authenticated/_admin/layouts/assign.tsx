@@ -174,7 +174,7 @@ function LayoutAssignmentsPage() {
   const isLoading = layouts === undefined || currentSettings === undefined;
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
+    <div className="w-full space-y-6 p-6">
       <DeprecatedSystemBanner />
       {/* Page header */}
       <div>

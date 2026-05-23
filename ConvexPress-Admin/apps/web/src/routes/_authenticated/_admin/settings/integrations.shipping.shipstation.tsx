@@ -125,7 +125,7 @@ function ShipStationIntegrationPage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl p-6 space-y-8">
+    <div className="w-full space-y-8 p-6">
       <div className="space-y-2">
         <h1 className="text-2xl font-bold text-foreground">ShipStation</h1>
         <p className="text-sm text-muted-foreground">

@@ -99,6 +99,7 @@ export interface HeaderConfig {
   navigation: {
     enabled: boolean;
     menuSource: "primary" | "secondary" | "custom";
+    customLocation?: string;
     style: "inline" | "pills" | "underline";
     dropdownStyle: "flyout" | "mega";
   };
@@ -131,7 +132,128 @@ export interface HeaderConfig {
 
 // ─── Footer Config (from admin settings) ───────────────────────────────────
 
+// ── Footer Rows v2 (block-style builder) ─────────────────────────────────────
+
+export type FooterCellType =
+  | "brand"
+  | "contact"
+  | "copyright"
+  | "divider"
+  | "html"
+  | "image"
+  | "links"
+  | "nav"
+  | "newsletter"
+  | "payments"
+  | "social"
+  | "text";
+
+export type FooterAlignment = "left" | "center" | "right";
+
+export interface FooterCellBase {
+  type: FooterCellType;
+  heading?: string;
+  alignment?: FooterAlignment;
+}
+
+export interface FooterTextCell extends FooterCellBase {
+  type: "text";
+  body: string;
+}
+export interface FooterLinksCell extends FooterCellBase {
+  type: "links";
+  items: Array<{ label: string; url: string; target?: "_self" | "_blank"; rel?: string }>;
+}
+export interface FooterNavCell extends FooterCellBase {
+  type: "nav";
+  menuLocation: string;
+}
+export interface FooterImageCell extends FooterCellBase {
+  type: "image";
+  mediaId: string | null;
+  alt: string;
+  href?: string;
+  width?: number;
+}
+export interface FooterSocialCell extends FooterCellBase {
+  type: "social";
+  style: "icons" | "icons-and-labels" | "labels";
+}
+export interface FooterNewsletterCell extends FooterCellBase {
+  type: "newsletter";
+  subtext: string;
+  buttonText: string;
+  audienceId?: string;
+}
+export interface FooterContactCell extends FooterCellBase {
+  type: "contact";
+  address: string;
+  phone: string;
+  email: string;
+  showIcons: boolean;
+}
+export interface FooterBrandCell extends FooterCellBase {
+  type: "brand";
+  showLogo: boolean;
+  showTagline: boolean;
+  showDescription: boolean;
+  description: string;
+}
+export interface FooterHtmlCell extends FooterCellBase {
+  type: "html";
+  rawHtml: string;
+}
+export interface FooterDividerCell extends FooterCellBase {
+  type: "divider";
+  thickness: "thin" | "medium" | "thick";
+}
+export interface FooterCopyrightCell extends FooterCellBase {
+  type: "copyright";
+  text: string;
+  insertYear: boolean;
+}
+export interface FooterPaymentsCell extends FooterCellBase {
+  type: "payments";
+  methods: string[];
+}
+
+export type FooterCell =
+  | FooterTextCell
+  | FooterLinksCell
+  | FooterNavCell
+  | FooterImageCell
+  | FooterSocialCell
+  | FooterNewsletterCell
+  | FooterContactCell
+  | FooterBrandCell
+  | FooterHtmlCell
+  | FooterDividerCell
+  | FooterCopyrightCell
+  | FooterPaymentsCell;
+
+export interface FooterColumn {
+  id: string;
+  width?: number;
+  alignment?: FooterAlignment;
+  cell: FooterCell;
+}
+
+export interface FooterRow {
+  id: string;
+  heading?: string;
+  background: "default" | "muted" | "accent" | "contrast" | "transparent";
+  padding: "none" | "compact" | "normal" | "spacious";
+  container: "narrow" | "default" | "wide" | "full";
+  alignment?: FooterAlignment;
+  topBorder?: "none" | "subtle" | "bold" | "accent";
+  columns: FooterColumn[];
+}
+
 export interface FooterConfig {
+  /** v2 rows builder. Non-empty triggers the rows renderer instead of legacy. */
+  rows?: FooterRow[];
+
+  // ── Legacy section-toggle shape (kept for backward compat) ────────────────
   layout: {
     columns: "1" | "2" | "3" | "4" | "centered" | "minimal";
     background: "dark" | "match-site" | "accent" | "image";

@@ -22,6 +22,8 @@ import type {
   HeroFields,
   TopicFields,
   SummaryFields,
+  ContentMode,
+  CompositionBlock,
 } from "@/types/editor";
 import { DEFAULT_EDITOR_FORM_VALUES } from "@/types/editor";
 
@@ -29,8 +31,9 @@ import { DEFAULT_EDITOR_FORM_VALUES } from "@/types/editor";
  * TypeScript type matching the Convex `posts.mutations.update` args.
  * Eliminates the need for `as any` casts on mutation calls.
  */
-interface PostUpdateArgs {
+interface EditorUpdateArgs {
   postId: Id<"posts">;
+  pageId?: Id<"posts">;
   title?: string;
   content?: string;
   excerpt?: string;
@@ -42,8 +45,13 @@ interface PostUpdateArgs {
   isSticky?: boolean;
   slug?: string;
   menuOrder?: number;
+  parentId?: Id<"posts"> | null;
+  pageTemplate?: string;
   authorId?: Id<"users">;
   scheduledAt?: number;
+  layoutId?: string;
+  hideHeader?: boolean;
+  hideFooter?: boolean;
   categoryIds?: Id<"terms">[];
   tagIds?: Id<"terms">[];
   // Structured content fields
@@ -53,6 +61,10 @@ interface PostUpdateArgs {
   sources?: string;
   tableOfContents?: string;
   pagePrompt?: string;
+  contentMode?: ContentMode;
+  blocks?: CompositionBlock[];
+  blocksVersion?: number;
+  blocksRevision?: number;
 }
 
 /** Zod validation schema for editor form */
@@ -89,6 +101,11 @@ export const editorFormSchema = z
     categoryIds: z.array(z.string()),
     tagIds: z.array(z.string()),
     menuOrder: z.number().int(),
+    parentId: z.string(),
+    pageTemplate: z.string(),
+    layoutId: z.string(),
+    hideHeader: z.boolean(),
+    hideFooter: z.boolean(),
     // Structured content fields
     hero: z.object({
       title: z.string(),
@@ -113,6 +130,18 @@ export const editorFormSchema = z
     sources: z.string(),
     tableOfContents: z.string(),
     pagePrompt: z.string(),
+    contentMode: z.enum(["article", "blocks"]),
+    blocks: z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      version: z.number(),
+      attrs: z.record(z.string(), z.unknown()),
+      innerBlocks: z.array(z.unknown()).optional(),
+      layout: z.record(z.string(), z.unknown()).optional(),
+      lock: z.record(z.string(), z.unknown()).optional(),
+    })),
+    blocksVersion: z.number(),
+    blocksRevision: z.number(),
   })
   .refine(
     (data) =>
@@ -141,14 +170,18 @@ export function useEditorForm(options: UseEditorFormOptions) {
   const updatePost = useMutation(api.posts.mutations.update);
   const publishPost = useMutation(api.posts.mutations.publish);
   const trashPost = useMutation(api.posts.mutations.trash);
+  const updatePage = useMutation(api.pages.mutations.update);
+  const publishPage = useMutation(api.pages.mutations.publish);
+  const trashPage = useMutation(api.pages.mutations.trash);
 
   const defaultValues = useMemo<EditorFormValues>(
     () => ({
       ...DEFAULT_EDITOR_FORM_VALUES,
+      contentMode: contentType === "page" ? "blocks" : "article",
       commentStatus: defaultCommentStatus ?? "open",
       ...initialData,
     }),
-    [initialData, defaultCommentStatus],
+    [contentType, initialData, defaultCommentStatus],
   );
 
   const form = useForm<
@@ -176,11 +209,11 @@ export function useEditorForm(options: UseEditorFormOptions) {
    * Returns a properly typed object matching the Convex mutation args.
    */
   const buildUpdateArgs = useCallback(
-    (overrides?: Partial<EditorFormValues>): PostUpdateArgs => {
+    (overrides?: Partial<EditorFormValues>): EditorUpdateArgs => {
       const values = { ...form.state.values, ...overrides };
-      const args: PostUpdateArgs = {
-        postId: postId as Id<"posts">,
-      };
+      const id = postId as Id<"posts">;
+      const args: EditorUpdateArgs =
+        contentType === "page" ? { postId: id, pageId: id } : { postId: id };
 
       // Always send all editable fields so the backend applies the latest state
       if (values.title !== undefined) args.title = values.title;
@@ -193,6 +226,13 @@ export function useEditorForm(options: UseEditorFormOptions) {
       if (values.commentStatus) args.commentStatus = values.commentStatus;
       if (values.isSticky !== undefined) args.isSticky = values.isSticky;
       if (values.menuOrder !== undefined) args.menuOrder = values.menuOrder;
+      if (contentType === "page") {
+        args.parentId = values.parentId ? (values.parentId as Id<"posts">) : null;
+        args.pageTemplate = values.pageTemplate || "default";
+      }
+      if (values.layoutId !== undefined) args.layoutId = values.layoutId;
+      if (values.hideHeader !== undefined) args.hideHeader = values.hideHeader;
+      if (values.hideFooter !== undefined) args.hideFooter = values.hideFooter;
       if (values.featuredImageId !== undefined && values.featuredImageId) {
         args.featuredImageId = values.featuredImageId as Id<"media">;
       }
@@ -240,17 +280,35 @@ export function useEditorForm(options: UseEditorFormOptions) {
       if (values.sources !== undefined) args.sources = values.sources || undefined;
       if (values.tableOfContents !== undefined) args.tableOfContents = values.tableOfContents || undefined;
       if (values.pagePrompt !== undefined) args.pagePrompt = values.pagePrompt || undefined;
+      if (values.contentMode !== undefined) args.contentMode = values.contentMode;
+      if (values.blocks !== undefined) {
+        args.blocks = values.blocks;
+        args.blocksVersion = values.blocksVersion;
+        args.blocksRevision = values.blocksRevision;
+      }
 
       return args;
     },
-    [form, postId],
+    [contentType, form, postId],
+  );
+
+  const runUpdate = useCallback(
+    async (args: EditorUpdateArgs) => {
+      if (contentType === "page") {
+        const { pageId, postId: _postId, categoryIds: _categoryIds, tagIds: _tagIds, isSticky: _isSticky, authorId: _authorId, ...pageArgs } = args;
+        return updatePage({ ...pageArgs, pageId: pageId ?? args.postId } as Parameters<typeof updatePage>[0]);
+      }
+      const { pageId: _pageId, parentId: _parentId, pageTemplate: _pageTemplate, ...postArgs } = args;
+      return updatePost(postArgs as Parameters<typeof updatePost>[0]);
+    },
+    [contentType, updatePage, updatePost],
   );
 
   const handleSaveDraft = useCallback(() => {
     if (!postId) return;
     startTransition(async () => {
       try {
-        await updatePost(buildUpdateArgs({ status: "draft" }));
+        await runUpdate(buildUpdateArgs({ status: "draft" }));
         form.setFieldValue("status", "draft");
         toast.success("Draft saved.");
       } catch (error: unknown) {
@@ -258,15 +316,19 @@ export function useEditorForm(options: UseEditorFormOptions) {
         console.error("Save draft error:", error);
       }
     });
-  }, [form, postId, updatePost, buildUpdateArgs, startTransition]);
+  }, [form, postId, runUpdate, buildUpdateArgs, startTransition]);
 
   const handlePublish = useCallback(() => {
     if (!postId) return;
     startTransition(async () => {
       try {
         // First update with latest form values, then publish
-        await updatePost(buildUpdateArgs());
-        await publishPost({ postId: postId as Id<"posts"> });
+        await runUpdate(buildUpdateArgs());
+        if (contentType === "page") {
+          await publishPage({ pageId: postId as Id<"posts"> });
+        } else {
+          await publishPost({ postId: postId as Id<"posts"> });
+        }
         form.setFieldValue("status", "publish");
         toast.success(
           contentType === "post" ? "Post published." : "Page published.",
@@ -276,13 +338,13 @@ export function useEditorForm(options: UseEditorFormOptions) {
         console.error("Publish error:", error);
       }
     });
-  }, [form, contentType, postId, updatePost, publishPost, buildUpdateArgs, startTransition]);
+  }, [form, contentType, postId, runUpdate, publishPage, publishPost, buildUpdateArgs, startTransition]);
 
   const handleUpdate = useCallback(() => {
     if (!postId) return;
     startTransition(async () => {
       try {
-        await updatePost(buildUpdateArgs());
+        await runUpdate(buildUpdateArgs());
         toast.success(
           contentType === "post" ? "Post updated." : "Page updated.",
         );
@@ -291,13 +353,13 @@ export function useEditorForm(options: UseEditorFormOptions) {
         console.error("Update error:", error);
       }
     });
-  }, [contentType, postId, updatePost, buildUpdateArgs, startTransition]);
+  }, [contentType, postId, runUpdate, buildUpdateArgs, startTransition]);
 
   const handleSubmitForReview = useCallback(() => {
     if (!postId) return;
     startTransition(async () => {
       try {
-        await updatePost(buildUpdateArgs({ status: "pending" }));
+        await runUpdate(buildUpdateArgs({ status: "pending" }));
         form.setFieldValue("status", "pending");
         toast.success("Submitted for review.");
       } catch (error: unknown) {
@@ -305,14 +367,14 @@ export function useEditorForm(options: UseEditorFormOptions) {
         console.error("Submit for review error:", error);
       }
     });
-  }, [form, postId, updatePost, buildUpdateArgs, startTransition]);
+  }, [form, postId, runUpdate, buildUpdateArgs, startTransition]);
 
   const handleSchedule = useCallback(
     (date: Date) => {
       if (!postId) return;
       startTransition(async () => {
         try {
-          await updatePost(
+          await runUpdate(
             buildUpdateArgs({
               status: "future",
               scheduledFor: date,
@@ -327,14 +389,18 @@ export function useEditorForm(options: UseEditorFormOptions) {
         }
       });
     },
-    [form, postId, updatePost, buildUpdateArgs, startTransition],
+    [form, postId, runUpdate, buildUpdateArgs, startTransition],
   );
 
   const handleTrash = useCallback(() => {
     if (!postId) return;
     startTransition(async () => {
       try {
-        await trashPost({ postId: postId as Id<"posts"> });
+        if (contentType === "page") {
+          await trashPage({ pageId: postId as Id<"posts"> });
+        } else {
+          await trashPost({ postId: postId as Id<"posts"> });
+        }
         form.setFieldValue("status", "trash");
         toast.success(
           contentType === "post"
@@ -346,7 +412,7 @@ export function useEditorForm(options: UseEditorFormOptions) {
         console.error("Trash error:", error);
       }
     });
-  }, [form, contentType, postId, trashPost, startTransition]);
+  }, [form, contentType, postId, trashPage, trashPost, startTransition]);
 
   const resetForm = useCallback(
     (data: EditorFormValues) => {

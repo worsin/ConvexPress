@@ -83,7 +83,7 @@ function StripeIntegrationPage() {
       : "/webhooks/stripe";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="w-full space-y-6 p-6">
       <IntegrationHeader
         name="Stripe"
         description="Credit card payments. Enter your Stripe keys below; they're stored encrypted and never shown in plaintext after save."

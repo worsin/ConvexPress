@@ -75,7 +75,7 @@ function ClerkIntegrationPage() {
       : "/webhooks/clerk";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="w-full space-y-6 p-6">
       <IntegrationHeader
         name="Clerk"
         description="Clerk authentication — used by the public-facing website for sign-up, sign-in, and session management."

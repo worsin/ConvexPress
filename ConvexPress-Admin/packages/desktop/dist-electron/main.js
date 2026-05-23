@@ -343,6 +343,24 @@ var AppUpdater = class extends import_node_events.EventEmitter {
           shell: true
         });
         this.emit("update-progress", {
+          phase: "regenerating-extensions",
+          message: "Regenerating extension index...",
+          percent: 50
+        });
+        try {
+          await execFileAsync(
+            pm,
+            ["run", "--filter", "@convexpress-admin/backend", "codegen:extensions"],
+            { cwd: this.installPath, shell: true }
+          );
+        } catch (extErr) {
+          this.emit("update-progress", {
+            phase: "regenerating-extensions",
+            message: `Extension regen warning: ${extErr instanceof Error ? extErr.message : String(extErr)}`,
+            percent: 55
+          });
+        }
+        this.emit("update-progress", {
           phase: "building",
           message: "Rebuilding application...",
           percent: 60
@@ -984,7 +1002,7 @@ app5.whenReady().then(async () => {
       "script-src 'self' file: 'unsafe-inline'",
       "style-src 'self' file: 'unsafe-inline'",
       "connect-src 'self' https://*.convex.cloud https://*.convex.dev https://*.convex.site wss://*.convex.cloud wss://*.convex.dev https://convex.cloud https://convex.dev",
-      "img-src 'self' file: data: blob: https://*.convex.cloud https://*.convex.site https://convex.cloud",
+      "img-src 'self' file: data: blob: https://*.convex.cloud https://*.convex.site https://convex.cloud https://secure.gravatar.com",
       "media-src 'self' file: data: blob: https://*.convex.cloud https://*.convex.site",
       "font-src 'self' file: data:",
       "frame-ancestors 'none'"
@@ -993,7 +1011,7 @@ app5.whenReady().then(async () => {
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
       "connect-src 'self' http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:* https://*.convex.cloud https://*.convex.dev https://*.convex.site wss://*.convex.cloud wss://*.convex.dev https://convex.cloud https://convex.dev",
-      "img-src 'self' data: blob: http://localhost:* http://127.0.0.1:* https://*.convex.cloud https://*.convex.site https://convex.cloud",
+      "img-src 'self' data: blob: http://localhost:* http://127.0.0.1:* https://*.convex.cloud https://*.convex.site https://convex.cloud https://secure.gravatar.com",
       "media-src 'self' data: blob: http://localhost:* http://127.0.0.1:* https://*.convex.cloud https://*.convex.site",
       "font-src 'self' data:",
       "frame-ancestors 'none'",

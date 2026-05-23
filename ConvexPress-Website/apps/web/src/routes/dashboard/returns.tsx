@@ -45,37 +45,37 @@ const STATUS_CONFIG: Record<
 > = {
   requested: {
     label: "Requested",
-    style: "bg-amber-100 text-amber-800",
+    style: "bg-secondary text-secondary-foreground",
     icon: Clock,
   },
   approved: {
     label: "Approved",
-    style: "bg-blue-100 text-blue-800",
+    style: "bg-primary/10 text-primary",
     icon: CheckCircle2,
   },
   rejected: {
     label: "Rejected",
-    style: "bg-red-100 text-red-800",
+    style: "bg-destructive/10 text-destructive",
     icon: XCircle,
   },
   received: {
     label: "Received",
-    style: "bg-indigo-100 text-indigo-800",
+    style: "bg-secondary text-secondary-foreground",
     icon: PackageCheck,
   },
   refund_pending: {
     label: "Refund Pending",
-    style: "bg-orange-100 text-orange-800",
+    style: "bg-primary/10 text-primary",
     icon: Clock,
   },
   refunded: {
     label: "Refunded",
-    style: "bg-purple-100 text-purple-800",
+    style: "bg-secondary text-secondary-foreground",
     icon: DollarSign,
   },
   completed: {
     label: "Completed",
-    style: "bg-emerald-100 text-emerald-800",
+    style: "bg-primary/10 text-primary",
     icon: CheckCircle2,
   },
 };
@@ -118,8 +118,8 @@ function StatusProgress({ status }: { status: string }) {
   if (status === "rejected") {
     return (
       <div className="flex items-center gap-1">
-        <div className="h-1.5 flex-1 rounded-full bg-red-400" />
-        <span className="text-[10px] text-red-600">Rejected</span>
+        <div className="h-1.5 flex-1 rounded-full bg-destructive" />
+        <span className="text-[10px] text-destructive">Rejected</span>
       </div>
     );
   }

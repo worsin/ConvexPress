@@ -29,6 +29,8 @@ const SOCIAL_ICON_MAP: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = 
 interface SocialLinksProps {
   className?: string;
   iconSize?: "sm" | "md";
+  showLabels?: boolean;
+  hideIcons?: boolean;
 }
 
 /**
@@ -38,6 +40,8 @@ interface SocialLinksProps {
 export function SocialLinks({
   className,
   iconSize = "sm",
+  showLabels = false,
+  hideIcons = false,
 }: SocialLinksProps) {
   const socialMenu = useMenuForLocation("social");
 
@@ -77,7 +81,10 @@ export function SocialLinks({
               className="text-muted-foreground transition-colors hover:text-foreground"
               aria-label={item.label}
             >
-              <IconComponent className={sizeClass} />
+              <span className="inline-flex items-center gap-1.5">
+                {!hideIcons && <IconComponent className={sizeClass} />}
+                {showLabels && <span className="text-xs">{item.label}</span>}
+              </span>
             </a>
           );
         })}

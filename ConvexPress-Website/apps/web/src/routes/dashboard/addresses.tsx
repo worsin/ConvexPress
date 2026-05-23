@@ -296,7 +296,7 @@ function AddressCard({
             {address.addressType}
           </span>
           {address.isDefault && (
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
               <Star className="h-2.5 w-2.5" />
               Default
             </span>
@@ -314,7 +314,7 @@ function AddressCard({
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
             title="Delete"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -374,7 +374,7 @@ function AddressCard({
                   onDelete();
                   setConfirmDelete(false);
                 }}
-                className="inline-flex rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white"
+                className="inline-flex rounded-lg bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground"
               >
                 Delete
               </button>

@@ -26,26 +26,41 @@ export function MobileNavItem({ item, depth, onNavigate }: MobileNavItemProps) {
     ...(item.target ? { target: item.target } : {}),
     ...(item.rel ? { rel: item.rel } : {}),
   };
+  const isExternal =
+    item.url.startsWith("http://") || item.url.startsWith("https://");
+  const linkClassName = cn(
+    "flex-1 px-4 py-3 text-xs text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    item.cssClasses,
+  );
 
   return (
     <li data-slot="mobile-nav-item">
       <div className="flex items-center">
-        <Link
-          to={item.url}
-          className={cn(
-            "flex-1 px-4 py-3 text-xs text-foreground transition-colors hover:bg-muted",
-            item.cssClasses,
-          )}
-          style={{ paddingLeft: `${paddingLeft + 16}px` }}
-          activeProps={{
-            className: "bg-muted font-medium",
-            "aria-current": "page" as const,
-          }}
-          onClick={onNavigate}
-          {...linkProps}
-        >
-          {item.label}
-        </Link>
+        {isExternal ? (
+          <a
+            href={item.url}
+            className={linkClassName}
+            style={{ paddingLeft: `${paddingLeft + 16}px` }}
+            onClick={onNavigate}
+            {...linkProps}
+          >
+            {item.label}
+          </a>
+        ) : (
+          <Link
+            to={item.url}
+            className={linkClassName}
+            style={{ paddingLeft: `${paddingLeft + 16}px` }}
+            activeProps={{
+              className: "bg-muted font-medium",
+              "aria-current": "page" as const,
+            }}
+            onClick={onNavigate}
+            {...linkProps}
+          >
+            {item.label}
+          </Link>
+        )}
         {hasChildren && (
           <button
             type="button"

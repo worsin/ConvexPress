@@ -57,9 +57,9 @@ function GalleryIndexPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <section className="grid gap-8 rounded-[2rem] border border-border/60 bg-gradient-to-br from-stone-100 via-white to-amber-50 p-8 shadow-sm">
+      <section className="grid gap-8 rounded-[2rem] border border-border/60 bg-card p-8 shadow-sm">
         <div className="flex flex-col gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-700">
+          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
             Gallery
           </span>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
@@ -95,7 +95,7 @@ function GalleryIndexPage() {
                       sizes="(max-width: 768px) 100vw, 33vw"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-stone-200 to-amber-100 text-sm text-amber-900">
+                    <div className="flex h-full items-center justify-center bg-muted text-sm text-muted-foreground">
                       Gallery
                     </div>
                   )}
@@ -105,7 +105,7 @@ function GalleryIndexPage() {
                     {(album.categories ?? []).map((category: any) => (
                       <span
                         key={category._id}
-                        className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-900"
+                        className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
                       >
                         {category.name}
                       </span>

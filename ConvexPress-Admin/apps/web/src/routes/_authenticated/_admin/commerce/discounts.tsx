@@ -1,9 +1,7 @@
 import { api } from "@backend/convex/_generated/api";
-import type { Doc } from "@backend/convex/_generated/dataModel";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -27,7 +25,6 @@ export const Route = createFileRoute("/_authenticated/_admin/commerce/discounts"
 });
 
 type DiscountType = "fixed_cart" | "percent" | "fixed_product";
-type DiscountRecord = Doc<"commerce_discount_codes">;
 
 type TierDraft = {
 	label: string;
@@ -78,12 +75,6 @@ function storedAmount(discountType: DiscountType, value: string) {
 		: displayToCents(value);
 }
 
-function formatAmount(discountType: DiscountType, amount: number) {
-	return discountType === "percent"
-		? `${amount}%`
-		: `$${centsToDisplay(amount)}`;
-}
-
 function tierPayload(tiers: TierDraft[]) {
 	return tiers
 		.filter(
@@ -104,18 +95,8 @@ function tierPayload(tiers: TierDraft[]) {
 		}));
 }
 
-function idSummary(values?: Array<{ toString(): string }> | string[]) {
-	if (!values?.length) return null;
-	return `${values.length} selected`;
-}
-
 function CommerceDiscountsPage() {
-	const discounts = useQuery(api["commerce/discounts"].list, {}) as
-		| DiscountRecord[]
-		| undefined;
 	const createDiscount = useMutation(api["commerce/discounts"].create);
-	const updateDiscount = useMutation(api["commerce/discounts"].update);
-	const removeDiscount = useMutation(api["commerce/discounts"].remove);
 
 	const [code, setCode] = useState("");
 	const [description, setDescription] = useState("");
@@ -135,12 +116,6 @@ function CommerceDiscountsPage() {
 	const [excludedProductIds, setExcludedProductIds] = useState("");
 	const [excludedCategoryIds, setExcludedCategoryIds] = useState("");
 	const [tiers, setTiers] = useState<TierDraft[]>([]);
-
-	const activeCount = useMemo(
-		() =>
-			discounts?.filter((discount) => discount.status === "active").length ?? 0,
-		[discounts],
-	);
 
 	function resetForm() {
 		setCode("");
@@ -188,33 +163,6 @@ function CommerceDiscountsPage() {
 			toast.error(
 				(error as { data?: { message?: string } })?.data?.message ??
 					"Failed to create discount code",
-			);
-		}
-	}
-
-	async function handleToggle(discount: DiscountRecord) {
-		try {
-			await updateDiscount({
-				discountId: discount._id,
-				status: discount.status === "active" ? "inactive" : "active",
-			});
-			toast.success("Discount updated");
-		} catch (error) {
-			toast.error(
-				(error as { data?: { message?: string } })?.data?.message ??
-					"Failed to update discount code",
-			);
-		}
-	}
-
-	async function handleRemove(discount: DiscountRecord) {
-		try {
-			await removeDiscount({ discountId: discount._id });
-			toast.success("Discount removed");
-		} catch (error) {
-			toast.error(
-				(error as { data?: { message?: string } })?.data?.message ??
-					"Failed to remove discount code",
 			);
 		}
 	}

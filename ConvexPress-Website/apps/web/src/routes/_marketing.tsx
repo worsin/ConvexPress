@@ -10,12 +10,12 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SkipToContent } from "@/components/layout/SkipToContent";
 import { ThemeStyleInjector } from "@/components/layout/ThemeStyleInjector";
-import { ThemeProvider } from "@/lib/theme-context";
 import { WebsiteAdminBar } from "@/components/layout/WebsiteAdminBar";
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { PageOverridesProvider, usePageOverrides } from "@/contexts/PageOverridesContext";
 import { useLayoutConfig } from "@/hooks/layout/useLayoutConfig";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
+import { useHeaderConfig } from "@/hooks/layout/useHeaderConfig";
 import { useMenuForLocation } from "@/hooks/layout/useMenuForLocation";
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
 import { RestrictedContent } from "@/components/membership/RestrictedContent";
@@ -37,13 +37,11 @@ export const Route = createFileRoute("/_marketing")({
 function MarketingLayout() {
   const { routeAccess } = Route.useLoaderData();
   return (
-    <ThemeProvider>
-      <LayoutShellProvider>
-        <PageOverridesProvider>
-          <MarketingLayoutInner routeAccess={routeAccess} />
-        </PageOverridesProvider>
-      </LayoutShellProvider>
-    </ThemeProvider>
+    <LayoutShellProvider>
+      <PageOverridesProvider>
+        <MarketingLayoutInner routeAccess={routeAccess} />
+      </PageOverridesProvider>
+    </LayoutShellProvider>
   );
 }
 
@@ -62,7 +60,8 @@ function MarketingLayout() {
  */
 function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult }) {
   const siteIdentity = useSiteIdentity();
-  const headerMenu = useMenuForLocation("header");
+  const headerConfig = useHeaderConfig();
+  const headerMenu = useMenuForLocation(getHeaderMenuLocation(headerConfig.navigation));
   const layoutConfig = useLayoutConfig();
   const { mobileNavOpen } = useLayoutShell();
   const { overrides } = usePageOverrides();
@@ -106,7 +105,11 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
       <ThemeStyleInjector />
       {/* MobileNav is outside the inert wrapper so focus trap works */}
       {!hideHeader && (
-        <MobileNav menu={headerMenu} siteIdentity={siteIdentity} />
+        <MobileNav
+          menu={headerMenu}
+          siteIdentity={siteIdentity}
+          config={headerConfig.mobileMenu}
+        />
       )}
       <div
         aria-hidden={mobileNavOpen || undefined}
@@ -131,4 +134,15 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
       </div>
     </>
   );
+}
+
+function getHeaderMenuLocation(navigation: {
+  menuSource: string;
+  customLocation?: string;
+}): string {
+  if (navigation.menuSource === "secondary") return "secondary";
+  if (navigation.menuSource === "custom") {
+    return navigation.customLocation?.trim() || "header";
+  }
+  return "header";
 }

@@ -32,6 +32,7 @@ export const settingsTables = {
       v.literal("media"),
       v.literal("analytics"),
       v.literal("ai"),
+      v.literal("blocks"),
       v.literal("plugins"),
       v.literal("search"),
       // Knowledge Base System sections

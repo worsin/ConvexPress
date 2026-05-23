@@ -4,7 +4,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 
-export const Route = createFileRoute("/dashboard/returns/$returnId" as any)({
+export const Route = createFileRoute("/dashboard/returns/$returnId")({
   head: () => ({
     meta: [{ name: "robots", content: "noindex" }],
   }),
@@ -127,7 +127,7 @@ function DashboardReturnDetailPage() {
               ) : null}
 
               {ret.refundFailureReason ? (
-                <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                <div className="mt-4 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                   Refund failure: {ret.refundFailureReason}
                 </div>
               ) : null}

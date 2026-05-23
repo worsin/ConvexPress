@@ -43,6 +43,10 @@ import {
 } from "./http/taxonomies";
 import { menusListHandler } from "./http/menus";
 import { settingsReadHandler } from "./http/settings";
+import {
+  ucpCheckoutCreateSessionHandler,
+  ucpCheckoutSessionHandler,
+} from "./http/checkout";
 import { resendWebhookHandler } from "./http/resendWebhook";
 import { clerkWebhookHandler } from "./auth/clerkWebhook";
 import { inboundEmailWebhookHandler } from "./http/inboundEmailWebhook";
@@ -159,6 +163,16 @@ http.route({
 });
 http.route({
   path: "/api/v1/settings",
+  method: "OPTIONS",
+  handler: corsPreflight,
+});
+http.route({
+  path: "/api/ucp/checkout/sessions",
+  method: "OPTIONS",
+  handler: corsPreflight,
+});
+http.route({
+  pathPrefix: "/api/ucp/checkout/sessions/",
   method: "OPTIONS",
   handler: corsPreflight,
 });
@@ -352,6 +366,33 @@ http.route({
   path: "/api/v1/settings",
   method: "GET",
   handler: settingsReadHandler,
+});
+
+// ─── UCP Checkout (/api/ucp/checkout/sessions) ─────────────────────────────
+http.route({
+  path: "/api/ucp/checkout/sessions",
+  method: "POST",
+  handler: ucpCheckoutCreateSessionHandler,
+});
+http.route({
+  pathPrefix: "/api/ucp/checkout/sessions/",
+  method: "GET",
+  handler: ucpCheckoutSessionHandler,
+});
+http.route({
+  pathPrefix: "/api/ucp/checkout/sessions/",
+  method: "PATCH",
+  handler: ucpCheckoutSessionHandler,
+});
+http.route({
+  pathPrefix: "/api/ucp/checkout/sessions/",
+  method: "POST",
+  handler: ucpCheckoutSessionHandler,
+});
+http.route({
+  pathPrefix: "/api/ucp/checkout/sessions/",
+  method: "DELETE",
+  handler: ucpCheckoutSessionHandler,
 });
 
 // ─── Webhooks (/webhooks/) ──────────────────────────────────────────────────

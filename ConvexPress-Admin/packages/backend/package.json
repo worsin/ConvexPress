@@ -15,12 +15,14 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.81.0",
+    "@convexpress-admin/blocks-catalog": "workspace:*",
     "@tavily/core": "0.7.2",
     "bcryptjs": "^3.0.3",
     "convex": "catalog:",
     "dotenv": "catalog:",
     "googleapis": "^171.4.0",
     "jose": "^6.2.2",
+    "openai": "^6.38.0",
     "sharp": "^0.34.5",
     "svix": "^1.89.0",
     "zod": "catalog:"

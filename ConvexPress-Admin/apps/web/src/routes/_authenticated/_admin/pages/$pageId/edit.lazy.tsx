@@ -10,6 +10,8 @@ import { EditorLayout } from "@/components/editor/EditorLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePage } from "@/hooks/pages/usePage";
 import { usePageMutations } from "@/hooks/pages/usePageMutations";
+import { pageSectionsToBlocks } from "@/lib/blocks/page-sections";
+import { tiptapContentToBlocks } from "@/lib/blocks/tiptap-to-blocks";
 import type { Id } from "@backend/convex/_generated/dataModel";
 
 export const Route = createLazyFileRoute(
@@ -98,6 +100,7 @@ function EditPagePage() {
   }
 
   // Map Convex page data to EditorFormValues shape
+  const legacyBlocks = pageSectionsToBlocks((page as any).pageSections);
   const initialData = {
     title: page.title ?? "",
     slug: page.slug ?? "",
@@ -114,6 +117,11 @@ function EditPagePage() {
     categoryIds: [] as string[],
     tagIds: [] as string[],
     menuOrder: page.menuOrder ?? 0,
+    parentId: (page as { parentId?: string }).parentId ?? "",
+    pageTemplate: (page as { pageTemplate?: string }).pageTemplate ?? "default",
+    layoutId: (page as { layoutId?: string }).layoutId ?? "",
+    hideHeader: (page as { hideHeader?: boolean }).hideHeader ?? false,
+    hideFooter: (page as { hideFooter?: boolean }).hideFooter ?? false,
     // Structured content fields
     hero: (page as any).hero
       ? {
@@ -139,6 +147,16 @@ function EditPagePage() {
     sources: (page as any).sources ?? "",
     tableOfContents: (page as any).tableOfContents ?? "",
     pagePrompt: (page as any).pagePrompt ?? "",
+    // Phase 3 of the editor refactor: always blocks. If the page has no
+    // blocks yet, try legacy `pageSections`, then fall back to TipTap content.
+    contentMode: "blocks" as const,
+    blocks: (((page as any).blocks && (page as any).blocks.length > 0)
+      ? (page as any).blocks
+      : legacyBlocks.length > 0
+        ? legacyBlocks
+        : tiptapContentToBlocks(page.content)) as [],
+    blocksVersion: (page as any).blocksVersion ?? 1,
+    blocksRevision: (page as any).blocksRevision ?? 0,
   };
 
   return (

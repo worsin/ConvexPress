@@ -7,8 +7,6 @@
  */
 
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
-import { Sparkles } from "lucide-react";
-import { useAiGeneration } from "@/hooks/useAiGeneration";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -21,7 +19,6 @@ import type { Id } from "@backend/convex/_generated/dataModel";
 import { EditorHeader } from "./EditorHeader";
 import { TitleInput } from "./TitleInput";
 import { SlugEditor } from "./SlugEditor";
-import { TipTapEditor } from "./TipTapEditor";
 import { MetaboxContainer } from "./MetaboxContainer";
 import { PublishBox } from "./PublishBox";
 import { CategoriesMetabox } from "./CategoriesMetabox";
@@ -40,6 +37,12 @@ import { EditorFooter } from "./EditorFooter";
 import { EditorSidebar } from "./EditorSidebar";
 import { CustomFieldsMetabox } from "@/components/custom-fields/metabox/CustomFieldsMetabox";
 import type { EditorContext } from "@/components/custom-fields/metabox/CustomFieldsMetabox";
+import { BlockOutline } from "@/components/blocks/BlockOutline";
+import { BlockOutlinePanel } from "@/components/blocks/BlockOutlinePanel";
+import { PageGenerationPrompt } from "@/components/blocks/PageGenerationPrompt";
+import type { ConvexPressBlock } from "@/lib/blocks/types";
+import { getBlockDefinition } from "@/lib/blocks/registry";
+import { validateBlockInstance } from "@/lib/blocks/validation";
 import { AutosaveRecoveryDialog } from "./AutosaveRecoveryDialog";
 import { useEditorForm } from "@/hooks/useEditorForm";
 import { useAutosave } from "@/hooks/useAutosave";
@@ -47,16 +50,7 @@ import { useMetaboxOrder } from "@/hooks/useMetaboxOrder";
 import { useEditorKeyboardShortcuts } from "@/hooks/useEditorKeyboardShortcuts";
 import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { useAuth } from "@/lib/auth-context";
-import { ContentEditorProvider } from "./ContentEditorProvider";
-import type { EditorContentType, EditorFormValues, TagItem, EditorContextValue, HeroFields, TopicFields, SummaryFields } from "@/types/editor";
-import {
-  StructuredContentSection,
-  HeroSectionEditor,
-  TopicsListEditor,
-  SummarySectionEditor,
-  SourcesEditor,
-  TableOfContentsEditor,
-} from "./structured";
+import type { EditorContentType, EditorFormValues, TagItem, CompositionBlock } from "@/types/editor";
 
 /** Shape of general settings response */
 interface GeneralSettings {
@@ -120,6 +114,10 @@ function EditorLayoutInner({
     api.posts.queries.get,
     postId ? { postId: postId as Id<"posts"> } : "skip",
   );
+  const editorTaxonomies = useQuery(
+    api.taxonomies.queries.getByPost,
+    contentType === "post" && postId ? { postId: postId as Id<"posts"> } : "skip",
+  );
 
   // Editor form state
   const {
@@ -157,15 +155,52 @@ function EditorLayoutInner({
   const scheduledFor = formValues.scheduledFor;
   const categoryIds = formValues.categoryIds;
   const menuOrder = formValues.menuOrder;
+  const parentPageId = formValues.parentId;
+  const pageTemplate = formValues.pageTemplate;
   const layoutId = formValues.layoutId;
   const hideHeader = formValues.hideHeader;
   const hideFooter = formValues.hideFooter;
+  const contentMode = formValues.contentMode;
+  const compositionBlocks = formValues.blocks as unknown as ConvexPressBlock[];
+  const blocksRevision = formValues.blocksRevision;
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const selectedBlock = useMemo(
+    () => findBlockInTree(compositionBlocks, selectedBlockId),
+    [compositionBlocks, selectedBlockId],
+  );
 
   // Track manually selected tags (with full data for display)
   const [selectedTags, setSelectedTags] = useState<TagItem[]>([]);
+  const hydratedTagsForPostRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!editorTaxonomies?.tags) return;
+    const hydrationKey = postId ?? "new";
+    if (hydratedTagsForPostRef.current === hydrationKey) return;
+
+    setSelectedTags(
+      editorTaxonomies.tags.map((tag: { _id: string; name: string; slug: string }) => ({
+        id: tag._id,
+        name: tag.name,
+        slug: tag.slug,
+      })),
+    );
+    hydratedTagsForPostRef.current = hydrationKey;
+  }, [editorTaxonomies?.tags, postId]);
 
   // Editor stats for EditorFooter (computed from content)
   const editorStats = useMemo(() => {
+    if (contentMode === "blocks") {
+      const plainText = blocksToPlainText(compositionBlocks);
+      const words = plainText.trim().split(/\s+/).filter(Boolean);
+      return {
+        wordCount: words.length,
+        characterCount: plainText.length,
+        blockCount: compositionBlocks.length,
+        readingTime: Math.max(1, Math.ceil(words.length / 200)),
+      };
+    }
+
     // Content might be JSON (TipTap) or plain text
     let plainText = "";
     try {
@@ -196,116 +231,41 @@ function EditorLayoutInner({
     }
     const readingTime = Math.max(1, Math.ceil(wordCount / 200));
     return { wordCount, characterCount, blockCount, readingTime };
-  }, [content]);
+  }, [compositionBlocks, content, contentMode]);
 
   // NOTE: SEO state is managed by the dedicated SeoMetabox component
   // (components/seo/SeoMetabox.tsx) which uses its own seo table via usePostSeo.
   // No SEO state is needed here in EditorLayout.
 
-  // Page-specific state
-  // Uses ref-guarded initialization to prevent reactive Convex updates from overwriting user edits
+  // Legacy page parent fallback from older postMeta storage.
   const parentPageInitializedRef = useRef(false);
-  const [parentPageId, setParentPageId] = useState("");
 
-  if (!parentPageInitializedRef.current && postMetaRecords && mode === "edit" && contentType === "page") {
+  useEffect(() => {
+    if (
+      parentPageInitializedRef.current ||
+      !postMetaRecords ||
+      mode !== "edit" ||
+      contentType !== "page"
+    ) {
+      return;
+    }
+
     parentPageInitializedRef.current = true;
     const metaParentId = postMetaMap.get("_parent_page_id");
-    if (metaParentId) setParentPageId(metaParentId);
-  }
+    if (metaParentId && !form.state.values.parentId) {
+      form.setFieldValue("parentId", metaParentId);
+    }
+  }, [contentType, form, mode, postMetaMap, postMetaRecords]);
 
   // Slug manual edit tracking
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
-
-  // Structured content section collapse state
-  const [structuredCollapse, setStructuredCollapse] = useState<Record<string, boolean>>({
-    hero: false,
-    topics: false,
-    summary: true,
-    sources: true,
-    toc: true,
-  });
-  const toggleStructuredCollapse = useCallback((key: string) => {
-    setStructuredCollapse((prev) => ({ ...prev, [key]: !prev[key] }));
-  }, []);
-
-  // AI content generation - refresh form fields from live Convex data after generation.
-  // We use a "pending refresh" flag: when AI completes, we set it to true, then
-  // an effect watches livePost changes and syncs form state once the data arrives.
-  const [aiRefreshPending, setAiRefreshPending] = useState(false);
-
-  const handleAiComplete = useCallback(() => {
-    // Signal that we need to sync form state once livePost updates reactively
-    setAiRefreshPending(true);
-  }, []);
-
-  // When livePost updates after AI generation, sync structured fields into the form
-  useEffect(() => {
-    if (!aiRefreshPending || !livePost) return;
-    setAiRefreshPending(false);
-
-    const hero = livePost.hero
-      ? {
-          title: livePost.hero.title ?? "",
-          subtitle: livePost.hero.subtitle ?? "",
-          content: livePost.hero.content ?? "",
-          imageId: livePost.hero.imageId ?? null,
-          videoUrl: livePost.hero.videoUrl ?? "",
-          ctaText: livePost.hero.ctaText ?? "",
-          ctaUrl: livePost.hero.ctaUrl ?? "",
-        }
-      : { title: "", subtitle: "", content: "", imageId: null, videoUrl: "", ctaText: "", ctaUrl: "" };
-    form.setFieldValue("hero", hero);
-
-    const topics = (livePost.topics ?? []).map((t: any) => ({
-      title: t.title ?? "",
-      subtitle: t.subtitle ?? "",
-      content: t.content ?? "",
-      imageId: t.imageId ?? null,
-      videoUrl: t.videoUrl ?? "",
-    }));
-    form.setFieldValue("topics", topics);
-
-    const summary = livePost.summary
-      ? { title: livePost.summary.title ?? "", content: livePost.summary.content ?? "" }
-      : { title: "", content: "" };
-    form.setFieldValue("summary", summary);
-
-    form.setFieldValue("sources", livePost.sources ?? "");
-    form.setFieldValue("tableOfContents", livePost.tableOfContents ?? "");
-    // Also refresh TipTap content if AI updated it
-    if (livePost.content !== undefined) {
-      form.setFieldValue("content", livePost.content ?? "");
-    }
-  }, [aiRefreshPending, livePost, form]);
-
-  const {
-    isGenerating,
-    currentSection: aiCurrentSection,
-    handleGenerateAll,
-    handleRegenerateSection,
-  } = useAiGeneration(postId, handleAiComplete);
-
-  const handleRegenerate = useCallback((section: string, index?: number) => {
-    const sectionMap: Record<string, "hero" | "topic" | "summary" | "sources" | "tableOfContents"> = {
-      "hero": "hero",
-      "all topics": "topic",
-      "topic": "topic",
-      "summary": "summary",
-      "sources": "sources",
-      "table of contents": "tableOfContents",
-    };
-    const mapped = sectionMap[section];
-    if (mapped) {
-      handleRegenerateSection(mapped, index);
-    }
-  }, [handleRegenerateSection]);
 
   // Autosave
   const autosaveState = useAutosave({
     postId: postId ?? null,
     title,
     content,
-    enabled: !isSubmitting && mode === "edit",
+    enabled: !isSubmitting && Boolean(postId),
   });
 
   // Metabox ordering with @dnd-kit
@@ -535,8 +495,11 @@ function EditorLayoutInner({
           <PageAttributesMetabox
             parentPageId={parentPageId}
             menuOrder={menuOrder}
-            onParentChange={setParentPageId}
+            pageTemplate={pageTemplate}
+            currentPageId={postId}
+            onParentChange={(val) => form.setFieldValue("parentId", val)}
             onMenuOrderChange={(val) => form.setFieldValue("menuOrder", val)}
+            onTemplateChange={(val) => form.setFieldValue("pageTemplate", val)}
           />
         );
       case "layout":
@@ -568,21 +531,14 @@ function EditorLayoutInner({
     (m) => m.position === "sidebar" && m.id !== "publish",
   );
 
-  // Memoize callback for content changes to avoid re-creating on every render
-  const handleEditorContentChange = useCallback(
-    (json: string) => form.setFieldValue("content", json),
+  const handleBlocksChange = useCallback(
+    (blocks: ConvexPressBlock[], revision?: number) => {
+      form.setFieldValue("blocks", blocks as unknown as CompositionBlock[]);
+      if (revision !== undefined) {
+        form.setFieldValue("blocksRevision", revision);
+      }
+    },
     [form],
-  );
-
-  // Memoize the context value to prevent unnecessary re-renders of consumers
-  const contentEditorContextValue = useMemo(
-    () => ({
-      isReadOnly: false,
-      canUploadFiles: can("upload_files"),
-      canCreateReusableBlocks: can("post.create"),
-      onContentChange: handleEditorContentChange,
-    }),
-    [can, handleEditorContentChange],
   );
 
   return (
@@ -639,119 +595,28 @@ function EditorLayoutInner({
             <CustomFieldsMetabox context={customFieldContext} position="after_title" />
           )}
 
-          {/* TipTap Content Editor (wrapped in ContentEditorProvider) */}
-          <ContentEditorProvider value={contentEditorContextValue}>
-            <TipTapEditor
-              initialContent={content || undefined}
-              onContentChange={handleEditorContentChange}
-              readOnly={false}
-            />
-          </ContentEditorProvider>
-
-          {/* ── AI Content Prompt + Generate All ────────────────────── */}
-          <div className="border border-border bg-card p-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Content Prompt
-              </label>
-              <button
-                type="button"
-                onClick={handleGenerateAll}
-                disabled={isGenerating || !formValues.pagePrompt}
-                title={!formValues.pagePrompt ? "Enter a content prompt first" : "Generate all sections using AI"}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isGenerating && aiCurrentSection === "all" ? (
-                  <>
-                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="size-3.5" />
-                    Generate All with AI
-                  </>
-                )}
-              </button>
+          {postId ? (
+            <div className="space-y-3">
+              <PageGenerationPrompt
+                postId={postId}
+                pageType={contentType}
+                expectedRevision={blocksRevision ?? 0}
+                existingBlockCount={compositionBlocks.length}
+              />
+              <BlockOutline
+                postId={postId}
+                value={compositionBlocks}
+                revision={blocksRevision}
+                onChange={handleBlocksChange}
+                onSelectedBlockChange={setSelectedBlockId}
+                label={contentType === "post" ? "Post Blocks" : "Page Blocks"}
+              />
             </div>
-            <textarea
-              value={formValues.pagePrompt}
-              onChange={(e) => form.setFieldValue("pagePrompt", e.target.value)}
-              placeholder="Describe what this content should be about. Each topic will be researched and written with source citations..."
-              rows={3}
-              className="w-full border border-border bg-background px-2.5 py-1.5 text-sm outline-hidden focus:border-primary transition-colors resize-y"
-            />
-            <p className="text-[10px] text-muted-foreground">
-              Save your draft first, then click Generate All. Blog posts get full web research per topic. Pages get lighter generation.
-            </p>
-          </div>
-
-          {/* ── Structured Content Sections ─────────────────────────── */}
-          <StructuredContentSection
-            title="Hero Section"
-            isCollapsed={structuredCollapse.hero}
-            onToggleCollapse={() => toggleStructuredCollapse("hero")}
-            onRegenerate={() => handleRegenerate("hero")}
-            isRegenerating={isGenerating && aiCurrentSection === "hero"}
-          >
-            <HeroSectionEditor
-              value={formValues.hero}
-              onChange={(hero: HeroFields) => form.setFieldValue("hero", hero)}
-            />
-          </StructuredContentSection>
-
-          <StructuredContentSection
-            title="Topics"
-            isCollapsed={structuredCollapse.topics}
-            onToggleCollapse={() => toggleStructuredCollapse("topics")}
-            onRegenerate={() => handleRegenerate("all topics")}
-            isRegenerating={isGenerating && (aiCurrentSection === "topic" || aiCurrentSection?.startsWith("topic-"))}
-          >
-            <TopicsListEditor
-              value={formValues.topics}
-              onChange={(topics: TopicFields[]) => form.setFieldValue("topics", topics)}
-              onRegenerateTopic={(index: number) => handleRegenerate("topic", index)}
-            />
-          </StructuredContentSection>
-
-          <StructuredContentSection
-            title="Summary"
-            isCollapsed={structuredCollapse.summary}
-            onToggleCollapse={() => toggleStructuredCollapse("summary")}
-            onRegenerate={() => handleRegenerate("summary")}
-            isRegenerating={isGenerating && aiCurrentSection === "summary"}
-          >
-            <SummarySectionEditor
-              value={formValues.summary}
-              onChange={(summary: SummaryFields) => form.setFieldValue("summary", summary)}
-            />
-          </StructuredContentSection>
-
-          <StructuredContentSection
-            title="Sources"
-            isCollapsed={structuredCollapse.sources}
-            onToggleCollapse={() => toggleStructuredCollapse("sources")}
-            onRegenerate={() => handleRegenerate("sources")}
-            isRegenerating={isGenerating && aiCurrentSection === "sources"}
-          >
-            <SourcesEditor
-              value={formValues.sources}
-              onChange={(sources: string) => form.setFieldValue("sources", sources)}
-            />
-          </StructuredContentSection>
-
-          <StructuredContentSection
-            title="Table of Contents"
-            isCollapsed={structuredCollapse.toc}
-            onToggleCollapse={() => toggleStructuredCollapse("toc")}
-            onRegenerate={() => handleRegenerate("table of contents")}
-            isRegenerating={isGenerating && aiCurrentSection === "tableOfContents"}
-          >
-            <TableOfContentsEditor
-              value={formValues.tableOfContents}
-              onChange={(toc: string) => form.setFieldValue("tableOfContents", toc)}
-            />
-          </StructuredContentSection>
+          ) : (
+            <div className="border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              Save the draft to enable the block editor.
+            </div>
+          )}
 
           {/* Custom fields: normal position (below editor) */}
           {postId && (
@@ -800,6 +665,11 @@ function EditorLayoutInner({
             isDirty={isDirty}
           />
 
+          {/* Block outline panel — jump-to-block sidebar */}
+          {compositionBlocks.length > 0 && (
+            <BlockOutlinePanel blocks={compositionBlocks} />
+          )}
+
           {/* EditorSidebar wraps metaboxes with Document/Block tabs */}
           <EditorSidebar
             documentContent={
@@ -825,11 +695,9 @@ function EditorLayoutInner({
               </>
             }
             blockContent={
-              <div className="text-xs text-muted-foreground p-4">
-                Select a block to see its settings.
-              </div>
+              <SelectedBlockSidebar block={selectedBlock} />
             }
-            hasSelectedBlock={false}
+            hasSelectedBlock={Boolean(selectedBlock)}
           />
         </div>
       </div>
@@ -920,6 +788,111 @@ class EditorErrorBoundary extends Component<
     }
     return this.props.children;
   }
+}
+
+function blocksToPlainText(blocks: ConvexPressBlock[]) {
+  const values: string[] = [];
+  const visitValue = (value: unknown) => {
+    if (typeof value === "string") {
+      values.push(value);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach(visitValue);
+      return;
+    }
+    if (value && typeof value === "object") {
+      Object.values(value as Record<string, unknown>).forEach(visitValue);
+    }
+  };
+  for (const block of blocks) {
+    visitValue(block.attrs);
+    if (block.innerBlocks) values.push(blocksToPlainText(block.innerBlocks));
+  }
+  return values.join(" ");
+}
+
+function findBlockInTree(
+  blocks: ConvexPressBlock[],
+  blockId: string | null,
+): ConvexPressBlock | null {
+  if (!blockId) return null;
+  for (const block of blocks) {
+    if (block.id === blockId) return block;
+    if (block.innerBlocks) {
+      const found = findBlockInTree(block.innerBlocks, blockId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function SelectedBlockSidebar({ block }: { block: ConvexPressBlock | null }) {
+  if (!block) {
+    return (
+      <div className="p-4 text-xs text-muted-foreground">
+        Select a block to inspect its type, version, validation state, and
+        saved fields.
+      </div>
+    );
+  }
+
+  const definition = getBlockDefinition(block.name);
+  const validation = validateBlockInstance(block);
+  const attrs = Object.entries(block.attrs ?? {});
+
+  return (
+    <div className="space-y-4 p-4 text-xs">
+      <div>
+        <h3 className="text-sm font-semibold text-foreground">
+          {definition?.title ?? block.name}
+        </h3>
+        <p className="mt-1 break-all font-mono text-[11px] text-muted-foreground">
+          {block.name}
+        </p>
+      </div>
+
+      <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-2">
+        <dt className="font-medium text-muted-foreground">ID</dt>
+        <dd className="break-all font-mono text-foreground">{block.id}</dd>
+        <dt className="font-medium text-muted-foreground">Version</dt>
+        <dd className="text-foreground">v{block.version}</dd>
+        <dt className="font-medium text-muted-foreground">Category</dt>
+        <dd className="text-foreground">{definition?.category ?? "unknown"}</dd>
+        <dt className="font-medium text-muted-foreground">Status</dt>
+        <dd className={validation.ok ? "text-foreground" : "text-destructive"}>
+          {validation.ok ? "Valid" : validation.message}
+        </dd>
+      </dl>
+
+      <div>
+        <h4 className="mb-2 font-medium text-muted-foreground">Fields</h4>
+        {attrs.length === 0 ? (
+          <p className="text-muted-foreground">No attrs saved.</p>
+        ) : (
+          <dl className="space-y-2">
+            {attrs.map(([key, value]) => (
+              <div key={key} className="border border-border bg-background p-2">
+                <dt className="font-mono text-[11px] text-muted-foreground">{key}</dt>
+                <dd className="mt-1 break-words text-foreground">
+                  {formatSidebarValue(value)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function formatSidebarValue(value: unknown) {
+  if (value === null || value === undefined) return "empty";
+  if (typeof value === "string") return value || "empty";
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return `${value.length} item${value.length === 1 ? "" : "s"}`;
+  if (typeof value === "object") return "object";
+  return String(value);
 }
 
 /**

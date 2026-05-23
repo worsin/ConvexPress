@@ -23,16 +23,28 @@ export function FooterNav() {
             ...(item.target ? { target: item.target } : {}),
             ...(item.rel ? { rel: item.rel } : {}),
           };
+          const isExternal =
+            item.url.startsWith("http://") || item.url.startsWith("https://");
 
           return (
             <li key={item.id} className="flex items-center gap-4">
-              <Link
-                to={item.url}
-                className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-                {...linkProps}
-              >
-                {item.label}
-              </Link>
+              {isExternal ? (
+                <a
+                  href={item.url}
+                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  {...linkProps}
+                >
+                  {item.label}
+                </a>
+              ) : (
+                <Link
+                  to={item.url}
+                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  {...linkProps}
+                >
+                  {item.label}
+                </Link>
+              )}
               {index < visibleItems.length - 1 && (
                 <span className="text-border" aria-hidden="true">
                   |

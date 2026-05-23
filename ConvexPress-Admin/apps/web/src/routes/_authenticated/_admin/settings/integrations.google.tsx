@@ -64,7 +64,7 @@ function GoogleIntegrationPage() {
   if (!draft) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="w-full space-y-6 p-6">
       <IntegrationHeader
         name="Google Places"
         description="Address autocomplete and geocoding at checkout. Create keys in the Google Cloud Console and restrict them to your domain."

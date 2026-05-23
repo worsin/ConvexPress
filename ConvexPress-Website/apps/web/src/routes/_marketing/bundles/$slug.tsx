@@ -9,6 +9,7 @@ import { Package, Check, Minus, Plus, ShoppingCart } from "lucide-react";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 
 export const Route = createFileRoute("/_marketing/bundles/$slug")({
   head: ({ params }) => ({
@@ -89,6 +90,7 @@ function BundleDetailPage() {
     (settings as any)?.commerceConfig?.currencyCode || "USD";
   const { slug } = Route.useParams();
   const router = useRouter();
+  const { sessionToken, isReady } = useCommerceSessionToken();
 
   const { data: bundle } = useSuspenseQuery(
     convexQuery((api as any).commerceBundles.queries.getBySlug, {
@@ -244,6 +246,7 @@ function BundleDetailPage() {
   const canAddToCart = meetsMinItems && meetsMaxItems && allRequiredSelected;
 
   async function handleAddToCart() {
+    if (!isReady || !sessionToken) return;
     try {
       // Build selections for the cart validator
       const bundleSelections = isConfigurable
@@ -266,6 +269,7 @@ function BundleDetailPage() {
 
       // Add bundle to cart using the owning product ID and proper metadata
       await addToCart({
+        sessionToken,
         productId: bundle!.productId,
         quantity: 1,
         metadata: {
@@ -300,10 +304,10 @@ function BundleDetailPage() {
       <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
         {/* Left: Bundle overview */}
         <div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
-          <div className="relative aspect-[4/3] bg-gradient-to-br from-violet-100 to-fuchsia-100">
+          <div className="relative aspect-[4/3] bg-muted">
             <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
-              <Package className="h-14 w-14 text-violet-600/60" />
-              <h2 className="text-center text-lg font-semibold text-violet-900">
+              <Package className="h-14 w-14 text-muted-foreground/60" />
+              <h2 className="text-center text-lg font-semibold text-foreground">
                 {bundle.components.length} product
                 {bundle.components.length === 1 ? "" : "s"} in this bundle
               </h2>
@@ -311,7 +315,7 @@ function BundleDetailPage() {
                 {bundle.components.map((comp) => (
                   <span
                     key={comp._id}
-                    className="rounded-full bg-white/80 px-3 py-1 text-sm font-medium text-violet-900"
+                    className="rounded-full bg-background/80 px-3 py-1 text-sm font-medium text-foreground"
                   >
                     {comp.product?.title ?? "Product"}
                     {comp.quantity > 1 ? ` x${comp.quantity}` : ""}
@@ -321,7 +325,7 @@ function BundleDetailPage() {
             </div>
 
             {priceData && priceData.savingsPercent > 0 && (
-              <div className="absolute right-4 top-4 rounded-full bg-emerald-600 px-4 py-1.5 text-sm font-bold text-white shadow-sm">
+              <div className="absolute right-4 top-4 rounded-full bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground shadow-sm">
                 Save {priceData.savingsPercent}%
               </div>
             )}
@@ -331,14 +335,14 @@ function BundleDetailPage() {
         {/* Right: Pricing & actions */}
         <div className="flex flex-col gap-6 rounded-[2rem] border border-border bg-card p-8 shadow-sm">
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-medium text-violet-900">
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">
               {bundle.bundleType === "mix_and_match"
                 ? "Mix & Match"
                 : bundle.bundleType === "bogo"
                   ? "Configurable"
                   : "Bundle"}
             </span>
-            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-900">
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
               {bundle.status}
             </span>
           </div>
@@ -369,7 +373,7 @@ function BundleDetailPage() {
                   )}
                 </div>
                 {priceData.savings > 0 && (
-                  <p className="text-sm font-medium text-emerald-700">
+                  <p className="text-sm font-medium text-primary">
                     You save {formatPrice(priceData.savings)} (
                     {priceData.savingsPercent}% off)
                   </p>
@@ -394,7 +398,7 @@ function BundleDetailPage() {
                     <span className="ml-1">(max {bundle.maxItems})</span>
                   )}
                   {!meetsMinItems && (
-                    <span className="ml-2 text-amber-600">
+                    <span className="ml-2 text-primary">
                       Need {bundle.minItems! - totalSelectedItems} more
                     </span>
                   )}
@@ -620,13 +624,13 @@ function BundleDetailPage() {
 
                     <div className="flex items-center gap-2">
                       {comp.isRequired && (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
                           Required
                         </span>
                       )}
                       {comp.discountPercent != null &&
                         comp.discountPercent > 0 && (
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-900">
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
                             -{comp.discountPercent}%
                           </span>
                         )}

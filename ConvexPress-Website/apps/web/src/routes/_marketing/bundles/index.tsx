@@ -59,9 +59,9 @@ function BundlesIndexPage() {
   return (
     <div className="flex flex-col gap-10">
       {/* Hero */}
-      <section className="grid gap-8 rounded-[2rem] border border-border/60 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 p-8 shadow-sm">
+      <section className="grid gap-8 rounded-[2rem] border border-border/60 bg-card p-8 shadow-sm">
         <div className="flex flex-col gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-700">
+          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
             Bundles
           </span>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
@@ -112,7 +112,7 @@ function BundlesIndexPage() {
                     className="block"
                   >
                     {/* Component preview */}
-                    <div className="relative aspect-[4/3] bg-gradient-to-br from-violet-100 to-fuchsia-100">
+                    <div className="relative aspect-[4/3] bg-muted">
                       {bundle.images?.[0] ? (
                         <img
                           src={bundle.images[0]}
@@ -121,8 +121,8 @@ function BundlesIndexPage() {
                         />
                       ) : (
                         <div className="flex h-full flex-col items-center justify-center gap-2 p-6">
-                          <Package className="h-10 w-10 text-violet-600/60" />
-                          <span className="text-sm font-medium text-violet-900">
+                          <Package className="h-10 w-10 text-muted-foreground/60" />
+                          <span className="text-sm font-medium text-muted-foreground">
                             {bundle.components.length} product
                             {bundle.components.length === 1 ? "" : "s"}
                           </span>
@@ -130,14 +130,14 @@ function BundlesIndexPage() {
                             {bundle.components.slice(0, 4).map((comp) => (
                               <span
                                 key={comp._id}
-                                className="rounded-full bg-white/70 px-2.5 py-0.5 text-xs font-medium text-violet-900"
+                                className="rounded-full bg-background/70 px-2.5 py-0.5 text-xs font-medium text-foreground"
                               >
                                 {comp.product?.title ?? "Product"}
                                 {comp.quantity > 1 ? ` x${comp.quantity}` : ""}
                               </span>
                             ))}
                             {bundle.components.length > 4 && (
-                              <span className="rounded-full bg-white/70 px-2.5 py-0.5 text-xs font-medium text-violet-900">
+                              <span className="rounded-full bg-background/70 px-2.5 py-0.5 text-xs font-medium text-foreground">
                                 +{bundle.components.length - 4} more
                               </span>
                             )}
@@ -146,7 +146,7 @@ function BundlesIndexPage() {
                       )}
 
                       {savingsPercent > 0 && (
-                        <div className="absolute right-3 top-3 rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white shadow-sm">
+                        <div className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow-sm">
                           Save {savingsPercent}%
                         </div>
                       )}
@@ -154,7 +154,7 @@ function BundlesIndexPage() {
 
                     <div className="flex flex-col gap-3 p-5">
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-900">
+                        <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
                           {bundle.bundleType === "mix_and_match"
                             ? "Mix & Match"
                             : bundle.bundleType === "bogo"

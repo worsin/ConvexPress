@@ -1,0 +1,16 @@
+{
+  "name": "local/sample-alert",
+  "title": "Sample Alert",
+  "description": "A local proof-of-registration alert block with a heading, body, variant, and optional CTA.",
+  "category": "custom",
+  "keywords": ["alert", "notice", "local", "sample"],
+  "version": 1,
+  "supports": {
+    "multiple": true
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "site-specific notices, warnings, updates, or compact callouts",
+    "avoid": "long-form prose or major marketing sections"
+  }
+}

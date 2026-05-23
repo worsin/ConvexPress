@@ -1,4 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useLocation,
+} from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 
@@ -11,6 +16,7 @@ export const Route = createFileRoute(
 });
 
 function ShippingIntegrationsPage() {
+  const location = useLocation();
   const overview = useQuery((api as any).shipping.queries.getOverview, {}) as
     | {
         integrationSettings: {
@@ -36,8 +42,12 @@ function ShippingIntegrationsPage() {
       }
     | undefined;
 
+  if (location.pathname !== "/settings/integrations/shipping") {
+    return <Outlet />;
+  }
+
   return (
-    <div className="mx-auto max-w-6xl p-6 space-y-8">
+    <div className="w-full space-y-8 p-6">
       <div className="space-y-2">
         <h1 className="text-2xl font-bold text-foreground">Shipping Integrations</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">

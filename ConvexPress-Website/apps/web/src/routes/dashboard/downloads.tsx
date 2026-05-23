@@ -144,17 +144,17 @@ function DownloadCard({
           </p>
         </div>
         {canDownload ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
             <CheckCircle className="h-3 w-3" />
             Available
           </span>
         ) : download.isExpired ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+          <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">
             <Clock className="h-3 w-3" />
             Expired
           </span>
         ) : download.isLimitReached ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+          <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
             <AlertTriangle className="h-3 w-3" />
             Limit Reached
           </span>
@@ -277,10 +277,10 @@ function LicenseKeyCard({
   if (!product) return null;
 
   const statusStyles: Record<string, string> = {
-    active: "bg-emerald-100 text-emerald-800",
-    assigned: "bg-blue-100 text-blue-800",
+    active: "bg-primary/10 text-primary",
+    assigned: "bg-primary/10 text-primary",
     expired: "bg-muted text-muted-foreground",
-    revoked: "bg-red-100 text-red-800",
+    revoked: "bg-destructive/10 text-destructive",
   };
 
   return (

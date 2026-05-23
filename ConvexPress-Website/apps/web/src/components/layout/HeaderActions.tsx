@@ -1,9 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@clerk/clerk-react";
-import { Search } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "@convexpress-website/backend/generated/api";
+import { Search, ShoppingCart } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
+import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
+import { useSettings } from "@/contexts/SettingsContext";
 import type { HeaderConfig } from "@/lib/layout/types";
 
 import { UserMenu } from "./UserMenu";
@@ -22,6 +26,13 @@ interface HeaderActionsProps {
 export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
   const { isSignedIn, isLoaded } = useAuth();
   const { toggleSearch } = useLayoutShell();
+  const settings = useSettings();
+  const commerceEnabled = settings?.plugins?.commerceEnabled === true;
+  const { sessionToken, isReady } = useCommerceSessionToken();
+  const cart = useQuery(
+    (api as any).commerce.cart.getMine,
+    commerceEnabled && isReady && sessionToken ? { sessionToken } : "skip",
+  ) as { itemCount?: number } | null | undefined;
 
   // Config-driven visibility (defaults to showing everything if no config)
   const showSearch = headerConfig?.search?.enabled !== false;
@@ -45,6 +56,21 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
         >
           <Search className="size-4" aria-hidden="true" />
         </button>
+      )}
+
+      {commerceEnabled && (
+        <Link
+          to="/cart"
+          className="relative flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+          aria-label={`Cart${cart?.itemCount ? `, ${cart.itemCount} items` : ""}`}
+        >
+          <ShoppingCart className="size-4" aria-hidden="true" />
+          {cart?.itemCount ? (
+            <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground">
+              {cart.itemCount > 99 ? "99+" : cart.itemCount}
+            </span>
+          ) : null}
+        </Link>
       )}
 
       {/* CTA button */}

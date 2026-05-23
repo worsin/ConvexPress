@@ -23,6 +23,7 @@ import {
   getMenuItemTreeArgs,
   getMenuForLocationArgs,
   getLinkableContentArgs,
+  DEFAULT_MENU_LOCATIONS,
 } from "./validators";
 import { buildMenuItemTree, resolveMenuItemUrl } from "./internals";
 
@@ -268,7 +269,24 @@ export const getMenuLocations = query({
 
     // ── Fetch all locations ─────────────────────────────────────────────
     // Bounded to 50 locations - themes define a limited number
-    const locations = await ctx.db.query("menuLocations").take(50);
+    const storedLocations = await ctx.db.query("menuLocations").take(50);
+    const bySlug = new Map(storedLocations.map((location) => [location.slug, location]));
+    const locations = [
+      ...DEFAULT_MENU_LOCATIONS.map((location) => ({
+        _id: location.slug,
+        slug: location.slug,
+        name: location.name,
+        description: location.description,
+        menuId: null,
+        createdAt: 0,
+        updatedAt: 0,
+        ...bySlug.get(location.slug),
+      })),
+      ...storedLocations.filter(
+        (location) =>
+          !DEFAULT_MENU_LOCATIONS.some((defaultLocation) => defaultLocation.slug === location.slug),
+      ),
+    ];
 
     // ── Resolve menu names ──────────────────────────────────────────────
     const locationsWithMenuName = await Promise.all(

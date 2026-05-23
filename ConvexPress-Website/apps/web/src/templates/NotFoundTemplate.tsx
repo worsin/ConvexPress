@@ -33,12 +33,7 @@ export function NotFoundTemplate({ children }: NotFoundTemplateProps) {
           </p>
           <a
             href="/"
-            className="mt-8 inline-flex items-center px-6 py-3 text-sm font-medium transition-colors"
-            style={{
-              backgroundColor: "var(--sh-color-button-bg, #1e40af)",
-              color: "var(--sh-color-button-text, #ffffff)",
-              borderRadius: "var(--sh-button-radius, 0.375rem)",
-            }}
+            className="mt-8 inline-flex items-center bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Return Home
           </a>

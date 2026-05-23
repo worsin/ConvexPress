@@ -38,6 +38,7 @@ import {
   MAX_NAME_LENGTH,
   MAX_LABEL_LENGTH,
   MAX_DEPTH,
+  DEFAULT_MENU_LOCATIONS,
 } from "./validators";
 import {
   generateSlugFromName,
@@ -756,16 +757,30 @@ export const assignMenuToLocation = mutation({
     await requireCan(ctx, "menu.assign_location");
 
     // ── Find location by slug ───────────────────────────────────────────
-    const location = await ctx.db
+    let location = await ctx.db
       .query("menuLocations")
       .withIndex("by_slug", (q) => q.eq("slug", args.locationSlug))
       .unique();
 
     if (!location) {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: `Menu location "${args.locationSlug}" not found`,
+      const defaultLocation = DEFAULT_MENU_LOCATIONS.find(
+        (entry) => entry.slug === args.locationSlug,
+      );
+      if (!defaultLocation) {
+        throw new ConvexError({
+          code: "NOT_FOUND",
+          message: `Menu location "${args.locationSlug}" not found`,
+        });
+      }
+      const now = Date.now();
+      const locationId = await ctx.db.insert("menuLocations", {
+        slug: defaultLocation.slug,
+        name: defaultLocation.name,
+        description: defaultLocation.description,
+        createdAt: now,
+        updatedAt: now,
       });
+      location = (await ctx.db.get(locationId))!;
     }
 
     // ── Validate menu exists if assigning ────────────────────────────────

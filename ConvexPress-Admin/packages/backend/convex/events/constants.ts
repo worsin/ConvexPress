@@ -45,6 +45,7 @@ export const SYSTEM = {
   SUPPORT: "support",
   PRODUCT: "product",
   CART: "cart",
+  CHECKOUT: "checkout",
   WISHLIST: "wishlist",
 } as const;
 
@@ -305,6 +306,18 @@ export const CART_EVENTS = {
   MERGED: "cart.merged",
   ABANDONED: "cart.abandoned",
   RECOVERED: "cart.recovered",
+  SHARED: "cart.shared",
+  SHARE_DISABLED: "cart.share_disabled",
+} as const;
+
+/** Checkout System events (6) */
+export const CHECKOUT_EVENTS = {
+  STARTED: "checkout.started",
+  SHIPPING_SET: "checkout.shipping_set",
+  PAYMENT_SET: "checkout.payment_set",
+  COMPLETED: "checkout.completed",
+  ABANDONED: "checkout.abandoned",
+  FAILED: "checkout.failed",
 } as const;
 
 /** Wishlist System events (3) */
@@ -350,6 +363,7 @@ export const ALL_EVENT_CODES: string[] = [
   ...Object.values(SUPPORT_EVENTS),
   ...Object.values(PRODUCT_EVENTS),
   ...Object.values(CART_EVENTS),
+  ...Object.values(CHECKOUT_EVENTS),
   ...Object.values(WISHLIST_EVENTS),
 ];
 
@@ -398,6 +412,7 @@ export const EVENT_CODES_BY_SYSTEM: Record<string, readonly string[]> = {
   [SYSTEM.SUPPORT]: Object.values(SUPPORT_EVENTS),
   [SYSTEM.PRODUCT]: Object.values(PRODUCT_EVENTS),
   [SYSTEM.CART]: Object.values(CART_EVENTS),
+  [SYSTEM.CHECKOUT]: Object.values(CHECKOUT_EVENTS),
   [SYSTEM.WISHLIST]: Object.values(WISHLIST_EVENTS),
 };
 

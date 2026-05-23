@@ -44,6 +44,33 @@ describe("commerce tax helpers", () => {
 		expect(result.breakdown).toHaveLength(2);
 	});
 
+	test("keeps separately calculated shipping tax auditable by class", () => {
+		const rules = [
+			baseRule,
+			{
+				...baseRule,
+				_id: "shipping",
+				name: "Shipping",
+				taxClass: "shipping",
+				ratePercent: 5,
+			},
+		];
+		const itemTax = calculateTaxForLinesFromRules(
+			rules,
+			{ countryCode: "US", state: "CA", postalCode: "90210" },
+			[{ amount: 10_000, taxClass: "standard" }],
+		);
+		const shippingTax = calculateTaxForLinesFromRules(
+			rules,
+			{ countryCode: "US", state: "CA", postalCode: "90210" },
+			[{ amount: 1_500, taxClass: "shipping" }],
+		);
+
+		expect(itemTax.taxAmount).toBe(725);
+		expect(shippingTax.taxAmount).toBe(75);
+		expect(shippingTax.breakdown[0].taxClass).toBe("shipping");
+	});
+
 	test("extracts tax from inclusive prices", () => {
 		const result = calculateTaxFromRules(
 			[baseRule],

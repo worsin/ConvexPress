@@ -14,6 +14,11 @@ import type { Stripe as StripeType } from "@stripe/stripe-js";
 
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
+import {
+  CheckoutProgress,
+  CheckoutStatusNotice,
+} from "@/components/commerce/CheckoutProgress";
+import { getCartLineTitle } from "@/components/commerce/cartLine";
 
 export const Route = createFileRoute("/_marketing/checkout/review")({
   component: CheckoutReviewPage,
@@ -239,6 +244,7 @@ function CheckoutReviewPage() {
             : "Review checkout details and submit the order."}
         </p>
       </div>
+      <CheckoutProgress currentStep="review" />
 
       {!isReady || cart === undefined || session === undefined ? (
         <div className="h-48 animate-pulse rounded-[2rem] bg-muted" />
@@ -246,6 +252,11 @@ function CheckoutReviewPage() {
         <div className="rounded-[2rem] border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
           Checkout data is incomplete.
         </div>
+      ) : ["failed", "abandoned"].includes(session.status) ? (
+        <CheckoutStatusNotice
+          status={session.status}
+          failureReason={session.failureReason}
+        />
       ) : paymentStep === "stripe" && clientSecret && stripePromise ? (
         // ─── Stripe Payment Step ──────────────────────────────────────
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
@@ -345,7 +356,7 @@ function CheckoutReviewPage() {
                 >
                   <div>
                     <p className="font-medium text-foreground">
-                      {item.product?.title ?? "Product"}
+                      {getCartLineTitle(item.product, item.metadata)}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Quantity {item.quantity}

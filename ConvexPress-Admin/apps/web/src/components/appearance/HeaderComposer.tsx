@@ -1,15 +1,4 @@
 /**
- * @deprecated 2026-05-11 — Legacy in-admin Theme/Template Builder.
- *
- * STATUS:  Frozen. Hidden from active nav. Do NOT extend or fix issues here.
- * REASON:  A pre-built section enum + preset theme picker limits what each
- *          site can look like. Replaced by AI-generated React components,
- *          one per route, generated per site by the design:* skill kit.
- * REPLACEMENT:  See ConvexPress-Website/design-kit/README.md
- * REMOVAL:  Safe to delete once at least one site is fully shipped via the
- *           skill kit and nothing else references this file.
- */
-/**
  * HeaderComposer - Two-column composer for configuring the site header.
  *
  * Left panel: collapsible section controls with toggle, select, text, and variant-grid fields.
@@ -51,6 +40,37 @@ const DEVICE_WIDTHS: Record<DeviceSize, string> = {
   tablet: "max-w-[768px]",
   mobile: "max-w-[375px]",
 };
+
+const HEADER_PRESETS: Array<{ label: string; config: HeaderConfig }> = [
+  {
+    label: "Marketing",
+    config: {
+      ...HEADER_DEFAULTS,
+      layout: { ...HEADER_DEFAULTS.layout, style: "standard", background: "glass" },
+      cta: { ...HEADER_DEFAULTS.cta, enabled: true },
+      navigation: { ...HEADER_DEFAULTS.navigation, style: "pills" },
+    },
+  },
+  {
+    label: "Publication",
+    config: {
+      ...HEADER_DEFAULTS,
+      layout: { ...HEADER_DEFAULTS.layout, style: "centered", height: "tall" },
+      topBar: { ...HEADER_DEFAULTS.topBar, enabled: true, leftContent: "announcement", rightContent: "social" },
+      navigation: { ...HEADER_DEFAULTS.navigation, style: "underline" },
+    },
+  },
+  {
+    label: "Minimal",
+    config: {
+      ...HEADER_DEFAULTS,
+      layout: { ...HEADER_DEFAULTS.layout, style: "split", height: "compact", bottomBorder: "none" },
+      search: { ...HEADER_DEFAULTS.search, enabled: false },
+      userMenu: { ...HEADER_DEFAULTS.userMenu, guestDisplay: "hidden" },
+      darkModeToggle: { ...HEADER_DEFAULTS.darkModeToggle, enabled: false },
+    },
+  },
+];
 
 // ─── Deep Merge Helper ──────────────────────────────
 
@@ -437,9 +457,9 @@ export function HeaderComposer() {
       </div>
 
       {/* Two-column layout */}
-      <div className="flex gap-6 items-start">
+      <div className="flex flex-col gap-6 items-start xl:flex-row">
         {/* Left sidebar - section controls */}
-        <div className="w-[360px] shrink-0 flex flex-col gap-3">
+        <div className="flex w-full shrink-0 flex-col gap-3 xl:w-[360px]">
           {/* Sidebar header */}
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-foreground">
@@ -449,6 +469,20 @@ export function HeaderComposer() {
               <RotateCcw className="size-3" />
               Reset
             </Button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-1">
+            {HEADER_PRESETS.map((preset) => (
+              <Button
+                key={preset.label}
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() => setConfig(preset.config)}
+              >
+                {preset.label}
+              </Button>
+            ))}
           </div>
 
           {/* Section panels */}
@@ -466,7 +500,12 @@ export function HeaderComposer() {
 
           {/* Save bar */}
           <div className="flex items-center gap-2 pt-2 border-t border-border">
-            <Button variant="ghost" size="sm" className="flex-1 gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-1 gap-1.5"
+              onClick={() => window.open("/", "_blank", "noopener,noreferrer")}
+            >
               <ExternalLink className="size-3" />
               Preview on Site
             </Button>

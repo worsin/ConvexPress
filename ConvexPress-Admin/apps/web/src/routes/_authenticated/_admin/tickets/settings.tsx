@@ -98,7 +98,7 @@ function TicketSettingsForm() {
 
   if (settings === undefined) {
     return (
-      <div className="max-w-2xl space-y-6 animate-pulse">
+      <div className="w-full space-y-6 animate-pulse">
         <div className="h-8 w-44 bg-muted rounded" />
         <div className="h-32 bg-muted rounded-lg" />
         <div className="h-32 bg-muted rounded-lg" />
@@ -108,7 +108,7 @@ function TicketSettingsForm() {
 
   if (settings === null) {
     return (
-      <div className="max-w-2xl space-y-2">
+      <div className="w-full space-y-2">
         <h1 className="text-2xl font-bold">Ticket Settings</h1>
         <p className="text-sm text-muted-foreground">
           Ticket settings are available when the Support Tickets extension is
@@ -119,7 +119,7 @@ function TicketSettingsForm() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="w-full space-y-6">
       <h1 className="text-2xl font-bold">Ticket Settings</h1>
 
       {/* General */}

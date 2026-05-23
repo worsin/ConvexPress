@@ -27,6 +27,7 @@ export const sectionValidator = v.union(
   v.literal("media"),
   v.literal("analytics"),
   v.literal("ai"),
+  v.literal("blocks"),
   v.literal("plugins"),
   v.literal("search"),
   // Knowledge Base System sections
@@ -229,7 +230,17 @@ export const aiValuesValidator = v.object({
   ),
   apiKey: v.string(),
   defaultModel: v.string(),
+  pageGenerationModel: v.string(),
+  blockEditingModel: v.string(),
+  researchModel: v.string(),
+  legacyContentModel: v.string(),
+  imageApiKey: v.string(),
+  imageModel: v.string(),
   tavilyApiKey: v.string(),
+});
+
+export const blockValuesValidator = v.object({
+  disabledBlockNames: v.array(v.string()),
 });
 
 /**
@@ -258,17 +269,121 @@ export const layoutAssignmentValuesValidator = v.object({
   kbArticleLayout: v.string(),
 });
 
-/**
- * Header settings value validator.
- * Uses v.any() because the nested object structure is complex.
- */
-export const headerValuesValidator = v.any();
+export const headerValuesValidator = v.object({
+  layout: v.optional(v.object({
+    style: v.optional(v.union(v.literal("standard"), v.literal("centered"), v.literal("split"))),
+    sticky: v.optional(v.union(v.literal("always"), v.literal("scroll-up"), v.literal("none"))),
+    background: v.optional(v.union(v.literal("solid"), v.literal("transparent"), v.literal("glass"))),
+    height: v.optional(v.union(v.literal("compact"), v.literal("normal"), v.literal("tall"))),
+    bottomBorder: v.optional(v.union(v.literal("none"), v.literal("subtle"), v.literal("bold"), v.literal("shadow"))),
+  })),
+  topBar: v.optional(v.object({
+    enabled: v.optional(v.boolean()),
+    leftContent: v.optional(v.union(v.literal("none"), v.literal("contact"), v.literal("announcement"), v.literal("social"))),
+    rightContent: v.optional(v.union(v.literal("none"), v.literal("contact"), v.literal("announcement"), v.literal("social"))),
+    email: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    announcementText: v.optional(v.string()),
+  })),
+  logo: v.optional(v.object({
+    enabled: v.optional(v.boolean()),
+    showImage: v.optional(v.boolean()),
+    showTitle: v.optional(v.boolean()),
+    showTagline: v.optional(v.boolean()),
+    size: v.optional(v.union(v.literal("small"), v.literal("medium"), v.literal("large"))),
+  })),
+  navigation: v.optional(v.object({
+    enabled: v.optional(v.boolean()),
+    menuSource: v.optional(v.string()),
+    customLocation: v.optional(v.string()),
+    style: v.optional(v.union(v.literal("inline"), v.literal("pills"), v.literal("underline"))),
+    dropdownStyle: v.optional(v.union(v.literal("flyout"), v.literal("mega"))),
+  })),
+  search: v.optional(v.object({
+    enabled: v.optional(v.boolean()),
+    variant: v.optional(v.union(v.literal("inline"), v.literal("icon"), v.literal("expandable"))),
+    placeholder: v.optional(v.string()),
+  })),
+  cta: v.optional(v.object({
+    enabled: v.optional(v.boolean()),
+    label: v.optional(v.string()),
+    url: v.optional(v.string()),
+    style: v.optional(v.union(v.literal("filled"), v.literal("outline"), v.literal("ghost"))),
+  })),
+  userMenu: v.optional(v.object({
+    enabled: v.optional(v.boolean()),
+    guestDisplay: v.optional(v.union(v.literal("login-register"), v.literal("login-only"), v.literal("hidden"))),
+    loggedInDisplay: v.optional(v.union(v.literal("avatar-dropdown"), v.literal("name-dropdown"), v.literal("avatar-only"))),
+    dropdownPreset: v.optional(v.string()),
+  })),
+  darkModeToggle: v.optional(v.object({
+    enabled: v.optional(v.boolean()),
+    variant: v.optional(v.union(v.literal("icon"), v.literal("switch"), v.literal("text"))),
+  })),
+  mobileMenu: v.optional(v.object({
+    variant: v.optional(v.union(v.literal("drawer"), v.literal("fullscreen"), v.literal("dropdown"))),
+    drawerSide: v.optional(v.union(v.literal("left"), v.literal("right"))),
+  })),
+});
 
-/**
- * Footer settings value validator.
- * Uses v.any() because the nested object structure is complex.
- */
-export const footerValuesValidator = v.any();
+export const footerRowCellValidator = v.object({
+  id: v.string(),
+  width: v.optional(v.number()),
+  alignment: v.optional(v.union(v.literal("left"), v.literal("center"), v.literal("right"))),
+  cell: v.any(),
+});
+
+export const footerValuesValidator = v.object({
+  rows: v.optional(v.array(v.object({
+    id: v.string(),
+    heading: v.optional(v.string()),
+    background: v.union(v.literal("default"), v.literal("muted"), v.literal("accent"), v.literal("contrast"), v.literal("transparent")),
+    padding: v.union(v.literal("none"), v.literal("compact"), v.literal("normal"), v.literal("spacious")),
+    container: v.union(v.literal("narrow"), v.literal("default"), v.literal("wide"), v.literal("full")),
+    alignment: v.optional(v.union(v.literal("left"), v.literal("center"), v.literal("right"))),
+    topBorder: v.optional(v.union(v.literal("none"), v.literal("subtle"), v.literal("bold"), v.literal("accent"))),
+    columns: v.array(footerRowCellValidator),
+  }))),
+  layout: v.optional(v.object({
+    columns: v.optional(v.string()),
+    background: v.optional(v.union(v.literal("dark"), v.literal("match-site"), v.literal("accent"), v.literal("image"))),
+    backgroundImageId: v.optional(v.union(v.string(), v.null())),
+    topBorder: v.optional(v.union(v.literal("none"), v.literal("subtle"), v.literal("bold"), v.literal("accent"))),
+    padding: v.optional(v.union(v.literal("compact"), v.literal("normal"), v.literal("spacious"))),
+  })),
+  branding: v.optional(v.object({
+    enabled: v.optional(v.boolean()),
+    showLogo: v.optional(v.boolean()),
+    showDescription: v.optional(v.boolean()),
+    description: v.optional(v.string()),
+    showSocial: v.optional(v.boolean()),
+  })),
+  navColumns: v.optional(v.object({
+    enabled: v.optional(v.boolean()),
+    columns: v.optional(v.array(v.object({
+      heading: v.string(),
+      menuSource: v.string(),
+    }))),
+  })),
+  newsletter: v.optional(v.object({
+    enabled: v.optional(v.boolean()),
+    heading: v.optional(v.string()),
+    subtext: v.optional(v.string()),
+    buttonText: v.optional(v.string()),
+  })),
+  contactInfo: v.optional(v.object({
+    enabled: v.optional(v.boolean()),
+    address: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    email: v.optional(v.string()),
+  })),
+  bottomBar: v.optional(v.object({
+    enabled: v.optional(v.boolean()),
+    copyrightText: v.optional(v.string()),
+    legalLinks: v.optional(v.string()),
+    poweredBy: v.optional(v.boolean()),
+  })),
+});
 
 // ─── Argument Validators ─────────────────────────────────────────────────────
 

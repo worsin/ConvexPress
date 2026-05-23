@@ -109,12 +109,12 @@ function SupportSettingsForm() {
   }
 
   if (settings === undefined) {
-    return <div className="h-96 max-w-3xl animate-pulse rounded-lg bg-muted" />;
+    return <div className="h-96 w-full animate-pulse rounded-lg bg-muted" />;
   }
 
   if (settings === null) {
     return (
-      <div className="max-w-3xl space-y-2">
+      <div className="w-full space-y-2">
         <h1 className="text-2xl font-bold">Support Settings</h1>
         <p className="text-sm text-muted-foreground">
           Support settings are available when the Support Tickets extension is
@@ -125,7 +125,7 @@ function SupportSettingsForm() {
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="w-full space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Support Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">

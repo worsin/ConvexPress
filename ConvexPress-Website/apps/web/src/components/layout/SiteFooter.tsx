@@ -11,6 +11,7 @@ import type { FooterConfig } from "@/lib/layout/types";
 
 import { FooterBottom } from "./FooterBottom";
 import { FooterNav } from "./FooterNav";
+import { FooterRowsRenderer } from "./FooterRowsRenderer";
 import { SocialLinks } from "./SocialLinks";
 
 interface SiteFooterProps {
@@ -26,6 +27,17 @@ export function SiteFooter({ variant = "full" }: SiteFooterProps) {
   const siteIdentity = useSiteIdentity();
   const footerConfig = useFooterConfig();
   const siteTitle = siteIdentity?.title ?? "ConvexPress";
+
+  // v2 rows builder: if the admin has authored rows, render them and skip
+  // the legacy section-toggle path entirely. Minimal variant still uses the
+  // legacy bottom-bar shape since rows are designed for the full footer.
+  if (variant === "full" && footerConfig.rows && footerConfig.rows.length > 0) {
+    return (
+      <footer data-slot="site-footer" role="contentinfo">
+        <FooterRowsRenderer rows={footerConfig.rows} />
+      </footer>
+    );
+  }
 
   if (variant === "minimal") {
     return (

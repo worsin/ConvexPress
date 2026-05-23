@@ -10,7 +10,11 @@
  */
 
 import { useState, useCallback } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  useLocation,
+} from "@tanstack/react-router";
 import { useMutation, useAction } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
@@ -36,6 +40,7 @@ export const Route = createFileRoute(
 });
 
 function AnalyticsSettingsPage() {
+  const location = useLocation();
   const connectionStatus = useQuery(api.ga4.queries.getConnectionStatus);
   const analyticsSettings = useQuery(api.settings.queries.getBySection, {
     section: "analytics" as const,
@@ -179,10 +184,14 @@ function AnalyticsSettingsPage() {
     [],
   );
 
+  if (location.pathname !== "/settings/analytics") {
+    return <Outlet />;
+  }
+
   // Loading gate AFTER all hooks so hook order stays stable across renders.
   if (connectionStatus === undefined || analyticsSettings === undefined) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="w-full p-6">
         <div className="animate-pulse space-y-6">
           <div className="h-8 w-48 rounded bg-muted" />
           <div className="h-32 rounded bg-muted" />
@@ -193,7 +202,7 @@ function AnalyticsSettingsPage() {
 
   if (!draft) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="w-full p-6">
         <div className="animate-pulse space-y-6">
           <div className="h-8 w-48 rounded bg-muted" />
           <div className="h-32 rounded bg-muted" />
@@ -203,7 +212,7 @@ function AnalyticsSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="w-full p-6">
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-foreground">

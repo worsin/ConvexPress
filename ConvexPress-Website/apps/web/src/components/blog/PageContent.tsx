@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
 import type { PageDetail } from "@/lib/blog/types";
+import { BlockListRenderer } from "@/components/blocks/BlockListRenderer";
+import { pageSectionsToBlocks } from "@/lib/blocks/page-sections";
 
 import { BlockContentRenderer } from "./BlockContentRenderer";
 
@@ -33,7 +35,15 @@ export function PageContent({ page, className }: PageContentProps) {
       <h1 className="text-lg font-bold leading-tight md:text-xl">{page.title}</h1>
 
       {/* Content */}
-      {page.content ? (
+      {page.contentMode === "blocks" ? (
+        <BlockListRenderer
+          blocks={
+            page.blocks && page.blocks.length > 0
+              ? page.blocks
+              : pageSectionsToBlocks(page.pageSections)
+          }
+        />
+      ) : page.content ? (
         <BlockContentRenderer content={page.content} />
       ) : (
         <div className="py-8 text-center">

@@ -23,6 +23,8 @@ import { MenuItemCard } from "./MenuItemCard";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import type { MenuItem } from "./types";
 
+const MAX_MENU_DEPTH = 5;
+
 interface MenuItemListProps {
   menuId: Id<"menus">;
   items: MenuItem[];
@@ -122,6 +124,67 @@ export function MenuItemList({ menuId, items }: MenuItemListProps) {
     [deleteMenuItem],
   );
 
+  const persistStructure = useCallback(
+    async (nextItems: MenuItem[]) => {
+      setLocalItems(nextItems);
+      try {
+        await reorderMenuItems({
+          menuId,
+          items: nextItems.map((item, index) => ({
+            itemId: item._id,
+            parentItemId: item.parentItemId,
+            position: index,
+            depth: item.depth ?? 0,
+          })),
+        });
+        setLocalItems(null);
+      } catch (error: unknown) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to update menu structure",
+        );
+        setLocalItems(null);
+      }
+    },
+    [menuId, reorderMenuItems],
+  );
+
+  const handleIndent = useCallback(
+    (itemId: Id<"menuItems">) => {
+      const index = displayItems.findIndex((item) => item._id === itemId);
+      if (index <= 0) return;
+      const item = displayItems[index];
+      const previous = displayItems[index - 1];
+      const nextDepth = Math.min((previous.depth ?? 0) + 1, MAX_MENU_DEPTH);
+      if ((item.depth ?? 0) >= nextDepth) return;
+      void persistStructure(
+        displayItems.map((entry) =>
+          entry._id === itemId
+            ? { ...entry, parentItemId: previous._id, depth: nextDepth }
+            : entry,
+        ),
+      );
+    },
+    [displayItems, persistStructure],
+  );
+
+  const handleOutdent = useCallback(
+    (itemId: Id<"menuItems">) => {
+      const item = displayItems.find((entry) => entry._id === itemId);
+      if (!item?.parentItemId) return;
+      const parent = displayItems.find((entry) => entry._id === item.parentItemId);
+      const nextParentItemId = parent?.parentItemId;
+      const nextDepth = Math.max(0, (item.depth ?? 0) - 1);
+      void persistStructure(
+        displayItems.map((entry) =>
+          entry._id === itemId
+            ? { ...entry, parentItemId: nextParentItemId, depth: nextDepth }
+            : entry,
+        ),
+      );
+    },
+    [displayItems, persistStructure],
+  );
+
   if (displayItems.length === 0) {
     return (
       <div className="border border-dashed border-border p-8 text-center">
@@ -143,11 +206,14 @@ export function MenuItemList({ menuId, items }: MenuItemListProps) {
         strategy={verticalListSortingStrategy}
       >
         <div className="space-y-1">
-          {displayItems.map((item) => (
+          {displayItems.map((item, index) => (
             <SortableMenuItem
               key={item._id}
               item={item}
+              previousItem={displayItems[index - 1]}
               onRemove={handleRemove}
+              onIndent={handleIndent}
+              onOutdent={handleOutdent}
             />
           ))}
         </div>
@@ -158,10 +224,19 @@ export function MenuItemList({ menuId, items }: MenuItemListProps) {
 
 interface SortableMenuItemProps {
   item: MenuItem;
+  previousItem?: MenuItem;
   onRemove: (itemId: Id<"menuItems">) => void;
+  onIndent: (itemId: Id<"menuItems">) => void;
+  onOutdent: (itemId: Id<"menuItems">) => void;
 }
 
-function SortableMenuItem({ item, onRemove }: SortableMenuItemProps) {
+function SortableMenuItem({
+  item,
+  previousItem,
+  onRemove,
+  onIndent,
+  onOutdent,
+}: SortableMenuItemProps) {
   const {
     attributes,
     listeners,
@@ -181,6 +256,10 @@ function SortableMenuItem({ item, onRemove }: SortableMenuItemProps) {
       <MenuItemCard
         item={item}
         onRemove={onRemove}
+        onIndent={onIndent}
+        onOutdent={onOutdent}
+        canIndent={Boolean(previousItem) && (item.depth ?? 0) < MAX_MENU_DEPTH}
+        canOutdent={Boolean(item.parentItemId)}
         dragHandleProps={listeners}
         isDragging={isDragging}
       />

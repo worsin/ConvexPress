@@ -455,6 +455,16 @@ function validateAI(values: Record<string, unknown>): ValidationError[] {
     errors.push({ field: "defaultModel", message: "Default model must be 200 characters or less." });
   }
 
+  for (const field of ["pageGenerationModel", "blockEditingModel", "researchModel", "legacyContentModel", "imageModel"]) {
+    if (values[field] !== undefined && isString(values[field]) && values[field].length > 200) {
+      errors.push({ field, message: "Model name must be 200 characters or less." });
+    }
+  }
+
+  if (values.imageApiKey !== undefined && isString(values.imageApiKey) && values.imageApiKey.length > 500) {
+    errors.push({ field: "imageApiKey", message: "Image API key must be 500 characters or less." });
+  }
+
   // tavilyApiKey: string, max 500
   if (values.tavilyApiKey !== undefined && isString(values.tavilyApiKey) && values.tavilyApiKey.length > 500) {
     errors.push({ field: "tavilyApiKey", message: "Tavily API key must be 500 characters or less." });
@@ -543,13 +553,118 @@ function validateLayoutAssignment(values: Record<string, unknown>): ValidationEr
 
 function validateHeader(values: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
-  // Header config is deeply nested - accept any valid object
+  const layout = values.layout as Record<string, unknown> | undefined;
+  const navigation = values.navigation as Record<string, unknown> | undefined;
+  const topBar = values.topBar as Record<string, unknown> | undefined;
+
+  if (layout) {
+    if (layout.style !== undefined && !["standard", "centered", "split"].includes(String(layout.style))) {
+      errors.push({ field: "layout.style", message: "Header layout style is invalid." });
+    }
+    if (layout.sticky !== undefined && !["always", "scroll-up", "none"].includes(String(layout.sticky))) {
+      errors.push({ field: "layout.sticky", message: "Header sticky behavior is invalid." });
+    }
+    if (layout.background !== undefined && !["solid", "transparent", "glass"].includes(String(layout.background))) {
+      errors.push({ field: "layout.background", message: "Header background is invalid." });
+    }
+  }
+
+  if (navigation) {
+    if (
+      navigation.menuSource !== undefined &&
+      !["primary", "secondary", "custom"].includes(String(navigation.menuSource))
+    ) {
+      errors.push({ field: "navigation.menuSource", message: "Header menu source is invalid." });
+    }
+    if (navigation.customLocation !== undefined) {
+      if (!isString(navigation.customLocation) || !/^[a-z0-9][a-z0-9-]{0,80}$/.test(navigation.customLocation)) {
+        errors.push({ field: "navigation.customLocation", message: "Custom menu location must be a slug." });
+      }
+    }
+    if (navigation.style !== undefined && !["inline", "pills", "underline"].includes(String(navigation.style))) {
+      errors.push({ field: "navigation.style", message: "Header navigation style is invalid." });
+    }
+    if (navigation.dropdownStyle !== undefined && !["flyout", "mega"].includes(String(navigation.dropdownStyle))) {
+      errors.push({ field: "navigation.dropdownStyle", message: "Header dropdown style is invalid." });
+    }
+  }
+
+  if (topBar) {
+    for (const key of ["leftContent", "rightContent"]) {
+      if (
+        topBar[key] !== undefined &&
+        !["contact", "announcement", "social", "none"].includes(String(topBar[key]))
+      ) {
+        errors.push({ field: `topBar.${key}`, message: "Header top bar content type is invalid." });
+      }
+    }
+  }
   return errors;
 }
 
 function validateFooter(values: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
-  // Footer config is deeply nested - accept any valid object
+  if (values.rows !== undefined) {
+    if (!Array.isArray(values.rows)) {
+      errors.push({ field: "rows", message: "Footer rows must be an array." });
+      return errors;
+    }
+    if (values.rows.length > 24) {
+      errors.push({ field: "rows", message: "Footer builder supports up to 24 rows." });
+    }
+
+    values.rows.forEach((row, rowIndex) => {
+      if (!row || typeof row !== "object") {
+        errors.push({ field: `rows.${rowIndex}`, message: "Footer row must be an object." });
+        return;
+      }
+      const rowValue = row as Record<string, unknown>;
+      if (!["default", "muted", "accent", "contrast", "transparent"].includes(String(rowValue.background))) {
+        errors.push({ field: `rows.${rowIndex}.background`, message: "Footer row background is invalid." });
+      }
+      if (!["none", "compact", "normal", "spacious"].includes(String(rowValue.padding))) {
+        errors.push({ field: `rows.${rowIndex}.padding`, message: "Footer row padding is invalid." });
+      }
+      if (!["narrow", "default", "wide", "full"].includes(String(rowValue.container))) {
+        errors.push({ field: `rows.${rowIndex}.container`, message: "Footer row container is invalid." });
+      }
+      if (!Array.isArray(rowValue.columns)) {
+        errors.push({ field: `rows.${rowIndex}.columns`, message: "Footer row columns must be an array." });
+        return;
+      }
+      if (rowValue.columns.length > 12) {
+        errors.push({ field: `rows.${rowIndex}.columns`, message: "Footer rows support up to 12 columns." });
+      }
+      rowValue.columns.forEach((column, columnIndex) => {
+        if (!column || typeof column !== "object") {
+          errors.push({ field: `rows.${rowIndex}.columns.${columnIndex}`, message: "Footer column must be an object." });
+          return;
+        }
+        const cell = (column as Record<string, unknown>).cell as Record<string, unknown> | undefined;
+        if (!cell || !["brand", "contact", "copyright", "divider", "html", "image", "links", "nav", "newsletter", "payments", "social", "text"].includes(String(cell.type))) {
+          errors.push({ field: `rows.${rowIndex}.columns.${columnIndex}.cell`, message: "Footer cell type is invalid." });
+        }
+        if (cell?.type === "html" && isString(cell.rawHtml) && cell.rawHtml.length > 20000) {
+          errors.push({ field: `rows.${rowIndex}.columns.${columnIndex}.cell.rawHtml`, message: "Footer HTML cells must be 20,000 characters or less." });
+        }
+      });
+    });
+  }
+  return errors;
+}
+
+function validateBlocks(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+  if (
+    values.disabledBlockNames !== undefined &&
+    (!Array.isArray(values.disabledBlockNames) ||
+      values.disabledBlockNames.some((name) => !isString(name) || name.length > 120))
+  ) {
+    errors.push({
+      field: "disabledBlockNames",
+      message: "Disabled block names must be an array of block name strings.",
+    });
+  }
   return errors;
 }
 
@@ -584,6 +699,8 @@ export function validateSectionValues(
       return validateAnalytics(values);
     case "ai":
       return validateAI(values);
+    case "blocks":
+      return validateBlocks(values);
     case "plugins":
       return [];
     case "search":

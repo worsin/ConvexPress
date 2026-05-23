@@ -2,8 +2,10 @@ import { ConvexError } from "convex/values";
 
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import {
+  COMMERCE_PAYMENTS_DEFAULTS,
   COMMERCE_GENERAL_DEFAULTS,
   PLUGINS_DEFAULTS,
+  type CommercePaymentsSettings,
   type CommerceGeneralSettings,
   type PluginsSettings,
 } from "../settings/defaults";
@@ -34,6 +36,20 @@ export async function getCommerceSettings(
     ...COMMERCE_GENERAL_DEFAULTS,
     ...(doc?.values ?? {}),
   } as CommerceGeneralSettings;
+}
+
+export async function getCommercePaymentsSettings(
+  ctx: CommerceCtx,
+): Promise<CommercePaymentsSettings> {
+  const doc = await (ctx.db as any)
+    .query("settings")
+    .withIndex("by_section", (q: any) => q.eq("section", "commerce.payments"))
+    .unique();
+
+  return {
+    ...COMMERCE_PAYMENTS_DEFAULTS,
+    ...(doc?.values ?? {}),
+  } as CommercePaymentsSettings;
 }
 
 export function getEnabledShippingMethods(

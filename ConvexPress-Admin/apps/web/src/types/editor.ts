@@ -24,6 +24,27 @@ export type PostVisibility = "public" | "private" | "password";
 /** Comment status values */
 export type CommentStatus = "open" | "closed";
 
+export type ContentMode = "article" | "blocks";
+
+export interface CompositionBlock {
+  id: string;
+  name: string;
+  version: number;
+  attrs: Record<string, unknown>;
+  innerBlocks?: unknown[];
+  layout?: {
+    tone?: "default" | "muted" | "accent" | "contrast";
+    padding?: "compact" | "normal" | "spacious";
+    container?: "content" | "wide" | "full";
+    align?: "default" | "wide" | "full";
+  };
+  lock?: {
+    move?: boolean;
+    remove?: boolean;
+    edit?: boolean;
+  };
+}
+
 // ─── Structured Content Types ──────────────────────────────────────────────
 
 /** Hero section for structured content */
@@ -97,6 +118,8 @@ export interface EditorFormValues {
   categoryIds: string[];
   tagIds: string[];
   menuOrder: number;
+  parentId: string;
+  pageTemplate: string;
   // Layout override fields
   layoutId: string;
   hideHeader: boolean;
@@ -108,6 +131,11 @@ export interface EditorFormValues {
   sources: string;
   tableOfContents: string;
   pagePrompt: string;
+  // Gutenberg-inspired composition blocks
+  contentMode: ContentMode;
+  blocks: CompositionBlock[];
+  blocksVersion: number;
+  blocksRevision: number;
 }
 
 /** Default form values for a new post */
@@ -127,6 +155,8 @@ export const DEFAULT_EDITOR_FORM_VALUES: EditorFormValues = {
   categoryIds: [],
   tagIds: [],
   menuOrder: 0,
+  parentId: "",
+  pageTemplate: "default",
   // Layout override defaults
   layoutId: "",
   hideHeader: false,
@@ -138,6 +168,10 @@ export const DEFAULT_EDITOR_FORM_VALUES: EditorFormValues = {
   sources: "",
   tableOfContents: "",
   pagePrompt: "",
+  contentMode: "article",
+  blocks: [],
+  blocksVersion: 1,
+  blocksRevision: 0,
 };
 
 /** Autosave state tracked separately from form */
@@ -408,62 +442,8 @@ export interface AuthorItem {
   role: string;
 }
 
-// ─── TipTap Editor Types ──────────────────────────────────────────────────────
-
-import type { Editor } from "@tiptap/core";
-
-/** Block definition for the block inserter */
-export interface BlockDefinition {
-  id: string;
-  label: string;
-  description: string;
-  icon: string;
-  category: BlockCategory;
-  aliases: string[];
-  /** The TipTap command to insert this block */
-  action: (editor: Editor) => void;
-}
-
-/** Block categories in the inserter */
-export type BlockCategory = "text" | "media" | "design" | "reusable";
-
-/** Slash command item displayed in the suggestion menu */
-export interface SlashCommandItem {
-  id: string;
-  label: string;
-  description: string;
-  icon: string;
-  aliases: string[];
-  action: (editor: Editor) => void;
-}
-
-/** Editor save status for the SaveStatusIndicator */
-export type EditorSaveStatus =
-  | "idle"
-  | "unsaved"
-  | "saving"
-  | "saved"
-  | "error";
-
-/** Callout block type variants */
-export type CalloutType = "info" | "warning" | "error" | "success";
-
-/** Button block variant options */
-export type ButtonVariant = "primary" | "secondary" | "outline";
-
-/** Divider style options */
-export type DividerStyle = "solid" | "dashed" | "dotted" | "double";
-
-/** Embed provider types */
-export type EmbedProvider = "youtube" | "vimeo" | "twitter" | "generic";
-
-/** Editor context value provided by ContentEditorProvider */
-export interface EditorContextValue {
-  /** Whether the editor is in read-only mode */
-  isReadOnly: boolean;
-  /** Current user's capabilities affecting editor features */
-  canUploadFiles: boolean;
-  canCreateReusableBlocks: boolean;
-  /** Callback to update the content string in the form */
-  onContentChange: (json: string) => void;
-}
+// Legacy TipTap editor types (BlockDefinition, SlashCommandItem,
+// EditorContextValue, CalloutType, ButtonVariant, DividerStyle,
+// EmbedProvider, EditorSaveStatus, BlockCategory) were removed when the
+// TipTap chain was deleted in favor of the BlockOutline editor.
+// See packages/backend/convex/blocks/ and apps/web/src/components/blocks/.

@@ -27,7 +27,11 @@ function CheckoutConfirmationPage() {
   ) as any;
 
   if (order === undefined) {
-    return null;
+    return (
+      <div className="mx-auto flex max-w-4xl flex-col gap-6 py-12">
+        <div className="h-64 animate-pulse rounded-[2rem] bg-muted" />
+      </div>
+    );
   }
 
   if (!order) {

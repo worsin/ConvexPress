@@ -32,12 +32,10 @@ export function ErrorTemplate({ error, reset }: ErrorTemplateProps) {
     >
       {/* Error Icon */}
       <div
-        className="mb-6 flex size-16 items-center justify-center rounded-full"
-        style={{ backgroundColor: "var(--sh-color-destructive-bg, #fef2f2)" }}
+        className="mb-6 flex size-16 items-center justify-center rounded-full bg-destructive/10"
       >
         <AlertTriangle
-          className="size-8"
-          style={{ color: "var(--sh-color-destructive, #dc2626)" }}
+          className="size-8 text-destructive"
           aria-hidden="true"
         />
       </div>
@@ -79,23 +77,14 @@ export function ErrorTemplate({ error, reset }: ErrorTemplateProps) {
         <button
           type="button"
           onClick={handleRetry}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors"
-          style={{
-            backgroundColor: "var(--sh-color-button-bg, #1e40af)",
-            color: "var(--sh-color-button-text, #ffffff)",
-            borderRadius: "var(--sh-button-radius, 0.375rem)",
-          }}
+          className="inline-flex items-center gap-2 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <RotateCcw className="size-4" aria-hidden="true" />
           Try Again
         </button>
         <a
           href="/"
-          className="inline-flex items-center gap-2 border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
-          style={{
-            borderColor: "var(--sh-color-border, #e5e7eb)",
-            borderRadius: "var(--sh-button-radius, 0.375rem)",
-          }}
+          className="inline-flex items-center gap-2 border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
         >
           <Home className="size-4" aria-hidden="true" />
           Go Home

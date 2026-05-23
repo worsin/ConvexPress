@@ -1,13 +1,8 @@
 /**
- * @deprecated 2026-05-11 — Legacy in-admin Theme/Template Builder.
+ * Type contracts for the Header/Footer composers in Admin and the
+ * `useHeaderConfig` / `useFooterConfig` hooks on the public Website.
  *
- * STATUS:  Frozen. Hidden from active nav. Do NOT extend or fix issues here.
- * REASON:  A pre-built section enum + preset theme picker limits what each
- *          site can look like. Replaced by AI-generated React components,
- *          one per route, generated per site by the design:* skill kit.
- * REPLACEMENT:  See ConvexPress-Website/design-kit/README.md
- * REMOVAL:  Safe to delete once at least one site is fully shipped via the
- *           skill kit and nothing else references this file.
+ * The shape mirrors the `header` / `footer` settings sections in Convex.
  */
 // ─── Header Config ──────────────────────────────────
 
@@ -37,6 +32,7 @@ export interface HeaderConfig {
   navigation: {
     enabled: boolean;
     menuSource: "primary" | "secondary" | "custom";
+    customLocation?: string;
     style: "inline" | "pills" | "underline";
     dropdownStyle: "flyout" | "mega";
   };
@@ -70,9 +66,133 @@ export interface HeaderConfig {
   };
 }
 
-// ─── Footer Config ──────────────────────────────────
+// ─── Footer Config (legacy section-toggle shape + v2 rows builder) ──────────
+
+export type FooterCellType =
+  | "brand"
+  | "contact"
+  | "copyright"
+  | "divider"
+  | "html"
+  | "image"
+  | "links"
+  | "nav"
+  | "newsletter"
+  | "payments"
+  | "social"
+  | "text";
+
+export type FooterAlignment = "left" | "center" | "right";
+
+export interface FooterCellBase {
+  type: FooterCellType;
+  heading?: string;
+  alignment?: FooterAlignment;
+}
+
+export interface FooterTextCell extends FooterCellBase {
+  type: "text";
+  body: string;
+}
+export interface FooterLinksCell extends FooterCellBase {
+  type: "links";
+  items: Array<{
+    label: string;
+    url: string;
+    target?: "_self" | "_blank";
+    rel?: string;
+  }>;
+}
+export interface FooterNavCell extends FooterCellBase {
+  type: "nav";
+  menuLocation: string;
+}
+export interface FooterImageCell extends FooterCellBase {
+  type: "image";
+  mediaId: string | null;
+  alt: string;
+  href?: string;
+  width?: number;
+}
+export interface FooterSocialCell extends FooterCellBase {
+  type: "social";
+  style: "icons" | "icons-and-labels" | "labels";
+}
+export interface FooterNewsletterCell extends FooterCellBase {
+  type: "newsletter";
+  subtext: string;
+  buttonText: string;
+  audienceId?: string;
+}
+export interface FooterContactCell extends FooterCellBase {
+  type: "contact";
+  address: string;
+  phone: string;
+  email: string;
+  showIcons: boolean;
+}
+export interface FooterBrandCell extends FooterCellBase {
+  type: "brand";
+  showLogo: boolean;
+  showTagline: boolean;
+  showDescription: boolean;
+  description: string;
+}
+export interface FooterHtmlCell extends FooterCellBase {
+  type: "html";
+  rawHtml: string;
+}
+export interface FooterDividerCell extends FooterCellBase {
+  type: "divider";
+  thickness: "thin" | "medium" | "thick";
+}
+export interface FooterCopyrightCell extends FooterCellBase {
+  type: "copyright";
+  text: string;
+  insertYear: boolean;
+}
+export interface FooterPaymentsCell extends FooterCellBase {
+  type: "payments";
+  methods: string[];
+}
+
+export type FooterCell =
+  | FooterTextCell
+  | FooterLinksCell
+  | FooterNavCell
+  | FooterImageCell
+  | FooterSocialCell
+  | FooterNewsletterCell
+  | FooterContactCell
+  | FooterBrandCell
+  | FooterHtmlCell
+  | FooterDividerCell
+  | FooterCopyrightCell
+  | FooterPaymentsCell;
+
+export interface FooterColumn {
+  id: string;
+  width?: number;
+  alignment?: FooterAlignment;
+  cell: FooterCell;
+}
+
+export interface FooterRow {
+  id: string;
+  heading?: string;
+  background: "default" | "muted" | "accent" | "contrast" | "transparent";
+  padding: "none" | "compact" | "normal" | "spacious";
+  container: "narrow" | "default" | "wide" | "full";
+  alignment?: FooterAlignment;
+  topBorder?: "none" | "subtle" | "bold" | "accent";
+  columns: FooterColumn[];
+}
 
 export interface FooterConfig {
+  /** v2 rows builder. Empty array = render legacy section-toggle shape. */
+  rows: FooterRow[];
+
+  // ── Legacy fields (still rendered when rows is empty) ───────────────────
   layout: {
     columns: "1" | "2" | "3" | "4" | "centered" | "minimal";
     background: "dark" | "match-site" | "accent" | "image";

@@ -80,7 +80,7 @@ function ShippingZonesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
+    <div className="w-full space-y-6 p-6">
       <div className="flex items-center gap-3">
         <Globe className="h-6 w-6 text-muted-foreground" />
         <h1 className="text-xl font-semibold text-foreground">

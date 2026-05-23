@@ -113,11 +113,11 @@ function MembershipSettingsPage() {
   }
 
   if (isLoading) {
-    return <div className="h-48 max-w-3xl animate-pulse rounded-lg bg-muted" />;
+    return <div className="h-48 w-full animate-pulse rounded-lg bg-muted" />;
   }
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="w-full space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
           Membership Settings

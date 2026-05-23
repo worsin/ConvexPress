@@ -52,9 +52,29 @@ export const DEFAULT_MENU_LOCATIONS = [
     description: "Main site navigation displayed in the header",
   },
   {
+    slug: "secondary",
+    name: "Secondary Navigation",
+    description: "Optional secondary navigation for alternate header layouts",
+  },
+  {
     slug: "footer",
     name: "Footer Navigation",
     description: "Navigation links in the site footer",
+  },
+  {
+    slug: "footer-1",
+    name: "Footer Column 1",
+    description: "First footer link column",
+  },
+  {
+    slug: "footer-2",
+    name: "Footer Column 2",
+    description: "Second footer link column",
+  },
+  {
+    slug: "footer-3",
+    name: "Footer Column 3",
+    description: "Third footer link column",
   },
   {
     slug: "sidebar",

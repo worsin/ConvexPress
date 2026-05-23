@@ -37,6 +37,17 @@ export const createLocationArgs = {
   ),
   handlingTimeDays: v.optional(v.number()),
   priority: v.optional(v.number()),
+  fulfillmentProvider: v.optional(
+    v.union(
+      v.literal("manual"),
+      v.literal("amazon_mcf"),
+      v.literal("shipstation"),
+      v.literal("third_party_logistics"),
+      v.literal("custom"),
+    ),
+  ),
+  externalProviderLocationId: v.optional(v.string()),
+  fulfillmentProviderConfig: v.optional(v.any()),
 };
 
 export const updateLocationArgs = {
@@ -56,6 +67,17 @@ export const updateLocationArgs = {
     ),
     handlingTimeDays: v.optional(v.number()),
     priority: v.optional(v.number()),
+    fulfillmentProvider: v.optional(
+      v.union(
+        v.literal("manual"),
+        v.literal("amazon_mcf"),
+        v.literal("shipstation"),
+        v.literal("third_party_logistics"),
+        v.literal("custom"),
+      ),
+    ),
+    externalProviderLocationId: v.optional(v.string()),
+    fulfillmentProviderConfig: v.optional(v.any()),
   }),
 };
 

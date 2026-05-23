@@ -75,7 +75,7 @@ function RecipeCategoryPageInner() {
   return (
     <div className="flex flex-col gap-8">
       <section className="rounded-[2rem] border border-border bg-card p-8">
-        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-700">
+        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
           Recipe Category
         </div>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight">
@@ -108,7 +108,7 @@ function RecipeCategoryPageInner() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-orange-100 to-amber-100 text-sm text-orange-900">
+                    <div className="flex h-full items-center justify-center bg-muted text-sm text-muted-foreground">
                       Recipe
                     </div>
                   )}

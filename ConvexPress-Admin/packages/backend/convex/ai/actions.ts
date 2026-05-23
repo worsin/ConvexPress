@@ -16,6 +16,53 @@ import { ConvexError } from "convex/values";
 import { generateAllArgs, generateSectionArgs } from "./validators";
 import * as prompts from "./prompts";
 
+// ─── Settings Connection Tests ──────────────────────────────────────────────
+
+export const testProviderConnection = action({
+  args: {},
+  handler: async (ctx): Promise<{ ok: boolean; message: string }> => {
+    await ctx.runQuery(internal.settings.internals.requireManageOptionsInternal);
+
+    try {
+      const result = await ctx.runAction(internal.ai.internals.generateWithClaude, {
+        systemPrompt: "You are a connection test. Reply with exactly: ok",
+        userPrompt: "Return ok.",
+        maxTokens: 8,
+        task: "default",
+      });
+      return {
+        ok: result.trim().length > 0,
+        message: "AI provider connection successful.",
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : "AI provider connection failed.",
+      };
+    }
+  },
+});
+
+export const testTavilyConnection = action({
+  args: {},
+  handler: async (ctx): Promise<{ ok: boolean; message: string }> => {
+    await ctx.runQuery(internal.settings.internals.requireManageOptionsInternal);
+
+    try {
+      await ctx.runAction(internal.ai.internals.researchTopic, {
+        query: "ConvexPress connection test",
+        maxResults: 1,
+      });
+      return { ok: true, message: "Tavily connection successful." };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : "Tavily connection failed.",
+      };
+    }
+  },
+});
+
 // ─── Generate All ─────────────────────────────────────────────────────────────
 
 export const generateAll = action({
@@ -46,6 +93,7 @@ export const generateAll = action({
       systemPrompt: sys,
       userPrompt: prompts.HERO_TITLE_PROMPT(prompt),
       maxTokens: 100,
+      task: "legacyContent",
     });
 
     // ── Step 2: 5 topic titles ─────────────────────────────────────────
@@ -53,6 +101,7 @@ export const generateAll = action({
       systemPrompt: sys,
       userPrompt: prompts.TOPIC_TITLES_PROMPT(heroTitle, prompt),
       maxTokens: 300,
+      task: "legacyContent",
     });
     let topicTitles: string[];
     try {
@@ -68,6 +117,7 @@ export const generateAll = action({
       systemPrompt: sys,
       userPrompt: prompts.HERO_SUBTITLE_PROMPT(heroTitle),
       maxTokens: 150,
+      task: "legacyContent",
     });
 
     const topicSubtitles: string[] = [];
@@ -76,6 +126,7 @@ export const generateAll = action({
         systemPrompt: sys,
         userPrompt: prompts.TOPIC_SUBTITLE_PROMPT(tt, heroTitle),
         maxTokens: 150,
+      task: "legacyContent",
       });
       topicSubtitles.push(sub);
     }
@@ -85,6 +136,7 @@ export const generateAll = action({
       systemPrompt: sys,
       userPrompt: prompts.HERO_CONTENT_PROMPT(heroTitle, heroSubtitle),
       maxTokens: 300,
+      task: "legacyContent",
     });
 
     // ── Step 5 & 6: Research + generate each topic ─────────────────────
@@ -116,6 +168,7 @@ export const generateAll = action({
             research.sources.map((s: { url: string }) => s.url),
           ),
           maxTokens: 1500,
+      task: "legacyContent",
         });
       } else {
         // Lighter generation for pages (no research)
@@ -123,6 +176,7 @@ export const generateAll = action({
           systemPrompt: sys,
           userPrompt: `Write 2-3 paragraphs about "${topicTitles[i]}" for a page titled "${heroTitle}". Be informative and professional.`,
           maxTokens: 800,
+      task: "legacyContent",
         });
       }
 
@@ -138,6 +192,7 @@ export const generateAll = action({
       systemPrompt: sys,
       userPrompt: prompts.SUMMARY_PROMPT(heroTitle, topicTitles),
       maxTokens: 500,
+      task: "legacyContent",
     });
     let summary: { title: string; content: string };
     try {
@@ -156,6 +211,7 @@ export const generateAll = action({
       systemPrompt: sys,
       userPrompt: prompts.TOC_PROMPT(heroTitle, topicTitles),
       maxTokens: 300,
+      task: "legacyContent",
     });
 
     // ── Save everything ────────────────────────────────────────────────
@@ -204,12 +260,15 @@ export const generateSection = action({
       case "hero": {
         const title = await ctx.runAction(internal.ai.internals.generateWithClaude, {
           systemPrompt: sys, userPrompt: prompts.HERO_TITLE_PROMPT(prompt), maxTokens: 100,
+      task: "legacyContent",
         });
         const subtitle = await ctx.runAction(internal.ai.internals.generateWithClaude, {
           systemPrompt: sys, userPrompt: prompts.HERO_SUBTITLE_PROMPT(title), maxTokens: 150,
+      task: "legacyContent",
         });
         const content = await ctx.runAction(internal.ai.internals.generateWithClaude, {
           systemPrompt: sys, userPrompt: prompts.HERO_CONTENT_PROMPT(title, subtitle), maxTokens: 300,
+      task: "legacyContent",
         });
         await ctx.runMutation(internal.ai.helpers.saveGeneratedContent, {
           postId: args.postId, title, hero: { title, subtitle, content },
@@ -237,12 +296,14 @@ export const generateSection = action({
               research.aggregatedContent, research.sources.map((s: { url: string }) => s.url),
             ),
             maxTokens: 1500,
+      task: "legacyContent",
           });
         } else {
           topicContent = await ctx.runAction(internal.ai.internals.generateWithClaude, {
             systemPrompt: sys,
             userPrompt: `Write 2-3 paragraphs about "${topicTitle}" for "${heroTitle}".`,
             maxTokens: 800,
+      task: "legacyContent",
           });
         }
 
@@ -260,6 +321,7 @@ export const generateSection = action({
         const topicTitles = ((post.topics ?? []) as Array<{ title?: string }>).map((t) => t.title || "Untitled");
         const summaryRaw = await ctx.runAction(internal.ai.internals.generateWithClaude, {
           systemPrompt: sys, userPrompt: prompts.SUMMARY_PROMPT(heroTitle, topicTitles), maxTokens: 500,
+      task: "legacyContent",
         });
         let summary: { title: string; content: string };
         try { summary = JSON.parse(summaryRaw); } catch { summary = { title: "Key Takeaways", content: summaryRaw }; }
@@ -276,6 +338,7 @@ export const generateSection = action({
         const topicTitles = ((post.topics ?? []) as Array<{ title?: string }>).map((t) => t.title || "Untitled");
         const toc = await ctx.runAction(internal.ai.internals.generateWithClaude, {
           systemPrompt: sys, userPrompt: prompts.TOC_PROMPT(heroTitle, topicTitles), maxTokens: 300,
+      task: "legacyContent",
         });
         await ctx.runMutation(internal.ai.helpers.saveGeneratedContent, { postId: args.postId, tableOfContents: toc });
         return { success: true };

@@ -67,6 +67,7 @@ import {
   MAX_TOPICS,
   TRASH_PURGE_DAYS_MS,
 } from "./validators";
+import { validateBlocks, type StoredBlock } from "../blocks/helpers";
 
 type PostStatus = Doc<"posts">["status"];
 
@@ -151,6 +152,10 @@ export const create = mutation({
       });
     }
 
+    if (args.blocks) {
+      validateBlocks(args.blocks as StoredBlock[]);
+    }
+
     const postId = await ctx.db.insert("posts", {
       type: "post",
       title,
@@ -174,6 +179,13 @@ export const create = mutation({
       sources: args.sources,
       tableOfContents: args.tableOfContents,
       pagePrompt: args.pagePrompt,
+      contentMode: args.contentMode ?? "blocks",
+      blocks: args.blocks,
+      blocksVersion: args.blocksVersion ?? (args.blocks ? 1 : undefined),
+      blocksRevision: args.blocksRevision ?? (args.blocks ? 1 : undefined),
+      layoutId: args.layoutId || undefined,
+      hideHeader: args.hideHeader,
+      hideFooter: args.hideFooter,
       createdAt: now,
       updatedAt: now,
     });
@@ -462,6 +474,19 @@ export const update = mutation({
       patch.menuOrder = args.menuOrder;
     }
 
+    if (args.layoutId !== undefined && args.layoutId !== post.layoutId) {
+      patch.layoutId = args.layoutId || undefined;
+      changes.push({ field: "layoutId", oldValue: post.layoutId, newValue: args.layoutId });
+    }
+    if (args.hideHeader !== undefined && args.hideHeader !== post.hideHeader) {
+      patch.hideHeader = args.hideHeader;
+      changes.push({ field: "hideHeader", oldValue: post.hideHeader, newValue: args.hideHeader });
+    }
+    if (args.hideFooter !== undefined && args.hideFooter !== post.hideFooter) {
+      patch.hideFooter = args.hideFooter;
+      changes.push({ field: "hideFooter", oldValue: post.hideFooter, newValue: args.hideFooter });
+    }
+
     // ── Structured content fields ──────────────────────────────────────
     if (args.hero !== undefined) {
       patch.hero = args.hero;
@@ -491,6 +516,26 @@ export const update = mutation({
     }
     if (args.pagePrompt !== undefined) {
       patch.pagePrompt = args.pagePrompt;
+    }
+    if (args.contentMode !== undefined && args.contentMode !== post.contentMode) {
+      patch.contentMode = args.contentMode;
+      changes.push({ field: "contentMode", oldValue: post.contentMode, newValue: args.contentMode });
+    }
+    if (args.blocks !== undefined) {
+      validateBlocks(args.blocks as StoredBlock[]);
+      patch.blocks = args.blocks;
+      patch.blocksVersion = args.blocksVersion ?? post.blocksVersion ?? 1;
+      patch.blocksRevision =
+        args.blocksRevision ?? ((post.blocksRevision as number | undefined) ?? 0) + 1;
+      changes.push({ field: "blocks", oldValue: "[blocks]", newValue: "[blocks]" });
+    }
+    if (args.blocksVersion !== undefined && args.blocks === undefined) {
+      patch.blocksVersion = args.blocksVersion;
+      changes.push({ field: "blocksVersion", oldValue: post.blocksVersion, newValue: args.blocksVersion });
+    }
+    if (args.blocksRevision !== undefined && args.blocks === undefined) {
+      patch.blocksRevision = args.blocksRevision;
+      changes.push({ field: "blocksRevision", oldValue: post.blocksRevision, newValue: args.blocksRevision });
     }
 
     // Clear autosave fields on manual save

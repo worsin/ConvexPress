@@ -12,6 +12,7 @@ import { PostContent } from "@/components/blog/PostContent";
 import { PostFooter } from "@/components/blog/PostFooter";
 import { PostHeader } from "@/components/blog/PostHeader";
 import { RelatedPosts } from "@/components/blog/RelatedPosts";
+import { BlockListRenderer } from "@/components/blocks/BlockListRenderer";
 import {
 	hasStructuredContent,
 	StructuredContent,
@@ -256,7 +257,15 @@ function SinglePost() {
 		title: rawPost.title,
 		slug: rawPost.slug,
 		excerpt: rawPost.excerpt,
-		content: blockContent,
+			content: blockContent,
+			contentMode:
+				((rawPost as { contentMode?: PostDetail["contentMode"] }).contentMode ??
+					"article"),
+			blocks: (rawPost as { blocks?: PostDetail["blocks"] }).blocks ?? undefined,
+			blocksVersion:
+				(rawPost as { blocksVersion?: number }).blocksVersion ?? undefined,
+			blocksRevision:
+				(rawPost as { blocksRevision?: number }).blocksRevision ?? undefined,
 		featuredImageUrl: rawPost.featuredImageUrl ?? undefined,
 		featuredImageAlt: rawPost.featuredImageAlt ?? undefined,
 		publishedAt: rawPost.publishedAt
@@ -427,7 +436,9 @@ function SinglePost() {
 					excerpt={restrictedExcerpt}
 					userState={isSignedIn ? "logged_in_non_member" : "logged_out"}
 				/>
-			) : hasStructuredContent({
+				) : post.contentMode === "blocks" && post.blocks && post.blocks.length > 0 ? (
+					<BlockListRenderer blocks={post.blocks} />
+				) : hasStructuredContent({
 					hero: resolvedPostData.hero,
 					topics: resolvedPostData.topics,
 					summary: resolvedPostData.summary,

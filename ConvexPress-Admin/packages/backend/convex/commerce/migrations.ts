@@ -625,3 +625,158 @@ export const repairVariantIntegrity = mutation({
     };
   },
 });
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const backfillEnterpriseCommerceRecords = mutation({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    dryRun: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx: any, args: any) => {
+    await requireCommerceEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+    const dryRun = args.dryRun ?? true;
+    const limit = Math.min(Math.max(args.limit ?? 200, 1), 1000);
+    const now = Date.now();
+
+    let defaultRegion = await ctx.db
+      .query("commerce_regions")
+      .withIndex("by_default", (q: any) => q.eq("isDefault", true))
+      .first();
+    if (!defaultRegion && !dryRun) {
+      const settings = await ctx.db
+        .query("settings")
+        .withIndex("by_section", (q: any) => q.eq("section", "commerce.general"))
+        .unique();
+      const values = settings?.values ?? {};
+      const regionId = await ctx.db.insert("commerce_regions", {
+        name: "Default Region",
+        currencyCode: values.currencyCode ?? "USD",
+        countryCodes: [values.defaultCountryCode ?? "US"],
+        automaticTaxes: true,
+        isDefault: true,
+        metadata: { source: "enterprise_backfill" },
+        createdAt: now,
+        updatedAt: now,
+      });
+      defaultRegion = await ctx.db.get(regionId);
+    }
+
+    let defaultChannel = await ctx.db
+      .query("commerce_sales_channels")
+      .withIndex("by_default", (q: any) => q.eq("isDefault", true))
+      .first();
+    if (!defaultChannel && !dryRun) {
+      const channelId = await ctx.db.insert("commerce_sales_channels", {
+        name: "Website",
+        description: "Primary public storefront",
+        isDefault: true,
+        isDisabled: false,
+        metadata: { source: "enterprise_backfill" },
+        createdAt: now,
+        updatedAt: now,
+      });
+      defaultChannel = await ctx.db.get(channelId);
+    }
+
+    const carts = await ctx.db.query("commerce_carts").take(limit);
+    const checkouts = await ctx.db.query("commerce_checkout_sessions").take(limit);
+    const orders = await ctx.db.query("commerce_orders").take(limit);
+    const transactions = await ctx.db.query("commerce_payment_transactions").take(limit);
+
+    const summary = {
+      regionsCreated: defaultRegion ? 0 : 1,
+      channelsCreated: defaultChannel ? 0 : 1,
+      cartsPatched: 0,
+      checkoutsPatched: 0,
+      ordersPatched: 0,
+      paymentCollectionsCreated: 0,
+      transactionsLinked: 0,
+    };
+
+    for (const cart of carts) {
+      const patch: any = {};
+      if (!cart.regionId && defaultRegion) patch.regionId = defaultRegion._id;
+      if (!cart.salesChannelId && defaultChannel) patch.salesChannelId = defaultChannel._id;
+      if (Object.keys(patch).length) {
+        summary.cartsPatched += 1;
+        if (!dryRun) await ctx.db.patch(cart._id, { ...patch, updatedAt: now });
+      }
+    }
+
+    for (const checkout of checkouts) {
+      const patch: any = {};
+      if (!checkout.regionId && defaultRegion) patch.regionId = defaultRegion._id;
+      if (!checkout.salesChannelId && defaultChannel) patch.salesChannelId = defaultChannel._id;
+      if (Object.keys(patch).length) {
+        summary.checkoutsPatched += 1;
+        if (!dryRun) await ctx.db.patch(checkout._id, { ...patch, updatedAt: now });
+      }
+    }
+
+    for (const order of orders) {
+      const patch: any = {};
+      if (!order.regionId && defaultRegion) patch.regionId = defaultRegion._id;
+      if (!order.salesChannelId && defaultChannel) patch.salesChannelId = defaultChannel._id;
+      if (Object.keys(patch).length) {
+        summary.ordersPatched += 1;
+        if (!dryRun) await ctx.db.patch(order._id, { ...patch, updatedAt: now });
+      }
+    }
+
+    for (const transaction of transactions) {
+      if (!transaction.orderId || transaction.collectionId) continue;
+      const order = await ctx.db.get(transaction.orderId);
+      if (!order) continue;
+      summary.paymentCollectionsCreated += 1;
+      summary.transactionsLinked += 1;
+      if (dryRun) continue;
+      const collectionId = await ctx.db.insert("commerce_payment_collections", {
+        orderId: order._id,
+        checkoutSessionId: order.checkoutSessionId,
+        currencyCode: transaction.amount?.currencyCode ?? order.currencyCode,
+        amount: transaction.amount?.amount ?? order.totalAmount,
+        authorizedAmount: transaction.status === "succeeded" || transaction.status === "captured" ? transaction.amount?.amount ?? order.totalAmount : 0,
+        capturedAmount: transaction.status === "succeeded" || transaction.status === "captured" ? transaction.amount?.amount ?? order.totalAmount : 0,
+        refundedAmount: transaction.refundedAmount ?? 0,
+        status: transaction.status === "refunded"
+          ? "refunded"
+          : transaction.status === "succeeded" || transaction.status === "captured"
+            ? "captured"
+            : transaction.status === "failed"
+              ? "failed"
+              : "pending",
+        completedAt: transaction.completedAt,
+        metadata: { source: "enterprise_backfill" },
+        createdAt: transaction.createdAt ?? now,
+        updatedAt: now,
+      });
+      const sessionId = await ctx.db.insert("commerce_payment_sessions", {
+        collectionId,
+        orderId: order._id,
+        checkoutSessionId: order.checkoutSessionId,
+        provider: transaction.provider,
+        providerSessionId: transaction.providerTransactionId,
+        clientSecret: transaction.clientSecret,
+        status: transaction.status === "succeeded" || transaction.status === "captured" ? "captured" : transaction.status === "failed" ? "failed" : "pending",
+        amount: transaction.amount,
+        completedAt: transaction.completedAt,
+        metadata: { source: "enterprise_backfill" },
+        createdAt: transaction.createdAt ?? now,
+        updatedAt: now,
+      });
+      await ctx.db.patch(transaction._id, {
+        collectionId,
+        sessionId,
+        updatedAt: now,
+      });
+      if (!order.paymentCollectionId) {
+        await ctx.db.patch(order._id, { paymentCollectionId: collectionId, updatedAt: now });
+      }
+    }
+
+    return { dryRun, limit, ...summary };
+  },
+});

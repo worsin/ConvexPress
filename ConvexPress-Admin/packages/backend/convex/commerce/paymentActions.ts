@@ -72,6 +72,26 @@ export const createStripeIntent = internalAction({
     savedMethodId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const workflow = await ctx.runMutation(internal.commerce.workflows.beginInternal, {
+      workflowKey: "commerce.payment_intent.create",
+      idempotencyKey: String(args.transactionId),
+      entityType: "commerce_payment_transactions",
+      entityId: String(args.transactionId),
+      input: {
+        orderId: args.orderId,
+        amount: args.amount,
+        currency: args.currency,
+        email: args.email,
+      },
+      lockedUntil: Date.now() + 5 * 60 * 1000,
+    });
+    if (workflow.existing && workflow.status === "completed") {
+      return workflow.result;
+    }
+    if (workflow.existing && workflow.status === "running") {
+      return { skipped: true, reason: "payment_intent_create_already_running" };
+    }
+
     let stripeKey: string;
     try {
       stripeKey = await getStripeSecretKey(ctx);
@@ -85,6 +105,10 @@ export const createStripeIntent = internalAction({
           error: "Stripe is not configured.",
         },
       );
+      await ctx.runMutation(internal.commerce.workflows.failInternal, {
+        runId: workflow.runId,
+        error: "Stripe is not configured.",
+      });
       return;
     }
 
@@ -167,11 +191,16 @@ export const createStripeIntent = internalAction({
         );
       }
 
-      return {
+      const result = {
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
         status: paymentIntent.status,
       };
+      await ctx.runMutation(internal.commerce.workflows.completeInternal, {
+        runId: workflow.runId,
+        result,
+      });
+      return result;
     } catch (error: any) {
       console.error("[Payments] Stripe PaymentIntent creation failed:", error);
 
@@ -191,6 +220,10 @@ export const createStripeIntent = internalAction({
           error: error.message || "Failed to create payment intent",
         },
       );
+      await ctx.runMutation(internal.commerce.workflows.failInternal, {
+        runId: workflow.runId,
+        error: error.message || "Failed to create payment intent",
+      });
     }
   },
 });
@@ -208,6 +241,25 @@ export const processStripeRefund = internalAction({
     amount: v.number(),
   },
   handler: async (ctx, args) => {
+    const workflow = await ctx.runMutation(internal.commerce.workflows.beginInternal, {
+      workflowKey: "commerce.refund.create",
+      idempotencyKey: String(args.refundId),
+      entityType: "commerce_payment_refunds",
+      entityId: String(args.refundId),
+      input: {
+        transactionId: args.transactionId,
+        providerTransactionId: args.providerTransactionId,
+        amount: args.amount,
+      },
+      lockedUntil: Date.now() + 5 * 60 * 1000,
+    });
+    if (workflow.existing && workflow.status === "completed") {
+      return workflow.result;
+    }
+    if (workflow.existing && workflow.status === "running") {
+      return { skipped: true, reason: "refund_create_already_running" };
+    }
+
     let stripeKey: string;
     try {
       stripeKey = await getStripeSecretKey(ctx);
@@ -219,6 +271,10 @@ export const processStripeRefund = internalAction({
         providerRefundId: "",
         amount: args.amount,
         success: false,
+        error: "Stripe is not configured.",
+      });
+      await ctx.runMutation(internal.commerce.workflows.failInternal, {
+        runId: workflow.runId,
         error: "Stripe is not configured.",
       });
       return;
@@ -244,6 +300,12 @@ export const processStripeRefund = internalAction({
             ? `Refund status: ${refund.status}`
             : undefined,
       });
+      const result = { providerRefundId: refund.id, status: refund.status };
+      await ctx.runMutation(internal.commerce.workflows.completeInternal, {
+        runId: workflow.runId,
+        result,
+      });
+      return result;
     } catch (error: any) {
       console.error("[Payments] Stripe refund failed:", error);
       await ctx.runMutation(internal.commerce.payments.completeRefund, {
@@ -252,6 +314,10 @@ export const processStripeRefund = internalAction({
         providerRefundId: "",
         amount: args.amount,
         success: false,
+        error: error.message || "Failed to process refund",
+      });
+      await ctx.runMutation(internal.commerce.workflows.failInternal, {
+        runId: workflow.runId,
         error: error.message || "Failed to process refund",
       });
     }

@@ -18,7 +18,7 @@ function UspsShippingIntegrationPage() {
   return (
     <div className="space-y-6">
       <DirectCarrierIntegrationPage provider="usps" />
-      <div className="mx-auto max-w-5xl px-6 pb-6">
+      <div className="w-full px-6 pb-6">
         <SettingsSection
           title="Address validation"
           description="USPS OAuth credentials above unlock the /addresses/v3/address endpoint — used at checkout to confirm, correct, and ZIP+4-normalize US addresses before rating and label purchase."

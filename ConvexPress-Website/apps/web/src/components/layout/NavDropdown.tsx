@@ -107,6 +107,18 @@ function NavDropdownItem({ item, depth }: NavDropdownItemProps) {
     ...(item.target ? { target: item.target } : {}),
     ...(item.rel ? { rel: item.rel } : {}),
   };
+  const isExternal =
+    item.url.startsWith("http://") || item.url.startsWith("https://");
+  const linkClassName = cn(
+    "flex items-center justify-between gap-2 px-3 py-2 text-xs text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    item.cssClasses,
+  );
+  const content = (
+    <>
+      <span>{item.label}</span>
+      {hasChildren && <ChevronRight className="size-3 opacity-60" />}
+    </>
+  );
 
   return (
     <li
@@ -115,18 +127,25 @@ function NavDropdownItem({ item, depth }: NavDropdownItemProps) {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <Link
-        to={item.url}
-        className={cn(
-          "flex items-center justify-between gap-2 px-3 py-2 text-xs text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
-          item.cssClasses,
-        )}
-        onKeyDown={handleKeyDown}
-        {...linkProps}
-      >
-        <span>{item.label}</span>
-        {hasChildren && <ChevronRight className="size-3 opacity-60" />}
-      </Link>
+      {isExternal ? (
+        <a
+          href={item.url}
+          className={linkClassName}
+          onKeyDown={handleKeyDown}
+          {...linkProps}
+        >
+          {content}
+        </a>
+      ) : (
+        <Link
+          to={item.url}
+          className={linkClassName}
+          onKeyDown={handleKeyDown}
+          {...linkProps}
+        >
+          {content}
+        </Link>
+      )}
       {hasChildren && isOpen && (
         <NavDropdown
           items={item.children}

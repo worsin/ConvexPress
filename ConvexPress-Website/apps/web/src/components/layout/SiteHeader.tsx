@@ -9,6 +9,7 @@ import { DesktopNav } from "./DesktopNav";
 import { HeaderActions } from "./HeaderActions";
 import { SearchOverlay } from "./SearchOverlay";
 import { SiteBrand } from "./SiteBrand";
+import { SocialLinks } from "./SocialLinks";
 
 interface SiteHeaderProps {
   siteIdentity: SiteIdentity | undefined;
@@ -152,8 +153,10 @@ function TopBarContent({ type, config }: TopBarContentProps) {
     );
   }
 
-  // "social" type - rendered via the SocialLinks component from footer,
-  // but for now we just render an empty placeholder so it doesn't break
+  if (type === "social") {
+    return <SocialLinks iconSize="sm" />;
+  }
+
   return <div />;
 }
 
@@ -184,7 +187,12 @@ function StandardLayout({ siteIdentity, menu, headerConfig, toggleMobileNav }: L
 
       {/* Center: Desktop navigation */}
       {headerConfig.navigation.enabled && (
-        <DesktopNav menu={menu} className="mx-6 flex-1" />
+        <DesktopNav
+          menu={menu}
+          className="mx-6 flex-1"
+          linkStyle={headerConfig.navigation.style}
+          dropdownStyle={headerConfig.navigation.dropdownStyle}
+        />
       )}
 
       {/* Right: Actions */}
@@ -213,7 +221,12 @@ function CenteredLayout({ siteIdentity, menu, headerConfig, toggleMobileNav }: L
       </div>
       {/* Bottom row: navigation centered */}
       {headerConfig.navigation.enabled && (
-        <DesktopNav menu={menu} className="justify-center" />
+        <DesktopNav
+          menu={menu}
+          className="justify-center"
+          linkStyle={headerConfig.navigation.style}
+          dropdownStyle={headerConfig.navigation.dropdownStyle}
+        />
       )}
     </div>
   );
@@ -235,7 +248,11 @@ function SplitLayout({ siteIdentity, menu, headerConfig, toggleMobileNav }: Layo
           <Menu className="size-5" aria-hidden="true" />
         </button>
         {headerConfig.navigation.enabled && (
-          <DesktopNav menu={menu} />
+          <DesktopNav
+            menu={menu}
+            linkStyle={headerConfig.navigation.style}
+            dropdownStyle={headerConfig.navigation.dropdownStyle}
+          />
         )}
       </div>
 

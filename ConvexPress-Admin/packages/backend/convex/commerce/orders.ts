@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { getCurrentUser, requireCan } from "../helpers/permissions";
 import { getBundlePurchaseDelta } from "../commerceBundles/runtime";
 import { requireCommerceEnabled } from "./helpers";
@@ -75,6 +76,65 @@ async function appendOrderHistory(
     metadata: args.metadata,
     createdAt: Date.now(),
   });
+}
+
+async function commitReservedInventoryForOrder(ctx: any, order: any) {
+  if (!order.checkoutSessionId) return false;
+  const activeReservations = await ctx.db
+    .query("commerce_stock_reservations")
+    .withIndex("by_checkout", (q: any) =>
+      q.eq("checkoutSessionId", order.checkoutSessionId),
+    )
+    .filter((q: any) => q.eq(q.field("status"), "active"))
+    .collect();
+  if (!activeReservations.length) return false;
+
+  await ctx.runMutation(internal.commerce.inventory.commit, {
+    checkoutSessionId: order.checkoutSessionId,
+    orderId: order._id,
+  });
+  return true;
+}
+
+async function createManualPaymentCollection(ctx: any, args: any) {
+  const now = Date.now();
+  const collectionId = await ctx.db.insert("commerce_payment_collections", {
+    orderId: args.order._id,
+    checkoutSessionId: args.order.checkoutSessionId,
+    currencyCode: args.order.currencyCode,
+    amount: args.order.totalAmount,
+    authorizedAmount: args.amount,
+    capturedAmount: args.amount,
+    refundedAmount: 0,
+    status:
+      args.amount >= args.order.totalAmount ? "captured" : "partially_captured",
+    completedAt: args.amount >= args.order.totalAmount ? now : undefined,
+    metadata: {
+      source: "manual_capture",
+      orderNumber: args.order.orderNumber,
+    },
+    createdAt: now,
+    updatedAt: now,
+  });
+  const sessionId = await ctx.db.insert("commerce_payment_sessions", {
+    collectionId,
+    orderId: args.order._id,
+    checkoutSessionId: args.order.checkoutSessionId,
+    provider: args.provider,
+    providerSessionId: args.providerTransactionId,
+    status: args.amount >= args.order.totalAmount ? "captured" : "authorized",
+    amount: {
+      amount: args.amount,
+      currencyCode: args.order.currencyCode,
+    },
+    completedAt: args.amount >= args.order.totalAmount ? now : undefined,
+    metadata: {
+      source: "manual_capture",
+    },
+    createdAt: now,
+    updatedAt: now,
+  });
+  return { collectionId, sessionId };
 }
 
 async function resolveInventoryTarget(
@@ -758,6 +818,40 @@ export const updateStatus = mutation({
       },
     });
 
+    if (["cancelled", "failed", "refunded", "paid"].includes(args.status)) {
+      const changeId = await ctx.db.insert("commerce_order_changes", {
+        orderId: order._id,
+        version: 1,
+        changeType:
+          args.status === "refunded"
+            ? "refund"
+            : args.status === "cancelled" || args.status === "failed"
+              ? "cancel"
+              : "edit",
+        status: "applied",
+        description: `Order status changed from ${order.status} to ${args.status}.`,
+        internalNote: args.note?.trim() || undefined,
+        requestedBy: actor._id,
+        confirmedBy: actor._id,
+        confirmedAt: now,
+        appliedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await ctx.db.insert("commerce_order_change_actions", {
+        orderChangeId: changeId,
+        orderId: order._id,
+        action: "status_change",
+        details: {
+          previousStatus: order.status,
+          nextStatus: args.status,
+        },
+        applied: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
     return order._id;
   },
 });
@@ -828,16 +922,29 @@ export const capturePayment = mutation({
       !order.inventoryCommittedAt &&
       !order.inventoryReleasedAt
     ) {
-      await adjustInventoryForOrder(ctx, {
-        order,
-        actorUserId: actor._id,
-        mode: "decrement",
-        reason: "Inventory allocated after payment capture",
-      });
+      const committedFromReservations = await commitReservedInventoryForOrder(ctx, order);
+      if (!committedFromReservations) {
+        await adjustInventoryForOrder(ctx, {
+          order,
+          actorUserId: actor._id,
+          mode: "decrement",
+          reason: "Inventory allocated after payment capture",
+        });
+      }
     }
 
-    await ctx.db.insert("commerce_payment_transactions", {
+    const paymentCollection = await createManualPaymentCollection(ctx, {
+      order,
+      amount: capturedAmount,
+      provider: args.provider,
+      providerTransactionId: args.providerTransactionId,
+    });
+
+    const transactionId = await ctx.db.insert("commerce_payment_transactions", {
       orderId: order._id,
+      checkoutSessionId: order.checkoutSessionId,
+      collectionId: paymentCollection.collectionId,
+      sessionId: paymentCollection.sessionId,
       provider: args.provider,
       providerTransactionId: args.providerTransactionId,
       status: "captured",
@@ -849,7 +956,27 @@ export const capturePayment = mutation({
       updatedAt: now,
     });
 
+    const captureId = await ctx.db.insert("commerce_payment_captures", {
+      collectionId: paymentCollection.collectionId,
+      sessionId: paymentCollection.sessionId,
+      transactionId,
+      orderId: order._id,
+      provider: args.provider,
+      providerCaptureId: args.providerTransactionId,
+      amount: {
+        amount: capturedAmount,
+        currencyCode: order.currencyCode,
+      },
+      createdBy: actor._id,
+      metadata: {
+        source: "manual_capture",
+      },
+      createdAt: now,
+    });
+    await ctx.db.patch(transactionId, { captureId, updatedAt: now });
+
 	    await ctx.db.patch(order._id, {
+      paymentCollectionId: paymentCollection.collectionId,
 	      paymentStatus: capturedAmount >= order.totalAmount ? "paid" : "partially_paid",
       status:
         order.status === "pending" || order.status === "failed"
@@ -984,6 +1111,36 @@ export const createRefund = mutation({
         amount: args.amount,
         refundedTotal: nextRefundedTotal,
       },
+    });
+
+    const changeId = await ctx.db.insert("commerce_order_changes", {
+      orderId: order._id,
+      version: 1,
+      changeType: "refund",
+      status: "applied",
+      description: args.reason?.trim()
+        ? `Refund created: ${args.reason.trim()}`
+        : "Refund created.",
+      requestedBy: actor._id,
+      confirmedBy: actor._id,
+      confirmedAt: now,
+      appliedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await ctx.db.insert("commerce_order_change_actions", {
+      orderChangeId: changeId,
+      orderId: order._id,
+      action: "refund_created",
+      details: {
+        amount: args.amount,
+        refundedTotal: nextRefundedTotal,
+        fullyRefunded: isFullyRefunded,
+      },
+      amount: args.amount,
+      applied: true,
+      createdAt: now,
+      updatedAt: now,
     });
 
     return order._id;

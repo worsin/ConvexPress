@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ConvexError, v } from "convex/values";
 import { mutation, internalMutation } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";

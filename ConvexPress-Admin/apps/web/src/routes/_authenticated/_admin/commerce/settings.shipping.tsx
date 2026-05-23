@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useLocation,
+} from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { toast } from "sonner";
 
 import { api } from "@backend/convex/_generated/api";
+import { ShippingSettingsTabs } from "@/components/commerce/CommerceSettingsTabs";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/commerce/settings/shipping",
@@ -13,6 +19,7 @@ export const Route = createFileRoute(
 });
 
 function CommerceShippingSettingsPage() {
+  const location = useLocation();
   const settings = useQuery(api.settings.queries.getBySection, {
     section: "integrations.shipping" as any,
   }) as any;
@@ -94,6 +101,22 @@ function CommerceShippingSettingsPage() {
     }
   };
 
+  if (location.pathname !== "/commerce/settings/shipping") {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Shipping Settings</h1>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Configure shipping presentation, zones, classes, packages,
+            locations, rules, and rate testing.
+          </p>
+        </div>
+        <ShippingSettingsTabs />
+        <Outlet />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -111,6 +134,8 @@ function CommerceShippingSettingsPage() {
           Open Integrations
         </Link>
       </div>
+
+      <ShippingSettingsTabs />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-3xl border border-border bg-card p-6">

@@ -2,18 +2,19 @@
  * AI Provider Settings Page
  *
  * Configure AI provider (OpenRouter, OpenAI Direct, or Anthropic Direct),
- * API keys, default model, and Tavily research API key.
+ * API keys, model routing, image generation, and Tavily research API key.
  *
  * This page now autosaves provider and credential changes. Explicit buttons
  * remain only for connection testing.
  *
  * Settings are stored in the settings table with section: "ai".
- * Keys: provider, apiKey, defaultModel, tavilyApiKey
+ * Keys: provider, apiKey, defaultModel, task model routing, image settings,
+ * and tavilyApiKey.
  */
 
 import { useCallback, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import {
@@ -163,6 +164,12 @@ function AISettingsPage() {
     section: "ai" as any,
   });
   const updateSection = useMutation(api.settings.mutations.updateSection);
+  const testProviderConnection = useAction(
+    (api as any).ai.actions.testProviderConnection,
+  );
+  const testTavilyConnection = useAction(
+    (api as any).ai.actions.testTavilyConnection,
+  );
 
   const {
     draft,
@@ -176,6 +183,12 @@ function AISettingsPage() {
       provider: AIProvider;
       apiKey: string | null;
       defaultModel: string;
+      pageGenerationModel: string;
+      blockEditingModel: string;
+      researchModel: string;
+      legacyContentModel: string;
+      imageApiKey: string | null;
+      imageModel: string;
       tavilyApiKey: string | null;
     },
     Record<string, unknown>
@@ -186,6 +199,24 @@ function AISettingsPage() {
       apiKey: (source.apiKey as string | null) ?? "",
       defaultModel:
         (source.defaultModel as string | undefined) ?? DEFAULT_OPENROUTER_MODEL,
+      pageGenerationModel:
+        (source.pageGenerationModel as string | undefined) ??
+        (source.defaultModel as string | undefined) ??
+        DEFAULT_OPENROUTER_MODEL,
+      blockEditingModel:
+        (source.blockEditingModel as string | undefined) ??
+        (source.defaultModel as string | undefined) ??
+        DEFAULT_OPENROUTER_MODEL,
+      researchModel:
+        (source.researchModel as string | undefined) ??
+        (source.defaultModel as string | undefined) ??
+        DEFAULT_OPENROUTER_MODEL,
+      legacyContentModel:
+        (source.legacyContentModel as string | undefined) ??
+        (source.defaultModel as string | undefined) ??
+        DEFAULT_OPENROUTER_MODEL,
+      imageApiKey: (source.imageApiKey as string | null) ?? "",
+      imageModel: (source.imageModel as string | undefined) ?? "gpt-image-1",
       tavilyApiKey: (source.tavilyApiKey as string | null) ?? "",
     }),
     onSave: async (nextDraft) => {
@@ -195,6 +226,12 @@ function AISettingsPage() {
           provider: nextDraft.provider,
           apiKey: nextDraft.apiKey ?? SECRET_SENTINEL,
           defaultModel: nextDraft.defaultModel,
+          pageGenerationModel: nextDraft.pageGenerationModel,
+          blockEditingModel: nextDraft.blockEditingModel,
+          researchModel: nextDraft.researchModel,
+          legacyContentModel: nextDraft.legacyContentModel,
+          imageApiKey: nextDraft.imageApiKey ?? SECRET_SENTINEL,
+          imageModel: nextDraft.imageModel,
           tavilyApiKey: nextDraft.tavilyApiKey ?? SECRET_SENTINEL,
         },
       });
@@ -216,6 +253,12 @@ function AISettingsPage() {
   const provider = draft?.provider ?? "openrouter";
   const apiKey = draft?.apiKey ?? "";
   const defaultModel = draft?.defaultModel ?? DEFAULT_OPENROUTER_MODEL;
+  const pageGenerationModel = draft?.pageGenerationModel ?? defaultModel;
+  const blockEditingModel = draft?.blockEditingModel ?? defaultModel;
+  const researchModel = draft?.researchModel ?? defaultModel;
+  const legacyContentModel = draft?.legacyContentModel ?? defaultModel;
+  const imageApiKey = draft?.imageApiKey ?? "";
+  const imageModel = draft?.imageModel ?? "gpt-image-1";
   const tavilyApiKey = draft?.tavilyApiKey ?? "";
 
   // Reset model when provider changes
@@ -227,6 +270,10 @@ function AISettingsPage() {
               ...current,
               provider: newProvider,
               defaultModel: defaultModelForProvider(newProvider),
+              pageGenerationModel: defaultModelForProvider(newProvider),
+              blockEditingModel: defaultModelForProvider(newProvider),
+              researchModel: defaultModelForProvider(newProvider),
+              legacyContentModel: defaultModelForProvider(newProvider),
             }
           : current,
       );
@@ -238,8 +285,15 @@ function AISettingsPage() {
   // ─── Test AI Connection ───────────────────────────────────────────────────
 
   const handleTestConnection = useCallback(async () => {
-    if (!apiKey.trim() || apiKey === SECRET_SENTINEL) {
+    if (!apiKey.trim()) {
       setTestResult({ success: false, message: "Please enter an API key." });
+      return;
+    }
+    if (isDirty) {
+      setTestResult({
+        success: false,
+        message: "Wait for autosave to finish before testing the saved key.",
+      });
       return;
     }
 
@@ -247,75 +301,8 @@ function AISettingsPage() {
     setTestResult(null);
 
     try {
-      if (provider === "openrouter") {
-        // Test OpenRouter by listing models
-        const response = await fetch("https://openrouter.ai/api/v1/models", {
-          headers: { Authorization: `Bearer ${apiKey.trim()}` },
-        });
-        if (response.ok) {
-          setTestResult({
-            success: true,
-            message: "OpenRouter connection successful. API key is valid.",
-          });
-        } else {
-          const data = await response.json().catch(() => ({}));
-          setTestResult({
-            success: false,
-            message:
-              (data as any)?.error?.message ??
-              `HTTP ${response.status}: ${response.statusText}`,
-          });
-        }
-      } else if (provider === "openai") {
-        // Test OpenAI by listing models
-        const response = await fetch("https://api.openai.com/v1/models", {
-          headers: { Authorization: `Bearer ${apiKey.trim()}` },
-        });
-        if (response.ok) {
-          setTestResult({
-            success: true,
-            message: "OpenAI connection successful. API key is valid.",
-          });
-        } else {
-          const data = await response.json().catch(() => ({}));
-          setTestResult({
-            success: false,
-            message:
-              (data as any)?.error?.message ??
-              `HTTP ${response.status}: ${response.statusText}`,
-          });
-        }
-      } else {
-        // Test Anthropic by sending a minimal message
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "x-api-key": apiKey.trim(),
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json",
-            "anthropic-dangerous-direct-browser-access": "true",
-          },
-          body: JSON.stringify({
-            model: defaultModel || DEFAULT_ANTHROPIC_MODEL,
-            max_tokens: 1,
-            messages: [{ role: "user", content: "Hi" }],
-          }),
-        });
-        if (response.ok) {
-          setTestResult({
-            success: true,
-            message: "Anthropic connection successful. API key is valid.",
-          });
-        } else {
-          const data = await response.json().catch(() => ({}));
-          setTestResult({
-            success: false,
-            message:
-              (data as any)?.error?.message ??
-              `HTTP ${response.status}: ${response.statusText}`,
-          });
-        }
-      }
+      const result = await testProviderConnection({});
+      setTestResult({ success: result.ok, message: result.message });
     } catch (err) {
       setTestResult({
         success: false,
@@ -325,15 +312,22 @@ function AISettingsPage() {
     } finally {
       setIsTesting(false);
     }
-  }, [provider, apiKey, defaultModel]);
+  }, [apiKey, isDirty, testProviderConnection]);
 
   // ─── Test Tavily Connection ───────────────────────────────────────────────
 
   const handleTestTavily = useCallback(async () => {
-    if (!tavilyApiKey.trim() || tavilyApiKey === SECRET_SENTINEL) {
+    if (!tavilyApiKey.trim()) {
       setTavilyTestResult({
         success: false,
         message: "Please enter a Tavily API key.",
+      });
+      return;
+    }
+    if (isDirty) {
+      setTavilyTestResult({
+        success: false,
+        message: "Wait for autosave to finish before testing the saved key.",
       });
       return;
     }
@@ -342,31 +336,8 @@ function AISettingsPage() {
     setTavilyTestResult(null);
 
     try {
-      const response = await fetch("https://api.tavily.com/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          api_key: tavilyApiKey.trim(),
-          query: "test",
-          max_results: 1,
-        }),
-      });
-
-      if (response.ok) {
-        setTavilyTestResult({
-          success: true,
-          message: "Tavily connection successful. API key is valid.",
-        });
-      } else {
-        const data = await response.json().catch(() => ({}));
-        setTavilyTestResult({
-          success: false,
-          message:
-            (data as any)?.detail ??
-            (data as any)?.message ??
-            `HTTP ${response.status}: ${response.statusText}`,
-        });
-      }
+      const result = await testTavilyConnection({});
+      setTavilyTestResult({ success: result.ok, message: result.message });
     } catch (err) {
       setTavilyTestResult({
         success: false,
@@ -376,13 +347,13 @@ function AISettingsPage() {
     } finally {
       setIsTavilyTesting(false);
     }
-  }, [tavilyApiKey]);
+  }, [isDirty, tavilyApiKey, testTavilyConnection]);
 
   // ─── Loading State ────────────────────────────────────────────────────────
 
   if (settings === undefined) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="w-full p-6">
         <div className="animate-pulse space-y-6">
           <div className="h-8 w-48 rounded bg-muted" />
           <div className="h-64 rounded bg-muted" />
@@ -394,7 +365,7 @@ function AISettingsPage() {
 
   if (!draft) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="w-full p-6">
         <div className="animate-pulse space-y-6">
           <div className="h-8 w-48 rounded bg-muted" />
           <div className="h-64 rounded bg-muted" />
@@ -405,9 +376,35 @@ function AISettingsPage() {
   }
 
   const modelGroups = modelGroupsForProvider(provider);
+  const taskModelControls = [
+    {
+      id: "pageGenerationModel",
+      label: "Page generation",
+      value: pageGenerationModel,
+      help: "Used by Replace page with AI generated content.",
+    },
+    {
+      id: "blockEditingModel",
+      label: "Block editing",
+      value: blockEditingModel,
+      help: "Used by block regenerate, improve, variants, and block conversion.",
+    },
+    {
+      id: "researchModel",
+      label: "Research synthesis",
+      value: researchModel,
+      help: "Used when AI writes from researched source material.",
+    },
+    {
+      id: "legacyContentModel",
+      label: "Legacy structured content",
+      value: legacyContentModel,
+      help: "Used by the older hero/topic/summary generation workflow.",
+    },
+  ] as const;
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="w-full p-6">
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-1">
@@ -661,9 +658,7 @@ function AISettingsPage() {
             <button
               type="button"
               onClick={handleTestConnection}
-              disabled={
-                isTesting || !apiKey.trim() || apiKey === SECRET_SENTINEL
-              }
+              disabled={isTesting || !apiKey.trim() || isDirty}
               className={cn(
                 "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",
                 "border border-border bg-background text-foreground hover:bg-muted",
@@ -682,6 +677,105 @@ function AISettingsPage() {
                 </>
               )}
             </button>
+          </div>
+        </div>
+
+        {/* Model Routing Section */}
+        <div className="rounded-lg border border-border bg-card p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-2">
+            Model Routing
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Choose which model is used for each AI workflow. Blank task-specific
+            values fall back to the default model.
+          </p>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {taskModelControls.map((control) => (
+              <div key={control.id}>
+                <label
+                  htmlFor={`ai-${control.id}`}
+                  className="block text-sm font-medium text-foreground mb-1"
+                >
+                  {control.label}
+                </label>
+                <select
+                  id={`ai-${control.id}`}
+                  value={control.value}
+                  onChange={(e) =>
+                    setDraft((current) =>
+                      current
+                        ? { ...current, [control.id]: e.target.value }
+                        : current,
+                    )
+                  }
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  {modelGroups.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.options.map((model) => (
+                        <option key={model.value} value={model.value}>
+                          {model.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {control.help}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Image Generation Section */}
+        <div className="rounded-lg border border-border bg-card p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-2">
+            Image Generation
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Media image generation uses OpenAI image models. If no separate
+            image key is set, it falls back to the main OpenAI API key.
+          </p>
+
+          <div className="space-y-4">
+            <CredentialField
+              id="openai-image-api-key"
+              label="OpenAI Image API Key"
+              value={imageApiKey}
+              onChange={(value) =>
+                setDraft((current) =>
+                  current ? { ...current, imageApiKey: value } : current,
+                )
+              }
+              placeholder="sk-proj-..."
+              help="Optional. Use this only if image generation should bill through a different OpenAI project."
+            />
+
+            <div>
+              <label
+                htmlFor="ai-image-model"
+                className="block text-sm font-medium text-foreground mb-1"
+              >
+                Image Model
+              </label>
+              <select
+                id="ai-image-model"
+                value={imageModel}
+                onChange={(e) =>
+                  setDraft((current) =>
+                    current
+                      ? { ...current, imageModel: e.target.value }
+                      : current,
+                  )
+                }
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="gpt-image-1">GPT Image 1</option>
+                <option value="dall-e-3">DALL-E 3</option>
+              </select>
+            </div>
           </div>
         </div>
 

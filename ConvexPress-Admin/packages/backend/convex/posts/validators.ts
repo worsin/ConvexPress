@@ -15,6 +15,10 @@ import {
   commentStatusValidator,
   postTypeValidator,
 } from "../schema/posts";
+import {
+  blocksValidator,
+  contentModeValidator,
+} from "../blocks/validators";
 
 // ─── Re-exports for convenience ──────────────────────────────────────────────
 
@@ -100,6 +104,9 @@ export const createPostArgs = {
   featuredImageId: v.optional(v.id("media")),
   isSticky: v.optional(v.boolean()),
   scheduledAt: v.optional(v.number()),
+  layoutId: v.optional(v.string()),
+  hideHeader: v.optional(v.boolean()),
+  hideFooter: v.optional(v.boolean()),
   // Taxonomy IDs - passed to Taxonomy System after creation
   categoryIds: v.optional(v.array(v.id("terms"))),
   tagIds: v.optional(v.array(v.id("terms"))),
@@ -110,6 +117,11 @@ export const createPostArgs = {
   sources: v.optional(v.string()),
   tableOfContents: v.optional(v.string()),
   pagePrompt: v.optional(v.string()),
+  // Composition block fields (posts default to article mode, but can opt in)
+  contentMode: v.optional(contentModeValidator),
+  blocks: v.optional(blocksValidator),
+  blocksVersion: v.optional(v.number()),
+  blocksRevision: v.optional(v.number()),
 };
 
 /**
@@ -132,6 +144,9 @@ export const updatePostArgs = {
   menuOrder: v.optional(v.number()),
   authorId: v.optional(v.id("users")),
   scheduledAt: v.optional(v.number()),
+  layoutId: v.optional(v.string()),
+  hideHeader: v.optional(v.boolean()),
+  hideFooter: v.optional(v.boolean()),
   // Taxonomy IDs - update category/tag assignments
   categoryIds: v.optional(v.array(v.id("terms"))),
   tagIds: v.optional(v.array(v.id("terms"))),
@@ -142,6 +157,11 @@ export const updatePostArgs = {
   sources: v.optional(v.string()),
   tableOfContents: v.optional(v.string()),
   pagePrompt: v.optional(v.string()),
+  // Composition block fields (posts default to article mode, but can opt in)
+  contentMode: v.optional(contentModeValidator),
+  blocks: v.optional(blocksValidator),
+  blocksVersion: v.optional(v.number()),
+  blocksRevision: v.optional(v.number()),
 };
 
 /**

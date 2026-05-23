@@ -208,7 +208,6 @@ export const getCommonUnanswered = query({
     const unanswered = logs.filter((l) => l.kbArticleIds.length === 0);
 
     // Group by normalized query text
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const queryGroups = new Map<string, { count: number; lastAskedAt: number; raw: string }>();
 
     for (const log of unanswered) {
@@ -229,10 +228,13 @@ export const getCommonUnanswered = query({
     }
 
     // Sort by count descending, take top N
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-    return Array.from(queryGroups.values())
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      .sort((a, b) => b.count - a.count)
+    const groupedQueries: Array<{ count: number; lastAskedAt: number; raw: string }> = [];
+    for (const group of queryGroups.values()) {
+      groupedQueries.push(group);
+    }
+    // @ts-ignore TS2589: Convex generated API union types exceed TypeScript instantiation depth here.
+    return groupedQueries
+      .sort((a: { count: number }, b: { count: number }) => b.count - a.count)
       .slice(0, limit)
       .map(({ raw, count, lastAskedAt }) => ({ query: raw, count, lastAskedAt }));
   },

@@ -5,7 +5,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
-import type { ResolvedMenu, SiteIdentity } from "@/lib/layout/types";
+import type { HeaderConfig, ResolvedMenu, SiteIdentity } from "@/lib/layout/types";
 
 import { MobileNavItem } from "./MobileNavItem";
 import { SiteBrand } from "./SiteBrand";
@@ -19,6 +19,7 @@ const FOCUSABLE_SELECTOR =
 interface MobileNavProps {
   menu: ResolvedMenu | undefined;
   siteIdentity: SiteIdentity | undefined;
+  config?: HeaderConfig["mobileMenu"];
 }
 
 /**
@@ -26,7 +27,7 @@ interface MobileNavProps {
  * Visible only on viewports smaller than lg.
  * Includes focus trap for WCAG 2.1 AA compliance.
  */
-export function MobileNav({ menu, siteIdentity }: MobileNavProps) {
+export function MobileNav({ menu, siteIdentity, config }: MobileNavProps) {
   const { mobileNavOpen, closeMobileNav } = useLayoutShell();
   const { user } = useUser();
   const { isLoaded } = useAuth();
@@ -108,6 +109,8 @@ export function MobileNav({ menu, siteIdentity }: MobileNavProps) {
   }, [mobileNavOpen]);
 
   const visibleItems = menu?.items.filter((item) => !item.isOrphaned) ?? [];
+  const side = config?.drawerSide ?? "left";
+  const isFullscreen = config?.variant === "fullscreen";
 
   return (
     <>
@@ -124,13 +127,20 @@ export function MobileNav({ menu, siteIdentity }: MobileNavProps) {
       {/* Slide-in panel */}
       <div
         ref={panelRef}
-        data-slot="mobile-nav"
+          data-slot="mobile-nav"
         role="dialog"
         aria-modal={mobileNavOpen}
         aria-label="Navigation menu"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-background shadow-lg transition-transform duration-300 lg:hidden",
-          mobileNavOpen ? "translate-x-0" : "-translate-x-full",
+          "fixed inset-y-0 z-50 flex flex-col bg-background shadow-lg transition-transform duration-300 lg:hidden",
+          isFullscreen ? "left-0 right-0 w-full" : "w-72",
+          !isFullscreen && side === "left" && "left-0",
+          !isFullscreen && side === "right" && "right-0",
+          mobileNavOpen
+            ? "translate-x-0"
+            : side === "right" && !isFullscreen
+              ? "translate-x-full"
+              : "-translate-x-full",
         )}
       >
         {/* Header */}

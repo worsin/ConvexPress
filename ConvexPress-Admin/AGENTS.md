@@ -32,6 +32,9 @@ entries with v2-discovered ones.
 | `extension-build` | "build a new extension for X", "create the Y feature module" |
 | `extension-add-feature` | "add bulk delete to events", "extend X with Y" |
 | `extension-audit` | "audit the X extension", "verify Y is wired correctly" |
+| `block-build` | "create a custom block", "add a new block type" |
+| `block-add-feature` | "add a field to this block", "upgrade an existing block" |
+| `block-audit` | "audit the block system", "verify this block is update-safe" |
 
 Each skill file is `.codex/skills/<skill-name>/SKILL.md`. Read the
 relevant `SKILL.md` in full before acting — the file is the contract.

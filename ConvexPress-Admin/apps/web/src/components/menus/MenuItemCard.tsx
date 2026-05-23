@@ -7,6 +7,8 @@ import {
   FolderIcon,
   TagIcon,
   LinkIcon,
+  IndentIncreaseIcon,
+  IndentDecreaseIcon,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -34,6 +36,10 @@ const TYPE_LABELS: Record<string, string> = {
 interface MenuItemCardProps {
   item: MenuItem;
   onRemove: (itemId: Id<"menuItems">) => void;
+  onIndent?: (itemId: Id<"menuItems">) => void;
+  onOutdent?: (itemId: Id<"menuItems">) => void;
+  canIndent?: boolean;
+  canOutdent?: boolean;
   /** Drag handle props from @dnd-kit */
   dragHandleProps?: Record<string, unknown>;
   isDragging?: boolean;
@@ -47,6 +53,10 @@ interface MenuItemCardProps {
 export function MenuItemCard({
   item,
   onRemove,
+  onIndent,
+  onOutdent,
+  canIndent,
+  canOutdent,
   dragHandleProps,
   isDragging,
 }: MenuItemCardProps) {
@@ -86,6 +96,26 @@ export function MenuItemCard({
 
         {/* Orphaned badge */}
         {item.isOrphaned && <MenuOrphanedBadge />}
+
+        <button
+          type="button"
+          onClick={() => onOutdent?.(item._id)}
+          disabled={!canOutdent}
+          className="text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Move item out one level"
+        >
+          <IndentDecreaseIcon className="size-3.5" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onIndent?.(item._id)}
+          disabled={!canIndent}
+          className="text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Nest item under previous item"
+        >
+          <IndentIncreaseIcon className="size-3.5" />
+        </button>
 
         {/* Type badge */}
         <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 shrink-0">

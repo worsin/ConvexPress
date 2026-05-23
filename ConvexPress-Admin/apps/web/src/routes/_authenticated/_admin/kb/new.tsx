@@ -72,7 +72,7 @@ function NewKBArticleForm() {
   }
 
   return (
-    <div className="max-w-xl">
+    <div className="w-full">
       <div className="flex items-center gap-3 mb-6">
         <PenLine className="h-6 w-6 text-muted-foreground" />
         <h1 className="text-2xl font-bold">New Article</h1>

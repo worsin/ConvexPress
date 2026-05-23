@@ -84,7 +84,7 @@ function Ga4IntegrationPage() {
   if (!draft) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="w-full space-y-6 p-6">
       <IntegrationHeader
         name="Google Analytics 4"
         description="Connect a GA4 property to surface traffic + engagement data on the admin dashboard."

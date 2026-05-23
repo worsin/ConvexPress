@@ -8,6 +8,7 @@ import type { FooterConfig } from "@/lib/layout/types";
  * Used as fallback when no settings are stored or still loading.
  */
 const DEFAULT_FOOTER_CONFIG: FooterConfig = {
+  rows: [],
   layout: { columns: "4", background: "dark", backgroundImageId: null, topBorder: "subtle", padding: "normal" },
   branding: { enabled: true, showLogo: true, showDescription: true, description: "", showSocial: true },
   navColumns: { enabled: true, columns: [{ heading: "Company", menuSource: "footer-1" }, { heading: "Resources", menuSource: "footer-2" }] },
@@ -33,6 +34,7 @@ export function useFooterConfig(): FooterConfig {
 
   // Deep merge with defaults so any missing nested fields fall back gracefully
   return {
+    rows: Array.isArray(raw.rows) ? (raw.rows as FooterConfig["rows"]) : DEFAULT_FOOTER_CONFIG.rows,
     layout: { ...DEFAULT_FOOTER_CONFIG.layout, ...(raw.layout as object) },
     branding: { ...DEFAULT_FOOTER_CONFIG.branding, ...(raw.branding as object) },
     navColumns: {

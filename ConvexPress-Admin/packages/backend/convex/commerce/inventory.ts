@@ -242,6 +242,54 @@ async function getPublishedInventoryEntries(ctx: any, includeDrafts = false) {
   return entries.flat();
 }
 
+async function findInventoryLevel(
+  ctx: any,
+  args: {
+    productId: any;
+    variantId?: any;
+    locationId: any;
+  },
+) {
+  const rows = await ctx.db
+    .query("commerce_inventory_levels")
+    .withIndex("by_product_location", (q: any) =>
+      q.eq("productId", args.productId).eq("locationId", args.locationId),
+    )
+    .collect();
+  return rows.find(
+    (row: any) =>
+      (row.variantId?.toString() ?? null) ===
+      (args.variantId?.toString() ?? null),
+  ) ?? null;
+}
+
+async function getReservedCountAtLocation(
+  ctx: any,
+  args: {
+    productId: any;
+    variantId?: any;
+    locationId: any;
+  },
+) {
+  const reservations = await ctx.db
+    .query("commerce_stock_reservations")
+    .withIndex("by_product_location_status", (q: any) =>
+      q
+        .eq("productId", args.productId)
+        .eq("locationId", args.locationId)
+        .eq("status", "active"),
+    )
+    .collect();
+
+  return reservations
+    .filter(
+      (reservation: any) =>
+        (reservation.variantId?.toString() ?? null) ===
+        (args.variantId?.toString() ?? null),
+    )
+    .reduce((sum: number, reservation: any) => sum + reservation.quantity, 0);
+}
+
 // ============================================
 // QUERIES
 // ============================================
@@ -278,6 +326,47 @@ export const getAvailable = query({
       trackInventory: product.trackInventory,
       allowBackorders: product.allowBackorders,
     };
+  },
+});
+
+/**
+ * List location inventory levels for a product or variant.
+ */
+export const listLocationLevels = query({
+  args: {
+    productId: v.id("commerce_products"),
+    variantId: v.optional(v.id("commerce_product_variants")),
+  },
+  handler: async (ctx, args) => {
+    await requireCommerceEnabled(ctx);
+
+    const rows = await ctx.db
+      .query("commerce_inventory_levels")
+      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+      .collect();
+    const scopedRows = rows.filter(
+      (row: any) =>
+        args.variantId === undefined ||
+        row.variantId?.toString() === args.variantId.toString(),
+    );
+
+    return Promise.all(
+      scopedRows.map(async (row: any) => {
+        const location = await ctx.db.get(row.locationId);
+        const reservedCount = await getReservedCountAtLocation(ctx, {
+          productId: row.productId,
+          variantId: row.variantId,
+          locationId: row.locationId,
+        });
+        const safetyStock = Number(row.safetyStockQuantity ?? 0);
+        return {
+          ...row,
+          location,
+          reservedCount,
+          availableStock: Number(row.stockQuantity ?? 0) - safetyStock - reservedCount,
+        };
+      }),
+    );
   },
 });
 
@@ -707,6 +796,7 @@ export const adjust = mutation({
   args: {
     productId: v.id("commerce_products"),
     variantId: v.optional(v.id("commerce_product_variants")),
+    locationId: v.optional(v.id("commerce_ship_from_locations")),
     adjustmentType: v.union(
       v.literal("restock"),
       v.literal("damage"),
@@ -720,7 +810,16 @@ export const adjust = mutation({
     await requireCommerceEnabled(ctx);
     const user = await requireCan(ctx, "manage_options");
     const target = await resolveInventoryTarget(ctx, args.productId, args.variantId);
-    const previousStock = target.stockQuantity;
+    const locationLevel = args.locationId
+      ? await findInventoryLevel(ctx, {
+          productId: args.productId,
+          variantId: args.variantId,
+          locationId: args.locationId,
+        })
+      : null;
+    const previousStock = locationLevel
+      ? Number(locationLevel.stockQuantity ?? 0)
+      : target.stockQuantity;
     const newStock = previousStock + args.quantity;
 
     if (newStock < 0) {
@@ -733,19 +832,42 @@ export const adjust = mutation({
     const wasOutOfStock = previousStock === 0;
     const isNowInStock = newStock > 0;
 
-    await ctx.db.patch(target.patchId, {
-      stockQuantity: newStock,
-      updatedAt: Date.now(),
-    });
+    const now = Date.now();
+    if (args.locationId) {
+      if (locationLevel) {
+        await ctx.db.patch(locationLevel._id, {
+          stockQuantity: newStock,
+          updatedAt: now,
+        });
+      } else {
+        await ctx.db.insert("commerce_inventory_levels", {
+          productId: args.productId,
+          variantId: args.variantId,
+          locationId: args.locationId,
+          stockQuantity: newStock,
+          incomingQuantity: 0,
+          safetyStockQuantity: 0,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    } else {
+      await ctx.db.patch(target.patchId, {
+        stockQuantity: newStock,
+        updatedAt: now,
+      });
+    }
 
     await ctx.db.insert("commerce_inventory_adjustments", {
       productId: args.productId,
       variantId: args.variantId,
+      locationId: args.locationId,
       adjustmentType: args.adjustmentType,
       quantityDelta: args.quantity,
       reason: args.reason,
       actorUserId: user._id,
-      createdAt: Date.now(),
+      createdAt: now,
     });
 
     // Resolve any low stock alerts if stock is now healthy
@@ -767,6 +889,63 @@ export const adjust = mutation({
     }
 
     return { success: true, previousStock, newStock };
+  },
+});
+
+/**
+ * Create or update a product/variant inventory level at a fulfillment location.
+ */
+export const upsertLocationLevel = mutation({
+  args: {
+    productId: v.id("commerce_products"),
+    variantId: v.optional(v.id("commerce_product_variants")),
+    locationId: v.id("commerce_ship_from_locations"),
+    stockQuantity: v.number(),
+    incomingQuantity: v.optional(v.number()),
+    safetyStockQuantity: v.optional(v.number()),
+    allowBackorders: v.optional(v.boolean()),
+    isActive: v.optional(v.boolean()),
+    externalInventoryItemId: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    await requireCommerceEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+    await resolveInventoryTarget(ctx, args.productId, args.variantId);
+
+    const location = await ctx.db.get(args.locationId);
+    if (!location) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Fulfillment location not found.",
+      });
+    }
+
+    const now = Date.now();
+    const existing = await findInventoryLevel(ctx, args);
+    const patch = {
+      stockQuantity: args.stockQuantity,
+      incomingQuantity: args.incomingQuantity ?? 0,
+      safetyStockQuantity: args.safetyStockQuantity ?? 0,
+      allowBackorders: args.allowBackorders,
+      isActive: args.isActive ?? true,
+      externalInventoryItemId: args.externalInventoryItemId,
+      metadata: args.metadata,
+      updatedAt: now,
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, patch);
+      return existing._id;
+    }
+
+    return ctx.db.insert("commerce_inventory_levels", {
+      productId: args.productId,
+      variantId: args.variantId,
+      locationId: args.locationId,
+      ...patch,
+      createdAt: now,
+    });
   },
 });
 
@@ -897,20 +1076,37 @@ export const reserve = internalMutation({
   args: {
     productId: v.id("commerce_products"),
     variantId: v.optional(v.id("commerce_product_variants")),
+    locationId: v.optional(v.id("commerce_ship_from_locations")),
     quantity: v.number(),
     checkoutSessionId: v.id("commerce_checkout_sessions"),
   },
   handler: async (ctx, args) => {
     const target = await resolveInventoryTarget(ctx, args.productId, args.variantId);
     const product = target.product;
+    const locationLevel = args.locationId
+      ? await findInventoryLevel(ctx, {
+          productId: args.productId,
+          variantId: args.variantId,
+          locationId: args.locationId,
+        })
+      : null;
 
     // Skip reservation for non-tracked or backorder products
     if (!product.trackInventory || product.allowBackorders) {
       return { success: true, reserved: 0, skipped: true };
     }
 
-    const stockQuantity = target.stockQuantity;
-    const reservedCount = target.reservedCount;
+    const stockQuantity = locationLevel
+      ? Number(locationLevel.stockQuantity ?? 0) -
+        Number(locationLevel.safetyStockQuantity ?? 0)
+      : target.stockQuantity;
+    const reservedCount = args.locationId
+      ? await getReservedCountAtLocation(ctx, {
+          productId: args.productId,
+          variantId: args.variantId,
+          locationId: args.locationId,
+        })
+      : target.reservedCount;
     const available = stockQuantity - reservedCount;
 
     if (available < args.quantity) {
@@ -926,6 +1122,7 @@ export const reserve = internalMutation({
     const reservationId = await ctx.db.insert("commerce_stock_reservations", {
       productId: args.productId,
       variantId: args.variantId,
+      locationId: args.locationId,
       checkoutSessionId: args.checkoutSessionId,
       quantity: args.quantity,
       expiresAt: now + 15 * 60 * 1000, // 15 minutes
@@ -938,6 +1135,7 @@ export const reserve = internalMutation({
     await ctx.db.insert("commerce_inventory_adjustments", {
       productId: args.productId,
       variantId: args.variantId,
+      locationId: args.locationId,
       adjustmentType: "reservation",
       quantityDelta: -args.quantity,
       reason: "Stock reserved for checkout",
@@ -991,6 +1189,7 @@ export const release = internalMutation({
     await ctx.db.insert("commerce_inventory_adjustments", {
       productId: reservation.productId,
       variantId: reservation.variantId,
+      locationId: reservation.locationId,
       adjustmentType: "release",
       quantityDelta: reservation.quantity,
       reason: args.reason ?? "Reservation released",
@@ -1029,13 +1228,29 @@ export const commit = internalMutation({
         reservation.productId,
         reservation.variantId,
       );
-      const newStock = target.stockQuantity - reservation.quantity;
+      const locationLevel = reservation.locationId
+        ? await findInventoryLevel(ctx, {
+            productId: reservation.productId,
+            variantId: reservation.variantId,
+            locationId: reservation.locationId,
+          })
+        : null;
+      const previousStock = locationLevel
+        ? Number(locationLevel.stockQuantity ?? 0)
+        : target.stockQuantity;
+      const newStock = previousStock - reservation.quantity;
 
-      // Deduct from stockQuantity
-      await ctx.db.patch(target.patchId, {
-        stockQuantity: newStock,
-        updatedAt: now,
-      });
+      if (locationLevel) {
+        await ctx.db.patch(locationLevel._id, {
+          stockQuantity: newStock,
+          updatedAt: now,
+        });
+      } else {
+        await ctx.db.patch(target.patchId, {
+          stockQuantity: newStock,
+          updatedAt: now,
+        });
+      }
 
       // Mark reservation as converted
       await ctx.db.patch(reservation._id, {
@@ -1047,6 +1262,7 @@ export const commit = internalMutation({
       await ctx.db.insert("commerce_inventory_adjustments", {
         productId: reservation.productId,
         variantId: reservation.variantId,
+        locationId: reservation.locationId,
         adjustmentType: "sale",
         quantityDelta: -reservation.quantity,
         orderId: args.orderId,

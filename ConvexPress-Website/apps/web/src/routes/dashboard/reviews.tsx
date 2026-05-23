@@ -45,7 +45,7 @@ function StarRating({ rating }: { rating: number }) {
           key={i}
           className={`h-3.5 w-3.5 ${
             i < rating
-              ? "fill-amber-400 text-amber-400"
+              ? "fill-primary text-primary"
               : "fill-none text-muted-foreground/30"
           }`}
         />
@@ -77,12 +77,12 @@ function StarInput({
             onClick={() => onChange(starValue)}
             onMouseEnter={() => setHoverValue(starValue)}
             onMouseLeave={() => setHoverValue(0)}
-            className="rounded p-0.5 transition-colors hover:bg-amber-50"
+            className="rounded p-0.5 transition-colors hover:bg-primary/10"
           >
             <Star
               className={`h-5 w-5 ${
                 filled
-                  ? "fill-amber-400 text-amber-400"
+                  ? "fill-primary text-primary"
                   : "fill-none text-muted-foreground/40"
               }`}
             />
@@ -99,17 +99,17 @@ function ReviewStatusBadge({ status }: { status: string }) {
   const config: Record<string, { icon: typeof Clock; style: string; label: string }> = {
     pending: {
       icon: Clock,
-      style: "bg-amber-100 text-amber-800",
+      style: "bg-secondary text-secondary-foreground",
       label: "Pending Review",
     },
     approved: {
       icon: Check,
-      style: "bg-emerald-100 text-emerald-800",
+      style: "bg-primary/10 text-primary",
       label: "Published",
     },
     rejected: {
       icon: X,
-      style: "bg-red-100 text-red-800",
+      style: "bg-destructive/10 text-destructive",
       label: "Rejected",
     },
     spam: {
@@ -304,7 +304,7 @@ function ReviewCard({
         <div className="flex items-center gap-3">
           <StarRating rating={review.rating} />
           {review.isVerifiedPurchase && (
-            <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+            <span className="inline-flex items-center gap-1 text-xs text-primary">
               <ShieldCheck className="h-3 w-3" />
               Verified
             </span>
@@ -323,7 +323,7 @@ function ReviewCard({
 
         {/* Rejection reason */}
         {review.status === "rejected" && review.rejectionReason && (
-          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             Reason: {review.rejectionReason}
           </div>
         )}
@@ -339,8 +339,8 @@ function ReviewCard({
 
         {/* Delete confirmation */}
         {confirmDelete && (
-          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-            <p className="text-sm text-red-800">
+          <div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3">
+            <p className="text-sm text-destructive">
               Delete this review permanently?
             </p>
             <div className="mt-2 flex gap-2">
@@ -348,7 +348,7 @@ function ReviewCard({
                 type="button"
                 onClick={() => void handleDelete()}
                 disabled={deleting}
-                className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60"
+                className="rounded-lg bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground disabled:opacity-60"
               >
                 {deleting ? "Deleting..." : "Delete"}
               </button>
@@ -379,7 +379,7 @@ function ReviewCard({
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
             >
               <Trash2 className="h-3.5 w-3.5" />
               Delete

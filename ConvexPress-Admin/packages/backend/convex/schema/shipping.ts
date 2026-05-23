@@ -746,6 +746,17 @@ export const shippingTables = {
     ),
     handlingTimeDays: v.optional(v.number()),
     priority: v.number(),
+    fulfillmentProvider: v.optional(
+      v.union(
+        v.literal("manual"),
+        v.literal("amazon_mcf"),
+        v.literal("shipstation"),
+        v.literal("third_party_logistics"),
+        v.literal("custom"),
+      ),
+    ),
+    externalProviderLocationId: v.optional(v.string()),
+    fulfillmentProviderConfig: v.optional(v.any()),
     preferredProviderAccountIds: v.optional(
       v.array(v.id("shipping_provider_accounts")),
     ),

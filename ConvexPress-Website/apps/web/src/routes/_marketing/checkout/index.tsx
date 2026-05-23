@@ -6,6 +6,10 @@ import { toast } from "sonner";
 
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
+import {
+  CheckoutProgress,
+  CheckoutStatusNotice,
+} from "@/components/commerce/CheckoutProgress";
 
 export const Route = createFileRoute("/_marketing/checkout/")({
   component: CheckoutIndexPage,
@@ -26,6 +30,7 @@ function CheckoutIndexPage() {
   const createSession = useMutation((api as any).commerce.checkout.createSession);
   const updateSession = useMutation((api as any).commerce.checkout.updateSession);
   const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (session?.email) {
@@ -47,6 +52,7 @@ function CheckoutIndexPage() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       if (session === null) {
         await createSession({ sessionToken, email: email.trim() });
@@ -59,6 +65,8 @@ function CheckoutIndexPage() {
         (error as { data?: { message?: string } })?.data?.message ??
           "Failed to start checkout",
       );
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -75,6 +83,7 @@ function CheckoutIndexPage() {
           </p>
         ) : null}
       </div>
+      <CheckoutProgress currentStep="contact" />
 
       {!isReady || cart === undefined ? (
         <div className="h-48 animate-pulse rounded-[2rem] bg-muted" />
@@ -87,6 +96,10 @@ function CheckoutIndexPage() {
           onSubmit={(event) => void handleContinue(event)}
           className="rounded-[2rem] border border-border bg-card p-8 shadow-sm"
         >
+          <CheckoutStatusNotice
+            status={(session as any)?.status}
+            failureReason={(session as any)?.failureReason}
+          />
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-foreground">
               Email address
@@ -103,9 +116,10 @@ function CheckoutIndexPage() {
 
           <button
             type="submit"
-            className="mt-6 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground"
+            disabled={isSubmitting}
+            className="mt-6 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-50"
           >
-            Continue to shipping
+            {isSubmitting ? "Saving..." : "Continue to shipping"}
           </button>
         </form>
       )}

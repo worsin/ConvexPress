@@ -195,6 +195,11 @@ export const getPublic = query({
     const plugins = await getMergedSettingsSection(ctx, "plugins");
     const commerce = await getMergedSettingsSection(ctx, "commerce.general");
     const shipping = await getMergedSettingsSection(ctx, "integrations.shipping");
+    const blocks = await getMergedSettingsSection(ctx, "blocks");
+    const activeTheme = await ctx.db
+      .query("themes")
+      .withIndex("by_active", (q) => q.eq("isActive", true))
+      .first();
 
     return {
       // General (excluding adminEmail)
@@ -244,6 +249,14 @@ export const getPublic = query({
       // Website Appearance - Footer config (all fields are safe for public)
       footerConfig: footer,
 
+      // Public color tokens from the active appearance theme. Kept narrow so
+      // legacy theme records do not leak unrelated template data to visitors.
+      colorPalette: Array.isArray((activeTheme as any)?.globalStyles?.settings?.color?.palette)
+        ? (activeTheme as any).globalStyles.settings.color.palette
+        : Array.isArray((activeTheme as any)?.colorPalette)
+          ? (activeTheme as any).colorPalette
+          : [],
+
       // Public plugin flags. These are feature visibility controls, not secrets.
       plugins: {
         commerceEnabled: plugins.commerceEnabled,
@@ -259,6 +272,14 @@ export const getPublic = query({
         customFieldsEnabled: plugins.customFieldsEnabled,
         recipesEnabled: plugins.recipesEnabled,
         galleryEnabled: plugins.galleryEnabled,
+      },
+
+      // Block editor runtime config. Public so the front-end renderer can
+      // suppress blocks that have been disabled in admin settings.
+      blocksConfig: {
+        disabledBlockNames: Array.isArray((blocks as any).disabledBlockNames)
+          ? (blocks as any).disabledBlockNames
+          : [],
       },
 
       // Commerce runtime settings used by the public cart and checkout UI.

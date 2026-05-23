@@ -60,7 +60,7 @@ function GalleryCategoryPageInner() {
   return (
     <div className="flex flex-col gap-8">
       <section className="rounded-[2rem] border border-border/60 bg-card p-8 shadow-sm">
-        <div className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-700">
+        <div className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
           Gallery Category
         </div>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground">

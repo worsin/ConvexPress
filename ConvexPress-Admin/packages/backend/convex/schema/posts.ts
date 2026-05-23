@@ -119,6 +119,52 @@ export const postTables = {
     // populate this field.
     pageSections: v.optional(v.any()),
 
+    // ── Gutenberg-inspired Composition Blocks ────────────────────────────
+    // `contentMode` determines whether a document renders through the legacy
+    // article/editorial fields or the new page-composition block tree.
+    // Blocks use a typed envelope with attrs kept as v.any() because custom
+    // block attribute schemas are registered in TypeScript on the Admin and
+    // Website sides. Backend mutations validate the envelope, depth, count,
+    // and revision semantics before saving.
+    contentMode: v.optional(v.union(v.literal("article"), v.literal("blocks"))),
+    blocks: v.optional(v.array(v.object({
+      id: v.string(),
+      name: v.string(),
+      version: v.number(),
+      attrs: v.any(),
+      innerBlocks: v.optional(v.any()),
+      layout: v.optional(v.object({
+        tone: v.optional(v.union(
+          v.literal("default"),
+          v.literal("muted"),
+          v.literal("accent"),
+          v.literal("contrast"),
+        )),
+        padding: v.optional(v.union(
+          v.literal("compact"),
+          v.literal("normal"),
+          v.literal("spacious"),
+        )),
+        container: v.optional(v.union(
+          v.literal("content"),
+          v.literal("wide"),
+          v.literal("full"),
+        )),
+        align: v.optional(v.union(
+          v.literal("default"),
+          v.literal("wide"),
+          v.literal("full"),
+        )),
+      })),
+      lock: v.optional(v.object({
+        move: v.optional(v.boolean()),
+        remove: v.optional(v.boolean()),
+        edit: v.optional(v.boolean()),
+      })),
+    }))),
+    blocksVersion: v.optional(v.number()),
+    blocksRevision: v.optional(v.number()),
+
     // ── Layout Override Fields ───────────────────────────────────────────
     layoutId: v.optional(v.string()),       // Per-post/page layout override (layout _id)
     hideHeader: v.optional(v.boolean()),     // Hide site header on this page

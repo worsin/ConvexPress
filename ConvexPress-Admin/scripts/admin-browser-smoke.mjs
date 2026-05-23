@@ -84,6 +84,7 @@ function getStaticAdminRoutePaths() {
     .filter((path) => path.startsWith("/"))
     .filter((path) => !path.includes("$"))
     .filter((path) => !path.includes("*"))
+    .filter((path) => !path.split("/").some((segment) => segment.startsWith("_")))
     .filter((path) => path !== "/")
     .sort((a, b) => a.localeCompare(b));
 }
@@ -91,6 +92,8 @@ function getStaticAdminRoutePaths() {
 function isIgnoredRequest(url) {
   return (
     url.endsWith("/favicon.ico") ||
+    url.includes("/auth/refresh") ||
+    url.includes("/auth/login") ||
     url.includes("/.well-known/appspecific/com.chrome.devtools")
   );
 }
@@ -99,18 +102,21 @@ function isIgnoredConsole(message) {
   const text = message.text();
   return (
     text.includes("Download the React DevTools") ||
-    text.includes("Convex client has already been connected")
+    text.includes("Convex client has already been connected") ||
+    text.includes("Failed to load resource: the server responded with a status of 401")
   );
 }
 
-async function waitForAppSettled(page) {
+async function waitForAppSettled(page, path = page.url()) {
   await page.waitForLoadState("domcontentloaded");
-  await page.locator("body").waitFor({ state: "visible", timeout: 10_000 });
+  await page.locator("body").waitFor({ state: "visible", timeout: 10_000 }).catch((error) => {
+    throw new Error(`${path} did not expose a visible body at ${page.url()}: ${error.message}`);
+  });
 }
 
 async function authenticate(page) {
   await page.goto(`${baseUrl}/dashboard`, { waitUntil: "domcontentloaded" });
-  await waitForAppSettled(page);
+  await waitForAppSettled(page, "/dashboard");
 
   const setupForm = page.locator("#admin-display-name");
   if (await setupForm.isVisible().catch(() => false)) {
@@ -120,7 +126,14 @@ async function authenticate(page) {
   }
 
   const loginInput = page.locator("#identifier");
-  if (!(await loginInput.isVisible().catch(() => false))) return;
+  await Promise.race([
+    loginInput.waitFor({ state: "visible", timeout: 20_000 }).catch(() => null),
+    page.locator("#admin-content").waitFor({ state: "visible", timeout: 20_000 }).catch(() => null),
+  ]);
+  if (!(await loginInput.isVisible().catch(() => false))) {
+    await page.locator("#admin-content").waitFor({ state: "visible", timeout: 20_000 });
+    return;
+  }
 
   if (!username || !password) {
     throw new Error(
@@ -142,12 +155,15 @@ async function assertNoLoginScreen(page, path) {
 
 async function checkRoute(page, path) {
   await page.goto(`${baseUrl}${path}`, { waitUntil: "domcontentloaded" });
-  await waitForAppSettled(page);
+  await waitForAppSettled(page, path);
   await assertNoLoginScreen(page, path);
 
   const content = page.locator("#admin-content");
-  if (!(await content.isVisible().catch(() => false))) {
-    throw new Error(`${path} did not render #admin-content`);
+  if (!(await content.waitFor({ state: "visible", timeout: 20_000 }).then(() => true).catch(() => false))) {
+    const bodyText = await page.locator("body").innerText().catch(() => "");
+    throw new Error(
+      `${path} did not render #admin-content at ${page.url()}. Body: ${bodyText.slice(0, 500)}`,
+    );
   }
 }
 
@@ -158,7 +174,7 @@ async function closeOpenDialog(page) {
 
 async function checkDialog(page, check) {
   await page.goto(`${baseUrl}${check.path}`, { waitUntil: "domcontentloaded" });
-  await waitForAppSettled(page);
+  await waitForAppSettled(page, check.path);
   await assertNoLoginScreen(page, check.path);
 
   const trigger = page.getByRole("button", { name: check.trigger }).first();

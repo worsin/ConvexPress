@@ -53,7 +53,7 @@ export const Route = createFileRoute(
 
 function NotificationSettingsPage() {
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
+    <div className="w-full space-y-6 p-6">
       {/* Page header */}
       <div>
         <h1 className="flex items-center gap-2 text-lg font-semibold text-foreground">

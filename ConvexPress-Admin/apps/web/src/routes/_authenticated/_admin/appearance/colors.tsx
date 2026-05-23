@@ -1,22 +1,10 @@
 /**
- * @deprecated 2026-05-11 — Legacy in-admin Theme/Template Builder.
+ * Appearance > Colors — site color palette.
  *
- * STATUS:  Frozen. Hidden from active nav. Do NOT extend or fix issues here.
- * REASON:  A pre-built section enum + preset theme picker limits what each
- *          site can look like. Replaced by AI-generated React components,
- *          one per route, generated per site by the design:* skill kit.
- * REPLACEMENT:  See ConvexPress-Website/design-kit/README.md
- * REMOVAL:  Safe to delete once at least one site is fully shipped via the
- *           skill kit and nothing else references this file.
- */
-/**
- * Website Colors Page
- *
- * Settings-style page for managing the website's color palette.
- * Reads/writes the active theme's globalStyles.settings.color.palette
- * via theme queries/mutations.
- *
- * Colors map to shadcn CSS variables used across the website frontend.
+ * Reads/writes the active theme's colorPalette
+ * via theme queries/mutations. Colors map to shadcn CSS variables that
+ * the public Website consumes at runtime — no deploy needed for changes
+ * to take effect.
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -29,7 +17,7 @@ import { toast } from "sonner";
 
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { SettingsField } from "@/components/settings/SettingsField";
-import { DeprecatedSystemBanner } from "@/components/appearance/DeprecatedSystemBanner";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/appearance/colors",
@@ -102,21 +90,60 @@ const DEFAULT_COLORS: Record<string, string> = {
   "destructive-foreground": "#fafafa",
 };
 
+const COLOR_PRESETS: Array<{ label: string; colors: Record<string, string> }> = [
+  { label: "Default Dark", colors: DEFAULT_COLORS },
+  {
+    label: "Clean Light",
+    colors: {
+      background: "#ffffff",
+      foreground: "#111827",
+      primary: "#111827",
+      "primary-foreground": "#ffffff",
+      secondary: "#f3f4f6",
+      "secondary-foreground": "#111827",
+      muted: "#f3f4f6",
+      "muted-foreground": "#6b7280",
+      accent: "#e5e7eb",
+      "accent-foreground": "#111827",
+      card: "#ffffff",
+      "card-foreground": "#111827",
+      border: "#e5e7eb",
+      input: "#d1d5db",
+      ring: "#111827",
+      destructive: "#dc2626",
+      "destructive-foreground": "#ffffff",
+    },
+  },
+  {
+    label: "Editorial",
+    colors: {
+      background: "#fbfaf7",
+      foreground: "#1f2933",
+      primary: "#7c2d12",
+      "primary-foreground": "#fff7ed",
+      secondary: "#f1ede5",
+      "secondary-foreground": "#1f2933",
+      muted: "#f1ede5",
+      "muted-foreground": "#6b6258",
+      accent: "#d6a35c",
+      "accent-foreground": "#1f2933",
+      card: "#fffdf8",
+      "card-foreground": "#1f2933",
+      border: "#ded7cc",
+      input: "#cfc7bb",
+      ring: "#7c2d12",
+      destructive: "#991b1b",
+      "destructive-foreground": "#fff7ed",
+    },
+  },
+];
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface PaletteEntry {
   slug: string;
   name: string;
   color: string;
-}
-
-/** Nested structure for theme globalStyles */
-interface GlobalStylesWithPalette {
-  settings?: {
-    color?: {
-      palette?: PaletteEntry[];
-    };
-  };
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -200,7 +227,7 @@ function ColorInput({
 
 function WebsiteColorsPage() {
   const activeTheme = useQuery(api.themes.queries.getActive);
-  const updateGlobalStyles = useMutation(api.themes.mutations.updateGlobalStyles);
+  const updateTheme = useMutation(api.themes.mutations.update);
 
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<number | null>(null);
@@ -208,7 +235,9 @@ function WebsiteColorsPage() {
 
   // Extract palette from active theme
   const palette: PaletteEntry[] =
-    (activeTheme?.globalStyles as GlobalStylesWithPalette)?.settings?.color?.palette ?? [];
+    Array.isArray((activeTheme as any)?.colorPalette)
+      ? ((activeTheme as any).colorPalette as PaletteEntry[])
+      : [];
 
   // Debounced save function
   const savePalette = useCallback(
@@ -222,15 +251,9 @@ function WebsiteColorsPage() {
       saveTimeoutRef.current = setTimeout(async () => {
         setIsSaving(true);
         try {
-          await updateGlobalStyles({
-            themeId: activeTheme._id,
-            globalStyles: {
-              settings: {
-                color: {
-                  palette: newPalette,
-                },
-              },
-            } as GlobalStylesWithPalette,
+          await updateTheme({
+            id: activeTheme._id,
+            colorPalette: newPalette,
           });
           setLastSaved(Date.now());
         } catch (err: unknown) {
@@ -240,7 +263,7 @@ function WebsiteColorsPage() {
         }
       }, 600);
     },
-    [activeTheme?._id, updateGlobalStyles],
+    [activeTheme?._id, updateTheme],
   );
 
   // Cleanup timeout on unmount
@@ -256,6 +279,18 @@ function WebsiteColorsPage() {
     (slug: string, label: string, color: string) => {
       const newPalette = updatePaletteEntry(palette, slug, color, label);
       savePalette(newPalette);
+    },
+    [palette, savePalette],
+  );
+
+  const applyPreset = useCallback(
+    (preset: Record<string, string>) => {
+      const nextPalette = ALL_COLOR_DEFS.map((colorDef) => ({
+        slug: colorDef.slug,
+        name: colorDef.label,
+        color: preset[colorDef.slug] ?? getColorFromPalette(palette, colorDef.slug),
+      }));
+      savePalette(nextPalette);
     },
     [palette, savePalette],
   );
@@ -335,7 +370,6 @@ function WebsiteColorsPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
-      <DeprecatedSystemBanner />
       {/* Page header */}
       <div>
         <h1 className="text-xl font-semibold text-foreground">Website Colors</h1>
@@ -345,6 +379,25 @@ function WebsiteColorsPage() {
           {activeTheme.name ? ` "${activeTheme.name}"` : ""}.
         </p>
       </div>
+
+      <SettingsSection
+        title="Palette Presets"
+        description="Apply a complete token set, then fine-tune individual colors below."
+      >
+        <div className="flex flex-wrap gap-2">
+          {COLOR_PRESETS.map((preset) => (
+            <Button
+              key={preset.label}
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => applyPreset(preset.colors)}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+      </SettingsSection>
 
       {/* Color sections */}
       <div className="flex flex-col gap-6">

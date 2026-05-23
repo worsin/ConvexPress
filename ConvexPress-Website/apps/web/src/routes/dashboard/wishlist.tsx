@@ -237,7 +237,7 @@ function WishlistItemRow({
           {formatMoney(item.effectivePrice, currencyCode)}
         </p>
         {!item.isAvailable && (
-          <p className="mt-0.5 text-xs text-red-600">Out of stock</p>
+          <p className="mt-0.5 text-xs text-destructive">Out of stock</p>
         )}
       </div>
 
@@ -256,7 +256,7 @@ function WishlistItemRow({
           type="button"
           onClick={() => void handleRemove()}
           disabled={busy}
-          className="rounded-lg border border-border p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+          className="rounded-lg border border-border p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -382,7 +382,7 @@ function WishlistCard({
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <Heart className="h-4 w-4 flex-shrink-0 text-red-500" />
+            <Heart className="h-4 w-4 flex-shrink-0 text-destructive" />
             <h3 className="truncate text-sm font-semibold text-foreground">
               {wishlist.name}
             </h3>
@@ -398,7 +398,7 @@ function WishlistCard({
         </div>
         <div className="flex items-center gap-3">
           {isPublic ? (
-            <Globe className="h-3.5 w-3.5 text-emerald-600" />
+            <Globe className="h-3.5 w-3.5 text-primary" />
           ) : (
             <Lock className="h-3.5 w-3.5 text-muted-foreground" />
           )}
@@ -421,7 +421,7 @@ function WishlistCard({
               disabled={busy}
               className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
                 isPublic
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  ? "border-primary/30 bg-primary/10 text-primary"
                   : "border-border text-muted-foreground hover:bg-muted"
               }`}
             >
@@ -447,7 +447,7 @@ function WishlistCard({
                 type="button"
                 onClick={() => void handleDelete()}
                 disabled={busy}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete

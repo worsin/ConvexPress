@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  Link,
+  useLocation,
+} from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
@@ -25,6 +30,7 @@ const METHOD_TYPES = [
 ] as const;
 
 function ZoneMethodsPage() {
+  const location = useLocation();
   const { zoneId } = Route.useParams();
   const zone = useQuery((api as any).shipping.zones.queries.getZone, {
     zoneId,
@@ -40,6 +46,10 @@ function ZoneMethodsPage() {
   );
 
   const [showPicker, setShowPicker] = useState(false);
+
+  if (location.pathname.includes("/methods/")) {
+    return <Outlet />;
+  }
 
   async function handleAdd(methodType: string) {
     const baseConfig: Record<string, any> = {
@@ -118,7 +128,7 @@ function ZoneMethodsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
+    <div className="w-full space-y-6 p-6">
       <Link
         to="/commerce/settings/shipping/zones"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"

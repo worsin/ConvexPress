@@ -104,9 +104,12 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
         isSticky,
       };
 
-      // Include date if changed
       if (publishDate) {
-        updateArgs.publishedAt = new Date(publishDate).getTime();
+        const scheduledAt = new Date(publishDate).getTime();
+        if (status === "future" || scheduledAt > Date.now()) {
+          updateArgs.status = "future";
+          updateArgs.scheduledAt = scheduledAt;
+        }
       }
 
       // Include author if changed

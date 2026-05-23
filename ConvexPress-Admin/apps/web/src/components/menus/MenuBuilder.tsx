@@ -146,9 +146,9 @@ export function MenuBuilder({ menu }: MenuBuilderProps) {
 
   return (
     <>
-      <div className="flex gap-6 items-start">
+      <div className="flex flex-col gap-6 items-start xl:flex-row">
         {/* Left sidebar: Add Items (~30%) */}
-        <div className="w-[30%] min-w-56 shrink-0">
+        <div className="w-full shrink-0 xl:w-[30%] xl:min-w-56">
           <MenuAddItemsPanel menuId={menu._id} />
         </div>
 
@@ -167,7 +167,7 @@ export function MenuBuilder({ menu }: MenuBuilderProps) {
               Menu Structure
             </h3>
             <p className="text-[10px] text-muted-foreground mb-3">
-              Drag items to reorder. Click the arrow to expand and edit an item.
+              Drag items to reorder. Use indent controls to create dropdown nesting, then expand an item to edit details.
             </p>
             <MenuItemList menuId={menu._id} items={menu.items} />
           </div>

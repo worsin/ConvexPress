@@ -10,6 +10,7 @@ import { api } from "@backend/convex/_generated/api";
 import { EditorLayout } from "@/components/editor/EditorLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePostMutations } from "@/hooks/posts/usePostMutations";
+import { tiptapContentToBlocks } from "@/lib/blocks/tiptap-to-blocks";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import type { EditorFormValues, PostStatus, PostVisibility, CommentStatus } from "@/types/editor";
 
@@ -126,6 +127,9 @@ function EditPostPage() {
     categoryIds: postTaxonomies?.categories?.map((c: { _id: string }) => c._id) ?? [],
     tagIds: postTaxonomies?.tags?.map((t: { _id: string }) => t._id) ?? [],
     menuOrder: post.menuOrder ?? 0,
+    layoutId: (post as { layoutId?: string }).layoutId ?? "",
+    hideHeader: (post as { hideHeader?: boolean }).hideHeader ?? false,
+    hideFooter: (post as { hideFooter?: boolean }).hideFooter ?? false,
     // Structured content fields
     hero: post.hero
       ? {
@@ -151,6 +155,17 @@ function EditPostPage() {
     sources: post.sources ?? "",
     tableOfContents: post.tableOfContents ?? "",
     pagePrompt: post.pagePrompt ?? "",
+    // Phase 3 of the editor refactor: the article/blocks toggle is gone.
+    // Every post is rendered through the BlockOutline. If the post still has
+    // TipTap content and no blocks, convert lazily so the editor has something
+    // to show — the first save will persist the migrated blocks.
+    contentMode: "blocks" as const,
+    blocks:
+      Array.isArray((post as any).blocks) && (post as any).blocks.length > 0
+        ? ((post as any).blocks as [])
+        : (tiptapContentToBlocks(post.content) as unknown as []),
+    blocksVersion: (post as any).blocksVersion ?? 1,
+    blocksRevision: (post as any).blocksRevision ?? 0,
   };
 
   return (

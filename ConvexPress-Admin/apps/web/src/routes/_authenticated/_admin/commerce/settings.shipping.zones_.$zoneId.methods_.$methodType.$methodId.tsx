@@ -58,7 +58,7 @@ function MethodEditorPage() {
 
   if (!isValidType) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="w-full p-6">
         <p className="text-sm text-destructive">
           Unknown method type: <code>{methodType}</code>
         </p>
@@ -89,7 +89,7 @@ function MethodEditorPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
+    <div className="w-full space-y-6 p-6">
       <Link
         to="/commerce/settings/shipping/zones_/$zoneId"
         params={{ zoneId }}

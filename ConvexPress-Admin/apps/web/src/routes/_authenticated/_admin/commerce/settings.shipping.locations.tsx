@@ -20,6 +20,14 @@ const LOCATION_TYPES = [
   { value: "other", label: "Other" },
 ] as const;
 
+const FULFILLMENT_PROVIDERS = [
+  { value: "manual", label: "Manual" },
+  { value: "amazon_mcf", label: "Amazon MCF" },
+  { value: "shipstation", label: "ShipStation" },
+  { value: "third_party_logistics", label: "3PL" },
+  { value: "custom", label: "Custom" },
+] as const;
+
 function ShipFromLocationsPage() {
   const locations = useQuery(
     (api as any).shipping.shipFromLocations.queries.list,
@@ -50,6 +58,9 @@ function ShipFromLocationsPage() {
     countryCode: "US",
     timezone: "America/New_York",
     isPickupEnabled: false,
+    fulfillmentProvider: "manual" as (typeof FULFILLMENT_PROVIDERS)[number]["value"],
+    externalProviderLocationId: "",
+    fulfillmentProviderConfig: "",
   });
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -86,6 +97,12 @@ function ShipFromLocationsPage() {
         },
         timezone: form.timezone.trim(),
         isPickupEnabled: form.isPickupEnabled,
+        fulfillmentProvider: form.fulfillmentProvider,
+        externalProviderLocationId:
+          form.externalProviderLocationId.trim() || undefined,
+        fulfillmentProviderConfig: form.fulfillmentProviderConfig.trim()
+          ? JSON.parse(form.fulfillmentProviderConfig)
+          : undefined,
       });
       toast.success("Location created.");
       setShowForm(false);
@@ -102,6 +119,9 @@ function ShipFromLocationsPage() {
         countryCode: "US",
         timezone: "America/New_York",
         isPickupEnabled: false,
+        fulfillmentProvider: "manual",
+        externalProviderLocationId: "",
+        fulfillmentProviderConfig: "",
       });
     } catch (err: any) {
       toast.error(err?.data?.message ?? "Failed to create location.");
@@ -130,7 +150,7 @@ function ShipFromLocationsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="w-full space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Warehouse className="h-6 w-6 text-muted-foreground" />
@@ -181,6 +201,39 @@ function ShipFromLocationsPage() {
             <Field label="Postal Code *" value={form.postalCode} onChange={(v) => set("postalCode", v)} placeholder="43215" />
             <Field label="Country" value={form.countryCode} onChange={(v) => set("countryCode", v)} placeholder="US" />
             <Field label="Timezone" value={form.timezone} onChange={(v) => set("timezone", v)} placeholder="America/New_York" />
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Fulfillment Provider
+              </label>
+              <select
+                value={form.fulfillmentProvider}
+                onChange={(e) => set("fulfillmentProvider", e.target.value as any)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                {FULFILLMENT_PROVIDERS.map((provider) => (
+                  <option key={provider.value} value={provider.value}>
+                    {provider.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Field
+              label="Provider Location ID"
+              value={form.externalProviderLocationId}
+              onChange={(v) => set("externalProviderLocationId", v)}
+              placeholder="External warehouse or MCF location ID"
+            />
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Provider Config JSON
+              </label>
+              <textarea
+                value={form.fulfillmentProviderConfig}
+                onChange={(e) => set("fulfillmentProviderConfig", e.target.value)}
+                placeholder='{"marketplaceId":"ATVPDKIKX0DER"}'
+                className="min-h-20 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
             <label className="flex items-center gap-2 self-end pb-2">
               <input
                 type="checkbox"
@@ -243,6 +296,10 @@ function ShipFromLocationsPage() {
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     {loc.locationType.replace("_", " ")} · {loc.timezone}
+                    {loc.fulfillmentProvider ? ` · ${loc.fulfillmentProvider}` : ""}
+                    {loc.externalProviderLocationId
+                      ? ` · ${loc.externalProviderLocationId}`
+                      : ""}
                   </div>
                 </div>
                 <div className="flex gap-1">

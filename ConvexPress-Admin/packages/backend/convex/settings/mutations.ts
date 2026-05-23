@@ -65,6 +65,7 @@ const SECTION_CAPABILITY_MAP: Record<
   media: "manage_options",
   analytics: "manage_options",
   ai: "manage_options",
+  blocks: "manage_options",
   plugins: "manage_options",
   search: "manage_options",
   // Knowledge Base System sections

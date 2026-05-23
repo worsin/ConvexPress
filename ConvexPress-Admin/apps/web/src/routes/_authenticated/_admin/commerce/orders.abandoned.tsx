@@ -152,7 +152,7 @@ function AbandonedOrdersPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
+    <div className="w-full space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <ShoppingCart className="h-6 w-6 text-muted-foreground" />

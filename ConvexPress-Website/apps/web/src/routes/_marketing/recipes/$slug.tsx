@@ -65,7 +65,7 @@ function RecipeDetailPageInner() {
                 key={category._id}
                 to="/recipes/category/$slug"
                 params={{ slug: category.slug }}
-                className="rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-800"
+                className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
               >
                 {category.name}
               </Link>
@@ -92,7 +92,7 @@ function RecipeDetailPageInner() {
                   loading="eager"
                 />
               ) : (
-                <div className="flex h-full items-center justify-center bg-gradient-to-br from-orange-100 to-amber-100 text-sm text-orange-900">
+                <div className="flex h-full items-center justify-center bg-muted text-sm text-muted-foreground">
                   Recipe
                 </div>
               )}
@@ -132,7 +132,7 @@ function RecipeDetailPageInner() {
                   key={`${instruction}-${index}`}
                   className="grid grid-cols-[auto_1fr] gap-4 rounded-2xl border border-border/70 bg-background px-4 py-4"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-600 text-sm font-semibold text-white">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                     {index + 1}
                   </div>
                   <p className="text-sm leading-7 text-foreground">

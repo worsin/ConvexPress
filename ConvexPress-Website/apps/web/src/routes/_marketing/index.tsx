@@ -69,6 +69,10 @@ function HomeComponent() {
       path: frontPage.path ?? "/",
       content: frontPage.content ? (frontPage.content as BlockDocument) : null,
       template: (frontPage.pageTemplate as PageDetail["template"]) ?? "full-width",
+      contentMode: (frontPage as { contentMode?: PageDetail["contentMode"] }).contentMode,
+      blocks: (frontPage as { blocks?: PageDetail["blocks"] }).blocks,
+      blocksVersion: (frontPage as { blocksVersion?: number }).blocksVersion,
+      blocksRevision: (frontPage as { blocksRevision?: number }).blocksRevision,
       parentId: frontPage.parentId as string | undefined,
       isPasswordProtected: false,
     };

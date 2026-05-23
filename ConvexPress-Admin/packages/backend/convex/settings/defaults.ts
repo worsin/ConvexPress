@@ -28,6 +28,7 @@ export type SettingsSection =
   | "media"
   | "analytics"
   | "ai"
+  | "blocks"
   | "plugins"
   | "search"
   | "commerce.general"
@@ -71,6 +72,7 @@ export const SECTION_NAMES: SettingsSection[] = [
   "media",
   "analytics",
   "ai",
+  "blocks",
   "plugins",
   "search",
   "commerce.general",
@@ -231,8 +233,25 @@ export interface AISettings {
   apiKey: string;
   /** Default model identifier */
   defaultModel: string;
+  /** Model for replacing a full page/post with generated blocks */
+  pageGenerationModel: string;
+  /** Model for single-block regeneration, improvement, variants, and conversion */
+  blockEditingModel: string;
+  /** Model for synthesizing research-backed content */
+  researchModel: string;
+  /** Model for the legacy structured editor generation path */
+  legacyContentModel: string;
+  /** Optional OpenAI image API key override */
+  imageApiKey: string;
+  /** OpenAI image model identifier */
+  imageModel: string;
   /** Tavily API key for research features */
   tavilyApiKey: string;
+}
+
+export interface BlockSettings {
+  /** Block names hidden from inserters and omitted from AI page generation. */
+  disabledBlockNames: string[];
 }
 
 export interface EmailSettings {
@@ -503,6 +522,7 @@ export interface HeaderSettings {
   navigation: {
     enabled: boolean;
     menuSource: "primary" | "secondary" | "custom";
+    customLocation?: string;
     style: "inline" | "pills" | "underline";
     dropdownStyle: "flyout" | "mega";
   };
@@ -535,7 +555,171 @@ export interface HeaderSettings {
 
 // ─── Footer Settings Types ──────────────────────────────────────────────────
 
+/**
+ * Footer Rows v2 — block-style footer builder.
+ *
+ * The footer is a list of rows. Each row is a horizontal stripe (background,
+ * padding, container width). Each row contains columns. Each column owns a
+ * single typed cell. Cell types are a discriminated union — text, link list,
+ * menu, social, newsletter, copyright, etc. — and each renders independently
+ * on the Website.
+ *
+ * When `rows` is empty the Website falls back to the legacy section-based
+ * renderer driven by `branding` / `navColumns` / `newsletter` / etc. below,
+ * so existing sites keep working until they opt in.
+ */
+
+// Per-cell variant union (alphabetical by `type`).
+export type FooterCellType =
+  | "brand"        // logo + tagline + description + social row
+  | "contact"      // address / phone / email block
+  | "copyright"    // "© YEAR Name — All rights reserved." with auto-year
+  | "divider"      // horizontal rule
+  | "html"         // raw HTML escape hatch (admin-only)
+  | "image"        // single image, optional link
+  | "links"        // list of custom URL links
+  | "nav"          // pick an existing menu by location slug
+  | "newsletter"   // inline newsletter signup
+  | "payments"     // payment-method icon grid
+  | "social"       // social links (pulled from site identity)
+  | "text";        // heading + rich-text/HTML body
+
+export type FooterAlignment = "left" | "center" | "right";
+
+export interface FooterCellBase {
+  type: FooterCellType;
+  /** Optional column heading shown above the cell body. */
+  heading?: string;
+  /** Cell-level horizontal alignment for inline content. */
+  alignment?: FooterAlignment;
+}
+
+export interface FooterTextCell extends FooterCellBase {
+  type: "text";
+  /** Plain text or limited Markdown — rendered as a paragraph block. */
+  body: string;
+}
+
+export interface FooterLinksCell extends FooterCellBase {
+  type: "links";
+  items: Array<{
+    label: string;
+    url: string;
+    target?: "_self" | "_blank";
+    rel?: string;
+  }>;
+}
+
+export interface FooterNavCell extends FooterCellBase {
+  type: "nav";
+  /** Menu-location slug (e.g. "footer-1", "footer-2", "social"). */
+  menuLocation: string;
+}
+
+export interface FooterImageCell extends FooterCellBase {
+  type: "image";
+  mediaId: string | null;
+  alt: string;
+  href?: string;
+  width?: number;
+}
+
+export interface FooterSocialCell extends FooterCellBase {
+  type: "social";
+  /** Style of the rendered list. */
+  style: "icons" | "icons-and-labels" | "labels";
+}
+
+export interface FooterNewsletterCell extends FooterCellBase {
+  type: "newsletter";
+  subtext: string;
+  buttonText: string;
+  /** Optional list id; the website provider hooks into Resend/Audience. */
+  audienceId?: string;
+}
+
+export interface FooterContactCell extends FooterCellBase {
+  type: "contact";
+  address: string;
+  phone: string;
+  email: string;
+  showIcons: boolean;
+}
+
+export interface FooterBrandCell extends FooterCellBase {
+  type: "brand";
+  showLogo: boolean;
+  showTagline: boolean;
+  showDescription: boolean;
+  description: string;
+}
+
+export interface FooterHtmlCell extends FooterCellBase {
+  type: "html";
+  /** Raw HTML — sanitized at render time on the Website. */
+  rawHtml: string;
+}
+
+export interface FooterDividerCell extends FooterCellBase {
+  type: "divider";
+  thickness: "thin" | "medium" | "thick";
+}
+
+export interface FooterCopyrightCell extends FooterCellBase {
+  type: "copyright";
+  /** Text template. `{year}` is replaced with the current year. */
+  text: string;
+  insertYear: boolean;
+}
+
+export interface FooterPaymentsCell extends FooterCellBase {
+  type: "payments";
+  methods: string[];
+}
+
+export type FooterCell =
+  | FooterTextCell
+  | FooterLinksCell
+  | FooterNavCell
+  | FooterImageCell
+  | FooterSocialCell
+  | FooterNewsletterCell
+  | FooterContactCell
+  | FooterBrandCell
+  | FooterHtmlCell
+  | FooterDividerCell
+  | FooterCopyrightCell
+  | FooterPaymentsCell;
+
+export interface FooterColumn {
+  id: string;
+  /** Span on a 12-column grid; null / undefined = auto-equal. */
+  width?: number;
+  alignment?: FooterAlignment;
+  cell: FooterCell;
+}
+
+export interface FooterRow {
+  id: string;
+  /** Optional heading shown above the row's columns. */
+  heading?: string;
+  background: "default" | "muted" | "accent" | "contrast" | "transparent";
+  padding: "none" | "compact" | "normal" | "spacious";
+  container: "narrow" | "default" | "wide" | "full";
+  alignment?: FooterAlignment;
+  /** Visual divider above this row. */
+  topBorder?: "none" | "subtle" | "bold" | "accent";
+  columns: FooterColumn[];
+}
+
 export interface FooterSettings {
+  /**
+   * v2 footer rows — when this array has entries, the Website renders the
+   * rows builder instead of the legacy section toggles. Empty = legacy mode.
+   */
+  rows: FooterRow[];
+
+  // ── Legacy section-toggle config (kept for backward compat) ───────────────
   layout: {
     columns: "1" | "2" | "3" | "4" | "centered" | "minimal";
     background: "dark" | "match-site" | "accent" | "image";
@@ -656,7 +840,17 @@ export const AI_DEFAULTS: AISettings = {
   provider: "openrouter",
   apiKey: "",
   defaultModel: "anthropic/claude-opus-4.7",
+  pageGenerationModel: "anthropic/claude-opus-4.7",
+  blockEditingModel: "anthropic/claude-sonnet-4.6",
+  researchModel: "anthropic/claude-sonnet-4.6",
+  legacyContentModel: "anthropic/claude-sonnet-4.6",
+  imageApiKey: "",
+  imageModel: "gpt-image-1",
   tavilyApiKey: "",
+};
+
+export const BLOCK_DEFAULTS: BlockSettings = {
+  disabledBlockNames: [],
 };
 
 export const EMAIL_DEFAULTS: EmailSettings = {
@@ -886,7 +1080,7 @@ export const HEADER_DEFAULTS: HeaderSettings = {
   layout: { style: "standard", sticky: "always", background: "solid", height: "normal", bottomBorder: "subtle" },
   topBar: { enabled: false, leftContent: "contact", rightContent: "social", email: "", phone: "", announcementText: "" },
   logo: { enabled: true, showImage: true, showTitle: true, showTagline: false, size: "medium" },
-  navigation: { enabled: true, menuSource: "primary", style: "inline", dropdownStyle: "flyout" },
+  navigation: { enabled: true, menuSource: "primary", customLocation: "header", style: "inline", dropdownStyle: "flyout" },
   search: { enabled: true, variant: "inline", placeholder: "Search..." },
   cta: { enabled: false, label: "Get Started", url: "/register", style: "filled" },
   userMenu: { enabled: true, guestDisplay: "login-register", loggedInDisplay: "avatar-dropdown", dropdownPreset: "dashboard-profile-logout" },
@@ -897,6 +1091,9 @@ export const HEADER_DEFAULTS: HeaderSettings = {
 // ─── Footer Defaults ────────────────────────────────────────────────────────
 
 export const FOOTER_DEFAULTS: FooterSettings = {
+  // Empty rows = legacy section-toggle mode. The Website renders the old
+  // shape until someone uses the rows builder.
+  rows: [],
   layout: { columns: "4", background: "dark", backgroundImageId: null, topBorder: "subtle", padding: "normal" },
   branding: { enabled: true, showLogo: true, showDescription: true, description: "", showSocial: true },
   navColumns: { enabled: true, columns: [{ heading: "Company", menuSource: "footer-1" }, { heading: "Resources", menuSource: "footer-2" }] },
@@ -918,6 +1115,7 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   media: MEDIA_DEFAULTS,
   analytics: ANALYTICS_DEFAULTS,
   ai: AI_DEFAULTS,
+  blocks: BLOCK_DEFAULTS,
   plugins: PLUGINS_DEFAULTS,
   search: SEARCH_DEFAULTS,
   "commerce.general": COMMERCE_GENERAL_DEFAULTS,

@@ -10,6 +10,8 @@
  */
 
 import { BlockContentRenderer } from "@/components/blog/BlockContentRenderer";
+import { BlockListRenderer } from "@/components/blocks/BlockListRenderer";
+import { pageSectionsToBlocks } from "@/lib/blocks/page-sections";
 import type { PageDetail } from "@/lib/blog/types";
 
 interface BlankTemplateProps {
@@ -19,7 +21,15 @@ interface BlankTemplateProps {
 export function BlankTemplate({ page }: BlankTemplateProps) {
   return (
     <div data-slot="template-blank">
-      {page.content ? (
+      {page.contentMode === "blocks" ? (
+        <BlockListRenderer
+          blocks={
+            page.blocks && page.blocks.length > 0
+              ? page.blocks
+              : pageSectionsToBlocks(page.pageSections)
+          }
+        />
+      ) : page.content ? (
         <BlockContentRenderer content={page.content} />
       ) : (
         <div className="py-8 text-center">

@@ -21,7 +21,7 @@
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
-import { resolveServiceKey } from "../helpers/serviceKeys";
+import { getServiceKeyFromAction } from "../helpers/serviceKeys";
 
 // ─── Settings Helper ────────────────────────────────────────────────────────
 
@@ -36,6 +36,12 @@ import { resolveServiceKey } from "../helpers/serviceKeys";
  * in Settings > AI.
  */
 type AiProvider = "openrouter" | "anthropic" | "openai";
+type AiTask =
+  | "default"
+  | "pageGeneration"
+  | "blockEditing"
+  | "research"
+  | "legacyContent";
 
 function envVarForProvider(provider: AiProvider): string {
   if (provider === "anthropic") return "ANTHROPIC_API_KEY";
@@ -49,9 +55,17 @@ function fallbackModelForProvider(provider: AiProvider): string {
   return "anthropic/claude-opus-4.7";
 }
 
+function modelKeyForTask(task: AiTask): string {
+  if (task === "pageGeneration") return "pageGenerationModel";
+  if (task === "blockEditing") return "blockEditingModel";
+  if (task === "research") return "researchModel";
+  if (task === "legacyContent") return "legacyContentModel";
+  return "defaultModel";
+}
+
 async function resolveAiSettings(ctx: {
   runQuery: (query: any, args?: any) => Promise<any>;
-}) {
+}, task: AiTask = "default") {
   const settings = (await ctx.runQuery(
     internal.settings.internals.getInternal,
     { section: "ai" },
@@ -60,13 +74,18 @@ async function resolveAiSettings(ctx: {
   const provider = ((settings?.provider as string) || "openrouter") as AiProvider;
   const envVarName = envVarForProvider(provider);
   const fallbackModel = fallbackModelForProvider(provider);
+  const taskModel = settings?.[modelKeyForTask(task)];
+  const defaultModel =
+    typeof taskModel === "string" && taskModel.trim()
+      ? taskModel.trim()
+      : (settings?.defaultModel as string) || fallbackModel;
 
   return {
     provider,
     envVarName,
-    apiKey: resolveServiceKey(settings, "apiKey", envVarName) ?? "",
-    defaultModel: (settings?.defaultModel as string) || fallbackModel,
-    tavilyApiKey: resolveServiceKey(settings, "tavilyApiKey", "TAVILY_API_KEY") ?? "",
+    apiKey: (await getServiceKeyFromAction(ctx, "ai", "apiKey", envVarName)) ?? "",
+    defaultModel,
+    tavilyApiKey: (await getServiceKeyFromAction(ctx, "ai", "tavilyApiKey", "TAVILY_API_KEY")) ?? "",
   };
 }
 
@@ -189,43 +208,24 @@ async function generateWithOpenAI(
   userPrompt: string,
   maxTokens: number,
 ): Promise<string> {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  try {
+    const OpenAI = (await import("openai")).default;
+    const client = new OpenAI({ apiKey });
+    const response = await client.chat.completions.create({
       model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
       max_tokens: maxTokens,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
+    });
+    return response.choices[0]?.message?.content || "";
+  } catch (error) {
     throw new ConvexError({
       code: "PROVIDER_ERROR",
-      message: `OpenAI API error (${response.status}): ${errorText}`,
+      message: `OpenAI error: ${error instanceof Error ? error.message : String(error)}`,
     });
   }
-
-  const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-    error?: { message?: string };
-  };
-
-  if (data.error) {
-    throw new ConvexError({
-      code: "PROVIDER_ERROR",
-      message: `OpenAI error: ${data.error.message}`,
-    });
-  }
-
-  return data.choices?.[0]?.message?.content || "";
 }
 
 // ─── Anthropic Generation ───────────────────────────────────────────────────
@@ -269,10 +269,19 @@ export const generateWithClaude = internalAction({
     systemPrompt: v.string(),
     userPrompt: v.string(),
     maxTokens: v.optional(v.number()),
+    task: v.optional(
+      v.union(
+        v.literal("default"),
+        v.literal("pageGeneration"),
+        v.literal("blockEditing"),
+        v.literal("research"),
+        v.literal("legacyContent"),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const { provider, apiKey, defaultModel, envVarName } =
-      await resolveAiSettings(ctx);
+      await resolveAiSettings(ctx, args.task ?? "default");
 
     if (!apiKey) {
       throw new ConvexError({

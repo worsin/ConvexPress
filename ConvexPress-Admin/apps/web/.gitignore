@@ -40,6 +40,8 @@ tests/smoke/.auth/
 .DS_Store
 *.pem
 *.local
+!src/blocks.local
+!src/blocks.local/**
 
 # Logs
 npm-debug.log*

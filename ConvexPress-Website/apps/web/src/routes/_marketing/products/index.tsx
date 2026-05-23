@@ -73,9 +73,9 @@ function ProductsIndexPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <section className="grid gap-8 rounded-[2rem] border border-border/60 bg-gradient-to-br from-emerald-50 via-white to-cyan-50 p-8 shadow-sm">
+      <section className="grid gap-8 rounded-[2rem] border border-border/60 bg-card p-8 shadow-sm">
         <div className="flex flex-col gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
+          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
             Storefront
           </span>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
@@ -118,7 +118,7 @@ function ProductsIndexPage() {
                         sizes="(max-width: 768px) 100vw, 33vw"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-emerald-100 to-cyan-100 text-sm text-emerald-900">
+                      <div className="flex h-full items-center justify-center bg-muted text-sm text-muted-foreground">
                         Product
                       </div>
                     )}

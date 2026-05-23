@@ -44,7 +44,7 @@ function TrackingHealthPage() {
   ) as Health | undefined;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="w-full space-y-6 p-6">
       <div className="flex items-center gap-3">
         <Truck className="h-6 w-6 text-muted-foreground" />
         <div>

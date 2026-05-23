@@ -17,6 +17,10 @@ import {
   topicsValidator,
   summaryValidator,
 } from "../posts/validators";
+import {
+  blocksValidator,
+  contentModeValidator,
+} from "../blocks/validators";
 
 // ─── Shared Validators ───────────────────────────────────────────────────────
 
@@ -55,6 +59,7 @@ export const pageTemplateValidator = v.union(
   v.literal("full-width"),
   v.literal("sidebar-left"),
   v.literal("sidebar-right"),
+  v.literal("no-sidebar"),
   v.literal("landing"),
   v.literal("blank"),
 );
@@ -101,6 +106,9 @@ export const createPageArgs = {
   slug: v.optional(v.string()),
   publishedAt: v.optional(v.number()),
   scheduledAt: v.optional(v.number()),
+  layoutId: v.optional(v.string()),
+  hideHeader: v.optional(v.boolean()),
+  hideFooter: v.optional(v.boolean()),
   // Structured content fields
   hero: heroValidator,
   topics: topicsValidator,
@@ -108,6 +116,11 @@ export const createPageArgs = {
   sources: v.optional(v.string()),
   tableOfContents: v.optional(v.string()),
   pagePrompt: v.optional(v.string()),
+  // Composition block fields
+  contentMode: v.optional(contentModeValidator),
+  blocks: v.optional(blocksValidator),
+  blocksVersion: v.optional(v.number()),
+  blocksRevision: v.optional(v.number()),
 };
 
 // Note: createPageArgs already includes "auto-draft" in the status union.
@@ -125,6 +138,7 @@ export const updatePageArgs = {
   content: v.optional(v.string()),
   excerpt: v.optional(v.string()),
   status: v.optional(v.union(
+    v.literal("auto-draft"),
     v.literal("draft"),
     v.literal("pending"),
     v.literal("publish"),
@@ -132,7 +146,7 @@ export const updatePageArgs = {
     v.literal("trash"),
     v.literal("future"),
   )),
-  parentId: v.optional(v.id("posts")),
+  parentId: v.optional(v.union(v.id("posts"), v.null())),
   menuOrder: v.optional(v.number()),
   pageTemplate: v.optional(v.string()),
   featuredImageId: v.optional(v.id("media")),
@@ -141,6 +155,9 @@ export const updatePageArgs = {
   password: v.optional(v.string()),
   slug: v.optional(v.string()),
   scheduledAt: v.optional(v.number()),
+  layoutId: v.optional(v.string()),
+  hideHeader: v.optional(v.boolean()),
+  hideFooter: v.optional(v.boolean()),
   // Structured content fields
   hero: heroValidator,
   topics: topicsValidator,
@@ -148,6 +165,11 @@ export const updatePageArgs = {
   sources: v.optional(v.string()),
   tableOfContents: v.optional(v.string()),
   pagePrompt: v.optional(v.string()),
+  // Composition block fields
+  contentMode: v.optional(contentModeValidator),
+  blocks: v.optional(blocksValidator),
+  blocksVersion: v.optional(v.number()),
+  blocksRevision: v.optional(v.number()),
 };
 
 /**

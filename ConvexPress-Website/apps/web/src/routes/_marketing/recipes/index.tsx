@@ -57,9 +57,9 @@ function RecipesIndexPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <section className="grid gap-8 rounded-[2rem] border border-border/60 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-8 shadow-sm">
+      <section className="grid gap-8 rounded-[2rem] border border-border/60 bg-card p-8 shadow-sm">
         <div className="flex flex-col gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-orange-700">
+          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
             Recipes
           </span>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
@@ -113,7 +113,7 @@ function RecipesIndexPage() {
                       sizes="(max-width: 768px) 100vw, 33vw"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-orange-100 to-amber-100 text-sm text-orange-900">
+                    <div className="flex h-full items-center justify-center bg-muted text-sm text-muted-foreground">
                       Recipe
                     </div>
                   )}
@@ -123,7 +123,7 @@ function RecipesIndexPage() {
                     {(recipe.categories ?? []).map((category: any) => (
                       <span
                         key={category._id}
-                        className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-medium text-orange-800"
+                        className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
                       >
                         {category.name}
                       </span>

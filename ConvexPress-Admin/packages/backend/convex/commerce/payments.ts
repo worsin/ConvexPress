@@ -24,6 +24,8 @@ import {
 } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
+import { emitEvent } from "../helpers/events";
+import { CHECKOUT_EVENTS, SYSTEM } from "../events/constants";
 import { getCommerceSettings, requireCommerceEnabled } from "./helpers";
 import {
 	getBundlePurchaseDelta,
@@ -40,6 +42,103 @@ import {
 	resolveRecipients,
 } from "../helpers/email";
 import { fulfillOrderDigitalEntitlementsHandler } from "../commerceDigital/fulfillment";
+
+async function getOrCreatePaymentCollectionForOrder(ctx: any, order: any) {
+	const existing = await ctx.db
+		.query("commerce_payment_collections")
+		.withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+		.collect();
+	const active = existing.find((collection: any) =>
+		["pending", "authorized", "partially_captured"].includes(collection.status),
+	);
+	if (active) return active;
+
+	const now = Date.now();
+	const collectionId = await ctx.db.insert("commerce_payment_collections", {
+		orderId: order._id,
+		checkoutSessionId: order.checkoutSessionId,
+		currencyCode: order.currencyCode,
+		amount: order.totalAmount,
+		authorizedAmount: 0,
+		capturedAmount: 0,
+		refundedAmount: 0,
+		status: "pending",
+		metadata: {
+			orderNumber: order.orderNumber,
+			email: order.email,
+		},
+		createdAt: now,
+		updatedAt: now,
+	});
+
+	await ctx.db.patch(order._id, {
+		paymentCollectionId: collectionId,
+		updatedAt: now,
+	});
+
+	return await ctx.db.get(collectionId);
+}
+
+async function getOrCreatePaymentSessionForCollection(
+	ctx: any,
+	args: {
+		collection: any;
+		order: any;
+		provider: string;
+	},
+) {
+	const existing = await ctx.db
+		.query("commerce_payment_sessions")
+		.withIndex("by_collection", (q: any) =>
+			q.eq("collectionId", args.collection._id),
+		)
+		.collect();
+	const active = existing.find(
+		(session: any) =>
+			session.provider === args.provider &&
+			["pending", "processing", "authorized"].includes(session.status),
+	);
+	if (active) return active;
+
+	const now = Date.now();
+	const sessionId = await ctx.db.insert("commerce_payment_sessions", {
+		collectionId: args.collection._id,
+		orderId: args.order._id,
+		checkoutSessionId: args.order.checkoutSessionId,
+		provider: args.provider,
+		status: "pending",
+		amount: {
+			amount: args.collection.amount,
+			currencyCode: args.collection.currencyCode,
+		},
+		metadata: {
+			orderNumber: args.order.orderNumber,
+			email: args.order.email,
+		},
+		createdAt: now,
+		updatedAt: now,
+	});
+
+	return await ctx.db.get(sessionId);
+}
+
+async function commitReservedInventoryForPaidOrder(ctx: any, order: any) {
+	if (!order.checkoutSessionId) return false;
+	const activeReservations = await ctx.db
+		.query("commerce_stock_reservations")
+		.withIndex("by_checkout", (q: any) =>
+			q.eq("checkoutSessionId", order.checkoutSessionId),
+		)
+		.filter((q: any) => q.eq(q.field("status"), "active"))
+		.collect();
+	if (!activeReservations.length) return false;
+
+	await ctx.runMutation(internal.commerce.inventory.commit, {
+		checkoutSessionId: order.checkoutSessionId,
+		orderId: order._id,
+	});
+	return true;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // QUERIES
@@ -122,6 +221,71 @@ export const listTransactions = query({
 		);
 
 		return enriched;
+	},
+});
+
+export const listCollections = query({
+	args: {
+		status: v.optional(v.string()),
+		limit: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
+		await requireCan(ctx, "manage_options");
+		const limit = Math.min(Math.max(args.limit ?? 100, 1), 500);
+		const rows = args.status
+			? await ctx.db
+					.query("commerce_payment_collections")
+					.withIndex("by_status", (q: any) => q.eq("status", args.status))
+					.order("desc")
+					.take(limit)
+			: await ctx.db
+					.query("commerce_payment_collections")
+					.order("desc")
+					.take(limit);
+
+		return await Promise.all(
+			rows.map(async (collection: any) => {
+				const order = collection.orderId ? await ctx.db.get(collection.orderId) : null;
+				const sessions = await ctx.db
+					.query("commerce_payment_sessions")
+					.withIndex("by_collection", (q: any) =>
+						q.eq("collectionId", collection._id),
+					)
+					.collect();
+				const captures = await ctx.db
+					.query("commerce_payment_captures")
+					.withIndex("by_collection", (q: any) =>
+						q.eq("collectionId", collection._id),
+					)
+					.collect();
+				return {
+					...collection,
+					orderNumber: order?.orderNumber,
+					orderEmail: order?.email,
+					sessions,
+					captures,
+				};
+			}),
+		);
+	},
+});
+
+export const listCaptures = query({
+	args: {
+		orderId: v.optional(v.id("commerce_orders")),
+		limit: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
+		await requireCan(ctx, "manage_options");
+		const limit = Math.min(Math.max(args.limit ?? 100, 1), 500);
+		if (args.orderId) {
+			return await ctx.db
+				.query("commerce_payment_captures")
+				.withIndex("by_order", (q: any) => q.eq("orderId", args.orderId))
+				.order("desc")
+				.take(limit);
+		}
+		return await ctx.db.query("commerce_payment_captures").order("desc").take(limit);
 	},
 });
 
@@ -230,15 +394,27 @@ export const initiatePayment = mutation({
 
 		if (activeTransaction) {
 			// Return existing transaction instead of creating duplicate
-			return { transactionId: activeTransaction._id };
+			return {
+				transactionId: activeTransaction._id,
+				collectionId: activeTransaction.collectionId,
+				sessionId: activeTransaction.sessionId,
+			};
 		}
 
 		const now = Date.now();
+		const collection = await getOrCreatePaymentCollectionForOrder(ctx, order);
+		const paymentSession = await getOrCreatePaymentSessionForCollection(ctx, {
+			collection,
+			order,
+			provider: "stripe",
+		});
 
 		// Create transaction record
 		const transactionId = await ctx.db.insert("commerce_payment_transactions", {
 			orderId: args.orderId,
 			checkoutSessionId: order.checkoutSessionId,
+			collectionId: collection._id,
+			sessionId: paymentSession._id,
 			provider: "stripe",
 			status: "pending",
 			amount: {
@@ -266,7 +442,11 @@ export const initiatePayment = mutation({
 			},
 		);
 
-		return { transactionId };
+		return {
+			transactionId,
+			collectionId: collection._id,
+			sessionId: paymentSession._id,
+		};
 	},
 });
 
@@ -332,6 +512,9 @@ export const processRefund = mutation({
 		const refundId = await ctx.db.insert("commerce_payment_refunds", {
 			orderId: transaction.orderId,
 			transactionId: args.transactionId,
+			collectionId: transaction.collectionId,
+			sessionId: transaction.sessionId,
+			captureId: transaction.captureId,
 			amount: {
 				amount: args.amount,
 				currencyCode: transaction.amount.currencyCode,
@@ -373,12 +556,21 @@ export const updateTransactionProvider = internalMutation({
 		clientSecret: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
+		const transaction = await ctx.db.get(args.transactionId);
 		await ctx.db.patch(args.transactionId, {
 			providerTransactionId: args.providerTransactionId,
 			clientSecret: args.clientSecret,
 			status: "processing",
 			updatedAt: Date.now(),
 		});
+		if (transaction?.sessionId) {
+			await ctx.db.patch(transaction.sessionId, {
+				providerSessionId: args.providerTransactionId,
+				clientSecret: args.clientSecret,
+				status: "processing",
+				updatedAt: Date.now(),
+			});
+		}
 	},
 });
 
@@ -419,6 +611,43 @@ export const confirmPaymentSuccess = internalMutation({
 			updatedAt: now,
 		});
 
+		if (transaction.sessionId) {
+			await ctx.db.patch(transaction.sessionId, {
+				status: "captured",
+				authorizedAt: now,
+				completedAt: now,
+				updatedAt: now,
+			});
+		}
+
+		let captureId: any = undefined;
+		if (transaction.collectionId) {
+			await ctx.db.patch(transaction.collectionId, {
+				status: "captured",
+				authorizedAmount: transaction.amount.amount,
+				capturedAmount: transaction.amount.amount,
+				completedAt: now,
+				updatedAt: now,
+			});
+			captureId = await ctx.db.insert("commerce_payment_captures", {
+				collectionId: transaction.collectionId,
+				sessionId: transaction.sessionId,
+				transactionId: transaction._id,
+				orderId: transaction.orderId,
+				provider: args.provider,
+				providerCaptureId: args.providerTransactionId,
+				amount: transaction.amount,
+				metadata: {
+					source: "payment_success_webhook",
+				},
+				createdAt: now,
+			});
+			await ctx.db.patch(transaction._id, {
+				captureId,
+				updatedAt: now,
+			});
+		}
+
 		// Update the order's paymentStatus to "paid"
 		if (transaction.orderId) {
 			const order = await ctx.db.get(transaction.orderId);
@@ -446,10 +675,20 @@ export const confirmPaymentSuccess = internalMutation({
 					if (cart) {
 						await ctx.db.patch(cart._id, {
 							status: "converted",
+							orderId: order._id,
+							convertedAt: now,
 							updatedAt: now,
 							lastActiveAt: now,
 						});
 					}
+					await emitEvent(ctx, CHECKOUT_EVENTS.COMPLETED, SYSTEM.CHECKOUT, {
+						checkoutSessionId: checkoutSession._id,
+						cartId: checkoutSession.cartId,
+						orderId: order._id,
+						userId: checkoutSession.userId,
+						totalAmount: order.totalAmount,
+						paymentProvider: args.provider,
+					});
 				}
 
 				if (order.appliedDiscountCode && !order.discountUsageCountedAt) {
@@ -477,6 +716,20 @@ export const confirmPaymentSuccess = internalMutation({
 					.collect();
 
 				if (!order.inventoryCommittedAt && !order.inventoryReleasedAt) {
+					const committedFromReservations = await commitReservedInventoryForPaidOrder(
+						ctx,
+						order,
+					);
+					if (committedFromReservations) {
+						await ctx.db.patch(order._id, { inventoryCommittedAt: now });
+					}
+				}
+
+				if (!order.inventoryCommittedAt && !order.inventoryReleasedAt) {
+					const refreshedOrder = await ctx.db.get(order._id);
+					if (refreshedOrder?.inventoryCommittedAt) {
+						// Location-aware reservations were committed through the inventory module.
+					} else {
 					for (const item of orderItems) {
 						if (isBundleLineMetadata(item.metadata)) {
 							const delta = getBundlePurchaseDelta(
@@ -583,6 +836,7 @@ export const confirmPaymentSuccess = internalMutation({
 					}
 
 					await ctx.db.patch(order._id, { inventoryCommittedAt: now });
+					}
 				}
 
 				// Increment bundle purchase counts now that payment is confirmed
@@ -667,6 +921,18 @@ export const confirmPaymentFailure = internalMutation({
 			failureMessage: args.error || "Payment failed",
 			updatedAt: now,
 		});
+		if (transaction.sessionId) {
+			await ctx.db.patch(transaction.sessionId, {
+				status: "failed",
+				updatedAt: now,
+			});
+		}
+		if (transaction.collectionId) {
+			await ctx.db.patch(transaction.collectionId, {
+				status: "failed",
+				updatedAt: now,
+			});
+		}
 
 		// Keep the order payable so the customer can retry with a new transaction.
 		if (transaction.orderId) {
@@ -677,6 +943,25 @@ export const confirmPaymentFailure = internalMutation({
 					status: "pending",
 					updatedAt: now,
 				});
+				if (order.checkoutSessionId) {
+					const checkoutSession = await ctx.db.get(order.checkoutSessionId);
+					if (checkoutSession) {
+						await ctx.db.patch(checkoutSession._id, {
+							status: "failed",
+							failedAt: now,
+							failureReason: args.error || "Payment failed",
+							updatedAt: now,
+						});
+						await emitEvent(ctx, CHECKOUT_EVENTS.FAILED, SYSTEM.CHECKOUT, {
+							checkoutSessionId: checkoutSession._id,
+							cartId: checkoutSession.cartId,
+							orderId: order._id,
+							userId: checkoutSession.userId,
+							reason: args.error || "Payment failed",
+							paymentProvider: args.provider,
+						});
+					}
+				}
 
 				await ctx.db.insert("commerce_order_history", {
 					orderId: transaction.orderId,
@@ -732,6 +1017,18 @@ export const completeRefund = internalMutation({
 				status: newStatus,
 				updatedAt: now,
 			});
+			if (transaction.collectionId) {
+				const collection = await ctx.db.get(transaction.collectionId);
+				const previousRefunded = Number(collection?.refundedAmount ?? 0);
+				await ctx.db.patch(transaction.collectionId, {
+					refundedAmount: previousRefunded + args.amount,
+					status:
+						previousRefunded + args.amount >= Number(collection?.amount ?? transaction.amount.amount)
+							? "refunded"
+							: "partially_refunded",
+					updatedAt: now,
+				});
+			}
 
 			// Update order status if fully refunded
 			if (transaction.orderId && newStatus === "refunded") {
@@ -1284,15 +1581,27 @@ export const createPayPalOrder = mutation({
 		);
 
 		if (activeTransaction) {
-			return { transactionId: activeTransaction._id };
+			return {
+				transactionId: activeTransaction._id,
+				collectionId: activeTransaction.collectionId,
+				sessionId: activeTransaction.sessionId,
+			};
 		}
 
 		const now = Date.now();
+		const collection = await getOrCreatePaymentCollectionForOrder(ctx, order);
+		const paymentSession = await getOrCreatePaymentSessionForCollection(ctx, {
+			collection,
+			order,
+			provider: "paypal",
+		});
 
 		// Create transaction record
 		const transactionId = await ctx.db.insert("commerce_payment_transactions", {
 			orderId: args.orderId,
 			checkoutSessionId: order.checkoutSessionId,
+			collectionId: collection._id,
+			sessionId: paymentSession._id,
 			provider: "paypal",
 			status: "pending",
 			amount: {
@@ -1319,7 +1628,11 @@ export const createPayPalOrder = mutation({
 			},
 		);
 
-		return { transactionId };
+		return {
+			transactionId,
+			collectionId: collection._id,
+			sessionId: paymentSession._id,
+		};
 	},
 });
 
