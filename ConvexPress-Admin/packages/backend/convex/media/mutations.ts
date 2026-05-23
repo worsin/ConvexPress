@@ -53,8 +53,9 @@ import { findMediaReferences, clearMediaReferences } from "./references";
 // create mutation. SVG files can contain embedded JavaScript and external
 // resource references that create XSS attack vectors. Without a server-side
 // SVG sanitizer (e.g., DOMPurify), allowing SVG uploads would be a security
-// vulnerability. This is a deliberate design choice, not an oversight.
-// TODO: Re-evaluate when a server-side SVG sanitization pipeline is available.
+// vulnerability. This is a deliberate design choice, not an oversight; adding
+// SVG support requires a dedicated sanitizer with tests before this allowlist
+// changes.
 const DEFAULT_ALLOWED_TYPES = [
   "image/jpeg",
   "image/png",

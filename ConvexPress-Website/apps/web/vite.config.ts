@@ -52,18 +52,14 @@ export default defineConfig(({ mode }) => {
       target: "esnext",
       rollupOptions: {
         output: {
-          manualChunks(id) {
+          manualChunks(rawId) {
+            const id = rawId.replaceAll("\\", "/");
             if (!id.includes("/node_modules/")) {
               return undefined;
             }
-            if (id.includes("/@tanstack/")) {
-              return "vendor-tanstack";
-            }
+
             if (id.includes("/@clerk/")) {
               return "vendor-clerk";
-            }
-            if (id.includes("/convex/") || id.includes("/@convex-dev/")) {
-              return "vendor-convex";
             }
             if (id.includes("/@base-ui/")) {
               return "vendor-base-ui";
@@ -71,10 +67,37 @@ export default defineConfig(({ mode }) => {
             if (id.includes("/lucide-react/") || id.includes("/@icons-pack/")) {
               return "vendor-icons";
             }
-            if (id.includes("/react/") || id.includes("/react-dom/")) {
+            if (id.includes("/@stripe/")) {
+              return "vendor-stripe";
+            }
+            if (
+              id.includes("/zod/") ||
+              id.includes("zod@") ||
+              id.includes("/seroval/") ||
+              id.includes("seroval@") ||
+              id.includes("/seroval-plugins/") ||
+              id.includes("seroval-plugins@") ||
+              id.includes("/tailwind-merge/") ||
+              id.includes("tailwind-merge@")
+            ) {
+              return "vendor-utils";
+            }
+            if (id.includes("/sonner/") || id.includes("sonner@")) {
+              return "vendor-sonner";
+            }
+            if (
+              id.includes("/react/") ||
+              id.includes("/react-dom/") ||
+              id.includes("/scheduler/") ||
+              id.includes("/use-sync-external-store/") ||
+              id.includes("react-dom") ||
+              id.includes("react_jsx") ||
+              id.includes("react-jsx") ||
+              id.endsWith("/react.js")
+            ) {
               return "vendor-react";
             }
-            return "vendor";
+            return undefined;
           },
         },
       },

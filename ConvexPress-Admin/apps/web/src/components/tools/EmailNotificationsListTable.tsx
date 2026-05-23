@@ -131,9 +131,7 @@ const config: ListTableConfig<EmailRow> = {
 };
 
 export function EmailNotificationsListTable() {
-  // TODO: Replace with a dedicated query when email templates sync is live.
-  // For now, fetch all templates and display them.
-  const templates = useQuery(api.emails.queries.listTemplates);
+  const templates = useQuery(api.emails.queries.listTemplates, {});
 
   const data = useMemo<PaginatedResult<EmailRow> | undefined>(() => {
     if (templates === undefined) return undefined;

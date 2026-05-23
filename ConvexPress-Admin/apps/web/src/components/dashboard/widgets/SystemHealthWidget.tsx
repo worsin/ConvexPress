@@ -22,9 +22,9 @@ import { useConvex } from "convex/react";
 /**
  * CMS version string. Single source of truth for the System Health widget.
  *
- * TODO: Wire this to the Settings System once a `settings.site_version`
- * or `settings.cms_version` key is available in the general settings.
- * For now, this constant is maintained manually.
+ * The Settings System does not currently define an editable site or CMS
+ * version field, so this widget intentionally reports the product version
+ * from a build-time constant.
  */
 const CMS_VERSION = "ConvexPress 1.0";
 
