@@ -38,9 +38,9 @@ export interface SubscriptionChargeResult {
 // ─── Settings: live charging gate ───────────────────────────────────────────
 
 /**
- * Live charging is gated by a settings flag so we can deploy the action
- * and leave the stub path in effect until the admin operator explicitly
- * flips it on. Key lives under `commerce.payments` alongside Stripe creds.
+ * Live charging is gated by a settings flag so deployments can keep paid
+ * subscription charging disabled until the admin operator explicitly flips it
+ * on. Key lives under `commerce.payments` alongside Stripe creds.
  */
 async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
   const settings = await ctx.runQuery(

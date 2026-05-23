@@ -10,9 +10,10 @@
  *   - `handleInvoicePaymentResult` Process success / failure of each charge
  *   - `expirePendingCancellations` Not called here — separate cron target
  *
- * Payment charging is implemented as a processor stub that returns
- * `{ success: boolean, transactionId?, failureReason? }`. A real Stripe /
- * Paddle integration swaps in here without changing the internals contract.
+ * Paid payment charging is live-provider only. When
+ * `commerce.payments.subscriptionChargingEnabled` is false, zero-dollar
+ * invoices can renew, but paid invoices fail closed instead of simulating
+ * success.
  *
  * Step 1.e — scheduled offer changes: if `scheduledOfferChange` is present
  * on the contract AND `effectiveAt <= now`, the renewal sweep applies it:
@@ -27,7 +28,7 @@ import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { requirePluginEnabled } from "../helpers/plugins";
 
-// ─── Payment processor: stub fallback + live Stripe dispatch ─────────────────
+// ─── Payment processor: disabled fallback + live Stripe dispatch ─────────────
 
 interface ChargeResult {
   success: boolean;
@@ -36,11 +37,9 @@ interface ChargeResult {
 }
 
 /**
- * Stub payment processor — used when `commerce.payments.subscriptionChargingEnabled`
- * is `false`. Returns success for free-tier invoices and a simulated success
- * for paid invoices with a saved payment method (so dev/staging renewals
- * advance). When the live-charging flag flips on, invoices are routed to
- * `chargeSubscriptionInvoice` in `stripeCharge.ts` instead.
+ * Disabled-provider fallback. Returns success for free-tier invoices only.
+ * Paid invoices fail closed so deployments cannot silently advance paid
+ * subscriptions through an unverified mock payment path.
  */
 function processorStub(invoice: {
   _id: string;
@@ -57,14 +56,15 @@ function processorStub(invoice: {
     };
   }
   return {
-    success: true,
-    transactionId: `stub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    success: false,
+    failureReason: "subscription_charging_not_enabled",
   };
 }
 
 /**
  * Returns true when `commerce.payments.subscriptionChargingEnabled` is set
- * in settings. Callers fall through to `processorStub` when this is false.
+ * in settings. Callers fall through to the disabled-provider fallback when
+ * this is false.
  */
 async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
   const settings = await ctx.runQuery(
@@ -83,7 +83,7 @@ async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
 
 /**
  * Hourly renewal sweep: generate invoices for due subscriptions, attempt
- * payment via the processor stub, and delegate result handling to
+ * payment via the live processor or disabled-provider fallback, and delegate result handling to
  * `internals.handleInvoicePaymentResult`.
  *
  * Registered in `crons.ts` as:
@@ -146,7 +146,8 @@ export const runRenewalSweep = internalAction({
             failureReason: stripeResult.failureReason,
           };
         } else {
-          // Stub path — fetch the invoice and run the in-process stub.
+          // Disabled-provider path — fetch the invoice and fail paid
+          // invoices closed while allowing zero-dollar renewals.
           const invoice: {
             _id: string;
             totalAmount: number;

@@ -109,6 +109,7 @@ export const discoveryHandler = httpAction(async () => {
           method: "POST",
           path: "/api/v1/media",
           scope: "write:media",
+          description: "No body returns an upload URL. Posting storageId, fileName, mimeType, and fileSize finalizes the upload into a media record.",
         },
         delete: {
           method: "DELETE",

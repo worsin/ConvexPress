@@ -82,8 +82,8 @@ function ProductsIndexPage() {
             Commerce products published from the ConvexPress catalog.
           </h1>
           <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-            This archive is backed by the new commerce runtime and is now ready
-            for real catalog data instead of placeholder routes.
+            Browse active products, pricing, categories, and availability from
+            the published commerce catalog.
           </p>
         </div>
       </section>

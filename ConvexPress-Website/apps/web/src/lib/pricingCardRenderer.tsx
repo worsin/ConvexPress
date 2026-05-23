@@ -6,9 +6,7 @@
  * so the grid logic is never duplicated.
  *
  * templateKey routing:
- *   Wave 2 ships only the "default-grid" template. The branch below is a
- *   stub for future multi-template support.
- *   // TODO: multi-template support — Wave 8+
+ *   The MVP renderer supports the "default-grid" template.
  */
 
 import { PricingCard } from "@/components/subscriptions/PricingCard";
@@ -102,10 +100,6 @@ export function PricingCardsRenderer({
   config,
   offers,
 }: PricingCardsRendererProps) {
-  // TODO: multi-template support — Wave 8+
-  // Currently config.templateKey is ignored and we always render "default-grid".
-  // When Wave 8 adds templates, branch here on config.templateKey.
-
   const sortedOffers = sortOffers(offers, config.orderedOfferIds ?? []);
 
   // Responsive columns: 4+ column layout when there are 4+ offers.

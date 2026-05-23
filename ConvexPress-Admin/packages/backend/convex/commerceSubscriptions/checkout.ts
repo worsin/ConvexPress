@@ -5,20 +5,14 @@
  *
  *   1. `createCheckoutIntent` — validates offer + optional coupon, persists a
  *      `commerce_subscription_checkout_intents` row with status `payment_pending`.
- *      Returns intentId and a payment processor stub descriptor.
+ *      Returns intentId and an explicit payment readiness descriptor.
  *
- *   2. `activateFromIntent` — called after (stubbed) payment settlement.
+ *   2. `activateFromIntent` — called after trusted payment settlement.
  *      Creates the subscription contract + subscription_item + initial
  *      entitlements. Records history. If the intent had a coupon code, seeds
  *      a redemption row. This is the ONLY trusted public activation path —
  *      admin-side `mutations.create` is a separate admin-only provisioning
  *      flow.
- *
- * Payment is intentionally STUBBED. Real Stripe/Paddle/etc. integration
- * lands in Wave 7. The `paymentProcessorData` returned from
- * `createCheckoutIntent` is a placeholder the website uses to decide how to
- * display the payment step; the website currently simulates success and
- * immediately calls `activateFromIntent` with a stub `paymentResult`.
  *
  * `@ts-nocheck` matches the existing subscriptions backend file pattern.
  * Wave 7 removes it across all subscriptions files in one pass.
@@ -126,7 +120,8 @@ async function isLiveSubscriptionChargingEnabled(ctx: any): Promise<boolean> {
  * May be called by logged-in OR logged-out users. If logged out, `customerEmail`
  * must be supplied so the signup flow can later look up / create the user
  * record. The intent is NOT automatically activated — the caller must call
- * `activateFromIntent` after the (stubbed) payment step.
+ * `activateFromIntent` after a trusted payment step or explicit zero-dollar
+ * free activation.
  *
  * Throws:
  *   - `NOT_FOUND`         — offer id does not exist
@@ -261,6 +256,12 @@ export const createCheckoutIntent = mutation({
 		const initialAmount =
 			setupFeeAmount + (trialDays > 0 ? 0 : recurringAmount);
 
+		const liveChargingEnabled = await isLiveSubscriptionChargingEnabled(ctx);
+		const paymentReady =
+			initialAmount <= 0 || liveChargingEnabled
+				? true
+				: false;
+
 		const intentId = await ctx.db.insert(
 			"commerce_subscription_checkout_intents",
 			{
@@ -311,10 +312,14 @@ export const createCheckoutIntent = mutation({
 			recurringAmount,
 			currency: currencyCode,
 			trialDays,
-			// Wave 7: replace with real Stripe/Paddle client-secret etc.
 			paymentProcessorData: {
-				provider: "stub",
-				message: "Payment integration pending — Wave 7",
+				provider: initialAmount <= 0 ? "free" : "stripe",
+				ready: paymentReady,
+				message: paymentReady
+					? initialAmount <= 0
+						? "Zero-dollar checkout can be activated with the free provider."
+						: "Live subscription charging is enabled; complete Stripe payment before activation."
+					: "Paid subscription checkout is disabled until live subscription charging is configured.",
 			},
 		};
 	},
@@ -331,10 +336,9 @@ export const createCheckoutIntent = mutation({
  * This is THE public activation path. Admin-side `mutations.create` is a
  * separate flow for back-office provisioning.
  *
- * Dev installs may activate zero-risk checkouts with the `stub` provider while
- * live subscription charging is disabled. When live charging is enabled, paid
- * intents must be activated by the Stripe webhook path; only zero-amount
- * intents may use the explicit `free` provider.
+ * Paid intents must be activated by the Stripe webhook path. Zero-amount
+ * intents may use the explicit `free` provider, and legacy `stub` activation
+ * is accepted only for zero-amount intents.
  *
  * Failure semantics:
  *   - `paymentResult.status === "failed"` → intent marked cancelled,
@@ -422,15 +426,14 @@ export const activateFromIntent = mutation({
 		const liveChargingEnabled = await isLiveSubscriptionChargingEnabled(ctx);
 		const initialAmount = intent.initialAmount ?? 0;
 		const recurringAmount = intent.recurringAmount ?? 0;
-		if (
-			liveChargingEnabled &&
-			args.paymentResult.provider === "stub" &&
-			(initialAmount > 0 || recurringAmount > 0)
-		) {
+		if (args.paymentResult.provider === "stub" && (initialAmount > 0 || recurringAmount > 0)) {
 			throw new ConvexError({
-				code: "LIVE_PAYMENT_REQUIRED",
-				message:
-					"Live subscription charging is enabled. Paid checkout intents must be activated by the payment webhook, not the development stub.",
+				code: liveChargingEnabled
+					? "LIVE_PAYMENT_REQUIRED"
+					: "SUBSCRIPTION_CHARGING_NOT_ENABLED",
+				message: liveChargingEnabled
+					? "Paid checkout intents must be activated by the payment webhook, not the development stub."
+					: "Paid subscription checkout is disabled until live subscription charging is configured.",
 			});
 		}
 		if (

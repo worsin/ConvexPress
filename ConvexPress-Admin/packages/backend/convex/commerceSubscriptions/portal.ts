@@ -945,7 +945,8 @@ export const requestCancelContract = mutation({
  *
  * Wave 7 implementation: delegates to real proration internal mutations:
  *   - Upgrade (netCharge > 0): calls `proration.applyUpgradeProration` —
- *     creates proration_event + invoice + charges immediately via payment stub.
+ *     creates proration_event + invoice and charges through the live provider
+ *     when subscription charging is enabled.
  *   - Downgrade (netCharge <= 0): calls `proration.applyDowngradeProration` —
  *     stores `scheduledOfferChange` on the contract. No immediate charge.
  *     Renewal cron applies it at next cycle boundary (renewal.ts step 1.e).
@@ -1062,7 +1063,7 @@ export const requestPlanChange = mutation({
 
 		// ── Upgrade: delegate to applyUpgradeProration ─────────────────────────
 		// That mutation handles proration_event creation, invoice, coupon discounts,
-		// payment stub, and item swap.
+		// live payment scheduling/fail-closed gating, and item swap.
 		const upgradeResult: {
 			invoiceId: string | null;
 			success: boolean;

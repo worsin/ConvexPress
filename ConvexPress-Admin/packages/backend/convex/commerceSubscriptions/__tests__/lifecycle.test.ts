@@ -6,7 +6,7 @@
  *
  * Coverage:
  *   1. Status transition guard logic (blockedStatuses in proration handlers)
- *   2. Processor stub behavior (renewal.ts / dunning.ts `processorStub`)
+ *   2. Disabled-provider fallback behavior (renewal.ts / dunning.ts)
  *   3. Dunning retry schedule calculation
  *   4. Scheduled offer change routing logic (downgrade → schedule)
  *   5. Subscription lifecycle status flow
@@ -23,8 +23,8 @@ import { describe, expect, test } from "bun:test";
 // Helpers replicated from the production implementations (pure logic)
 // ═══════════════════════════════════════════════════════════════════════════
 
-/** Mirrors `renewal.ts` and `dunning.ts` `processorStub`. */
-function processorStub(invoice: {
+/** Mirrors the disabled-provider fallback in `renewal.ts` and `dunning.ts`. */
+function disabledProviderFallback(invoice: {
   totalAmount: number;
   savedPaymentMethodId?: string;
 }): { success: boolean; transactionId?: string; failureReason?: string } {
@@ -35,8 +35,8 @@ function processorStub(invoice: {
     return { success: false, failureReason: "no_payment_method_on_file" };
   }
   return {
-    success: true,
-    transactionId: `stub_${Date.now()}`,
+    success: false,
+    failureReason: "subscription_charging_not_enabled",
   };
 }
 
@@ -102,19 +102,19 @@ function canTransition(from: SubscriptionStatus, to: SubscriptionStatus): boolea
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Processor stub tests
+// Disabled-provider fallback tests
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe("processorStub: free-tier auto-success", () => {
+describe("disabledProviderFallback: free-tier auto-success", () => {
   test("zero amount always succeeds, no payment method required", () => {
-    const result = processorStub({ totalAmount: 0 });
+    const result = disabledProviderFallback({ totalAmount: 0 });
     expect(result.success).toBe(true);
     expect(result.transactionId).toMatch(/^free_/);
     expect(result.failureReason).toBeUndefined();
   });
 
   test("zero amount with payment method still succeeds (free wins)", () => {
-    const result = processorStub({
+    const result = disabledProviderFallback({
       totalAmount: 0,
       savedPaymentMethodId: "pm_abc123",
     });
@@ -123,30 +123,22 @@ describe("processorStub: free-tier auto-success", () => {
   });
 });
 
-describe("processorStub: paid invoices", () => {
+describe("disabledProviderFallback: paid invoices", () => {
   test("paid invoice with no payment method → failure", () => {
-    const result = processorStub({ totalAmount: 2000 });
+    const result = disabledProviderFallback({ totalAmount: 2000 });
     expect(result.success).toBe(false);
     expect(result.failureReason).toBe("no_payment_method_on_file");
     expect(result.transactionId).toBeUndefined();
   });
 
-  test("paid invoice with saved payment method → stub success", () => {
-    const result = processorStub({
+  test("paid invoice with saved payment method → charging disabled failure", () => {
+    const result = disabledProviderFallback({
       totalAmount: 2000,
       savedPaymentMethodId: "pm_abc123",
     });
-    expect(result.success).toBe(true);
-    expect(result.transactionId).toBeDefined();
-    expect(result.failureReason).toBeUndefined();
-  });
-
-  test("stub transactionId starts with 'stub_'", () => {
-    const result = processorStub({
-      totalAmount: 9999,
-      savedPaymentMethodId: "pm_xyz",
-    });
-    expect(result.transactionId).toMatch(/^stub_/);
+    expect(result.success).toBe(false);
+    expect(result.transactionId).toBeUndefined();
+    expect(result.failureReason).toBe("subscription_charging_not_enabled");
   });
 });
 

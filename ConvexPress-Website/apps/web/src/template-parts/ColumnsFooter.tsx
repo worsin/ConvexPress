@@ -2,7 +2,6 @@
  * Columns Footer Template Part
  *
  * Multi-column footer with widget areas and copyright bar.
- * The columns display placeholder widget areas for now.
  */
 
 import { useEffect, useState, type ReactNode } from "react";
@@ -66,7 +65,7 @@ export function ColumnsFooter({
                 Navigation
               </h4>
               <p className="text-sm text-muted-foreground">
-                Add widgets to populate this area.
+                Browse site updates and featured resources.
               </p>
             </div>
             <div>
@@ -77,7 +76,7 @@ export function ColumnsFooter({
                 Categories
               </h4>
               <p className="text-sm text-muted-foreground">
-                Add widgets to populate this area.
+                Discover topics, collections, and guides.
               </p>
             </div>
             <div>
@@ -88,7 +87,7 @@ export function ColumnsFooter({
                 Connect
               </h4>
               <p className="text-sm text-muted-foreground">
-                Add widgets to populate this area.
+                Reach the team through the contact and support pages.
               </p>
             </div>
           </div>

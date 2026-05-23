@@ -8,7 +8,7 @@
  *   - pageview: on page load
  *   - scroll_depth: when content sections enter the viewport (IntersectionObserver)
  *   - click: on internal link clicks (delegated handler)
- *   - exit: on page hide/unload (time on page via sendBeacon)
+ *   - exit: on page hide/unload (time on page via keepalive fetch)
  *
  * Privacy:
  *   - visitorId: anonymous UUID in localStorage (no cookie)
@@ -97,6 +97,7 @@ function getUtmParams(): {
 let eventQueue: TrackingEvent[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let endpointUrl = "";
+let endpointDisabled = false;
 
 function queueEvent(event: TrackingEvent) {
   eventQueue.push(event);
@@ -115,22 +116,12 @@ function flush() {
     flushTimer = null;
   }
 
-  if (eventQueue.length === 0 || !endpointUrl) return;
+  if (eventQueue.length === 0 || !endpointUrl || endpointDisabled) return;
 
   const events = eventQueue.splice(0, 20); // Max 20 per request
   const payload = JSON.stringify({ events });
 
-  // Prefer sendBeacon for reliability (works during page unload)
-  if (navigator.sendBeacon) {
-    const blob = new Blob([payload], { type: "application/json" });
-    const sent = navigator.sendBeacon(endpointUrl, blob);
-    if (!sent) {
-      // Fallback to fetch if sendBeacon fails
-      fetchSend(payload);
-    }
-  } else {
-    fetchSend(payload);
-  }
+  fetchSend(payload);
 }
 
 function fetchSend(payload: string) {
@@ -139,6 +130,11 @@ function fetchSend(payload: string) {
     headers: { "Content-Type": "application/json" },
     body: payload,
     keepalive: true,
+  }).then((response) => {
+    if (response.status === 404 || response.status === 405) {
+      endpointDisabled = true;
+      eventQueue = [];
+    }
   }).catch(() => {
     // Silently ignore network errors -- analytics should never break the site
   });
@@ -288,6 +284,7 @@ export function initAnalytics(convexUrl: string): void {
 
   // Set endpoint
   endpointUrl = convexUrl.replace(/\/$/, "") + "/api/analytics/track";
+  endpointDisabled = false;
 
   // Get or create anonymous IDs
   const visitorId = getVisitorId();

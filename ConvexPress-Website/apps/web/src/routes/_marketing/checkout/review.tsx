@@ -169,9 +169,14 @@ function CheckoutReviewPage() {
     "---";
 
   const isCardPayment = session?.selectedPaymentMethodCode === "card";
+  const stripeAvailable = Boolean(paymentSettings?.stripePublishableKey);
 
   const handlePlaceOrder = useCallback(async () => {
     if (!sessionToken) return;
+    if (isCardPayment && !stripeAvailable) {
+      toast.error("Card payments are not currently available.");
+      return;
+    }
     try {
       setPaymentStep("processing");
       const newOrderId = await completeCheckout({ sessionToken });
@@ -203,6 +208,7 @@ function CheckoutReviewPage() {
     completeCheckout,
     initiatePayment,
     isCardPayment,
+    stripeAvailable,
     router,
   ]);
 
@@ -417,7 +423,7 @@ function CheckoutReviewPage() {
             <button
               type="button"
               onClick={() => void handlePlaceOrder()}
-              disabled={paymentStep !== "review"}
+              disabled={paymentStep !== "review" || (isCardPayment && !stripeAvailable)}
               className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-50"
             >
               {isCardPayment ? "Place order & pay" : "Place order"}

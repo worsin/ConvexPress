@@ -1,7 +1,5 @@
 /**
  * Default Sidebar Template Part
- *
- * Standard sidebar with widget area placeholder.
  */
 
 import type { ReactNode } from "react";
@@ -22,7 +20,7 @@ export function DefaultSidebar({ children }: DefaultSidebarProps) {
             Sidebar
           </h3>
           <p className="text-xs text-muted-foreground">
-            Add widgets to populate this sidebar area.
+            Explore recent content and site resources.
           </p>
         </div>
       )}

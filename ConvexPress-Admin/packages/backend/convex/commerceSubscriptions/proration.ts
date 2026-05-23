@@ -9,7 +9,8 @@
  *     - Apply active coupon discounts via helpers/coupons.applyCouponToInvoice.
  *     - Create a commerce_subscription_proration_events row.
  *     - Create an invoice with a single proration_charge line item.
- *     - Charge via processor stub.
+ *     - Charge through Stripe when live subscription charging is enabled;
+ *       otherwise fail closed for positive paid prorations.
  *     - On success: swap the subscription item to the new offer, update the
  *       contract's recurring amount + offerHistory.
  *     - Return { invoiceId, success, error? }.
@@ -86,7 +87,7 @@ async function writeHistory(ctx: MutationCtx, args: {
   });
 }
 
-// ─── Payment stub ─────────────────────────────────────────────────────────────
+// ─── Disabled-provider fallback ───────────────────────────────────────────────
 
 interface ProratedChargeResult {
   success: boolean;
@@ -94,7 +95,7 @@ interface ProratedChargeResult {
   failureReason?: string;
 }
 
-function processorStub(
+function disabledProviderFallback(
   totalAmount: number,
   savedPaymentMethodId?: string,
 ): ProratedChargeResult {
@@ -104,10 +105,9 @@ function processorStub(
   if (!savedPaymentMethodId) {
     return { success: false, failureReason: "no_payment_method_on_file" };
   }
-  // Stub — real processor replaces this.
   return {
-    success: true,
-    transactionId: `stub_pro_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    success: false,
+    failureReason: "subscription_charging_not_enabled",
   };
 }
 
@@ -157,7 +157,7 @@ async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
  *   3. Apply active coupon discounts.
  *   4. Stub tax (Wave 7 extension point).
  *   5. Create proration_event + invoice.
- *   6. Charge processor stub.
+ *   6. Charge the live processor when enabled; otherwise fail closed.
  *   7. On success: swap subscription item, update contract.
  */
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
@@ -390,7 +390,10 @@ export const applyUpgradeProration = internalMutation({
       };
     }
 
-    const chargeResult = processorStub(finalTotal, contract.defaultPaymentMethodId);
+    const chargeResult = disabledProviderFallback(
+      finalTotal,
+      contract.defaultPaymentMethodId,
+    );
 
     if (!chargeResult.success) {
       // Mark invoice as failed. Leave contract in current state (not yet past_due —

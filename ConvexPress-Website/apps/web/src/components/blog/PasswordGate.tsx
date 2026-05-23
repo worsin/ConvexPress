@@ -2,11 +2,8 @@
  * Password Gate
  *
  * Renders a password form that gates access to password-protected posts/pages.
- * When the correct password is submitted, calls `onUnlock` with the password
- * so the parent can re-fetch content with the password included.
- *
- * NOTE: Backend password verification is not yet implemented. This component
- * provides the UI shell ready for when the backend adds password-check support.
+ * When a password is submitted, the parent route verifies it with the public
+ * post password query and renders the verified backend payload on success.
  */
 
 import { useState } from "react";

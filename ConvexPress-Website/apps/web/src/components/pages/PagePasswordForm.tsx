@@ -2,12 +2,9 @@
  * PagePasswordForm - Password gate for password-protected pages
  *
  * Displayed instead of page content when a page has `visibility: "password"`.
- * The user enters the password, and it's validated client-side against
- * a session-based check. On success, the page content is revealed.
- *
- * For now, this is a visual placeholder that shows a password input.
- * The actual password verification would need a mutation that checks
- * the password and returns the content or a session token.
+ * The user enters the password and the parent route verifies it with the
+ * public page password query. On success, the route renders the verified page
+ * payload returned by the backend.
  */
 
 import { useState, type FormEvent } from "react";

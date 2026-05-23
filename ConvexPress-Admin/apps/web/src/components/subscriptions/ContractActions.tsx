@@ -8,8 +8,8 @@
  *   - Cancel at period end
  *   - Upgrade / Downgrade — inline picker + ProrationPreview
  *   - Apply Coupon — inline input
- *   - Retry Payment (past_due only) — Wave 7 stub
- *   - Change Payment Method — Wave 7 stub
+ *   - Retry Payment (past_due only) — disabled until live charging is enabled
+ *   - Change Payment Method — disabled until customer payment-method collection is wired
  *
  * Wired mutations (Wave 7):
  *   - pause / resume / scheduleCancel / cancelNow
@@ -390,23 +390,23 @@ export function ContractActions({ contract }: ContractActionsProps) {
         <button
           type="button"
           disabled
-          title="Wiring pending — Wave 7"
+          title="Retry requires live subscription charging and a saved payment method."
           className="flex w-full items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-muted-foreground opacity-60"
         >
           <RefreshCw className="h-4 w-4" />
-          Retry payment (Wave 7)
+          Retry payment unavailable
         </button>
       )}
 
-      {/* Change payment method — stub */}
+      {/* Change payment method — gated */}
       <button
         type="button"
         disabled
-        title="Coming soon"
+        title="Customer payment-method collection is not wired yet."
         className="flex w-full items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-muted-foreground opacity-60"
       >
         <CreditCard className="h-4 w-4" />
-        Change payment method
+        Change payment method unavailable
       </button>
 
       {/* Cancel at period end */}

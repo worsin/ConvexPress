@@ -887,7 +887,8 @@ export const previewProration = query({
 /**
  * Public query exposing whether real Stripe charging is on for the site.
  * The website signup flow uses this to decide whether to render Stripe
- * Elements (live) or skip the card step entirely (stub mode for dev).
+ * Elements or disable paid subscription checkout. Zero-dollar checkouts can
+ * still activate through the explicit free provider.
  *
  * Returns `{ live, publishableKey }`. Only the publishable key is exposed
  * — never the secret.

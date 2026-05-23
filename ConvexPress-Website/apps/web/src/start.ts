@@ -1,6 +1,33 @@
 import { createMiddleware, createStart } from "@tanstack/react-start";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@convexpress-website/backend/generated/api";
 
 import { getCanonicalUrl, isExcludedPath, isStaticFile } from "@/middleware/canonical";
+import {
+  buildRedirectResponse,
+  processRedirectResult,
+} from "@/middleware/redirects";
+
+let convexClient: ConvexHttpClient | null = null;
+
+function getServerConvexClient(): ConvexHttpClient | null {
+  const convexUrl = process.env.VITE_CONVEX_URL;
+  if (!convexUrl) return null;
+  convexClient ??= new ConvexHttpClient(convexUrl);
+  return convexClient;
+}
+
+function shouldSkipDocumentRedirect(request: Request, pathname: string): boolean {
+  const accept = request.headers.get("accept") ?? "";
+  const isServerFunctionRequest = request.headers.get("x-tsr-serverfn") === "true";
+  if (isServerFunctionRequest || (accept && !accept.includes("text/html"))) {
+    return true;
+  }
+  if (pathname.startsWith("/_serverFn") || pathname.startsWith("/_serverfn")) {
+    return true;
+  }
+  return isStaticFile(pathname) || isExcludedPath(pathname);
+}
 
 /**
  * Canonical URL middleware.
@@ -9,35 +36,14 @@ import { getCanonicalUrl, isExcludedPath, isStaticFile } from "@/middleware/cano
  * and issues 301 redirects when the requested URL doesn't match its canonical
  * form. Runs BEFORE auth so redirects happen with minimal overhead.
  *
- * NOTE: Redirect middleware (Convex-backed redirect rules) is not yet wired
- * here because TanStack Start request middleware does not have access to the
- * Convex client. To add Convex-backed redirects, either:
- *   1. Initialize a standalone ConvexHttpClient in the middleware, OR
- *   2. Move redirect resolution into the root route's beforeLoad/loader
- *      where the Convex query client is available via route context.
- * See `@/middleware/redirects.ts` for the utility functions that are ready
- * to be called once a Convex client is available in this context.
+ * Convex-backed redirects are handled by redirectMiddleware after canonical
+ * normalization so configured redirect rules see the normalized path.
  */
 const canonicalMiddleware = createMiddleware().server(async ({ request, next }) => {
   const url = new URL(request.url);
   const pathname = url.pathname;
-  const accept = request.headers.get("accept") ?? "";
-  const isServerFunctionRequest = request.headers.get("x-tsr-serverfn") === "true";
 
-  // Canonical redirects should only apply to HTML document requests.
-  // Server functions and data requests are not URL-canonicalized.
-  if (isServerFunctionRequest || (accept && !accept.includes("text/html"))) {
-    return next();
-  }
-
-  // Critical: TanStack server function URLs are case-sensitive and must not be
-  // rewritten (lowercasing/trailing slash would break RPC requests).
-  if (pathname.startsWith("/_serverFn") || pathname.startsWith("/_serverfn")) {
-    return next();
-  }
-
-  // Skip normalization for static files and excluded paths (API, auth, etc.)
-  if (isStaticFile(pathname) || isExcludedPath(pathname)) {
+  if (shouldSkipDocumentRedirect(request, pathname)) {
     return next();
   }
 
@@ -58,6 +64,43 @@ const canonicalMiddleware = createMiddleware().server(async ({ request, next }) 
   return next();
 });
 
+const redirectMiddleware = createMiddleware().server(async ({ request, next }) => {
+  const url = new URL(request.url);
+  const pathname = url.pathname;
+
+  if (shouldSkipDocumentRedirect(request, pathname)) {
+    return next();
+  }
+
+  const client = getServerConvexClient();
+  if (!client) {
+    return next();
+  }
+
+  try {
+    const redirectRecord = await client.query(
+      (api as any).routing.public.resolveRedirect,
+      { url: pathname + url.search },
+    );
+    const redirect = processRedirectResult(redirectRecord as any);
+    if (!redirect) return next();
+
+    if (redirect.redirectId) {
+      void client.mutation((api as any).routing.public.recordRedirectHit, {
+        redirectId: redirect.redirectId,
+      });
+    }
+
+    return buildRedirectResponse(redirect);
+  } catch (error) {
+    console.error(
+      "[Routing] Redirect resolution failed:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return next();
+  }
+});
+
 export const startInstance = createStart(() => ({
-  requestMiddleware: [canonicalMiddleware],
+  requestMiddleware: [canonicalMiddleware, redirectMiddleware],
 }));

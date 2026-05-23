@@ -18,7 +18,37 @@
 
 import { v } from "convex/values";
 
-import { internalMutation } from "../_generated/server";
+import { internalMutation, internalQuery } from "../_generated/server";
+import {
+  parseInboundChannelSecurity,
+  type InboundChannelSecurity,
+} from "./inboundSecurity";
+
+type InboundChannelSecurityResult =
+  | { exists: false; active: false }
+  | { exists: true; active: boolean; security: InboundChannelSecurity };
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const getInboundChannelSecurity = internalQuery({
+  args: {
+    channelCode: v.string(),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args): Promise<InboundChannelSecurityResult> => {
+    const channel = await ctx.db
+      .query("support_channels")
+      .withIndex("by_code", (q: any) => q.eq("code", args.channelCode))
+      .unique();
+    if (!channel) {
+      return { exists: false as const, active: false as const };
+    }
+    return {
+      exists: true as const,
+      active: channel.isActive === true,
+      security: parseInboundChannelSecurity(channel.config),
+    };
+  },
+});
 
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const recordInboundEmail = internalMutation({

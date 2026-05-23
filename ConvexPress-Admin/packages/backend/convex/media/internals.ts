@@ -31,6 +31,64 @@ import { internal } from "../_generated/api";
 import { findMediaReferences } from "./references";
 import { requireCan } from "../helpers/permissions";
 import { getUserRoleLevel } from "./mediaAuth";
+import { emitEvent } from "../helpers/events";
+import { MEDIA_EVENTS, SYSTEM } from "../events/constants";
+import type { Id } from "../_generated/dataModel";
+import {
+  categorizeMediaType,
+  generateSlug,
+  getMediaSettings,
+  titleFromFilename,
+  validateFileType,
+} from "./helpers";
+
+const DEFAULT_ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/bmp",
+  "image/tiff",
+  "image/avif",
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
+  "video/mp4",
+  "video/webm",
+  "video/ogg",
+  "video/quicktime",
+  "video/x-msvideo",
+  "video/x-matroska",
+  "audio/mpeg",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/flac",
+  "audio/aac",
+  "audio/mp4",
+  "audio/x-m4a",
+  "audio/ogg",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/gzip",
+  "application/x-gzip",
+  "application/x-tar",
+  "application/x-rar-compressed",
+  "application/vnd.rar",
+  "application/x-7z-compressed",
+  "text/plain",
+  "text/csv",
+  "text/markdown",
+  "application/json",
+  "application/xml",
+  "text/xml",
+  "application/rtf",
+];
 
 // ─── EXIF Parsing Helpers (Pure JS, no native dependencies) ─────────────────
 
@@ -756,6 +814,190 @@ export const getMediaInternal_list = internalQuery({
       items,
       total: items.length,
     };
+  },
+});
+
+// ─── Internal Create (for HTTP API) ──────────────────────────────────────────
+
+/**
+ * Create a media record after an API client has uploaded a file to Convex
+ * storage. Internal-only: the HTTP API authenticates the key and scope before
+ * calling this mutation.
+ */
+export const createMediaInternal = internalMutation({
+  args: {
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    mimeType: v.string(),
+    fileSize: v.number(),
+    uploadedBy: v.id("users"),
+    title: v.optional(v.string()),
+    altText: v.optional(v.string()),
+    caption: v.optional(v.string()),
+    description: v.optional(v.string()),
+    width: v.optional(v.number()),
+    height: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.uploadedBy);
+    if (!user) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "API key owner no longer exists",
+      });
+    }
+
+    const fileName = args.fileName.trim();
+    if (!fileName) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Filename cannot be empty",
+      });
+    }
+    if (fileName.length > 255) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Filename must be 255 characters or fewer",
+      });
+    }
+
+    const mediaSettings = await getMediaSettings(ctx);
+    if (args.fileSize <= 0) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "File is empty (0 bytes)",
+      });
+    }
+    if (args.fileSize > mediaSettings.maxUploadSize) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `File exceeds the maximum upload size of ${mediaSettings.maxUploadSize / (1024 * 1024)}MB`,
+      });
+    }
+
+    if (args.mimeType === "image/svg+xml") {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "SVG uploads are not allowed due to security concerns",
+      });
+    }
+    const fileTypeValidation = validateFileType(
+      args.mimeType,
+      fileName,
+      DEFAULT_ALLOWED_TYPES,
+    );
+    if (!fileTypeValidation.valid) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: fileTypeValidation.error || "File type is not allowed",
+      });
+    }
+
+    const url = await ctx.storage.getUrl(args.storageId);
+    if (!url) {
+      throw new ConvexError({
+        code: "STORAGE_ERROR",
+        message: "Could not resolve storage URL for the uploaded file",
+      });
+    }
+
+    const mediaType = categorizeMediaType(args.mimeType);
+    const title = args.title?.trim() || titleFromFilename(fileName);
+    if (title.length > 500) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Title must be 500 characters or fewer",
+      });
+    }
+
+    const altText = args.altText?.trim();
+    const caption = args.caption?.trim();
+    const description = args.description?.trim();
+    if (altText && altText.length > 500) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Alt text must be 500 characters or fewer",
+      });
+    }
+    if (caption && caption.length > 1000) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Caption must be 1000 characters or fewer",
+      });
+    }
+    if (description && description.length > 5000) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Description must be 5000 characters or fewer",
+      });
+    }
+
+    const baseSlug = generateSlug(title);
+    let slug = baseSlug || "media";
+    let slugSuffix = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const candidate = slugSuffix === 0 ? slug : `${slug}-${slugSuffix}`;
+      const existing = await ctx.db
+        .query("media")
+        .withIndex("by_slug", (q) => q.eq("slug", candidate))
+        .unique();
+      if (!existing) {
+        slug = candidate;
+        break;
+      }
+      slugSuffix++;
+    }
+
+    const now = Date.now();
+    const nowDate = new Date(now);
+    const yearPart = String(nowDate.getUTCFullYear());
+    const monthPart = String(nowDate.getUTCMonth() + 1).padStart(2, "0");
+    const extMatch = /\.[A-Za-z0-9]+$/.exec(fileName);
+    const ext = extMatch ? extMatch[0].toLowerCase() : "";
+    const uploadPath = `${yearPart}/${monthPart}/${slug}${ext}`;
+    const status = mediaType === "image" ? "processing" : "active";
+
+    const mediaId = await ctx.db.insert("media", {
+      title,
+      fileName,
+      slug,
+      description: description || undefined,
+      caption: caption || undefined,
+      altText: altText || undefined,
+      storageId: args.storageId,
+      url,
+      mimeType: args.mimeType,
+      fileSize: args.fileSize,
+      mediaType,
+      width: args.width,
+      height: args.height,
+      status,
+      uploadedBy: args.uploadedBy,
+      uploadPath,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await emitEvent(ctx, MEDIA_EVENTS.UPLOADED, SYSTEM.MEDIA, {
+      mediaId,
+      fileName,
+      mimeType: args.mimeType,
+      size: args.fileSize,
+      uploadedBy: args.uploadedBy,
+      mediaType,
+      source: "http_api",
+    });
+
+    if (mediaType === "image") {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.media.imageProcessing.processImageWithSharp,
+        { mediaId },
+      );
+    }
+
+    return mediaId as Id<"media">;
   },
 });
 

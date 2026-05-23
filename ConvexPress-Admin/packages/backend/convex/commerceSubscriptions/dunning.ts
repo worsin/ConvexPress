@@ -8,7 +8,8 @@
  * Flow:
  *   1. Query `past_due` subscriptions that have dunning attempts due for retry
  *      (via `internals.getRetryableDunningAttempts`).
- *   2. For each: attempt payment via processor stub.
+ *   2. For each: attempt live-provider payment when charging is enabled,
+ *      otherwise fail closed for paid invoices.
  *   3a. Success → mark invoice paid, transition contract to `active`, sync
  *       entitlements. (Delegated to `handleInvoicePaymentResult`.)
  *   3b. Failure → record attempt, schedule next retry (if max not reached),
@@ -33,7 +34,7 @@ import { requirePluginEnabled } from "../helpers/plugins";
 const DEFAULT_RETRY_DAYS = [1, 3, 7, 14]; // attempt at +1d, +3d, +7d, +14d
 const DEFAULT_MAX_ATTEMPTS = 4;
 
-// ─── Payment processor stub ──────────────────────────────────────────────────
+// ─── Disabled-provider fallback ──────────────────────────────────────────────
 
 interface ChargeResult {
   success: boolean;
@@ -41,7 +42,7 @@ interface ChargeResult {
   failureReason?: string;
 }
 
-function processorStub(invoice: {
+function disabledProviderFallback(invoice: {
   _id: string;
   totalAmount: number;
   savedPaymentMethodId?: string;
@@ -52,10 +53,9 @@ function processorStub(invoice: {
   if (!invoice.savedPaymentMethodId) {
     return { success: false, failureReason: "no_payment_method_on_file" };
   }
-  // Stub: real processor replaces this.
   return {
     success: false,
-    failureReason: "stub_processor_dunning_not_yet_wired",
+    failureReason: "subscription_charging_not_enabled",
   };
 }
 
@@ -153,7 +153,7 @@ export const runDunningSweep = internalAction({
             failureReason: stripeResult.failureReason,
           };
         } else {
-          chargeResult = processorStub(invoice);
+          chargeResult = disabledProviderFallback(invoice);
         }
 
         if (chargeResult.success) {

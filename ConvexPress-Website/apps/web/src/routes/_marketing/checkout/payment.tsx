@@ -22,6 +22,13 @@ const METHOD_ICONS: Record<string, typeof CreditCard> = {
   cash_on_delivery: Truck,
 };
 
+type PaymentMethodOption = {
+  code: string;
+  label: string;
+  enabled: boolean;
+  unavailableReason?: string;
+};
+
 function CheckoutPaymentPage() {
   const settings = useSettings();
   const router = useRouter();
@@ -39,15 +46,28 @@ function CheckoutPaymentPage() {
     (api as any).commerce.payments.getSettings,
   ) as any;
 
-  const paymentMethods = useMemo(
-    () =>
+  const stripeAvailable = Boolean(paymentSettings?.stripePublishableKey);
+  const paymentMethods = useMemo<PaymentMethodOption[]>(() => {
+    const configured =
       settings?.commerceConfig?.paymentMethods?.filter(
         (method: any) => method.enabled,
       ) ?? [
-        { code: "card", label: "Credit or debit card", enabled: true },
         { code: "manual_invoice", label: "Manual invoice", enabled: true },
-      ],
-    [settings?.commerceConfig?.paymentMethods],
+      ];
+
+    return configured.map((method: any) => {
+      if (method.code === "card" && !stripeAvailable) {
+        return {
+          ...method,
+          unavailableReason: "Card payments are currently unavailable.",
+        };
+      }
+      return method;
+    });
+  }, [settings?.commerceConfig?.paymentMethods, stripeAvailable]);
+  const availablePaymentMethods = useMemo(
+    () => paymentMethods.filter((method) => !method.unavailableReason),
+    [paymentMethods],
   );
   const [paymentMethod, setPaymentMethod] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,12 +75,10 @@ function CheckoutPaymentPage() {
   useEffect(() => {
     if (session?.selectedPaymentMethodCode) {
       setPaymentMethod(session.selectedPaymentMethodCode);
-    } else if (paymentMethods[0]?.code) {
-      setPaymentMethod(paymentMethods[0].code);
+    } else if (availablePaymentMethods[0]?.code) {
+      setPaymentMethod(availablePaymentMethods[0].code);
     }
-  }, [paymentMethods, session?.selectedPaymentMethodCode]);
-
-  const stripeAvailable = Boolean(paymentSettings?.stripePublishableKey);
+  }, [availablePaymentMethods, session?.selectedPaymentMethodCode]);
 
   async function handleContinue(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,6 +89,13 @@ function CheckoutPaymentPage() {
       toast.error(
         "Card payments are not currently available. Please select a different payment method or try again later.",
       );
+      return;
+    }
+    const selectedMethod = paymentMethods.find(
+      (method) => method.code === paymentMethod,
+    );
+    if (selectedMethod?.unavailableReason) {
+      toast.error(selectedMethod.unavailableReason);
       return;
     }
 
@@ -107,9 +132,9 @@ function CheckoutPaymentPage() {
         <div className="rounded-[2rem] border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
           Start checkout from the cart first.
         </div>
-      ) : paymentMethods.length === 0 ? (
+      ) : availablePaymentMethods.length === 0 ? (
         <div className="rounded-[2rem] border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          No payment methods are enabled for checkout yet.
+          No usable payment methods are available for checkout yet.
         </div>
       ) : (
         <form
@@ -125,11 +150,14 @@ function CheckoutPaymentPage() {
               const Icon = METHOD_ICONS[method.code];
               const isSelected = paymentMethod === method.code;
               const isCard = method.code === "card";
+              const disabled = Boolean(method.unavailableReason);
 
               return (
                 <label
                   key={method.code}
-                  className={`flex cursor-pointer items-start gap-4 rounded-2xl border px-5 py-4 transition-colors ${
+                  className={`flex items-start gap-4 rounded-2xl border px-5 py-4 transition-colors ${
+                    disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                  } ${
                     isSelected
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-primary/40"
@@ -140,6 +168,7 @@ function CheckoutPaymentPage() {
                     name="paymentMethod"
                     value={method.code}
                     checked={isSelected}
+                    disabled={disabled}
                     onChange={(event) =>
                       setPaymentMethod(event.target.value)
                     }
@@ -153,11 +182,10 @@ function CheckoutPaymentPage() {
                       <span className="text-sm font-medium text-foreground">
                         {method.label}
                       </span>
-                      {isCard && isSelected && (
+                      {isCard && (isSelected || disabled) && (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {stripeAvailable
-                            ? "You will enter your card details securely on the next step."
-                            : "Card payments are currently unavailable."}
+                          {method.unavailableReason ??
+                            "You will enter your card details securely on the next step."}
                         </p>
                       )}
                     </div>

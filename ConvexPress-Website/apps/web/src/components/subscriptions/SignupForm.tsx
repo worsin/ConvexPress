@@ -26,8 +26,9 @@ import { cn } from "@/lib/utils";
  *
  * Checkout always starts with `createCheckoutIntent`. Live charging uses
  * Stripe Elements and lets the webhook activate the intent. Zero-amount
- * initial checkouts activate with the explicit `free` provider. The `stub`
- * provider is kept only for local development when live charging is disabled.
+ * checkouts activate with the explicit `free` provider. Paid checkouts are
+ * blocked when live charging is not configured so the UI cannot imply that a
+ * test-only activation path is production-ready.
  *
  * Colours: theme tokens only (primary / foreground / muted / destructive).
  */
@@ -277,13 +278,20 @@ export function SignupForm({ offer, className }: SignupFormProps) {
         }
       }
 
-      // Local development path only. The backend rejects this for paid intents
-      // whenever live subscription charging is enabled.
+      const initialAmount = intent.amount ?? 0;
+      const recurringAmount = intent.recurringAmount ?? offer.recurringAmount ?? 0;
+      const isZeroAmount = initialAmount <= 0 && recurringAmount <= 0;
+
+      if (!isZeroAmount) {
+        setError(
+          "Subscription payments are not enabled for this site. Please contact support before subscribing.",
+        );
+        return;
+      }
+
       const paymentResult = {
-        provider: "stub",
-        providerTransactionId: `stub_${Date.now()}_${Math.random()
-          .toString(36)
-          .slice(2, 8)}`,
+        provider: "free",
+        providerTransactionId: `free_${Date.now()}`,
         status: "succeeded" as const,
       };
 
@@ -546,9 +554,9 @@ export function SignupForm({ offer, className }: SignupFormProps) {
         )}
       </Button>
 
-      {!chargingStatus?.live && (
+      {!chargingStatus?.live && offer.recurringAmount <= 0 && (
         <p className="text-center text-[10px] text-muted-foreground">
-          Development checkout is active. Live payments are not enabled.
+          Live payments are not enabled. Only free subscriptions can be activated.
         </p>
       )}
       </>}
