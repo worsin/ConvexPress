@@ -5,11 +5,11 @@
 > **Two-app architecture:** `ConvexPress-Admin/` (TanStack Router SPA, Convex Auth) owns the Convex database + all mutations. `ConvexPress-Website/` (TanStack Start SSR, Clerk auth) is a read-only consumer.
 > **Roles (WordPress-standard):** Administrator / Editor / Author / Contributor / Subscriber. Customer-facing UIs serve `Subscriber` + guests.
 > **No third-party plugin/theme marketplace.** AI builds custom per-site. Internally, "extensions" are feature-flagged modules (Bundles, Digital, Returns, Reviews, Wishlists, Subscriptions, Add-Ons, Membership) that live in `convex/commerce<Thing>/` with a `<thing>Enabled` settings flag and a `require<Thing>Enabled(ctx)` gate on every mutation/query.
-> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `docs/stripe-integration.md`).
+> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `agents/knowledge/stripe-integration.md`).
 
 
 > **Status:** DRAFT - Awaiting Review & Enhancement
-> **Airtable Record:** rec47WoasGtxg1qeU
+> **Airtable Record:** [redacted-airtable-record-id]
 
 ---
 
@@ -504,12 +504,12 @@ export const mergeGuestWishlist = mutation({
 
 | Entity | Record ID |
 |--------|-----------|
-| System | rec47WoasGtxg1qeU |
-| Routes | recWRPbQasj63OOdD |
-| Actions | recPN5OgQuEhVS4VT, recrrZB7ZckNLbQqz, recEwsyz7PJeozs8v, rec6gpLC8XsaMJntW, rec7bkD6JnnpdG7zR |
-| Events | recQIgk5M7oDjxQTY, recOPj8bJ2FLTysWl, recurR624lbHFbYat |
-| Email Notifications | recPjtt32ERszjYzh, recWUKf3whEmj1GSE |
-| Site Notifications | recjtqTC12mpigETz |
+| System | [redacted-airtable-record-id] |
+| Routes | [redacted-airtable-record-id] |
+| Actions | [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id] |
+| Events | [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id] |
+| Email Notifications | [redacted-airtable-record-id], [redacted-airtable-record-id] |
+| Site Notifications | [redacted-airtable-record-id] |
 
 ### B. Related Documentation
 

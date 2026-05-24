@@ -1,0 +1,201 @@
+<h2>Traffic Tab Dashboard</h2>
+<p class="subtitle">/admin/posts/$postId/traffic — GA4 + built-in traffic data for this page</p>
+
+<div class="section">
+  <h3>Dashboard Mockup</h3>
+  <div class="mockup">
+    <div class="mockup-header">Traffic Tab — "How to Build a WordPress Replacement with Convex"</div>
+    <div class="mockup-body" style="padding: 0;">
+
+      <!-- Date range selector + GA connection status -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+        <div style="display: flex; gap: 8px;">
+          <div style="padding: 6px 14px; background: rgba(59,130,246,0.15); color: #3b82f6; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer;">7 Days</div>
+          <div style="padding: 6px 14px; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 13px; opacity: 0.5; cursor: pointer;">30 Days</div>
+          <div style="padding: 6px 14px; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 13px; opacity: 0.5; cursor: pointer;">90 Days</div>
+          <div style="padding: 6px 14px; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 13px; opacity: 0.5; cursor: pointer;">All Time</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></div>
+          <span style="font-size: 12px; opacity: 0.5;">GA4 Connected</span>
+          <span style="font-size: 12px; opacity: 0.3;">|</span>
+          <span style="font-size: 12px; opacity: 0.4;">Last synced 12m ago</span>
+        </div>
+      </div>
+
+      <!-- KPI cards row -->
+      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; border-bottom: 1px solid rgba(255,255,255,0.08);">
+        <div style="padding: 20px 24px; border-right: 1px solid rgba(255,255,255,0.08); text-align: center;">
+          <div style="font-size: 28px; font-weight: 700;">1,247</div>
+          <div style="font-size: 12px; opacity: 0.5; margin-top: 4px;">Pageviews</div>
+          <div style="font-size: 11px; color: #22c55e; margin-top: 2px;">+18% vs prev</div>
+        </div>
+        <div style="padding: 20px 24px; border-right: 1px solid rgba(255,255,255,0.08); text-align: center;">
+          <div style="font-size: 28px; font-weight: 700;">843</div>
+          <div style="font-size: 12px; opacity: 0.5; margin-top: 4px;">Unique Visitors</div>
+          <div style="font-size: 11px; color: #22c55e; margin-top: 2px;">+12% vs prev</div>
+        </div>
+        <div style="padding: 20px 24px; border-right: 1px solid rgba(255,255,255,0.08); text-align: center;">
+          <div style="font-size: 28px; font-weight: 700;">34%</div>
+          <div style="font-size: 12px; opacity: 0.5; margin-top: 4px;">Bounce Rate</div>
+          <div style="font-size: 11px; color: #22c55e; margin-top: 2px;">-5% vs prev</div>
+        </div>
+        <div style="padding: 20px 24px; border-right: 1px solid rgba(255,255,255,0.08); text-align: center;">
+          <div style="font-size: 28px; font-weight: 700;">3:12</div>
+          <div style="font-size: 12px; opacity: 0.5; margin-top: 4px;">Avg. Time on Page</div>
+          <div style="font-size: 11px; color: #eab308; margin-top: 2px;">-2% vs prev</div>
+        </div>
+        <div style="padding: 20px 24px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 700;">2.4</div>
+          <div style="font-size: 12px; opacity: 0.5; margin-top: 4px;">Pages / Session</div>
+          <div style="font-size: 11px; color: #22c55e; margin-top: 2px;">+8% vs prev</div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div style="padding: 24px;">
+        <!-- Views over time chart -->
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 16px;">Pageviews Over Time</div>
+          <div style="display: flex; align-items: flex-end; gap: 6px; height: 120px; padding: 0 8px;">
+            <div style="flex: 1; background: rgba(59,130,246,0.3); border-radius: 3px 3px 0 0; height: 45%;"></div>
+            <div style="flex: 1; background: rgba(59,130,246,0.3); border-radius: 3px 3px 0 0; height: 62%;"></div>
+            <div style="flex: 1; background: rgba(59,130,246,0.3); border-radius: 3px 3px 0 0; height: 38%;"></div>
+            <div style="flex: 1; background: rgba(59,130,246,0.3); border-radius: 3px 3px 0 0; height: 85%;"></div>
+            <div style="flex: 1; background: rgba(59,130,246,0.5); border-radius: 3px 3px 0 0; height: 100%;"></div>
+            <div style="flex: 1; background: rgba(59,130,246,0.3); border-radius: 3px 3px 0 0; height: 72%;"></div>
+            <div style="flex: 1; background: rgba(59,130,246,0.3); border-radius: 3px 3px 0 0; height: 55%;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 8px 0; font-size: 11px; opacity: 0.3;">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+          </div>
+        </div>
+
+        <!-- Two column: Sources + Devices -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+          <!-- Traffic Sources -->
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 20px;">
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 16px;">Traffic Sources</div>
+            <div style="display: grid; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 100%; background: rgba(255,255,255,0.05); border-radius: 4px; height: 24px; position: relative; overflow: hidden;">
+                  <div style="position: absolute; left: 0; top: 0; height: 100%; width: 42%; background: rgba(59,130,246,0.3); border-radius: 4px;"></div>
+                  <span style="position: absolute; left: 8px; top: 3px; font-size: 12px;">Organic Search</span>
+                  <span style="position: absolute; right: 8px; top: 3px; font-size: 12px; opacity: 0.5;">42%</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 100%; background: rgba(255,255,255,0.05); border-radius: 4px; height: 24px; position: relative; overflow: hidden;">
+                  <div style="position: absolute; left: 0; top: 0; height: 100%; width: 28%; background: rgba(168,85,247,0.3); border-radius: 4px;"></div>
+                  <span style="position: absolute; left: 8px; top: 3px; font-size: 12px;">Social Media</span>
+                  <span style="position: absolute; right: 8px; top: 3px; font-size: 12px; opacity: 0.5;">28%</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 100%; background: rgba(255,255,255,0.05); border-radius: 4px; height: 24px; position: relative; overflow: hidden;">
+                  <div style="position: absolute; left: 0; top: 0; height: 100%; width: 18%; background: rgba(34,197,94,0.3); border-radius: 4px;"></div>
+                  <span style="position: absolute; left: 8px; top: 3px; font-size: 12px;">Direct</span>
+                  <span style="position: absolute; right: 8px; top: 3px; font-size: 12px; opacity: 0.5;">18%</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 100%; background: rgba(255,255,255,0.05); border-radius: 4px; height: 24px; position: relative; overflow: hidden;">
+                  <div style="position: absolute; left: 0; top: 0; height: 100%; width: 12%; background: rgba(234,179,8,0.3); border-radius: 4px;"></div>
+                  <span style="position: absolute; left: 8px; top: 3px; font-size: 12px;">Referral</span>
+                  <span style="position: absolute; right: 8px; top: 3px; font-size: 12px; opacity: 0.5;">12%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Referrers -->
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 20px;">
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 16px;">Top Referrers</div>
+            <div style="display: grid; gap: 8px; font-size: 13px;">
+              <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <span>google.com</span><span style="opacity: 0.5;">524 visits</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <span>twitter.com / x.com</span><span style="opacity: 0.5;">198 visits</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <span>linkedin.com</span><span style="opacity: 0.5;">152 visits</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <span>reddit.com</span><span style="opacity: 0.5;">87 visits</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                <span>news.ycombinator.com</span><span style="opacity: 0.5;">43 visits</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom row: Devices + Geography -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+
+          <!-- Device Breakdown -->
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 20px;">
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 16px;">Devices</div>
+            <div style="display: flex; gap: 24px; align-items: center;">
+              <!-- Donut placeholder -->
+              <div style="width: 100px; height: 100px; border-radius: 50%; border: 12px solid rgba(59,130,246,0.5); border-top-color: rgba(168,85,247,0.5); border-right-color: rgba(34,197,94,0.5); flex-shrink: 0;"></div>
+              <div style="display: grid; gap: 8px; font-size: 13px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 10px; height: 10px; border-radius: 2px; background: rgba(59,130,246,0.5);"></div>
+                  Desktop — 58%
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 10px; height: 10px; border-radius: 2px; background: rgba(168,85,247,0.5);"></div>
+                  Mobile — 35%
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 10px; height: 10px; border-radius: 2px; background: rgba(34,197,94,0.5);"></div>
+                  Tablet — 7%
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Countries -->
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 20px;">
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 16px;">Top Countries</div>
+            <div style="display: grid; gap: 8px; font-size: 13px;">
+              <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <span>United States</span><span style="opacity: 0.5;">62%</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <span>United Kingdom</span><span style="opacity: 0.5;">11%</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <span>Canada</span><span style="opacity: 0.5;">8%</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <span>Germany</span><span style="opacity: 0.5;">5%</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                <span>India</span><span style="opacity: 0.5;">4%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Data Sources</h3>
+  <div style="display: grid; gap: 12px;">
+    <div style="background: rgba(255,255,255,0.03); padding: 14px 16px; border-radius: 8px; border-left: 3px solid #22c55e;">
+      <strong>GA4 connected</strong> — All metrics come from GA4 Data API filtered to this page's URL path. Cached in Convex for 1 hour. Date range selector controls the API query window.
+    </div>
+    <div style="background: rgba(255,255,255,0.03); padding: 14px 16px; border-radius: 8px; border-left: 3px solid #eab308;">
+      <strong>GA4 not connected</strong> — Falls back to built-in tracking. Same layout but shows pageviews, unique visitors, referrers, and device data from the native pageEvents table. Some GA-only metrics (bounce rate, pages/session) show "Connect GA4 for this metric."
+    </div>
+    <div style="background: rgba(255,255,255,0.03); padding: 14px 16px; border-radius: 8px; border-left: 3px solid #3b82f6;">
+      <strong>Comparison periods</strong> — "vs prev" compares the selected range to the equivalent preceding range. 7 days vs prior 7 days, 30 vs prior 30, etc.
+    </div>
+  </div>
+</div>

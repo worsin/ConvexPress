@@ -5,7 +5,7 @@
 > **Two-app architecture:** `ConvexPress-Admin/` (TanStack Router SPA, Convex Auth) owns the Convex database + all mutations. `ConvexPress-Website/` (TanStack Start SSR, Clerk auth) is a read-only consumer.
 > **Roles (WordPress-standard):** Administrator / Editor / Author / Contributor / Subscriber. Customer-facing UIs serve `Subscriber` + guests.
 > **No third-party plugin/theme marketplace.** AI builds custom per-site. Internally, "extensions" are feature-flagged modules (Bundles, Digital, Returns, Reviews, Wishlists, Subscriptions, Add-Ons, Membership) that live in `convex/commerce<Thing>/` with a `<thing>Enabled` settings flag and a `require<Thing>Enabled(ctx)` gate on every mutation/query.
-> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `docs/stripe-integration.md`).
+> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `agents/knowledge/stripe-integration.md`).
 
 
 
@@ -20,7 +20,7 @@
 
 - **Checkout System** — creates PaymentIntents tied to a checkout session.
 - **Order System** — attaches `payment_transaction` records to `commerce_orders`.
-- **Commerce Subscriptions** — uses the same Stripe primitives for off-session charging (see `docs/stripe-integration.md`).
+- **Commerce Subscriptions** — uses the same Stripe primitives for off-session charging (see `agents/knowledge/stripe-integration.md`).
 - **Settings System** — `commerce.payments` section holds Stripe/PayPal keys, read via `helpers/serviceKeys.ts`.
 
 **WooCommerce analog:** WooCommerce Payments + Stripe for WooCommerce + PayPal Payments — gateway abstraction with settings-first key resolution.
@@ -1470,12 +1470,12 @@ export const handlePayPalWebhook = httpAction(async (ctx, request) => {
 
 | Entity | Record ID |
 |--------|-----------|
-| System (Payment System) | recLfWrj0QjuYGwrF |
-| Routes | recMPe7ZE7sELR6ew, recIHqZAs9XtZcpWY |
-| Actions | recZIsKB85R1WKgmI, recZgYESCOoq1L7F4, rechwvHLESx6dUHLF, recYgiMvbU1Uu69xZ, recpkfDJr5YoZw6Zi, receS70G6GfWWEvln |
-| Events | recssYOy9MXqJ7nsn, recKknnmpoozGr1xV, recXlzMQNuyjgUH3u, rec6qzQZ52lDr6hPv, recmocoDdFKJTGRWW |
-| Email Notifications | recaK41dfpyf7rcVd, rechMH7BZqQ3B03Yd, recULVfJNH82yNKOW |
-| Site Notifications | recG8mjUhpBBg9zOw, rec38taiv79cz4tSf, recYY1CcBLWikCcf5 |
+| System (Payment System) | [redacted-airtable-record-id] |
+| Routes | [redacted-airtable-record-id], [redacted-airtable-record-id] |
+| Actions | [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id] |
+| Events | [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id] |
+| Email Notifications | [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id] |
+| Site Notifications | [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id] |
 
 ### B. Related Documentation
 

@@ -4,7 +4,7 @@
 > **Roles:** WordPress-standard.
 > **Stack:** Bun, Base UI, Tailwind v4, Stripe.
 > **Canonical path:** `specs/ConvexPress/systems/content-restriction-system/PRD.md`
-> **Airtable Record:** `rectnFOFoGysK3DQC`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:membership-plan-system` (co-owner).
 > **Status:** Shipped as part of the Membership Plan System. This PRD is the formal restriction-rule contract; the grant + plan machinery lives in `membership-plan-system/PRD.md`.
 
@@ -148,7 +148,7 @@ membership_restriction_rule_history: defineTable({
 - `membership.queries.listRestrictionRules / getRulesForResource`
 - `membership.queries.checkAccess(resourceType, resourceIdOrKey, userId?)` — public
 - `membership.queries.checkAccessAndLog` — mutation variant with logging
-- `membership.internals.recordAccessCheck` — deferred log write
+- `membership.internals.[redacted-airtable-record-id]` — deferred log write
 - `membership.internals.trimAccessLog` — weekly cron (Wave 7)
 
 ### 3.2 Wave 11
@@ -218,5 +218,5 @@ membership_restriction_rule_history: defineTable({
 - Knowledge doc: `.claude/docs/MEMBERSHIP-PLAN-SYSTEM.md`
 - Tests: `convex/membership/__tests__/`
 - Sibling PRDs: `membership-plan-system`, `subscription-entitlement-system`, `post-system`, `page-system`, `product-system`, `routing-system`, `content-editor-system`
-- Acceptance history: `docs/superpowers/reports/2026-04-21-membership-subscriptions-acceptance.md`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `rectnFOFoGysK3DQC`
+- Acceptance history: `audits/superpowers/2026-04-21-membership-subscriptions-acceptance.md`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

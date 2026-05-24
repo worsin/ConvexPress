@@ -4,7 +4,7 @@
 > **Roles:** WordPress-standard.
 > **Stack:** Bun, Base UI, Tailwind v4.
 > **Canonical path:** `specs/ConvexPress/systems/support-analytics-system/PRD.md`
-> **Airtable Record:** `recTHIXsoLIxLhtdk`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:support-analytics-system` (may consolidate under `/experts:support-system`)
 > **Status:** Shipped ~45%. Basic metrics exist; full dashboard + SLA breach detection Wave 11.
 
@@ -75,7 +75,7 @@ support_sla_policies: defineTable({
   name: v.string(),
   firstResponseMinutes: v.number(),
   resolutionMinutes: v.number(),
-  appliesToPriority: v.optional(v.array(v.string())),
+  [redacted-airtable-base-id]: v.optional(v.array(v.string())),
   appliesToTags: v.optional(v.array(v.string())),
   isActive: v.boolean(),
 }).index("by_active", ["isActive"]);
@@ -169,4 +169,4 @@ support_metrics_daily: defineTable({
 - Code: `convex/support/analytics.ts`
 - Schema: `convex/schema/tickets.ts`
 - Sibling PRDs: `ticket-lifecycle-system`, `ticket-agent-tools`, `ticket-widget-system`, `support-deflection-system`, `support-integration-system`, `kb-search-and-analytics`, `analytics-system`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recTHIXsoLIxLhtdk`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

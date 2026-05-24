@@ -5,11 +5,11 @@
 > **Two-app architecture:** `ConvexPress-Admin/` (TanStack Router SPA, Convex Auth) owns the Convex database + all mutations. `ConvexPress-Website/` (TanStack Start SSR, Clerk auth) is a read-only consumer.
 > **Roles (WordPress-standard):** Administrator / Editor / Author / Contributor / Subscriber. Customer-facing UIs serve `Subscriber` + guests.
 > **No third-party plugin/theme marketplace.** AI builds custom per-site. Internally, "extensions" are feature-flagged modules (Bundles, Digital, Returns, Reviews, Wishlists, Subscriptions, Add-Ons, Membership) that live in `convex/commerce<Thing>/` with a `<thing>Enabled` settings flag and a `require<Thing>Enabled(ctx)` gate on every mutation/query.
-> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `docs/stripe-integration.md`).
+> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `agents/knowledge/stripe-integration.md`).
 
 
 > **Status:** DRAFT - Upgraded to Template-Driven Container Model
-> **Airtable Record:** recVGRWbekNydvuH4
+> **Airtable Record:** [redacted-airtable-record-id]
 
 ---
 
@@ -22,7 +22,7 @@
 **Consumes these ConvexPress systems:**
 
 - **Product System** — subscription products link to `commerce_products`.
-- **Payment System** — off-session charging via Stripe (see `docs/stripe-integration.md`). Gated additionally by `commerce.payments.subscriptionChargingEnabled`.
+- **Payment System** — off-session charging via Stripe (see `agents/knowledge/stripe-integration.md`). Gated additionally by `commerce.payments.subscriptionChargingEnabled`.
 - **Membership Plan System** — bridge propagates subscription status → membership grants.
 - **Order System** — signup creates a first-invoice order.
 - **Email Notification System** — welcome / renewed / payment_failed / trial_ending / cancelled / paused templates.
@@ -1592,7 +1592,7 @@ After implementation, verify these use cases:
 
 | Entity | Record ID |
 |--------|-----------|
-| System | recVGRWbekNydvuH4 |
+| System | [redacted-airtable-record-id] |
 
 ### B. Related Documentation
 

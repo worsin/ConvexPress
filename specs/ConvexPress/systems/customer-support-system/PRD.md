@@ -5,11 +5,11 @@
 > **Two-app architecture:** `ConvexPress-Admin/` (TanStack Router SPA, Convex Auth) owns the Convex database + all mutations. `ConvexPress-Website/` (TanStack Start SSR, Clerk auth) is a read-only consumer.
 > **Roles (WordPress-standard):** Administrator / Editor / Author / Contributor / Subscriber. Customer-facing UIs serve `Subscriber` + guests.
 > **No third-party plugin/theme marketplace.** AI builds custom per-site. Internally, "extensions" are feature-flagged modules (Bundles, Digital, Returns, Reviews, Wishlists, Subscriptions, Add-Ons, Membership) that live in `convex/commerce<Thing>/` with a `<thing>Enabled` settings flag and a `require<Thing>Enabled(ctx)` gate on every mutation/query.
-> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `docs/stripe-integration.md`).
+> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `agents/knowledge/stripe-integration.md`).
 
 
 > **Status:** DRAFT - Awaiting Review & Enhancement
-> **Airtable Record:** recomVQomRqmSjOsd
+> **Airtable Record:** [redacted-airtable-record-id]
 
 ---
 
@@ -858,12 +858,12 @@ export const autoCloseStaleTickets = internalMutation({
 
 | Entity | Record ID |
 |--------|-----------|
-| System | recomVQomRqmSjOsd |
-| Routes | recoKw5RAMKm8YY8p, recf0QQVW2Anj0pp5, recisx5rXbqHHGKRs |
-| Actions | recZRPfWoQjTTwdWU, rec3bvksdVyYbP8Nf, recsydDeyJam1PI10, recudqa9e1churRG5 |
-| Events | recIHc8Y5LHie5eVR, recqbYY5hW2RWZHjV, recGVqUT1me1UbinF, receFKt5nSeyrj3zm, recG6ejkcPdCItCbx |
-| Email Notifications | recxXOidQCrLQI8or, rec9KhTzjXdRsW1ym, recSlOjia5JGn7HiM, recSimZdeqJ6TEF7W, recVc3dWJLqFqdt7B |
-| Site Notifications | rec3nTBaOGRU9D3Mn, recHtepAtVxcWq9WZ, receB2hinLXhChZcw, rec2so74kU1xzY2Xj, reczs1s8ujXIV2Ljr |
+| System | [redacted-airtable-record-id] |
+| Routes | [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id] |
+| Actions | [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id] |
+| Events | [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id] |
+| Email Notifications | [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id] |
+| Site Notifications | [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id], [redacted-airtable-record-id] |
 
 ### B. Related Documentation
 

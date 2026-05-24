@@ -862,7 +862,7 @@ ConvexPress-Admin/packages/backend/convex/shipping/
 
 ### 15.6 Related Events Registry
 
-Event definitions live in the Airtable blueprint (`tblDQOlXXJO1aQapT`). The `shipping.provider.ups.oauth_refreshed` event is new in this PRD and must be added to the Events table before implementation begins.
+Event definitions live in the Airtable blueprint (`[redacted-airtable-table-id]`). The `shipping.provider.ups.oauth_refreshed` event is new in this PRD and must be added to the Events table before implementation begins.
 
 ---
 

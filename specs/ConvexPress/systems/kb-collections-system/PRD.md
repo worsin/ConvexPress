@@ -4,7 +4,7 @@
 > **Roles:** WordPress-standard.
 > **Stack:** Bun, Base UI, Tailwind v4.
 > **Canonical path:** `specs/ConvexPress/systems/kb-collections-system/PRD.md`
-> **Airtable Record:** `recITv58eujrw9lLR`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:kb-collections-system` (may consolidate under `/experts:kb-article-system`)
 > **Status:** Shipped ~70%. Collection CRUD + article ordering live; progress tracking + certificate generation are Wave 11.
 
@@ -116,7 +116,7 @@ kb_userCollectionProgress: defineTable({
 - `kb.collections.addArticle / removeArticle / reorderArticles`
 
 ### 3.2 Wave 11
-- `kb.collections.progress.recordArticleRead(userId, collectionId, articleId)`
+- `kb.collections.progress.[redacted-airtable-record-id](userId, collectionId, articleId)`
 - `kb.collections.progress.getForUser(userId, collectionId)`
 - `kb.collections.progress.completeCollection(userId, collectionId)` — emits event, generates certificate if enabled
 - `kb.collections.actions.renderCertificate` — Node action to produce PDF certificate
@@ -168,4 +168,4 @@ kb_userCollectionProgress: defineTable({
 - Code: `convex/kb/collections.ts`
 - Schema: `convex/schema/kb.ts`
 - Sibling PRDs: `kb-article-system`, `kb-category-system`, `kb-search-and-analytics`, `membership-plan-system`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recITv58eujrw9lLR`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

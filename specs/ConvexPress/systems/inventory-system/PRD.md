@@ -5,7 +5,7 @@
 > **Two-app architecture:** `ConvexPress-Admin/` (TanStack Router SPA, Convex Auth) owns the Convex database + all mutations. `ConvexPress-Website/` (TanStack Start SSR, Clerk auth) is a read-only consumer.
 > **Roles (WordPress-standard):** Administrator / Editor / Author / Contributor / Subscriber. Customer-facing UIs serve `Subscriber` + guests.
 > **No third-party plugin/theme marketplace.** AI builds custom per-site. Internally, "extensions" are feature-flagged modules (Bundles, Digital, Returns, Reviews, Wishlists, Subscriptions, Add-Ons, Membership) that live in `convex/commerce<Thing>/` with a `<thing>Enabled` settings flag and a `require<Thing>Enabled(ctx)` gate on every mutation/query.
-> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `docs/stripe-integration.md`).
+> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `agents/knowledge/stripe-integration.md`).
 
 
 
@@ -381,7 +381,7 @@ Stock Flow:
 function InventoryDashboard() {
   const lowStockItems = useQuery(api.inventory.getLowStock);
   const outOfStockItems = useQuery(api.inventory.getOutOfStock);
-  const recentAdjustments = useQuery(api.inventory.getRecentAdjustments);
+  const [redacted-airtable-record-id] = useQuery(api.inventory.getRecentAdjustments);
 
   // All update in real-time as stock changes!
   return (
@@ -396,7 +396,7 @@ function InventoryDashboard() {
         count={outOfStockItems?.length ?? 0}
         variant="error"
       />
-      <RecentActivity items={recentAdjustments} />
+      <RecentActivity items={[redacted-airtable-record-id]} />
     </div>
   );
 }

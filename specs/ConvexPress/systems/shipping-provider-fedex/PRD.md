@@ -834,10 +834,10 @@ All events flow through the Event Dispatcher (`event-dispatcher-system`) per the
 
 ### 15.5 Related Airtable Blueprint Records
 
-- System: `shipping-provider-fedex` (Systems table `tblmiSawf6mIf56V8`)
-- Expert: FedEx Provider Expert (System Experts table `tblTubYOAFng8uVi6`)
-- Capabilities: prefix `admin.shipping.providers.fedex.*` (Actions table `tblQTSboBXFiXSP3O`)
-- Events: `shipping.provider.fedex.oauth_refreshed`, `shipping.provider.fedex.sandbox_on_live_order` (Events table `tblDQOlXXJO1aQapT`)
+- System: `shipping-provider-fedex` (Systems table `[redacted-airtable-table-id]`)
+- Expert: FedEx Provider Expert (System Experts table `[redacted-airtable-table-id]`)
+- Capabilities: prefix `admin.shipping.providers.fedex.*` (Actions table `[redacted-airtable-table-id]`)
+- Events: `shipping.provider.fedex.oauth_refreshed`, `shipping.provider.fedex.sandbox_on_live_order` (Events table `[redacted-airtable-table-id]`)
 
 ### 15.6 Implementation Files (Target Layout)
 

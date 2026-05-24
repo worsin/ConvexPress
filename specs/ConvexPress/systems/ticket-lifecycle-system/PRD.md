@@ -4,7 +4,7 @@
 > **Roles:** WordPress-standard.
 > **Stack:** Bun, Base UI, Tailwind v4.
 > **Canonical path:** `specs/ConvexPress/systems/ticket-lifecycle-system/PRD.md`
-> **Airtable Record:** `recoAjLPxxlGwWgsm`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:ticket-lifecycle-system` (may consolidate under `/experts:support-system`)
 > **Status:** Shipped ~70%. Core CRUD + messages + status machine live; workflow rules + escalation + bulk actions Wave 11.
 
@@ -191,4 +191,4 @@ tickets_merges: defineTable({
 - Code: `convex/tickets/*` (11 files)
 - Schema: `convex/schema/tickets.ts`
 - Sibling PRDs: `support-integration-system`, `ticket-agent-tools`, `ticket-widget-system`, `support-deflection-system`, `support-analytics-system`, `email-notification-system`, `customer-system`, `order-system`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recoAjLPxxlGwWgsm`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

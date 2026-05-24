@@ -5,7 +5,7 @@
 > **Roles:** WordPress-standard — Administrator / Editor / Author / Contributor / Subscriber.
 > **No third-party plugin/theme marketplace.** Stack: Bun, Base UI, Tailwind v4, Stripe.
 > **Canonical path:** `specs/ConvexPress/systems/discount-system/PRD.md`
-> **Airtable Record:** `recfLI9oTU3wOx9Je`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:discount-system` (to be created)
 > **Status:** Core engine shipped (~55% feature-complete). Parity gaps identified with WooCommerce Coupons + Shopify Discounts.
 
@@ -266,4 +266,4 @@ Admins toggle active + tune.
 - Admin UI: `apps/web/src/routes/.../commerce/discounts.tsx`
 - Audit backlog: `.codex/audit-backlog/system-audit-gaps.md` §Discount System
 - Sibling PRDs: `cart-system`, `checkout-system`, `tax-system`, `order-system`, `customer-system`, `subscription-system`, `payment-system`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recfLI9oTU3wOx9Je`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

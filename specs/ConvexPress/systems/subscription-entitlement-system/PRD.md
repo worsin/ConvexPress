@@ -5,7 +5,7 @@
 > **Roles:** WordPress-standard.
 > **Stack:** Bun, Base UI, Tailwind v4, Stripe.
 > **Canonical path:** `specs/ConvexPress/systems/subscription-entitlement-system/PRD.md`
-> **Airtable Record:** `recgbNuzg3lSyN3Br`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** Co-owned by `/experts:commerce-subscriptions-system` + `/experts:membership-plan-system`.
 > **Status:** Shipped as the **bridge layer** between Commerce Subscriptions and Membership Plans. Wave 7 wired `syncEntitlementsForStatus`; Wave 10.4 added `linkedRoleId` role elevation. ~95% feature-complete.
 
@@ -165,5 +165,5 @@ Drives Wave 10.4 role elevation via `helpers/permissions.pickHighestRole`.
 - Code: `commerceSubscriptions/internals.ts:syncEntitlementsForStatus`, `bridgeDecisions.ts`, `membership/internals.ts`, `helpers/permissions.ts`
 - Tests: `commerceSubscriptions/__tests__/bridge.test.ts`, `membership/__tests__/bridge.test.ts`, `helpers/__tests__/linkedRole.test.ts`
 - Sibling PRDs: `subscription-system`, `subscription-billing-system`, `membership-plan-system`, `content-restriction-system`, `role-capability-system`
-- Acceptance history: `docs/superpowers/reports/2026-04-21-membership-subscriptions-acceptance.md` (Wave 4 + Wave 10.4 addenda)
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recgbNuzg3lSyN3Br`
+- Acceptance history: `audits/superpowers/2026-04-21-membership-subscriptions-acceptance.md` (Wave 4 + Wave 10.4 addenda)
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

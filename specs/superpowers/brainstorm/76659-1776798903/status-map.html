@@ -1,0 +1,98 @@
+<h2>Two-System Status Map</h2>
+<p class="subtitle">What's done, what's left, and where they connect.</p>
+
+<div class="section">
+  <div class="label">Existing Docs (already written)</div>
+  <div class="mockup">
+    <div class="mockup-header">.codex/docs/</div>
+    <div class="mockup-body">
+      <ul style="line-height: 1.8">
+        <li><strong>MEMBERSHIP-PLUGIN-PRD.md</strong> — thorough, 4-phase rollout, acceptance criteria defined</li>
+        <li><strong>MEMBERSHIP-PLUGIN-IMPLEMENTATION-CHECKLIST.md</strong> — 6 phases, file paths specified</li>
+        <li><strong>COMMERCE-SUBSCRIPTIONS-PLUGIN-PRD.md</strong> — 15 sections, "Current Implementation Remediation" section listing exactly what's broken</li>
+        <li><strong>COMMERCE-SUBSCRIPTIONS-PLUGIN-IMPLEMENTATION-CHECKLIST.md</strong> — 10 phases, Phase 0 marked in progress</li>
+        <li><strong>plans/subscription-implementation/00–07.md</strong> — 7 deep phased docs</li>
+        <li><strong>.codex/audit-backlog/system-audit-gaps.md</strong> — Membership 35%, Subscription 40%</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">Completion Status (Codex audit)</div>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Membership — 35%</div>
+      <div class="mockup-body">
+        <div style="margin-bottom: 12px">
+          <div style="background: hsl(var(--muted)); height: 10px; border-radius: 5px; overflow: hidden">
+            <div style="width: 35%; height: 100%; background: hsl(var(--primary))"></div>
+          </div>
+        </div>
+        <p><strong>Done:</strong></p>
+        <ul>
+          <li>Schema (5 tables)</li>
+          <li>Plan CRUD backend + admin UI</li>
+          <li>checkAccess query</li>
+          <li>Grant internals (manual + subscription bridge)</li>
+          <li>Plugin gate + overview dashboard</li>
+        </ul>
+        <p><strong>Missing:</strong></p>
+        <ul>
+          <li>Grants admin UI (placeholder)</li>
+          <li>Restrictions admin UI (placeholder)</li>
+          <li>Post/page editor integration</li>
+          <li>Content loader enforcement</li>
+          <li>Website member UX (teaser, upgrade, dashboard)</li>
+          <li>Subscription bridge actually called</li>
+          <li>Capability mapping enforced</li>
+          <li>Access log writes + expire cron</li>
+        </ul>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Subscriptions — 40%</div>
+      <div class="mockup-body">
+        <div style="margin-bottom: 12px">
+          <div style="background: hsl(var(--muted)); height: 10px; border-radius: 5px; overflow: hidden">
+            <div style="width: 40%; height: 100%; background: hsl(var(--primary))"></div>
+          </div>
+        </div>
+        <p><strong>Done:</strong></p>
+        <ul>
+          <li>Schema (15 tables)</li>
+          <li>Template/contract/entitlement tables</li>
+          <li>Status transition engine</li>
+          <li>Invoice generation scaffolding</li>
+          <li>Dunning scaffolding</li>
+          <li>Phase 0 stabilization (client-create gated)</li>
+        </ul>
+        <p><strong>Missing:</strong></p>
+        <ul>
+          <li>Offer CRUD (models exist, mutations don't)</li>
+          <li>Direct order form (SaaS signup) — entire phase</li>
+          <li>Cart-to-subscription handoff</li>
+          <li>Internal activation engine</li>
+          <li>Real renewal charging (currently no-op)</li>
+          <li>Customer portal (placeholder)</li>
+          <li>Admin detail/invoice/dunning pages</li>
+          <li>Membership bridge actually called</li>
+          <li>@ts-nocheck removal + tests</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">The Bridge (unwired today)</div>
+  <div class="mockup">
+    <div class="mockup-body">
+      <p>Subscription <code>syncEntitlementsForStatus</code> updates <code>commerce_subscription_entitlements</code> when status transitions — but it never calls membership's <code>grantFromSubscription</code> / <code>revokeFromSubscription</code>.</p>
+      <p><strong>The fix:</strong> one line in <code>syncEntitlementsForStatus</code> plus ~15 lines of mapping logic. The code exists on both sides — just needs wiring.</p>
+      <p><strong>Contract:</strong> offers carry <code>entitlementCodes</code>. Plans link via <code>linkedSubscriptionCode</code>. Entitlement code match = membership grant.</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle">I'll ask 3 confirmation questions in the terminal, then write the unified design doc.</p>

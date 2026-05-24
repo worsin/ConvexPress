@@ -5,7 +5,7 @@
 > **Roles:** WordPress-standard.
 > **Stack:** Bun, Base UI, Tailwind v4.
 > **Canonical path:** `specs/ConvexPress/systems/wordpress-sync-system/PRD.md`
-> **Airtable Record:** `rec97jl5dvwdkLOFz`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:wordpress-sync-system` (to be created)
 > **Status:** Deeply-built import pipeline; ~92% feature-complete. Remaining gaps are polish + edge-case field round-trip (esp. WooCommerce Product Add-Ons + coupons).
 
@@ -187,4 +187,4 @@ importer-field expansions.
 - Admin UI: `apps/web/src/routes/.../tools/wordpress-sync/`
 - Docs: `.codex/docs/WORDPRESS-WOOCOMMERCE-SYNC-IMPLEMENTATION-CHECKLIST.md`, `.codex/docs/WORDPRESS-WOOCOMMERCE-SYNC-PRODUCTION-STRATEGY.md`, `.codex/docs/WOOCOMMERCE-FIELD-FIDELITY-AND-CUSTOMER-CONTINUITY.md`
 - Sibling PRDs: `post-system`, `page-system`, `taxonomy-system`, `product-system`, `product-variants-system`, `product-bundles-system`, `order-system`, `customer-system`, `discount-system`, `commerce-subscriptions`, `media-system`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `rec97jl5dvwdkLOFz`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

@@ -3,9 +3,9 @@
 > **Project:** ConvexPress — unified CMS + commerce. Commerce is a first-class layer inside ConvexPress alongside posts/pages/media/users/taxonomies. Features are baked into commerce core or gated as internal extensions via `lib/plugins/registry.ts`.
 > **Two-app architecture:** `ConvexPress-Admin/` (Convex Auth) + `ConvexPress-Website/` (Clerk).
 > **Roles:** WordPress-standard (Administrator / Editor / Author / Contributor / Subscriber).
-> **Stack:** Bun, Base UI, Tailwind v4, Stripe (see `docs/stripe-integration.md`).
+> **Stack:** Bun, Base UI, Tailwind v4, Stripe (see `agents/knowledge/stripe-integration.md`).
 > **Canonical path:** `specs/ConvexPress/systems/returns-and-refunds-system/PRD.md`
-> **Airtable Record:** `recCOTnfkHREZgeRm`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:returns-refunds-system` (to be created)
 > **Status:** Internal extension (`commerceReturns`). ~82% feature-complete; documentation + UI polish + auto-label-gen are the remaining gaps.
 
@@ -234,4 +234,4 @@ Cart/Checkout expose a "Use store credit" toggle that calls `storeCredit.queries
 - Docs: `.codex/docs/COMMERCE-RETURNS-PLUGIN-PRD.md`, `.codex/docs/COMMERCE-RETURNS-PLUGIN-IMPLEMENTATION-CHECKLIST.md`, `.codex/docs/RETURNS-AND-REFUNDS-SYSTEM.md`
 - Audit: `.codex/audit-backlog/system-audit-gaps.md` §Returns & Refunds System
 - Sibling PRDs: `order-system`, `payment-system`, `customer-system`, `shipping-index`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recCOTnfkHREZgeRm`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

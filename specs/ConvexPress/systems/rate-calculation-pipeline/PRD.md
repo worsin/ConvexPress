@@ -720,7 +720,7 @@ All events emitted via the Event Dispatcher System's `emitEvent` helper.
 - Payload: `{ runId, sessionId, reason: "no_zone_match" | "all_methods_returned_zero", manualQuoteCount }`
 - Consumers: Site Notifications (optional alert per settings), Analytics (fallback rate tracking).
 
-All three events are registered in the Airtable Events table (`tblDQOlXXJO1aQapT`) under system A7.
+All three events are registered in the Airtable Events table (`[redacted-airtable-table-id]`) under system A7.
 
 ---
 

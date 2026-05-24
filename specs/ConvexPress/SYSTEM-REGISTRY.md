@@ -1,7 +1,7 @@
 # ConvexPress System Registry
 
 Generated: 2026-04-22
-Airtable base: `appqpJ8QQkoKsH02O` (ConvexPress)
+Airtable base: `[redacted-airtable-base-id]` (ConvexPress)
 
 This registry is the repo-side snapshot of parity between the Airtable `Systems` table and `System Experts` table. Every Airtable system listed here has exactly one linked System Expert record, a canonical PRD under `specs/ConvexPress/systems/`, a Codex expert prompt under `.codex/agents/experts/`, and a knowledge companion under `.codex/docs/`.
 

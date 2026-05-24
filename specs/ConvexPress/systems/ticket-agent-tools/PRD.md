@@ -4,7 +4,7 @@
 > **Roles:** WordPress-standard. Agents are `Editor`-level or higher with `tickets.reply` + `tickets.assign` capabilities.
 > **Stack:** Bun, Base UI, Tailwind v4.
 > **Canonical path:** `specs/ConvexPress/systems/ticket-agent-tools/PRD.md`
-> **Airtable Record:** `recsE5X5x9mVGy4uW`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:ticket-agent-tools` (may consolidate under `/experts:support-system`)
 > **Status:** Shipped ~58%. Agent inbox + reply composer + assignment live; AI-assisted reply + customer context sidebar + collision detection Wave 11.
 
@@ -156,4 +156,4 @@ tickets_agent_presence: defineTable({
 - Code: `convex/tickets/*` (shared with Ticket Lifecycle)
 - Admin UI: `apps/web/src/components/support/*`, `apps/web/src/routes/.../admin/support/*`
 - Sibling PRDs: `ticket-lifecycle-system`, `ticket-widget-system`, `support-integration-system`, `support-analytics-system`, `support-deflection-system`, `customer-system`, `order-system`, `subscription-system`, `ai-content-generation`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recsE5X5x9mVGy4uW`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

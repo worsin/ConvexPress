@@ -5,7 +5,7 @@
 > **Roles:** WordPress-standard.
 > **Stack:** Bun, Base UI, Tailwind v4, Tiptap editor.
 > **Canonical path:** `specs/ConvexPress/systems/kb-article-system/PRD.md`
-> **Airtable Record:** `recUdNaENVTpM0OoI`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:kb-article-system` (to be created)
 > **Status:** Shipped ~95% feature-complete. Core CRUD, Tiptap content, versioning, tags, workflow, feedback all live.
 
@@ -179,4 +179,4 @@ kb_articleSuggestions: defineTable({
 - Admin UI: `apps/web/src/routes/.../admin/kb/`
 - Website UI: `apps/web/src/routes/_marketing/kb/`
 - Sibling PRDs: `kb-category-system`, `kb-collections-system`, `kb-search-and-analytics`, `content-editor-system`, `revision-system`, `search-system`, `support-deflection-system`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recUdNaENVTpM0OoI`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

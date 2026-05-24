@@ -29,7 +29,7 @@ The work divides into **9 phases**, each independently deployable. Each phase en
 ## Phase 0 — Expert & Planning
 
 **Tasks**
-1. Create System Expert record in Airtable (base `appqpJ8QQkoKsH02O`, table `tblTubYOAFng8uVi6`):
+1. Create System Expert record in Airtable (base `[redacted-airtable-base-id]`, table `[redacted-airtable-table-id]`):
    - Name: "Product Add-Ons System Expert"
    - Slash command: `/experts:product-addons-system`
    - Knowledge doc path: `.claude/docs/PRODUCT-ADDONS-SYSTEM.md`

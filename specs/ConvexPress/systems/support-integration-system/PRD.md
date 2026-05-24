@@ -4,7 +4,7 @@
 > **Roles:** WordPress-standard.
 > **Stack:** Bun, Base UI, Tailwind v4.
 > **Canonical path:** `specs/ConvexPress/systems/support-integration-system/PRD.md`
-> **Airtable Record:** `recUwSvmOCTneKU1H`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:support-integration-system` (may consolidate under `/experts:support-system`)
 > **Status:** Scaffolded ~10%. This system handles **inbound channels** — the pipes that feed tickets into the Ticket Lifecycle System. Most code lives as integration modules, not end-to-end channel adapters yet.
 
@@ -167,4 +167,4 @@ support_inbound_events: defineTable({
 
 - Code: `convex/support/integration.ts` (current — KB↔ticket bridge), `convex/tickets/integration.ts` (reference)
 - Sibling PRDs: `ticket-lifecycle-system`, `ticket-agent-tools`, `ticket-widget-system`, `support-deflection-system`, `email-notification-system`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recUwSvmOCTneKU1H`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

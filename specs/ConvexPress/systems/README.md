@@ -75,7 +75,7 @@ Every ported PRD's v2 banner states:
 - **Two-app architecture:** Admin (TanStack Router SPA + Convex Auth, owns Convex DB) + Website (TanStack Start SSR + Clerk auth, read-only consumer).
 - **Roles:** WordPress-standard (Administrator/Editor/Author/Contributor/Subscriber).
 - **Extensions, not plugins:** ConvexPress has no third-party plugin/theme marketplace — AI builds custom per-site. Internally, feature-flagged extensions (Bundles, Digital, Returns, Reviews, Wishlists, Subscriptions, Add-Ons, Membership) live at `convex/commerce<Thing>/` gated by a `<thing>Enabled` settings flag + `require<Thing>Enabled(ctx)` helper.
-- **Stack:** Bun, Base UI (not Radix), Tailwind v4, Stripe. See `docs/stripe-integration.md`.
+- **Stack:** Bun, Base UI (not Radix), Tailwind v4, Stripe. See `agents/knowledge/stripe-integration.md`.
 
 The banner is the source of truth for environment constraints when a PRD
 body and a ConvexPress memory/convention conflict.

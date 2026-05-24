@@ -4,7 +4,7 @@
 > **Roles:** WordPress-standard.
 > **Stack:** Bun, Base UI, Tailwind v4, Meilisearch.
 > **Canonical path:** `specs/ConvexPress/systems/kb-search-and-analytics/PRD.md`
-> **Airtable Record:** `recIfJfiy3i9mBJZx`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:kb-search-and-analytics` (may consolidate under `/experts:search-system`)
 > **Status:** Shipped ~80% — Meilisearch indexing + view tracking + engagement metrics live; search-query analytics + zero-result detection Wave 11.
 
@@ -180,4 +180,4 @@ kb_searchQueryDaily: defineTable({
 - Code: `convex/kb/meilisearch.ts`, `convex/kb/analytics.ts`
 - Schema: `convex/schema/kb.ts`
 - Sibling PRDs: `kb-article-system`, `kb-category-system`, `kb-collections-system`, `search-system`, `analytics-system`, `ga4-integration-system`, `support-deflection-system`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recIfJfiy3i9mBJZx`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

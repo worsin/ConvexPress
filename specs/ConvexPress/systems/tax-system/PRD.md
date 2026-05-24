@@ -4,9 +4,9 @@
 > **Two-app architecture:** `ConvexPress-Admin/` (TanStack Router SPA, Convex Auth) owns the Convex database + all mutations. `ConvexPress-Website/` (TanStack Start SSR, Clerk auth) is a read-only consumer.
 > **Roles (WordPress-standard):** Administrator / Editor / Author / Contributor / Subscriber. Customer-facing UIs serve `Subscriber` + guests.
 > **No third-party plugin/theme marketplace.** AI builds custom per-site.
-> **Package manager:** Bun. **UI:** Base UI. **Styling:** Tailwind v4. **Payments:** Stripe (see `docs/stripe-integration.md`).
+> **Package manager:** Bun. **UI:** Base UI. **Styling:** Tailwind v4. **Payments:** Stripe (see `agents/knowledge/stripe-integration.md`).
 > **Canonical path:** `specs/ConvexPress/systems/tax-system/PRD.md`
-> **Airtable Record:** `recI1mn8zQBjj4uUg` ("Tax System")
+> **Airtable Record:** `[redacted-airtable-record-id]` ("Tax System")
 > **Expert:** `/experts:tax-system` (to be created; knowledge doc at `.claude/docs/TAX-SYSTEM.md`)
 > **Status:** FEATURE-COMPLETE for in-house rules engine path; Stripe Tax provider integration planned for Wave 11.
 
@@ -424,7 +424,7 @@ Wave 11 is complete when:
 - Current implementation: `ConvexPress-Admin/packages/backend/convex/commerce/tax.ts` (655 lines).
 - Test suite: `ConvexPress-Admin/packages/backend/convex/commerce/__tests__/taxHelpers.test.ts`.
 - Admin UI: `ConvexPress-Admin/apps/web/src/routes/_authenticated/_admin/commerce/settings.tax.tsx`.
-- Stripe integration architecture: `docs/stripe-integration.md`.
+- Stripe integration architecture: `agents/knowledge/stripe-integration.md`.
 - Commerce Core PRD (origin of the original thin Tax Requirements section): `.codex/docs/COMMERCE-CORE-PLUGIN-PRD.md` §Tax Requirements, §Tax Settings.
 - Audit backlog: `.codex/audit-backlog/system-audit-gaps.md` §Tax System (pre-Wave 11).
 - Related PRDs:
@@ -432,4 +432,4 @@ Wave 11 is complete when:
   - `specs/ConvexPress/systems/order-system/PRD.md`
   - `specs/ConvexPress/systems/customer-system/PRD.md`
   - `specs/ConvexPress/systems/discount-system/PRD.md` (sibling deficient PRD — write next)
-- Airtable: ConvexPress base `appqpJ8QQkoKsH02O`, Systems table, record `recI1mn8zQBjj4uUg`.
+- Airtable: ConvexPress base `[redacted-airtable-base-id]`, Systems table, record `[redacted-airtable-record-id]`.

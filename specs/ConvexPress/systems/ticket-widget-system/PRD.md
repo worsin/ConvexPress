@@ -4,7 +4,7 @@
 > **Roles:** WordPress-standard. Customer-facing widget serves `Subscriber` + guests.
 > **Stack:** Bun, Base UI, Tailwind v4.
 > **Canonical path:** `specs/ConvexPress/systems/ticket-widget-system/PRD.md`
-> **Airtable Record:** `recmtwJdC2Qy8cbY2`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:ticket-widget-system` (may consolidate under `/experts:support-system`)
 > **Status:** Shipped ~72%. Widget UI + ticket-creation flow + KB-search deflection live. Live chat + proactive-messaging polish Wave 11.
 
@@ -178,4 +178,4 @@ tickets_chat_sessions: defineTable({
 - Code: `convex/tickets/*` (shared); `convex/support/widget.ts`
 - Website UI: `ConvexPress-Website/apps/web/src/components/support/`
 - Sibling PRDs: `ticket-lifecycle-system`, `ticket-agent-tools`, `support-deflection-system`, `support-analytics-system`, `support-integration-system`, `kb-article-system`, `kb-search-and-analytics`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recmtwJdC2Qy8cbY2`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

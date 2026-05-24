@@ -558,7 +558,7 @@ Inherited from the shipping method base contract — same payload shape across a
 
 ### Airtable blueprint references
 
-- Systems table `tblmiSawf6mIf56V8` — this PRD corresponds to the B6 record.
-- Actions table `tblQTSboBXFiXSP3O` — `admin.shipping.methods.create`, `admin.shipping.methods.manage`, etc.
-- Events table `tblDQOlXXJO1aQapT` — `shipping.pickup.ready`, `shipping.pickup.completed`.
-- Email Notifications table `tbl5UW9iMJynfVUGG` — the pickup-ready and pickup-completed email templates.
+- Systems table `[redacted-airtable-table-id]` — this PRD corresponds to the B6 record.
+- Actions table `[redacted-airtable-table-id]` — `admin.shipping.methods.create`, `admin.shipping.methods.manage`, etc.
+- Events table `[redacted-airtable-table-id]` — `shipping.pickup.ready`, `shipping.pickup.completed`.
+- Email Notifications table `[redacted-airtable-table-id]` — the pickup-ready and pickup-completed email templates.

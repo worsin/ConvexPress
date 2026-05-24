@@ -4,7 +4,7 @@
 > **Roles:** WordPress-standard.
 > **Stack:** Bun, Base UI, Tailwind v4, Airtable API.
 > **Canonical path:** `specs/ConvexPress/systems/airtable-sync-system/PRD.md`
-> **Airtable Record:** `recglJi9ihr059Xji`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:airtable-sync-system` (to be created)
 > **Status:** Scaffolded ~40%. Currently a blueprint-sync meta-tool that pulls the ConvexPress Airtable base down into local system records. Wave 11 expands scope (or narrows it) based on the product decision below.
 
@@ -26,7 +26,7 @@
 - **Settings System** — `integrations.airtable` section holds API key + base ID + per-table preferences.
 - **Audit Log** — sync runs logged.
 
-**Airtable base:** `appqpJ8QQkoKsH02O` (ConvexPress blueprint base) with tables Systems, System Experts, Roles, Routes, Actions, Events, Action Types, Event Types, Email Notifications, Site Notifications.
+**Airtable base:** `[redacted-airtable-base-id]` (ConvexPress blueprint base) with tables Systems, System Experts, Roles, Routes, Actions, Events, Action Types, Event Types, Email Notifications, Site Notifications.
 
 ---
 
@@ -179,6 +179,6 @@ airtable_sync_errors: defineTable({
 ## 7. References
 
 - Code: `convex/airtableSync/*` (11 files)
-- Airtable base: `appqpJ8QQkoKsH02O` (ConvexPress blueprint)
+- Airtable base: `[redacted-airtable-base-id]` (ConvexPress blueprint)
 - Sibling PRDs: `settings-system`, `event-dispatcher-system`, `role-capability-system`, `routing-system`, `email-notification-system`, `site-notification-system`, `wordpress-sync-system` (for the content-sync pattern if Scope B ever lands)
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recglJi9ihr059Xji`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

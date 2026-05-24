@@ -4,7 +4,7 @@
 > **Roles:** WordPress-standard.
 > **Stack:** Bun, Base UI, Tailwind v4, Meilisearch.
 > **Canonical path:** `specs/ConvexPress/systems/support-deflection-system/PRD.md`
-> **Airtable Record:** `recZGRYnCpNr9DMHQ`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:support-deflection-system` (may consolidate under `/experts:support-system`)
 > **Status:** Shipped ~78%. KB article suggestion is live; AI-powered auto-reply is the Wave 11 polish.
 
@@ -141,4 +141,4 @@ support_deflection_daily: defineTable({
 
 - Code: `convex/support/deflection.ts`, `convex/kb/integration.ts`
 - Sibling PRDs: `kb-article-system`, `kb-search-and-analytics`, `ticket-widget-system`, `ticket-lifecycle-system`, `support-analytics-system`, `ai-content-generation`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recZGRYnCpNr9DMHQ`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

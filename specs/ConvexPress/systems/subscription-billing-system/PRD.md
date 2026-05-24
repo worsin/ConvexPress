@@ -3,9 +3,9 @@
 > **Project:** ConvexPress — unified CMS + commerce. Commerce is a first-class layer inside ConvexPress alongside posts/pages/media/users/taxonomies.
 > **Two-app architecture:** `ConvexPress-Admin/` (Convex Auth) + `ConvexPress-Website/` (Clerk).
 > **Roles:** WordPress-standard (Administrator / Editor / Author / Contributor / Subscriber).
-> **Stack:** Bun, Base UI, Tailwind v4, Stripe — off-session charging architecture in `docs/stripe-integration.md`.
+> **Stack:** Bun, Base UI, Tailwind v4, Stripe — off-session charging architecture in `agents/knowledge/stripe-integration.md`.
 > **Canonical path:** `specs/ConvexPress/systems/subscription-billing-system/PRD.md`
-> **Airtable Record:** `rec7Eayn6V8Vft1Vl`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:commerce-subscriptions-system` (existing — this system is the billing *view* of the combined Commerce Subscriptions System).
 > **Status:** Wave 9 shipped real Stripe off-session charging. This PRD is the billing-layer contract for the Commerce Subscriptions System; the lifecycle + admin surface live in `subscription-system/PRD.md`.
 
@@ -15,9 +15,9 @@
 
 **Clarification:** The Airtable Systems table has three closely-related records:
 
-1. **Commerce Subscriptions System** (`recMrbOOqnZjqs5zk`, slug `subscription-system`) — the full feature: templates, offers, contracts, items, order-form acquisition, customer portal, admin dashboard.
-2. **Subscription Billing System** (THIS record, `rec7Eayn6V8Vft1Vl`) — the charging / invoicing / dunning subset.
-3. **Subscription Entitlement System** (`recgbNuzg3lSyN3Br`) — the entitlement-code layer that bridges subscriptions → membership grants.
+1. **Commerce Subscriptions System** (`[redacted-airtable-record-id]`, slug `subscription-system`) — the full feature: templates, offers, contracts, items, order-form acquisition, customer portal, admin dashboard.
+2. **Subscription Billing System** (THIS record, `[redacted-airtable-record-id]`) — the charging / invoicing / dunning subset.
+3. **Subscription Entitlement System** (`[redacted-airtable-record-id]`) — the entitlement-code layer that bridges subscriptions → membership grants.
 
 In code these three live in **one module**: `convex/commerceSubscriptions/`. They share schema, events, and Stripe integration. This PRD narrows in on the **billing loop**: invoice generation, charging, dunning, proration, renewal cadence — the parts that move money.
 
@@ -208,7 +208,7 @@ Wave 11:
 - Code: `convex/commerceSubscriptions/internals.ts`, `renewal.ts`, `dunning.ts`, `proration.ts`, `stripeCharge.ts`, `actions.ts`
 - Knowledge doc: `.claude/docs/COMMERCE-SUBSCRIPTIONS-SYSTEM.md` (1050 lines)
 - PRD: `.codex/docs/COMMERCE-SUBSCRIPTIONS-PLUGIN-PRD.md`
-- Acceptance: `docs/superpowers/reports/2026-04-21-membership-subscriptions-acceptance.md` (Wave 7/9/10 addenda)
-- Stripe architecture: `docs/stripe-integration.md`
+- Acceptance: `audits/superpowers/2026-04-21-membership-subscriptions-acceptance.md` (Wave 7/9/10 addenda)
+- Stripe architecture: `agents/knowledge/stripe-integration.md`
 - Sibling PRDs: `subscription-system`, `subscription-entitlement-system`, `payment-system`, `order-system`, `membership-plan-system`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `rec7Eayn6V8Vft1Vl`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

@@ -4,7 +4,7 @@
 > **Roles:** WordPress-standard.
 > **Stack:** Bun, Base UI, Tailwind v4.
 > **Canonical path:** `specs/ConvexPress/systems/recipe-system/PRD.md`
-> **Airtable Record:** `rec5MeynGhwOGCY3b`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:recipe-system` (to be created)
 > **Status:** Shipped ~55%. Core CRUD + ingredient + instruction structures + categories live; nutrition calc + print-friendly + structured data + commerce integration Wave 11.
 
@@ -208,4 +208,4 @@ nutrition_ingredients: defineTable({
 - Admin UI: `apps/web/src/routes/.../admin/recipes/`
 - Website UI: `apps/web/src/routes/_marketing/recipes/`
 - Sibling PRDs: `post-system`, `page-system`, `content-editor-system`, `taxonomy-system`, `media-system`, `seo-system`, `search-system`, `product-system`, `cart-system`, `revision-system`, `comment-system`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `rec5MeynGhwOGCY3b`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

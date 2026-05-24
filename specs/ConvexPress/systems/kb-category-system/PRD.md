@@ -4,7 +4,7 @@
 > **Roles:** WordPress-standard.
 > **Stack:** Bun, Base UI, Tailwind v4.
 > **Canonical path:** `specs/ConvexPress/systems/kb-category-system/PRD.md`
-> **Airtable Record:** `recV6uDG1Ufo1cO2V`
+> **Airtable Record:** `[redacted-airtable-record-id]`
 > **Expert:** `/experts:kb-category-system` (may consolidate under `/experts:kb-article-system`)
 > **Status:** Shipped ~90% — category CRUD, nesting, article join table all live.
 
@@ -143,4 +143,4 @@ No schema changes required. Polish tasks only.
 - Code: `convex/kb/categories.ts`, `schema/kb.ts`
 - Admin UI: `apps/web/src/routes/.../admin/kb/categories/`
 - Sibling PRDs: `kb-article-system`, `kb-collections-system`, `kb-search-and-analytics`, `taxonomy-system`
-- Airtable: `appqpJ8QQkoKsH02O` / Systems / `recV6uDG1Ufo1cO2V`
+- Airtable: `[redacted-airtable-base-id]` / Systems / `[redacted-airtable-record-id]`

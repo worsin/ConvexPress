@@ -5,7 +5,7 @@
 > **Two-app architecture:** `ConvexPress-Admin/` (TanStack Router SPA, Convex Auth) owns the Convex database + all mutations. `ConvexPress-Website/` (TanStack Start SSR, Clerk auth) is a read-only consumer.
 > **Roles (WordPress-standard):** Administrator / Editor / Author / Contributor / Subscriber. Customer-facing UIs serve `Subscriber` + guests.
 > **No third-party plugin/theme marketplace.** AI builds custom per-site. Internally, "extensions" are feature-flagged modules (Bundles, Digital, Returns, Reviews, Wishlists, Subscriptions, Add-Ons, Membership) that live in `convex/commerce<Thing>/` with a `<thing>Enabled` settings flag and a `require<Thing>Enabled(ctx)` gate on every mutation/query.
-> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `docs/stripe-integration.md`).
+> **Package manager:** Bun. **UI:** Base UI (not Radix). **Styling:** Tailwind v4. **Payments:** Stripe (see `agents/knowledge/stripe-integration.md`).
 
 
 
@@ -55,7 +55,7 @@ The Checkout System transforms a shopping cart into a completed order. Built for
 - Cart management (the Cart System PRD (`specs/ConvexPress/systems/cart-system/PRD.md`))
 - Payment processing internals (the Payment System PRD (`specs/ConvexPress/systems/payment-system/PRD.md`))
 - Discount/coupon logic (the Commerce Core PRD's Discounts section (no standalone PRD yet — see `.codex/docs/COMMERCE-CORE-PLUGIN-PRD.md`))
-- Tax calculation internals (the Commerce Core PRD's Tax section (no standalone PRD yet — see `.codex/docs/COMMERCE-CORE-PLUGIN-PRD.md`) + `docs/stripe-integration.md`)
+- Tax calculation internals (the Commerce Core PRD's Tax section (no standalone PRD yet — see `.codex/docs/COMMERCE-CORE-PLUGIN-PRD.md`) + `agents/knowledge/stripe-integration.md`)
 - Order lifecycle post-creation (the Order System PRD (`specs/ConvexPress/systems/order-system/PRD.md`))
 - Shipping fulfillment (the Shipping Index (`specs/ConvexPress/systems/shipping-index/README.md`))
 
