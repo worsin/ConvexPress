@@ -553,8 +553,14 @@ function isQuitting() {
   return quitting;
 }
 
+// electron/utils/platform.ts
+var { app: app2 } = require("electron");
+function isDev() {
+  return !app2.isPackaged || process.env.CONVEXPRESS_DESKTOP_DEV === "1";
+}
+
 // electron/window-manager.ts
-var { app: app2, BrowserWindow: BrowserWindow2, shell } = require("electron");
+var { app: app3, BrowserWindow: BrowserWindow2, shell } = require("electron");
 function getPreloadPath() {
   return import_node_path4.default.join(__dirname, "preload.js");
 }
@@ -594,7 +600,7 @@ var WindowManager = class {
         sandbox: true
       }
     });
-    if (!app2.isPackaged) {
+    if (isDev()) {
       win.loadURL(process.env.CONVEXPRESS_DESKTOP_DEV_URL ?? "http://localhost:4105");
     } else {
       const indexPath = getRendererIndexPath();
@@ -621,8 +627,7 @@ var WindowManager = class {
       return { action: "deny" };
     });
     win.webContents.on("will-navigate", (event, url) => {
-      const isDev = !app2.isPackaged;
-      const isInternal = isDev ? url.startsWith("http://localhost:") : url.startsWith("file://");
+      const isInternal = isDev() ? url.startsWith("http://localhost:") : url.startsWith("file://");
       if (!isInternal) {
         event.preventDefault();
         void shell.openExternal(url);
@@ -807,7 +812,7 @@ async function initUpdaterEvents() {
 }
 
 // electron/ipc/index.ts
-var { ipcMain: ipcMain7, app: app3 } = require("electron");
+var { ipcMain: ipcMain7, app: app4 } = require("electron");
 function registerAllIpcHandlers() {
   registerWindowHandlers();
   registerConfigHandlers();
@@ -816,7 +821,7 @@ function registerAllIpcHandlers() {
   registerAppUpdaterHandlers();
   registerUpdaterHandlers();
   ipcMain7.handle("app:get-version", () => {
-    return app3.getVersion();
+    return app4.getVersion();
   });
   ipcMain7.handle("app:get-platform", () => {
     return {
@@ -826,16 +831,16 @@ function registerAllIpcHandlers() {
     };
   });
   ipcMain7.handle("app:quit", () => {
-    app3.quit();
+    app4.quit();
   });
 }
 
 // electron/tray.ts
 var import_node_path5 = __toESM(require("path"));
-var { app: app4, Menu, nativeImage, Tray } = require("electron");
+var { app: app5, Menu, nativeImage, Tray } = require("electron");
 var tray = null;
 function loadTrayIcon() {
-  const iconPath = app4.isPackaged ? import_node_path5.default.join(process.resourcesPath, "iconTemplate.png") : import_node_path5.default.join(__dirname, "../resources/iconTemplate.png");
+  const iconPath = isDev() ? import_node_path5.default.join(__dirname, "../resources/iconTemplate.png") : import_node_path5.default.join(process.resourcesPath, "iconTemplate.png");
   const image = nativeImage.createFromPath(iconPath);
   image.setTemplateImage(true);
   return image;
@@ -863,7 +868,7 @@ function createTray(wm) {
       label: "Quit",
       click: () => {
         setQuitting(true);
-        app4.quit();
+        app5.quit();
       }
     }
   ]);
@@ -885,18 +890,17 @@ function createTray(wm) {
 
 // electron/main.ts
 var {
-  app: app5,
+  app: app6,
   BrowserWindow: BrowserWindow3,
   ipcMain: ipcMain8,
-  nativeImage: nativeImage2,
   nativeTheme,
   session
 } = require("electron");
-app5.setName("ConvexPress");
-if (!app5.isPackaged) {
-  app5.setPath("userData", import_node_path6.default.join(app5.getPath("userData"), "-dev"));
+app6.setName("ConvexPress");
+if (isDev()) {
+  app6.setPath("userData", import_node_path6.default.join(app6.getPath("userData"), "-dev"));
 }
-var LOG_FILE = import_node_path6.default.join(app5.getPath("userData"), "convexpress-debug.log");
+var LOG_FILE = import_node_path6.default.join(app6.getPath("userData"), "convexpress-debug.log");
 function fileLog(msg) {
   const line = `[${(/* @__PURE__ */ new Date()).toISOString()}] ${msg}
 `;
@@ -955,8 +959,8 @@ function launchApp() {
       win.webContents.send("theme:os-changed", theme);
     }
   });
-  if (app5.isPackaged) {
-    const installPath = import_node_path6.default.dirname(app5.getAppPath());
+  if (app6.isPackaged && !isDev()) {
+    const installPath = import_node_path6.default.dirname(app6.getAppPath());
     const manifest = readManifest(installPath);
     if (manifest) {
       fileLog(`[Main] App-content updater initialized at ${installPath}`);
@@ -969,11 +973,11 @@ function launchApp() {
     fileLog(`[Main] Shell auto-updater init failed: ${err}`);
   });
 }
-var gotTheLock = app5.requestSingleInstanceLock();
+var gotTheLock = app6.requestSingleInstanceLock();
 if (!gotTheLock) {
-  app5.quit();
+  app6.quit();
 } else {
-  app5.on("second-instance", () => {
+  app6.on("second-instance", () => {
     const win = windowManager.getMainWindow();
     if (win) {
       if (win.isMinimized()) win.restore();
@@ -982,31 +986,10 @@ if (!gotTheLock) {
     }
   });
 }
-app5.whenReady().then(async () => {
+app6.whenReady().then(async () => {
   fileLog("[Main] App ready");
-  if (process.platform === "darwin" && app5.dock && !app5.isPackaged) {
-    const iconPath = import_node_path6.default.join(__dirname, "../resources/icon_dock.png");
-    try {
-      const dockIcon = nativeImage2.createFromPath(iconPath);
-      if (!dockIcon.isEmpty()) {
-        app5.dock.setIcon(dockIcon);
-        fileLog("[Main] Dock icon set");
-      }
-    } catch (err) {
-      safeError("[Main] Failed to set dock icon:", err);
-    }
-  }
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const csp = app5.isPackaged ? [
-      "default-src 'self' file: blob:",
-      "script-src 'self' file: 'unsafe-inline'",
-      "style-src 'self' file: 'unsafe-inline'",
-      "connect-src 'self' https://*.convex.cloud https://*.convex.dev https://*.convex.site wss://*.convex.cloud wss://*.convex.dev https://convex.cloud https://convex.dev",
-      "img-src 'self' file: data: blob: https://*.convex.cloud https://*.convex.site https://convex.cloud https://secure.gravatar.com",
-      "media-src 'self' file: data: blob: https://*.convex.cloud https://*.convex.site",
-      "font-src 'self' file: data:",
-      "frame-ancestors 'none'"
-    ].join("; ") : [
+    const csp = isDev() ? [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
@@ -1016,6 +999,15 @@ app5.whenReady().then(async () => {
       "font-src 'self' data:",
       "frame-ancestors 'none'",
       "base-uri 'self'"
+    ].join("; ") : [
+      "default-src 'self' file: blob:",
+      "script-src 'self' file: 'unsafe-inline'",
+      "style-src 'self' file: 'unsafe-inline'",
+      "connect-src 'self' https://*.convex.cloud https://*.convex.dev https://*.convex.site wss://*.convex.cloud wss://*.convex.dev https://convex.cloud https://convex.dev",
+      "img-src 'self' file: data: blob: https://*.convex.cloud https://*.convex.site https://convex.cloud https://secure.gravatar.com",
+      "media-src 'self' file: data: blob: https://*.convex.cloud https://*.convex.site",
+      "font-src 'self' file: data:",
+      "frame-ancestors 'none'"
     ].join("; ");
     callback({
       responseHeaders: {
@@ -1035,7 +1027,7 @@ app5.whenReady().then(async () => {
     }
     launchApp();
   });
-  if (!app5.isPackaged) {
+  if (isDev()) {
     fileLog("[Main] Dev mode \u2014 launching app directly");
     launchApp();
   } else if (isSetupComplete()) {
@@ -1046,14 +1038,14 @@ app5.whenReady().then(async () => {
     windowManager.createWizardWindow();
   }
 });
-app5.on("window-all-closed", () => {
+app6.on("window-all-closed", () => {
 });
-app5.on("activate", () => {
-  if (isSetupComplete() || !app5.isPackaged) {
+app6.on("activate", () => {
+  if (isSetupComplete() || isDev()) {
     windowManager.createMainWindow();
   }
 });
-app5.on("before-quit", () => {
+app6.on("before-quit", () => {
   fileLog("[Main] App quitting \u2014 cleaning up");
   setQuitting(true);
 });

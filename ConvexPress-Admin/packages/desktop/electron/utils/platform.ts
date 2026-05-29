@@ -5,10 +5,15 @@
 const { app } = require("electron") as typeof import("electron");
 
 /**
- * Returns true when running in development (not packaged).
+ * Returns true when running in development.
+ *
+ * macOS dev bundles can look packaged to Electron when the executable is
+ * renamed for Dock identity testing, so the dev launcher also sets an explicit
+ * marker. Security-sensitive startup gates must use this helper instead of
+ * app.isPackaged directly.
  */
 export function isDev(): boolean {
-  return !app.isPackaged;
+  return !app.isPackaged || process.env.CONVEXPRESS_DESKTOP_DEV === "1";
 }
 
 /**

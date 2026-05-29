@@ -16,8 +16,6 @@ extraResources:
     to: iconTemplate@2x.png
   - from: resources/icon.png
     to: icon.png
-  - from: resources/icon_dock.png
-    to: icon_dock.png
 
 # ---- macOS -------------------------------------------------------------------
 

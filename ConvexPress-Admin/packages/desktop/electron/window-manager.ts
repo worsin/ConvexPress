@@ -1,5 +1,6 @@
 import path from "node:path";
 import { isQuitting } from "./utils/app-state.js";
+import { isDev } from "./utils/platform.js";
 
 const { app, BrowserWindow, shell } = require("electron") as typeof import("electron");
 
@@ -55,7 +56,7 @@ class WindowManager {
       },
     });
 
-    if (!app.isPackaged) {
+    if (isDev()) {
       win.loadURL(process.env.CONVEXPRESS_DESKTOP_DEV_URL ?? "http://localhost:4105");
     } else {
       const indexPath = getRendererIndexPath();
@@ -94,8 +95,7 @@ class WindowManager {
     // Block any in-window navigation away from localhost (dev) or the
     // bundled file:// URL (prod). External URLs go to the system browser.
     win.webContents.on("will-navigate", (event, url) => {
-      const isDev = !app.isPackaged;
-      const isInternal = isDev
+      const isInternal = isDev()
         ? url.startsWith("http://localhost:")
         : url.startsWith("file://");
       if (!isInternal) {

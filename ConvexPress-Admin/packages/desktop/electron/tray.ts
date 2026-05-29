@@ -1,14 +1,15 @@
 import path from "node:path";
 import { setQuitting } from "./utils/app-state.js";
+import { isDev } from "./utils/platform.js";
 
 const { app, Menu, nativeImage, Tray } = require("electron") as typeof import("electron");
 
 let tray: Tray | null = null;
 
 function loadTrayIcon(): Electron.NativeImage {
-  const iconPath = app.isPackaged
-    ? path.join(process.resourcesPath, "iconTemplate.png")
-    : path.join(__dirname, "../resources/iconTemplate.png");
+  const iconPath = isDev()
+    ? path.join(__dirname, "../resources/iconTemplate.png")
+    : path.join(process.resourcesPath, "iconTemplate.png");
 
   const image = nativeImage.createFromPath(iconPath);
   image.setTemplateImage(true);

@@ -133,6 +133,7 @@ async function main() {
 		stdio: "inherit",
 		env: {
 			...childEnv,
+			CONVEXPRESS_DESKTOP_DEV: "1",
 			CONVEXPRESS_DESKTOP_DEV_URL: webUrl,
 		},
 	});

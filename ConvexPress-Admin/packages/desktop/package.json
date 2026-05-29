@@ -7,7 +7,7 @@
   "scripts": {
     "postinstall": "node scripts/patch-electron-mac.cjs",
     "dev": "node scripts/dev.mjs",
-    "build:electron": "tsup electron/main.ts --outDir dist-electron --format cjs --external electron --external electron-updater --external fix-path && tsup electron/preload.ts --outDir dist-electron --format cjs --external electron && rm -rf dist-electron/wizard && cp -r electron/wizard dist-electron/wizard",
+    "build:electron": "rm -rf dist-electron && tsup electron/main.ts --outDir dist-electron --format cjs --external electron --external electron-updater --external fix-path && tsup electron/preload.ts --outDir dist-electron --format cjs --external electron && cp -r electron/wizard dist-electron/wizard",
     "build:web": "cd ../../apps/web && ELECTRON_BUILD=true bun run build && rm -rf ../../packages/desktop/dist && cp -R dist ../../packages/desktop/dist",
     "build": "bun run build:web && bun run build:electron",
     "package:mac": "electron-builder --mac",

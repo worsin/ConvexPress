@@ -7,6 +7,7 @@ import { createTray } from "./tray.js";
 import { JsonStore } from "./utils/json-store.js";
 import { setQuitting } from "./utils/app-state.js";
 import { safeError, safeLog } from "./utils/safe-log.js";
+import { isDev } from "./utils/platform.js";
 import { windowManager } from "./window-manager.js";
 import { readManifest } from "./version.js";
 
@@ -14,7 +15,6 @@ const {
   app,
   BrowserWindow,
   ipcMain,
-  nativeImage,
   nativeTheme,
   session,
 } = require("electron") as typeof import("electron");
@@ -22,7 +22,7 @@ const {
 // ---------- IMPORTANT: Set app name and userData BEFORE anything reads them ----------
 app.setName("ConvexPress");
 
-if (!app.isPackaged) {
+if (isDev()) {
   app.setPath("userData", path.join(app.getPath("userData"), "-dev"));
 }
 
@@ -117,7 +117,7 @@ function launchApp(): void {
 
   // Initialize app-content updater (git-based, primary system)
   // Only when packaged and a version manifest exists (indicates git-managed install)
-  if (app.isPackaged) {
+  if (app.isPackaged && !isDev()) {
     const installPath = path.dirname(app.getAppPath());
     const manifest = readManifest(installPath);
     if (manifest) {
@@ -157,36 +157,10 @@ if (!gotTheLock) {
 app.whenReady().then(async () => {
   fileLog("[Main] App ready");
 
-  // Set Dock icon on macOS (in dev mode)
-  // Uses icon_dock.png which has the squircle mask pre-baked — macOS does NOT
-  // apply the squircle mask to dock.setIcon() in dev mode.
-  if (process.platform === "darwin" && app.dock && !app.isPackaged) {
-    const iconPath = path.join(__dirname, "../resources/icon_dock.png");
-    try {
-      const dockIcon = nativeImage.createFromPath(iconPath);
-      if (!dockIcon.isEmpty()) {
-        app.dock.setIcon(dockIcon);
-        fileLog("[Main] Dock icon set");
-      }
-    } catch (err) {
-      safeError("[Main] Failed to set dock icon:", err);
-    }
-  }
-
   // ---------- Content-Security-Policy Headers ----------
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const csp = app.isPackaged
+    const csp = isDev()
       ? [
-          "default-src 'self' file: blob:",
-          "script-src 'self' file: 'unsafe-inline'",
-          "style-src 'self' file: 'unsafe-inline'",
-          "connect-src 'self' https://*.convex.cloud https://*.convex.dev https://*.convex.site wss://*.convex.cloud wss://*.convex.dev https://convex.cloud https://convex.dev",
-          "img-src 'self' file: data: blob: https://*.convex.cloud https://*.convex.site https://convex.cloud https://secure.gravatar.com",
-          "media-src 'self' file: data: blob: https://*.convex.cloud https://*.convex.site",
-          "font-src 'self' file: data:",
-          "frame-ancestors 'none'",
-        ].join("; ")
-      : [
           "default-src 'self'",
           "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
           "style-src 'self' 'unsafe-inline'",
@@ -196,6 +170,16 @@ app.whenReady().then(async () => {
           "font-src 'self' data:",
           "frame-ancestors 'none'",
           "base-uri 'self'",
+        ].join("; ")
+      : [
+          "default-src 'self' file: blob:",
+          "script-src 'self' file: 'unsafe-inline'",
+          "style-src 'self' file: 'unsafe-inline'",
+          "connect-src 'self' https://*.convex.cloud https://*.convex.dev https://*.convex.site wss://*.convex.cloud wss://*.convex.dev https://convex.cloud https://convex.dev",
+          "img-src 'self' file: data: blob: https://*.convex.cloud https://*.convex.site https://convex.cloud https://secure.gravatar.com",
+          "media-src 'self' file: data: blob: https://*.convex.cloud https://*.convex.site",
+          "font-src 'self' file: data:",
+          "frame-ancestors 'none'",
         ].join("; ");
 
     callback({
@@ -226,7 +210,7 @@ app.whenReady().then(async () => {
   });
 
   // ---------- Check Setup State and Launch ----------
-  if (!app.isPackaged) {
+  if (isDev()) {
     fileLog("[Main] Dev mode — launching app directly");
     launchApp();
   } else if (isSetupComplete()) {
@@ -245,7 +229,7 @@ app.on("window-all-closed", () => {
 
 // macOS: recreate main window when dock icon is clicked
 app.on("activate", () => {
-  if (isSetupComplete() || !app.isPackaged) {
+  if (isSetupComplete() || isDev()) {
     windowManager.createMainWindow();
   }
 });
