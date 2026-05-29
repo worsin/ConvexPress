@@ -12,7 +12,7 @@ function loadTrayIcon(): Electron.NativeImage {
     : path.join(process.resourcesPath, "iconTemplate.png");
 
   const image = nativeImage.createFromPath(iconPath);
-  image.setTemplateImage(true);
+  image.setTemplateImage(false);
   return image;
 }
 

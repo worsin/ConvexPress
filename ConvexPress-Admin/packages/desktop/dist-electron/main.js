@@ -842,7 +842,7 @@ var tray = null;
 function loadTrayIcon() {
   const iconPath = isDev() ? import_node_path5.default.join(__dirname, "../resources/iconTemplate.png") : import_node_path5.default.join(process.resourcesPath, "iconTemplate.png");
   const image = nativeImage.createFromPath(iconPath);
-  image.setTemplateImage(true);
+  image.setTemplateImage(false);
   return image;
 }
 function createTray(wm) {
