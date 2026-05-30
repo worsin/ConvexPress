@@ -14,6 +14,7 @@ import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { FIELD_RENDERERS } from "../fields";
+import { evaluateConditionalLogic } from "../conditionalLogic";
 import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -133,40 +134,14 @@ export function MetaboxRenderer({ group, fields, entityType, entityId }: Metabox
     };
   }, []);
 
-  // Evaluate conditional logic for a field
-  const isFieldVisible = useCallback((field: FieldDefinition): boolean => {
-    if (!field.conditionalLogic) return true;
-
-    try {
-      const logic = JSON.parse(field.conditionalLogic);
-      if (!logic.enabled || !logic.rules || logic.rules.length === 0) return true;
-
-      const action = logic.action ?? "show"; // show or hide
-      const logicType = logic.logic ?? "and"; // and or or
-
-      const results = logic.rules.map((rule: { fieldKey: string; operator: string; value: string }) => {
-        const currentValue = valueMap[rule.fieldKey] ?? "";
-        switch (rule.operator) {
-          case "==": return currentValue === rule.value;
-          case "!=": return currentValue !== rule.value;
-          case ">": return Number(currentValue) > Number(rule.value);
-          case "<": return Number(currentValue) < Number(rule.value);
-          case "contains": return currentValue.includes(rule.value);
-          case "empty": return currentValue === "" || currentValue === "[]" || currentValue === "{}";
-          case "not_empty": return currentValue !== "" && currentValue !== "[]" && currentValue !== "{}";
-          default: return true;
-        }
-      });
-
-      const matches = logicType === "and"
-        ? results.every(Boolean)
-        : results.some(Boolean);
-
-      return action === "show" ? matches : !matches;
-    } catch {
-      return true;
-    }
-  }, [valueMap]);
+  // Evaluate conditional logic for a field via the canonical shared evaluator.
+  // (Fixes the prior enabled/fieldKey mismatch that silently disabled every
+  // builder-authored rule — see ../conditionalLogic.ts.)
+  const isFieldVisible = useCallback(
+    (field: FieldDefinition): boolean =>
+      evaluateConditionalLogic(field.conditionalLogic, valueMap),
+    [valueMap],
+  );
 
   const isSeamless = group.style === "seamless";
   const labelPlacement = (group.labelPlacement ?? "top") as "top" | "left";
