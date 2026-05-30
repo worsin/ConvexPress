@@ -23,6 +23,7 @@ import {
   parseInboundChannelSecurity,
   type InboundChannelSecurity,
 } from "./inboundSecurity";
+import { isPluginEnabled } from "../helpers/plugins";
 
 type InboundChannelSecurityResult =
   | { exists: false; active: false }
@@ -35,6 +36,9 @@ export const getInboundChannelSecurity = internalQuery({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args): Promise<InboundChannelSecurityResult> => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) {
+      return { exists: false as const, active: false as const };
+    }
     const channel = await ctx.db
       .query("support_channels")
       .withIndex("by_code", (q: any) => q.eq("code", args.channelCode))
@@ -67,6 +71,9 @@ export const recordInboundEmail = internalMutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) {
+      return { ok: false as const, reason: "tickets_disabled" as const };
+    }
     // 1. Resolve channel.
     const channel = await ctx.db
       .query("support_channels")

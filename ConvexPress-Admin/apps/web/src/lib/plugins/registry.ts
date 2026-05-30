@@ -130,7 +130,7 @@ const PLATFORM_PLUGINS: AdminPluginDefinition[] = [
     settingsKey: "commerceEnabled",
     navSectionIds: ["commerce"],
     adminAccessPrefixes: ["/commerce"],
-    routePrefixes: ["/shop", "/products", "/cart", "/checkout", "/track"],
+    routePrefixes: ["/shop", "/products", "/categories", "/cart", "/checkout", "/track"],
   },
   {
     id: "commerceDigital",
@@ -196,7 +196,7 @@ const PLATFORM_PLUGINS: AdminPluginDefinition[] = [
     settingsKey: "commerceSubscriptionsEnabled",
     navSectionIds: [],
     adminAccessPrefixes: ["/commerce/subscriptions"],
-    routePrefixes: ["/account/subscriptions"],
+    routePrefixes: ["/pricing", "/signup", "/dashboard/subscriptions"],
   },
   {
     id: "membership",
@@ -207,7 +207,7 @@ const PLATFORM_PLUGINS: AdminPluginDefinition[] = [
     settingsKey: "membershipEnabled",
     navSectionIds: ["membership"],
     adminAccessPrefixes: ["/membership"],
-    routePrefixes: ["/account/membership"],
+    routePrefixes: ["/dashboard/membership"],
   },
   {
     id: "knowledgeBase",
@@ -231,7 +231,7 @@ const PLATFORM_PLUGINS: AdminPluginDefinition[] = [
     settingsKey: "ticketsEnabled",
     navSectionIds: ["tickets"],
     adminAccessPrefixes: ["/tickets", "/support"],
-    routePrefixes: ["/tickets", "/support"],
+    routePrefixes: ["/support"],
   },
   {
     id: "customFields",

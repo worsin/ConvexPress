@@ -9,6 +9,7 @@ import { ConvexError, v } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
+import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
@@ -18,6 +19,8 @@ export const list = query({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return [];
+    await requireCan(ctx, "manage_options");
     const rows = args.activeOnly
       ? await ctx.db
           .query("support_channels")
@@ -37,6 +40,8 @@ export const getByCode = query({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
+    await requireCan(ctx, "manage_options");
     return await ctx.db
       .query("support_channels")
       .withIndex("by_code", (q: any) => q.eq("code", args.code))
@@ -73,6 +78,7 @@ export const create = mutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     await requireCan(ctx, "manage_options");
     const existing = await ctx.db
       .query("support_channels")
@@ -112,6 +118,7 @@ export const update = mutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     await requireCan(ctx, "manage_options");
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
     if (args.label !== undefined) patch.label = args.label;
@@ -130,6 +137,7 @@ export const remove = mutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
     await requireCan(ctx, "manage_options");
     await ctx.db.delete(args.id);
     return { success: true };
@@ -148,6 +156,8 @@ export const healthReport = query({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return [];
+    await requireCan(ctx, "manage_options");
     const threshold = args.silentThresholdMs ?? 72 * 60 * 60 * 1000;
     const now = Date.now();
     const rows = await ctx.db
