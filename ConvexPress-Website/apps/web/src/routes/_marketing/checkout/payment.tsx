@@ -73,12 +73,13 @@ function CheckoutPaymentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (session?.selectedPaymentMethodCode) {
-      setPaymentMethod(session.selectedPaymentMethodCode);
-    } else if (availablePaymentMethods[0]?.code) {
-      setPaymentMethod(availablePaymentMethods[0].code);
-    }
-  }, [availablePaymentMethods, session?.selectedPaymentMethodCode]);
+    const savedMethod = paymentMethods.find(
+      (method) =>
+        method.code === session?.selectedPaymentMethodCode &&
+        !method.unavailableReason,
+    );
+    setPaymentMethod(savedMethod?.code ?? availablePaymentMethods[0]?.code ?? "");
+  }, [availablePaymentMethods, paymentMethods, session?.selectedPaymentMethodCode]);
 
   async function handleContinue(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -94,6 +95,10 @@ function CheckoutPaymentPage() {
     const selectedMethod = paymentMethods.find(
       (method) => method.code === paymentMethod,
     );
+    if (!selectedMethod) {
+      toast.error("Select a payment method before continuing.");
+      return;
+    }
     if (selectedMethod?.unavailableReason) {
       toast.error(selectedMethod.unavailableReason);
       return;
@@ -195,9 +200,23 @@ function CheckoutPaymentPage() {
             })}
           </div>
 
+          {session?.selectedPaymentMethodCode &&
+          session.selectedPaymentMethodCode !== paymentMethod ? (
+            <div className="mt-4 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
+              The previously selected payment method is unavailable, so checkout selected the next usable method.
+            </div>
+          ) : null}
+
           <button
             type="submit"
-            disabled={isSubmitting || !paymentMethod}
+            disabled={
+              isSubmitting ||
+              !paymentMethod ||
+              Boolean(
+                paymentMethods.find((method) => method.code === paymentMethod)
+                  ?.unavailableReason,
+              )
+            }
             className="mt-6 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-50"
           >
             {isSubmitting ? "Saving..." : "Continue to review"}

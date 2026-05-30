@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { getCurrentUser } from "../helpers/auth";
 import { requireCommerceEnabled } from "../commerce/helpers";
+import { computeAddressKey, computeCartKey } from "../commerce/checkoutShippingGuards";
 import {
   SHIPPING_PROVIDERS,
   type ShippingProvider,
@@ -115,11 +116,29 @@ export const listCheckoutQuotes = query({
 
     if (!checkoutSession) return [];
 
+    const cartItems = await ctx.db
+      .query("commerce_cart_items")
+      .withIndex("by_cart", (q) => q.eq("cartId", checkoutSession.cartId))
+      .collect();
+    const currentAddressKey = computeAddressKey(checkoutSession.shippingAddress);
+    const currentCartKey = computeCartKey(
+      cartItems.map((item) => ({
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+      })),
+    );
+
     const now = Date.now();
     const quotes = (await ctx.db
       .query("commerce_shipping_rate_quotes")
       .withIndex("by_checkout", (q) => q.eq("checkoutSessionId", checkoutSession._id))
-      .collect()).filter((quote) => Number(quote.expiresAt ?? 0) > now);
+      .collect()).filter(
+        (quote) =>
+          Number(quote.expiresAt ?? 0) > now &&
+          (!quote.addressKey || quote.addressKey === currentAddressKey) &&
+          (!quote.cartKey || quote.cartKey === currentCartKey),
+      );
 
     quotes.sort((a, b) => {
       if (a.isCheapest !== b.isCheapest) return a.isCheapest ? -1 : 1;

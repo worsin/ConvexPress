@@ -19,6 +19,7 @@ const ADDRESS_FIELDS = [
   ["firstName", "First name"],
   ["lastName", "Last name"],
   ["line1", "Address line 1"],
+  ["line2", "Apartment, suite, etc."],
   ["city", "City"],
   ["state", "State / province"],
   ["postalCode", "Postal code"],
@@ -46,6 +47,7 @@ type ShippingQuote = {
   isCheapest: boolean;
   isFastest: boolean;
   isBestValue: boolean;
+  addressKey?: string;
   expiresAt?: number;
 };
 
@@ -70,6 +72,7 @@ function formatTransit(quote: ShippingQuote) {
 
 function addressKey(address: {
   line1: string;
+  line2?: string;
   city: string;
   state: string;
   postalCode: string;
@@ -77,12 +80,13 @@ function addressKey(address: {
 }) {
   return [
     address.line1,
+    address.line2 ?? "",
     address.city,
     address.state,
     address.postalCode,
     address.countryCode,
   ]
-    .map((part) => part.trim().toUpperCase())
+    .map((part) => part ?? "")
     .join("|");
 }
 
@@ -116,6 +120,7 @@ function CheckoutShippingPage() {
     firstName: "",
     lastName: "",
     line1: "",
+    line2: "",
     city: "",
     state: "",
     postalCode: "",
@@ -168,6 +173,7 @@ function CheckoutShippingPage() {
         firstName: session.shippingAddress.firstName ?? "",
         lastName: session.shippingAddress.lastName ?? "",
         line1: session.shippingAddress.line1 ?? "",
+        line2: session.shippingAddress.line2 ?? "",
         city: session.shippingAddress.city ?? "",
         state: session.shippingAddress.state ?? "",
         postalCode: session.shippingAddress.postalCode ?? "",
@@ -201,8 +207,10 @@ function CheckoutShippingPage() {
   }, [form.countryCode]);
   const ratesAreStaleForAddress =
     sortedQuotes.length > 0 &&
-    rateAddressKey !== null &&
-    rateAddressKey !== currentAddressKey;
+    ((rateAddressKey !== null && rateAddressKey !== currentAddressKey) ||
+      sortedQuotes.some(
+        (quote) => quote.addressKey && quote.addressKey !== currentAddressKey,
+      ));
 
   async function handleRefreshRates() {
     if (!sessionToken || !hasCompleteAddress) {
@@ -216,6 +224,7 @@ function CheckoutShippingPage() {
         firstName: form.firstName || undefined,
         lastName: form.lastName || undefined,
         line1: form.line1,
+        line2: form.line2 || undefined,
         city: form.city,
         state: form.state || undefined,
         postalCode: form.postalCode,
@@ -275,6 +284,7 @@ function CheckoutShippingPage() {
       firstName: form.firstName || undefined,
       lastName: form.lastName || undefined,
       line1: form.line1,
+      line2: form.line2 || undefined,
       city: form.city,
       state: form.state || undefined,
       postalCode: form.postalCode,
