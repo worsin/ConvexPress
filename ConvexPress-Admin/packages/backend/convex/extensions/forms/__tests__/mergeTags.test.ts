@@ -16,11 +16,24 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  resolveMergeTags,
   resolveMergeTagsForSink,
   escapeForSink,
+  isValidEmail,
   registerToken,
+  type MergeContext,
   type MergeTagContext,
 } from "../mergeTags";
+
+/** Run a thunk; return true if it threw (avoids the .toThrow() chain). */
+function threw(fn: () => unknown): boolean {
+  try {
+    fn();
+    return false;
+  } catch {
+    return true;
+  }
+}
 
 function ctx(overrides: Partial<MergeTagContext> = {}): MergeTagContext {
   // `values` REPLACES the defaults when provided (so a test can assert the
@@ -197,5 +210,237 @@ describe("registerToken extensibility", () => {
       "TOPSECRET",
     );
     expect(resolveMergeTagsForSink("{secret_token}", ctx(), { sink: "email-html" })).toBe("");
+  });
+});
+
+describe("resolver core — extra edge cases", () => {
+  test("multiple + repeated tokens in one string all resolve", () => {
+    const c = ctx();
+    expect(
+      resolveMergeTagsForSink("{form:title} | {form:slug} | {form:title}", c),
+    ).toBe("Contact Us | contact-us | Contact Us");
+  });
+
+  test("adjacent tokens with no separator", () => {
+    const c = ctx();
+    expect(resolveMergeTagsForSink("{form:title}{form:slug}", c)).toBe(
+      "Contact Uscontact-us",
+    );
+  });
+
+  test("literal text with no tokens is returned verbatim", () => {
+    expect(resolveMergeTagsForSink("just plain text", ctx())).toBe("just plain text");
+  });
+
+  test("empty template → empty string", () => {
+    expect(resolveMergeTagsForSink("", ctx())).toBe("");
+  });
+
+  test("whitespace padding inside the braces is tolerated (whole expr trimmed)", () => {
+    // lookupToken trims the entire inner expression before splitting, so
+    // `{ form:title }` resolves identically to `{form:title}`.
+    const c = ctx();
+    expect(resolveMergeTagsForSink("{ form:title }", c)).toBe("Contact Us");
+    expect(resolveMergeTagsForSink("{form:title}", c)).toBe("Contact Us");
+  });
+
+  test("token names are case-sensitive (uppercase variant is unknown → empty)", () => {
+    expect(resolveMergeTagsForSink("{FORM:title}", ctx())).toBe("");
+    expect(resolveMergeTagsForSink("{Field_name_aaa}", ctx())).toBe("");
+  });
+
+  test("an arg containing extra colons keeps everything after the first colon", () => {
+    // `{date:a:b}` → name "date", arg "a:b"; bad date format falls back to mdy.
+    const c = ctx();
+    expect(resolveMergeTagsForSink("{date:a:b}", c)).toBe("05/30/2026");
+  });
+
+  test("entry:date resolves from submittedAt (mdy)", () => {
+    expect(resolveMergeTagsForSink("{entry:date}", ctx())).toBe("05/30/2026");
+  });
+
+  test("request + site tokens resolve from their projections", () => {
+    const c = ctx();
+    expect(resolveMergeTagsForSink("{embed_url}", c)).toBe("https://site.test/contact");
+    expect(resolveMergeTagsForSink("{referer}", c)).toBe("https://ref.test/");
+    expect(resolveMergeTagsForSink("{site:name} {site:url}", c)).toBe(
+      "ConvexPress https://site.test",
+    );
+  });
+
+  test("unknown arg on a known namespace → empty (not reflected)", () => {
+    expect(resolveMergeTagsForSink("{form:bogus}", ctx())).toBe("");
+    expect(resolveMergeTagsForSink("{site:bogus}", ctx())).toBe("");
+    expect(resolveMergeTagsForSink("{entry:bogus}", ctx())).toBe("");
+  });
+
+  test("a field value that itself looks like a token is NOT re-expanded", () => {
+    // Single-pass guarantee: a substituted value is final, never re-scanned.
+    const c = ctx({ values: { field_name_aaa: "{form:title}" } });
+    expect(resolveMergeTagsForSink("{field_name_aaa}", c)).toBe("{form:title}");
+  });
+
+  test("malformed brace soup never throws; empty braces are not a token", () => {
+    const c = ctx();
+    expect(threw(() => resolveMergeTagsForSink("{}{{}}{ {a", c))).toBe(false);
+    // `{}` has no inner chars, so the `{[^{}]+}` regex never matches it — it is
+    // left verbatim rather than treated as a (reflected) token.
+    expect(resolveMergeTagsForSink("{}", c)).toBe("{}");
+  });
+
+  test("a pathological long template resolves quickly (no ReDoS)", () => {
+    // Negated-class regex is linear; 50k tokens must still complete fast.
+    const big = "{form:title}".repeat(50_000);
+    const start = Date.now();
+    const out = resolveMergeTagsForSink(big, ctx());
+    const elapsed = Date.now() - start;
+    expect(out.startsWith("Contact Us")).toBe(true);
+    expect(elapsed < 2000).toBe(true);
+  });
+
+  test("undefined-shaped optional projections resolve to empty, never throw", () => {
+    const bare: MergeTagContext = {
+      values: {},
+      form: { fields: [] },
+    };
+    expect(
+      resolveMergeTagsForSink("{form:title}|{site:url}|{embed_url}|{user:email}", bare),
+    ).toBe("|||");
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// LEGACY resolver (`resolveMergeTags` / MergeContext) — the payload-keyed one
+// consumed by notifications.ts. Its output becomes the email `bodyHtml`, so the
+// untrusted `{field:*}` / `{action:error}` substitutions MUST be HTML-escaped.
+// ════════════════════════════════════════════════════════════════════════════
+
+function legacyCtx(overrides: Partial<MergeContext> = {}): MergeContext {
+  return {
+    // Minimal forms doc — only the fields the resolver reads.
+    form: {
+      _id: "form_legacy" as unknown as MergeContext["form"]["_id"],
+      title: "Contact Us",
+      slug: "contact-us",
+    } as MergeContext["form"],
+    valueByName: overrides.valueByName ?? {
+      name: "Ada",
+      message: '<img src=x onerror=alert(1)>',
+    },
+    payload: overrides.payload ?? {},
+    settings: overrides.settings ?? { adminEmail: "admin@site.test", siteUrl: "https://site.test" },
+    ...(overrides.form ? { form: overrides.form } : {}),
+  };
+}
+
+describe("legacy resolveMergeTags — XSS regression (notification bodyHtml sink)", () => {
+  test("a submitted field value is HTML-escaped, never injected raw", () => {
+    const out = resolveMergeTags("Body: {field:message}", legacyCtx());
+    expect(out).toBe("Body: &lt;img src=x onerror=alert(1)&gt;");
+    expect(out.includes("<img")).toBe(false);
+  });
+
+  test("all five HTML metacharacters in a field value are escaped (incl. ')", () => {
+    const c = legacyCtx({
+      valueByName: { v: `<a href="x">&'` },
+      payload: {},
+      settings: { adminEmail: "a@b.com", siteUrl: "" },
+    });
+    expect(resolveMergeTags("{field:v}", c)).toBe(
+      "&lt;a href=&quot;x&quot;&gt;&amp;&#39;",
+    );
+  });
+
+  test("a <script> answer cannot open a script element in the email", () => {
+    const c = legacyCtx({
+      valueByName: { v: '<script>alert(document.cookie)</script>' },
+      payload: {},
+      settings: { adminEmail: "a@b.com", siteUrl: "" },
+    });
+    const out = resolveMergeTags("{field:v}", c);
+    expect(out.includes("<script>")).toBe(false);
+    expect(out).toBe("&lt;script&gt;alert(document.cookie)&lt;/script&gt;");
+  });
+
+  test("{action:error} (user-influenced) is escaped too", () => {
+    const c = legacyCtx({
+      valueByName: {},
+      payload: { error: "<b>boom</b>" },
+      settings: { adminEmail: "a@b.com", siteUrl: "" },
+    });
+    expect(resolveMergeTags("{action:error}", c)).toBe("&lt;b&gt;boom&lt;/b&gt;");
+  });
+
+  test("{all_fields} escapes each interpolated cell", () => {
+    const c = legacyCtx({
+      valueByName: { name: "Ada", message: "<x>" },
+      payload: {},
+      settings: { adminEmail: "a@b.com", siteUrl: "" },
+    });
+    const out = resolveMergeTags("{all_fields}", c);
+    expect(out.includes("<x>")).toBe(false);
+    expect(out.includes("&lt;x&gt;")).toBe(true);
+  });
+});
+
+describe("legacy resolveMergeTags — behavior", () => {
+  test("undefined template → empty string", () => {
+    expect(resolveMergeTags(undefined, legacyCtx())).toBe("");
+  });
+
+  test("unknown namespace + unknown arg → empty (never reflected)", () => {
+    expect(resolveMergeTags("{bogus:thing}", legacyCtx())).toBe("");
+    expect(resolveMergeTags("{form:nope}", legacyCtx())).toBe("");
+  });
+
+  test("a missing field value → empty string", () => {
+    expect(resolveMergeTags("[{field:absent}]", legacyCtx())).toBe("[]");
+  });
+
+  test("trusted tokens (form:title, settings email) are NOT escaped", () => {
+    const c = legacyCtx({
+      valueByName: {},
+      payload: {},
+      settings: { adminEmail: "a&b@site.test", siteUrl: "" },
+    });
+    // These are server-derived; escaping a recipient address would corrupt it.
+    expect(resolveMergeTags("{settings:admin_notification_email}", c)).toBe("a&b@site.test");
+  });
+
+  test("submission id + form:resume_url resolve from the payload", () => {
+    const c = legacyCtx({
+      valueByName: {},
+      payload: { submissionId: "sub_99", resumeToken: "tok 1" },
+      settings: { adminEmail: "a@b.com", siteUrl: "https://site.test/" },
+    });
+    expect(resolveMergeTags("{submission:id}", c)).toBe("sub_99");
+    // resumeToken is URL-encoded into the path; trailing slash trimmed.
+    expect(resolveMergeTags("{form:resume_url}", c)).toBe(
+      "https://site.test/forms/contact-us?resume=tok%201",
+    );
+  });
+
+  test("multiple tokens + literal HTML template render together (template HTML preserved)", () => {
+    const c = legacyCtx({
+      valueByName: { name: "<b>Ada</b>" },
+      payload: {},
+      settings: { adminEmail: "a@b.com", siteUrl: "" },
+    });
+    // Admin-authored <strong> stays; the field value is escaped inside it.
+    expect(resolveMergeTags("<strong>Hi {field:name}</strong>", c)).toBe(
+      "<strong>Hi &lt;b&gt;Ada&lt;/b&gt;</strong>",
+    );
+  });
+});
+
+describe("isValidEmail", () => {
+  test("accepts a normal address, rejects junk + injection shapes", () => {
+    expect(isValidEmail("a@b.com")).toBe(true);
+    expect(isValidEmail("  a@b.com  ")).toBe(true);
+    expect(isValidEmail("not-an-email")).toBe(false);
+    expect(isValidEmail("a@b")).toBe(false);
+    expect(isValidEmail("")).toBe(false);
+    // A space-bearing header-injection attempt is rejected.
+    expect(isValidEmail("a@b.com\nbcc:x@y.com")).toBe(false);
   });
 });

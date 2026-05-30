@@ -14,7 +14,7 @@
 import { Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type { WizardStep } from "./wizardSteps";
+import { progressPercent, type WizardStep } from "./wizardSteps";
 
 interface StepProgressProps {
   /** The live, non-skipped steps (already filtered by conditional logic). */
@@ -38,6 +38,8 @@ export function StepProgress({
 }: StepProgressProps) {
   const total = activeSteps.length;
   const currentStep = activeSteps[currentIndex];
+  // Divide-by-zero-safe completion ratio (0 when the list is momentarily empty).
+  const percent = progressPercent(currentIndex, total);
 
   return (
     <nav
@@ -45,7 +47,14 @@ export function StepProgress({
       data-slot="step-progress"
       className="flex flex-col gap-2"
     >
-      <p className="text-xs font-medium text-muted-foreground">
+      <p
+        className="text-xs font-medium text-muted-foreground"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        aria-valuetext={`Step ${currentIndex + 1} of ${total}`}
+      >
         Step {currentIndex + 1} of {total}
         {currentStep?.title ? (
           <span className="text-foreground"> · {currentStep.title}</span>

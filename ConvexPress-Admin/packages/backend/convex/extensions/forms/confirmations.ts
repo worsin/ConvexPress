@@ -50,14 +50,21 @@ const ALLOWED_REDIRECT_HOSTS: string[] = [];
  * A redirect target is allowed when it is relative (no host) OR its host is on
  * the allow-list. Parsed against a placeholder base so relative URLs resolve to
  * the placeholder host (treated as "no external host" → allowed).
+ *
+ * Exported (pure, Convex-free) for the open-redirect unit tests.
  */
-function isAllowedRedirectHost(url: string): boolean {
+export function isAllowedRedirectHost(url: string): boolean {
   if (!url) return false;
   const trimmed = url.trim();
   // Block dangerous protocols outright.
   if (/^(javascript|data|vbscript|blob):/i.test(trimmed)) return false;
-  // Relative paths (no scheme/host) are always allowed.
-  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return true;
+  // Relative paths (no scheme/host) are always allowed — but the WHATWG URL
+  // parser browsers use for navigation treats a backslash as a forward slash,
+  // so `/\evil.com` resolves to the EXTERNAL origin `https://evil.com`
+  // (backslash open-redirect bypass). Normalize `\`→`/` before the
+  // protocol-relative check so such inputs fall through to host validation.
+  const normalized = trimmed.replace(/\\/g, "/");
+  if (normalized.startsWith("/") && !normalized.startsWith("//")) return true;
   try {
     const parsed = new URL(trimmed, "https://placeholder.invalid");
     // Resolved against the placeholder → relative input, no real external host.
@@ -80,7 +87,7 @@ function assertAllowedRedirect(url: string | undefined): void {
 }
 
 /** Sanitize confirmation message HTML (backend-safe, reuses comment sanitizer). */
-function sanitizeMessage(html: string): string {
+export function sanitizeMessage(html: string): string {
   return sanitizeCommentContent(html);
 }
 
@@ -88,8 +95,10 @@ function sanitizeMessage(html: string): string {
  * Render namespaced merge tags against a flat token map built from the
  * submission + form. Tokens: {field:<name>}, {form:title}, {form:slug},
  * {entry:id}, {entry:date}. Unknown tokens render to empty string.
+ *
+ * Exported (pure, Convex-free) for the merge-tag-assembly unit tests.
  */
-function renderConfirmationMergeTags(
+export function renderConfirmationMergeTags(
   template: string,
   valueMap: Record<string, string>,
   form: { title: string; slug: string },
@@ -107,6 +116,142 @@ function renderConfirmationMergeTags(
     tokens[`field:${name}`] = value;
   }
   return template.replace(/\{([\w:]+)\}/g, (_match, key) => tokens[key] ?? "");
+}
+
+// ─── Pure resolution cores (Convex-free; exported for unit tests) ────────────
+
+/** The minimal confirmation-row shape the resolver decision logic reads. */
+export interface ConfirmationRow {
+  _id: string;
+  type: "message" | "redirect" | "page";
+  content?: string | null;
+  redirectUrl?: string | null;
+  pageId?: string | null;
+  conditionalLogic?: string | null;
+  isDefault: boolean;
+  order: number;
+}
+
+/** Form fields the merge-tag renderer needs. */
+export interface ConfirmationFormCtx {
+  title: string;
+  slug: string;
+}
+
+/** Submission fields the merge-tag renderer needs (null when absent). */
+export type ConfirmationSubmissionCtx = {
+  _id: string;
+  submittedAt?: number;
+} | null;
+
+/** The resolver's public return shape (one of message / redirect / page). */
+export interface ConfirmationResult {
+  confirmationId: string;
+  type: "message" | "redirect" | "page";
+  renderedMessage?: string;
+  redirectUrl?: string;
+  pagePath?: string;
+}
+
+/**
+ * SELECTION — first-match-wins over the non-default rows (by `order` asc),
+ * with the default row as the fallback `winner`. A logic-less row always
+ * matches (the conditional evaluator fail-opens). Returns the resolved
+ * `winner` (or null when there are zero rows) plus the `def` row separately,
+ * since the type-dispatch fallbacks render the default's message.
+ *
+ * Pure: no DB, no auth. Mirrors the prior inline logic exactly.
+ */
+export function pickConfirmation(
+  rows: ConfirmationRow[],
+  valueMap: Record<string, string>,
+): { winner: ConfirmationRow | null; def: ConfirmationRow | null } {
+  const def = rows.find((c) => c.isDefault) ?? null;
+  const conditional = rows
+    .filter((c) => !c.isDefault)
+    .sort((a, b) => a.order - b.order);
+
+  const winner =
+    conditional.find((c) =>
+      evaluateConditionalLogic(c.conditionalLogic, valueMap),
+    ) ?? def;
+
+  return { winner, def };
+}
+
+/**
+ * TYPE DISPATCH + ASSEMBLY — turn the selected winner into the public result.
+ *  - message: rendered merge tags, sanitized.
+ *  - redirect: only when the target passes the host allow-list
+ *    (open-redirect guard); otherwise falls back to the default message.
+ *  - page: only when `pageId` is non-blank; otherwise default message.
+ *  - winner === null (zero rows): a static "Thank you." message.
+ *
+ * Pure: no DB, no auth. Mirrors the prior inline logic exactly.
+ */
+export function buildConfirmationResult(
+  winner: ConfirmationRow | null,
+  def: ConfirmationRow | null,
+  valueMap: Record<string, string>,
+  formCtx: ConfirmationFormCtx,
+  submissionCtx: ConfirmationSubmissionCtx,
+): ConfirmationResult {
+  // Fail-safe: no rows at all (should not happen — admin lazy-seeds a default).
+  if (!winner) {
+    return {
+      confirmationId: "",
+      type: "message",
+      renderedMessage: "Thank you.",
+    };
+  }
+
+  const renderMessage = (row: ConfirmationRow): string =>
+    sanitizeMessage(
+      renderConfirmationMergeTags(
+        row.content ?? "",
+        valueMap,
+        formCtx,
+        submissionCtx,
+      ),
+    );
+
+  // Shared fallback used when a redirect/page winner is unusable.
+  const defaultMessageResult = (): ConfirmationResult => ({
+    confirmationId: def?._id ?? winner._id,
+    type: "message",
+    renderedMessage: def ? renderMessage(def) : "Thank you.",
+  });
+
+  if (winner.type === "message") {
+    return {
+      confirmationId: winner._id,
+      type: "message",
+      renderedMessage: renderMessage(winner),
+    };
+  }
+
+  if (winner.type === "redirect") {
+    // Host allow-list re-checked at resolve time; disallowed → default message.
+    if (winner.redirectUrl && isAllowedRedirectHost(winner.redirectUrl)) {
+      return {
+        confirmationId: winner._id,
+        type: "redirect",
+        redirectUrl: winner.redirectUrl,
+      };
+    }
+    return defaultMessageResult();
+  }
+
+  // type === "page"
+  if (winner.pageId && winner.pageId.trim()) {
+    return {
+      confirmationId: winner._id,
+      type: "page",
+      pagePath: winner.pageId,
+    };
+  }
+  // Blank pageId → fall back to default.
+  return defaultMessageResult();
 }
 
 /** Lazy-seed: ensure the form has exactly one default confirmation row. */
@@ -377,11 +522,6 @@ export const resolveConfirmation = query({
       .withIndex("by_form_order", (q) => q.eq("formId", formId))
       .collect();
 
-    const def = all.find((c) => c.isDefault) ?? null;
-    const conditional = all
-      .filter((c) => !c.isDefault)
-      .sort((a, b) => a.order - b.order);
-
     // Build value map (fieldName -> value); values are already strings.
     const valueRows = await ctx.db
       .query("fieldValues")
@@ -398,76 +538,26 @@ export const resolveConfirmation = query({
 
     const form = await ctx.db.get(formId);
     const submission = await ctx.db.get(submissionId);
-    const formCtx = {
+    const formCtx: ConfirmationFormCtx = {
       title: form?.title ?? "",
       slug: form?.slug ?? "",
     };
-    const submissionCtx = submission
+    const submissionCtx: ConfirmationSubmissionCtx = submission
       ? { _id: submission._id as string, submittedAt: submission.submittedAt }
       : null;
 
-    // First-match-wins; a logic-less row always matches (evaluator fail-opens).
-    const winner =
-      conditional.find((c) =>
-        evaluateConditionalLogic(c.conditionalLogic, valueMap),
-      ) ?? def;
-
-    // Fail-safe: no rows at all (should not happen — admin lazy-seeds a default).
-    if (!winner) {
-      return {
-        confirmationId: "",
-        type: "message" as const,
-        renderedMessage: "Thank you.",
-      };
-    }
-
-    const renderMessage = (row: typeof winner): string =>
-      sanitizeMessage(
-        renderConfirmationMergeTags(
-          row.content ?? "",
-          valueMap,
-          formCtx,
-          submissionCtx,
-        ),
-      );
-
-    if (winner.type === "message") {
-      return {
-        confirmationId: winner._id,
-        type: "message" as const,
-        renderedMessage: renderMessage(winner),
-      };
-    }
-
-    if (winner.type === "redirect") {
-      // Host allow-list re-checked at resolve time; disallowed → default message.
-      if (winner.redirectUrl && isAllowedRedirectHost(winner.redirectUrl)) {
-        return {
-          confirmationId: winner._id,
-          type: "redirect" as const,
-          redirectUrl: winner.redirectUrl,
-        };
-      }
-      return {
-        confirmationId: def?._id ?? winner._id,
-        type: "message" as const,
-        renderedMessage: def ? renderMessage(def) : "Thank you.",
-      };
-    }
-
-    // type === "page"
-    if (winner.pageId && winner.pageId.trim()) {
-      return {
-        confirmationId: winner._id,
-        type: "page" as const,
-        pagePath: winner.pageId,
-      };
-    }
-    // Blank pageId → fall back to default.
-    return {
-      confirmationId: def?._id ?? winner._id,
-      type: "message" as const,
-      renderedMessage: def ? renderMessage(def) : "Thank you.",
-    };
+    // SELECTION (first-match-wins + default fallback) and TYPE DISPATCH are
+    // pure cores; the handler only supplies DB-loaded data. See unit tests.
+    const { winner, def } = pickConfirmation(
+      all as unknown as ConfirmationRow[],
+      valueMap,
+    );
+    return buildConfirmationResult(
+      winner,
+      def,
+      valueMap,
+      formCtx,
+      submissionCtx,
+    );
   },
 });

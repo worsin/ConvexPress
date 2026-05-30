@@ -23,7 +23,13 @@
  */
 
 import { parse } from "./parse";
-import { evalAst, toNumber, type RepeaterRow, type Scope } from "./evaluate";
+import {
+  evalAst,
+  toNumber,
+  roundHalfUp,
+  type RepeaterRow,
+  type Scope,
+} from "./evaluate";
 import {
   buildDependencyGraph,
   isComputedField,
@@ -256,10 +262,31 @@ function safeEval(formula: string, scope: Scope): number {
   }
 }
 
-/** Round a money amount to 2 decimals (dollar-space). Cents scaling is separate. */
+/**
+ * Round a money amount to 2 decimals (dollar-space). Cents scaling is separate.
+ * Uses the shared epsilon-protected half-up rounding (the SAME routine the
+ * evaluator's `round()` uses) so a float-represented half like 1.005 → 1.01,
+ * not 1.00. A naive `Math.round(value * 100) / 100` silently drops a penny here
+ * because `1.005 * 100` is `100.49999999999999` in IEEE-754.
+ */
 function roundMoney(value: number): number {
   if (!Number.isFinite(value)) return 0;
-  return Math.round(value * 100) / 100;
+  return roundHalfUp(value, 2);
+}
+
+/**
+ * Scale a dollar-space amount to integer minor units (cents). The input is
+ * already 2dp via {@link roundMoney}; we round half-up after multiplying so the
+ * float error introduced by the `* scale` step (e.g. `70.07 * 100` is
+ * `7006.999999999999`) can never shave a cent. Always returns a safe integer.
+ */
+function scaleToMinorUnits(value: number, scale: number): number {
+  if (!Number.isFinite(value)) return 0;
+  const shifted = value * scale;
+  const rounded = Math.floor(
+    shifted + 0.5 + Number.EPSILON * Math.abs(shifted),
+  );
+  return Number.isFinite(rounded) ? rounded : 0;
 }
 
 // ─── Pricing aggregation ────────────────────────────────────────────────────
@@ -365,7 +392,7 @@ export function recomputeAuthoritative(
 ): AuthoritativeResult {
   const base = recomputeForm(fields, valueMap, repeaters);
 
-  const toCents = (n: number): number => Math.round(n * minorUnitScale);
+  const toCents = (n: number): number => scaleToMinorUnits(n, minorUnitScale);
 
   // Scale computed values. A calculation flagged as money is scaled to cents; a
   // plain derived number is left as-is (it isn't currency). Product lines scale

@@ -125,6 +125,88 @@ export function resolveInputs(
   return { offerId, customerEmail, couponCode };
 }
 
+// ─── Pure pricing → charge-shape mapping (server-trusted integer cents) ──────
+//
+// The amounts here are ALWAYS the server-recomputed price (integer cents) read
+// from the persisted checkout intent / createCheckoutIntent return — NEVER a
+// client-supplied value. This function is pure + synchronous and decides the
+// three mutually-exclusive billing shapes the downstream Stripe call takes, so
+// the mapping can be unit-tested without a Convex/Stripe context. It mirrors the
+// branch in commerceSubscriptions/stripeCharge.ts:beginSubscriptionFirstCharge:
+//
+//   initialAmount <= 0 && recurringAmount <= 0  → "free"    (no Stripe object)
+//   initialAmount <= 0 && recurringAmount  > 0  → "setup"   (collect card, $0 now)
+//   initialAmount  > 0                          → "payment" (charge now)
+//
+// `recurringInterval` is carried through for the recurring (setup/payment-with-
+// -recurring) shapes so the renderer / Stripe price_data can describe the
+// subscription cadence. A non-positive amount never becomes a positive charge.
+
+/** A normalized, Stripe-aligned charge shape derived purely from server pricing. */
+export interface ChargeShape {
+  /** "free" → zero checkout; "setup" → $0 now + future recurring; "payment" → charge now. */
+  mode: "free" | "setup" | "payment";
+  /** Integer cents charged NOW (always 0 for free/setup). */
+  amountNow: number;
+  /** Integer cents billed each recurring period (0 for one-time / free). */
+  recurringAmount: number;
+  /** Recurring cadence, when recurring; undefined for one-time / free. */
+  recurringInterval?: "day" | "week" | "month" | "year";
+  /** Uppercase ISO currency (defaulted to USD when absent/blank). */
+  currency: string;
+  /** True when this submission requires the Website to confirm a card. */
+  needsPayment: boolean;
+}
+
+/** Coerce an amount to a safe non-negative integer cents value (NaN/neg → 0). */
+function toCents(amount: unknown): number {
+  const n = typeof amount === "number" ? amount : Number(amount);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.round(n);
+}
+
+/**
+ * Map server-trusted pricing (integer cents) to the charge shape. Inputs are the
+ * intent's recomputed amounts; this never reads a client value. Negative,
+ * NaN, or fractional inputs are clamped to a safe non-negative integer so a
+ * malformed price can never invert the free/paid decision or mint a charge.
+ */
+export function pricingToChargeShape(input: {
+  initialAmount: number;
+  recurringAmount?: number;
+  currency?: string;
+  recurringInterval?: "day" | "week" | "month" | "year";
+}): ChargeShape {
+  const amountNow = toCents(input.initialAmount);
+  const recurringAmount = toCents(input.recurringAmount);
+  const currency = (input.currency ?? "USD").trim().toUpperCase() || "USD";
+  const hasRecurring = recurringAmount > 0;
+  const recurringInterval = hasRecurring ? input.recurringInterval : undefined;
+
+  if (amountNow <= 0 && recurringAmount <= 0) {
+    return { mode: "free", amountNow: 0, recurringAmount: 0, currency, needsPayment: false };
+  }
+  if (amountNow <= 0) {
+    // $0 due now but a recurring charge follows → collect a card via setup.
+    return {
+      mode: "setup",
+      amountNow: 0,
+      recurringAmount,
+      recurringInterval,
+      currency,
+      needsPayment: true,
+    };
+  }
+  return {
+    mode: "payment",
+    amountNow,
+    recurringAmount,
+    recurringInterval,
+    currency,
+    needsPayment: true,
+  };
+}
+
 // ─── Event wrapper (action ctx cannot emitEvent) ─────────────────────────────
 
 export const emitSubscriptionStarted = internalMutation({
@@ -303,7 +385,14 @@ async function runSubscriptionAction(
   }
 
   // ── Zero-amount path: free activation (action owns this) ──────────────────
-  const isZeroAmount = amount <= 0 && recurringAmount <= 0;
+  // Route the free/paid decision through the pure, unit-tested mapping so the
+  // server-recomputed cents are the ONLY thing that picks the branch.
+  const chargeShape = pricingToChargeShape({
+    initialAmount: amount,
+    recurringAmount,
+    currency,
+  });
+  const isZeroAmount = chargeShape.mode === "free";
   if (isZeroAmount) {
     try {
       const activation = (await ctx.ctx.runMutation(

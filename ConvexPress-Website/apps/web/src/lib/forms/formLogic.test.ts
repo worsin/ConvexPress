@@ -1,11 +1,12 @@
 /**
- * Form Logic mirror test (admin FE copy) — asserts the admin `formLogic.ts`
+ * Form Logic mirror test (Website copy) — asserts the Website `formLogic.ts`
  * mirror is behaviorally identical to the backend source-of-truth copy.
- * Run: `bun test apps/web/src/components/custom-fields/formLogic.test.ts`
+ * Run: `bun test apps/web/src/lib/forms/formLogic.test.ts`
  *
- * The three formLogic.ts copies are kept byte-identical (verified by md5 in
- * review); this suite is the executable guard that the admin mirror evaluates
- * the same way for cross-field, requiredWhen, and section/page scope.
+ * The three formLogic.ts copies are kept byte-identical; this suite is the
+ * executable guard that the Website mirror evaluates the same way for
+ * cross-field operands, requiredWhen, section scope (including the transitive
+ * nested-group cascade), and the submit-trust contract.
  */
 
 import { test, expect } from "bun:test";
@@ -22,6 +23,13 @@ import {
   type LogicFieldDef,
 } from "./formLogic";
 
+const cl = (data: unknown) => JSON.stringify(data);
+const field = (p: Partial<LogicFieldDef> & { key: string }): LogicFieldDef => ({
+  type: "text",
+  required: false,
+  ...p,
+});
+
 // Minimal validateFieldValue stub: required + empty => invalid (mirrors the
 // backend helpers/customFieldValidation.ts empty-handling contract).
 const validate = (
@@ -33,13 +41,6 @@ const validate = (
   const empty = !v || v === "" || v === "[]" || v === "{}";
   return empty && required ? { valid: false, error: "req" } : { valid: true };
 };
-
-const cl = (data: unknown) => JSON.stringify(data);
-const field = (p: Partial<LogicFieldDef> & { key: string }): LogicFieldDef => ({
-  type: "text",
-  required: false,
-  ...p,
-});
 
 test("cross-field > comparison", () => {
   const rule = {
@@ -107,8 +108,6 @@ test("detectRuleCycle catches 2-node cycle", () => {
   });
   expect(detectRuleCycle([a, b]) !== null).toBe(true);
 });
-
-// ── Mirror of the backend source-of-truth edge cases (admin FE copy must match).
 
 test("operators: ==, !=, contains, empty, not_empty (cross-field evaluator)", () => {
   expect(evaluateRuleCF({ field: "f", operator: "==", value: "x" }, { f: "x" })).toBe(true);

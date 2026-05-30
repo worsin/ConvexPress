@@ -1,11 +1,11 @@
 /**
- * Regression tests for the conditional-logic evaluator.
- * Run: `bun test apps/web/src/components/custom-fields/conditionalLogic.test.ts`
+ * Conditional logic evaluator — PUBLIC (Website) mirror tests.
+ * Run: `bun test apps/web/src/lib/forms/conditionalLogic.test.ts`
  *
- * The headline test ("builder shape ...") is the exact case that was broken:
- * builder writes `{ field, operator, value }` with no `enabled`, and the old
- * renderer required `logic.enabled` (so rules never applied) while reading
- * `rule.fieldKey` (which the builder never wrote).
+ * This suite mirrors the Admin / backend `conditionalLogic.test.ts` to guard
+ * that the Website's byte-identical copy evaluates show/hide rules the SAME way
+ * the server does in `forms.mutations.submit`. If these diverge, client-side
+ * visibility no longer matches the server's authoritative recompute.
  */
 
 import { test, expect } from "bun:test";
@@ -29,13 +29,12 @@ test("empty rules -> visible", () => {
   ).toBe(true);
 });
 
-test("REGRESSION: builder shape {field}, no `enabled` -> rules actually apply", () => {
+test("builder shape {field}, no `enabled` -> rules actually apply", () => {
   const logic = mk({
     action: "show",
     logic: "and",
     rules: [{ field: "field_plan", operator: "==", value: "pro" }],
   });
-  // Before the fix BOTH of these returned true (rules dead).
   expect(evaluateConditionalLogic(logic, { field_plan: "pro" })).toBe(true);
   expect(evaluateConditionalLogic(logic, { field_plan: "basic" })).toBe(false);
 });
@@ -82,30 +81,6 @@ test("or-logic: any rule matches", () => {
   expect(evaluateConditionalLogic(logic, { a: "0", b: "0" })).toBe(false);
 });
 
-test("operators: contains / empty / not_empty / numeric", () => {
-  expect(
-    evaluateConditionalLogic(
-      mk({ rules: [{ field: "f", operator: "contains", value: "ell" }] }),
-      { f: "hello" },
-    ),
-  ).toBe(true);
-  expect(
-    evaluateConditionalLogic(mk({ rules: [{ field: "f", operator: "empty", value: "" }] }), {
-      f: "",
-    }),
-  ).toBe(true);
-  expect(
-    evaluateConditionalLogic(mk({ rules: [{ field: "f", operator: "not_empty", value: "" }] }), {
-      f: "x",
-    }),
-  ).toBe(true);
-  expect(
-    evaluateConditionalLogic(mk({ rules: [{ field: "f", operator: ">", value: "5" }] }), {
-      f: "10",
-    }),
-  ).toBe(true);
-});
-
 test("every operator: ==, !=, contains, empty, not_empty, >, <", () => {
   const r = (operator: string, value: string, current: string) =>
     evaluateConditionalLogic(mk({ rules: [{ field: "f", operator, value }] }), { f: current });
@@ -141,7 +116,7 @@ test("and+show requires all; or+show requires any", () => {
   expect(evaluateConditionalLogic(mk({ logic: "or", rules }), { a: "1", b: "x" })).toBe(true);
 });
 
-test("hide inverts and+/or combinations", () => {
+test("hide inverts and/or combinations", () => {
   const rules = [
     { field: "a", operator: "==", value: "1" },
     { field: "b", operator: "==", value: "2" },

@@ -82,20 +82,41 @@ function buildAllFields(ctx: MergeContext): string {
     .join("<br>");
 }
 
-/** Minimal HTML escaping for interpolated values inside the {all_fields} list. */
+/**
+ * Minimal HTML escaping for UNTRUSTED interpolated values (the `{all_fields}`
+ * cells AND every `{field:*}` / `{action:error}` substitution). The legacy
+ * notification path renders its resolved `messageTemplate` as the email
+ * `bodyHtml` (notifications.ts → emails.queueRenderedEmail → Resend `html:`),
+ * so an attacker-submitted field value like `<img onerror=…>` or `<script>`
+ * MUST be escaped here or it injects raw into the admin's email (stored XSS).
+ * Escapes all five HTML metacharacters (incl. `'`), matching the canonical
+ * resolver's `escapeForSink("email-html")`.
+ */
 function escapeHtml(input: string): string {
   return input
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
-/** Resolve a `namespace:arg` token to its string value (or "" if unknown). */
+/**
+ * Resolve a `namespace:arg` token to its string value (or "" if unknown).
+ *
+ * SECURITY: values that originate from UNTRUSTED submission input — `{field:*}`
+ * answers and the `{action:error}` message — are HTML-escaped here because the
+ * dominant sink for this resolver's output is the notification email `bodyHtml`.
+ * Trusted, server-derived tokens (form title, settings email, submission id,
+ * URLs) are NOT escaped: they never contain attacker markup, and escaping a
+ * recipient email/URL would corrupt it. This mirrors `{all_fields}`, which has
+ * always escaped its cells.
+ */
 function resolveToken(namespace: string, arg: string, ctx: MergeContext): string {
   switch (namespace) {
     case "field":
-      return ctx.valueByName[arg] ?? "";
+      // Attacker-controlled answer → escape for the HTML email sink.
+      return escapeHtml(ctx.valueByName[arg] ?? "");
     case "form":
       if (arg === "title") return ctx.form.title;
       if (arg === "resume_url") return buildResumeUrl(ctx);
@@ -109,7 +130,8 @@ function resolveToken(namespace: string, arg: string, ctx: MergeContext): string
       if (arg === "date") return buildSubmissionDate(ctx);
       return "";
     case "action":
-      if (arg === "error") return payloadString(ctx.payload, "error");
+      // The error string may echo user-influenced input → escape it too.
+      if (arg === "error") return escapeHtml(payloadString(ctx.payload, "error"));
       return "";
     default:
       return "";

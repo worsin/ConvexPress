@@ -160,6 +160,92 @@ export function deriveClientIp(ipArg: string | undefined): string {
   return first && first.length > 0 ? first : "unknown";
 }
 
+// ─── Pure decision logic (extracted from guardSubmission; ADDITIVE) ──────────
+// These are the spam verdict *decisions* with the DB orchestration removed, so
+// they can be unit-tested without a Convex harness. `guardSubmission` calls them
+// verbatim — behavior is unchanged. Each returns either a block-reason or null.
+
+/**
+ * Stage-1a honeypot decision. A non-empty (after trim) honeypot value means a
+ * bot filled a hidden field → block. Whitespace-only counts as empty (real
+ * humans never type into a `display:none` input; a stray space is not a signal).
+ * When honeypot is disabled OR the value is absent/blank, returns null (clean).
+ */
+export function honeypotTripped(
+  honeypotEnabled: boolean,
+  honeypotValue: string | undefined,
+): "honeypot" | null {
+  if (!honeypotEnabled) return null;
+  if (honeypotValue && honeypotValue.trim() !== "") return "honeypot";
+  return null;
+}
+
+/**
+ * Stage-1b time-trap decision. The renderer stamps `startedAt` (ms epoch) when
+ * the form mounts; a sub-`minFillMs` elapsed time means a bot auto-filled, and a
+ * greater-than-`maxFormAgeMs` elapsed time means a stale/replayed page.
+ *   - honeypot disabled ⇒ the whole time-trap is skipped (returns null), matching
+ *     the guard which nests the time-trap inside the honeypot toggle.
+ *   - `startedAt` absent ⇒ skip (degrade gracefully; never punish a client that
+ *     didn't send the stamp).
+ *   - a `startedAt` in the FUTURE (clock skew / tamper) yields a negative elapsed,
+ *     which is `< minFillMs` ⇒ "too_fast" (a forged future stamp can't buy a pass).
+ */
+export function timeTrapReason(
+  honeypotEnabled: boolean,
+  startedAt: number | undefined,
+  now: number,
+  minFillMs: number,
+  maxFormAgeMs: number,
+): "too_fast" | "too_slow" | null {
+  if (!honeypotEnabled) return null;
+  if (typeof startedAt !== "number") return null;
+  const elapsed = now - startedAt;
+  if (elapsed < minFillMs) return "too_fast";
+  if (elapsed > maxFormAgeMs) return "too_slow";
+  return null;
+}
+
+/** The current fixed rate-limit window start for `now` (floored to `windowMs`). */
+export function rateWindowStart(now: number, windowMs: number): number {
+  return Math.floor(now / windowMs) * windowMs;
+}
+
+/**
+ * Stage-2 rate-limit decision given the CURRENT bucket counts (the DB read is the
+ * caller's job; this is the pure threshold math). `priorIpCount` is this
+ * ip+form+window bucket's count BEFORE this attempt; `priorFormTotal` is the
+ * sum across all IPs for this form+window BEFORE this attempt (only meaningful
+ * when `perFormLimit` is set). The +1 accounts for the in-flight attempt.
+ * Returns the block reason (or null) AND the post-increment counts the caller
+ * should persist, so the limiter records blocked attempts too.
+ */
+export function rateLimitDecision(params: {
+  priorIpCount: number;
+  perIpPerFormLimit: number;
+  priorFormTotal: number;
+  perFormLimit: number | undefined | null;
+}): {
+  reason: "rate_ip" | "rate_form" | null;
+  nextIpCount: number;
+  nextFormTotal: number;
+  blocked: boolean;
+} {
+  const nextIpCount = params.priorIpCount + 1;
+  const nextFormTotal = params.priorFormTotal + 1;
+  const overIp = nextIpCount > params.perIpPerFormLimit;
+  const overForm =
+    params.perFormLimit != null && nextFormTotal > params.perFormLimit;
+  // Per-IP is checked first (mirrors guardSubmission's ordering): a single
+  // abusive IP trips `rate_ip` before the global `rate_form` ceiling.
+  const reason: "rate_ip" | "rate_form" | null = overIp
+    ? "rate_ip"
+    : overForm
+      ? "rate_form"
+      : null;
+  return { reason, nextIpCount, nextFormTotal, blocked: overIp || overForm };
+}
+
 // ─── CAPTCHA verify (internalAction — mutations cannot fetch) (PRD §10.2) ────
 
 const CAPTCHA_ENDPOINTS: Record<
@@ -284,23 +370,28 @@ export const guardSubmission = internalMutation({
     };
 
     // ── Stage 1: honeypot + time-trap ──────────────────────────────────────
+    // Pure decisions (honeypotTripped / timeTrapReason) own the thresholds; this
+    // mutation only maps the verdict to an emitted block. Behavior unchanged.
     if (settings.honeypotEnabled) {
-      if (args.honeypot && args.honeypot.trim() !== "") {
+      if (honeypotTripped(settings.honeypotEnabled, args.honeypot)) {
         return block("honeypot");
       }
       // Time-trap only when the client stamped startedAt; missing ⇒ skip (degrade
       // gracefully rather than punishing a client that didn't send the stamp).
-      if (typeof args.startedAt === "number") {
-        const elapsed = now - args.startedAt;
-        if (elapsed < settings.minFillMs) return block("too_fast");
-        if (elapsed > settings.maxFormAgeMs) return block("too_slow");
-      }
+      const ttReason = timeTrapReason(
+        settings.honeypotEnabled,
+        args.startedAt,
+        now,
+        settings.minFillMs,
+        settings.maxFormAgeMs,
+      );
+      if (ttReason) return block(ttReason);
     }
 
     // ── Stage 2: per-ip+form rate limit ────────────────────────────────────
     if (settings.rateLimitEnabled) {
       const windowMs = settings.windowMs;
-      const windowStart = Math.floor(now / windowMs) * windowMs;
+      const windowStart = rateWindowStart(now, windowMs);
 
       // The minimal table has no composite ip+form+window index; read the
       // ip+form bucket and match the current window in memory, else upsert one.
@@ -311,10 +402,9 @@ export const guardSubmission = internalMutation({
         )
         .collect();
       const bucket = buckets.find((b: any) => b.windowStart === windowStart);
-      const nextCount = (bucket?.count ?? 0) + 1;
 
       // Optional per-form ceiling (across all IPs) for the current window.
-      let formCount = nextCount;
+      let priorFormTotal = bucket?.count ?? 0;
       if (settings.perFormLimit != null) {
         const formBuckets = await ctx.db
           .query("form_submission_attempts")
@@ -322,21 +412,28 @@ export const guardSubmission = internalMutation({
             q.eq("formId", args.formId).eq("windowStart", windowStart),
           )
           .collect();
-        formCount =
-          formBuckets.reduce((sum: number, b: any) => sum + b.count, 0) + 1;
+        priorFormTotal = formBuckets.reduce(
+          (sum: number, b: any) => sum + b.count,
+          0,
+        );
       }
 
-      const overIp = nextCount > settings.perIpPerFormLimit;
-      const overForm =
-        settings.perFormLimit != null && formCount > settings.perFormLimit;
+      // Pure threshold math (rateLimitDecision) — the +1 for the in-flight
+      // attempt and the per-ip-before-per-form ordering live there.
+      const decision = rateLimitDecision({
+        priorIpCount: bucket?.count ?? 0,
+        perIpPerFormLimit: settings.perIpPerFormLimit,
+        priorFormTotal,
+        perFormLimit: settings.perFormLimit,
+      });
+      const nextCount = decision.nextIpCount;
 
       // Upsert the bucket REGARDLESS so the limiter records blocked attempts too.
       if (bucket) {
         await ctx.db.patch(bucket._id, {
           count: nextCount,
           lastAttemptAt: now,
-          blockedCount:
-            (bucket.blockedCount ?? 0) + (overIp || overForm ? 1 : 0),
+          blockedCount: (bucket.blockedCount ?? 0) + (decision.blocked ? 1 : 0),
         });
       } else {
         await ctx.db.insert("form_submission_attempts", {
@@ -345,12 +442,11 @@ export const guardSubmission = internalMutation({
           windowStart,
           count: nextCount,
           lastAttemptAt: now,
-          blockedCount: overIp || overForm ? 1 : 0,
+          blockedCount: decision.blocked ? 1 : 0,
         });
       }
 
-      if (overIp) return block("rate_ip");
-      if (overForm) return block("rate_form");
+      if (decision.reason) return block(decision.reason);
     }
 
     // ── Stage 3: CAPTCHA (token-presence + policy) ─────────────────────────

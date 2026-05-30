@@ -35,10 +35,12 @@ import {
   type PublicForm,
 } from "@/components/forms/FormRenderer";
 import {
+  clampStepIndex,
   computeActiveSteps,
   deriveSteps,
   type WizardStep,
 } from "./wizardSteps";
+import { LAYOUT_VALUELESS_TYPES } from "@/lib/forms/render/fieldRender";
 import { StepProgress } from "./StepProgress";
 import { StepNav } from "./StepNav";
 import { AutosaveIndicator, type SaveState } from "./AutosaveIndicator";
@@ -74,6 +76,30 @@ function parseSettings(settings: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+/**
+ * Build the autosave/submit ARRAY payload from ALL fields + the live value map.
+ * Pure + exported so the value-less filter is unit-testable without rendering.
+ *
+ * Drops EVERY value-less layout/security type via the canonical
+ * `LAYOUT_VALUELESS_TYPES` (message/accordion/tab/page_break/captcha/honeypot) —
+ * not just `page_break` — so a debounced draft save never leaks a honeypot /
+ * captcha value (same bug class the renderer's `buildSubmitPayload` guards). A
+ * field absent from the value map is skipped (no key emitted).
+ */
+export function buildWizardPayload(
+  fields: ReadonlyArray<{ key: string; type: string }>,
+  valueMap: Record<string, string>,
+): Array<{ fieldKey: string; value: string }> {
+  const out: Array<{ fieldKey: string; value: string }> = [];
+  for (const f of fields) {
+    if (LAYOUT_VALUELESS_TYPES.has(f.type)) continue;
+    const v = valueMap[f.key];
+    if (v === undefined) continue;
+    out.push({ fieldKey: f.key, value: v });
+  }
+  return out;
 }
 
 export function FormWizard({
@@ -161,11 +187,10 @@ export function FormWizard({
     [steps, values, form.fields],
   );
   // Map the desired stepIndex into the live list; clamp so a step emptied by
-  // logic never strands the user (PRD §12).
-  const clampedIndex = Math.min(
-    Math.max(stepIndex, 0),
-    Math.max(activeSteps.length - 1, 0),
-  );
+  // logic never strands the user (PRD §12). Uses the hardened pure clamp so a
+  // non-finite / float index (e.g. from an untrusted resume token) can never
+  // index the active-step array as `undefined`.
+  const clampedIndex = clampStepIndex(stepIndex, activeSteps.length);
   // Re-sync the clamped index back into state when logic shrinks the list.
   useEffect(() => {
     if (clampedIndex !== stepIndex) setStepIndex(clampedIndex);
@@ -177,10 +202,8 @@ export function FormWizard({
     if (didInitStep.current) return;
     didInitStep.current = true;
     if (typeof initialStep === "number" && activeSteps.length > 0) {
-      const target = Math.min(
-        Math.max(initialStep, 0),
-        activeSteps.length - 1,
-      );
+      // Untrusted (resume-token-controlled) step → hardened clamp.
+      const target = clampStepIndex(initialStep, activeSteps.length);
       setStepIndex(target);
       setFurthestStep((f) => Math.max(f, target));
     }
@@ -208,18 +231,14 @@ export function FormWizard({
   // ── Autosave ────────────────────────────────────────────────────────────────
   /** Build the on-disk ARRAY payload from ALL currently-visible fields across
    *  all steps (so resume rehydrates everything). The server drops hidden /
-   *  unknown / layout fields, so sending the whole working map is safe. */
-  const buildPayload = useCallback((): Array<{ fieldKey: string; value: string }> => {
-    const map = valuesRef.current;
-    const out: Array<{ fieldKey: string; value: string }> = [];
-    for (const f of form.fields) {
-      if (f.type === "page_break") continue;
-      const v = map[f.key];
-      if (v === undefined) continue;
-      out.push({ fieldKey: f.key, value: v });
-    }
-    return out;
-  }, [form.fields]);
+   *  unknown / layout fields, so sending the whole working map is safe. Delegates
+   *  to the pure {@link buildWizardPayload} (value-less layout/security types are
+   *  dropped there via the canonical set). */
+  const buildPayload = useCallback(
+    (): Array<{ fieldKey: string; value: string }> =>
+      buildWizardPayload(form.fields, valuesRef.current),
+    [form.fields],
+  );
 
   const flushAutosave = useCallback(async () => {
     if (!opts.autosave) return;

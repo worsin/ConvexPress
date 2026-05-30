@@ -30,13 +30,22 @@ import { api } from "@convexpress-website/backend/generated/api";
 
 import { Button } from "@/components/ui/button";
 import { AuthError } from "@/components/auth/AuthError";
-import { evaluateConditionalLogic } from "@/lib/forms/conditionalLogic";
 import {
   recomputeForm,
   COMPUTED_TYPES,
   type CalcFieldDef,
   type RepeaterRow,
 } from "@/lib/forms/calc";
+import {
+  LAYOUT_VALUELESS_TYPES,
+  sortByMenuOrder,
+  deriveInitialValues,
+  selectVisibleFields,
+  serializeComputedMap,
+  displayValueForField,
+  buildSubmitPayload,
+  isEmptyForRequired,
+} from "@/lib/forms/render/fieldRender";
 import {
   FormFieldRenderer,
   type PublicFormField,
@@ -104,8 +113,15 @@ interface FormRendererProps {
   onReady?: (handle: FormRendererHandle) => void;
 }
 
-/** Field types that never carry a submittable value (layout-only). */
-const LAYOUT_TYPES = new Set(["message", "accordion", "tab", "page_break"]);
+/**
+ * Field types that never carry a submittable value. Sourced from the shared
+ * renderer module so it stays the SINGLE list mirrored against the backend
+ * `LAYOUT_FIELD_TYPES` — crucially this now INCLUDES the security types
+ * `captcha` + `honeypot`, so a (visible) honeypot's value is never serialized
+ * into the submit payload (the server drops it too, but the client must not leak
+ * it either, and a required honeypot must not block legitimate submissions).
+ */
+const LAYOUT_TYPES = LAYOUT_VALUELESS_TYPES;
 
 /** Server-side ConvexError shape returned by `submit` on validation failure. */
 export interface SubmitFieldError {
@@ -130,30 +146,15 @@ export function FormRenderer({
   const suppressSubmit = hideSubmit ?? step !== undefined;
 
   // Field definitions sorted by the admin-authored order.
-  const fields = useMemo(
-    () =>
-      [...form.fields].sort(
-        (a, b) => (a.menuOrder ?? 0) - (b.menuOrder ?? 0),
-      ),
-    [form.fields],
-  );
+  const fields = useMemo(() => sortByMenuOrder(form.fields), [form.fields]);
 
   // Value map keyed by field `key`. Seeded from each field's defaultValue, then
   // OVERRIDDEN by any prefilled / resumed `initialValues` (precedence:
   // defaultValue < initialValues). Layout/password fields stay governed by their
   // own renderers; conditional visibility is unaffected by the seed.
-  const [values, setValues] = useState<Record<string, string>>(() => {
-    const seed: Record<string, string> = {};
-    for (const field of form.fields) {
-      seed[field.key] = field.defaultValue ?? "";
-    }
-    if (initialValues) {
-      for (const [key, val] of Object.entries(initialValues)) {
-        seed[key] = val;
-      }
-    }
-    return seed;
-  });
+  const [values, setValues] = useState<Record<string, string>>(() =>
+    deriveInitialValues(form.fields, initialValues),
+  );
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -171,12 +172,7 @@ export function FormRenderer({
     [step],
   );
   const visibleFields = useMemo(
-    () =>
-      fields.filter(
-        (field) =>
-          (!stepKeySet || stepKeySet.has(field.key)) &&
-          evaluateConditionalLogic(field.conditionalLogic, values),
-      ),
+    () => selectVisibleFields(fields, values, stepKeySet),
     [fields, values, stepKeySet],
   );
 
@@ -204,11 +200,7 @@ export function FormRenderer({
       }
     }
     const { computed } = recomputeForm(calcDefs, values, repeaters);
-    const out: Record<string, string> = {};
-    for (const [key, val] of Object.entries(computed)) {
-      out[key] = typeof val === "number" ? String(val) : JSON.stringify(val);
-    }
-    return out;
+    return serializeComputedMap(computed);
   }, [fields, values]);
 
   function setFieldValue(key: string, next: string) {
@@ -235,10 +227,7 @@ export function FormRenderer({
       // Computed fields are read-only + server-owned — never user-required.
       if (COMPUTED_TYPES.has(field.type)) continue;
       if (!field.required) continue;
-      const raw = values[field.key] ?? "";
-      const isEmpty =
-        raw.trim() === "" || raw === "[]" || raw === "{}";
-      if (isEmpty) {
+      if (isEmptyForRequired(values[field.key])) {
         errors[field.key] = `${field.label || "This field"} is required.`;
       }
     }
@@ -271,13 +260,9 @@ export function FormRenderer({
       return;
     }
 
-    // Submit only visible, value-bearing fields, keyed by fieldKey.
-    const payloadValues = visibleFields
-      .filter((field) => !LAYOUT_TYPES.has(field.type))
-      .map((field) => ({
-        fieldKey: field.key,
-        value: values[field.key] ?? "",
-      }));
+    // Submit only visible, value-bearing fields, keyed by fieldKey. Layout +
+    // security (captcha/honeypot) types are dropped by `buildSubmitPayload`.
+    const payloadValues = buildSubmitPayload(visibleFields, values);
 
     setIsSubmitting(true);
     try {
@@ -346,13 +331,10 @@ export function FormRenderer({
       {visibleFields.map((field) => {
         const inputId = `form-${form._id}-${field.key}`;
         const error = fieldErrors[field.key];
-        const isComputed = COMPUTED_TYPES.has(field.type);
-        // Computed fields display the recomputed value. A `calculation` is
-        // fully read-only (its onChange is a no-op); a `product` keeps its
-        // quantity input editable so the user can change qty.
-        const fieldValue = isComputed
-          ? computedValues[field.key] ?? values[field.key] ?? ""
-          : values[field.key] ?? "";
+        // Computed fields display the recomputed value (fallback: stored, then
+        // ""). A `calculation` is fully read-only (its onChange is a no-op); a
+        // `product` keeps its quantity input editable so the user can change qty.
+        const fieldValue = displayValueForField(field, values, computedValues);
         const handleChange =
           field.type === "calculation"
             ? () => {

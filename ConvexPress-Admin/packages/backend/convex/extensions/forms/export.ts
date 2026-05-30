@@ -20,7 +20,6 @@
 import { action, internalMutation, internalQuery } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal, api } from "../../_generated/api";
-import type { Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
 import { emitEvent } from "../../helpers/events";
 import { FORM_EVENTS, SYSTEM } from "../../events/constants";
@@ -74,9 +73,38 @@ export function decodeCell(raw: string | undefined): string {
   }
 }
 
-/** Quote a CSV cell when it contains a comma, quote, or newline. */
-function csvCell(s: string): string {
-  const value = s ?? "";
+/**
+ * Leading characters a spreadsheet treats as the start of a formula. A submitted
+ * answer like `=cmd|'/c calc'!A1` would otherwise execute on open (CSV / formula
+ * injection → code execution in the admin's spreadsheet). Per OWASP, neutralize
+ * by prefixing a single quote so the cell stays inert text. TAB (\t) and CR (\r)
+ * are included because a leading whitespace char can still front-load a formula
+ * once the importer trims it.
+ */
+const CSV_FORMULA_LEAD = new Set(["=", "+", "-", "@", "\t", "\r"]);
+
+/**
+ * Defang a cell against CSV formula injection. If the FIRST character is one of
+ * the formula-trigger leads, prefix a single quote so spreadsheets render the
+ * value literally instead of evaluating it. Plain numbers/text (e.g. "42",
+ * "hello", "a-b") are returned untouched — only a *leading* trigger is guarded.
+ * Pure + idempotent-safe enough for export (re-running prepends at most one `'`).
+ */
+export function neutralizeFormula(value: string): string {
+  if (value.length > 0 && CSV_FORMULA_LEAD.has(value[0]!)) {
+    return `'${value}`;
+  }
+  return value;
+}
+
+/**
+ * Encode one CSV cell: first neutralize formula-injection leads, THEN quote when
+ * the (possibly prefixed) value contains a comma, quote, or newline. Order
+ * matters — the injection guard must run on the raw value before quoting so a
+ * cell like `=1,2` is both defanged AND correctly quoted.
+ */
+export function csvCell(s: string): string {
+  const value = neutralizeFormula(s ?? "");
   if (/[",\n\r]/.test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
   }
@@ -84,7 +112,7 @@ function csvCell(s: string): string {
 }
 
 /** Encode an array of cell strings into one CSV row. */
-function csvRow(cells: string[]): string {
+export function csvRow(cells: string[]): string {
   return cells.map(csvCell).join(",");
 }
 
@@ -103,13 +131,65 @@ function iso(ms: number | undefined): string {
   }
 }
 
+// ─── Column selection (pure) ────────────────────────────────────────────────
+
+/** A resolved CSV data column (one per non-layout field). */
+export interface ExportColumn {
+  name: string;
+  label: string;
+  key: string;
+}
+
+/** A field definition shape, narrowed to the fields column-selection reads. */
+interface FieldDefLike {
+  name: string;
+  label?: string;
+  key: string;
+  type: string;
+}
+
+/**
+ * Pure column-selection for a form's CSV. Filters out layout / no-value field
+ * types (LAYOUT_OR_NO_VALUE), maps each surviving def to `{ name, label, key }`
+ * (label falls back to name), and — when `fields` (a list of field NAMEs) is
+ * given — keeps ONLY those, in the caller's order, collecting unknown names
+ * into `warnings`. The DB read lives in `resolveColumns`; this is the logic.
+ */
+export function selectColumns(
+  defs: FieldDefLike[],
+  fields?: string[],
+): { columns: ExportColumn[]; warnings: string[] } {
+  const dataDefs = defs.filter((d) => !LAYOUT_OR_NO_VALUE.has(d.type));
+
+  let columns: ExportColumn[] = dataDefs.map((d) => ({
+    name: d.name,
+    label: d.label || d.name,
+    key: d.key,
+  }));
+
+  const warnings: string[] = [];
+  if (fields && fields.length > 0) {
+    const byName = new Map(columns.map((c) => [c.name, c]));
+    const ordered: ExportColumn[] = [];
+    for (const name of fields) {
+      const col = byName.get(name);
+      if (col) ordered.push(col);
+      else warnings.push(name);
+    }
+    columns = ordered;
+  }
+
+  return { columns, warnings };
+}
+
 // ─── resolveColumns (internal query) ────────────────────────────────────────
 
 /**
  * Resolve the data columns for a form's CSV: the non-layout field definitions,
  * in menuOrder. When `fields` (a list of field NAMEs) is given, filter + order
  * to those — silently dropping names with no matching def and collecting the
- * dropped names into `warnings`.
+ * dropped names into `warnings`. Delegates the pure filter/order/warn logic to
+ * `selectColumns`.
  */
 export const resolveColumns = internalQuery({
   args: {
@@ -126,27 +206,7 @@ export const resolveColumns = internalQuery({
       .withIndex("by_group", (q: any) => q.eq("groupId", groupId))
       .collect();
 
-    const dataDefs = defs.filter((d: any) => !LAYOUT_OR_NO_VALUE.has(d.type));
-
-    let columns = dataDefs.map((d: any) => ({
-      name: d.name as string,
-      label: (d.label as string) || (d.name as string),
-      key: d.key as string,
-    }));
-
-    const warnings: string[] = [];
-    if (fields && fields.length > 0) {
-      const byName = new Map(columns.map((c) => [c.name, c]));
-      const ordered: typeof columns = [];
-      for (const name of fields) {
-        const col = byName.get(name);
-        if (col) ordered.push(col);
-        else warnings.push(name);
-      }
-      columns = ordered;
-    }
-
-    return { columns, warnings };
+    return selectColumns(defs as FieldDefLike[], fields);
   },
 });
 

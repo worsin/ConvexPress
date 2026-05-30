@@ -57,6 +57,21 @@ import {
   type RepeaterRow,
   type AuthoritativeValue,
 } from "./calc";
+// Public-submit payload bounds (DoS guard). Pure + additive: the unauthenticated
+// `submit` rejects an oversized/abusive payload BEFORE any DB work. A
+// within-bounds submission (every legitimate form) is unaffected.
+import { checkSubmissionPayload } from "./submitGuards";
+// Builder pure core (slug/settings/status/duplicate-remap). Extracted from this
+// file so the admin CRUD logic is unit-testable without a Convex ctx. The
+// mutations compose these; behavior is unchanged. `remapFieldReferences` is the
+// fix for the duplicate-form deep-copy reference bug (logic/formulas kept the
+// ORIGINAL field keys).
+import {
+  slugify,
+  nextCopySlug,
+  normalizeSettings,
+  remapFieldReferences,
+} from "./builderCore";
 
 // ─── Local validators / helpers ─────────────────────────────────────────────
 
@@ -188,28 +203,20 @@ async function seedDefaultNotifications(
   }
 }
 
-/** Lowercase/slugify a string into a URL-safe form slug. */
-function slugify(input: string): string {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 96);
-}
-
-/** Validate that a settings blob is valid JSON; default to "{}". */
+/**
+ * Validate that a settings blob is valid JSON; default to "{}". Thin ctx-aware
+ * wrapper over the pure `normalizeSettings` core (which returns ok/err instead
+ * of throwing) so the ConvexError stays here.
+ */
 function ensureJsonSettings(settings: string | undefined): string {
-  if (!settings) return "{}";
-  try {
-    JSON.parse(settings);
-    return settings;
-  } catch {
+  const result = normalizeSettings(settings);
+  if (!result.ok) {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
       message: "Form settings must be valid JSON.",
     });
   }
+  return result.value;
 }
 
 /** Throw if a slug is already taken by another form. */
@@ -230,25 +237,46 @@ async function assertSlugAvailable(
   }
 }
 
-/** Find an available "-copy" slug, deduping with a numeric suffix. */
+/**
+ * Find an available "-copy" slug, deduping with a numeric suffix. The candidate
+ * SEQUENCE (`base-copy`, `base-copy-2`, …, timestamp fallback) is owned by the
+ * pure `nextCopySlug` core; this wrapper just supplies the DB-backed taken-check.
+ * The slug index makes each check a point lookup, and the loop is bounded (<100).
+ */
 async function deriveCopySlug(
   ctx: { db: { query: any } },
   baseSlug: string,
 ): Promise<string> {
-  let candidate = `${baseSlug}-copy`;
-  let n = 1;
-  // Bounded loop — practically always resolves on the first or second try.
-  while (n < 100) {
-    const taken = await ctx.db
+  // Memoize per-candidate lookups so the sync predicate `nextCopySlug` expects
+  // can front a set we fill on demand. We probe candidates in the exact order
+  // `nextCopySlug` would, so at most a handful of point lookups run.
+  const takenCache = new Map<string, boolean>();
+  const probe = async (candidate: string): Promise<boolean> => {
+    const cached = takenCache.get(candidate);
+    if (cached !== undefined) return cached;
+    const row = await ctx.db
       .query("forms")
       .withIndex("by_slug", (q: any) => q.eq("slug", candidate))
       .first();
-    if (!taken) return candidate;
+    const taken = row != null;
+    takenCache.set(candidate, taken);
+    return taken;
+  };
+
+  // Walk the deterministic candidate sequence, awaiting each probe, then hand the
+  // resolved cache to the pure core for the final selection (identical result).
+  let candidate = `${baseSlug}-copy`;
+  let n = 1;
+  while (n < 100) {
+    if (!(await probe(candidate))) break;
     n += 1;
     candidate = `${baseSlug}-copy-${n}`;
   }
-  // Fallback: timestamp suffix guarantees uniqueness.
-  return `${baseSlug}-copy-${Date.now()}`;
+  return nextCopySlug(
+    baseSlug,
+    (c) => takenCache.get(c) === true,
+    Date.now(),
+  );
 }
 
 /**
@@ -658,23 +686,45 @@ export const duplicate = mutation({
           .withIndex("by_group", (q: any) => q.eq("groupId", sourceGroupId))
           .collect();
 
+        // PASS 0 — assign every copied field its NEW `key` up front and build the
+        // old→new KEY map. Field copies regenerate `key`, but conditionalLogic
+        // rules, `requiredWhen`, calc formulas (`{field_key}`), and
+        // `quantityFieldKey` all reference SIBLING keys. Without this remap a
+        // duplicated form's logic/formulas keep pointing at the ORIGINAL fields
+        // (cross-form leak / dangling refs). We compute the map first so BOTH
+        // top-level and sub-level inserts can rewrite their references.
+        const keyMap = new Map<string, string>();
+        const newKeyById = new Map<string, string>();
+        for (const field of fields as any[]) {
+          const newKey = `field_${field.name}_${Math.random()
+            .toString(36)
+            .slice(2, 8)}`;
+          keyMap.set(field.key, newKey);
+          newKeyById.set(field._id, newKey);
+        }
+
         // Two-pass copy so parentFieldId references resolve to the new IDs.
         const idMap = new Map<string, Id<"fieldDefinitions">>();
         const topLevel = fields.filter((f: any) => !f.parentFieldId);
         const subLevel = fields.filter((f: any) => f.parentFieldId);
 
         for (const field of topLevel) {
+          // Rewrite sibling-key references onto the new keys (the bug fix).
+          const remapped = remapFieldReferences(
+            { conditionalLogic: field.conditionalLogic, settings: field.settings },
+            keyMap,
+          );
           const newFieldId = await ctx.db.insert("fieldDefinitions", {
             groupId: newGroupId,
             label: field.label,
             name: field.name,
-            key: `field_${field.name}_${Math.random().toString(36).slice(2, 8)}`,
+            key: newKeyById.get(field._id)!,
             type: field.type,
             instructions: field.instructions,
             required: field.required,
             defaultValue: field.defaultValue,
-            settings: field.settings,
-            conditionalLogic: field.conditionalLogic,
+            settings: remapped.settings,
+            conditionalLogic: remapped.conditionalLogic,
             wrapperWidth: field.wrapperWidth,
             wrapperClass: field.wrapperClass,
             wrapperId: field.wrapperId,
@@ -689,17 +739,21 @@ export const duplicate = mutation({
           const newParentId = field.parentFieldId
             ? idMap.get(field.parentFieldId)
             : undefined;
+          const remapped = remapFieldReferences(
+            { conditionalLogic: field.conditionalLogic, settings: field.settings },
+            keyMap,
+          );
           const newFieldId = await ctx.db.insert("fieldDefinitions", {
             groupId: newGroupId,
             label: field.label,
             name: field.name,
-            key: `field_${field.name}_${Math.random().toString(36).slice(2, 8)}`,
+            key: newKeyById.get(field._id)!,
             type: field.type,
             instructions: field.instructions,
             required: field.required,
             defaultValue: field.defaultValue,
-            settings: field.settings,
-            conditionalLogic: field.conditionalLogic,
+            settings: remapped.settings,
+            conditionalLogic: remapped.conditionalLogic,
             wrapperWidth: field.wrapperWidth,
             wrapperClass: field.wrapperClass,
             wrapperId: field.wrapperId,
@@ -773,6 +827,18 @@ export const submit = mutation({
         code: "NOT_FOUND",
         message: "Form is not available for submission.",
       });
+    }
+
+    // (a2) Payload bounds (DoS guard). This endpoint is public + unauthenticated,
+    // so before ANY further work we cap the size/shape of `values` (entry count,
+    // per-value + total length, field-key length, and JSON depth/node count for a
+    // repeater/multiselect blob). An abusive payload is rejected here with a
+    // low-detail error, costing a single O(n) scan instead of a full
+    // visibility→validate→calc→write cycle. Within-bounds payloads pass through
+    // untouched (see submitGuards.SUBMIT_PAYLOAD_LIMITS).
+    const payloadCheck = checkSubmissionPayload(args.values);
+    if (!payloadCheck.ok) {
+      throw new ConvexError({ code: "REJECTED", message: "Submission rejected" });
     }
 
     // (b) Spam guard — runs FIRST, before any validation or write. The guard

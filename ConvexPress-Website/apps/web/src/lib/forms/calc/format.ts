@@ -66,12 +66,15 @@ export function formatNumber(
     n = n * 100;
   }
 
-  const negative = n < 0;
   const abs = Math.abs(n);
 
   // Fixed-decimal string, then split into integer + fraction.
   const fixed = abs.toFixed(decimals);
   const [intPart, fracPart] = fixed.split(".");
+
+  // Sign is derived from the ROUNDED magnitude, not the raw value: a value like
+  // -0.001 rounds to 0.00 at 2dp, so it must render "$0.00" — never "-$0.00".
+  const negative = n < 0 && Number(fixed) !== 0;
   const groupedInt = thousands ? groupThousands(intPart ?? "0") : (intPart ?? "0");
   const numberStr = fracPart ? `${groupedInt}.${fracPart}` : groupedInt;
 

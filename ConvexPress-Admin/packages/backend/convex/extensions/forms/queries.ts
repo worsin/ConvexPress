@@ -105,7 +105,35 @@ export const getBySlug = query({
  * expiry from `submittedAt + DEFAULT_RESUME_TTL_MS` at read time. If/when the
  * Submission System adds an explicit column, read that instead (owned there).
  */
-const DEFAULT_RESUME_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+export const DEFAULT_RESUME_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * Compute a draft's resume expiry from its start time. v1 has no `expiresAt`
+ * column, so expiry = (submittedAt ?? createdAt) + TTL. Pure.
+ */
+export function computeResumeExpiry(
+  sub: { submittedAt?: number; createdAt: number },
+  ttlMs: number = DEFAULT_RESUME_TTL_MS,
+): number {
+  const startedAt = sub.submittedAt ?? sub.createdAt;
+  return startedAt + ttlMs;
+}
+
+/**
+ * Resume-safe projection of a draft's answer rows: a flat `{ fieldKey -> value }`
+ * map drawn ONLY from `fieldKey`/`value`. By construction this can never carry
+ * a row's `updatedBy`/`updatedAt` or any submission-level metadata
+ * (createdBy/ip/userAgent/referrer/meta/...). Pure.
+ */
+export function projectResumeValues(
+  rows: Array<{ fieldKey: string; value: string }>,
+): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const row of rows) {
+    values[row.fieldKey] = row.value;
+  }
+  return values;
+}
 
 /**
  * PUBLIC, no-auth resume query (the ONE new backend surface this system owns).
@@ -134,8 +162,7 @@ export const resume = query({
     if (!sub || sub.status !== "partial") return null;
 
     // Expiry (computed from submittedAt + TTL; no expiresAt column yet).
-    const startedAt = sub.submittedAt ?? sub.createdAt;
-    const expiresAt = startedAt + DEFAULT_RESUME_TTL_MS;
+    const expiresAt = computeResumeExpiry(sub);
     if (Date.now() > expiresAt) {
       return { status: "expired" as const };
     }
@@ -154,10 +181,7 @@ export const resume = query({
       )
       .collect();
 
-    const values: Record<string, string> = {};
-    for (const row of rows) {
-      values[row.fieldKey] = row.value;
-    }
+    const values = projectResumeValues(rows);
 
     return {
       submissionId: sub._id,
@@ -244,7 +268,7 @@ export const getSubmissionPricing = query({
  * Extract `{ oneTime, recurring }` from a submission's `meta` JSON bag. Returns
  * null when meta is absent/malformed or carries no pricing. Pure helper.
  */
-function parseMetaPricing(
+export function parseMetaPricing(
   meta: string | undefined,
 ): { oneTime: number; recurring: Array<{ interval: string; amount: number; label?: string }> } | null {
   if (!meta) return null;

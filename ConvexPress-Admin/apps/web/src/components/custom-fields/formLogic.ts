@@ -224,8 +224,46 @@ export function isFieldRequired(
 
 // ─── Section + page scope ───────────────────────────────────────────────────
 
-/** Field-def types that produce no stored value (layout). Mirrors validators. */
-const LAYOUT_TYPES = new Set(["message", "accordion", "tab"]);
+/**
+ * Field-def types that produce NO stored value and so are excluded from
+ * value-validation (per-type + conditional-required + the structural zod gate).
+ *
+ * This MUST stay in lockstep with `customFields/validators.LAYOUT_FIELD_TYPES`
+ * (the platform source of truth) and with `export.LAYOUT_OR_NO_VALUE`. It is NOT
+ * imported from there on purpose: this module is pure + Convex-import-free so it
+ * can be mirrored verbatim to the admin + website workspaces (see file header).
+ * Keep the literal list identical to those sets.
+ *
+ * Beyond the classic layout types (message/accordion/tab) this includes the
+ * value-less FORM types: `page_break` (Multi-Step step marker), and the security
+ * types `captcha` + `honeypot`. They never carry a value, so they must be skipped
+ * here — otherwise a visible one flagged `required` (e.g. a honeypot, which is
+ * EMPTY by design for a human) would fail the required check and block every
+ * legitimate submission. NOT included: the value-BEARING computed types
+ * (`calculation`/`product`) — those DO hold a server-recomputed value and are
+ * validated/zod-gated normally.
+ */
+const LAYOUT_TYPES = new Set([
+  "message",
+  "accordion",
+  "tab",
+  "page_break",
+  "captcha",
+  "honeypot",
+]);
+
+/**
+ * Value-BEARING computed types (Form Calculation & Pricing). Unlike LAYOUT_TYPES
+ * these DO produce a stored value, so they are NOT skipped from validation. But
+ * their value is DERIVED + recomputed authoritatively by the submit mutation
+ * (integer cents), never user-supplied — so a computed field must never be
+ * treated as user-`required`: an empty client value for it is expected (the
+ * server fills it in step e2) and must not block the submission. We force their
+ * `required` to false in the gate below. Mirrors calc/graph.COMPUTED_TYPES and
+ * customFields/validators.COMPUTED_FIELD_TYPES; kept local to preserve this
+ * module's Convex-free purity (see file header). Keep the list in lockstep.
+ */
+const COMPUTED_TYPES = new Set(["calculation", "product"]);
 
 /**
  * Section (`group` field) visibility. Evaluates the group field's own
@@ -298,14 +336,31 @@ export function recomputeVisibility(
 
   // ── Section pass: which `group` fields are hidden. A hidden group's id is
   // recorded so descendants can be force-hidden regardless of their own rule.
+  // Compound fields nest (group inside group/repeater) via `parentFieldId`
+  // (schema: customFields.ts §"recursive nesting"), so hiding must be TRANSITIVE:
+  // a group whose own logic shows it is still hidden if an ancestor group is
+  // hidden. `fieldDefs` order is not guaranteed topological, so we settle the
+  // group set to a fixpoint (bounded by the group count — never loops, even on a
+  // malformed cyclic parent chain). Purely additive: only ever ADDS group ids,
+  // so single-level behavior is unchanged.
+  const groupDefs = fieldDefs.filter((d) => d.type === "group");
   const hiddenGroupIds = new Set<string>();
-  for (const def of fieldDefs) {
-    if (def.type === "group") {
-      const groupVisible = evaluateSectionVisibility(def, valueMap);
-      if (!groupVisible && def._id) {
+  for (const def of groupDefs) {
+    const groupVisible = evaluateSectionVisibility(def, valueMap);
+    if (!groupVisible && def._id) {
+      hiddenGroupIds.add(def._id);
+    }
+  }
+  for (let pass = 0; pass < groupDefs.length; pass++) {
+    let changed = false;
+    for (const def of groupDefs) {
+      if (!def._id || hiddenGroupIds.has(def._id)) continue;
+      if (def.parentFieldId != null && hiddenGroupIds.has(def.parentFieldId)) {
         hiddenGroupIds.add(def._id);
+        changed = true;
       }
     }
+    if (!changed) break;
   }
 
   // ── Field pass: section gate AND-ed with the field's own rule. A field inside
@@ -379,7 +434,14 @@ export function validateSubmission(
     const isVisible = visibility.visibleFieldKeys.has(def.key);
     if (!isVisible) continue;
 
-    const required = isFieldRequired(def, true, valueMap);
+    // A computed field's value is server-derived (recomputed in submit step e2),
+    // never user-supplied — so it is never user-required. Forcing `required`
+    // false here prevents an author who wrongly marked a calculation/product
+    // `required` from rejecting a submission whose computed value the client
+    // legitimately omitted (it will be filled server-side).
+    const required = COMPUTED_TYPES.has(def.type)
+      ? false
+      : isFieldRequired(def, true, valueMap);
     const submitted = valueMap[def.key] ?? "";
     const settings = parseSettings(def.settings);
 
@@ -417,7 +479,11 @@ export function compileZodFromVisibleFields(
     if (def.type === "group") continue;
     if (!visibility.visibleFieldKeys.has(def.key)) continue;
 
-    const required = isFieldRequired(def, true, valueMap);
+    // Computed fields are server-derived, never user-required (see COMPUTED_TYPES
+    // note + validateSubmission): they never contribute a required `.min(1)` key.
+    const required = COMPUTED_TYPES.has(def.type)
+      ? false
+      : isFieldRequired(def, true, valueMap);
     if (required) {
       shape[def.key] = z
         .string()

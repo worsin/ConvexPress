@@ -72,6 +72,137 @@ function assertParseableLogic(conditionalLogic: string | undefined): void {
   }
 }
 
+// ─── Pure cores (extracted; the dispatch action below delegates to these) ────
+//
+// These four functions hold ALL of the notification decision/assembly logic
+// that does NOT need a Convex `ctx`. They are deterministic string/struct →
+// struct transforms, so they are unit-testable under bun:test (the `dispatch`
+// internalAction loads the DB pieces and then calls them). Behavior is the
+// SAME as the prior inline code, plus the header-injection hardening called out
+// below (CR/LF stripping on the resolved recipient + subject).
+
+/** The shape of a notification row the pure cores read (DB-doc subset). */
+export interface NotificationRowCore {
+  channel: "email" | "site";
+  toExpression?: string;
+  subjectTemplate?: string;
+  messageTemplate?: string;
+  conditionalLogic?: string;
+}
+
+/**
+ * SECURITY — strip CR/LF (and other control chars) from a value destined for an
+ * email HEADER (the `To:` recipient or the `Subject:`). A submitter-controlled
+ * field value that reaches `subjectTemplate`/`toExpression` could otherwise
+ * smuggle a newline + `Bcc:`/extra header into the outbound message (SMTP/MIME
+ * header injection / extra-recipient spoofing). The Resend transport is JSON so
+ * the wire format already resists this, but stripping at the boundary is the
+ * defense-in-depth contract: a header field is single-line, full stop. Body
+ * (`bodyHtml`) is NOT passed through this — newlines are legal there and the
+ * merge resolver already HTML-escapes untrusted cells for that sink.
+ */
+export function sanitizeEmailHeader(value: string): string {
+  // Replace CR, LF, NUL and every other C0/DEL control char (\x00-\x1F,
+  // \x7F) with a space, then collapse runs and trim - so "a\r\nBcc: x"
+  // cannot leave a usable line break that smuggles a header.
+  // eslint-disable-next-line no-control-regex
+  return value
+    .replace(/[\x00-\x1F\x7F]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/**
+ * Decide whether a single notification row FIRES for this event + submission.
+ * Pure mirror of the per-row gate in `dispatch`:
+ *   1. `form.submitted` only fires on a COMPLETE submission (payload.isComplete).
+ *   2. A row with `conditionalLogic` fires only when the evaluator returns true
+ *      against the submission's `fieldKey -> value` map (conditional routing).
+ *   3. Otherwise it fires.
+ * `valueByKey` is keyed by field KEY (conditional logic references keys).
+ */
+export function notificationFiresForSubmission(
+  row: Pick<NotificationRowCore, "conditionalLogic">,
+  eventCode: string,
+  payload: Record<string, unknown>,
+  valueByKey: Record<string, string>,
+): boolean {
+  if (eventCode === "form.submitted" && payload.isComplete !== true) {
+    return false;
+  }
+  if (row.conditionalLogic) {
+    return evaluateConditionalLogic(row.conditionalLogic, valueByKey);
+  }
+  return true;
+}
+
+/** Result of resolving a notification's recipient address. */
+export interface RecipientResolution {
+  /** The sanitized, resolved recipient (may be ""). */
+  email: string;
+  /** True only when `email` is a single, valid, injection-free address. */
+  valid: boolean;
+}
+
+/**
+ * Resolve a notification's recipient from its `toExpression` via merge tags.
+ *
+ * Recipient sourcing model (per task §3 spoofing review):
+ *   - Admin-configured static recipients (e.g. `{settings:admin_notification_email}`)
+ *     are TRUSTED — they come from the row template an admin authored.
+ *   - A field-derived "send to" (e.g. `{field:email}` on a customer confirmation)
+ *     is UNTRUSTED submitter input. It MUST resolve to exactly ONE valid email
+ *     with no header break, or it is rejected (caller skips the row). A public
+ *     submitter therefore cannot inject a second recipient or a header, and an
+ *     admin row that resolves to a corrupt address simply does not send.
+ *
+ * The header sanitizer runs FIRST so a smuggled newline is gone before the
+ * single-address `isValidEmail` shape check (which also rejects internal
+ * whitespace). Returns `{ email, valid }`; the caller decides what to do with
+ * an invalid one (email channel skips; logs `no_recipient`).
+ */
+export function resolveNotificationRecipient(
+  toExpression: string | undefined,
+  ctx: MergeContext,
+): RecipientResolution {
+  const resolved = sanitizeEmailHeader(resolveMergeTags(toExpression, ctx));
+  return { email: resolved, valid: resolved.length > 0 && isValidEmail(resolved) };
+}
+
+/** Assembled, ready-to-send notification content. */
+export interface NotificationContent {
+  /** Sanitized single-line subject with a non-empty fallback. */
+  subject: string;
+  /** Resolved HTML body (already escaped for untrusted cells by the resolver). */
+  bodyHtml: string;
+}
+
+/**
+ * Assemble a notification's subject + body from its templates via merge tags.
+ *
+ * - `subject` is resolved, header-sanitized (CR/LF stripped), and falls back to
+ *   `"<formTitle> — notification"` when the template is blank — mirroring the
+ *   prior `subject || \`${form.title} — notification\`` in dispatch.
+ * - `bodyHtml` is the resolver's output VERBATIM. The legacy resolver already
+ *   HTML-escapes every untrusted cell (`{field:*}`, `{action:error}`,
+ *   `{all_fields}`) for the email-html sink, so the escaped string is exactly
+ *   what reaches `queueRenderedEmail({ bodyHtml })` — there is NO raw re-resolve
+ *   on this path. Body is intentionally NOT header-sanitized (newlines are
+ *   legal in an HTML body).
+ */
+export function assembleNotificationContent(
+  row: Pick<NotificationRowCore, "subjectTemplate" | "messageTemplate">,
+  ctx: MergeContext,
+  formTitle: string,
+): NotificationContent {
+  const rawSubject = sanitizeEmailHeader(resolveMergeTags(row.subjectTemplate, ctx));
+  const bodyHtml = resolveMergeTags(row.messageTemplate, ctx);
+  return {
+    subject: rawSubject || `${formTitle} — notification`,
+    bodyHtml,
+  };
+}
+
 // ─── Admin query: list rows for a form (gated) ───────────────────────────────
 
 export const listForForm = query({
@@ -448,38 +579,43 @@ export const dispatch = internalAction({
     };
 
     // ── Per-row loop (in order) ─────────────────────────────────────────────
+    // The decision (does this row fire?), the recipient resolution, and the
+    // subject/body assembly are all the extracted PURE cores above. This loop
+    // is the orchestration shell: gate → resolve → enqueue/insert per channel.
     for (const row of rows) {
       try {
-        // Firing rule: form.submitted only fires on a COMPLETE submission.
-        if (eventCode === "form.submitted" && payload.isComplete !== true) {
+        // Firing rule + conditional routing (pure).
+        if (
+          !notificationFiresForSubmission(row, eventCode, payload, valueByKey)
+        ) {
           continue;
         }
 
-        // Conditional gate: a `true` evaluator result = fire, `false` = skip.
-        if (row.conditionalLogic) {
-          const shouldFire = evaluateConditionalLogic(
-            row.conditionalLogic,
-            valueByKey,
-          );
-          if (!shouldFire) continue;
-        }
-
-        // Resolve templates.
-        const to = resolveMergeTags(row.toExpression, mergeContext);
-        const subject = resolveMergeTags(row.subjectTemplate, mergeContext);
-        const body = resolveMergeTags(row.messageTemplate, mergeContext);
+        // Subject/body assembly (pure). Body is the escaped resolver output.
+        const content = assembleNotificationContent(
+          row,
+          mergeContext,
+          form.title,
+        );
 
         if (row.channel === "email") {
-          if (!to || !isValidEmail(to)) {
+          // Recipient resolution (pure): header-sanitized + single-address
+          // validated. A field-derived recipient cannot inject a header or a
+          // second address; an unresolvable/invalid one skips this row.
+          const recipient = resolveNotificationRecipient(
+            row.toExpression,
+            mergeContext,
+          );
+          if (!recipient.valid) {
             console.warn(
               `[FormNotification] skip no_recipient (row=${row._id} form=${formId})`,
             );
             continue;
           }
           await ctx.runMutation(internal.emails.internals.queueRenderedEmail, {
-            recipientEmail: to,
-            subject: subject || `${form.title} — notification`,
-            bodyHtml: body,
+            recipientEmail: recipient.email,
+            subject: content.subject,
+            bodyHtml: content.bodyHtml,
             templateSlug: "form_notification",
             templateVariables: "{}",
             priority: "immediate",
@@ -498,7 +634,7 @@ export const dispatch = internalAction({
               eventCode,
               type: siteType,
               title: row.name || form.title,
-              body: body || `New activity on ${form.title}.`,
+              body: content.bodyHtml || `New activity on ${form.title}.`,
               eventId,
             },
           );

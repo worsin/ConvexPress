@@ -33,6 +33,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatNumber, type NumberFormat } from "@/lib/forms/calc";
+import {
+  LAYOUT_VALUELESS_TYPES,
+  inputKindForFieldType,
+  parseMultiValue,
+} from "@/lib/forms/render/fieldRender";
 
 export interface PublicFormField {
   _id: string;
@@ -99,8 +104,10 @@ const baseControlClass =
   "w-full rounded-4xl border border-input bg-input/30 px-3 py-2 text-sm text-foreground outline-hidden transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50";
 
 /**
- * Field types that carry no submittable value (layout-only). The caller is
- * expected to skip these for validation; here they render as static content.
+ * Field types that carry no submittable value (layout-only / security). Sourced
+ * from the shared renderer module so this stays the SINGLE list mirrored against
+ * the backend `LAYOUT_FIELD_TYPES`. Includes the security types `captcha` +
+ * `honeypot` (they render nothing here and must never be submitted).
  *
  * `page_break` (Form Multi-Step System) is a layout/no-value type too: it is a
  * wizard step boundary whose `label` is consumed by the FormWizard as the next
@@ -108,21 +115,7 @@ const baseControlClass =
  * the field flow (see the page_break short-circuit below). On a single-page
  * render (no wizard) it is simply invisible — harmless.
  */
-const LAYOUT_TYPES = new Set(["message", "accordion", "tab", "page_break"]);
-
-/**
- * Scalar-ish types we are confident degrade safely to a plain text input when
- * not given a first-class renderer below.
- */
-const TEXT_FALLBACK_TYPES = new Set([
-  "password",
-  "color_picker",
-  "date_time_picker",
-  "time_picker",
-  "range",
-  "oembed",
-  "button_group",
-]);
+const LAYOUT_TYPES = LAYOUT_VALUELESS_TYPES;
 
 export function FormFieldRenderer({
   field,
@@ -144,9 +137,18 @@ export function FormFieldRenderer({
     </p>
   ) : null;
 
-  // ── page_break: a wizard step marker — renders nothing in the field flow.
-  // Its `label` is consumed by the FormWizard as the next step's title.
-  if (field.type === "page_break") {
+  // ── Value-less markers that render NOTHING in the field flow:
+  //   • `page_break` — a wizard step boundary; its `label` is consumed by the
+  //     FormWizard as the next step's title, never shown inline.
+  //   • `captcha` / `honeypot` (Form Spam System) — owned by a dedicated spam
+  //     layer, not this lean renderer. A honeypot in particular MUST stay
+  //     invisible (a visible labeled box would defeat the trap and confuse
+  //     humans), and neither carries a submittable value.
+  if (
+    field.type === "page_break" ||
+    field.type === "captcha" ||
+    field.type === "honeypot"
+  ) {
     return null;
   }
 
@@ -333,7 +335,9 @@ export function FormFieldRenderer({
       default:
         // Known-scalar fallbacks render a plain text input; everything else
         // (repeater/group/image/etc.) gets a clear note instead of crashing.
-        if (TEXT_FALLBACK_TYPES.has(field.type)) {
+        // The text-fallback vs unsupported decision is owned by the shared
+        // renderer module so it stays in lockstep with the unit tests.
+        if (inputKindForFieldType(field.type, settings.multiple) === "text-fallback") {
           return (
             <Input
               id={inputId}
@@ -493,14 +497,7 @@ function CheckboxGroupControl({
   const choices = settings.choices ?? [];
   const horizontal = settings.layout === "horizontal";
 
-  const selected = useMemo<string[]>(() => {
-    try {
-      const parsed = JSON.parse(value || "[]");
-      return Array.isArray(parsed) ? (parsed as string[]) : [];
-    } catch {
-      return [];
-    }
-  }, [value]);
+  const selected = useMemo<string[]>(() => parseMultiValue(value), [value]);
 
   const toggle = (choiceValue: string) => {
     const next = selected.includes(choiceValue)
