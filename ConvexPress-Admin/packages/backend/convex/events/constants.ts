@@ -47,6 +47,7 @@ export const SYSTEM = {
   CART: "cart",
   CHECKOUT: "checkout",
   WISHLIST: "wishlist",
+  FORMS: "forms",
 } as const;
 
 export type SystemSlug = (typeof SYSTEM)[keyof typeof SYSTEM];
@@ -327,6 +328,21 @@ export const WISHLIST_EVENTS = {
   MOVED_TO_CART: "wishlist.moved_to_cart",
 } as const;
 
+/**
+ * Forms extension events (7) — v2 scanner-discovered extension.
+ * Emitted with system slug SYSTEM.FORMS ("forms"); codes use the
+ * 2-segment "form.action" form required by the dispatcher contract.
+ */
+export const FORM_EVENTS = {
+  CREATED: "form.created",
+  UPDATED: "form.updated",
+  DELETED: "form.deleted",
+  SUBMITTED: "form.submitted",
+  PROGRESS_SAVED: "form.progress_saved",
+  ENTRY_UPDATED: "form.entry_updated",
+  ENTRY_DELETED: "form.entry_deleted",
+} as const;
+
 // ─── All Event Codes ───────────────────────────────────────────────────────
 
 /**
@@ -365,6 +381,7 @@ export const ALL_EVENT_CODES: string[] = [
   ...Object.values(CART_EVENTS),
   ...Object.values(CHECKOUT_EVENTS),
   ...Object.values(WISHLIST_EVENTS),
+  ...Object.values(FORM_EVENTS),
 ];
 
 /** Set for O(1) lookup of valid event codes. */
@@ -414,6 +431,7 @@ export const EVENT_CODES_BY_SYSTEM: Record<string, readonly string[]> = {
   [SYSTEM.CART]: Object.values(CART_EVENTS),
   [SYSTEM.CHECKOUT]: Object.values(CHECKOUT_EVENTS),
   [SYSTEM.WISHLIST]: Object.values(WISHLIST_EVENTS),
+  [SYSTEM.FORMS]: Object.values(FORM_EVENTS),
 };
 
 // ─── Wildcard / Global Patterns ────────────────────────────────────────────
@@ -526,6 +544,9 @@ const CRITICAL_RETENTION_CODES: Set<string> = new Set([
   PROFILE_EVENTS.DELETED,
   MENU_EVENTS.DELETED,
   API_EVENTS.KEY_REVOKED,
+  // Forms deletion events (form + submission removal — compliance/recovery)
+  FORM_EVENTS.DELETED,
+  FORM_EVENTS.ENTRY_DELETED,
   // Audit events (compliance)
   AUDIT_EVENTS.CLEARED,
   AUDIT_EVENTS.EXPORTED,
