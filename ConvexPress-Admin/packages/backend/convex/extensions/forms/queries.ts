@@ -97,6 +97,79 @@ export const getBySlug = query({
   },
 });
 
+// ─── Public: resume a save-and-continue draft by token ───────────────────────
+
+/**
+ * Default draft TTL for save-and-continue (Form Multi-Step PRD §11): 30 days.
+ * The schema has no `form_submissions.expiresAt` column today, so v1 computes
+ * expiry from `submittedAt + DEFAULT_RESUME_TTL_MS` at read time. If/when the
+ * Submission System adds an explicit column, read that instead (owned there).
+ */
+const DEFAULT_RESUME_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * PUBLIC, no-auth resume query (the ONE new backend surface this system owns).
+ * The opaque token IS the credential for an anonymous draft. Abuse control on
+ * reads is the Spam System's job on the underlying surface.
+ *
+ * Returns:
+ *   - `null` when the token is unknown / not a `partial` / its form is missing
+ *     or unpublished (route → NotFound).
+ *   - `{ status: "expired" }` when the draft is past its TTL (route → expired
+ *     notice). NEVER returns answer data for an expired draft.
+ *   - else the resume-safe projection: `{ submissionId, formSlug, status,
+ *     currentStep, expiresAt, values }` where `values` is keyed by `fieldKey`
+ *     (string→string) so it drops straight into the wizard's value map. No
+ *     authoring metadata (createdBy/updatedBy/ip/meta/...) is ever projected.
+ */
+export const resume = query({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const sub = await ctx.db
+      .query("form_submissions")
+      .withIndex("by_resumeToken", (q) => q.eq("resumeToken", token))
+      .first();
+
+    // Unknown / completed / spam / deleted → not resumable.
+    if (!sub || sub.status !== "partial") return null;
+
+    // Expiry (computed from submittedAt + TTL; no expiresAt column yet).
+    const startedAt = sub.submittedAt ?? sub.createdAt;
+    const expiresAt = startedAt + DEFAULT_RESUME_TTL_MS;
+    if (Date.now() > expiresAt) {
+      return { status: "expired" as const };
+    }
+
+    // Parent form must exist + be published.
+    const form = await ctx.db.get(sub.formId);
+    if (!form || form.status !== "published") return null;
+
+    // Read answers; project resume-safe { fieldKey -> value } only.
+    const rows = await ctx.db
+      .query("fieldValues")
+      .withIndex("by_entity", (q) =>
+        q
+          .eq("entityType", "form_submission")
+          .eq("entityId", sub._id as string),
+      )
+      .collect();
+
+    const values: Record<string, string> = {};
+    for (const row of rows) {
+      values[row.fieldKey] = row.value;
+    }
+
+    return {
+      submissionId: sub._id,
+      formSlug: form.slug,
+      status: "partial" as const,
+      currentStep: sub.currentStep ?? 0,
+      expiresAt,
+      values,
+    };
+  },
+});
+
 // ─── Admin: submissions for a form (paginated) ───────────────────────────────
 export const listSubmissions = query({
   args: {
@@ -147,6 +220,47 @@ export const getSubmission = query({
       .withIndex("by_submission", (q) => q.eq("submissionId", id))
       .collect();
 
-    return { submission, values, notes };
+    // Surface the trusted, server-recomputed pricing summary (integer cents)
+    // from `meta.pricing` so the Commerce / Subscription Action + Confirmation
+    // screen read ONE object without re-walking the calculation graph (Form
+    // Calculation & Pricing PRD §5). Null when the form carries no pricing.
+    const pricing = parseMetaPricing(submission.meta);
+
+    return { submission, values, notes, pricing };
   },
 });
+
+// ─── Public: a submission's trusted pricing summary (commerce/confirmation) ───
+export const getSubmissionPricing = query({
+  args: { id: v.id("form_submissions") },
+  handler: async (ctx, { id }) => {
+    const submission = await ctx.db.get(id);
+    if (!submission) return null;
+    return parseMetaPricing(submission.meta);
+  },
+});
+
+/**
+ * Extract `{ oneTime, recurring }` from a submission's `meta` JSON bag. Returns
+ * null when meta is absent/malformed or carries no pricing. Pure helper.
+ */
+function parseMetaPricing(
+  meta: string | undefined,
+): { oneTime: number; recurring: Array<{ interval: string; amount: number; label?: string }> } | null {
+  if (!meta) return null;
+  try {
+    const parsed = JSON.parse(meta);
+    const pricing = parsed?.pricing;
+    if (
+      pricing &&
+      typeof pricing === "object" &&
+      typeof pricing.oneTime === "number" &&
+      Array.isArray(pricing.recurring)
+    ) {
+      return pricing;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

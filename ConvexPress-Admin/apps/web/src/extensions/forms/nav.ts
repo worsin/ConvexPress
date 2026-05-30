@@ -23,6 +23,21 @@ import type { AdminNavSection } from "@/lib/admin-shell/types";
  */
 const formCap = (cap: string): Capability => cap as Capability;
 
+/**
+ * Form Analytics & Export System surfaces two per-form capabilities:
+ *   - `form.view_analytics`  — gates /forms/$formId/analytics (per-form route).
+ *   - `form.export_entries`  — gates the CSV export button on that page.
+ * Because analytics is PER-FORM ($formId), it is NOT a static top-level nav
+ * link; the entry point is an in-page link from the form's edit view (see
+ * routes/.../forms/$formId/edit.tsx). We reference the caps here so they are
+ * discoverable to the nav/cap layer without adding a dead static link.
+ */
+const ANALYTICS_CAPS = [
+  formCap("form.view_analytics"),
+  formCap("form.export_entries"),
+] as const;
+void ANALYTICS_CAPS;
+
 const navSection: AdminNavSection = {
   id: "forms",
   label: "Forms",

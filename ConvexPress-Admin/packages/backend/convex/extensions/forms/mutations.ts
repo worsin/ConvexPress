@@ -25,13 +25,38 @@
 import { mutation } from "../../_generated/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
+import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { requireCan, getUserIdentifier } from "../../helpers/permissions";
 import { emitEvent } from "../../helpers/events";
 import { validateFieldValue } from "../../helpers/customFieldValidation";
+import { LAYOUT_FIELD_TYPES } from "../../customFields/validators";
 import { FORM_EVENTS, SYSTEM } from "../../events/constants";
 import type { Capability } from "../../types/capabilities";
-import { evaluateConditionalLogic } from "./conditionalLogic";
+// Server-trusted Form Logic & Validation contract (field + section + page
+// scope, cross-field operands, conditional-required, structural zod gate). The
+// field-scope primitive `evaluateConditionalLogic` still lives in
+// ./conditionalLogic and is composed internally by recomputeVisibility.
+import {
+  recomputeVisibility,
+  validateSubmission,
+  compileZodFromVisibleFields,
+  type LogicFieldDef,
+} from "./formLogic";
+// Form Calculation & Pricing System (server-authoritative). The submit path
+// recomputes every computed field in INTEGER CENTS before persisting answers, so
+// a tampered client `lineTotal`/`subtotal` is discarded. Save-time graph
+// validation rejects a cyclic or dangling-ref form before it can publish.
+import {
+  buildDependencyGraph,
+  collectUnknownRefs,
+  collectFormulaErrors,
+  formatCycle,
+  recomputeAuthoritative,
+  type CalcFieldDef,
+  type RepeaterRow,
+  type AuthoritativeValue,
+} from "./calc";
 
 // ─── Local validators / helpers ─────────────────────────────────────────────
 
@@ -55,6 +80,112 @@ const submissionStatus = v.union(
  */
 function formCap(cap: string): Capability {
   return cap as Capability;
+}
+
+/**
+ * Seed the default notification rows for a newly created form (PRD §6 + §10).
+ * Inserts directly into `form_notifications` (the Notification System owns its
+ * own CRUD file; this seed is the one cross-touch in `create`). The site rows
+ * ship `enabled: true` because the Notification System's `site` channel uses a
+ * direct-insert path (no dependency on the closed notification-key registry).
+ */
+async function seedDefaultNotifications(
+  ctx: { db: { insert: any } },
+  formId: Id<"forms">,
+): Promise<void> {
+  const rows: Array<{
+    name: string;
+    channel: "email" | "site";
+    recipientType: "admin" | "customer";
+    toExpression?: string;
+    subjectTemplate?: string;
+    messageTemplate?: string;
+    triggerEventCode: string;
+    enabled: boolean;
+    order: number;
+  }> = [
+    {
+      name: "New Form Submission (Admin)",
+      channel: "email",
+      recipientType: "admin",
+      toExpression: "{settings:admin_notification_email}",
+      subjectTemplate: "New {form:title} submission",
+      messageTemplate: "<p>A new submission was received.</p>{all_fields}",
+      triggerEventCode: "form.submitted",
+      enabled: true,
+      order: 0,
+    },
+    {
+      name: "Form Confirmation (Respondent)",
+      channel: "email",
+      recipientType: "customer",
+      toExpression: "{field:email}",
+      subjectTemplate: "We received your submission",
+      messageTemplate:
+        "<p>Thank you — we received your submission to {form:title}.</p>",
+      triggerEventCode: "form.submitted",
+      enabled: true,
+      order: 1,
+    },
+    {
+      name: "Resume Your Form",
+      channel: "email",
+      recipientType: "customer",
+      toExpression: "{field:email}",
+      subjectTemplate: "Resume your {form:title} form",
+      messageTemplate:
+        "<p>You can resume your form here: {form:resume_url}</p>",
+      triggerEventCode: "form.progress_saved",
+      enabled: true,
+      order: 2,
+    },
+    {
+      name: "Form Action Failed (Admin)",
+      channel: "email",
+      recipientType: "admin",
+      toExpression: "{settings:admin_notification_email}",
+      subjectTemplate: "A {form:title} action failed",
+      messageTemplate:
+        "<p>A post-submit action failed for {form:title}.</p><p>{action:error}</p>",
+      triggerEventCode: "form.action_failed",
+      enabled: true,
+      order: 3,
+    },
+    {
+      name: "New Form Submission",
+      channel: "site",
+      recipientType: "admin",
+      messageTemplate: "A new {form:title} submission was received.",
+      triggerEventCode: "form.submitted",
+      enabled: true,
+      order: 4,
+    },
+    {
+      name: "Form Action Failed",
+      channel: "site",
+      recipientType: "admin",
+      messageTemplate: "A {form:title} action failed.",
+      triggerEventCode: "form.action_failed",
+      enabled: true,
+      order: 5,
+    },
+  ];
+
+  for (const row of rows) {
+    await ctx.db.insert("form_notifications", {
+      formId,
+      name: row.name,
+      channel: row.channel,
+      recipientType: row.recipientType,
+      toExpression: row.toExpression,
+      subjectTemplate: row.subjectTemplate,
+      messageTemplate: row.messageTemplate,
+      triggerEventCode: row.triggerEventCode,
+      conditionalLogic: undefined,
+      enabled: row.enabled,
+      order: row.order,
+    });
+  }
 }
 
 /** Lowercase/slugify a string into a URL-safe form slug. */
@@ -118,6 +249,90 @@ async function deriveCopySlug(
   }
   // Fallback: timestamp suffix guarantees uniqueness.
   return `${baseSlug}-copy-${Date.now()}`;
+}
+
+/**
+ * Save-time validation of a form's calculation graph (Form Calculation & Pricing
+ * System, PRD §8). Loads the form's field definitions and rejects the operation
+ * when any computed field's formula:
+ *   - references a field key that does not exist (dangling ref), OR
+ *   - participates in a circular dependency (`grand_total ↔ subtotal`, self-ref),
+ *   - or fails to parse.
+ * A cyclic/invalid form can never publish. Acyclic forms (and forms with no
+ * computed fields) pass silently. The runtime renderer still degrades safely.
+ */
+async function assertCalcGraphValid(
+  ctx: { db: { query: any } },
+  fieldGroupId: Id<"fieldGroups"> | undefined,
+): Promise<void> {
+  if (!fieldGroupId) return;
+  const fieldDefs = await ctx.db
+    .query("fieldDefinitions")
+    .withIndex("by_group", (q: any) => q.eq("groupId", fieldGroupId))
+    .collect();
+
+  // The generated Docs structurally satisfy CalcFieldDef (key/type/settings).
+  const calcDefs = fieldDefs as unknown as CalcFieldDef[];
+
+  const formulaErrors = collectFormulaErrors(calcDefs);
+  if (formulaErrors.length > 0) {
+    const first = formulaErrors[0]!;
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: `Field "${first.fieldKey}" has an invalid formula: ${first.message}`,
+    });
+  }
+
+  const unknownRefs = collectUnknownRefs(calcDefs);
+  if (unknownRefs.length > 0) {
+    const first = unknownRefs[0]!;
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: `Field "${first.fieldKey}" references an unknown field "{${first.missingRef}}".`,
+    });
+  }
+
+  const { cycles } = buildDependencyGraph(calcDefs);
+  if (cycles.length > 0) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: `Calculation fields form a circular reference: ${formatCycle(cycles[0]!)}.`,
+    });
+  }
+}
+
+/**
+ * Serialize a server-recomputed computed value to the string `fieldValues.value`
+ * column expects. A `calculation` value is a number → its string form; a
+ * `product` value is a line object → JSON. (Integer cents, set by the calc core.)
+ */
+function serializeComputedValue(value: AuthoritativeValue): string {
+  if (typeof value === "number") return String(value);
+  return JSON.stringify(value);
+}
+
+/**
+ * Merge a freshly-recomputed pricing summary into an existing `meta` JSON bag
+ * WITHOUT clobbering sibling-system keys (e.g. an analytics abandon marker).
+ * Tolerates absent/malformed prior meta.
+ */
+function mergeMetaPricing(
+  existingMeta: string | undefined,
+  pricing: unknown,
+): string {
+  let base: Record<string, unknown> = {};
+  if (existingMeta) {
+    try {
+      const parsed = JSON.parse(existingMeta);
+      if (parsed && typeof parsed === "object") {
+        base = parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Malformed prior meta — start clean (we still keep the new pricing).
+    }
+  }
+  base.pricing = pricing;
+  return JSON.stringify(base);
 }
 
 // ─── create ──────────────────────────────────────────────────────────────────
@@ -189,6 +404,9 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    // Seed the default notification rows (Form Notification System).
+    await seedDefaultNotifications(ctx, formId);
 
     await emitEvent(ctx, FORM_EVENTS.CREATED, SYSTEM.FORMS, {
       formId,
@@ -267,6 +485,10 @@ export const update = mutation({
     }
 
     if (args.status !== undefined && args.status !== form.status) {
+      // Publishing via update must clear the same calc-graph gate as publish().
+      if (args.status === "published") {
+        await assertCalcGraphValid(ctx, form.fieldGroupId);
+      }
       patch.status = args.status;
       changedFields.push("status");
       // Stamp publishedAt the first time the form goes live.
@@ -307,6 +529,10 @@ export const publish = mutation({
     const form = await ctx.db.get(id);
     if (!form) throw new ConvexError({ code: "NOT_FOUND", message: "Form not found." });
     if (form.status === "published") return form;
+
+    // A form with a cyclic / dangling / invalid calculation graph can never go
+    // live (Form Calculation & Pricing PRD §8).
+    await assertCalcGraphValid(ctx, form.fieldGroupId);
 
     const now = Date.now();
     await ctx.db.patch(id, {
@@ -535,6 +761,9 @@ export const submit = mutation({
     resumeToken: v.optional(v.string()),
     captchaToken: v.optional(v.string()),
     honeypot: v.optional(v.string()),
+    // Time-trap stamp (ms epoch) set by the Forms Renderer when the form first
+    // mounts; the spam guard rejects sub-`minFillMs` and stale submissions.
+    startedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     // (a) Load form; only published forms accept submissions.
@@ -546,11 +775,27 @@ export const submit = mutation({
       });
     }
 
-    // (b) Spam-guard seam. DO NOT implement captcha here — leave a clear hook.
-    // TODO(form-spam-security): verifySubmissionSecurity(ctx, {
-    //   formId: args.formId, captchaToken: args.captchaToken,
-    //   honeypot: args.honeypot, ip, userAgent, resumeToken: args.resumeToken,
-    // }) before accepting — reject/flag-as-spam on failure.
+    // (b) Spam guard — runs FIRST, before any validation or write. The guard
+    // (honeypot/time-trap → per-ip+form rate limit → CAPTCHA, fail-closed when
+    // CAPTCHA is enabled) emits `form.spam_blocked` on a block; we reject with a
+    // low-detail error so a bot can't probe which stage caught it (PRD §13.5).
+    // `ip` is undefined here (a Convex mutation ctx has no request IP); an
+    // HTTP-action front door can forward it later via the guard's `ip` seam.
+    // HANDOFF: persisting guard.score as spamScore/status:"spam" is the Form
+    // Submission System's job — the guard rejects before any row is written.
+    const guard = await ctx.runMutation(
+      internal.extensions.forms.spam.guardSubmission,
+      {
+        formId: args.formId,
+        honeypot: args.honeypot,
+        captchaToken: args.captchaToken,
+        startedAt: args.startedAt,
+        ip: undefined,
+      },
+    );
+    if (guard.block) {
+      throw new ConvexError({ code: "REJECTED", message: "Submission rejected" });
+    }
 
     const isComplete = args.isComplete ?? false;
 
@@ -572,49 +817,118 @@ export const submit = mutation({
       valueMap[entry.fieldKey] = entry.value;
     }
 
-    // (d) Recompute conditional visibility server-side. Hidden fields are
-    // treated as not-required and their submitted values are ignored.
+    // (d) Recompute visibility server-side via the Form Logic & Validation
+    // contract: field + section (`group`) + page scope, cross-field operands,
+    // and conditional-required. Hidden (field/section/page) fields are treated
+    // as not-required and their submitted values dropped — the client is never
+    // trusted to tell us which fields were visible. `fieldDefs` (Convex Docs)
+    // satisfy the structural LogicFieldDef shape the engine reads.
     type FieldDef = (typeof fieldDefs)[number];
+    const logicDefs = fieldDefs as unknown as LogicFieldDef[];
+    const visibility = recomputeVisibility(logicDefs, valueMap);
     const visibleDefs: FieldDef[] = fieldDefs.filter((def: FieldDef) =>
-      evaluateConditionalLogic(def.conditionalLogic, valueMap),
+      visibility.visibleFieldKeys.has(def.key),
     );
 
-    // (e) Validate each VISIBLE field with the server-trusted validator.
-    const errors: Array<{ fieldKey: string; label: string; error: string }> = [];
-    for (const def of visibleDefs) {
-      // Layout fields (message/accordion/tab) carry no value — skip them.
-      if (def.type === "message" || def.type === "accordion" || def.type === "tab") {
-        continue;
-      }
-      const submitted = valueMap[def.key] ?? "";
-      let parsedSettings: Record<string, unknown> = {};
-      try {
-        parsedSettings = JSON.parse(def.settings);
-      } catch {
-        // Malformed settings JSON — validate against an empty settings object.
-      }
-      const result = validateFieldValue(
-        def.type,
-        submitted,
-        parsedSettings,
-        def.required,
-      );
-      if (!result.valid) {
-        errors.push({
-          fieldKey: def.key,
-          label: def.label,
-          error: result.error ?? "Invalid value.",
-        });
+    // (e) Validate visible fields (imperative per-type checks + conditional-
+    // required) AND a structural zod gate; BOTH must pass. The engine returns
+    // fieldKey -> message; we re-attach `label` from the def to preserve the
+    // existing wire contract `errors: [{ fieldKey, label, error }]`.
+    const labelByKey = new Map(fieldDefs.map((d: FieldDef) => [d.key, d.label]));
+    const validation = validateSubmission(
+      logicDefs,
+      valueMap,
+      visibility,
+      validateFieldValue,
+    );
+
+    const zodErrors: Record<string, string> = {};
+    const zodSchema = compileZodFromVisibleFields(logicDefs, visibility, valueMap);
+    const zodResult = zodSchema.safeParse(valueMap);
+    if (!zodResult.success) {
+      for (const issue of zodResult.error.issues) {
+        const key = String(issue.path[0] ?? "");
+        if (key && !(key in validation.errors) && !(key in zodErrors)) {
+          zodErrors[key] = issue.message || "Invalid value.";
+        }
       }
     }
 
-    if (errors.length > 0) {
+    const mergedErrors = { ...zodErrors, ...validation.errors };
+    if (Object.keys(mergedErrors).length > 0) {
+      const errors = Object.entries(mergedErrors).map(([fieldKey, error]) => ({
+        fieldKey,
+        label: labelByKey.get(fieldKey) ?? fieldKey,
+        error,
+      }));
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message: "One or more fields are invalid.",
         errors,
       });
     }
+
+    // (e2) Authoritative calculation recompute (Form Calculation & Pricing PRD
+    // §8). Runs AFTER validation, BEFORE persistence. We re-derive every computed
+    // field server-side over the trusted value map (in integer cents) and IGNORE
+    // any computed value the client sent — a tampered `subtotal`/`lineTotal` is
+    // discarded here. The pricing summary is stored once on the submission so the
+    // Commerce Action + Confirmation read a single trusted object.
+    const calcDefs = visibleDefs as unknown as CalcFieldDef[];
+    // Restrict the value map to VISIBLE fields so a hidden operand resolves to
+    // `treatBlankAs` (PRD §8 "hidden operands are absent"). Hidden submitted
+    // values never feed a formula.
+    const visibleValueMap: Record<string, string> = {};
+    for (const def of visibleDefs) {
+      if (def.key in valueMap) visibleValueMap[def.key] = valueMap[def.key]!;
+    }
+    // Build a `{row.*}` repeaters map: a repeater field stores a JSON array of
+    // row value maps under its own key. Malformed/absent → empty (never throw).
+    const repeaters: Record<string, RepeaterRow[]> = {};
+    for (const def of visibleDefs) {
+      if (def.type !== "repeater") continue;
+      const raw = visibleValueMap[def.key];
+      if (typeof raw !== "string" || raw.trim() === "") continue;
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          repeaters[def.key] = parsed.filter(
+            (r): r is RepeaterRow => typeof r === "object" && r !== null,
+          );
+        }
+      } catch {
+        // Leave this repeater out of aggregation.
+      }
+    }
+
+    const calcResult = recomputeAuthoritative(calcDefs, visibleValueMap, repeaters);
+    // Serialize each server-computed value back to a string for fieldValues. A
+    // calculation → its number; a product → its JSON line object.
+    const computedSerialized = new Map<string, string>();
+    for (const [key, value] of Object.entries(calcResult.computed)) {
+      computedSerialized.set(key, serializeComputedValue(value));
+    }
+
+    // The effective answer set persisted in step (g): the client values with
+    // every computed field's value OVERWRITTEN by the server figure, plus any
+    // computed field the client never sent (so a server-derived total is stored
+    // even when the client omitted it).
+    const seenKeys = new Set(args.values.map((entry) => entry.fieldKey));
+    const effectiveValues: Array<{ fieldKey: string; value: string }> = args.values.map(
+      (entry) => {
+        const serverValue = computedSerialized.get(entry.fieldKey);
+        return serverValue !== undefined
+          ? { fieldKey: entry.fieldKey, value: serverValue }
+          : entry;
+      },
+    );
+    for (const [key, value] of computedSerialized) {
+      if (!seenKeys.has(key)) effectiveValues.push({ fieldKey: key, value });
+    }
+
+    // The trusted pricing summary persisted on `form_submissions.meta` (existing
+    // JSON bag — no new table). Commerce/confirmation read `meta.pricing`.
+    const metaJson = JSON.stringify({ pricing: calcResult.pricing });
 
     // (f) Upsert the submission row. We key resumable drafts by resumeToken so
     // a save-and-continue flow updates the same row rather than duplicating it.
@@ -632,11 +946,15 @@ export const submit = mutation({
 
     if (existing && existing.formId === args.formId && existing.status !== "deleted") {
       submissionId = existing._id;
+      // Merge the recomputed pricing into any existing meta bag so we don't
+      // clobber sibling-system markers (e.g. an analytics abandon flag).
+      const mergedMeta = mergeMetaPricing(existing.meta, calcResult.pricing);
       await ctx.db.patch(submissionId, {
         status: isComplete ? ("complete" as const) : ("partial" as const),
         submittedAt: existing.submittedAt ?? now,
         completedAt: isComplete ? now : existing.completedAt,
         resumeToken: args.resumeToken,
+        meta: mergedMeta,
         updatedAt: now,
       });
     } else {
@@ -656,6 +974,7 @@ export const submit = mutation({
         currentStep: undefined,
         read: false,
         starred: false,
+        meta: metaJson,
         createdAt: now,
         updatedAt: now,
       });
@@ -675,13 +994,18 @@ export const submit = mutation({
     // submission. Only values for KNOWN, VISIBLE fields are written (hidden
     // fields are dropped, matching the visibility recompute). Upsert so a
     // resumed draft overwrites prior answers instead of duplicating them.
+    // We iterate `effectiveValues` (not the raw client payload) so every
+    // computed field's stored value is the SERVER recompute (cents), and any
+    // computed field the client omitted is still written (PRD §8).
     const entityId = submissionId as string;
+    // Re-source the visible set from the server visibility recompute so section/
+    // page-hidden values are dropped too (PRD §9 "hidden ⇒ omitted").
     const visibleByKey = new Map(visibleDefs.map((d: FieldDef) => [d.key, d]));
-    for (const entry of args.values) {
+    for (const entry of effectiveValues) {
       const def = visibleByKey.get(entry.fieldKey);
       if (!def) continue; // unknown field or hidden field — ignore
-      if (def.type === "message" || def.type === "accordion" || def.type === "tab") {
-        continue; // layout fields store no value
+      if (LAYOUT_FIELD_TYPES.has(def.type)) {
+        continue; // layout + security (captcha/honeypot) fields store no value
       }
       const existingValue = await ctx.db
         .query("fieldValues")

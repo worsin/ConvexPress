@@ -59,6 +59,22 @@ export const SUPPORTED_FIELD_TYPES = [
   "message",
   "accordion",
   "tab",
+  // Multi-step (value-less; a wizard step boundary). Added by the Form
+  // Multi-Step & Save-Continue System. Treated exactly like layout types by the
+  // submit pipeline (no fieldValue written); the Website FormWizard reads it as
+  // a step marker and consumes its `label` as the next step's title.
+  "page_break",
+  // Form security (value-less; rendered by the Forms Renderer, never persisted)
+  // Added by the Form Spam & Submission Security System. Treated exactly like
+  // layout types by the submit pipeline (no fieldValue written).
+  "captcha",
+  "honeypot",
+  // Computed (value-bearing; recomputed authoritatively on submit). Added by the
+  // Form Calculation & Pricing System. These HOLD a stored value (a number for
+  // `calculation`, a priced line object for `product`) — they are NOT layout
+  // types. The submit pipeline overwrites their value via the calc recompute.
+  "calculation",
+  "product",
   // Compound
   "group",
   "repeater",
@@ -70,11 +86,19 @@ export type FieldType = (typeof SUPPORTED_FIELD_TYPES)[number];
 /** Set for O(1) lookup of valid field types. */
 export const FIELD_TYPE_SET: Set<string> = new Set(SUPPORTED_FIELD_TYPES);
 
-/** Layout field types that produce no stored value. */
+/**
+ * Layout / value-less field types that produce no stored value. Includes the
+ * Form Security types `captcha` + `honeypot` (Form Spam & Submission Security
+ * System): they render in the form but never write a `fieldValue`, so the
+ * submit pipeline skips them via this single source of truth.
+ */
 export const LAYOUT_FIELD_TYPES: Set<string> = new Set([
   "message",
   "accordion",
   "tab",
+  "page_break",
+  "captcha",
+  "honeypot",
 ]);
 
 /** Compound field types that can contain sub-fields. */
@@ -82,6 +106,17 @@ export const COMPOUND_FIELD_TYPES: Set<string> = new Set([
   "group",
   "repeater",
   "flexible_content",
+]);
+
+/**
+ * Computed field types (Form Calculation & Pricing System). Their value is
+ * DERIVED from a formula and recomputed authoritatively by the submit mutation —
+ * never trusted from the client. They are value-bearing (unlike layout types):
+ * `calculation` stores a number, `product` stores a priced line object.
+ */
+export const COMPUTED_FIELD_TYPES: Set<string> = new Set([
+  "calculation",
+  "product",
 ]);
 
 // ─── Shared Value Validators ────────────────────────────────────────────────

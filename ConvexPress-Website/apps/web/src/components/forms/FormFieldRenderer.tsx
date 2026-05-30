@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { formatNumber, type NumberFormat } from "@/lib/forms/calc";
 
 export interface PublicFormField {
   _id: string;
@@ -63,6 +64,13 @@ interface FieldSettings {
   rows?: number;
   message?: string;
   layout?: "vertical" | "horizontal";
+  // Form Calculation & Pricing settings (computed field types).
+  numberFormat?: NumberFormat;
+  quantityFieldKey?: string;
+  unitPrice?: number;
+  priceKind?: "none" | "oneTime" | "recurring";
+  interval?: "month" | "year";
+  recurringLabel?: string;
 }
 
 export interface FormFieldRendererProps {
@@ -93,8 +101,14 @@ const baseControlClass =
 /**
  * Field types that carry no submittable value (layout-only). The caller is
  * expected to skip these for validation; here they render as static content.
+ *
+ * `page_break` (Form Multi-Step System) is a layout/no-value type too: it is a
+ * wizard step boundary whose `label` is consumed by the FormWizard as the next
+ * step's TITLE, not shown inline as field copy. It therefore renders nothing in
+ * the field flow (see the page_break short-circuit below). On a single-page
+ * render (no wizard) it is simply invisible — harmless.
  */
-const LAYOUT_TYPES = new Set(["message", "accordion", "tab"]);
+const LAYOUT_TYPES = new Set(["message", "accordion", "tab", "page_break"]);
 
 /**
  * Scalar-ish types we are confident degrade safely to a plain text input when
@@ -129,6 +143,12 @@ export function FormFieldRenderer({
       {field.instructions}
     </p>
   ) : null;
+
+  // ── page_break: a wizard step marker — renders nothing in the field flow.
+  // Its `label` is consumed by the FormWizard as the next step's title.
+  if (field.type === "page_break") {
+    return null;
+  }
 
   // ── Layout-only fields: render their message, no input ──────────────────────
   if (LAYOUT_TYPES.has(field.type)) {
@@ -287,6 +307,26 @@ export function FormFieldRenderer({
             placeholder={settings.placeholder}
             onChange={(e) => onChange(e.target.value)}
             {...aria}
+          />
+        );
+
+      case "calculation":
+        // Read-only computed display (Form Calculation & Pricing System). The
+        // value is the live-recomputed number fed by FormRenderer; never an input.
+        return (
+          <CalculationDisplay value={value} settings={settings} inputId={inputId} />
+        );
+
+      case "product":
+        // Priced line: editable quantity (only when not field-driven) + a
+        // read-only derived line total. The server re-derives the price at submit.
+        return (
+          <ProductControl
+            value={value}
+            settings={settings}
+            inputId={inputId}
+            label={field.label}
+            onChange={onChange}
           />
         );
 
@@ -533,5 +573,120 @@ function TrueFalseControl({
         ) : null}
       </span>
     </label>
+  );
+}
+
+// ─── Computed field controls (Form Calculation & Pricing System) ───────────────
+
+/** Read-only display of a `calculation` field's recomputed value. */
+function CalculationDisplay({
+  value,
+  settings,
+  inputId,
+}: {
+  value: string;
+  settings: FieldSettings;
+  inputId: string;
+}) {
+  const numeric = Number(value);
+  const display = formatNumber(
+    Number.isFinite(numeric) ? numeric : 0,
+    settings.numberFormat,
+  );
+  return (
+    <output
+      id={inputId}
+      data-slot="calculation-value"
+      className="inline-flex min-w-24 items-center rounded-4xl border border-input bg-input/30 px-3 py-2 text-sm font-medium tabular-nums text-foreground"
+    >
+      {display}
+    </output>
+  );
+}
+
+/**
+ * `product` line control: an editable quantity (only when not field-driven) plus
+ * a read-only derived line total. On quantity edit it emits a compact
+ * `{ "quantity": N }` payload — the server re-derives the price authoritatively.
+ */
+function ProductControl({
+  value,
+  settings,
+  inputId,
+  label,
+  onChange,
+}: {
+  value: string;
+  settings: FieldSettings;
+  inputId: string;
+  label: string;
+  onChange: (value: string) => void;
+}) {
+  const line = useMemo<{
+    unitPrice?: number;
+    quantity?: number;
+    lineTotal?: number;
+  }>(() => {
+    try {
+      const parsed = JSON.parse(value || "{}");
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      const q = Number(value);
+      return Number.isFinite(q) ? { quantity: q } : {};
+    }
+  }, [value]);
+
+  const quantity = typeof line.quantity === "number" ? line.quantity : 1;
+  const unitPrice =
+    typeof line.unitPrice === "number" ? line.unitPrice : settings.unitPrice ?? 0;
+  const lineTotal =
+    typeof line.lineTotal === "number" ? line.lineTotal : unitPrice * quantity;
+  const userEditableQty = !settings.quantityFieldKey;
+
+  const recurringSuffix =
+    settings.priceKind === "recurring"
+      ? settings.recurringLabel ?? `/${settings.interval ?? "month"}`
+      : "";
+
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="text-muted-foreground">
+        {formatNumber(unitPrice, settings.numberFormat)}
+      </span>
+      <span className="text-muted-foreground" aria-hidden="true">
+        ×
+      </span>
+      {userEditableQty ? (
+        <Input
+          id={inputId}
+          type="number"
+          min={0}
+          step={1}
+          value={quantity}
+          aria-label={`${label} quantity`}
+          onChange={(e) => {
+            const next = Number(e.target.value);
+            onChange(JSON.stringify({ quantity: next >= 0 ? next : 0 }));
+          }}
+          className="w-20"
+        />
+      ) : (
+        <span className="tabular-nums text-foreground">{quantity}</span>
+      )}
+      <span className="text-muted-foreground" aria-hidden="true">
+        =
+      </span>
+      <output
+        data-slot="product-line-total"
+        className="inline-flex items-center rounded-4xl border border-input bg-input/30 px-3 py-2 font-medium tabular-nums text-foreground"
+      >
+        {formatNumber(lineTotal, settings.numberFormat)}
+        {recurringSuffix ? (
+          <span className="ml-1 text-xs font-normal text-muted-foreground">
+            {recurringSuffix}
+          </span>
+        ) : null}
+      </output>
+    </div>
   );
 }

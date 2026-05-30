@@ -37,6 +37,8 @@ import {
   FolderIcon,
   TagIcon,
   SplitIcon,
+  CalculatorIcon,
+  ShoppingCartIcon,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -81,6 +83,8 @@ export const FIELD_TYPE_LABELS: Record<string, string> = {
   group: "Group",
   repeater: "Repeater",
   flexible_content: "Flexible Content",
+  calculation: "Calculation",
+  product: "Product",
 };
 
 interface FieldTypeCategory {
@@ -160,6 +164,13 @@ const FIELD_TYPE_CATEGORIES: FieldTypeCategory[] = [
       { slug: "group", label: "Group", description: "Sub-field container", icon: <GroupIcon className="size-3.5" /> },
       { slug: "repeater", label: "Repeater", description: "Repeatable row of fields", icon: <RepeatIcon className="size-3.5" /> },
       { slug: "flexible_content", label: "Flexible Content", description: "Multiple layout types", icon: <SplitIcon className="size-3.5" /> },
+    ],
+  },
+  {
+    label: "Calculation",
+    types: [
+      { slug: "calculation", label: "Calculation", description: "Derived value from a formula", icon: <CalculatorIcon className="size-3.5" /> },
+      { slug: "product", label: "Product", description: "Priced line item (price × qty)", icon: <ShoppingCartIcon className="size-3.5" /> },
     ],
   },
 ];

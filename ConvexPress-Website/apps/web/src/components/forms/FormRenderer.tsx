@@ -22,14 +22,21 @@
  * loosely-typed extension function path, mirroring `SignupForm.tsx`.
  */
 
-import { useMemo, useState } from "react";
-import { useMutation } from "convex/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useConvex } from "convex/react";
+import DOMPurify from "isomorphic-dompurify";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { Button } from "@/components/ui/button";
 import { AuthError } from "@/components/auth/AuthError";
 import { evaluateConditionalLogic } from "@/lib/forms/conditionalLogic";
+import {
+  recomputeForm,
+  COMPUTED_TYPES,
+  type CalcFieldDef,
+  type RepeaterRow,
+} from "@/lib/forms/calc";
 import {
   FormFieldRenderer,
   type PublicFormField,
@@ -44,22 +51,83 @@ export interface PublicForm {
   fields: PublicFormField[];
 }
 
+/**
+ * A wizard-injected step restriction (Form Multi-Step System). When present,
+ * the renderer restricts its rendered + validated + submitted fields to
+ * `fieldKeys` (intersected with the existing conditional `visibleFields`
+ * filter). Absent ⇒ whole-form behavior (today's single-page path), unchanged.
+ */
+export interface FormRendererStep {
+  index: number;
+  total: number;
+  fieldKeys: string[];
+}
+
+/**
+ * Imperative handle the FormWizard lifts via `onReady`, so StepNav can
+ * validate-before-next without duplicating the renderer's required-check logic.
+ */
+export interface FormRendererHandle {
+  /** Run the client-side required check over the CURRENT (step-scoped) visible
+   *  fields. Returns true when valid; surfaces inline errors when not. */
+  validate: () => boolean;
+}
+
 interface FormRendererProps {
   form: PublicForm;
+  /**
+   * Multi-Step System: restrict render/validate/submit to a single step. Absent
+   * ⇒ whole-form single-page behavior (unchanged).
+   */
+  step?: FormRendererStep;
+  /**
+   * Multi-Step System: called after every local value update so the wizard can
+   * lift the value map for autosave + step gating. No-op when absent.
+   */
+  onValuesChange?: (values: Record<string, string>) => void;
+  /**
+   * Multi-Step System: suppress the renderer's own submit button + submit
+   * lifecycle. When hosted, the wizard's StepNav owns Back/Next/Submit. Inferred
+   * as true when `step` is present.
+   */
+  hideSubmit?: boolean;
+  /**
+   * Merge-Tags & Prefill System + Multi-Step rehydrate: seed the value map from
+   * this (overriding per-field `defaultValue`). Precedence: defaultValue <
+   * initialValues.
+   */
+  initialValues?: Record<string, string>;
+  /**
+   * Multi-Step System: lift an imperative handle (the per-step `validate()`).
+   * Called once on mount/update with a stable handle.
+   */
+  onReady?: (handle: FormRendererHandle) => void;
 }
 
 /** Field types that never carry a submittable value (layout-only). */
-const LAYOUT_TYPES = new Set(["message", "accordion", "tab"]);
+const LAYOUT_TYPES = new Set(["message", "accordion", "tab", "page_break"]);
 
 /** Server-side ConvexError shape returned by `submit` on validation failure. */
-interface SubmitFieldError {
+export interface SubmitFieldError {
   fieldKey: string;
   label: string;
   error: string;
 }
 
-export function FormRenderer({ form }: FormRendererProps) {
+export function FormRenderer({
+  form,
+  step,
+  onValuesChange,
+  hideSubmit,
+  initialValues,
+  onReady,
+}: FormRendererProps) {
   const submit = useMutation((api as any).extensions.forms.mutations.submit);
+  const convex = useConvex();
+
+  // When hosted by the wizard (a step is injected), suppress the built-in
+  // submit + submit lifecycle even if `hideSubmit` wasn't passed explicitly.
+  const suppressSubmit = hideSubmit ?? step !== undefined;
 
   // Field definitions sorted by the admin-authored order.
   const fields = useMemo(
@@ -70,11 +138,19 @@ export function FormRenderer({ form }: FormRendererProps) {
     [form.fields],
   );
 
-  // Value map keyed by field `key`, seeded from each field's defaultValue.
+  // Value map keyed by field `key`. Seeded from each field's defaultValue, then
+  // OVERRIDDEN by any prefilled / resumed `initialValues` (precedence:
+  // defaultValue < initialValues). Layout/password fields stay governed by their
+  // own renderers; conditional visibility is unaffected by the seed.
   const [values, setValues] = useState<Record<string, string>>(() => {
     const seed: Record<string, string> = {};
     for (const field of form.fields) {
       seed[field.key] = field.defaultValue ?? "";
+    }
+    if (initialValues) {
+      for (const [key, val] of Object.entries(initialValues)) {
+        seed[key] = val;
+      }
     }
     return seed;
   });
@@ -83,18 +159,66 @@ export function FormRenderer({ form }: FormRendererProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // Resolved server-side confirmation message HTML (empty → static fallback).
+  const [renderedMessage, setRenderedMessage] = useState<string>("");
 
-  // Visibility recompute on every render from the current value map.
+  // Visibility recompute on every render from the current value map. When a
+  // wizard step is injected, the rendered/validated/submitted set is the
+  // intersection of the conditional `visibleFields` with the step's fieldKeys.
+  // Absent `step` ⇒ whole form (unchanged single-page behavior).
+  const stepKeySet = useMemo(
+    () => (step ? new Set(step.fieldKeys) : null),
+    [step],
+  );
   const visibleFields = useMemo(
     () =>
-      fields.filter((field) =>
-        evaluateConditionalLogic(field.conditionalLogic, values),
+      fields.filter(
+        (field) =>
+          (!stepKeySet || stepKeySet.has(field.key)) &&
+          evaluateConditionalLogic(field.conditionalLogic, values),
       ),
-    [fields, values],
+    [fields, values, stepKeySet],
   );
 
+  // Live calculation recompute (Form Calculation & Pricing System) — UX only.
+  // The server re-derives every computed field authoritatively at submit (the
+  // client value is never trusted for money). We feed the full value map + any
+  // repeater rows and surface the derived value for `calculation`/`product`
+  // fields below. Memoized on [fields, values]; full recompute is fine for v1.
+  const computedValues = useMemo(() => {
+    const calcDefs = fields as unknown as CalcFieldDef[];
+    const repeaters: Record<string, RepeaterRow[]> = {};
+    for (const field of fields) {
+      if (field.type !== "repeater") continue;
+      const raw = values[field.key];
+      if (typeof raw !== "string" || raw.trim() === "") continue;
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          repeaters[field.key] = parsed.filter(
+            (r): r is RepeaterRow => typeof r === "object" && r !== null,
+          );
+        }
+      } catch {
+        /* skip malformed repeater */
+      }
+    }
+    const { computed } = recomputeForm(calcDefs, values, repeaters);
+    const out: Record<string, string> = {};
+    for (const [key, val] of Object.entries(computed)) {
+      out[key] = typeof val === "number" ? String(val) : JSON.stringify(val);
+    }
+    return out;
+  }, [fields, values]);
+
   function setFieldValue(key: string, next: string) {
-    setValues((prev) => ({ ...prev, [key]: next }));
+    setValues((prev) => {
+      const updated = { ...prev, [key]: next };
+      // Lift the new value map for the wizard (autosave + step gating). Done
+      // here (inside the updater) so the wizard always sees the latest map.
+      onValuesChange?.(updated);
+      return updated;
+    });
     // Clear a field's prior error as soon as the user edits it.
     setFieldErrors((prev) => {
       if (!prev[key]) return prev;
@@ -108,6 +232,8 @@ export function FormRenderer({ form }: FormRendererProps) {
     const errors: Record<string, string> = {};
     for (const field of visibleFields) {
       if (LAYOUT_TYPES.has(field.type)) continue;
+      // Computed fields are read-only + server-owned — never user-required.
+      if (COMPUTED_TYPES.has(field.type)) continue;
       if (!field.required) continue;
       const raw = values[field.key] ?? "";
       const isEmpty =
@@ -119,6 +245,22 @@ export function FormRenderer({ form }: FormRendererProps) {
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   }
+
+  // Publish a STABLE imperative handle to the wizard. `validate` closes over the
+  // current step's `visibleFields`/`values`, so we keep a ref to the latest and
+  // hand the wizard a handle that always calls the freshest validate(). The
+  // handle identity stays stable across renders (published once on mount).
+  const validateRef = useRef(validate);
+  validateRef.current = validate;
+  const handleRef = useRef<FormRendererHandle>({
+    validate: () => validateRef.current(),
+  });
+  useEffect(() => {
+    onReady?.(handleRef.current);
+    // Intentionally publish once on mount: the handle is stable and always
+    // delegates to the latest validate via the ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -139,11 +281,37 @@ export function FormRenderer({ form }: FormRendererProps) {
 
     setIsSubmitting(true);
     try {
-      await submit({
+      const res = await submit({
         formId: form._id as any,
         values: payloadValues,
         isComplete: true,
       });
+
+      // Resolve the configured confirmation (message / redirect / page). Any
+      // failure here must NOT block the success state — fall back to the static
+      // thank-you below.
+      try {
+        const ref = await convex.query(
+          (api as any).extensions.forms.confirmations.resolveConfirmation,
+          { formId: form._id as any, submissionId: res.submissionId },
+        );
+
+        if (ref?.type === "redirect" && ref.redirectUrl) {
+          // Host already validated server-side.
+          window.location.assign(ref.redirectUrl as string);
+          return;
+        }
+        if (ref?.type === "page" && ref.pagePath) {
+          window.location.assign(ref.pagePath as string);
+          return;
+        }
+        if (ref?.type === "message" && typeof ref.renderedMessage === "string") {
+          setRenderedMessage(ref.renderedMessage);
+        }
+      } catch {
+        // Resolver unavailable — keep the static thank-you.
+      }
+
       setSubmitted(true);
     } catch (err: unknown) {
       const { message, serverFieldErrors } = parseSubmitError(err);
@@ -161,23 +329,68 @@ export function FormRenderer({ form }: FormRendererProps) {
   }
 
   // ── Confirmation / thank-you state ──────────────────────────────────────────
-  if (submitted) {
+  // Only the standalone renderer owns its confirmation. When hosted, the wizard
+  // owns the post-submit handoff (it calls submit with isComplete:true itself).
+  if (submitted && !suppressSubmit) {
     return (
-      <div
-        data-slot="form-success"
-        className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-10 text-center"
-      >
-        <CheckCircle2 className="size-10 text-primary" aria-hidden="true" />
-        <div className="flex flex-col gap-1.5">
-          <h2 className="text-lg font-semibold text-foreground">Thank you</h2>
-          <p className="text-sm text-muted-foreground">
-            Your response to &ldquo;{form.title}&rdquo; has been received.
-          </p>
-        </div>
+      <SubmittedConfirmation
+        formTitle={form.title}
+        renderedMessage={renderedMessage}
+      />
+    );
+  }
+
+  // Shared field list — identical markup in both standalone + hosted modes.
+  const fieldList = (
+    <div className="flex flex-col gap-5">
+      {visibleFields.map((field) => {
+        const inputId = `form-${form._id}-${field.key}`;
+        const error = fieldErrors[field.key];
+        const isComputed = COMPUTED_TYPES.has(field.type);
+        // Computed fields display the recomputed value. A `calculation` is
+        // fully read-only (its onChange is a no-op); a `product` keeps its
+        // quantity input editable so the user can change qty.
+        const fieldValue = isComputed
+          ? computedValues[field.key] ?? values[field.key] ?? ""
+          : values[field.key] ?? "";
+        const handleChange =
+          field.type === "calculation"
+            ? () => {
+                /* read-only — value owned by the calc engine */
+              }
+            : (next: string) => setFieldValue(field.key, next);
+        return (
+          <div key={field._id} className="flex flex-col gap-1.5">
+            <FormFieldRenderer
+              field={field}
+              value={fieldValue}
+              onChange={handleChange}
+              invalid={Boolean(error)}
+              inputId={inputId}
+            />
+            {error ? (
+              <p role="alert" className="text-xs text-destructive">
+                {error}
+              </p>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // ── Hosted mode (wizard): render ONLY the step's fields + inline errors.
+  // The FormWizard owns the surrounding card, header, progress, nav + submit.
+  if (suppressSubmit) {
+    return (
+      <div data-slot="form-renderer" data-hosted="true" className="flex flex-col gap-5">
+        {formError ? <AuthError message={formError} /> : null}
+        {fieldList}
       </div>
     );
   }
 
+  // ── Standalone single-page mode — unchanged behavior. ───────────────────────
   return (
     <form
       onSubmit={handleSubmit}
@@ -194,28 +407,7 @@ export function FormRenderer({ form }: FormRendererProps) {
 
       {formError ? <AuthError message={formError} /> : null}
 
-      <div className="flex flex-col gap-5">
-        {visibleFields.map((field) => {
-          const inputId = `form-${form._id}-${field.key}`;
-          const error = fieldErrors[field.key];
-          return (
-            <div key={field._id} className="flex flex-col gap-1.5">
-              <FormFieldRenderer
-                field={field}
-                value={values[field.key] ?? ""}
-                onChange={(next) => setFieldValue(field.key, next)}
-                invalid={Boolean(error)}
-                inputId={inputId}
-              />
-              {error ? (
-                <p role="alert" className="text-xs text-destructive">
-                  {error}
-                </p>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+      {fieldList}
 
       <Button type="submit" size="lg" disabled={isSubmitting}>
         {isSubmitting ? (
@@ -231,9 +423,61 @@ export function FormRenderer({ form }: FormRendererProps) {
   );
 }
 
+// ─── Submitted confirmation view ───────────────────────────────────────────────
+
+/**
+ * Post-submit thank-you. Renders the server-resolved confirmation message HTML
+ * when present (re-sanitized client-side as defense-in-depth, matching
+ * CommentItem.tsx), otherwise falls back to the static copy. Focuses the
+ * success region on mount and announces it via role="status".
+ */
+export function SubmittedConfirmation({
+  formTitle,
+  renderedMessage,
+}: {
+  formTitle: string;
+  renderedMessage: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
+
+  const safeMessage = useMemo(
+    () => (renderedMessage ? DOMPurify.sanitize(renderedMessage) : ""),
+    [renderedMessage],
+  );
+
+  return (
+    <div
+      ref={ref}
+      data-slot="form-success"
+      role="status"
+      tabIndex={-1}
+      className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-10 text-center outline-none"
+    >
+      <CheckCircle2 className="size-10 text-primary" aria-hidden="true" />
+      {safeMessage ? (
+        <div
+          className="prose prose-sm max-w-none text-foreground"
+          dangerouslySetInnerHTML={{ __html: safeMessage }}
+        />
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          <h2 className="text-lg font-semibold text-foreground">Thank you</h2>
+          <p className="text-sm text-muted-foreground">
+            Your response to &ldquo;{formTitle}&rdquo; has been received.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Error parsing ────────────────────────────────────────────────────────────
 
-function parseSubmitError(err: unknown): {
+export function parseSubmitError(err: unknown): {
   message: string;
   serverFieldErrors?: SubmitFieldError[];
 } {

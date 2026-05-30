@@ -38,6 +38,8 @@ import { FieldTab } from "./FieldTab";
 import { FieldGroup } from "./FieldGroup";
 import { FieldRepeater } from "./FieldRepeater";
 import { FieldFlexibleContent } from "./FieldFlexibleContent";
+import { FieldCalculation } from "./FieldCalculation";
+import { FieldProduct } from "./FieldProduct";
 
 export interface FieldRendererProps {
   /** The field definition */
@@ -100,4 +102,7 @@ export const FIELD_RENDERERS: Record<
   group: FieldGroup,
   repeater: FieldRepeater,
   flexible_content: FieldFlexibleContent,
+  // Computed types (Form Calculation & Pricing System) — read-only displays.
+  calculation: FieldCalculation,
+  product: FieldProduct,
 };

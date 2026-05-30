@@ -127,6 +127,18 @@ function EditFormContent({ formId }: { formId: Id<"forms"> }) {
           <Link to="/forms">
             <Button variant="outline">Back to Forms</Button>
           </Link>
+          <Link to="/forms/$formId/notifications" params={{ formId }}>
+            <Button variant="outline">Notifications</Button>
+          </Link>
+          <Link to="/forms/$formId/confirmations" params={{ formId }}>
+            <Button variant="outline">Confirmations</Button>
+          </Link>
+          <Link to="/forms/$formId/actions" params={{ formId }}>
+            <Button variant="outline">Actions</Button>
+          </Link>
+          <Link to="/forms/$formId/analytics" params={{ formId }}>
+            <Button variant="outline">Analytics</Button>
+          </Link>
           <Button onClick={() => void handleSave()} disabled={isSaving}>
             {isSaving ? (
               <>
