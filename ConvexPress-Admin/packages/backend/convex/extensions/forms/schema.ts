@@ -98,4 +98,102 @@ export const tables = {
     authorId: v.id("users"),
     createdAt: v.number(),
   }).index("by_submission", ["submissionId"]),
+
+  // ── Notifications config (Form Notification System) ─────────────────────
+  form_notifications: defineTable({
+    formId: v.id("forms"),
+    name: v.string(),
+    channel: v.union(v.literal("email"), v.literal("site")),
+    recipientType: v.union(v.literal("admin"), v.literal("customer")),
+    toExpression: v.optional(v.string()), // merge tag resolving the respondent email
+    subjectTemplate: v.optional(v.string()),
+    messageTemplate: v.optional(v.string()),
+    triggerEventCode: v.string(), // e.g. "form.submitted"
+    conditionalLogic: v.optional(v.string()),
+    enabled: v.boolean(),
+    order: v.number(),
+  })
+    .index("by_form", ["formId"])
+    .index("by_form_event", ["formId", "triggerEventCode"]),
+
+  // ── Confirmations config (Form Confirmation System) ─────────────────────
+  form_confirmations: defineTable({
+    formId: v.id("forms"),
+    name: v.string(),
+    type: v.union(v.literal("message"), v.literal("redirect"), v.literal("page")),
+    content: v.optional(v.string()),
+    redirectUrl: v.optional(v.string()),
+    pageId: v.optional(v.string()),
+    conditionalLogic: v.optional(v.string()),
+    isDefault: v.boolean(),
+    order: v.number(),
+  })
+    .index("by_form", ["formId"])
+    .index("by_form_order", ["formId", "order"]),
+
+  // ── Actions / feeds (Form Actions & Feeds System) ───────────────────────
+  form_actions: defineTable({
+    formId: v.id("forms"),
+    type: v.string(), // subscription | account | payment | webhook | lead
+    label: v.string(),
+    config: v.string(), // JSON
+    conditionalLogic: v.optional(v.string()),
+    enabled: v.boolean(),
+    order: v.number(),
+  }).index("by_form", ["formId"]),
+
+  form_action_runs: defineTable({
+    submissionId: v.id("form_submissions"),
+    formActionId: v.id("form_actions"),
+    type: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("awaiting_payment"), // paid subscription: activation is webhook-owned
+    ),
+    attempts: v.number(),
+    error: v.optional(v.string()),
+    result: v.optional(v.string()), // JSON
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_submission", ["submissionId"])
+    .index("by_submission_action", ["submissionId", "formActionId"]),
+
+  // ── Funnel analytics (Form Analytics & Export System) ───────────────────
+  form_funnel_stats: defineTable({
+    formId: v.id("forms"),
+    day: v.string(), // YYYY-MM-DD bucket
+    stage: v.union(
+      v.literal("viewed"),
+      v.literal("started"),
+      v.literal("completed"),
+      v.literal("abandoned"),
+    ),
+    count: v.number(),
+  }).index("by_form_day", ["formId", "day", "stage"]),
+
+  // ── Spam / rate limiting (Form Spam & Submission Security System) ────────
+  form_submission_attempts: defineTable({
+    ip: v.string(),
+    formId: v.id("forms"),
+    windowStart: v.number(),
+    count: v.number(),
+  }).index("by_ip_form", ["ip", "formId"]),
+
+  form_security_settings: defineTable({
+    key: v.string(), // singleton "global"
+    captchaProvider: v.optional(
+      v.union(
+        v.literal("turnstile"),
+        v.literal("hcaptcha"),
+        v.literal("recaptcha"),
+        v.literal("none"),
+      ),
+    ),
+    captchaSiteKey: v.optional(v.string()),
+    rateLimitPerMinute: v.optional(v.number()),
+    honeypotEnabled: v.boolean(),
+  }).index("by_key", ["key"]),
 };
