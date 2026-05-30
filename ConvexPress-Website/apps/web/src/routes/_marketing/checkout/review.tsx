@@ -170,9 +170,44 @@ function CheckoutReviewPage() {
 
   const isCardPayment = session?.selectedPaymentMethodCode === "card";
   const stripeAvailable = Boolean(paymentSettings?.stripePublishableKey);
+  const requiresShipping =
+    settings?.commerceConfig?.shippingEnabled !== false &&
+    (cart?.items ?? []).some((item: any) => item.product?.isVirtual !== true);
+  const checkoutIssues = useMemo(() => {
+    if (!session || !cart) return [];
+
+    const issues: string[] = [];
+    if (!session.email) issues.push("Add a contact email.");
+    if (!session.billingAddress) issues.push("Add a billing address.");
+    if (requiresShipping) {
+      if (!session.shippingAddress) issues.push("Add a shipping address.");
+      if (!session.selectedShippingMethodCode) {
+        issues.push("Select a shipping method.");
+      }
+    }
+    if (!session.selectedPaymentMethodCode) {
+      issues.push("Select a payment method.");
+    }
+    if (isCardPayment && !stripeAvailable) {
+      issues.push("Choose an available payment method.");
+    }
+    if (
+      issues.length === 0 &&
+      session.status &&
+      session.status !== "ready_for_review"
+    ) {
+      issues.push("Complete the checkout steps before placing the order.");
+    }
+    return issues;
+  }, [cart, isCardPayment, requiresShipping, session, stripeAvailable]);
+  const canPlaceOrder = paymentStep === "review" && checkoutIssues.length === 0;
 
   const handlePlaceOrder = useCallback(async () => {
     if (!sessionToken) return;
+    if (checkoutIssues.length > 0) {
+      toast.error(checkoutIssues[0]);
+      return;
+    }
     if (isCardPayment && !stripeAvailable) {
       toast.error("Card payments are not currently available.");
       return;
@@ -209,6 +244,7 @@ function CheckoutReviewPage() {
     initiatePayment,
     isCardPayment,
     stripeAvailable,
+    checkoutIssues,
     router,
   ]);
 
@@ -420,10 +456,21 @@ function CheckoutReviewPage() {
               </div>
             </dl>
 
+            {checkoutIssues.length > 0 ? (
+              <div className="mt-6 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
+                <p className="font-medium">Checkout needs attention</p>
+                <ul className="mt-2 list-disc space-y-1 pl-4">
+                  {checkoutIssues.map((issue) => (
+                    <li key={issue}>{issue}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             <button
               type="button"
               onClick={() => void handlePlaceOrder()}
-              disabled={paymentStep !== "review" || (isCardPayment && !stripeAvailable)}
+              disabled={!canPlaceOrder}
               className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-50"
             >
               {isCardPayment ? "Place order & pay" : "Place order"}

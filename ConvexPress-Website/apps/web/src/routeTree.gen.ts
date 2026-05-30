@@ -57,6 +57,7 @@ import { Route as MarketingHelpIndexRouteImport } from './routes/_marketing/help
 import { Route as MarketingGalleryIndexRouteImport } from './routes/_marketing/gallery/index'
 import { Route as MarketingCheckoutIndexRouteImport } from './routes/_marketing/checkout/index'
 import { Route as MarketingCategoriesIndexRouteImport } from './routes/_marketing/categories/index'
+import { Route as MarketingCartIndexRouteImport } from './routes/_marketing/cart/index'
 import { Route as MarketingBundlesIndexRouteImport } from './routes/_marketing/bundles/index'
 import { Route as MarketingBlogIndexRouteImport } from './routes/_marketing/blog/index'
 import { Route as DashboardSubscriptionsSubscriptionIdRouteImport } from './routes/dashboard/subscriptions.$subscriptionId'
@@ -350,6 +351,11 @@ const MarketingCategoriesIndexRoute =
     path: '/',
     getParentRoute: () => MarketingCategoriesRoute,
   } as any)
+const MarketingCartIndexRoute = MarketingCartIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MarketingCartRoute,
+} as any)
 const MarketingBundlesIndexRoute = MarketingBundlesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -699,6 +705,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/subscriptions/$subscriptionId': typeof DashboardSubscriptionsSubscriptionIdRoute
   '/blog/': typeof MarketingBlogIndexRoute
   '/bundles/': typeof MarketingBundlesIndexRoute
+  '/cart/': typeof MarketingCartIndexRoute
   '/categories/': typeof MarketingCategoriesIndexRoute
   '/checkout/': typeof MarketingCheckoutIndexRoute
   '/gallery/': typeof MarketingGalleryIndexRoute
@@ -739,7 +746,6 @@ export interface FileRoutesByTo {
   '/verify-email': typeof VerifyEmailRoute
   '/$slug': typeof MarketingSlugRoute
   '/archive': typeof MarketingArchiveRoute
-  '/cart': typeof MarketingCartRouteWithChildren
   '/pricing': typeof MarketingPricingRoute
   '/search': typeof MarketingSearchRoute
   '/shop': typeof MarketingShopRoute
@@ -790,6 +796,7 @@ export interface FileRoutesByTo {
   '/dashboard/subscriptions/$subscriptionId': typeof DashboardSubscriptionsSubscriptionIdRoute
   '/blog': typeof MarketingBlogIndexRoute
   '/bundles': typeof MarketingBundlesIndexRoute
+  '/cart': typeof MarketingCartIndexRoute
   '/categories': typeof MarketingCategoriesIndexRoute
   '/checkout': typeof MarketingCheckoutIndexRoute
   '/gallery': typeof MarketingGalleryIndexRoute
@@ -893,6 +900,7 @@ export interface FileRoutesById {
   '/dashboard/subscriptions/$subscriptionId': typeof DashboardSubscriptionsSubscriptionIdRoute
   '/_marketing/blog/': typeof MarketingBlogIndexRoute
   '/_marketing/bundles/': typeof MarketingBundlesIndexRoute
+  '/_marketing/cart/': typeof MarketingCartIndexRoute
   '/_marketing/categories/': typeof MarketingCategoriesIndexRoute
   '/_marketing/checkout/': typeof MarketingCheckoutIndexRoute
   '/_marketing/gallery/': typeof MarketingGalleryIndexRoute
@@ -996,6 +1004,7 @@ export interface FileRouteTypes {
     | '/dashboard/subscriptions/$subscriptionId'
     | '/blog/'
     | '/bundles/'
+    | '/cart/'
     | '/categories/'
     | '/checkout/'
     | '/gallery/'
@@ -1036,7 +1045,6 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/$slug'
     | '/archive'
-    | '/cart'
     | '/pricing'
     | '/search'
     | '/shop'
@@ -1087,6 +1095,7 @@ export interface FileRouteTypes {
     | '/dashboard/subscriptions/$subscriptionId'
     | '/blog'
     | '/bundles'
+    | '/cart'
     | '/categories'
     | '/checkout'
     | '/gallery'
@@ -1189,6 +1198,7 @@ export interface FileRouteTypes {
     | '/dashboard/subscriptions/$subscriptionId'
     | '/_marketing/blog/'
     | '/_marketing/bundles/'
+    | '/_marketing/cart/'
     | '/_marketing/categories/'
     | '/_marketing/checkout/'
     | '/_marketing/gallery/'
@@ -1589,6 +1599,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingCategoriesIndexRouteImport
       parentRoute: typeof MarketingCategoriesRoute
     }
+    '/_marketing/cart/': {
+      id: '/_marketing/cart/'
+      path: '/'
+      fullPath: '/cart/'
+      preLoaderRoute: typeof MarketingCartIndexRouteImport
+      parentRoute: typeof MarketingCartRoute
+    }
     '/_marketing/bundles/': {
       id: '/_marketing/bundles/'
       path: '/'
@@ -1970,10 +1987,12 @@ const MarketingBundlesRouteWithChildren =
   MarketingBundlesRoute._addFileChildren(MarketingBundlesRouteChildren)
 
 interface MarketingCartRouteChildren {
+  MarketingCartIndexRoute: typeof MarketingCartIndexRoute
   MarketingCartSharedShareTokenRoute: typeof MarketingCartSharedShareTokenRoute
 }
 
 const MarketingCartRouteChildren: MarketingCartRouteChildren = {
+  MarketingCartIndexRoute: MarketingCartIndexRoute,
   MarketingCartSharedShareTokenRoute: MarketingCartSharedShareTokenRoute,
 }
 

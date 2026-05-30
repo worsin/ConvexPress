@@ -38,7 +38,7 @@ export function SupportWidget() {
 
   // Don't render until config loads, or if widget is disabled
   if (config === undefined) return null;
-  if (!config.enabled) return null;
+  if (!config?.enabled) return null;
 
   const position = config?.position ?? "bottomRight";
   const greeting = config?.widgetTitle ?? "Hi! How can we help?";
@@ -65,6 +65,10 @@ export function SupportWidget() {
         {state.currentView === "home" && (
           <HomeView
             greeting={greeting}
+            subtitle={config.widgetSubtitle}
+            showKbSearch={config.showKbSearch}
+            showTicketHistory={config.showTicketHistory}
+            newTicketLabel={config.escalationButtonLabel}
             onSearch={state.search}
             onShowTickets={state.showTickets}
             onNewTicket={state.createTicket}
@@ -96,7 +100,6 @@ export function SupportWidget() {
 
         {state.currentView === "ticketForm" && isReady && sessionId && (
           <TicketFormView
-            sessionId={sessionId}
             prefillQuery={state.searchQuery}
             onSuccess={(ticketId) => state.showTicketDetail(ticketId)}
             onCancel={state.goBack}

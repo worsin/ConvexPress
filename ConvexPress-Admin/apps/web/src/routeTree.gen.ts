@@ -15,6 +15,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAdminUpdatesRouteImport } from './routes/_authenticated/_admin/updates'
 import { Route as AuthenticatedAdminToolsRouteImport } from './routes/_authenticated/_admin/tools'
 import { Route as AuthenticatedAdminTicketsRouteImport } from './routes/_authenticated/_admin/tickets'
+import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/_admin/support'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/_admin/settings'
 import { Route as AuthenticatedAdminSeoRouteImport } from './routes/_authenticated/_admin/seo'
 import { Route as AuthenticatedAdminRecipesRouteImport } from './routes/_authenticated/_admin/recipes'
@@ -256,6 +257,12 @@ const AuthenticatedAdminTicketsRoute =
   AuthenticatedAdminTicketsRouteImport.update({
     id: '/tickets',
     path: '/tickets',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminSupportRoute =
+  AuthenticatedAdminSupportRouteImport.update({
+    id: '/support',
+    path: '/support',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminSettingsRoute =
@@ -538,15 +545,15 @@ const AuthenticatedAdminTicketsTicketIdRoute =
   } as any)
 const AuthenticatedAdminSupportSettingsRoute =
   AuthenticatedAdminSupportSettingsRouteImport.update({
-    id: '/support/settings',
-    path: '/support/settings',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminSupportRoute,
   } as any)
 const AuthenticatedAdminSupportAnalyticsRoute =
   AuthenticatedAdminSupportAnalyticsRouteImport.update({
-    id: '/support/analytics',
-    path: '/support/analytics',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedAdminSupportRoute,
   } as any)
 const AuthenticatedAdminSettingsWritingRoute =
   AuthenticatedAdminSettingsWritingRouteImport.update({
@@ -1603,6 +1610,7 @@ export interface FileRoutesByFullPath {
   '/recipes': typeof AuthenticatedAdminRecipesRouteWithChildren
   '/seo': typeof AuthenticatedAdminSeoRouteWithChildren
   '/settings': typeof AuthenticatedAdminSettingsRouteWithChildren
+  '/support': typeof AuthenticatedAdminSupportRouteWithChildren
   '/tickets': typeof AuthenticatedAdminTicketsRouteWithChildren
   '/tools': typeof AuthenticatedAdminToolsRouteWithChildren
   '/updates': typeof AuthenticatedAdminUpdatesRoute
@@ -1812,6 +1820,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/plugins': typeof AuthenticatedAdminPluginsRoute
   '/profile': typeof AuthenticatedAdminProfileRoute
+  '/support': typeof AuthenticatedAdminSupportRouteWithChildren
   '/updates': typeof AuthenticatedAdminUpdatesRoute
   '/appearance/colors': typeof AuthenticatedAdminAppearanceColorsRoute
   '/appearance/footer': typeof AuthenticatedAdminAppearanceFooterRoute
@@ -2030,6 +2039,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/recipes': typeof AuthenticatedAdminRecipesRouteWithChildren
   '/_authenticated/_admin/seo': typeof AuthenticatedAdminSeoRouteWithChildren
   '/_authenticated/_admin/settings': typeof AuthenticatedAdminSettingsRouteWithChildren
+  '/_authenticated/_admin/support': typeof AuthenticatedAdminSupportRouteWithChildren
   '/_authenticated/_admin/tickets': typeof AuthenticatedAdminTicketsRouteWithChildren
   '/_authenticated/_admin/tools': typeof AuthenticatedAdminToolsRouteWithChildren
   '/_authenticated/_admin/updates': typeof AuthenticatedAdminUpdatesRoute
@@ -2250,6 +2260,7 @@ export interface FileRouteTypes {
     | '/recipes'
     | '/seo'
     | '/settings'
+    | '/support'
     | '/tickets'
     | '/tools'
     | '/updates'
@@ -2459,6 +2470,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/plugins'
     | '/profile'
+    | '/support'
     | '/updates'
     | '/appearance/colors'
     | '/appearance/footer'
@@ -2676,6 +2688,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/recipes'
     | '/_authenticated/_admin/seo'
     | '/_authenticated/_admin/settings'
+    | '/_authenticated/_admin/support'
     | '/_authenticated/_admin/tickets'
     | '/_authenticated/_admin/tools'
     | '/_authenticated/_admin/updates'
@@ -2928,6 +2941,13 @@ declare module '@tanstack/react-router' {
       path: '/tickets'
       fullPath: '/tickets'
       preLoaderRoute: typeof AuthenticatedAdminTicketsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/support': {
+      id: '/_authenticated/_admin/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AuthenticatedAdminSupportRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/settings': {
@@ -3254,17 +3274,17 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/_admin/support/settings': {
       id: '/_authenticated/_admin/support/settings'
-      path: '/support/settings'
+      path: '/settings'
       fullPath: '/support/settings'
       preLoaderRoute: typeof AuthenticatedAdminSupportSettingsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminSupportRoute
     }
     '/_authenticated/_admin/support/analytics': {
       id: '/_authenticated/_admin/support/analytics'
-      path: '/support/analytics'
+      path: '/analytics'
       fullPath: '/support/analytics'
       preLoaderRoute: typeof AuthenticatedAdminSupportAnalyticsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminSupportRoute
     }
     '/_authenticated/_admin/settings/writing': {
       id: '/_authenticated/_admin/settings/writing'
@@ -5084,6 +5104,24 @@ const AuthenticatedAdminSettingsRouteWithChildren =
     AuthenticatedAdminSettingsRouteChildren,
   )
 
+interface AuthenticatedAdminSupportRouteChildren {
+  AuthenticatedAdminSupportAnalyticsRoute: typeof AuthenticatedAdminSupportAnalyticsRoute
+  AuthenticatedAdminSupportSettingsRoute: typeof AuthenticatedAdminSupportSettingsRoute
+}
+
+const AuthenticatedAdminSupportRouteChildren: AuthenticatedAdminSupportRouteChildren =
+  {
+    AuthenticatedAdminSupportAnalyticsRoute:
+      AuthenticatedAdminSupportAnalyticsRoute,
+    AuthenticatedAdminSupportSettingsRoute:
+      AuthenticatedAdminSupportSettingsRoute,
+  }
+
+const AuthenticatedAdminSupportRouteWithChildren =
+  AuthenticatedAdminSupportRoute._addFileChildren(
+    AuthenticatedAdminSupportRouteChildren,
+  )
+
 interface AuthenticatedAdminTicketsRouteChildren {
   AuthenticatedAdminTicketsTicketIdRoute: typeof AuthenticatedAdminTicketsTicketIdRoute
   AuthenticatedAdminTicketsAnalyticsRoute: typeof AuthenticatedAdminTicketsAnalyticsRoute
@@ -5237,6 +5275,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminRecipesRoute: typeof AuthenticatedAdminRecipesRouteWithChildren
   AuthenticatedAdminSeoRoute: typeof AuthenticatedAdminSeoRouteWithChildren
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRouteWithChildren
+  AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRouteWithChildren
   AuthenticatedAdminTicketsRoute: typeof AuthenticatedAdminTicketsRouteWithChildren
   AuthenticatedAdminToolsRoute: typeof AuthenticatedAdminToolsRouteWithChildren
   AuthenticatedAdminUpdatesRoute: typeof AuthenticatedAdminUpdatesRoute
@@ -5254,8 +5293,6 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminPostsNewRoute: typeof AuthenticatedAdminPostsNewRoute
   AuthenticatedAdminPostsTagsRoute: typeof AuthenticatedAdminPostsTagsRoute
   AuthenticatedAdminRolesNewRoute: typeof AuthenticatedAdminRolesNewRoute
-  AuthenticatedAdminSupportAnalyticsRoute: typeof AuthenticatedAdminSupportAnalyticsRoute
-  AuthenticatedAdminSupportSettingsRoute: typeof AuthenticatedAdminSupportSettingsRoute
   AuthenticatedAdminUsersNewRoute: typeof AuthenticatedAdminUsersNewRoute
   AuthenticatedAdminApiKeysIndexRoute: typeof AuthenticatedAdminApiKeysIndexRoute
   AuthenticatedAdminCommentsIndexRoute: typeof AuthenticatedAdminCommentsIndexRoute
@@ -5290,6 +5327,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminRecipesRoute: AuthenticatedAdminRecipesRouteWithChildren,
   AuthenticatedAdminSeoRoute: AuthenticatedAdminSeoRouteWithChildren,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRouteWithChildren,
+  AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRouteWithChildren,
   AuthenticatedAdminTicketsRoute: AuthenticatedAdminTicketsRouteWithChildren,
   AuthenticatedAdminToolsRoute: AuthenticatedAdminToolsRouteWithChildren,
   AuthenticatedAdminUpdatesRoute: AuthenticatedAdminUpdatesRoute,
@@ -5312,10 +5350,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminPostsNewRoute: AuthenticatedAdminPostsNewRoute,
   AuthenticatedAdminPostsTagsRoute: AuthenticatedAdminPostsTagsRoute,
   AuthenticatedAdminRolesNewRoute: AuthenticatedAdminRolesNewRoute,
-  AuthenticatedAdminSupportAnalyticsRoute:
-    AuthenticatedAdminSupportAnalyticsRoute,
-  AuthenticatedAdminSupportSettingsRoute:
-    AuthenticatedAdminSupportSettingsRoute,
   AuthenticatedAdminUsersNewRoute: AuthenticatedAdminUsersNewRoute,
   AuthenticatedAdminApiKeysIndexRoute: AuthenticatedAdminApiKeysIndexRoute,
   AuthenticatedAdminCommentsIndexRoute: AuthenticatedAdminCommentsIndexRoute,

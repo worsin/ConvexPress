@@ -6,6 +6,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { Search, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
 
 import { MediaImage } from "@/components/media/MediaImage";
+import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { useSettings } from "@/contexts/SettingsContext";
 
 type ShopSearch = {
@@ -29,6 +30,13 @@ export const Route = createFileRoute("/_marketing/shop")({
     search: search.search,
   }),
   loader: async ({ context: { queryClient }, deps }) => {
+    const publicSettings = await queryClient.ensureQueryData(
+      convexQuery(api.settings.queries.getPublic, {}),
+    );
+    if ((publicSettings as any)?.plugins?.commerceEnabled !== true) {
+      return;
+    }
+
     await queryClient.ensureQueryData(
       convexQuery(api.commerce.products.listPublished, {
         page: deps.page,
@@ -45,7 +53,11 @@ export const Route = createFileRoute("/_marketing/shop")({
 });
 
 function ShopPage() {
-  return <ShopContent />;
+  return (
+    <PublicPluginGate pluginId="commerce">
+      <ShopContent />
+    </PublicPluginGate>
+  );
 }
 
 function ShopContent() {

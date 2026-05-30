@@ -62,10 +62,11 @@ function MyTicketsPage() {
     isSignedIn
       ? {
           status: search.status as "open" | "awaitingResponse" | "inProgress" | "resolved" | "closed" | undefined,
-          page: search.page,
+          paginationOpts: { numItems: 25, cursor: null },
         }
       : "skip",
-  ) as { tickets: TicketListItem[] } | null | undefined;
+  ) as { page: TicketListItem[] } | null | undefined;
+  const tickets = result?.page ?? [];
 
   if (!isSignedIn) {
     return (
@@ -122,7 +123,7 @@ function MyTicketsPage() {
       {/* Ticket List */}
       {result ? (
         <div className="space-y-3">
-          {result.tickets.map((ticket) => (
+          {tickets.map((ticket) => (
             <Link
               key={ticket._id}
               to="/support/tickets/$ticketId"
@@ -152,7 +153,7 @@ function MyTicketsPage() {
             </Link>
           ))}
 
-          {result.tickets.length === 0 && (
+          {tickets.length === 0 && (
             <div className="text-center py-12 text-foreground/40">
               <p>No tickets found.</p>
               <Link

@@ -99,7 +99,12 @@ export const searchKbConvex = internalQuery({
   args: { query: v.string() },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { query }) => {
-    if (!(await isPluginEnabled(ctx, "tickets"))) return [];
+    if (
+      !(await isPluginEnabled(ctx, "tickets")) ||
+      !(await isPluginEnabled(ctx, "knowledgeBase"))
+    ) {
+      return [];
+    }
     const results = await ctx.db
       .query("kb_articles")
       .withSearchIndex("search_articles", (q) =>
@@ -139,7 +144,12 @@ export const searchKbKeywordFallback = internalQuery({
   args: { query: v.string() },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { query }) => {
-    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
+    if (
+      !(await isPluginEnabled(ctx, "tickets")) ||
+      !(await isPluginEnabled(ctx, "knowledgeBase"))
+    ) {
+      return [];
+    }
     // Collect a sample of chunks and do client-side keyword matching
     // Note: Real RAG implementation would use vectorize or a similar index
     const allChunks = await ctx.db

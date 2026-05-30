@@ -2,6 +2,8 @@ import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { useAuth } from "@clerk/clerk-react";
 import { LifeBuoy, Loader2, MessageSquarePlus, List, Search } from "lucide-react";
 import { buildIndexablePageHead } from "@/lib/seo/head";
+import { useSettings } from "@/contexts/SettingsContext";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export const Route = createFileRoute("/_marketing/support/")({
   loader: () => ({
@@ -18,6 +20,8 @@ export const Route = createFileRoute("/_marketing/support/")({
 
 function SupportLandingPage() {
   const { isSignedIn, isLoaded } = useAuth();
+  const settings = useSettings();
+  const knowledgeBaseEnabled = isPublicPluginEnabled("kb", settings);
 
   if (!isLoaded) {
     return (
@@ -65,16 +69,18 @@ function SupportLandingPage() {
           </Link>
         )}
 
-        <Link
-          to="/help"
-          className="rounded-lg border border-border p-6 hover:border-primary/40 hover:shadow-sm transition-all text-center space-y-2"
-        >
-          <Search className="h-8 w-8 mx-auto text-primary" />
-          <h2 className="text-lg font-semibold">Help Center</h2>
-          <p className="text-sm text-foreground/50">
-            Search our knowledge base for instant answers.
-          </p>
-        </Link>
+        {knowledgeBaseEnabled ? (
+          <Link
+            to="/help"
+            className="rounded-lg border border-border p-6 hover:border-primary/40 hover:shadow-sm transition-all text-center space-y-2"
+          >
+            <Search className="h-8 w-8 mx-auto text-primary" />
+            <h2 className="text-lg font-semibold">Help Center</h2>
+            <p className="text-sm text-foreground/50">
+              Search our knowledge base for instant answers.
+            </p>
+          </Link>
+        ) : null}
       </div>
 
       {!isSignedIn && (

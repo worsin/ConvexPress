@@ -40,6 +40,7 @@ export const getConfig = query({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
+    const knowledgeBaseEnabled = await isPluginEnabled(ctx, "knowledgeBase");
     // Additional widget-display-only defaults (not persisted in settings)
     const WIDGET_DISPLAY_DEFAULTS = {
       position: "bottomRight",
@@ -57,6 +58,8 @@ export const getConfig = query({
       ...SUPPORT_WIDGET_DEFAULTS,
       ...WIDGET_DISPLAY_DEFAULTS,
       ...stored,
+      showKbSearch:
+        knowledgeBaseEnabled && (stored.showKbSearch ?? SUPPORT_WIDGET_DEFAULTS.showKbSearch) !== false,
     };
   },
 });
@@ -98,6 +101,8 @@ export const getRecentTickets = query({
       subject: t.subject,
       status: t.status,
       priority: t.priority,
+      messageCount: t.messageCount,
+      lastMessageAt: t.lastMessageAt,
       updatedAt: t.updatedAt,
       createdAt: t.createdAt,
     }));

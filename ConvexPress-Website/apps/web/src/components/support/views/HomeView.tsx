@@ -14,6 +14,10 @@ import { cn } from "@/lib/utils";
 
 interface HomeViewProps {
   greeting: string;
+  subtitle?: string;
+  showKbSearch?: boolean;
+  showTicketHistory?: boolean;
+  newTicketLabel?: string;
   onSearch: (query: string) => void;
   onShowTickets: () => void;
   onNewTicket: () => void;
@@ -21,6 +25,10 @@ interface HomeViewProps {
 
 export function HomeView({
   greeting,
+  subtitle,
+  showKbSearch = true,
+  showTicketHistory = true,
+  newTicketLabel = "New Ticket",
   onSearch,
   onShowTickets,
   onNewTicket,
@@ -42,30 +50,35 @@ export function HomeView({
       <div className="text-center">
         <p className="text-lg font-semibold text-foreground">{greeting}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Search our help center or create a support ticket.
+          {subtitle ??
+            (showKbSearch
+              ? "Search our help center or create a support ticket."
+              : "Create a support ticket and our team will help.")}
         </p>
       </div>
 
       {/* Search */}
-      <form onSubmit={handleSubmit} className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Search for help..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className={cn(
-            "w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-4 text-sm",
-            "placeholder:text-muted-foreground",
-            "focus:outline-hidden focus:ring-2 focus:ring-ring",
-          )}
-          autoFocus
-        />
-      </form>
+      {showKbSearch ? (
+        <form onSubmit={handleSubmit} className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search for help..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className={cn(
+              "w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-4 text-sm",
+              "placeholder:text-muted-foreground",
+              "focus:outline-hidden focus:ring-2 focus:ring-ring",
+            )}
+            autoFocus
+          />
+        </form>
+      ) : null}
 
       {/* Quick Actions */}
       <div className="flex flex-col gap-2">
-        {isAuthenticated && (
+        {isAuthenticated && showTicketHistory && (
           <button
             type="button"
             onClick={onShowTickets}
@@ -98,7 +111,9 @@ export function HomeView({
             <Plus className="h-4 w-4 text-muted-foreground" />
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">New Ticket</p>
+            <p className="text-sm font-medium text-foreground">
+              {newTicketLabel}
+            </p>
             <p className="text-xs text-muted-foreground">
               Contact our support team
             </p>

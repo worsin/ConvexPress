@@ -111,11 +111,14 @@ function TicketThreadPage() {
   };
 
   async function handleReply() {
-    if (!replyContent.trim()) return;
+    if (replyContent.trim().length < 10) {
+      toast.error("Reply must be at least 10 characters.");
+      return;
+    }
     try {
       await replyMutation({
         ticketId: ticketId as Id<"ticket_tickets">,
-        content: replyContent,
+        content: replyContent.trim(),
       });
       setReplyContent("");
       toast.success("Reply sent");
@@ -206,12 +209,16 @@ function TicketThreadPage() {
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder="Type your reply..."
             rows={4}
+            maxLength={10000}
             className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-hidden focus:ring-2 focus:ring-primary/30"
           />
+          <p className="text-xs text-foreground/40">
+            {replyContent.length}/10000 characters
+          </p>
           <div className="flex justify-end">
             <button
               onClick={() => void handleReply()}
-              disabled={!replyContent.trim()}
+              disabled={replyContent.trim().length < 10}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 disabled:opacity-40 transition-opacity"
             >
               <Send className="h-4 w-4" />

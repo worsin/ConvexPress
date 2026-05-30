@@ -14,14 +14,12 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface TicketFormViewProps {
-  sessionId: string;
   prefillQuery?: string;
   onSuccess: (ticketId: string) => void;
   onCancel: () => void;
 }
 
 export function TicketFormView({
-  sessionId,
   prefillQuery,
   onSuccess,
   onCancel,
@@ -48,8 +46,20 @@ export function TicketFormView({
       toast.error("Please enter a subject.");
       return;
     }
-    if (!trimmedDescription) {
-      toast.error("Please describe your issue.");
+    if (trimmedSubject.length < 5) {
+      toast.error("Subject must be at least 5 characters.");
+      return;
+    }
+    if (trimmedSubject.length > 200) {
+      toast.error("Subject must be 200 characters or fewer.");
+      return;
+    }
+    if (trimmedDescription.length < 10) {
+      toast.error("Description must be at least 10 characters.");
+      return;
+    }
+    if (trimmedDescription.length > 10000) {
+      toast.error("Description must be 10000 characters or fewer.");
       return;
     }
 
@@ -62,14 +72,15 @@ export function TicketFormView({
         source: "widget",
         aiAttempted: !!prefillQuery,
         aiQuery: prefillQuery,
-        sessionId,
       });
 
       toast.success("Ticket created successfully!");
       onSuccess(result.ticketId as string);
     } catch (err) {
-      console.error("[TicketForm] Create failed:", err);
-      toast.error("Failed to create ticket. Please try again.");
+      toast.error(
+        (err as { data?: { message?: string } })?.data?.message ??
+          "Failed to create ticket. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -102,6 +113,7 @@ export function TicketFormView({
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           placeholder="Brief summary of your issue"
+          maxLength={200}
           className={cn(
             "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm",
             "placeholder:text-muted-foreground",
@@ -152,6 +164,7 @@ export function TicketFormView({
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe your issue in detail..."
           rows={5}
+          maxLength={10000}
           className={cn(
             "w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm",
             "placeholder:text-muted-foreground",
@@ -172,7 +185,11 @@ export function TicketFormView({
         </button>
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={
+            isSubmitting ||
+            subject.trim().length < 5 ||
+            description.trim().length < 10
+          }
           className={cn(
             "flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5",
             "text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90",

@@ -358,7 +358,10 @@ function CheckoutShippingPage() {
           </div>
 
           {ADDRESS_FIELDS.map(([key, label]) => (
-            <label key={key} className={key === "line1" ? "md:col-span-2" : ""}>
+            <label
+              key={key}
+              className={["line1", "line2"].includes(key) ? "md:col-span-2" : ""}
+            >
               <span className="mb-2 block text-sm font-medium text-foreground">
                 {label}
               </span>

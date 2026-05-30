@@ -38,7 +38,10 @@ export function TicketDetailView({
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = replyContent.trim();
-    if (!trimmed) return;
+    if (trimmed.length < 10) {
+      toast.error("Reply must be at least 10 characters.");
+      return;
+    }
 
     setIsSending(true);
     try {
@@ -49,8 +52,10 @@ export function TicketDetailView({
       setReplyContent("");
       toast.success("Reply sent!");
     } catch (err) {
-      console.error("[TicketDetail] Reply failed:", err);
-      toast.error("Failed to send reply. Please try again.");
+      toast.error(
+        (err as { data?: { message?: string } })?.data?.message ??
+          "Failed to send reply. Please try again.",
+      );
     } finally {
       setIsSending(false);
     }
@@ -160,6 +165,7 @@ export function TicketDetailView({
           onChange={(e) => setReplyContent(e.target.value)}
           placeholder="Type a reply..."
           aria-label="Reply message"
+          maxLength={10000}
           className={cn(
             "flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm",
             "placeholder:text-muted-foreground",
@@ -169,7 +175,7 @@ export function TicketDetailView({
         />
         <button
           type="submit"
-          disabled={isSending || !replyContent.trim()}
+          disabled={isSending || replyContent.trim().length < 10}
           aria-label="Send reply"
           className={cn(
             "flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground",
