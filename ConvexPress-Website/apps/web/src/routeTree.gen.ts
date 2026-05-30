@@ -70,6 +70,7 @@ import { Route as ApiFeedRss2RouteImport } from './routes/api/feed/rss2'
 import { Route as ApiFeedAtomRouteImport } from './routes/api/feed/atom'
 import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth/callback'
 import { Route as MarketingWishlistTokenRouteImport } from './routes/_marketing/wishlist.$token'
+import { Route as MarketingFormsSlugRouteImport } from './routes/_marketing/forms.$slug'
 import { Route as MarketingTrackTokenRouteImport } from './routes/_marketing/track.$token'
 import { Route as MarketingTagSlugRouteImport } from './routes/_marketing/tag/$slug'
 import { Route as MarketingSupportNewRouteImport } from './routes/_marketing/support/new'
@@ -418,6 +419,11 @@ const MarketingWishlistTokenRoute = MarketingWishlistTokenRouteImport.update({
   path: '/wishlist/$token',
   getParentRoute: () => MarketingRoute,
 } as any)
+const MarketingFormsSlugRoute = MarketingFormsSlugRouteImport.update({
+  id: '/forms/$slug',
+  path: '/forms/$slug',
+  getParentRoute: () => MarketingRoute,
+} as any)
 const MarketingTrackTokenRoute = MarketingTrackTokenRouteImport.update({
   id: '/track/$token',
   path: '/track/$token',
@@ -694,6 +700,7 @@ export interface FileRoutesByFullPath {
   '/tag/$slug': typeof MarketingTagSlugRoute
   '/track/$token': typeof MarketingTrackTokenRoute
   '/wishlist/$token': typeof MarketingWishlistTokenRoute
+  '/forms/$slug': typeof MarketingFormsSlugRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/feed/atom': typeof ApiFeedAtomRoute
   '/api/feed/rss2': typeof ApiFeedRss2Route
@@ -785,6 +792,7 @@ export interface FileRoutesByTo {
   '/tag/$slug': typeof MarketingTagSlugRoute
   '/track/$token': typeof MarketingTrackTokenRoute
   '/wishlist/$token': typeof MarketingWishlistTokenRoute
+  '/forms/$slug': typeof MarketingFormsSlugRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/feed/atom': typeof ApiFeedAtomRoute
   '/api/feed/rss2': typeof ApiFeedRss2Route
@@ -889,6 +897,7 @@ export interface FileRoutesById {
   '/_marketing/tag/$slug': typeof MarketingTagSlugRoute
   '/_marketing/track/$token': typeof MarketingTrackTokenRoute
   '/_marketing/wishlist/$token': typeof MarketingWishlistTokenRoute
+  '/_marketing/forms/$slug': typeof MarketingFormsSlugRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/feed/atom': typeof ApiFeedAtomRoute
   '/api/feed/rss2': typeof ApiFeedRss2Route
@@ -1690,6 +1699,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingWishlistTokenRouteImport
       parentRoute: typeof MarketingRoute
     }
+    '/_marketing/forms/$slug': {
+      id: '/_marketing/forms/$slug'
+      path: '/forms/$slug'
+      fullPath: '/forms/$slug'
+      preLoaderRoute: typeof MarketingFormsSlugRouteImport
+      parentRoute: typeof MarketingRoute
+    }
     '/_marketing/track/$token': {
       id: '/_marketing/track/$token'
       path: '/track/$token'
@@ -2152,6 +2168,7 @@ interface MarketingRouteChildren {
   MarketingTagSlugRoute: typeof MarketingTagSlugRoute
   MarketingTrackTokenRoute: typeof MarketingTrackTokenRoute
   MarketingWishlistTokenRoute: typeof MarketingWishlistTokenRoute
+  MarketingFormsSlugRoute: typeof MarketingFormsSlugRoute
   MarketingBlogIndexRoute: typeof MarketingBlogIndexRoute
   MarketingBlogYearMonthSlugRoute: typeof MarketingBlogYearMonthSlugRoute
   MarketingBlogYearMonthDaySlugRoute: typeof MarketingBlogYearMonthDaySlugRoute
@@ -2181,6 +2198,7 @@ const MarketingRouteChildren: MarketingRouteChildren = {
   MarketingTagSlugRoute: MarketingTagSlugRoute,
   MarketingTrackTokenRoute: MarketingTrackTokenRoute,
   MarketingWishlistTokenRoute: MarketingWishlistTokenRoute,
+  MarketingFormsSlugRoute: MarketingFormsSlugRoute,
   MarketingBlogIndexRoute: MarketingBlogIndexRoute,
   MarketingBlogYearMonthSlugRoute: MarketingBlogYearMonthSlugRoute,
   MarketingBlogYearMonthDaySlugRoute: MarketingBlogYearMonthDaySlugRoute,
