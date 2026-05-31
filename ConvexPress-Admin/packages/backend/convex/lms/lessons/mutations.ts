@@ -7,7 +7,15 @@ import { mutation } from "../../_generated/server";
 import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
-import { textToDoc, detectVideoProvider } from "./helpers";
+import {
+  detectVideoProvider,
+  docsEqual,
+  normalizeLessonText,
+  normalizeLessonTitle,
+  normalizeNonNegativeInt,
+  normalizeOptionalUrl,
+  textToDoc,
+} from "./helpers";
 import { lmsDripModeValidator } from "../../schema/lms";
 import { requireNodeCourseAuthorOrEditor } from "../access";
 
@@ -18,7 +26,7 @@ export const updateLessonContent = mutation({
     bodyText: v.optional(v.string()),
     materialsText: v.optional(v.string()),
     videoUrl: v.optional(v.string()),
-    videoMediaId: v.optional(v.id("media")),
+    videoMediaId: v.optional(v.union(v.id("media"), v.null())),
     isPreview: v.optional(v.boolean()),
     requireVideoWatch: v.optional(v.boolean()),
     autoComplete: v.optional(v.boolean()),
@@ -37,25 +45,54 @@ export const updateLessonContent = mutation({
     }
 
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
-    if (args.title !== undefined) patch.title = args.title.trim() || "Untitled";
-    if (args.bodyText !== undefined) patch.bodyDoc = textToDoc(args.bodyText);
-    if (args.materialsText !== undefined) patch.materialsDoc = textToDoc(args.materialsText);
-    if (args.videoUrl !== undefined) {
-      patch.videoUrl = args.videoUrl;
-      patch.videoProvider = args.videoUrl ? detectVideoProvider(args.videoUrl) : undefined;
+    const nextBodyDoc =
+      args.bodyText !== undefined ? textToDoc(normalizeLessonText(args.bodyText)) : undefined;
+    const videoUrlProvided = Object.prototype.hasOwnProperty.call(args, "videoUrl");
+    const videoMediaProvided = Object.prototype.hasOwnProperty.call(args, "videoMediaId");
+    const nextVideoUrl = videoUrlProvided
+      ? normalizeOptionalUrl(args.videoUrl)
+      : node.videoUrl;
+    const nextVideoMediaId = videoMediaProvided ? args.videoMediaId : node.videoMediaId;
+    const hasVideoSource = !!nextVideoUrl || !!nextVideoMediaId;
+
+    if (args.requireVideoWatch && !hasVideoSource) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "A lesson must have a video before requiring video watch completion.",
+      });
     }
-    if (args.videoMediaId !== undefined) patch.videoMediaId = args.videoMediaId;
+
+    if (args.title !== undefined) patch.title = normalizeLessonTitle(args.title);
+    if (nextBodyDoc !== undefined) patch.bodyDoc = nextBodyDoc;
+    if (args.materialsText !== undefined) {
+      patch.materialsDoc = textToDoc(normalizeLessonText(args.materialsText));
+    }
+    if (videoUrlProvided) {
+      patch.videoUrl = nextVideoUrl;
+      patch.videoProvider = nextVideoUrl ? detectVideoProvider(nextVideoUrl) : undefined;
+    }
+    if (videoMediaProvided) patch.videoMediaId = args.videoMediaId ?? undefined;
     if (args.isPreview !== undefined) patch.isPreview = args.isPreview;
     if (args.requireVideoWatch !== undefined) patch.requireVideoWatch = args.requireVideoWatch;
     if (args.autoComplete !== undefined) patch.autoComplete = args.autoComplete;
-    if (args.completionDelaySec !== undefined) patch.completionDelaySec = args.completionDelaySec;
-    if (args.minTimeSeconds !== undefined) patch.minTimeSeconds = args.minTimeSeconds;
+    if (args.completionDelaySec !== undefined) {
+      patch.completionDelaySec = normalizeNonNegativeInt(args.completionDelaySec) ?? 0;
+    }
+    if (args.minTimeSeconds !== undefined) {
+      patch.minTimeSeconds = normalizeNonNegativeInt(args.minTimeSeconds) ?? 0;
+    }
     if (args.showMarkComplete !== undefined) patch.showMarkComplete = args.showMarkComplete;
-    if (args.dripMode !== undefined) patch.lessonDripMode = args.dripMode;
-    if (args.dripOffsetDays !== undefined) patch.lessonDripOffsetDays = args.dripOffsetDays;
+    if (args.dripMode !== undefined) {
+      patch.lessonDripMode = args.dripMode;
+      if (args.dripMode !== "enrollment_based") patch.lessonDripOffsetDays = undefined;
+      if (args.dripMode !== "specific_date") patch.lessonDripDate = undefined;
+    }
+    if (args.dripOffsetDays !== undefined) {
+      patch.lessonDripOffsetDays = normalizeNonNegativeInt(args.dripOffsetDays) ?? 0;
+    }
     if (args.dripDate !== undefined) patch.lessonDripDate = args.dripDate;
 
-    if (args.bodyText !== undefined && node.bodyDoc !== undefined) {
+    if (nextBodyDoc !== undefined && node.bodyDoc !== undefined && !docsEqual(node.bodyDoc, nextBodyDoc)) {
       await ctx.db.insert("lms_lessonVersions", {
         nodeId: args.nodeId,
         bodyDoc: node.bodyDoc,

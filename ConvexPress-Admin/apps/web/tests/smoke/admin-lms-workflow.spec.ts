@@ -62,12 +62,24 @@ test("lms authoring-to-completion workflow [P1]", async ({ authedPage }) => {
   await expect(authedPage.getByRole("heading", { name: /Edit Lesson/i })).toBeVisible({
     timeout: 20_000,
   });
+  await authedPage.getByLabel(/Video URL/i).fill("https://youtu.be/dQw4w9WgXcQ");
   await authedPage.getByLabel(/Lesson body/i).fill(
-    "This lesson body was written by the LMS workflow smoke.\n\nIt proves lesson text persists.",
+    "## Smoke lesson overview\n\nThis lesson body was written by the LMS workflow smoke.\n\n- It proves lesson text persists.\n- It exercises the production editor preview.",
   );
   await authedPage.getByLabel(/Materials & resources/i).fill(
-    "Smoke material: https://example.com/lms-resource",
+    "[Smoke material](https://example.com/lms-resource)",
   );
+  await expect(authedPage.getByText(/Unsaved changes/i).first()).toBeVisible({
+    timeout: 20_000,
+  });
+  await authedPage.getByRole("tab", { name: /Preview/i }).first().click();
+  await expect(authedPage.getByRole("heading", { name: /Smoke lesson overview/i })).toBeVisible({
+    timeout: 20_000,
+  });
+  await authedPage.getByRole("tab", { name: /Write/i }).first().click();
+  await expect(authedPage.getByText(/YouTube video/i)).toBeVisible({
+    timeout: 20_000,
+  });
   await authedPage.getByRole("button", { name: /^Save$/i }).click();
   await expect(authedPage.getByText("Lesson saved").last()).toBeVisible({
     timeout: 20_000,
