@@ -13,6 +13,10 @@ export const getLesson = query({
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const node = await ctx.db.get(args.nodeId);
     if (!node) return null;
-    return { node, bodyText: docToText(node.bodyDoc) };
+    return {
+      node,
+      bodyText: docToText(node.bodyDoc),
+      materialsText: docToText(node.materialsDoc),
+    };
   },
 });

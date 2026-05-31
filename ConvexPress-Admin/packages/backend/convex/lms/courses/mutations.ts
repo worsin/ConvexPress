@@ -151,3 +151,77 @@ export const remove = mutation({
     return { deleted: true };
   },
 });
+
+export const duplicate = mutation({
+  args: courseIdArg,
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "lms");
+    const user = await requireMinimumRoleLevel(ctx, 60);
+    const db = ctx.db as any;
+    const src = await db.get(args.courseId);
+    if (!src) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
+
+    const now = Date.now();
+    const slug = await generateUniqueCourseSlug(ctx, `${src.title} (Copy)`);
+    const newId = await db.insert("lms_courses", {
+      title: `${src.title} (Copy)`,
+      slug,
+      descriptionDoc: src.descriptionDoc,
+      excerpt: src.excerpt,
+      status: "draft",
+      featuredImageId: src.featuredImageId,
+      accessMode: src.accessMode,
+      progressionMode: src.progressionMode,
+      contentVisibility: src.contentVisibility,
+      pointsAwarded: src.pointsAwarded,
+      pointsRequired: src.pointsRequired,
+      accessDurationDays: src.accessDurationDays,
+      seatLimit: src.seatLimit,
+      certificateId: src.certificateId,
+      materialsDoc: src.materialsDoc,
+      topicCount: src.topicCount,
+      lessonCount: src.lessonCount,
+      authorId: user._id,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Clone the curriculum tree (topics first, then children remapped).
+    const nodes = await db
+      .query("lms_nodes")
+      .withIndex("by_course", (q: any) => q.eq("courseId", args.courseId))
+      .collect();
+    const idMap = new Map<string, string>();
+    for (const t of nodes.filter((n: any) => n.kind === "topic")) {
+      const nt = await db.insert("lms_nodes", {
+        courseId: newId,
+        kind: "topic",
+        title: t.title,
+        position: t.position,
+        description: t.description,
+        createdAt: now,
+        updatedAt: now,
+      });
+      idMap.set(String(t._id), String(nt));
+    }
+    for (const n of nodes.filter((x: any) => x.kind !== "topic")) {
+      await db.insert("lms_nodes", {
+        courseId: newId,
+        parentId: n.parentId ? idMap.get(String(n.parentId)) : undefined,
+        kind: n.kind,
+        title: n.title,
+        position: n.position,
+        bodyDoc: n.bodyDoc,
+        materialsDoc: n.materialsDoc,
+        videoUrl: n.videoUrl,
+        videoProvider: n.videoProvider,
+        requireVideoWatch: n.requireVideoWatch,
+        isPreview: n.isPreview,
+        showMarkComplete: n.showMarkComplete,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    return newId;
+  },
+});

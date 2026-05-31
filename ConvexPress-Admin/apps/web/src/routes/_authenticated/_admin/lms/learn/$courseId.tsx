@@ -60,7 +60,7 @@ function PlayerPage() {
   const id = courseId as Id<"lms_courses">;
 
   const course = useQuery(api.lms.courses.queries.getById, { courseId: id }) as
-    | { title: string; status: string; certificateId?: string }
+    | { title: string; status: string; certificateId?: string; progressionMode?: string }
     | null
     | undefined;
   const tree = useQuery(api.lms.nodes.queries.getCourseTree, { courseId: id }) as
@@ -83,10 +83,20 @@ function PlayerPage() {
   const lesson = useQuery(
     api.lms.lessons.queries.getLesson,
     selectedId ? { nodeId: selectedId as Id<"lms_nodes"> } : "skip",
-  ) as { node: { title: string; videoUrl?: string }; bodyText: string } | null | undefined;
+  ) as
+    | { node: { title: string; videoUrl?: string }; bodyText: string; materialsText: string }
+    | null
+    | undefined;
 
   const topics = tree?.topics ?? [];
   const completed = new Set(progress?.completedNodeIds ?? []);
+  const orderedLessons = topics.flatMap((t) => t.children.filter((c) => c.kind === "lesson"));
+  const isLinear = course?.progressionMode === "linear";
+  const isLocked = (lessonId: string) => {
+    if (!isLinear) return false;
+    const idx = orderedLessons.findIndex((l) => l._id === lessonId);
+    return idx > 0 && orderedLessons.slice(0, idx).some((l) => !completed.has(l._id));
+  };
 
   // Default selection: next incomplete lesson, else first lesson.
   useEffect(() => {
@@ -180,16 +190,23 @@ function PlayerPage() {
                   .map((lessonNode) => {
                     const isDone = completed.has(lessonNode._id);
                     const isActive = selectedId === lessonNode._id;
+                    const locked = isLocked(lessonNode._id);
                     return (
                       <button
                         key={lessonNode._id}
                         type="button"
-                        onClick={() => setSelectedId(lessonNode._id)}
+                        onClick={() =>
+                          locked
+                            ? toast.error("Complete the previous lessons first")
+                            : setSelectedId(lessonNode._id)
+                        }
                         className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm ${
                           isActive ? "bg-primary/10 text-primary" : "hover:bg-muted"
-                        }`}
+                        } ${locked ? "opacity-50" : ""}`}
                       >
-                        {isDone ? (
+                        {locked ? (
+                          <Lock className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                        ) : isDone ? (
                           <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-500" />
                         ) : (
                           <Circle className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
@@ -235,6 +252,14 @@ function PlayerPage() {
                   <span className="text-muted-foreground">No content yet.</span>
                 )}
               </div>
+              {lesson.materialsText && (
+                <div className="rounded-lg border border-border p-4">
+                  <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+                    Materials &amp; resources
+                  </div>
+                  <div className="whitespace-pre-wrap text-sm">{lesson.materialsText}</div>
+                </div>
+              )}
               <div className="border-t border-border pt-4">
                 {completed.has(selectedId) ? (
                   <button

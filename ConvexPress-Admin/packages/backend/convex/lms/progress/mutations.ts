@@ -40,6 +40,24 @@ async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_course
     } else {
       await ctx.db.patch(rec._id, { percent, completedAt: rec.completedAt ?? Date.now() });
     }
+    // Auto-issue a certificate when the course has one assigned.
+    if (course?.certificateId) {
+      const existingIssue = await ctx.db
+        .query("lms_certificate_issues")
+        .withIndex("by_user_course", (q: any) => q.eq("userId", userId).eq("courseId", courseId))
+        .first();
+      if (!existingIssue) {
+        const serial = `CERT-${Date.now().toString(36).toUpperCase()}-${String(userId).slice(-6).toUpperCase()}`;
+        await ctx.db.insert("lms_certificate_issues", {
+          userId,
+          courseId,
+          certificateId: course.certificateId,
+          serial,
+          issuedAt: Date.now(),
+          status: "issued",
+        });
+      }
+    }
   } else if (rec) {
     await ctx.db.patch(rec._id, { percent });
   }

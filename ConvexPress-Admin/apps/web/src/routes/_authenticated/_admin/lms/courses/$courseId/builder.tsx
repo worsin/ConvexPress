@@ -203,7 +203,13 @@ function TopicBlock({
     <div className="rounded-lg border border-border">
       <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2">
         <Layers className="h-4 w-4 text-muted-foreground" />
-        <span className="flex-1 font-medium">{topic.title}</span>
+        <Link
+          to="/lms/courses/$courseId/topics/$nodeId"
+          params={{ courseId, nodeId: topic._id }}
+          className="flex-1 font-medium hover:underline"
+        >
+          {topic.title}
+        </Link>
         <IconBtn title="Move up" disabled={isFirst} onClick={() => void run("", () => moveNode({ nodeId: topic._id, direction: "up" }))}>
           <ChevronUp className="h-4 w-4" />
         </IconBtn>

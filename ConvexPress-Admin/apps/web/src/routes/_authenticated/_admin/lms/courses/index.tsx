@@ -17,6 +17,7 @@ import {
   EyeOff,
   Archive,
   Search,
+  Copy,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/_admin/lms/courses/")({
@@ -60,6 +61,7 @@ function CourseListPage() {
   const unpublish = useMutation(api.lms.courses.mutations.unpublish);
   const archive = useMutation(api.lms.courses.mutations.archive);
   const remove = useMutation(api.lms.courses.mutations.remove);
+  const duplicate = useMutation(api.lms.courses.mutations.duplicate);
 
   async function run(label: string, fn: () => Promise<unknown>) {
     try {
@@ -180,6 +182,16 @@ function CourseListPage() {
                       >
                         <Pencil className="h-4 w-4" />
                       </Link>
+                      <button
+                        type="button"
+                        title="Duplicate"
+                        onClick={() =>
+                          run("Duplicated", () => duplicate({ courseId: course._id }))
+                        }
+                        className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
                       {course.status === "published" ? (
                         <button
                           type="button"
