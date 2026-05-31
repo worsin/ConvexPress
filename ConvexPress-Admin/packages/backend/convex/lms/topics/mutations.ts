@@ -6,6 +6,8 @@ import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import { requireMinimumRoleLevel } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
+import { emitEvent } from "../../helpers/events";
+import { LMS_EVENTS, SYSTEM } from "../../events/constants";
 import { lmsDripModeValidator } from "../../schema/lms";
 
 export const updateTopic = mutation({
@@ -29,6 +31,10 @@ export const updateTopic = mutation({
     if (args.dripOffsetDays !== undefined) patch.topicDripOffsetDays = args.dripOffsetDays;
     if (args.dripDate !== undefined) patch.topicDripDate = args.dripDate;
     await ctx.db.patch(args.nodeId, patch as never);
+    await emitEvent(ctx, LMS_EVENTS.TOPIC_UPDATED, SYSTEM.LMS, {
+      courseId: node.courseId,
+      nodeId: args.nodeId,
+    });
     return args.nodeId;
   },
 });

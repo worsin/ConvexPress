@@ -549,13 +549,7 @@ export const extendGrant = mutation({
  */
 export const createRestrictionRule = mutation({
   args: {
-    resourceType: v.union(
-      v.literal("page"),
-      v.literal("post"),
-      v.literal("route"),
-      v.literal("product"),
-      v.literal("block"),
-    ),
+    resourceType: membershipResourceTypeValidator,
     resourceIdOrKey: v.string(),
     ruleMode: membershipRestrictionModeValidator,
     planIds: v.array(v.id("membership_plans")),
@@ -609,15 +603,7 @@ export const createRestrictionRule = mutation({
 export const updateRestrictionRule = mutation({
   args: {
     ruleId: v.id("membership_restriction_rules"),
-    resourceType: v.optional(
-      v.union(
-        v.literal("page"),
-        v.literal("post"),
-        v.literal("route"),
-        v.literal("product"),
-        v.literal("block"),
-      ),
-    ),
+    resourceType: v.optional(membershipResourceTypeValidator),
     resourceIdOrKey: v.optional(v.string()),
     ruleMode: v.optional(membershipRestrictionModeValidator),
     planIds: v.optional(v.array(v.id("membership_plans"))),

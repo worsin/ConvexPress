@@ -7,6 +7,8 @@ import { mutation } from "../../_generated/server";
 import { requireAuth, requireMinimumRoleLevel } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
+import { LMS_EVENTS, SYSTEM } from "../../events/constants";
+import { canUserAccessCourse } from "../access";
 
 export const enroll = mutation({
   args: {
@@ -28,17 +30,6 @@ export const enroll = mutation({
 
     const course = await ctx.db.get(args.courseId);
     if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
-
-    // Seat limit.
-    if (course.seatLimit && course.seatLimit > 0) {
-      const active = await ctx.db
-        .query("lms_enrollments")
-        .withIndex("by_course", (q) => q.eq("courseId", args.courseId).eq("status", "active"))
-        .collect();
-      if (active.length >= course.seatLimit) {
-        throw new ConvexError({ code: "SEAT_LIMIT", message: "Course is full" });
-      }
-    }
 
     // Idempotent: reactivate or return existing.
     const existing = await ctx.db
@@ -64,6 +55,31 @@ export const enroll = mutation({
       return existing._id;
     }
 
+    if (!args.userId || args.userId === me._id) {
+      const decision = await canUserAccessCourse(ctx, { courseId: args.courseId, userId: me._id });
+      const selfEnrollable = decision.allowed || decision.reason === "free" || decision.reason === "open";
+      if (!selfEnrollable) {
+        throw new ConvexError({
+          code: "ACCESS_DENIED",
+          message:
+            decision.reason === "membership_rule_missing"
+              ? "This course requires a membership plan before learners can self-enroll."
+              : "You do not have access to enroll in this course.",
+        });
+      }
+    }
+
+    // Seat limit.
+    if (course.seatLimit && course.seatLimit > 0) {
+      const active = await ctx.db
+        .query("lms_enrollments")
+        .withIndex("by_course", (q) => q.eq("courseId", args.courseId).eq("status", "active"))
+        .collect();
+      if (active.length >= course.seatLimit) {
+        throw new ConvexError({ code: "SEAT_LIMIT", message: "Course is full" });
+      }
+    }
+
     const enrollmentId = await ctx.db.insert("lms_enrollments", {
       userId: targetUserId,
       courseId: args.courseId,
@@ -74,7 +90,7 @@ export const enroll = mutation({
       createdAt: now,
       updatedAt: now,
     });
-    await emitEvent(ctx, "lms.enrolled", "lms", {
+    await emitEvent(ctx, LMS_EVENTS.ENROLLED, SYSTEM.LMS, {
       courseId: args.courseId,
       userId: targetUserId,
     });
@@ -112,7 +128,7 @@ export const enrollByEmail = mutation({
     await requireMinimumRoleLevel(ctx, 80);
     const user = await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("email"), args.email.trim()))
+      .withIndex("by_email", (q) => q.eq("email", args.email.trim().toLowerCase()))
       .first();
     if (!user) {
       throw new ConvexError({ code: "NOT_FOUND", message: "No user with that email" });
@@ -137,7 +153,7 @@ export const enrollByEmail = mutation({
       createdAt: now,
       updatedAt: now,
     });
-    await emitEvent(ctx, "lms.enrolled", "lms", {
+    await emitEvent(ctx, LMS_EVENTS.ENROLLED, SYSTEM.LMS, {
       courseId: args.courseId,
       userId: user._id,
     });

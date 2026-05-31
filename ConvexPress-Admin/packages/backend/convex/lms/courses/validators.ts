@@ -50,3 +50,17 @@ export const updateCourseArgs = {
 };
 
 export const courseIdArg = { courseId: v.id("lms_courses") };
+
+export const updatePrerequisitesArgs = {
+  courseId: v.id("lms_courses"),
+  prereqMode: v.optional(lmsPrereqModeValidator),
+  prereqCourseIds: v.array(v.id("lms_courses")),
+};
+
+export const updateAccessRuleArgs = {
+  courseId: v.id("lms_courses"),
+  planIds: v.array(v.id("membership_plans")),
+  ruleMode: v.optional(v.union(v.literal("allow_only"), v.literal("deny_if_missing"))),
+  loginRequired: v.optional(v.boolean()),
+  customMessage: v.optional(v.string()),
+};

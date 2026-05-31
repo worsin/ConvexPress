@@ -261,6 +261,22 @@ type KBCapability =
   | "kb.moderateComments"
   | "kb.viewAnalytics";
 
+// ─── LMS Capabilities (12) ──────────────────────────────────────────────────
+
+type LMSCapability =
+  | "lms.course.view"
+  | "lms.course.create"
+  | "lms.course.edit"
+  | "lms.course.publish"
+  | "lms.course.delete"
+  | "lms.lesson.edit"
+  | "lms.lesson.delete"
+  | "lms.builder.manage"
+  | "lms.ai.generate"
+  | "lms.enroll.manage"
+  | "lms.certificate.manage"
+  | "lms.settings.manage";
+
 // ─── Ticket Capabilities (10) ────────────────────────────────────────────────
 
 type TicketCapability =
@@ -424,6 +440,7 @@ export type Capability =
   | RoutingCapability
   | AnalyticsCapability
   | KBCapability
+  | LMSCapability
   | TicketCapability
   | CommerceReturnsCapability
   | CommerceBundlesCapability
@@ -627,6 +644,19 @@ export const ALL_CAPABILITIES: Capability[] = [
   "kb.manageTemplates",
   "kb.moderateComments",
   "kb.viewAnalytics",
+  // LMS (12)
+  "lms.course.view",
+  "lms.course.create",
+  "lms.course.edit",
+  "lms.course.publish",
+  "lms.course.delete",
+  "lms.lesson.edit",
+  "lms.lesson.delete",
+  "lms.builder.manage",
+  "lms.ai.generate",
+  "lms.enroll.manage",
+  "lms.certificate.manage",
+  "lms.settings.manage",
   // Tickets (10)
   "ticket.view",
   "ticket.viewAll",
@@ -949,6 +979,20 @@ export const CAPABILITY_DOMAINS: Record<string, Capability[]> = {
     "kb.manageTemplates",
     "kb.moderateComments",
     "kb.viewAnalytics",
+  ],
+  LMS: [
+    "lms.course.view",
+    "lms.course.create",
+    "lms.course.edit",
+    "lms.course.publish",
+    "lms.course.delete",
+    "lms.lesson.edit",
+    "lms.lesson.delete",
+    "lms.builder.manage",
+    "lms.ai.generate",
+    "lms.enroll.manage",
+    "lms.certificate.manage",
+    "lms.settings.manage",
   ],
   Tickets: [
     "ticket.view",

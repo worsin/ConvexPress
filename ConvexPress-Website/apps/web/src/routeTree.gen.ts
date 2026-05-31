@@ -32,6 +32,7 @@ import { Route as DashboardOrdersRouteImport } from './routes/dashboard/orders'
 import { Route as DashboardNotificationsRouteImport } from './routes/dashboard/notifications'
 import { Route as DashboardMembershipRouteImport } from './routes/dashboard/membership'
 import { Route as DashboardDownloadsRouteImport } from './routes/dashboard/downloads'
+import { Route as DashboardCoursesRouteImport } from './routes/dashboard/courses'
 import { Route as DashboardCommentsRouteImport } from './routes/dashboard/comments'
 import { Route as DashboardAddressesRouteImport } from './routes/dashboard/addresses'
 import { Route as ApiRobotsRouteImport } from './routes/api/robots'
@@ -43,7 +44,9 @@ import { Route as MarketingProductsRouteImport } from './routes/_marketing/produ
 import { Route as MarketingPricingRouteImport } from './routes/_marketing/pricing'
 import { Route as MarketingHelpRouteImport } from './routes/_marketing/help'
 import { Route as MarketingGalleryRouteImport } from './routes/_marketing/gallery'
+import { Route as MarketingCoursesRouteImport } from './routes/_marketing/courses'
 import { Route as MarketingCheckoutRouteImport } from './routes/_marketing/checkout'
+import { Route as MarketingCertificatesRouteImport } from './routes/_marketing/certificates'
 import { Route as MarketingCategoriesRouteImport } from './routes/_marketing/categories'
 import { Route as MarketingCartRouteImport } from './routes/_marketing/cart'
 import { Route as MarketingBundlesRouteImport } from './routes/_marketing/bundles'
@@ -55,6 +58,7 @@ import { Route as MarketingRecipesIndexRouteImport } from './routes/_marketing/r
 import { Route as MarketingProductsIndexRouteImport } from './routes/_marketing/products/index'
 import { Route as MarketingHelpIndexRouteImport } from './routes/_marketing/help/index'
 import { Route as MarketingGalleryIndexRouteImport } from './routes/_marketing/gallery/index'
+import { Route as MarketingCoursesIndexRouteImport } from './routes/_marketing/courses/index'
 import { Route as MarketingCheckoutIndexRouteImport } from './routes/_marketing/checkout/index'
 import { Route as MarketingCategoriesIndexRouteImport } from './routes/_marketing/categories/index'
 import { Route as MarketingCartIndexRouteImport } from './routes/_marketing/cart/index'
@@ -79,9 +83,11 @@ import { Route as MarketingPageSplatRouteImport } from './routes/_marketing/page
 import { Route as MarketingHelpSearchRouteImport } from './routes/_marketing/help/search'
 import { Route as MarketingHelpCategorySlugRouteImport } from './routes/_marketing/help/$categorySlug'
 import { Route as MarketingGallerySlugRouteImport } from './routes/_marketing/gallery/$slug'
+import { Route as MarketingCoursesSlugRouteImport } from './routes/_marketing/courses/$slug'
 import { Route as MarketingCheckoutShippingRouteImport } from './routes/_marketing/checkout/shipping'
 import { Route as MarketingCheckoutReviewRouteImport } from './routes/_marketing/checkout/review'
 import { Route as MarketingCheckoutPaymentRouteImport } from './routes/_marketing/checkout/payment'
+import { Route as MarketingCertificatesVerifyRouteImport } from './routes/_marketing/certificates/verify'
 import { Route as MarketingCategorySlugRouteImport } from './routes/_marketing/category/$slug'
 import { Route as MarketingCategoriesSlugRouteImport } from './routes/_marketing/categories/$slug'
 import { Route as MarketingBundlesSlugRouteImport } from './routes/_marketing/bundles/$slug'
@@ -92,6 +98,7 @@ import { Route as ApiCommentsFeedIndexRouteImport } from './routes/api/comments/
 import { Route as MarketingSupportTicketsIndexRouteImport } from './routes/_marketing/support/tickets/index'
 import { Route as MarketingHelpCategorySlugIndexRouteImport } from './routes/_marketing/help/$categorySlug/index'
 import { Route as DashboardOrdersOrderIdReturnRouteImport } from './routes/dashboard/orders.$orderId.return'
+import { Route as DashboardCoursesSlugNodeIdRouteImport } from './routes/dashboard/courses.$slug.$nodeId'
 import { Route as ApiCommentsFeedAtomRouteImport } from './routes/api/comments/feed/atom'
 import { Route as MarketingSupportTicketsTicketIdRouteImport } from './routes/_marketing/support/tickets/$ticketId'
 import { Route as MarketingRecipesCategorySlugRouteImport } from './routes/_marketing/recipes/category/$slug'
@@ -225,6 +232,11 @@ const DashboardDownloadsRoute = DashboardDownloadsRouteImport.update({
   path: '/downloads',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardCoursesRoute = DashboardCoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardCommentsRoute = DashboardCommentsRouteImport.update({
   id: '/comments',
   path: '/comments',
@@ -280,9 +292,19 @@ const MarketingGalleryRoute = MarketingGalleryRouteImport.update({
   path: '/gallery',
   getParentRoute: () => MarketingRoute,
 } as any)
+const MarketingCoursesRoute = MarketingCoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
+  getParentRoute: () => MarketingRoute,
+} as any)
 const MarketingCheckoutRoute = MarketingCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingCertificatesRoute = MarketingCertificatesRouteImport.update({
+  id: '/certificates',
+  path: '/certificates',
   getParentRoute: () => MarketingRoute,
 } as any)
 const MarketingCategoriesRoute = MarketingCategoriesRouteImport.update({
@@ -339,6 +361,11 @@ const MarketingGalleryIndexRoute = MarketingGalleryIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => MarketingGalleryRoute,
+} as any)
+const MarketingCoursesIndexRoute = MarketingCoursesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MarketingCoursesRoute,
 } as any)
 const MarketingCheckoutIndexRoute = MarketingCheckoutIndexRouteImport.update({
   id: '/',
@@ -464,6 +491,11 @@ const MarketingGallerySlugRoute = MarketingGallerySlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => MarketingGalleryRoute,
 } as any)
+const MarketingCoursesSlugRoute = MarketingCoursesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => MarketingCoursesRoute,
+} as any)
 const MarketingCheckoutShippingRoute =
   MarketingCheckoutShippingRouteImport.update({
     id: '/shipping',
@@ -480,6 +512,12 @@ const MarketingCheckoutPaymentRoute =
     id: '/payment',
     path: '/payment',
     getParentRoute: () => MarketingCheckoutRoute,
+  } as any)
+const MarketingCertificatesVerifyRoute =
+  MarketingCertificatesVerifyRouteImport.update({
+    id: '/verify',
+    path: '/verify',
+    getParentRoute: () => MarketingCertificatesRoute,
   } as any)
 const MarketingCategorySlugRoute = MarketingCategorySlugRouteImport.update({
   id: '/category/$slug',
@@ -533,6 +571,12 @@ const DashboardOrdersOrderIdReturnRoute =
     id: '/return',
     path: '/return',
     getParentRoute: () => DashboardOrdersOrderIdRoute,
+  } as any)
+const DashboardCoursesSlugNodeIdRoute =
+  DashboardCoursesSlugNodeIdRouteImport.update({
+    id: '/$slug/$nodeId',
+    path: '/$slug/$nodeId',
+    getParentRoute: () => DashboardCoursesRoute,
   } as any)
 const ApiCommentsFeedAtomRoute = ApiCommentsFeedAtomRouteImport.update({
   id: '/api/comments/feed/atom',
@@ -649,7 +693,9 @@ export interface FileRoutesByFullPath {
   '/bundles': typeof MarketingBundlesRouteWithChildren
   '/cart': typeof MarketingCartRouteWithChildren
   '/categories': typeof MarketingCategoriesRouteWithChildren
+  '/certificates': typeof MarketingCertificatesRouteWithChildren
   '/checkout': typeof MarketingCheckoutRouteWithChildren
+  '/courses': typeof MarketingCoursesRouteWithChildren
   '/gallery': typeof MarketingGalleryRouteWithChildren
   '/help': typeof MarketingHelpRouteWithChildren
   '/pricing': typeof MarketingPricingRoute
@@ -661,6 +707,7 @@ export interface FileRoutesByFullPath {
   '/api/robots': typeof ApiRobotsRoute
   '/dashboard/addresses': typeof DashboardAddressesRoute
   '/dashboard/comments': typeof DashboardCommentsRoute
+  '/dashboard/courses': typeof DashboardCoursesRouteWithChildren
   '/dashboard/downloads': typeof DashboardDownloadsRoute
   '/dashboard/membership': typeof DashboardMembershipRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
@@ -681,9 +728,11 @@ export interface FileRoutesByFullPath {
   '/bundles/$slug': typeof MarketingBundlesSlugRoute
   '/categories/$slug': typeof MarketingCategoriesSlugRoute
   '/category/$slug': typeof MarketingCategorySlugRoute
+  '/certificates/verify': typeof MarketingCertificatesVerifyRoute
   '/checkout/payment': typeof MarketingCheckoutPaymentRoute
   '/checkout/review': typeof MarketingCheckoutReviewRoute
   '/checkout/shipping': typeof MarketingCheckoutShippingRoute
+  '/courses/$slug': typeof MarketingCoursesSlugRoute
   '/gallery/$slug': typeof MarketingGallerySlugRoute
   '/help/$categorySlug': typeof MarketingHelpCategorySlugRouteWithChildren
   '/help/search': typeof MarketingHelpSearchRoute
@@ -708,6 +757,7 @@ export interface FileRoutesByFullPath {
   '/cart/': typeof MarketingCartIndexRoute
   '/categories/': typeof MarketingCategoriesIndexRoute
   '/checkout/': typeof MarketingCheckoutIndexRoute
+  '/courses/': typeof MarketingCoursesIndexRoute
   '/gallery/': typeof MarketingGalleryIndexRoute
   '/help/': typeof MarketingHelpIndexRoute
   '/products/': typeof MarketingProductsIndexRoute
@@ -722,6 +772,7 @@ export interface FileRoutesByFullPath {
   '/recipes/category/$slug': typeof MarketingRecipesCategorySlugRoute
   '/support/tickets/$ticketId': typeof MarketingSupportTicketsTicketIdRoute
   '/api/comments/feed/atom': typeof ApiCommentsFeedAtomRoute
+  '/dashboard/courses/$slug/$nodeId': typeof DashboardCoursesSlugNodeIdRoute
   '/dashboard/orders/$orderId/return': typeof DashboardOrdersOrderIdReturnRoute
   '/help/$categorySlug/': typeof MarketingHelpCategorySlugIndexRoute
   '/support/tickets/': typeof MarketingSupportTicketsIndexRoute
@@ -746,12 +797,14 @@ export interface FileRoutesByTo {
   '/verify-email': typeof VerifyEmailRoute
   '/$slug': typeof MarketingSlugRoute
   '/archive': typeof MarketingArchiveRoute
+  '/certificates': typeof MarketingCertificatesRouteWithChildren
   '/pricing': typeof MarketingPricingRoute
   '/search': typeof MarketingSearchRoute
   '/shop': typeof MarketingShopRoute
   '/api/robots': typeof ApiRobotsRoute
   '/dashboard/addresses': typeof DashboardAddressesRoute
   '/dashboard/comments': typeof DashboardCommentsRoute
+  '/dashboard/courses': typeof DashboardCoursesRouteWithChildren
   '/dashboard/downloads': typeof DashboardDownloadsRoute
   '/dashboard/membership': typeof DashboardMembershipRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
@@ -773,9 +826,11 @@ export interface FileRoutesByTo {
   '/bundles/$slug': typeof MarketingBundlesSlugRoute
   '/categories/$slug': typeof MarketingCategoriesSlugRoute
   '/category/$slug': typeof MarketingCategorySlugRoute
+  '/certificates/verify': typeof MarketingCertificatesVerifyRoute
   '/checkout/payment': typeof MarketingCheckoutPaymentRoute
   '/checkout/review': typeof MarketingCheckoutReviewRoute
   '/checkout/shipping': typeof MarketingCheckoutShippingRoute
+  '/courses/$slug': typeof MarketingCoursesSlugRoute
   '/gallery/$slug': typeof MarketingGallerySlugRoute
   '/help/search': typeof MarketingHelpSearchRoute
   '/page/$': typeof MarketingPageSplatRoute
@@ -799,6 +854,7 @@ export interface FileRoutesByTo {
   '/cart': typeof MarketingCartIndexRoute
   '/categories': typeof MarketingCategoriesIndexRoute
   '/checkout': typeof MarketingCheckoutIndexRoute
+  '/courses': typeof MarketingCoursesIndexRoute
   '/gallery': typeof MarketingGalleryIndexRoute
   '/help': typeof MarketingHelpIndexRoute
   '/products': typeof MarketingProductsIndexRoute
@@ -813,6 +869,7 @@ export interface FileRoutesByTo {
   '/recipes/category/$slug': typeof MarketingRecipesCategorySlugRoute
   '/support/tickets/$ticketId': typeof MarketingSupportTicketsTicketIdRoute
   '/api/comments/feed/atom': typeof ApiCommentsFeedAtomRoute
+  '/dashboard/courses/$slug/$nodeId': typeof DashboardCoursesSlugNodeIdRoute
   '/dashboard/orders/$orderId/return': typeof DashboardOrdersOrderIdReturnRoute
   '/help/$categorySlug': typeof MarketingHelpCategorySlugIndexRoute
   '/support/tickets': typeof MarketingSupportTicketsIndexRoute
@@ -843,7 +900,9 @@ export interface FileRoutesById {
   '/_marketing/bundles': typeof MarketingBundlesRouteWithChildren
   '/_marketing/cart': typeof MarketingCartRouteWithChildren
   '/_marketing/categories': typeof MarketingCategoriesRouteWithChildren
+  '/_marketing/certificates': typeof MarketingCertificatesRouteWithChildren
   '/_marketing/checkout': typeof MarketingCheckoutRouteWithChildren
+  '/_marketing/courses': typeof MarketingCoursesRouteWithChildren
   '/_marketing/gallery': typeof MarketingGalleryRouteWithChildren
   '/_marketing/help': typeof MarketingHelpRouteWithChildren
   '/_marketing/pricing': typeof MarketingPricingRoute
@@ -855,6 +914,7 @@ export interface FileRoutesById {
   '/api/robots': typeof ApiRobotsRoute
   '/dashboard/addresses': typeof DashboardAddressesRoute
   '/dashboard/comments': typeof DashboardCommentsRoute
+  '/dashboard/courses': typeof DashboardCoursesRouteWithChildren
   '/dashboard/downloads': typeof DashboardDownloadsRoute
   '/dashboard/membership': typeof DashboardMembershipRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
@@ -876,9 +936,11 @@ export interface FileRoutesById {
   '/_marketing/bundles/$slug': typeof MarketingBundlesSlugRoute
   '/_marketing/categories/$slug': typeof MarketingCategoriesSlugRoute
   '/_marketing/category/$slug': typeof MarketingCategorySlugRoute
+  '/_marketing/certificates/verify': typeof MarketingCertificatesVerifyRoute
   '/_marketing/checkout/payment': typeof MarketingCheckoutPaymentRoute
   '/_marketing/checkout/review': typeof MarketingCheckoutReviewRoute
   '/_marketing/checkout/shipping': typeof MarketingCheckoutShippingRoute
+  '/_marketing/courses/$slug': typeof MarketingCoursesSlugRoute
   '/_marketing/gallery/$slug': typeof MarketingGallerySlugRoute
   '/_marketing/help/$categorySlug': typeof MarketingHelpCategorySlugRouteWithChildren
   '/_marketing/help/search': typeof MarketingHelpSearchRoute
@@ -903,6 +965,7 @@ export interface FileRoutesById {
   '/_marketing/cart/': typeof MarketingCartIndexRoute
   '/_marketing/categories/': typeof MarketingCategoriesIndexRoute
   '/_marketing/checkout/': typeof MarketingCheckoutIndexRoute
+  '/_marketing/courses/': typeof MarketingCoursesIndexRoute
   '/_marketing/gallery/': typeof MarketingGalleryIndexRoute
   '/_marketing/help/': typeof MarketingHelpIndexRoute
   '/_marketing/products/': typeof MarketingProductsIndexRoute
@@ -917,6 +980,7 @@ export interface FileRoutesById {
   '/_marketing/recipes/category/$slug': typeof MarketingRecipesCategorySlugRoute
   '/_marketing/support/tickets/$ticketId': typeof MarketingSupportTicketsTicketIdRoute
   '/api/comments/feed/atom': typeof ApiCommentsFeedAtomRoute
+  '/dashboard/courses/$slug/$nodeId': typeof DashboardCoursesSlugNodeIdRoute
   '/dashboard/orders/$orderId/return': typeof DashboardOrdersOrderIdReturnRoute
   '/_marketing/help/$categorySlug/': typeof MarketingHelpCategorySlugIndexRoute
   '/_marketing/support/tickets/': typeof MarketingSupportTicketsIndexRoute
@@ -948,7 +1012,9 @@ export interface FileRouteTypes {
     | '/bundles'
     | '/cart'
     | '/categories'
+    | '/certificates'
     | '/checkout'
+    | '/courses'
     | '/gallery'
     | '/help'
     | '/pricing'
@@ -960,6 +1026,7 @@ export interface FileRouteTypes {
     | '/api/robots'
     | '/dashboard/addresses'
     | '/dashboard/comments'
+    | '/dashboard/courses'
     | '/dashboard/downloads'
     | '/dashboard/membership'
     | '/dashboard/notifications'
@@ -980,9 +1047,11 @@ export interface FileRouteTypes {
     | '/bundles/$slug'
     | '/categories/$slug'
     | '/category/$slug'
+    | '/certificates/verify'
     | '/checkout/payment'
     | '/checkout/review'
     | '/checkout/shipping'
+    | '/courses/$slug'
     | '/gallery/$slug'
     | '/help/$categorySlug'
     | '/help/search'
@@ -1007,6 +1076,7 @@ export interface FileRouteTypes {
     | '/cart/'
     | '/categories/'
     | '/checkout/'
+    | '/courses/'
     | '/gallery/'
     | '/help/'
     | '/products/'
@@ -1021,6 +1091,7 @@ export interface FileRouteTypes {
     | '/recipes/category/$slug'
     | '/support/tickets/$ticketId'
     | '/api/comments/feed/atom'
+    | '/dashboard/courses/$slug/$nodeId'
     | '/dashboard/orders/$orderId/return'
     | '/help/$categorySlug/'
     | '/support/tickets/'
@@ -1045,12 +1116,14 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/$slug'
     | '/archive'
+    | '/certificates'
     | '/pricing'
     | '/search'
     | '/shop'
     | '/api/robots'
     | '/dashboard/addresses'
     | '/dashboard/comments'
+    | '/dashboard/courses'
     | '/dashboard/downloads'
     | '/dashboard/membership'
     | '/dashboard/notifications'
@@ -1072,9 +1145,11 @@ export interface FileRouteTypes {
     | '/bundles/$slug'
     | '/categories/$slug'
     | '/category/$slug'
+    | '/certificates/verify'
     | '/checkout/payment'
     | '/checkout/review'
     | '/checkout/shipping'
+    | '/courses/$slug'
     | '/gallery/$slug'
     | '/help/search'
     | '/page/$'
@@ -1098,6 +1173,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/categories'
     | '/checkout'
+    | '/courses'
     | '/gallery'
     | '/help'
     | '/products'
@@ -1112,6 +1188,7 @@ export interface FileRouteTypes {
     | '/recipes/category/$slug'
     | '/support/tickets/$ticketId'
     | '/api/comments/feed/atom'
+    | '/dashboard/courses/$slug/$nodeId'
     | '/dashboard/orders/$orderId/return'
     | '/help/$categorySlug'
     | '/support/tickets'
@@ -1141,7 +1218,9 @@ export interface FileRouteTypes {
     | '/_marketing/bundles'
     | '/_marketing/cart'
     | '/_marketing/categories'
+    | '/_marketing/certificates'
     | '/_marketing/checkout'
+    | '/_marketing/courses'
     | '/_marketing/gallery'
     | '/_marketing/help'
     | '/_marketing/pricing'
@@ -1153,6 +1232,7 @@ export interface FileRouteTypes {
     | '/api/robots'
     | '/dashboard/addresses'
     | '/dashboard/comments'
+    | '/dashboard/courses'
     | '/dashboard/downloads'
     | '/dashboard/membership'
     | '/dashboard/notifications'
@@ -1174,9 +1254,11 @@ export interface FileRouteTypes {
     | '/_marketing/bundles/$slug'
     | '/_marketing/categories/$slug'
     | '/_marketing/category/$slug'
+    | '/_marketing/certificates/verify'
     | '/_marketing/checkout/payment'
     | '/_marketing/checkout/review'
     | '/_marketing/checkout/shipping'
+    | '/_marketing/courses/$slug'
     | '/_marketing/gallery/$slug'
     | '/_marketing/help/$categorySlug'
     | '/_marketing/help/search'
@@ -1201,6 +1283,7 @@ export interface FileRouteTypes {
     | '/_marketing/cart/'
     | '/_marketing/categories/'
     | '/_marketing/checkout/'
+    | '/_marketing/courses/'
     | '/_marketing/gallery/'
     | '/_marketing/help/'
     | '/_marketing/products/'
@@ -1215,6 +1298,7 @@ export interface FileRouteTypes {
     | '/_marketing/recipes/category/$slug'
     | '/_marketing/support/tickets/$ticketId'
     | '/api/comments/feed/atom'
+    | '/dashboard/courses/$slug/$nodeId'
     | '/dashboard/orders/$orderId/return'
     | '/_marketing/help/$categorySlug/'
     | '/_marketing/support/tickets/'
@@ -1424,6 +1508,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardDownloadsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/courses': {
+      id: '/dashboard/courses'
+      path: '/courses'
+      fullPath: '/dashboard/courses'
+      preLoaderRoute: typeof DashboardCoursesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/comments': {
       id: '/dashboard/comments'
       path: '/comments'
@@ -1501,11 +1592,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingGalleryRouteImport
       parentRoute: typeof MarketingRoute
     }
+    '/_marketing/courses': {
+      id: '/_marketing/courses'
+      path: '/courses'
+      fullPath: '/courses'
+      preLoaderRoute: typeof MarketingCoursesRouteImport
+      parentRoute: typeof MarketingRoute
+    }
     '/_marketing/checkout': {
       id: '/_marketing/checkout'
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof MarketingCheckoutRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/certificates': {
+      id: '/_marketing/certificates'
+      path: '/certificates'
+      fullPath: '/certificates'
+      preLoaderRoute: typeof MarketingCertificatesRouteImport
       parentRoute: typeof MarketingRoute
     }
     '/_marketing/categories': {
@@ -1584,6 +1689,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/gallery/'
       preLoaderRoute: typeof MarketingGalleryIndexRouteImport
       parentRoute: typeof MarketingGalleryRoute
+    }
+    '/_marketing/courses/': {
+      id: '/_marketing/courses/'
+      path: '/'
+      fullPath: '/courses/'
+      preLoaderRoute: typeof MarketingCoursesIndexRouteImport
+      parentRoute: typeof MarketingCoursesRoute
     }
     '/_marketing/checkout/': {
       id: '/_marketing/checkout/'
@@ -1753,6 +1865,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingGallerySlugRouteImport
       parentRoute: typeof MarketingGalleryRoute
     }
+    '/_marketing/courses/$slug': {
+      id: '/_marketing/courses/$slug'
+      path: '/$slug'
+      fullPath: '/courses/$slug'
+      preLoaderRoute: typeof MarketingCoursesSlugRouteImport
+      parentRoute: typeof MarketingCoursesRoute
+    }
     '/_marketing/checkout/shipping': {
       id: '/_marketing/checkout/shipping'
       path: '/shipping'
@@ -1773,6 +1892,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/checkout/payment'
       preLoaderRoute: typeof MarketingCheckoutPaymentRouteImport
       parentRoute: typeof MarketingCheckoutRoute
+    }
+    '/_marketing/certificates/verify': {
+      id: '/_marketing/certificates/verify'
+      path: '/verify'
+      fullPath: '/certificates/verify'
+      preLoaderRoute: typeof MarketingCertificatesVerifyRouteImport
+      parentRoute: typeof MarketingCertificatesRoute
     }
     '/_marketing/category/$slug': {
       id: '/_marketing/category/$slug'
@@ -1843,6 +1969,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/orders/$orderId/return'
       preLoaderRoute: typeof DashboardOrdersOrderIdReturnRouteImport
       parentRoute: typeof DashboardOrdersOrderIdRoute
+    }
+    '/dashboard/courses/$slug/$nodeId': {
+      id: '/dashboard/courses/$slug/$nodeId'
+      path: '/$slug/$nodeId'
+      fullPath: '/dashboard/courses/$slug/$nodeId'
+      preLoaderRoute: typeof DashboardCoursesSlugNodeIdRouteImport
+      parentRoute: typeof DashboardCoursesRoute
     }
     '/api/comments/feed/atom': {
       id: '/api/comments/feed/atom'
@@ -2013,6 +2146,19 @@ const MarketingCategoriesRouteChildren: MarketingCategoriesRouteChildren = {
 const MarketingCategoriesRouteWithChildren =
   MarketingCategoriesRoute._addFileChildren(MarketingCategoriesRouteChildren)
 
+interface MarketingCertificatesRouteChildren {
+  MarketingCertificatesVerifyRoute: typeof MarketingCertificatesVerifyRoute
+}
+
+const MarketingCertificatesRouteChildren: MarketingCertificatesRouteChildren = {
+  MarketingCertificatesVerifyRoute: MarketingCertificatesVerifyRoute,
+}
+
+const MarketingCertificatesRouteWithChildren =
+  MarketingCertificatesRoute._addFileChildren(
+    MarketingCertificatesRouteChildren,
+  )
+
 interface MarketingCheckoutRouteChildren {
   MarketingCheckoutPaymentRoute: typeof MarketingCheckoutPaymentRoute
   MarketingCheckoutReviewRoute: typeof MarketingCheckoutReviewRoute
@@ -2032,6 +2178,19 @@ const MarketingCheckoutRouteChildren: MarketingCheckoutRouteChildren = {
 
 const MarketingCheckoutRouteWithChildren =
   MarketingCheckoutRoute._addFileChildren(MarketingCheckoutRouteChildren)
+
+interface MarketingCoursesRouteChildren {
+  MarketingCoursesSlugRoute: typeof MarketingCoursesSlugRoute
+  MarketingCoursesIndexRoute: typeof MarketingCoursesIndexRoute
+}
+
+const MarketingCoursesRouteChildren: MarketingCoursesRouteChildren = {
+  MarketingCoursesSlugRoute: MarketingCoursesSlugRoute,
+  MarketingCoursesIndexRoute: MarketingCoursesIndexRoute,
+}
+
+const MarketingCoursesRouteWithChildren =
+  MarketingCoursesRoute._addFileChildren(MarketingCoursesRouteChildren)
 
 interface MarketingGalleryRouteChildren {
   MarketingGallerySlugRoute: typeof MarketingGallerySlugRoute
@@ -2134,7 +2293,9 @@ interface MarketingRouteChildren {
   MarketingBundlesRoute: typeof MarketingBundlesRouteWithChildren
   MarketingCartRoute: typeof MarketingCartRouteWithChildren
   MarketingCategoriesRoute: typeof MarketingCategoriesRouteWithChildren
+  MarketingCertificatesRoute: typeof MarketingCertificatesRouteWithChildren
   MarketingCheckoutRoute: typeof MarketingCheckoutRouteWithChildren
+  MarketingCoursesRoute: typeof MarketingCoursesRouteWithChildren
   MarketingGalleryRoute: typeof MarketingGalleryRouteWithChildren
   MarketingHelpRoute: typeof MarketingHelpRouteWithChildren
   MarketingPricingRoute: typeof MarketingPricingRoute
@@ -2163,7 +2324,9 @@ const MarketingRouteChildren: MarketingRouteChildren = {
   MarketingBundlesRoute: MarketingBundlesRouteWithChildren,
   MarketingCartRoute: MarketingCartRouteWithChildren,
   MarketingCategoriesRoute: MarketingCategoriesRouteWithChildren,
+  MarketingCertificatesRoute: MarketingCertificatesRouteWithChildren,
   MarketingCheckoutRoute: MarketingCheckoutRouteWithChildren,
+  MarketingCoursesRoute: MarketingCoursesRouteWithChildren,
   MarketingGalleryRoute: MarketingGalleryRouteWithChildren,
   MarketingHelpRoute: MarketingHelpRouteWithChildren,
   MarketingPricingRoute: MarketingPricingRoute,
@@ -2189,6 +2352,17 @@ const MarketingRouteChildren: MarketingRouteChildren = {
 const MarketingRouteWithChildren = MarketingRoute._addFileChildren(
   MarketingRouteChildren,
 )
+
+interface DashboardCoursesRouteChildren {
+  DashboardCoursesSlugNodeIdRoute: typeof DashboardCoursesSlugNodeIdRoute
+}
+
+const DashboardCoursesRouteChildren: DashboardCoursesRouteChildren = {
+  DashboardCoursesSlugNodeIdRoute: DashboardCoursesSlugNodeIdRoute,
+}
+
+const DashboardCoursesRouteWithChildren =
+  DashboardCoursesRoute._addFileChildren(DashboardCoursesRouteChildren)
 
 interface DashboardOrdersOrderIdRouteChildren {
   DashboardOrdersOrderIdReturnRoute: typeof DashboardOrdersOrderIdReturnRoute
@@ -2245,6 +2419,7 @@ const DashboardSubscriptionsRouteWithChildren =
 interface DashboardRouteChildren {
   DashboardAddressesRoute: typeof DashboardAddressesRoute
   DashboardCommentsRoute: typeof DashboardCommentsRoute
+  DashboardCoursesRoute: typeof DashboardCoursesRouteWithChildren
   DashboardDownloadsRoute: typeof DashboardDownloadsRoute
   DashboardMembershipRoute: typeof DashboardMembershipRoute
   DashboardNotificationsRoute: typeof DashboardNotificationsRoute
@@ -2263,6 +2438,7 @@ interface DashboardRouteChildren {
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAddressesRoute: DashboardAddressesRoute,
   DashboardCommentsRoute: DashboardCommentsRoute,
+  DashboardCoursesRoute: DashboardCoursesRouteWithChildren,
   DashboardDownloadsRoute: DashboardDownloadsRoute,
   DashboardMembershipRoute: DashboardMembershipRoute,
   DashboardNotificationsRoute: DashboardNotificationsRoute,

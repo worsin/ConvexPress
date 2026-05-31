@@ -1,6 +1,7 @@
 import {
   Bell,
   FileText,
+  GraduationCap,
   LayoutDashboard,
   MessageSquare,
   Settings,
@@ -87,6 +88,12 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     icon: FileText,
   },
   {
+    id: "courses",
+    label: "Courses",
+    to: "/dashboard/courses",
+    icon: GraduationCap,
+  },
+  {
     id: "profile",
     label: "Profile",
     to: "/dashboard/profile",
@@ -143,6 +150,7 @@ export const ROUTE_LABEL_MAP: Record<string, string> = {
   profile: "Profile",
   settings: "Settings",
   posts: "My Posts",
+  courses: "Courses",
   comments: "My Comments",
   notifications: "Notifications",
   security: "Security",

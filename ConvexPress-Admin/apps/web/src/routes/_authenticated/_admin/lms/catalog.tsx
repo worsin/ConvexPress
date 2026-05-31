@@ -6,7 +6,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
-import { BookOpen, GraduationCap, Search } from "lucide-react";
+import { BookOpen, GraduationCap, Lock, Search, Unlock } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/_admin/lms/catalog")({
   component: CatalogPage,
@@ -15,12 +15,21 @@ export const Route = createFileRoute("/_authenticated/_admin/lms/catalog")({
 function CatalogPage() {
   const [q, setQ] = useState("");
   const courses = useQuery(api.lms.courses.queries.listPublished, {}) as
-    | Array<{ _id: string; title: string; slug: string; excerpt?: string; lessonCount?: number }>
+    | Array<{
+        _id: string;
+        title: string;
+        slug: string;
+        excerpt?: string;
+        lessonCount?: number;
+        allowed?: boolean;
+        accessMode?: string;
+        accessReason?: string;
+        requiresLogin?: boolean;
+      }>
     | undefined;
-
   const needle = q.trim().toLowerCase();
   const filtered = (courses ?? []).filter(
-    (c) => !needle || c.title.toLowerCase().includes(needle),
+    (course) => !needle || course.title.toLowerCase().includes(needle),
   );
 
   return (
@@ -70,10 +79,30 @@ function CatalogPage() {
               <div className="mt-3 text-xs text-muted-foreground">
                 {c.lessonCount ?? 0} lessons
               </div>
+              <div className="mt-3 inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground">
+                {c.allowed ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+                {accessLabel(c)}
+              </div>
             </Link>
           ))}
         </div>
       )}
     </div>
   );
+}
+
+function accessLabel(course: {
+  allowed?: boolean;
+  accessMode?: string;
+  accessReason?: string;
+  requiresLogin?: boolean;
+}) {
+  if (course.allowed) return "Available";
+  if (course.requiresLogin) return "Login required";
+  if (course.accessReason === "membership_rule_missing") return "Membership setup needed";
+  if (course.accessMode === "members") return "Members only";
+  if (course.accessMode === "closed") return "Closed";
+  if (course.accessMode === "buy") return "Purchase required";
+  if (course.accessMode === "recurring") return "Subscription required";
+  return "Restricted";
 }

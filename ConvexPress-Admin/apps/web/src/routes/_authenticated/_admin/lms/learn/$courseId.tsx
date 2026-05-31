@@ -6,7 +6,7 @@
  * and certificate issuance on completion.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
@@ -77,21 +77,48 @@ function PlayerPage() {
   const enroll = useMutation(api.lms.enrollment.mutations.enroll);
   const markComplete = useMutation(api.lms.progress.mutations.markComplete);
   const markIncomplete = useMutation(api.lms.progress.mutations.markIncomplete);
+  const recordHeartbeat = useMutation((api as any).lms.progress.mutations.recordHeartbeat);
   const issueCert = useMutation(api.lms.certificates.mutations.issueCertificate);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const timeSpentRef = useRef(0);
   const lesson = useQuery(
     api.lms.lessons.queries.getLesson,
     selectedId ? { nodeId: selectedId as Id<"lms_nodes"> } : "skip",
   ) as
-    | { node: { title: string; videoUrl?: string }; bodyText: string; materialsText: string }
+    | {
+        node: {
+          title: string;
+          videoUrl?: string;
+          videoMediaId?: Id<"media">;
+          requireVideoWatch?: boolean;
+          minTimeSeconds?: number;
+          showMarkComplete?: boolean;
+        };
+        bodyText: string;
+        materialsText: string;
+      }
     | null
     | undefined;
+  const selectedAccess = useQuery(
+    (api as any).lms.enrollment.queries.canAccessNode,
+    selectedId ? { nodeId: selectedId as Id<"lms_nodes"> } : "skip",
+  ) as { allowed: boolean; reason: string } | undefined;
+  const nodeProgress = useQuery(
+    api.lms.progress.queries.getNodeProgress,
+    selectedId ? { nodeId: selectedId as Id<"lms_nodes"> } : "skip",
+  ) as { videoWatchedFraction?: number; timeSpentSec?: number; completed?: boolean } | null | undefined;
+  const videoMedia = useQuery(
+    api.media.queries.get,
+    lesson?.node.videoMediaId ? { mediaId: lesson.node.videoMediaId } : "skip",
+  ) as { url?: string | null } | null | undefined;
 
   const topics = tree?.topics ?? [];
   const completed = new Set(progress?.completedNodeIds ?? []);
   const orderedLessons = topics.flatMap((t) => t.children.filter((c) => c.kind === "lesson"));
   const isLinear = course?.progressionMode === "linear";
+  const allowed = access?.allowed ?? false;
+  const lessonAllowed = selectedAccess?.allowed ?? allowed;
   const isLocked = (lessonId: string) => {
     if (!isLinear) return false;
     const idx = orderedLessons.findIndex((l) => l._id === lessonId);
@@ -109,7 +136,21 @@ function PlayerPage() {
     }
   }, [progress, topics, selectedId]);
 
-  const allowed = access?.allowed ?? false;
+  useEffect(() => {
+    timeSpentRef.current = nodeProgress?.timeSpentSec ?? 0;
+  }, [selectedId, nodeProgress?.timeSpentSec]);
+
+  useEffect(() => {
+    if (!selectedId || !allowed || selectedAccess?.allowed === false || !lesson?.node) return;
+    const timer = window.setInterval(() => {
+      timeSpentRef.current += 15;
+      void recordHeartbeat({
+        nodeId: selectedId as Id<"lms_nodes">,
+        timeSpentSec: timeSpentRef.current,
+      }).catch(() => undefined);
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, [allowed, lesson?.node, recordHeartbeat, selectedAccess?.allowed, selectedId]);
 
   async function run(label: string, fn: () => Promise<unknown>) {
     try {
@@ -229,7 +270,9 @@ function PlayerPage() {
             <div className="rounded-lg border border-dashed border-border p-10 text-center">
               <Lock className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                Enroll to access this course's lessons.
+                {access?.reason === "membership_rule_missing"
+                  ? "This course needs a membership access rule before learners can enroll."
+                  : "Enroll to access this course's lessons."}
               </p>
             </div>
           ) : !selectedId || lesson === undefined ? (
@@ -240,13 +283,51 @@ function PlayerPage() {
             <div className="py-10 text-center text-sm text-muted-foreground">
               Lesson not found.
             </div>
+          ) : !lessonAllowed ? (
+            <div className="rounded-lg border border-dashed border-border p-10 text-center">
+              <Lock className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                This lesson is locked: {selectedAccess?.reason ?? "not available yet"}.
+              </p>
+            </div>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <PlayCircle className="h-5 w-5" />
                 <h2 className="text-xl font-semibold">{lesson.node.title}</h2>
               </div>
-              <VideoEmbed url={lesson.node.videoUrl} />
+              <VideoEmbed url={videoMedia?.url ?? lesson.node.videoUrl} />
+              {(lesson.node.requireVideoWatch || lesson.node.minTimeSeconds) && (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+                  {lesson.node.requireVideoWatch && (
+                    <span>
+                      Video watched: {Math.round((nodeProgress?.videoWatchedFraction ?? 0) * 100)}%
+                    </span>
+                  )}
+                  {lesson.node.minTimeSeconds ? (
+                    <span>
+                      Time: {nodeProgress?.timeSpentSec ?? 0}s / {lesson.node.minTimeSeconds}s
+                    </span>
+                  ) : null}
+                  {lesson.node.requireVideoWatch && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        run("Video watch recorded", () =>
+                          recordHeartbeat({
+                            nodeId: selectedId as Id<"lms_nodes">,
+                            watchedFraction: 1,
+                            timeSpentSec: nodeProgress?.timeSpentSec ?? timeSpentRef.current,
+                          }),
+                        )
+                      }
+                      className="rounded-md border border-border px-2 py-1 text-xs text-foreground hover:bg-muted"
+                    >
+                      Mark video watched
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="prose prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed">
                 {lesson.bodyText || (
                   <span className="text-muted-foreground">No content yet.</span>
@@ -273,6 +354,10 @@ function PlayerPage() {
                   >
                     <CheckCircle2 className="h-4 w-4 text-green-500" /> Completed — undo
                   </button>
+                ) : lesson.node.showMarkComplete === false ? (
+                  <div className="text-sm text-muted-foreground">
+                    This lesson completes automatically after its requirements are met.
+                  </div>
                 ) : (
                   <button
                     type="button"

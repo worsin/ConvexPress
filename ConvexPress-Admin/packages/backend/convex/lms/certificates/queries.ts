@@ -5,7 +5,7 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
-import { getCurrentUser } from "../../helpers/permissions";
+import { getCurrentUser, requireMinimumRoleLevel } from "../../helpers/permissions";
 
 export const listTemplates = query({
   args: {},
@@ -30,10 +30,36 @@ export const getMyIssue = query({
     const me = await getCurrentUser(ctx);
     const userId = args.userId ?? me?._id;
     if (!userId) return null;
-    return await ctx.db
+    const issue = await ctx.db
       .query("lms_certificate_issues")
       .withIndex("by_user_course", (q) => q.eq("userId", userId).eq("courseId", args.courseId))
       .first();
+    return issue?.status === "issued" ? issue : null;
+  },
+});
+
+export const listIssues = query({
+  args: { courseId: v.optional(v.id("lms_courses")) },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "lms"))) return [];
+    await requireMinimumRoleLevel(ctx, 80);
+    const issues = args.courseId
+      ? await ctx.db
+          .query("lms_certificate_issues")
+          .withIndex("by_course", (q) => q.eq("courseId", args.courseId!))
+          .collect()
+      : await ctx.db.query("lms_certificate_issues").order("desc").take(200);
+    const rows = [];
+    for (const issue of issues) {
+      const user = await ctx.db.get(issue.userId);
+      const course = await ctx.db.get(issue.courseId);
+      rows.push({
+        ...issue,
+        learnerName: user?.displayName ?? user?.email ?? "Unknown",
+        courseTitle: course?.title ?? "Unknown course",
+      });
+    }
+    return rows.sort((a, b) => b.issuedAt - a.issuedAt);
   },
 });
 

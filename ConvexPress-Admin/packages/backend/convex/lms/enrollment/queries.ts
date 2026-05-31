@@ -5,7 +5,8 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
-import { getCurrentUser } from "../../helpers/permissions";
+import { getCurrentUser, requireMinimumRoleLevel } from "../../helpers/permissions";
+import { canUserAccessCourse, canUserAccessNode } from "../access";
 
 export const canAccessCourse = query({
   args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
@@ -13,32 +14,17 @@ export const canAccessCourse = query({
     if (!(await isPluginEnabled(ctx, "lms"))) {
       return { allowed: false, reason: "disabled", requiresLogin: false };
     }
-    const course = await ctx.db.get(args.courseId);
-    if (!course) return { allowed: false, reason: "not_found", requiresLogin: false };
+    return await canUserAccessCourse(ctx, args);
+  },
+});
 
-    const mode = course.accessMode ?? "members";
-    if (mode === "open") return { allowed: true, reason: "open", requiresLogin: false };
-
-    const me = await getCurrentUser(ctx);
-    const userId = args.userId ?? me?._id;
-    if (!userId) return { allowed: false, reason: "login_required", requiresLogin: true };
-
-    if (mode === "free") return { allowed: true, reason: "free", requiresLogin: false };
-
-    // members | buy | recurring | closed → require an active enrollment.
-    const enrollment = await ctx.db
-      .query("lms_enrollments")
-      .withIndex("by_user_course", (q) => q.eq("userId", userId).eq("courseId", args.courseId))
-      .first();
-    const active =
-      enrollment &&
-      enrollment.status === "active" &&
-      (!enrollment.expiresAt || enrollment.expiresAt > Date.now());
-    return {
-      allowed: !!active,
-      reason: active ? "enrolled" : "enroll_required",
-      requiresLogin: false,
-    };
+export const canAccessNode = query({
+  args: { nodeId: v.id("lms_nodes"), userId: v.optional(v.id("users")) },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "lms"))) {
+      return { allowed: false, reason: "disabled", requiresLogin: false };
+    }
+    return await canUserAccessNode(ctx, args);
   },
 });
 
@@ -60,6 +46,7 @@ export const listEnrolleesForCourse = query({
   args: { courseId: v.id("lms_courses") },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
+    await requireMinimumRoleLevel(ctx, 80);
     const enrollments = await ctx.db
       .query("lms_enrollments")
       .withIndex("by_course", (q) => q.eq("courseId", args.courseId).eq("status", "active"))
@@ -106,5 +93,79 @@ export const listMyEnrollments = query({
       }
     }
     return rows;
+  },
+});
+
+export const listMyLearning = query({
+  args: {},
+  handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "lms"))) return [];
+    const me = await getCurrentUser(ctx);
+    if (!me) return [];
+
+    const enrollments = await ctx.db
+      .query("lms_enrollments")
+      .withIndex("by_user", (q) => q.eq("userId", me._id).eq("status", "active"))
+      .collect();
+
+    const rows = [];
+    for (const enrollment of enrollments) {
+      const course = await ctx.db.get(enrollment.courseId);
+      if (!course || course.status === "archived") continue;
+
+      const nodes = await ctx.db
+        .query("lms_nodes")
+        .withIndex("by_course", (q) => q.eq("courseId", enrollment.courseId))
+        .collect();
+      const topics = nodes
+        .filter((node) => node.kind === "topic")
+        .sort((a, b) => a.position - b.position);
+      const orderedLessons = [];
+      for (const topic of topics) {
+        orderedLessons.push(
+          ...nodes
+            .filter((node) => node.parentId === topic._id && node.kind === "lesson")
+            .sort((a, b) => a.position - b.position),
+        );
+      }
+
+      const progressRows = await ctx.db
+        .query("lms_progress")
+        .withIndex("by_user_course", (q) =>
+          q.eq("userId", me._id).eq("courseId", enrollment.courseId),
+        )
+        .collect();
+      const completedSet = new Set(
+        progressRows.filter((progress) => progress.completed).map((progress) => progress.nodeId),
+      );
+      const completedCount = orderedLessons.filter((lesson) => completedSet.has(lesson._id)).length;
+      const total = orderedLessons.length;
+      const next = orderedLessons.find((lesson) => !completedSet.has(lesson._id));
+      const certificateIssue = await ctx.db
+        .query("lms_certificate_issues")
+        .withIndex("by_user_course", (q) =>
+          q.eq("userId", me._id).eq("courseId", enrollment.courseId),
+        )
+        .first();
+
+      rows.push({
+        enrollmentId: enrollment._id,
+        courseId: enrollment.courseId,
+        title: course.title,
+        slug: course.slug,
+        excerpt: course.excerpt,
+        featuredImageId: course.featuredImageId,
+        lessonCount: total,
+        enrolledAt: enrollment.enrolledAt,
+        expiresAt: enrollment.expiresAt,
+        percent: total > 0 ? Math.round((completedCount / total) * 100) : 0,
+        completedCount,
+        nextNodeId: next?._id ?? orderedLessons[0]?._id ?? null,
+        certificateSerial:
+          certificateIssue?.status === "issued" ? certificateIssue.serial : undefined,
+      });
+    }
+
+    return rows.sort((a, b) => b.enrolledAt - a.enrolledAt);
   },
 });

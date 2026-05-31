@@ -9,7 +9,8 @@ import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { toast } from "sonner";
-import { ArrowLeft, Save, PlayCircle, Video, Sparkles } from "lucide-react";
+import { ArrowLeft, History, PlayCircle, RotateCcw, Save, Sparkles, Video } from "lucide-react";
+import { MediaSelector } from "@/components/lms/MediaSelector";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/lms/courses/$courseId/lessons/$nodeId",
@@ -37,19 +38,26 @@ function LessonEditorPage() {
           showMarkComplete?: boolean;
           lessonDripMode?: DripMode;
           lessonDripOffsetDays?: number;
+          lessonDripDate?: number;
+          videoMediaId?: Id<"media">;
         };
         bodyText: string;
         materialsText: string;
       }
     | null
     | undefined;
+  const versions = useQuery(api.lms.lessons.queries.listVersions, { nodeId: id }) as
+    | Array<{ _id: Id<"lms_lessonVersions">; bodyText: string; createdAt: number }>
+    | undefined;
 
   const update = useMutation(api.lms.lessons.mutations.updateLessonContent);
+  const restoreVersion = useMutation(api.lms.lessons.mutations.restoreLessonVersion);
   const regenerate = useAction(api.lms.ai.actions.regenerateLesson);
 
   const [f, setF] = useState({
     title: "",
     videoUrl: "",
+    videoMediaId: null as Id<"media"> | null,
     bodyText: "",
     materialsText: "",
     isPreview: false,
@@ -60,6 +68,7 @@ function LessonEditorPage() {
     showMarkComplete: true,
     dripMode: "immediately" as DripMode,
     dripOffsetDays: 0,
+    dripDate: "",
   });
   const [saving, setSaving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -70,6 +79,7 @@ function LessonEditorPage() {
       setF({
         title: n.title,
         videoUrl: n.videoUrl ?? "",
+        videoMediaId: n.videoMediaId ?? null,
         bodyText: lesson.bodyText ?? "",
         materialsText: lesson.materialsText ?? "",
         isPreview: n.isPreview ?? false,
@@ -80,6 +90,7 @@ function LessonEditorPage() {
         showMarkComplete: n.showMarkComplete ?? true,
         dripMode: (n.lessonDripMode ?? "immediately") as DripMode,
         dripOffsetDays: n.lessonDripOffsetDays ?? 0,
+        dripDate: toDateTimeInput(n.lessonDripDate),
       });
     }
   }, [lesson]);
@@ -95,6 +106,7 @@ function LessonEditorPage() {
         nodeId: id,
         title: f.title,
         videoUrl: f.videoUrl,
+        videoMediaId: f.videoMediaId ?? undefined,
         bodyText: f.bodyText,
         materialsText: f.materialsText,
         isPreview: f.isPreview,
@@ -105,6 +117,7 @@ function LessonEditorPage() {
         showMarkComplete: f.showMarkComplete,
         dripMode: f.dripMode,
         dripOffsetDays: f.dripOffsetDays,
+        dripDate: fromDateTimeInput(f.dripDate),
       });
       toast.success("Lesson saved");
     } catch (err) {
@@ -127,6 +140,15 @@ function LessonEditorPage() {
       });
     } finally {
       setRegenerating(false);
+    }
+  }
+
+  async function handleRestore(versionId: Id<"lms_lessonVersions">) {
+    try {
+      await restoreVersion({ nodeId: id, versionId });
+      toast.success("Lesson version restored");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Restore failed");
     }
   }
 
@@ -187,6 +209,14 @@ function LessonEditorPage() {
         <L label={<span className="flex items-center gap-1.5"><Video className="h-4 w-4" /> Video URL</span>}>
           <input value={f.videoUrl} onChange={(e) => set("videoUrl", e.target.value)} placeholder="YouTube / Vimeo / Wistia / upload URL" className={inp} />
         </L>
+        <L label="Uploaded video">
+          <MediaSelector
+            mediaType="video"
+            value={f.videoMediaId}
+            onChange={(value) => set("videoMediaId", value)}
+            placeholder="Search videos"
+          />
+        </L>
         <L label="Lesson body">
           <textarea value={f.bodyText} onChange={(e) => set("bodyText", e.target.value)} rows={10} placeholder="Lesson content. Paragraphs separated by blank lines." className={inp} />
         </L>
@@ -222,10 +252,62 @@ function LessonEditorPage() {
               <input type="number" min={0} value={f.dripOffsetDays} onChange={(e) => set("dripOffsetDays", Number(e.target.value))} className={inp} />
             </L>
           )}
+          {f.dripMode === "specific_date" && (
+            <L label="Release date">
+              <input type="datetime-local" value={f.dripDate} onChange={(e) => set("dripDate", e.target.value)} className={inp} />
+            </L>
+          )}
         </div>
+      </div>
+
+      <div className="mt-4 space-y-4 rounded-lg border border-border p-6">
+        <div className="flex items-center gap-2">
+          <History className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold uppercase text-muted-foreground">Revisions</h2>
+        </div>
+        {(versions ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">No saved revisions yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {(versions ?? []).map((version) => (
+              <div
+                key={version._id}
+                className="flex items-center gap-3 rounded-md border border-border p-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium">
+                    {new Date(version.createdAt).toLocaleString()}
+                  </div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {version.bodyText || "Empty body"}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRestore(version._id)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted"
+                >
+                  <RotateCcw className="h-4 w-4" /> Restore
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+function toDateTimeInput(value?: number): string {
+  if (!value) return "";
+  const date = new Date(value);
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 16);
+}
+
+function fromDateTimeInput(value: string): number | undefined {
+  if (!value) return undefined;
+  return new Date(value).getTime();
 }
 
 function L({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {

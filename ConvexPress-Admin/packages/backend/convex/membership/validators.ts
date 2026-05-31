@@ -8,7 +8,7 @@
 
 import { v } from "convex/values";
 
-// ─── Resource Type Validator (all 5 restrictable resource kinds) ───────────
+// ─── Resource Type Validator (all restrictable resource kinds) ─────────────
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const membershipResourceTypeValidator = v.union(
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
@@ -19,6 +19,8 @@ export const membershipResourceTypeValidator = v.union(
   v.literal("route"),
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("product"),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  v.literal("course"),
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("block"),
 );

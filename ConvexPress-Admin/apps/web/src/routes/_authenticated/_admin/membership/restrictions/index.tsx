@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   ShieldOff,
   Box,
+  GraduationCap,
   FileText,
   FileCode,
   Link as LinkIcon,
@@ -34,7 +35,7 @@ export const Route = createFileRoute(
   component: MembershipRestrictionsPage,
 });
 
-type ResourceType = "page" | "post" | "route" | "product" | "block";
+type ResourceType = "page" | "post" | "route" | "product" | "course" | "block";
 type RuleMode = "allow_only" | "deny_if_missing";
 type TeaserMode = "hide" | "excerpt" | "custom_message";
 
@@ -73,6 +74,7 @@ const RESOURCE_TABS: Array<{
   { id: "post", label: "Posts", icon: FileText },
   { id: "page", label: "Pages", icon: FileText },
   { id: "product", label: "Products", icon: Box },
+  { id: "course", label: "Courses", icon: GraduationCap },
   { id: "route", label: "Routes", icon: LinkIcon },
   { id: "block", label: "Blocks", icon: FileCode },
 ];
@@ -288,6 +290,7 @@ function ResourceCell({
     post: { icon: FileText, label: "Post" },
     page: { icon: FileText, label: "Page" },
     product: { icon: Box, label: "Product" },
+    course: { icon: GraduationCap, label: "Course" },
     route: { icon: LinkIcon, label: "Route" },
     block: { icon: FileCode, label: "Block" },
   };

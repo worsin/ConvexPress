@@ -423,15 +423,7 @@ export const getMember = query({
  */
 export const listRestrictions = query({
 	args: {
-		resourceType: v.optional(
-			v.union(
-				v.literal("page"),
-				v.literal("post"),
-				v.literal("route"),
-				v.literal("product"),
-				v.literal("block"),
-			),
-		),
+		resourceType: v.optional(membershipResourceTypeValidator),
 	},
 	handler: async (ctx: any, args: any) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return null;
@@ -538,13 +530,7 @@ export const listRestrictionsByResource = query({
  */
 export const checkAccess = query({
 	args: {
-		resourceType: v.union(
-			v.literal("page"),
-			v.literal("post"),
-			v.literal("route"),
-			v.literal("product"),
-			v.literal("block"),
-		),
+		resourceType: membershipResourceTypeValidator,
 		resourceIdOrKey: v.string(),
 	},
 	handler: async (ctx: any, args: any) => {
@@ -569,13 +555,7 @@ export const checkAccess = query({
  */
 export const checkAccessAndLog = mutation({
 	args: {
-		resourceType: v.union(
-			v.literal("page"),
-			v.literal("post"),
-			v.literal("route"),
-			v.literal("product"),
-			v.literal("block"),
-		),
+		resourceType: membershipResourceTypeValidator,
 		resourceIdOrKey: v.string(),
 	},
 	handler: async (ctx: any, args: any) => {

@@ -47,6 +47,7 @@ export const SYSTEM = {
   CART: "cart",
   CHECKOUT: "checkout",
   WISHLIST: "wishlist",
+  LMS: "lms",
 } as const;
 
 export type SystemSlug = (typeof SYSTEM)[keyof typeof SYSTEM];
@@ -327,6 +328,33 @@ export const WISHLIST_EVENTS = {
   MOVED_TO_CART: "wishlist.moved_to_cart",
 } as const;
 
+/** LMS System events (23) */
+export const LMS_EVENTS = {
+  COURSE_CREATED: "lms.course_created",
+  COURSE_UPDATED: "lms.course_updated",
+  COURSE_PUBLISHED: "lms.course_published",
+  COURSE_UNPUBLISHED: "lms.course_unpublished",
+  COURSE_ARCHIVED: "lms.course_archived",
+  COURSE_RESTORED: "lms.course_restored",
+  COURSE_DELETED: "lms.course_deleted",
+  COURSE_DUPLICATED: "lms.course_duplicated",
+  COURSE_PREREQUISITES_UPDATED: "lms.course_prerequisites_updated",
+  COURSE_ACCESS_UPDATED: "lms.course_access_updated",
+  NODE_CREATED: "lms.node_created",
+  NODE_UPDATED: "lms.node_updated",
+  NODE_DELETED: "lms.node_deleted",
+  NODE_REORDERED: "lms.node_reordered",
+  TOPIC_UPDATED: "lms.topic_updated",
+  LESSON_UPDATED: "lms.lesson_updated",
+  LESSON_VERSION_RESTORED: "lms.lesson_version_restored",
+  ENROLLED: "lms.enrolled",
+  COURSE_COMPLETED: "lms.course_completed",
+  CERTIFICATE_ISSUED: "lms.certificate_issued",
+  CERTIFICATE_REVOKED: "lms.certificate_revoked",
+  AI_OUTLINE_GENERATED: "lms.ai_outline_generated",
+  AI_LESSON_GENERATED: "lms.ai_lesson_generated",
+} as const;
+
 // ─── All Event Codes ───────────────────────────────────────────────────────
 
 /**
@@ -365,6 +393,7 @@ export const ALL_EVENT_CODES: string[] = [
   ...Object.values(CART_EVENTS),
   ...Object.values(CHECKOUT_EVENTS),
   ...Object.values(WISHLIST_EVENTS),
+  ...Object.values(LMS_EVENTS),
 ];
 
 /** Set for O(1) lookup of valid event codes. */
@@ -414,6 +443,7 @@ export const EVENT_CODES_BY_SYSTEM: Record<string, readonly string[]> = {
   [SYSTEM.CART]: Object.values(CART_EVENTS),
   [SYSTEM.CHECKOUT]: Object.values(CHECKOUT_EVENTS),
   [SYSTEM.WISHLIST]: Object.values(WISHLIST_EVENTS),
+  [SYSTEM.LMS]: Object.values(LMS_EVENTS),
 };
 
 // ─── Wildcard / Global Patterns ────────────────────────────────────────────
@@ -526,6 +556,9 @@ const CRITICAL_RETENTION_CODES: Set<string> = new Set([
   PROFILE_EVENTS.DELETED,
   MENU_EVENTS.DELETED,
   API_EVENTS.KEY_REVOKED,
+  LMS_EVENTS.COURSE_DELETED,
+  LMS_EVENTS.NODE_DELETED,
+  LMS_EVENTS.CERTIFICATE_REVOKED,
   // Audit events (compliance)
   AUDIT_EVENTS.CLEARED,
   AUDIT_EVENTS.EXPORTED,

@@ -81,6 +81,7 @@ export const membershipTables = {
       v.literal("post"),
       v.literal("route"),
       v.literal("product"),
+      v.literal("course"),
       v.literal("block"),
     ),
     resourceIdOrKey: v.string(),

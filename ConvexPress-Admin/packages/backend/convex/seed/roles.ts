@@ -83,6 +83,8 @@ const ALL_ADMIN_PAGES: string[] = [
   "/admin/tickets/*",
   "/admin/support",
   "/admin/support/*",
+  "/admin/lms",
+  "/admin/lms/*",
 ];
 
 const EDITOR_PAGES: string[] = [
@@ -107,6 +109,8 @@ const EDITOR_PAGES: string[] = [
   "/admin/kb/*",
   "/admin/tickets",
   "/admin/tickets/*",
+  "/admin/lms",
+  "/admin/lms/*",
 ];
 
 const AUTHOR_PAGES: string[] = [
@@ -117,6 +121,8 @@ const AUTHOR_PAGES: string[] = [
   "/admin/posts/edit",
   "/admin/media",
   "/admin/users/profile",
+  "/admin/lms",
+  "/admin/lms/*",
 ];
 
 const CONTRIBUTOR_PAGES: string[] = [
@@ -236,6 +242,19 @@ const EDITOR_CAPABILITIES: Capability[] = [
   "notification.update_preferences",
   // Analytics (1)
   "analytics.view",
+  // LMS (12)
+  "lms.course.view",
+  "lms.course.create",
+  "lms.course.edit",
+  "lms.course.publish",
+  "lms.course.delete",
+  "lms.lesson.edit",
+  "lms.lesson.delete",
+  "lms.builder.manage",
+  "lms.ai.generate",
+  "lms.enroll.manage",
+  "lms.certificate.manage",
+  "lms.settings.manage",
 ];
 
 /**
@@ -306,6 +325,13 @@ const AUTHOR_CAPABILITIES: Capability[] = [
   "notification.mark_all_read",
   "notification.delete",
   "notification.update_preferences",
+  // LMS own-content authoring (6)
+  "lms.course.view",
+  "lms.course.create",
+  "lms.course.edit",
+  "lms.lesson.edit",
+  "lms.builder.manage",
+  "lms.ai.generate",
 ];
 
 /**

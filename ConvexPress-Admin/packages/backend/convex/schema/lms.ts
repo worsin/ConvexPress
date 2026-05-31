@@ -259,7 +259,8 @@ export const lmsTables = {
     lastSeenAt: v.optional(v.number()),
   })
     .index("by_user_course", ["userId", "courseId"])
-    .index("by_user_node", ["userId", "nodeId"]),
+    .index("by_user_node", ["userId", "nodeId"])
+    .index("by_course", ["courseId"]),
 
   lms_course_completions: defineTable({
     userId: v.id("users"),
@@ -293,6 +294,7 @@ export const lmsTables = {
     status: v.union(v.literal("issued"), v.literal("revoked")),
   })
     .index("by_user", ["userId"])
+    .index("by_course", ["courseId"])
     .index("by_serial", ["serial"])
     .index("by_user_course", ["userId", "courseId"]),
 
@@ -319,6 +321,7 @@ export const lmsTables = {
 
   lms_jobs: defineTable({
     courseId: v.id("lms_courses"),
+    generationId: v.optional(v.id("lms_ai_generations")),
     kind: lmsJobKindValidator,
     targetId: v.optional(v.string()),
     status: lmsJobStatusValidator,
@@ -327,5 +330,7 @@ export const lmsTables = {
     startedAt: v.optional(v.number()),
     finishedAt: v.optional(v.number()),
     createdAt: v.number(),
-  }).index("by_course", ["courseId", "status"]),
+  })
+    .index("by_course", ["courseId", "status"])
+    .index("by_generation", ["generationId", "status"]),
 };

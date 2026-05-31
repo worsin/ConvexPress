@@ -9,14 +9,21 @@
 
 import { useState, useMemo } from "react";
 import { useQuery } from "convex-helpers/react/cache";
-import { Search, FileText, FileCode, Link as LinkIcon, Box } from "lucide-react";
+import {
+  Search,
+  FileText,
+  FileCode,
+  Link as LinkIcon,
+  Box,
+  GraduationCap,
+} from "lucide-react";
 
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 
-export type ResourceType = "page" | "post" | "route" | "product" | "block";
+export type ResourceType = "page" | "post" | "route" | "product" | "course" | "block";
 
 interface ResourcePickerProps {
   resourceType: ResourceType;
@@ -42,6 +49,12 @@ const RESOURCE_TABS: Array<{
     label: "Product",
     icon: Box,
     description: "Gate a commerce product.",
+  },
+  {
+    id: "course",
+    label: "Course",
+    icon: GraduationCap,
+    description: "Gate an LMS course.",
   },
   {
     id: "route",
@@ -130,6 +143,14 @@ export function ResourcePicker({
           disabled={disabled}
         />
       )}
+      {resourceType === "course" && (
+        <CourseSearch
+          value={value}
+          displayLabel={displayLabel}
+          onChange={onChange}
+          disabled={disabled}
+        />
+      )}
       {resourceType === "route" && (
         <FreeformKeyInput
           value={value}
@@ -147,6 +168,134 @@ export function ResourcePicker({
           helperText="Enter a reusable block ID (Convex ID)."
           disabled={disabled}
         />
+      )}
+    </div>
+  );
+}
+
+function CourseSearch({
+  value,
+  displayLabel,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  displayLabel?: string;
+  onChange: (value: string, displayLabel?: string) => void;
+  disabled?: boolean;
+}) {
+  const [query, setQuery] = useState("");
+
+  const courses = useQuery(
+    (api as any).lms.courses.queries.list,
+    {
+      search: query.trim() || undefined,
+    },
+  ) as
+    | Array<{
+        _id: Id<"lms_courses">;
+        title: string;
+        slug: string;
+        status: string;
+      }>
+    | undefined;
+
+  const selected = useMemo(
+    () => courses?.find((course) => course._id === value),
+    [courses, value],
+  );
+  const filtered = useMemo(() => {
+    if (!courses) return undefined;
+    const q = query.trim().toLowerCase();
+    if (!q) return courses.slice(0, 15);
+    return courses
+      .filter(
+        (course) =>
+          course.title.toLowerCase().includes(q) ||
+          course.slug.toLowerCase().includes(q),
+      )
+      .slice(0, 15);
+  }, [courses, query]);
+  const hasSelection = value.length > 0;
+
+  return (
+    <div className="space-y-2">
+      {hasSelection && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary/5 px-3.5 py-2.5">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-foreground">
+              {selected?.title ?? displayLabel ?? value}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              Course selected
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => {
+              onChange("", "");
+              setQuery("");
+            }}
+            className="shrink-0 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Change
+          </button>
+        </div>
+      )}
+
+      {!hasSelection && (
+        <>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search courses..."
+              disabled={disabled}
+              className="pl-9"
+            />
+          </div>
+
+          <div className="max-h-72 overflow-y-auto rounded-xl border border-border bg-card">
+            {filtered === undefined ? (
+              <div className="space-y-1.5 p-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-10 animate-pulse rounded-lg bg-muted" />
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+                No courses found.
+              </div>
+            ) : (
+              <ul className="divide-y divide-border/70">
+                {filtered.map((course) => (
+                  <li key={course._id}>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => onChange(course._id, course.title)}
+                      className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate font-medium text-foreground">
+                          {course.title || "(no title)"}
+                        </span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          /{course.slug}
+                        </span>
+                      </span>
+                      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                        {course.status}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

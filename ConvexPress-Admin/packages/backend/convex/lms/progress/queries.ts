@@ -5,7 +5,7 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
-import { getCurrentUser } from "../../helpers/permissions";
+import { getCurrentUser, requireMinimumRoleLevel } from "../../helpers/permissions";
 
 export const getCourseProgress = query({
   args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
@@ -16,11 +16,21 @@ export const getCourseProgress = query({
       completedCount: 0,
       completedNodeIds: [] as string[],
       nextNodeId: null as string | null,
+      topicProgress: [] as Array<{
+        topicId: string;
+        title: string;
+        percent: number;
+        completedCount: number;
+        total: number;
+      }>,
     };
     if (!(await isPluginEnabled(ctx, "lms"))) return empty;
     const me = await getCurrentUser(ctx);
     const userId = args.userId ?? me?._id;
     if (!userId) return empty;
+    if (args.userId && args.userId !== me?._id) {
+      await requireMinimumRoleLevel(ctx, 80);
+    }
 
     // Ordered lesson list: topics by position, then lessons by position.
     const nodes = await ctx.db
@@ -49,6 +59,17 @@ export const getCourseProgress = query({
     const total = orderedLessons.length;
     const completedCount = orderedLessons.filter((l) => completedSet.has(l._id)).length;
     const next = orderedLessons.find((l) => !completedSet.has(l._id));
+    const topicProgress = topics.map((topic) => {
+      const lessons = orderedLessons.filter((lesson) => lesson.parentId === topic._id);
+      const topicCompleted = lessons.filter((lesson) => completedSet.has(lesson._id)).length;
+      return {
+        topicId: String(topic._id),
+        title: topic.title,
+        percent: lessons.length > 0 ? Math.round((topicCompleted / lessons.length) * 100) : 0,
+        completedCount: topicCompleted,
+        total: lessons.length,
+      };
+    });
 
     return {
       percent: total > 0 ? Math.round((completedCount / total) * 100) : 0,
@@ -56,6 +77,7 @@ export const getCourseProgress = query({
       completedCount,
       completedNodeIds: [...completedSet],
       nextNodeId: next?._id ?? null,
+      topicProgress,
     };
   },
 });
@@ -67,6 +89,9 @@ export const getNodeProgress = query({
     const me = await getCurrentUser(ctx);
     const userId = args.userId ?? me?._id;
     if (!userId) return null;
+    if (args.userId && args.userId !== me?._id) {
+      await requireMinimumRoleLevel(ctx, 80);
+    }
     return await ctx.db
       .query("lms_progress")
       .withIndex("by_user_node", (q) => q.eq("userId", userId).eq("nodeId", args.nodeId))

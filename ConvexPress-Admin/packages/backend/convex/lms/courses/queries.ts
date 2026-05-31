@@ -5,7 +5,9 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
+import { hasMinimumRoleLevel, requireMinimumRoleLevel } from "../../helpers/permissions";
 import { lmsCourseStatusValidator } from "../../schema/lms";
+import { canUserAccessCourse } from "../access";
 
 export const list = query({
   args: {
@@ -46,10 +48,15 @@ export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
-    return await ctx.db
+    const course = await ctx.db
       .query("lms_courses")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
+    if (!course) return null;
+    if (course.status !== "published" && !(await hasMinimumRoleLevel(ctx, 60))) {
+      return null;
+    }
+    return course;
   },
 });
 
@@ -62,6 +69,39 @@ export const listPublished = query({
       .withIndex("by_status", (q) => q.eq("status", "published"))
       .order("desc")
       .take(500);
+  },
+});
+
+export const listCatalog = query({
+  args: { search: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "lms"))) return [];
+    let courses = await ctx.db
+      .query("lms_courses")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .order("desc")
+      .take(500);
+    const search = args.search?.trim().toLowerCase();
+    if (search) {
+      courses = courses.filter((course) => course.title.toLowerCase().includes(search));
+    }
+    const rows = [];
+    for (const course of courses) {
+      const access = await canUserAccessCourse(ctx, { courseId: course._id });
+      rows.push({
+        _id: course._id,
+        title: course.title,
+        slug: course.slug,
+        excerpt: course.excerpt,
+        featuredImageId: course.featuredImageId,
+        accessMode: course.accessMode ?? "members",
+        lessonCount: course.lessonCount ?? 0,
+        allowed: access.allowed,
+        accessReason: access.reason,
+        requiresLogin: access.requiresLogin,
+      });
+    }
+    return rows;
   },
 });
 
@@ -78,5 +118,52 @@ export const stats = query({
       draft: all.filter((c) => c.status === "draft").length,
       archived: all.filter((c) => c.status === "archived").length,
     };
+  },
+});
+
+export const getPrerequisites = query({
+  args: { courseId: v.id("lms_courses") },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "lms"))) return [];
+    const rows = await ctx.db
+      .query("lms_course_prerequisites")
+      .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
+      .collect();
+    const enriched = [];
+    for (const row of rows) {
+      const course = await ctx.db.get(row.prereqCourseId);
+      if (course) {
+        enriched.push({
+          _id: row._id,
+          courseId: row.prereqCourseId,
+          title: course.title,
+          slug: course.slug,
+          status: course.status,
+        });
+      }
+    }
+    return enriched;
+  },
+});
+
+export const getAccessRule = query({
+  args: { courseId: v.id("lms_courses") },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "lms"))) return null;
+    await requireMinimumRoleLevel(ctx, 60);
+    const rules = await ctx.db
+      .query("membership_restriction_rules")
+      .withIndex("by_resource", (q: any) =>
+        q.eq("resourceType", "course").eq("resourceIdOrKey", String(args.courseId)),
+      )
+      .collect();
+    const rule = rules[0];
+    if (!rule) return null;
+    const plans = [];
+    for (const planId of rule.planIds ?? []) {
+      const plan = await ctx.db.get(planId);
+      if (plan) plans.push({ _id: plan._id, title: plan.title, slug: plan.slug });
+    }
+    return { ...rule, plans };
   },
 });

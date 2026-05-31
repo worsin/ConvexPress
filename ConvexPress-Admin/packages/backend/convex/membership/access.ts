@@ -10,6 +10,7 @@ export type MembershipResourceType =
 	| "post"
 	| "route"
 	| "product"
+	| "course"
 	| "block";
 
 export type MembershipTeaserMode = "hide" | "excerpt" | "custom_message";

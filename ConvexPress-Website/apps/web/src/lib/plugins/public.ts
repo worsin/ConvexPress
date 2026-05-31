@@ -10,7 +10,8 @@ export type PublicPluginId =
   | "tickets"
   | "recipes"
   | "gallery"
-  | "membership";
+  | "membership"
+  | "lms";
 
 export type PublicPluginSettings = {
   plugins?: {
@@ -27,6 +28,7 @@ export type PublicPluginSettings = {
     recipesEnabled?: boolean;
     galleryEnabled?: boolean;
     membershipEnabled?: boolean;
+    lmsEnabled?: boolean;
   };
 } | null | undefined;
 
@@ -69,6 +71,8 @@ export function isPublicPluginEnabled(
       return settings.plugins?.galleryEnabled === true;
     case "membership":
       return settings.plugins?.membershipEnabled === true;
+    case "lms":
+      return settings.plugins?.lmsEnabled === true;
     default:
       return false;
   }
