@@ -103,3 +103,44 @@ export const unenroll = mutation({
     return { ok: true };
   },
 });
+
+/** Admin: enroll a learner by email. */
+export const enrollByEmail = mutation({
+  args: { courseId: v.id("lms_courses"), email: v.string() },
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "lms");
+    await requireMinimumRoleLevel(ctx, 80);
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), args.email.trim()))
+      .first();
+    if (!user) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "No user with that email" });
+    }
+    const now = Date.now();
+    const existing = await ctx.db
+      .query("lms_enrollments")
+      .withIndex("by_user_course", (q) =>
+        q.eq("userId", user._id).eq("courseId", args.courseId),
+      )
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, { status: "active", updatedAt: now });
+      return existing._id;
+    }
+    const enrollmentId = await ctx.db.insert("lms_enrollments", {
+      userId: user._id,
+      courseId: args.courseId,
+      source: "manual",
+      enrolledAt: now,
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    });
+    await emitEvent(ctx, "lms.enrolled", "lms", {
+      courseId: args.courseId,
+      userId: user._id,
+    });
+    return enrollmentId;
+  },
+});

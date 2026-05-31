@@ -2,13 +2,14 @@
  * Course enrollees (admin) — /lms/courses/$courseId/enrollees
  */
 
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { toast } from "sonner";
-import { ArrowLeft, Users, UserMinus } from "lucide-react";
+import { ArrowLeft, Users, UserMinus, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/lms/courses/$courseId/enrollees",
@@ -25,6 +26,8 @@ function EnrolleesPage() {
     | Array<{ userId: string; name: string; email: string; source: string; enrolledAt: number }>
     | undefined;
   const unenroll = useMutation(api.lms.enrollment.mutations.unenroll);
+  const enrollByEmail = useMutation(api.lms.enrollment.mutations.enrollByEmail);
+  const [email, setEmail] = useState("");
 
   return (
     <div className="mx-auto max-w-4xl p-6">
@@ -39,6 +42,35 @@ function EnrolleesPage() {
         <Users className="h-6 w-6" />
         <h1 className="text-2xl font-semibold">Enrollees</h1>
       </div>
+
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (!email.trim()) return;
+          try {
+            await enrollByEmail({ courseId: id, email: email.trim() });
+            toast.success("Enrolled");
+            setEmail("");
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed");
+          }
+        }}
+        className="mb-6 flex items-center gap-2 rounded-lg border border-border p-3"
+      >
+        <UserPlus className="h-4 w-4 text-muted-foreground" />
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enroll a learner by email…"
+          className="flex-1 bg-transparent text-sm outline-none"
+        />
+        <button
+          type="submit"
+          className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+        >
+          Enroll
+        </button>
+      </form>
 
       {rows === undefined ? (
         <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>
