@@ -1,13 +1,16 @@
 /**
  * AI Course Generation — /lms/courses/$courseId/generate
  *
- * Brief wizard UI. The generation backend (convex/lms/ai, mirroring
- * convex/ai's Claude+Tavily pipeline) + ANTHROPIC_API_KEY / TAVILY_API_KEY
- * are the next step; this screen captures the brief and explains the flow.
+ * Brief → Claude (via the platform AI provider) → Course → Topic → Lesson tree.
+ * Requires an AI provider key (Settings → AI Providers) at runtime.
  */
 
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useAction } from "convex/react";
+import { api } from "@backend/convex/_generated/api";
+import type { Id } from "@backend/convex/_generated/dataModel";
+import { toast } from "sonner";
 import { ArrowLeft, Sparkles, Info } from "lucide-react";
 
 export const Route = createFileRoute(
@@ -18,10 +21,47 @@ export const Route = createFileRoute(
 
 function GeneratePage() {
   const { courseId } = Route.useParams();
+  const navigate = useNavigate();
+  const generate = useAction(api.lms.ai.actions.generateCourse);
+
   const [topic, setTopic] = useState("");
   const [audience, setAudience] = useState("");
-  const [topics, setTopics] = useState(5);
+  const [topicsCount, setTopicsCount] = useState(5);
   const [tone, setTone] = useState("professional");
+  const [busy, setBusy] = useState(false);
+
+  async function handleGenerate() {
+    if (!topic.trim()) {
+      toast.error("Enter a course topic");
+      return;
+    }
+    setBusy(true);
+    const tid = toast.loading("Generating course outline & lessons…");
+    try {
+      const res = await generate({
+        courseId: courseId as Id<"lms_courses">,
+        topic: topic.trim(),
+        audience: audience.trim() || undefined,
+        topicsCount,
+        tone,
+      });
+      toast.success(
+        `Generated ${res.topicCount} topics, ${res.lessonCount} lessons`,
+        { id: tid },
+      );
+      await navigate({ to: "/lms/courses/$courseId/builder", params: { courseId } });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Generation failed";
+      toast.error(
+        msg.includes("API key") || msg.includes("CONFIGURATION")
+          ? "AI provider key not configured — set it in Settings → AI Providers."
+          : msg,
+        { id: tid },
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-2xl p-6">
@@ -40,11 +80,13 @@ function GeneratePage() {
       <div className="mb-6 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
         <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
         <p className="text-muted-foreground">
-          Outline-first generation runs Claude + Tavily, then writes lesson
-          bodies asynchronously. Connect{" "}
-          <code className="rounded bg-muted px-1">ANTHROPIC_API_KEY</code> and{" "}
-          <code className="rounded bg-muted px-1">TAVILY_API_KEY</code> in
-          Settings → AI Providers to enable generation.
+          Generates a Course → Topic → Lesson outline with draft lesson bodies,
+          then drops you into the builder to review &amp; edit. Requires an AI
+          provider key in{" "}
+          <Link to="/settings/ai" className="text-primary hover:underline">
+            Settings → AI Providers
+          </Link>
+          .
         </p>
       </div>
 
@@ -73,9 +115,9 @@ function GeneratePage() {
             <input
               type="number"
               min={1}
-              max={20}
-              value={topics}
-              onChange={(e) => setTopics(Number(e.target.value))}
+              max={12}
+              value={topicsCount}
+              onChange={(e) => setTopicsCount(Number(e.target.value))}
               className="w-full rounded-md border border-border px-3 py-2 text-sm"
             />
           </label>
@@ -94,11 +136,11 @@ function GeneratePage() {
         </div>
         <button
           type="button"
-          disabled
-          title="Requires ANTHROPIC_API_KEY + TAVILY_API_KEY"
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground opacity-50"
+          onClick={handleGenerate}
+          disabled={busy}
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
-          <Sparkles className="h-4 w-4" /> Generate outline
+          <Sparkles className="h-4 w-4" /> {busy ? "Generating…" : "Generate course"}
         </button>
       </div>
     </div>

@@ -9,7 +9,17 @@ import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Eye, EyeOff, Archive, Layers, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Eye,
+  EyeOff,
+  Archive,
+  Layers,
+  Sparkles,
+  Users,
+  GraduationCap,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/_admin/lms/courses/$courseId/")({
   component: CourseSettingsPage,
@@ -30,6 +40,7 @@ interface FormState {
   pointsRequired: number;
   seatLimit: number;
   accessDurationDays: number;
+  certificateId: string;
 }
 
 const EMPTY: FormState = {
@@ -43,12 +54,16 @@ const EMPTY: FormState = {
   pointsRequired: 0,
   seatLimit: 0,
   accessDurationDays: 0,
+  certificateId: "",
 };
 
 function CourseSettingsPage() {
   const { courseId } = Route.useParams();
   const id = courseId as Id<"lms_courses">;
   const course = useQuery(api.lms.courses.queries.getById, { courseId: id });
+  const templates = useQuery(api.lms.certificates.queries.listTemplates, {}) as
+    | Array<{ _id: string; title: string }>
+    | undefined;
 
   const update = useMutation(api.lms.courses.mutations.update);
   const publish = useMutation(api.lms.courses.mutations.publish);
@@ -71,6 +86,7 @@ function CourseSettingsPage() {
         pointsRequired: course.pointsRequired ?? 0,
         seatLimit: course.seatLimit ?? 0,
         accessDurationDays: course.accessDurationDays ?? 0,
+        certificateId: course.certificateId ?? "",
       });
     }
   }, [course]);
@@ -94,6 +110,9 @@ function CourseSettingsPage() {
         pointsRequired: form.pointsRequired,
         seatLimit: form.seatLimit,
         accessDurationDays: form.accessDurationDays,
+        certificateId: form.certificateId
+          ? (form.certificateId as Id<"lms_certificates">)
+          : undefined,
       });
       toast.success("Saved");
     } catch (err) {
@@ -138,9 +157,7 @@ function CourseSettingsPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{form.title || "Untitled course"}</h1>
-          <span className="text-xs uppercase text-muted-foreground">
-            {course.status}
-          </span>
+          <span className="text-xs uppercase text-muted-foreground">{course.status}</span>
         </div>
         <div className="flex items-center gap-2">
           {course.status === "published" ? (
@@ -178,66 +195,37 @@ function CourseSettingsPage() {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <QuickLink to="/lms/courses/$courseId/builder" courseId={courseId} icon={Layers} title="Builder" desc="Topics & lessons" />
+        <QuickLink to="/lms/courses/$courseId/generate" courseId={courseId} icon={Sparkles} title="Generate (AI)" desc="From a brief" />
+        <QuickLink to="/lms/courses/$courseId/enrollees" courseId={courseId} icon={Users} title="Enrollees" desc="Manage access" />
         <Link
-          to="/lms/courses/$courseId/builder"
+          to="/lms/learn/$courseId"
           params={{ courseId }}
           className="flex items-center gap-3 rounded-lg border border-border p-4 hover:border-primary"
         >
-          <Layers className="h-5 w-5 text-muted-foreground" />
+          <GraduationCap className="h-5 w-5 text-muted-foreground" />
           <div>
-            <div className="font-medium">Curriculum Builder</div>
-            <div className="text-xs text-muted-foreground">
-              Add topics &amp; lessons, drag to reorder.
-            </div>
-          </div>
-        </Link>
-        <Link
-          to="/lms/courses/$courseId/generate"
-          params={{ courseId }}
-          className="flex items-center gap-3 rounded-lg border border-border p-4 hover:border-primary"
-        >
-          <Sparkles className="h-5 w-5 text-muted-foreground" />
-          <div>
-            <div className="font-medium">Generate with AI</div>
-            <div className="text-xs text-muted-foreground">
-              Outline &amp; lesson content from a brief.
-            </div>
+            <div className="font-medium">Preview</div>
+            <div className="text-xs text-muted-foreground">As a learner</div>
           </div>
         </Link>
       </div>
 
       <div className="space-y-6 rounded-lg border border-border p-6">
         <Field label="Title">
-          <input
-            value={form.title}
-            onChange={(e) => set("title", e.target.value)}
-            className="w-full rounded-md border border-border px-3 py-2 text-sm"
-          />
+          <input value={form.title} onChange={(e) => set("title", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
         </Field>
         <Field label="Slug">
-          <input
-            value={form.slug}
-            onChange={(e) => set("slug", e.target.value)}
-            className="w-full rounded-md border border-border px-3 py-2 text-sm"
-          />
+          <input value={form.slug} onChange={(e) => set("slug", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
         </Field>
         <Field label="Excerpt">
-          <textarea
-            value={form.excerpt}
-            onChange={(e) => set("excerpt", e.target.value)}
-            rows={3}
-            className="w-full rounded-md border border-border px-3 py-2 text-sm"
-          />
+          <textarea value={form.excerpt} onChange={(e) => set("excerpt", e.target.value)} rows={3} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
         </Field>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Access mode">
-            <select
-              value={form.accessMode}
-              onChange={(e) => set("accessMode", e.target.value as AccessMode)}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm"
-            >
+            <select value={form.accessMode} onChange={(e) => set("accessMode", e.target.value as AccessMode)} className="w-full rounded-md border border-border px-3 py-2 text-sm">
               <option value="open">Open (public)</option>
               <option value="free">Free (login required)</option>
               <option value="members">Members (plan-gated)</option>
@@ -247,66 +235,68 @@ function CourseSettingsPage() {
             </select>
           </Field>
           <Field label="Progression">
-            <select
-              value={form.progressionMode}
-              onChange={(e) => set("progressionMode", e.target.value as ProgressionMode)}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm"
-            >
+            <select value={form.progressionMode} onChange={(e) => set("progressionMode", e.target.value as ProgressionMode)} className="w-full rounded-md border border-border px-3 py-2 text-sm">
               <option value="linear">Linear (in order)</option>
               <option value="free_form">Free-form (any order)</option>
             </select>
           </Field>
           <Field label="Content visibility">
-            <select
-              value={form.contentVisibility}
-              onChange={(e) =>
-                set("contentVisibility", e.target.value as ContentVisibility)
-              }
-              className="w-full rounded-md border border-border px-3 py-2 text-sm"
-            >
+            <select value={form.contentVisibility} onChange={(e) => set("contentVisibility", e.target.value as ContentVisibility)} className="w-full rounded-md border border-border px-3 py-2 text-sm">
               <option value="enrollees_only">Enrollees only</option>
               <option value="always">Always visible</option>
             </select>
           </Field>
+          <Field label="Certificate on completion">
+            <select value={form.certificateId} onChange={(e) => set("certificateId", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm">
+              <option value="">None</option>
+              {(templates ?? []).map((t) => (
+                <option key={t._id} value={t._id}>{t.title}</option>
+              ))}
+            </select>
+          </Field>
           <Field label="Seat limit (0 = unlimited)">
-            <input
-              type="number"
-              min={0}
-              value={form.seatLimit}
-              onChange={(e) => set("seatLimit", Number(e.target.value))}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm"
-            />
+            <input type="number" min={0} value={form.seatLimit} onChange={(e) => set("seatLimit", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
           </Field>
           <Field label="Points awarded on completion">
-            <input
-              type="number"
-              min={0}
-              value={form.pointsAwarded}
-              onChange={(e) => set("pointsAwarded", Number(e.target.value))}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm"
-            />
+            <input type="number" min={0} value={form.pointsAwarded} onChange={(e) => set("pointsAwarded", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
           </Field>
           <Field label="Points required to access">
-            <input
-              type="number"
-              min={0}
-              value={form.pointsRequired}
-              onChange={(e) => set("pointsRequired", Number(e.target.value))}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm"
-            />
+            <input type="number" min={0} value={form.pointsRequired} onChange={(e) => set("pointsRequired", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
           </Field>
           <Field label="Access duration (days, 0 = lifetime)">
-            <input
-              type="number"
-              min={0}
-              value={form.accessDurationDays}
-              onChange={(e) => set("accessDurationDays", Number(e.target.value))}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm"
-            />
+            <input type="number" min={0} value={form.accessDurationDays} onChange={(e) => set("accessDurationDays", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
           </Field>
         </div>
       </div>
     </div>
+  );
+}
+
+function QuickLink({
+  to,
+  courseId,
+  icon: Icon,
+  title,
+  desc,
+}: {
+  to: "/lms/courses/$courseId/builder" | "/lms/courses/$courseId/generate" | "/lms/courses/$courseId/enrollees";
+  courseId: string;
+  icon: typeof Layers;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <Link
+      to={to}
+      params={{ courseId }}
+      className="flex items-center gap-3 rounded-lg border border-border p-4 hover:border-primary"
+    >
+      <Icon className="h-5 w-5 text-muted-foreground" />
+      <div>
+        <div className="font-medium">{title}</div>
+        <div className="text-xs text-muted-foreground">{desc}</div>
+      </div>
+    </Link>
   );
 }
 
