@@ -105,3 +105,56 @@ test("operators: contains / empty / not_empty / numeric", () => {
     }),
   ).toBe(true);
 });
+
+test("every operator: ==, !=, contains, empty, not_empty, >, <", () => {
+  const r = (operator: string, value: string, current: string) =>
+    evaluateConditionalLogic(mk({ rules: [{ field: "f", operator, value }] }), { f: current });
+  expect(r("==", "x", "x")).toBe(true);
+  expect(r("==", "x", "y")).toBe(false);
+  expect(r("!=", "x", "y")).toBe(true);
+  expect(r("!=", "x", "x")).toBe(false);
+  expect(r("contains", "ell", "hello")).toBe(true);
+  expect(r("contains", "ELL", "hello")).toBe(false); // case-sensitive
+  expect(r("empty", "", "[]")).toBe(true);
+  expect(r("empty", "", "0")).toBe(false);
+  expect(r("not_empty", "", "0")).toBe(true);
+  expect(r("not_empty", "", "{}")).toBe(false);
+  expect(r(">", "5", "10")).toBe(true); // numeric, not lexical
+  expect(r("<", "5", "1")).toBe(true);
+});
+
+test("numeric coercion: empty<5 true, empty>0 false, non-numeric => false", () => {
+  const r = (operator: string, value: string, vm: Record<string, string>) =>
+    evaluateConditionalLogic(mk({ rules: [{ field: "f", operator, value }] }), vm);
+  expect(r("<", "5", {})).toBe(true); // Number("") = 0 < 5
+  expect(r(">", "0", {})).toBe(false); // 0 > 0
+  expect(r(">", "5", { f: "abc" })).toBe(false); // NaN compare, no throw
+});
+
+test("and+show requires all; or+show requires any", () => {
+  const rules = [
+    { field: "a", operator: "==", value: "1" },
+    { field: "b", operator: "==", value: "2" },
+  ];
+  expect(evaluateConditionalLogic(mk({ logic: "and", rules }), { a: "1", b: "2" })).toBe(true);
+  expect(evaluateConditionalLogic(mk({ logic: "and", rules }), { a: "1", b: "x" })).toBe(false);
+  expect(evaluateConditionalLogic(mk({ logic: "or", rules }), { a: "1", b: "x" })).toBe(true);
+});
+
+test("hide inverts and+/or combinations", () => {
+  const rules = [
+    { field: "a", operator: "==", value: "1" },
+    { field: "b", operator: "==", value: "2" },
+  ];
+  expect(evaluateConditionalLogic(mk({ action: "hide", logic: "and", rules }), { a: "1", b: "2" })).toBe(false);
+  expect(evaluateConditionalLogic(mk({ action: "hide", logic: "or", rules }), { a: "x", b: "x" })).toBe(true);
+});
+
+test("defaults: missing action => show, missing logic => and", () => {
+  const rules = [
+    { field: "a", operator: "==", value: "1" },
+    { field: "b", operator: "==", value: "2" },
+  ];
+  expect(evaluateConditionalLogic(mk({ rules }), { a: "1", b: "2" })).toBe(true);
+  expect(evaluateConditionalLogic(mk({ rules }), { a: "1", b: "x" })).toBe(false);
+});

@@ -103,6 +103,17 @@ export function validateFieldValue(
     case "user":
     case "group":
       return OK;
+    // Computed types (Form Calculation & Pricing System).
+    case "calculation":
+      // Read-only / server-computed: the submit mutation overwrites this value
+      // after authoritative recompute, and a computed field is never user-
+      // required. Accept whatever the client sent — it is discarded + replaced.
+      return OK;
+    case "product":
+      // Validate only the user-editable parts of a priced line (quantity /
+      // option), never the computed `lineTotal` (the server recomputes it). A
+      // blank/absent value is fine; a present value must be parseable JSON.
+      return validateProduct(value);
     // Layout types (no value)
     case "message":
     case "accordion":
@@ -294,6 +305,34 @@ function validateRepeater(value: string, settings: Record<string, unknown>): Val
     if (max > 0 && rows.length > max) return fail(`Add at most ${max} rows.`);
   } catch {
     return fail("Value must be valid JSON.");
+  }
+  return OK;
+}
+
+function validateProduct(value: string): ValidationResult {
+  // The user-editable payload for a product field is a small JSON object (e.g.
+  // `{ "quantity": 2, "option": "..." }`) or a bare quantity string. We never
+  // validate the computed `lineTotal`/`unitPrice` — the submit mutation derives
+  // those server-side. So: a numeric string is fine, and a JSON object is fine
+  // as long as any `quantity` it carries is a non-negative number.
+  const trimmed = value.trim();
+  if (trimmed === "") return OK;
+  const asNum = Number(trimmed);
+  if (!isNaN(asNum)) {
+    if (asNum < 0) return fail("Quantity cannot be negative.");
+    return OK;
+  }
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (typeof parsed !== "object" || parsed === null) {
+      return fail("Value must be a number or a JSON object.");
+    }
+    if ("quantity" in parsed) {
+      const q = Number((parsed as { quantity: unknown }).quantity);
+      if (isNaN(q) || q < 0) return fail("Quantity must be a non-negative number.");
+    }
+  } catch {
+    return fail("Value must be a number or valid JSON.");
   }
   return OK;
 }

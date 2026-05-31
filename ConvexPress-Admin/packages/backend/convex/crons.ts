@@ -443,4 +443,27 @@ crons.daily(
   internal.commerceReturns.storeCredit.expireExpired,
 );
 
+// ─── Forms Spam Security ──────────────────────────────────────────────────────
+// Sweep expired form_submission_attempts rows past the configured retention
+// horizon (default 10 windows). Processes up to 500 rows per invocation to stay
+// within mutation time limits. Added by: Form Spam & Submission Security System.
+crons.interval(
+  "forms-sweep-attempts",
+  { minutes: 10 },
+  internal.extensions.forms.spam.sweepAttempts,
+  {},
+);
+
+// ─── Forms Analytics ──────────────────────────────────────────────────────────
+// Daily sweep of stale `partial` submissions (idle > 24h) into the `abandoned`
+// funnel counter, once each (idempotent via a meta.abandonCounted marker).
+// Processes up to 100 rows per invocation. Minute 2:45 is free (2:30 = event
+// cleanup, 3:00 = tickets). Added by: Form Analytics & Export System.
+crons.daily(
+  "forms:sweep-abandoned-partials",
+  { hourUTC: 2, minuteUTC: 45 },
+  internal.extensions.forms.analytics.sweepAbandoned,
+  {},
+);
+
 export default crons;
