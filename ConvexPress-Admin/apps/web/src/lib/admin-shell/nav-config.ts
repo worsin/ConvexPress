@@ -17,6 +17,7 @@ import {
   Mail,
   Puzzle,
   BookOpen,
+  GraduationCap,
   TicketCheck,
   ChefHat,
   ArrowUpCircle,
@@ -89,6 +90,26 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
     children: [
       { id: "media-library", label: "Library", to: "/media", exact: true },
       { id: "media-new", label: "Add New", to: "/media/upload", isAddNew: true },
+    ],
+  },
+  {
+    id: "lms",
+    label: "Courses",
+    to: "/lms/courses",
+    icon: GraduationCap,
+    pluginId: "lms",
+    children: [
+      { id: "lms-courses", label: "All Courses", to: "/lms/courses", exact: true },
+      {
+        id: "lms-new",
+        label: "Add New Course",
+        to: "/lms/courses/new",
+        isAddNew: true,
+      },
+      { id: "lms-catalog", label: "Catalog", to: "/lms/catalog" },
+      { id: "lms-mylearning", label: "My Learning", to: "/lms/my-courses" },
+      { id: "lms-certificates", label: "Certificates", to: "/lms/certificates" },
+      { id: "lms-settings", label: "Settings", to: "/lms/settings" },
     ],
   },
   {

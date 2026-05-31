@@ -59,6 +59,7 @@ import { commerceWishlistsTables } from "./schema/commerceWishlists";
 import { commerceBundlesTables } from "./schema/commerceBundles";
 import { commerceReturnsTables } from "./schema/commerceReturns";
 import { productAttributesTables } from "./schema/productAttributes";
+import { lmsTables } from "./schema/lms";
 
 // ─── Compose Schema ──────────────────────────────────────────────────────────
 export default defineSchema({
@@ -110,6 +111,7 @@ export default defineSchema({
   ...commerceBundlesTables,
   ...commerceReturnsTables,
   ...productAttributesTables,
+  ...lmsTables,
 
   // ─── Extension v2 tables (discovered via codegen scanner) ────────────────
   // Merges both extensions/* (official) and extensions.local/* (user).

@@ -26,7 +26,8 @@ export type PluginId =
   | "tickets"
   | "customFields"
   | "recipes"
-  | "gallery";
+  | "gallery"
+  | "lms";
 
 /** Maps pluginId → the key in the `plugins` settings section. */
 export const PLUGIN_SETTINGS_KEY: Record<PluginId, string> = {
@@ -43,6 +44,7 @@ export const PLUGIN_SETTINGS_KEY: Record<PluginId, string> = {
   customFields: "customFieldsEnabled",
   recipes: "recipesEnabled",
   gallery: "galleryEnabled",
+  lms: "lmsEnabled",
 };
 
 /** Parent plugin dependency chain. Sub-extension inherits its parent's enablement. */
@@ -70,4 +72,5 @@ export const PLUGIN_DEFAULTS: Record<PluginId, boolean> = {
   customFields: true,
   recipes: true,
   gallery: true,
+  lms: true,
 };

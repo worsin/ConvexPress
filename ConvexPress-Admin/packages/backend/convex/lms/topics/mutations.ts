@@ -1,0 +1,34 @@
+/**
+ * Topic System - mutations (topic semantics on lms_nodes where kind="topic").
+ */
+
+import { ConvexError, v } from "convex/values";
+import { mutation } from "../../_generated/server";
+import { requireMinimumRoleLevel } from "../../helpers/permissions";
+import { requirePluginEnabled } from "../../helpers/plugins";
+import { lmsDripModeValidator } from "../../schema/lms";
+
+export const updateTopic = mutation({
+  args: {
+    nodeId: v.id("lms_nodes"),
+    description: v.optional(v.string()),
+    dripMode: v.optional(lmsDripModeValidator),
+    dripOffsetDays: v.optional(v.number()),
+    dripDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "lms");
+    await requireMinimumRoleLevel(ctx, 60);
+    const node = await ctx.db.get(args.nodeId);
+    if (!node || node.kind !== "topic") {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Not a topic" });
+    }
+    const patch: Record<string, unknown> = { updatedAt: Date.now() };
+    if (args.description !== undefined) patch.description = args.description;
+    if (args.dripMode !== undefined) patch.topicDripMode = args.dripMode;
+    if (args.dripOffsetDays !== undefined) patch.topicDripOffsetDays = args.dripOffsetDays;
+    if (args.dripDate !== undefined) patch.topicDripDate = args.dripDate;
+    await ctx.db.patch(args.nodeId, patch as never);
+    return args.nodeId;
+  },
+});

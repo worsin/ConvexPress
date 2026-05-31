@@ -22,6 +22,7 @@ import { Route as AuthenticatedAdminRecipesRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminProfileRouteImport } from './routes/_authenticated/_admin/profile'
 import { Route as AuthenticatedAdminPluginsRouteImport } from './routes/_authenticated/_admin/plugins'
 import { Route as AuthenticatedAdminMembershipRouteImport } from './routes/_authenticated/_admin/membership'
+import { Route as AuthenticatedAdminLmsRouteImport } from './routes/_authenticated/_admin/lms'
 import { Route as AuthenticatedAdminKbRouteImport } from './routes/_authenticated/_admin/kb'
 import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/_admin/gallery'
 import { Route as AuthenticatedAdminDashboardRouteImport } from './routes/_authenticated/_admin/dashboard'
@@ -41,6 +42,7 @@ import { Route as AuthenticatedAdminPagesIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminMenusIndexRouteImport } from './routes/_authenticated/_admin/menus/index'
 import { Route as AuthenticatedAdminMembershipIndexRouteImport } from './routes/_authenticated/_admin/membership/index'
 import { Route as AuthenticatedAdminMediaIndexRouteImport } from './routes/_authenticated/_admin/media/index'
+import { Route as AuthenticatedAdminLmsIndexRouteImport } from './routes/_authenticated/_admin/lms/index'
 import { Route as AuthenticatedAdminLayoutsIndexRouteImport } from './routes/_authenticated/_admin/layouts/index'
 import { Route as AuthenticatedAdminKbIndexRouteImport } from './routes/_authenticated/_admin/kb/index'
 import { Route as AuthenticatedAdminGalleryIndexRouteImport } from './routes/_authenticated/_admin/gallery/index'
@@ -94,6 +96,10 @@ import { Route as AuthenticatedAdminMenusLocationsRouteImport } from './routes/_
 import { Route as AuthenticatedAdminMembershipSettingsRouteImport } from './routes/_authenticated/_admin/membership/settings'
 import { Route as AuthenticatedAdminMembershipPlansRouteImport } from './routes/_authenticated/_admin/membership/plans'
 import { Route as AuthenticatedAdminMediaUploadRouteImport } from './routes/_authenticated/_admin/media/upload'
+import { Route as AuthenticatedAdminLmsVerifyRouteImport } from './routes/_authenticated/_admin/lms/verify'
+import { Route as AuthenticatedAdminLmsSettingsRouteImport } from './routes/_authenticated/_admin/lms/settings'
+import { Route as AuthenticatedAdminLmsMyCoursesRouteImport } from './routes/_authenticated/_admin/lms/my-courses'
+import { Route as AuthenticatedAdminLmsCatalogRouteImport } from './routes/_authenticated/_admin/lms/catalog'
 import { Route as AuthenticatedAdminLayoutsNewRouteImport } from './routes/_authenticated/_admin/layouts/new'
 import { Route as AuthenticatedAdminLayoutsAssignRouteImport } from './routes/_authenticated/_admin/layouts/assign'
 import { Route as AuthenticatedAdminLayoutsLayoutIdRouteImport } from './routes/_authenticated/_admin/layouts/$layoutId'
@@ -143,6 +149,8 @@ import { Route as AuthenticatedAdminToolsRedirectsIndexRouteImport } from './rou
 import { Route as AuthenticatedAdminToolsAuditLogIndexRouteImport } from './routes/_authenticated/_admin/tools/audit-log/index'
 import { Route as AuthenticatedAdminMembershipRestrictionsIndexRouteImport } from './routes/_authenticated/_admin/membership/restrictions/index'
 import { Route as AuthenticatedAdminMembershipGrantsIndexRouteImport } from './routes/_authenticated/_admin/membership/grants/index'
+import { Route as AuthenticatedAdminLmsCoursesIndexRouteImport } from './routes/_authenticated/_admin/lms/courses/index'
+import { Route as AuthenticatedAdminLmsCertificatesIndexRouteImport } from './routes/_authenticated/_admin/lms/certificates/index'
 import { Route as AuthenticatedAdminCommerceSubscriptionsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/index'
 import { Route as AuthenticatedAdminUsersUserIdEditRouteImport } from './routes/_authenticated/_admin/users/$userId/edit'
 import { Route as AuthenticatedAdminToolsRedirectsNewRouteImport } from './routes/_authenticated/_admin/tools/redirects/new'
@@ -170,6 +178,8 @@ import { Route as AuthenticatedAdminMembershipRestrictionsNewRouteImport } from 
 import { Route as AuthenticatedAdminMembershipGrantsNewRouteImport } from './routes/_authenticated/_admin/membership/grants/new'
 import { Route as AuthenticatedAdminMembershipGrantsGrantIdRouteImport } from './routes/_authenticated/_admin/membership/grants/$grantId'
 import { Route as AuthenticatedAdminMediaMediaIdEditRouteImport } from './routes/_authenticated/_admin/media/$mediaId/edit'
+import { Route as AuthenticatedAdminLmsLearnCourseIdRouteImport } from './routes/_authenticated/_admin/lms/learn/$courseId'
+import { Route as AuthenticatedAdminLmsCoursesNewRouteImport } from './routes/_authenticated/_admin/lms/courses/new'
 import { Route as AuthenticatedAdminKbArticleIdEditRouteImport } from './routes/_authenticated/_admin/kb/$articleId/edit'
 import { Route as AuthenticatedAdminGalleryAlbumIdEditRouteImport } from './routes/_authenticated/_admin/gallery/$albumId/edit'
 import { Route as AuthenticatedAdminCustomFieldsGroupIdEditRouteImport } from './routes/_authenticated/_admin/custom-fields/$groupId/edit'
@@ -190,6 +200,7 @@ import { Route as AuthenticatedAdminCommerceAttributesAttributeIdRouteImport } f
 import { Route as AuthenticatedAdminCommentsCommentIdEditRouteImport } from './routes/_authenticated/_admin/comments/$commentId/edit'
 import { Route as AuthenticatedAdminToolsWordpressSyncSiteIdIndexRouteImport } from './routes/_authenticated/_admin/tools/wordpress-sync/$siteId/index'
 import { Route as AuthenticatedAdminToolsWebsiteImportSiteIdIndexRouteImport } from './routes/_authenticated/_admin/tools/website-import/$siteId/index'
+import { Route as AuthenticatedAdminLmsCoursesCourseIdIndexRouteImport } from './routes/_authenticated/_admin/lms/courses/$courseId/index'
 import { Route as AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/templates/index'
 import { Route as AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/order-forms/index'
 import { Route as AuthenticatedAdminCommerceSubscriptionsOffersIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/offers/index'
@@ -207,6 +218,9 @@ import { Route as AuthenticatedAdminSettingsEmailTemplatesTemplateSlugRouteImpor
 import { Route as AuthenticatedAdminSettingsEmailQueueQueueIdRouteImport } from './routes/_authenticated/_admin/settings/email_/queue.$queueId'
 import { Route as AuthenticatedAdminMembershipRestrictionsRuleIdEditRouteImport } from './routes/_authenticated/_admin/membership/restrictions/$ruleId/edit'
 import { Route as AuthenticatedAdminMembershipPlansPlanIdEditRouteImport } from './routes/_authenticated/_admin/membership/plans/$planId/edit'
+import { Route as AuthenticatedAdminLmsCoursesCourseIdGenerateRouteImport } from './routes/_authenticated/_admin/lms/courses/$courseId/generate'
+import { Route as AuthenticatedAdminLmsCoursesCourseIdEnrolleesRouteImport } from './routes/_authenticated/_admin/lms/courses/$courseId/enrollees'
+import { Route as AuthenticatedAdminLmsCoursesCourseIdBuilderRouteImport } from './routes/_authenticated/_admin/lms/courses/$courseId/builder'
 import { Route as AuthenticatedAdminCommerceSubscriptionsTemplatesNewRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/templates/new'
 import { Route as AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/order-forms/new'
 import { Route as AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/order-forms/$formId'
@@ -223,6 +237,8 @@ import { Route as AuthenticatedAdminCommerceSettingsShippingPackagesRouteImport 
 import { Route as AuthenticatedAdminCommerceSettingsShippingLocationsRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.locations'
 import { Route as AuthenticatedAdminCommerceSettingsShippingClassesRouteImport } from './routes/_authenticated/_admin/commerce/settings.shipping.classes'
 import { Route as AuthenticatedAdminCommerceCustomersUserIdStoreCreditRouteImport } from './routes/_authenticated/_admin/commerce/customers.$userId.store-credit'
+import { Route as AuthenticatedAdminLmsCoursesCourseIdTopicsNodeIdRouteImport } from './routes/_authenticated/_admin/lms/courses/$courseId/topics/$nodeId'
+import { Route as AuthenticatedAdminLmsCoursesCourseIdLessonsNodeIdRouteImport } from './routes/_authenticated/_admin/lms/courses/$courseId/lessons/$nodeId'
 import { Route as AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/templates/$templateId/edit'
 import { Route as AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/offers/$offerId/edit'
 import { Route as AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/coupons/$couponId/edit'
@@ -300,6 +316,11 @@ const AuthenticatedAdminMembershipRoute =
     path: '/membership',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminLmsRoute = AuthenticatedAdminLmsRouteImport.update({
+  id: '/lms',
+  path: '/lms',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminKbRoute = AuthenticatedAdminKbRouteImport.update({
   id: '/kb',
   path: '/kb',
@@ -416,6 +437,12 @@ const AuthenticatedAdminMediaIndexRoute =
     id: '/media/',
     path: '/media/',
     getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminLmsIndexRoute =
+  AuthenticatedAdminLmsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
   } as any)
 const AuthenticatedAdminLayoutsIndexRoute =
   AuthenticatedAdminLayoutsIndexRouteImport.update({
@@ -743,6 +770,30 @@ const AuthenticatedAdminMediaUploadRoute =
     path: '/media/upload',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminLmsVerifyRoute =
+  AuthenticatedAdminLmsVerifyRouteImport.update({
+    id: '/verify',
+    path: '/verify',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
+const AuthenticatedAdminLmsSettingsRoute =
+  AuthenticatedAdminLmsSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
+const AuthenticatedAdminLmsMyCoursesRoute =
+  AuthenticatedAdminLmsMyCoursesRouteImport.update({
+    id: '/my-courses',
+    path: '/my-courses',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
+const AuthenticatedAdminLmsCatalogRoute =
+  AuthenticatedAdminLmsCatalogRouteImport.update({
+    id: '/catalog',
+    path: '/catalog',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
 const AuthenticatedAdminLayoutsNewRoute =
   AuthenticatedAdminLayoutsNewRouteImport.update({
     id: '/layouts/new',
@@ -1036,6 +1087,18 @@ const AuthenticatedAdminMembershipGrantsIndexRoute =
     path: '/grants/',
     getParentRoute: () => AuthenticatedAdminMembershipRoute,
   } as any)
+const AuthenticatedAdminLmsCoursesIndexRoute =
+  AuthenticatedAdminLmsCoursesIndexRouteImport.update({
+    id: '/courses/',
+    path: '/courses/',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
+const AuthenticatedAdminLmsCertificatesIndexRoute =
+  AuthenticatedAdminLmsCertificatesIndexRouteImport.update({
+    id: '/certificates/',
+    path: '/certificates/',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
 const AuthenticatedAdminCommerceSubscriptionsIndexRoute =
   AuthenticatedAdminCommerceSubscriptionsIndexRouteImport.update({
     id: '/',
@@ -1234,6 +1297,18 @@ const AuthenticatedAdminMediaMediaIdEditRoute =
     path: '/media/$mediaId/edit',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminLmsLearnCourseIdRoute =
+  AuthenticatedAdminLmsLearnCourseIdRouteImport.update({
+    id: '/learn/$courseId',
+    path: '/learn/$courseId',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
+const AuthenticatedAdminLmsCoursesNewRoute =
+  AuthenticatedAdminLmsCoursesNewRouteImport.update({
+    id: '/courses/new',
+    path: '/courses/new',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
 const AuthenticatedAdminKbArticleIdEditRoute =
   AuthenticatedAdminKbArticleIdEditRouteImport.update({
     id: '/edit',
@@ -1358,6 +1433,12 @@ const AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute =
     path: '/website-import/$siteId/',
     getParentRoute: () => AuthenticatedAdminToolsRoute,
   } as any)
+const AuthenticatedAdminLmsCoursesCourseIdIndexRoute =
+  AuthenticatedAdminLmsCoursesCourseIdIndexRouteImport.update({
+    id: '/courses/$courseId/',
+    path: '/courses/$courseId/',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
 const AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute =
   AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRouteImport.update({
     id: '/templates/',
@@ -1462,6 +1543,24 @@ const AuthenticatedAdminMembershipPlansPlanIdEditRoute =
     path: '/$planId/edit',
     getParentRoute: () => AuthenticatedAdminMembershipPlansRoute,
   } as any)
+const AuthenticatedAdminLmsCoursesCourseIdGenerateRoute =
+  AuthenticatedAdminLmsCoursesCourseIdGenerateRouteImport.update({
+    id: '/courses/$courseId/generate',
+    path: '/courses/$courseId/generate',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
+const AuthenticatedAdminLmsCoursesCourseIdEnrolleesRoute =
+  AuthenticatedAdminLmsCoursesCourseIdEnrolleesRouteImport.update({
+    id: '/courses/$courseId/enrollees',
+    path: '/courses/$courseId/enrollees',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
+const AuthenticatedAdminLmsCoursesCourseIdBuilderRoute =
+  AuthenticatedAdminLmsCoursesCourseIdBuilderRouteImport.update({
+    id: '/courses/$courseId/builder',
+    path: '/courses/$courseId/builder',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
 const AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute =
   AuthenticatedAdminCommerceSubscriptionsTemplatesNewRouteImport.update({
     id: '/templates/new',
@@ -1560,6 +1659,18 @@ const AuthenticatedAdminCommerceCustomersUserIdStoreCreditRoute =
     path: '/$userId/store-credit',
     getParentRoute: () => AuthenticatedAdminCommerceCustomersRoute,
   } as any)
+const AuthenticatedAdminLmsCoursesCourseIdTopicsNodeIdRoute =
+  AuthenticatedAdminLmsCoursesCourseIdTopicsNodeIdRouteImport.update({
+    id: '/courses/$courseId/topics/$nodeId',
+    path: '/courses/$courseId/topics/$nodeId',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
+const AuthenticatedAdminLmsCoursesCourseIdLessonsNodeIdRoute =
+  AuthenticatedAdminLmsCoursesCourseIdLessonsNodeIdRouteImport.update({
+    id: '/courses/$courseId/lessons/$nodeId',
+    path: '/courses/$courseId/lessons/$nodeId',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
 const AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRoute =
   AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRouteImport.update(
     {
@@ -1604,6 +1715,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/gallery': typeof AuthenticatedAdminGalleryRouteWithChildren
   '/kb': typeof AuthenticatedAdminKbRouteWithChildren
+  '/lms': typeof AuthenticatedAdminLmsRouteWithChildren
   '/membership': typeof AuthenticatedAdminMembershipRouteWithChildren
   '/plugins': typeof AuthenticatedAdminPluginsRoute
   '/profile': typeof AuthenticatedAdminProfileRoute
@@ -1657,6 +1769,10 @@ export interface FileRoutesByFullPath {
   '/layouts/$layoutId': typeof AuthenticatedAdminLayoutsLayoutIdRoute
   '/layouts/assign': typeof AuthenticatedAdminLayoutsAssignRoute
   '/layouts/new': typeof AuthenticatedAdminLayoutsNewRoute
+  '/lms/catalog': typeof AuthenticatedAdminLmsCatalogRoute
+  '/lms/my-courses': typeof AuthenticatedAdminLmsMyCoursesRoute
+  '/lms/settings': typeof AuthenticatedAdminLmsSettingsRoute
+  '/lms/verify': typeof AuthenticatedAdminLmsVerifyRoute
   '/media/upload': typeof AuthenticatedAdminMediaUploadRoute
   '/membership/plans': typeof AuthenticatedAdminMembershipPlansRouteWithChildren
   '/membership/settings': typeof AuthenticatedAdminMembershipSettingsRoute
@@ -1710,6 +1826,7 @@ export interface FileRoutesByFullPath {
   '/gallery/': typeof AuthenticatedAdminGalleryIndexRoute
   '/kb/': typeof AuthenticatedAdminKbIndexRoute
   '/layouts/': typeof AuthenticatedAdminLayoutsIndexRoute
+  '/lms/': typeof AuthenticatedAdminLmsIndexRoute
   '/media/': typeof AuthenticatedAdminMediaIndexRoute
   '/membership/': typeof AuthenticatedAdminMembershipIndexRoute
   '/menus/': typeof AuthenticatedAdminMenusIndexRoute
@@ -1741,6 +1858,8 @@ export interface FileRoutesByFullPath {
   '/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
   '/gallery/$albumId/edit': typeof AuthenticatedAdminGalleryAlbumIdEditRoute
   '/kb/$articleId/edit': typeof AuthenticatedAdminKbArticleIdEditRoute
+  '/lms/courses/new': typeof AuthenticatedAdminLmsCoursesNewRoute
+  '/lms/learn/$courseId': typeof AuthenticatedAdminLmsLearnCourseIdRoute
   '/media/$mediaId/edit': typeof AuthenticatedAdminMediaMediaIdEditRoute
   '/membership/grants/$grantId': typeof AuthenticatedAdminMembershipGrantsGrantIdRoute
   '/membership/grants/new': typeof AuthenticatedAdminMembershipGrantsNewRoute
@@ -1768,6 +1887,8 @@ export interface FileRoutesByFullPath {
   '/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
   '/commerce/subscriptions/': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
+  '/lms/certificates/': typeof AuthenticatedAdminLmsCertificatesIndexRoute
+  '/lms/courses/': typeof AuthenticatedAdminLmsCoursesIndexRoute
   '/membership/grants/': typeof AuthenticatedAdminMembershipGrantsIndexRoute
   '/membership/restrictions/': typeof AuthenticatedAdminMembershipRestrictionsIndexRoute
   '/tools/audit-log/': typeof AuthenticatedAdminToolsAuditLogIndexRoute
@@ -1790,6 +1911,9 @@ export interface FileRoutesByFullPath {
   '/commerce/subscriptions/order-forms/$formId': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute
   '/commerce/subscriptions/order-forms/new': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute
   '/commerce/subscriptions/templates/new': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute
+  '/lms/courses/$courseId/builder': typeof AuthenticatedAdminLmsCoursesCourseIdBuilderRoute
+  '/lms/courses/$courseId/enrollees': typeof AuthenticatedAdminLmsCoursesCourseIdEnrolleesRoute
+  '/lms/courses/$courseId/generate': typeof AuthenticatedAdminLmsCoursesCourseIdGenerateRoute
   '/membership/plans/$planId/edit': typeof AuthenticatedAdminMembershipPlansPlanIdEditRoute
   '/membership/restrictions/$ruleId/edit': typeof AuthenticatedAdminMembershipRestrictionsRuleIdEditRoute
   '/settings/email/queue/$queueId': typeof AuthenticatedAdminSettingsEmailQueueQueueIdRoute
@@ -1807,12 +1931,15 @@ export interface FileRoutesByFullPath {
   '/commerce/subscriptions/offers/': typeof AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute
   '/commerce/subscriptions/order-forms/': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute
   '/commerce/subscriptions/templates/': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute
+  '/lms/courses/$courseId/': typeof AuthenticatedAdminLmsCoursesCourseIdIndexRoute
   '/tools/website-import/$siteId/': typeof AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute
   '/tools/wordpress-sync/$siteId/': typeof AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute
   '/commerce/settings/shipping/zones/$zoneId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteWithChildren
   '/commerce/subscriptions/coupons/$couponId/edit': typeof AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute
   '/commerce/subscriptions/offers/$offerId/edit': typeof AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRoute
   '/commerce/subscriptions/templates/$templateId/edit': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRoute
+  '/lms/courses/$courseId/lessons/$nodeId': typeof AuthenticatedAdminLmsCoursesCourseIdLessonsNodeIdRoute
+  '/lms/courses/$courseId/topics/$nodeId': typeof AuthenticatedAdminLmsCoursesCourseIdTopicsNodeIdRoute
   '/commerce/settings/shipping/zones/$zoneId/methods/$methodType/$methodId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute
 }
 export interface FileRoutesByTo {
@@ -1864,6 +1991,10 @@ export interface FileRoutesByTo {
   '/layouts/$layoutId': typeof AuthenticatedAdminLayoutsLayoutIdRoute
   '/layouts/assign': typeof AuthenticatedAdminLayoutsAssignRoute
   '/layouts/new': typeof AuthenticatedAdminLayoutsNewRoute
+  '/lms/catalog': typeof AuthenticatedAdminLmsCatalogRoute
+  '/lms/my-courses': typeof AuthenticatedAdminLmsMyCoursesRoute
+  '/lms/settings': typeof AuthenticatedAdminLmsSettingsRoute
+  '/lms/verify': typeof AuthenticatedAdminLmsVerifyRoute
   '/media/upload': typeof AuthenticatedAdminMediaUploadRoute
   '/membership/plans': typeof AuthenticatedAdminMembershipPlansRouteWithChildren
   '/membership/settings': typeof AuthenticatedAdminMembershipSettingsRoute
@@ -1917,6 +2048,7 @@ export interface FileRoutesByTo {
   '/gallery': typeof AuthenticatedAdminGalleryIndexRoute
   '/kb': typeof AuthenticatedAdminKbIndexRoute
   '/layouts': typeof AuthenticatedAdminLayoutsIndexRoute
+  '/lms': typeof AuthenticatedAdminLmsIndexRoute
   '/media': typeof AuthenticatedAdminMediaIndexRoute
   '/membership': typeof AuthenticatedAdminMembershipIndexRoute
   '/menus': typeof AuthenticatedAdminMenusIndexRoute
@@ -1948,6 +2080,8 @@ export interface FileRoutesByTo {
   '/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
   '/gallery/$albumId/edit': typeof AuthenticatedAdminGalleryAlbumIdEditRoute
   '/kb/$articleId/edit': typeof AuthenticatedAdminKbArticleIdEditRoute
+  '/lms/courses/new': typeof AuthenticatedAdminLmsCoursesNewRoute
+  '/lms/learn/$courseId': typeof AuthenticatedAdminLmsLearnCourseIdRoute
   '/media/$mediaId/edit': typeof AuthenticatedAdminMediaMediaIdEditRoute
   '/membership/grants/$grantId': typeof AuthenticatedAdminMembershipGrantsGrantIdRoute
   '/membership/grants/new': typeof AuthenticatedAdminMembershipGrantsNewRoute
@@ -1975,6 +2109,8 @@ export interface FileRoutesByTo {
   '/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
   '/commerce/subscriptions': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
+  '/lms/certificates': typeof AuthenticatedAdminLmsCertificatesIndexRoute
+  '/lms/courses': typeof AuthenticatedAdminLmsCoursesIndexRoute
   '/membership/grants': typeof AuthenticatedAdminMembershipGrantsIndexRoute
   '/membership/restrictions': typeof AuthenticatedAdminMembershipRestrictionsIndexRoute
   '/tools/audit-log': typeof AuthenticatedAdminToolsAuditLogIndexRoute
@@ -1997,6 +2133,9 @@ export interface FileRoutesByTo {
   '/commerce/subscriptions/order-forms/$formId': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute
   '/commerce/subscriptions/order-forms/new': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute
   '/commerce/subscriptions/templates/new': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute
+  '/lms/courses/$courseId/builder': typeof AuthenticatedAdminLmsCoursesCourseIdBuilderRoute
+  '/lms/courses/$courseId/enrollees': typeof AuthenticatedAdminLmsCoursesCourseIdEnrolleesRoute
+  '/lms/courses/$courseId/generate': typeof AuthenticatedAdminLmsCoursesCourseIdGenerateRoute
   '/membership/plans/$planId/edit': typeof AuthenticatedAdminMembershipPlansPlanIdEditRoute
   '/membership/restrictions/$ruleId/edit': typeof AuthenticatedAdminMembershipRestrictionsRuleIdEditRoute
   '/settings/email/queue/$queueId': typeof AuthenticatedAdminSettingsEmailQueueQueueIdRoute
@@ -2014,12 +2153,15 @@ export interface FileRoutesByTo {
   '/commerce/subscriptions/offers': typeof AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute
   '/commerce/subscriptions/order-forms': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute
   '/commerce/subscriptions/templates': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute
+  '/lms/courses/$courseId': typeof AuthenticatedAdminLmsCoursesCourseIdIndexRoute
   '/tools/website-import/$siteId': typeof AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute
   '/tools/wordpress-sync/$siteId': typeof AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute
   '/commerce/settings/shipping/zones/$zoneId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteWithChildren
   '/commerce/subscriptions/coupons/$couponId/edit': typeof AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute
   '/commerce/subscriptions/offers/$offerId/edit': typeof AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRoute
   '/commerce/subscriptions/templates/$templateId/edit': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRoute
+  '/lms/courses/$courseId/lessons/$nodeId': typeof AuthenticatedAdminLmsCoursesCourseIdLessonsNodeIdRoute
+  '/lms/courses/$courseId/topics/$nodeId': typeof AuthenticatedAdminLmsCoursesCourseIdTopicsNodeIdRoute
   '/commerce/settings/shipping/zones/$zoneId/methods/$methodType/$methodId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute
 }
 export interface FileRoutesById {
@@ -2033,6 +2175,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/_authenticated/_admin/gallery': typeof AuthenticatedAdminGalleryRouteWithChildren
   '/_authenticated/_admin/kb': typeof AuthenticatedAdminKbRouteWithChildren
+  '/_authenticated/_admin/lms': typeof AuthenticatedAdminLmsRouteWithChildren
   '/_authenticated/_admin/membership': typeof AuthenticatedAdminMembershipRouteWithChildren
   '/_authenticated/_admin/plugins': typeof AuthenticatedAdminPluginsRoute
   '/_authenticated/_admin/profile': typeof AuthenticatedAdminProfileRoute
@@ -2086,6 +2229,10 @@ export interface FileRoutesById {
   '/_authenticated/_admin/layouts/$layoutId': typeof AuthenticatedAdminLayoutsLayoutIdRoute
   '/_authenticated/_admin/layouts/assign': typeof AuthenticatedAdminLayoutsAssignRoute
   '/_authenticated/_admin/layouts/new': typeof AuthenticatedAdminLayoutsNewRoute
+  '/_authenticated/_admin/lms/catalog': typeof AuthenticatedAdminLmsCatalogRoute
+  '/_authenticated/_admin/lms/my-courses': typeof AuthenticatedAdminLmsMyCoursesRoute
+  '/_authenticated/_admin/lms/settings': typeof AuthenticatedAdminLmsSettingsRoute
+  '/_authenticated/_admin/lms/verify': typeof AuthenticatedAdminLmsVerifyRoute
   '/_authenticated/_admin/media/upload': typeof AuthenticatedAdminMediaUploadRoute
   '/_authenticated/_admin/membership/plans': typeof AuthenticatedAdminMembershipPlansRouteWithChildren
   '/_authenticated/_admin/membership/settings': typeof AuthenticatedAdminMembershipSettingsRoute
@@ -2139,6 +2286,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/gallery/': typeof AuthenticatedAdminGalleryIndexRoute
   '/_authenticated/_admin/kb/': typeof AuthenticatedAdminKbIndexRoute
   '/_authenticated/_admin/layouts/': typeof AuthenticatedAdminLayoutsIndexRoute
+  '/_authenticated/_admin/lms/': typeof AuthenticatedAdminLmsIndexRoute
   '/_authenticated/_admin/media/': typeof AuthenticatedAdminMediaIndexRoute
   '/_authenticated/_admin/membership/': typeof AuthenticatedAdminMembershipIndexRoute
   '/_authenticated/_admin/menus/': typeof AuthenticatedAdminMenusIndexRoute
@@ -2170,6 +2318,8 @@ export interface FileRoutesById {
   '/_authenticated/_admin/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
   '/_authenticated/_admin/gallery/$albumId/edit': typeof AuthenticatedAdminGalleryAlbumIdEditRoute
   '/_authenticated/_admin/kb/$articleId/edit': typeof AuthenticatedAdminKbArticleIdEditRoute
+  '/_authenticated/_admin/lms/courses/new': typeof AuthenticatedAdminLmsCoursesNewRoute
+  '/_authenticated/_admin/lms/learn/$courseId': typeof AuthenticatedAdminLmsLearnCourseIdRoute
   '/_authenticated/_admin/media/$mediaId/edit': typeof AuthenticatedAdminMediaMediaIdEditRoute
   '/_authenticated/_admin/membership/grants/$grantId': typeof AuthenticatedAdminMembershipGrantsGrantIdRoute
   '/_authenticated/_admin/membership/grants/new': typeof AuthenticatedAdminMembershipGrantsNewRoute
@@ -2197,6 +2347,8 @@ export interface FileRoutesById {
   '/_authenticated/_admin/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/_authenticated/_admin/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
   '/_authenticated/_admin/commerce/subscriptions/': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
+  '/_authenticated/_admin/lms/certificates/': typeof AuthenticatedAdminLmsCertificatesIndexRoute
+  '/_authenticated/_admin/lms/courses/': typeof AuthenticatedAdminLmsCoursesIndexRoute
   '/_authenticated/_admin/membership/grants/': typeof AuthenticatedAdminMembershipGrantsIndexRoute
   '/_authenticated/_admin/membership/restrictions/': typeof AuthenticatedAdminMembershipRestrictionsIndexRoute
   '/_authenticated/_admin/tools/audit-log/': typeof AuthenticatedAdminToolsAuditLogIndexRoute
@@ -2219,6 +2371,9 @@ export interface FileRoutesById {
   '/_authenticated/_admin/commerce/subscriptions/order-forms/$formId': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsFormIdRoute
   '/_authenticated/_admin/commerce/subscriptions/order-forms/new': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsNewRoute
   '/_authenticated/_admin/commerce/subscriptions/templates/new': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesNewRoute
+  '/_authenticated/_admin/lms/courses/$courseId/builder': typeof AuthenticatedAdminLmsCoursesCourseIdBuilderRoute
+  '/_authenticated/_admin/lms/courses/$courseId/enrollees': typeof AuthenticatedAdminLmsCoursesCourseIdEnrolleesRoute
+  '/_authenticated/_admin/lms/courses/$courseId/generate': typeof AuthenticatedAdminLmsCoursesCourseIdGenerateRoute
   '/_authenticated/_admin/membership/plans/$planId/edit': typeof AuthenticatedAdminMembershipPlansPlanIdEditRoute
   '/_authenticated/_admin/membership/restrictions/$ruleId/edit': typeof AuthenticatedAdminMembershipRestrictionsRuleIdEditRoute
   '/_authenticated/_admin/settings/email_/queue/$queueId': typeof AuthenticatedAdminSettingsEmailQueueQueueIdRoute
@@ -2236,12 +2391,15 @@ export interface FileRoutesById {
   '/_authenticated/_admin/commerce/subscriptions/offers/': typeof AuthenticatedAdminCommerceSubscriptionsOffersIndexRoute
   '/_authenticated/_admin/commerce/subscriptions/order-forms/': typeof AuthenticatedAdminCommerceSubscriptionsOrderFormsIndexRoute
   '/_authenticated/_admin/commerce/subscriptions/templates/': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesIndexRoute
+  '/_authenticated/_admin/lms/courses/$courseId/': typeof AuthenticatedAdminLmsCoursesCourseIdIndexRoute
   '/_authenticated/_admin/tools/website-import/$siteId/': typeof AuthenticatedAdminToolsWebsiteImportSiteIdIndexRoute
   '/_authenticated/_admin/tools/wordpress-sync/$siteId/': typeof AuthenticatedAdminToolsWordpressSyncSiteIdIndexRoute
   '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdRouteWithChildren
   '/_authenticated/_admin/commerce/subscriptions/coupons/$couponId/edit': typeof AuthenticatedAdminCommerceSubscriptionsCouponsCouponIdEditRoute
   '/_authenticated/_admin/commerce/subscriptions/offers/$offerId/edit': typeof AuthenticatedAdminCommerceSubscriptionsOffersOfferIdEditRoute
   '/_authenticated/_admin/commerce/subscriptions/templates/$templateId/edit': typeof AuthenticatedAdminCommerceSubscriptionsTemplatesTemplateIdEditRoute
+  '/_authenticated/_admin/lms/courses/$courseId/lessons/$nodeId': typeof AuthenticatedAdminLmsCoursesCourseIdLessonsNodeIdRoute
+  '/_authenticated/_admin/lms/courses/$courseId/topics/$nodeId': typeof AuthenticatedAdminLmsCoursesCourseIdTopicsNodeIdRoute
   '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId/methods_/$methodType/$methodId': typeof AuthenticatedAdminCommerceSettingsShippingZonesZoneIdMethodsMethodTypeMethodIdRoute
 }
 export interface FileRouteTypes {
@@ -2254,6 +2412,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/gallery'
     | '/kb'
+    | '/lms'
     | '/membership'
     | '/plugins'
     | '/profile'
@@ -2307,6 +2466,10 @@ export interface FileRouteTypes {
     | '/layouts/$layoutId'
     | '/layouts/assign'
     | '/layouts/new'
+    | '/lms/catalog'
+    | '/lms/my-courses'
+    | '/lms/settings'
+    | '/lms/verify'
     | '/media/upload'
     | '/membership/plans'
     | '/membership/settings'
@@ -2360,6 +2523,7 @@ export interface FileRouteTypes {
     | '/gallery/'
     | '/kb/'
     | '/layouts/'
+    | '/lms/'
     | '/media/'
     | '/membership/'
     | '/menus/'
@@ -2391,6 +2555,8 @@ export interface FileRouteTypes {
     | '/custom-fields/$groupId/edit'
     | '/gallery/$albumId/edit'
     | '/kb/$articleId/edit'
+    | '/lms/courses/new'
+    | '/lms/learn/$courseId'
     | '/media/$mediaId/edit'
     | '/membership/grants/$grantId'
     | '/membership/grants/new'
@@ -2418,6 +2584,8 @@ export interface FileRouteTypes {
     | '/tools/redirects/new'
     | '/users/$userId/edit'
     | '/commerce/subscriptions/'
+    | '/lms/certificates/'
+    | '/lms/courses/'
     | '/membership/grants/'
     | '/membership/restrictions/'
     | '/tools/audit-log/'
@@ -2440,6 +2608,9 @@ export interface FileRouteTypes {
     | '/commerce/subscriptions/order-forms/$formId'
     | '/commerce/subscriptions/order-forms/new'
     | '/commerce/subscriptions/templates/new'
+    | '/lms/courses/$courseId/builder'
+    | '/lms/courses/$courseId/enrollees'
+    | '/lms/courses/$courseId/generate'
     | '/membership/plans/$planId/edit'
     | '/membership/restrictions/$ruleId/edit'
     | '/settings/email/queue/$queueId'
@@ -2457,12 +2628,15 @@ export interface FileRouteTypes {
     | '/commerce/subscriptions/offers/'
     | '/commerce/subscriptions/order-forms/'
     | '/commerce/subscriptions/templates/'
+    | '/lms/courses/$courseId/'
     | '/tools/website-import/$siteId/'
     | '/tools/wordpress-sync/$siteId/'
     | '/commerce/settings/shipping/zones/$zoneId'
     | '/commerce/subscriptions/coupons/$couponId/edit'
     | '/commerce/subscriptions/offers/$offerId/edit'
     | '/commerce/subscriptions/templates/$templateId/edit'
+    | '/lms/courses/$courseId/lessons/$nodeId'
+    | '/lms/courses/$courseId/topics/$nodeId'
     | '/commerce/settings/shipping/zones/$zoneId/methods/$methodType/$methodId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -2514,6 +2688,10 @@ export interface FileRouteTypes {
     | '/layouts/$layoutId'
     | '/layouts/assign'
     | '/layouts/new'
+    | '/lms/catalog'
+    | '/lms/my-courses'
+    | '/lms/settings'
+    | '/lms/verify'
     | '/media/upload'
     | '/membership/plans'
     | '/membership/settings'
@@ -2567,6 +2745,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/kb'
     | '/layouts'
+    | '/lms'
     | '/media'
     | '/membership'
     | '/menus'
@@ -2598,6 +2777,8 @@ export interface FileRouteTypes {
     | '/custom-fields/$groupId/edit'
     | '/gallery/$albumId/edit'
     | '/kb/$articleId/edit'
+    | '/lms/courses/new'
+    | '/lms/learn/$courseId'
     | '/media/$mediaId/edit'
     | '/membership/grants/$grantId'
     | '/membership/grants/new'
@@ -2625,6 +2806,8 @@ export interface FileRouteTypes {
     | '/tools/redirects/new'
     | '/users/$userId/edit'
     | '/commerce/subscriptions'
+    | '/lms/certificates'
+    | '/lms/courses'
     | '/membership/grants'
     | '/membership/restrictions'
     | '/tools/audit-log'
@@ -2647,6 +2830,9 @@ export interface FileRouteTypes {
     | '/commerce/subscriptions/order-forms/$formId'
     | '/commerce/subscriptions/order-forms/new'
     | '/commerce/subscriptions/templates/new'
+    | '/lms/courses/$courseId/builder'
+    | '/lms/courses/$courseId/enrollees'
+    | '/lms/courses/$courseId/generate'
     | '/membership/plans/$planId/edit'
     | '/membership/restrictions/$ruleId/edit'
     | '/settings/email/queue/$queueId'
@@ -2664,12 +2850,15 @@ export interface FileRouteTypes {
     | '/commerce/subscriptions/offers'
     | '/commerce/subscriptions/order-forms'
     | '/commerce/subscriptions/templates'
+    | '/lms/courses/$courseId'
     | '/tools/website-import/$siteId'
     | '/tools/wordpress-sync/$siteId'
     | '/commerce/settings/shipping/zones/$zoneId'
     | '/commerce/subscriptions/coupons/$couponId/edit'
     | '/commerce/subscriptions/offers/$offerId/edit'
     | '/commerce/subscriptions/templates/$templateId/edit'
+    | '/lms/courses/$courseId/lessons/$nodeId'
+    | '/lms/courses/$courseId/topics/$nodeId'
     | '/commerce/settings/shipping/zones/$zoneId/methods/$methodType/$methodId'
   id:
     | '__root__'
@@ -2682,6 +2871,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/dashboard'
     | '/_authenticated/_admin/gallery'
     | '/_authenticated/_admin/kb'
+    | '/_authenticated/_admin/lms'
     | '/_authenticated/_admin/membership'
     | '/_authenticated/_admin/plugins'
     | '/_authenticated/_admin/profile'
@@ -2735,6 +2925,10 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/layouts/$layoutId'
     | '/_authenticated/_admin/layouts/assign'
     | '/_authenticated/_admin/layouts/new'
+    | '/_authenticated/_admin/lms/catalog'
+    | '/_authenticated/_admin/lms/my-courses'
+    | '/_authenticated/_admin/lms/settings'
+    | '/_authenticated/_admin/lms/verify'
     | '/_authenticated/_admin/media/upload'
     | '/_authenticated/_admin/membership/plans'
     | '/_authenticated/_admin/membership/settings'
@@ -2788,6 +2982,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/gallery/'
     | '/_authenticated/_admin/kb/'
     | '/_authenticated/_admin/layouts/'
+    | '/_authenticated/_admin/lms/'
     | '/_authenticated/_admin/media/'
     | '/_authenticated/_admin/membership/'
     | '/_authenticated/_admin/menus/'
@@ -2819,6 +3014,8 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/custom-fields/$groupId/edit'
     | '/_authenticated/_admin/gallery/$albumId/edit'
     | '/_authenticated/_admin/kb/$articleId/edit'
+    | '/_authenticated/_admin/lms/courses/new'
+    | '/_authenticated/_admin/lms/learn/$courseId'
     | '/_authenticated/_admin/media/$mediaId/edit'
     | '/_authenticated/_admin/membership/grants/$grantId'
     | '/_authenticated/_admin/membership/grants/new'
@@ -2846,6 +3043,8 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/tools/redirects/new'
     | '/_authenticated/_admin/users/$userId/edit'
     | '/_authenticated/_admin/commerce/subscriptions/'
+    | '/_authenticated/_admin/lms/certificates/'
+    | '/_authenticated/_admin/lms/courses/'
     | '/_authenticated/_admin/membership/grants/'
     | '/_authenticated/_admin/membership/restrictions/'
     | '/_authenticated/_admin/tools/audit-log/'
@@ -2868,6 +3067,9 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/commerce/subscriptions/order-forms/$formId'
     | '/_authenticated/_admin/commerce/subscriptions/order-forms/new'
     | '/_authenticated/_admin/commerce/subscriptions/templates/new'
+    | '/_authenticated/_admin/lms/courses/$courseId/builder'
+    | '/_authenticated/_admin/lms/courses/$courseId/enrollees'
+    | '/_authenticated/_admin/lms/courses/$courseId/generate'
     | '/_authenticated/_admin/membership/plans/$planId/edit'
     | '/_authenticated/_admin/membership/restrictions/$ruleId/edit'
     | '/_authenticated/_admin/settings/email_/queue/$queueId'
@@ -2885,12 +3087,15 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/commerce/subscriptions/offers/'
     | '/_authenticated/_admin/commerce/subscriptions/order-forms/'
     | '/_authenticated/_admin/commerce/subscriptions/templates/'
+    | '/_authenticated/_admin/lms/courses/$courseId/'
     | '/_authenticated/_admin/tools/website-import/$siteId/'
     | '/_authenticated/_admin/tools/wordpress-sync/$siteId/'
     | '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId'
     | '/_authenticated/_admin/commerce/subscriptions/coupons/$couponId/edit'
     | '/_authenticated/_admin/commerce/subscriptions/offers/$offerId/edit'
     | '/_authenticated/_admin/commerce/subscriptions/templates/$templateId/edit'
+    | '/_authenticated/_admin/lms/courses/$courseId/lessons/$nodeId'
+    | '/_authenticated/_admin/lms/courses/$courseId/topics/$nodeId'
     | '/_authenticated/_admin/commerce/settings/shipping/zones_/$zoneId/methods_/$methodType/$methodId'
   fileRoutesById: FileRoutesById
 }
@@ -2990,6 +3195,13 @@ declare module '@tanstack/react-router' {
       path: '/membership'
       fullPath: '/membership'
       preLoaderRoute: typeof AuthenticatedAdminMembershipRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/lms': {
+      id: '/_authenticated/_admin/lms'
+      path: '/lms'
+      fullPath: '/lms'
+      preLoaderRoute: typeof AuthenticatedAdminLmsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/kb': {
@@ -3124,6 +3336,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/media/'
       preLoaderRoute: typeof AuthenticatedAdminMediaIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/lms/': {
+      id: '/_authenticated/_admin/lms/'
+      path: '/'
+      fullPath: '/lms/'
+      preLoaderRoute: typeof AuthenticatedAdminLmsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
     }
     '/_authenticated/_admin/layouts/': {
       id: '/_authenticated/_admin/layouts/'
@@ -3496,6 +3715,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMediaUploadRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/lms/verify': {
+      id: '/_authenticated/_admin/lms/verify'
+      path: '/verify'
+      fullPath: '/lms/verify'
+      preLoaderRoute: typeof AuthenticatedAdminLmsVerifyRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
+    '/_authenticated/_admin/lms/settings': {
+      id: '/_authenticated/_admin/lms/settings'
+      path: '/settings'
+      fullPath: '/lms/settings'
+      preLoaderRoute: typeof AuthenticatedAdminLmsSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
+    '/_authenticated/_admin/lms/my-courses': {
+      id: '/_authenticated/_admin/lms/my-courses'
+      path: '/my-courses'
+      fullPath: '/lms/my-courses'
+      preLoaderRoute: typeof AuthenticatedAdminLmsMyCoursesRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
+    '/_authenticated/_admin/lms/catalog': {
+      id: '/_authenticated/_admin/lms/catalog'
+      path: '/catalog'
+      fullPath: '/lms/catalog'
+      preLoaderRoute: typeof AuthenticatedAdminLmsCatalogRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
     '/_authenticated/_admin/layouts/new': {
       id: '/_authenticated/_admin/layouts/new'
       path: '/layouts/new'
@@ -3839,6 +4086,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMembershipGrantsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminMembershipRoute
     }
+    '/_authenticated/_admin/lms/courses/': {
+      id: '/_authenticated/_admin/lms/courses/'
+      path: '/courses'
+      fullPath: '/lms/courses/'
+      preLoaderRoute: typeof AuthenticatedAdminLmsCoursesIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
+    '/_authenticated/_admin/lms/certificates/': {
+      id: '/_authenticated/_admin/lms/certificates/'
+      path: '/certificates'
+      fullPath: '/lms/certificates/'
+      preLoaderRoute: typeof AuthenticatedAdminLmsCertificatesIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
     '/_authenticated/_admin/commerce/subscriptions/': {
       id: '/_authenticated/_admin/commerce/subscriptions/'
       path: '/'
@@ -4028,6 +4289,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMediaMediaIdEditRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/lms/learn/$courseId': {
+      id: '/_authenticated/_admin/lms/learn/$courseId'
+      path: '/learn/$courseId'
+      fullPath: '/lms/learn/$courseId'
+      preLoaderRoute: typeof AuthenticatedAdminLmsLearnCourseIdRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
+    '/_authenticated/_admin/lms/courses/new': {
+      id: '/_authenticated/_admin/lms/courses/new'
+      path: '/courses/new'
+      fullPath: '/lms/courses/new'
+      preLoaderRoute: typeof AuthenticatedAdminLmsCoursesNewRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
     '/_authenticated/_admin/kb/$articleId/edit': {
       id: '/_authenticated/_admin/kb/$articleId/edit'
       path: '/edit'
@@ -4168,6 +4443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminToolsWebsiteImportSiteIdIndexRouteImport
       parentRoute: typeof AuthenticatedAdminToolsRoute
     }
+    '/_authenticated/_admin/lms/courses/$courseId/': {
+      id: '/_authenticated/_admin/lms/courses/$courseId/'
+      path: '/courses/$courseId'
+      fullPath: '/lms/courses/$courseId/'
+      preLoaderRoute: typeof AuthenticatedAdminLmsCoursesCourseIdIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
     '/_authenticated/_admin/commerce/subscriptions/templates/': {
       id: '/_authenticated/_admin/commerce/subscriptions/templates/'
       path: '/templates'
@@ -4287,6 +4569,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMembershipPlansPlanIdEditRouteImport
       parentRoute: typeof AuthenticatedAdminMembershipPlansRoute
     }
+    '/_authenticated/_admin/lms/courses/$courseId/generate': {
+      id: '/_authenticated/_admin/lms/courses/$courseId/generate'
+      path: '/courses/$courseId/generate'
+      fullPath: '/lms/courses/$courseId/generate'
+      preLoaderRoute: typeof AuthenticatedAdminLmsCoursesCourseIdGenerateRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
+    '/_authenticated/_admin/lms/courses/$courseId/enrollees': {
+      id: '/_authenticated/_admin/lms/courses/$courseId/enrollees'
+      path: '/courses/$courseId/enrollees'
+      fullPath: '/lms/courses/$courseId/enrollees'
+      preLoaderRoute: typeof AuthenticatedAdminLmsCoursesCourseIdEnrolleesRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
+    '/_authenticated/_admin/lms/courses/$courseId/builder': {
+      id: '/_authenticated/_admin/lms/courses/$courseId/builder'
+      path: '/courses/$courseId/builder'
+      fullPath: '/lms/courses/$courseId/builder'
+      preLoaderRoute: typeof AuthenticatedAdminLmsCoursesCourseIdBuilderRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
     '/_authenticated/_admin/commerce/subscriptions/templates/new': {
       id: '/_authenticated/_admin/commerce/subscriptions/templates/new'
       path: '/templates/new'
@@ -4398,6 +4701,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/commerce/customers/$userId/store-credit'
       preLoaderRoute: typeof AuthenticatedAdminCommerceCustomersUserIdStoreCreditRouteImport
       parentRoute: typeof AuthenticatedAdminCommerceCustomersRoute
+    }
+    '/_authenticated/_admin/lms/courses/$courseId/topics/$nodeId': {
+      id: '/_authenticated/_admin/lms/courses/$courseId/topics/$nodeId'
+      path: '/courses/$courseId/topics/$nodeId'
+      fullPath: '/lms/courses/$courseId/topics/$nodeId'
+      preLoaderRoute: typeof AuthenticatedAdminLmsCoursesCourseIdTopicsNodeIdRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
+    '/_authenticated/_admin/lms/courses/$courseId/lessons/$nodeId': {
+      id: '/_authenticated/_admin/lms/courses/$courseId/lessons/$nodeId'
+      path: '/courses/$courseId/lessons/$nodeId'
+      fullPath: '/lms/courses/$courseId/lessons/$nodeId'
+      preLoaderRoute: typeof AuthenticatedAdminLmsCoursesCourseIdLessonsNodeIdRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
     }
     '/_authenticated/_admin/commerce/subscriptions/templates/$templateId/edit': {
       id: '/_authenticated/_admin/commerce/subscriptions/templates/$templateId/edit'
@@ -4884,6 +5201,56 @@ const AuthenticatedAdminKbRouteChildren: AuthenticatedAdminKbRouteChildren = {
 const AuthenticatedAdminKbRouteWithChildren =
   AuthenticatedAdminKbRoute._addFileChildren(AuthenticatedAdminKbRouteChildren)
 
+interface AuthenticatedAdminLmsRouteChildren {
+  AuthenticatedAdminLmsCatalogRoute: typeof AuthenticatedAdminLmsCatalogRoute
+  AuthenticatedAdminLmsMyCoursesRoute: typeof AuthenticatedAdminLmsMyCoursesRoute
+  AuthenticatedAdminLmsSettingsRoute: typeof AuthenticatedAdminLmsSettingsRoute
+  AuthenticatedAdminLmsVerifyRoute: typeof AuthenticatedAdminLmsVerifyRoute
+  AuthenticatedAdminLmsIndexRoute: typeof AuthenticatedAdminLmsIndexRoute
+  AuthenticatedAdminLmsCoursesNewRoute: typeof AuthenticatedAdminLmsCoursesNewRoute
+  AuthenticatedAdminLmsLearnCourseIdRoute: typeof AuthenticatedAdminLmsLearnCourseIdRoute
+  AuthenticatedAdminLmsCertificatesIndexRoute: typeof AuthenticatedAdminLmsCertificatesIndexRoute
+  AuthenticatedAdminLmsCoursesIndexRoute: typeof AuthenticatedAdminLmsCoursesIndexRoute
+  AuthenticatedAdminLmsCoursesCourseIdBuilderRoute: typeof AuthenticatedAdminLmsCoursesCourseIdBuilderRoute
+  AuthenticatedAdminLmsCoursesCourseIdEnrolleesRoute: typeof AuthenticatedAdminLmsCoursesCourseIdEnrolleesRoute
+  AuthenticatedAdminLmsCoursesCourseIdGenerateRoute: typeof AuthenticatedAdminLmsCoursesCourseIdGenerateRoute
+  AuthenticatedAdminLmsCoursesCourseIdIndexRoute: typeof AuthenticatedAdminLmsCoursesCourseIdIndexRoute
+  AuthenticatedAdminLmsCoursesCourseIdLessonsNodeIdRoute: typeof AuthenticatedAdminLmsCoursesCourseIdLessonsNodeIdRoute
+  AuthenticatedAdminLmsCoursesCourseIdTopicsNodeIdRoute: typeof AuthenticatedAdminLmsCoursesCourseIdTopicsNodeIdRoute
+}
+
+const AuthenticatedAdminLmsRouteChildren: AuthenticatedAdminLmsRouteChildren = {
+  AuthenticatedAdminLmsCatalogRoute: AuthenticatedAdminLmsCatalogRoute,
+  AuthenticatedAdminLmsMyCoursesRoute: AuthenticatedAdminLmsMyCoursesRoute,
+  AuthenticatedAdminLmsSettingsRoute: AuthenticatedAdminLmsSettingsRoute,
+  AuthenticatedAdminLmsVerifyRoute: AuthenticatedAdminLmsVerifyRoute,
+  AuthenticatedAdminLmsIndexRoute: AuthenticatedAdminLmsIndexRoute,
+  AuthenticatedAdminLmsCoursesNewRoute: AuthenticatedAdminLmsCoursesNewRoute,
+  AuthenticatedAdminLmsLearnCourseIdRoute:
+    AuthenticatedAdminLmsLearnCourseIdRoute,
+  AuthenticatedAdminLmsCertificatesIndexRoute:
+    AuthenticatedAdminLmsCertificatesIndexRoute,
+  AuthenticatedAdminLmsCoursesIndexRoute:
+    AuthenticatedAdminLmsCoursesIndexRoute,
+  AuthenticatedAdminLmsCoursesCourseIdBuilderRoute:
+    AuthenticatedAdminLmsCoursesCourseIdBuilderRoute,
+  AuthenticatedAdminLmsCoursesCourseIdEnrolleesRoute:
+    AuthenticatedAdminLmsCoursesCourseIdEnrolleesRoute,
+  AuthenticatedAdminLmsCoursesCourseIdGenerateRoute:
+    AuthenticatedAdminLmsCoursesCourseIdGenerateRoute,
+  AuthenticatedAdminLmsCoursesCourseIdIndexRoute:
+    AuthenticatedAdminLmsCoursesCourseIdIndexRoute,
+  AuthenticatedAdminLmsCoursesCourseIdLessonsNodeIdRoute:
+    AuthenticatedAdminLmsCoursesCourseIdLessonsNodeIdRoute,
+  AuthenticatedAdminLmsCoursesCourseIdTopicsNodeIdRoute:
+    AuthenticatedAdminLmsCoursesCourseIdTopicsNodeIdRoute,
+}
+
+const AuthenticatedAdminLmsRouteWithChildren =
+  AuthenticatedAdminLmsRoute._addFileChildren(
+    AuthenticatedAdminLmsRouteChildren,
+  )
+
 interface AuthenticatedAdminMembershipPlansRouteChildren {
   AuthenticatedAdminMembershipPlansPlanIdEditRoute: typeof AuthenticatedAdminMembershipPlansPlanIdEditRoute
 }
@@ -5269,6 +5636,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDashboardRoute: typeof AuthenticatedAdminDashboardRoute
   AuthenticatedAdminGalleryRoute: typeof AuthenticatedAdminGalleryRouteWithChildren
   AuthenticatedAdminKbRoute: typeof AuthenticatedAdminKbRouteWithChildren
+  AuthenticatedAdminLmsRoute: typeof AuthenticatedAdminLmsRouteWithChildren
   AuthenticatedAdminMembershipRoute: typeof AuthenticatedAdminMembershipRouteWithChildren
   AuthenticatedAdminPluginsRoute: typeof AuthenticatedAdminPluginsRoute
   AuthenticatedAdminProfileRoute: typeof AuthenticatedAdminProfileRoute
@@ -5320,6 +5688,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminDashboardRoute: AuthenticatedAdminDashboardRoute,
   AuthenticatedAdminGalleryRoute: AuthenticatedAdminGalleryRouteWithChildren,
   AuthenticatedAdminKbRoute: AuthenticatedAdminKbRouteWithChildren,
+  AuthenticatedAdminLmsRoute: AuthenticatedAdminLmsRouteWithChildren,
   AuthenticatedAdminMembershipRoute:
     AuthenticatedAdminMembershipRouteWithChildren,
   AuthenticatedAdminPluginsRoute: AuthenticatedAdminPluginsRoute,
