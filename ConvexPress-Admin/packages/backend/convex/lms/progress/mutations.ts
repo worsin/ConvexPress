@@ -7,6 +7,7 @@ import { mutation } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { requireAuth } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
+import { emitEvent } from "../../helpers/events";
 
 async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_courses">) {
   const lessons = await ctx.db
@@ -37,6 +38,7 @@ async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_course
         percent,
         pointsEarned: course?.pointsAwarded,
       });
+      await emitEvent(ctx, "lms.course_completed", "lms", { userId, courseId });
     } else {
       await ctx.db.patch(rec._id, { percent, completedAt: rec.completedAt ?? Date.now() });
     }

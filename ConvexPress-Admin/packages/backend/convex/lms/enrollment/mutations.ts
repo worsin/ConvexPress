@@ -6,6 +6,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import { requireAuth, requireMinimumRoleLevel } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
+import { emitEvent } from "../../helpers/events";
 
 export const enroll = mutation({
   args: {
@@ -63,7 +64,7 @@ export const enroll = mutation({
       return existing._id;
     }
 
-    return await ctx.db.insert("lms_enrollments", {
+    const enrollmentId = await ctx.db.insert("lms_enrollments", {
       userId: targetUserId,
       courseId: args.courseId,
       source: args.source ?? "manual",
@@ -73,6 +74,11 @@ export const enroll = mutation({
       createdAt: now,
       updatedAt: now,
     });
+    await emitEvent(ctx, "lms.enrolled", "lms", {
+      courseId: args.courseId,
+      userId: targetUserId,
+    });
+    return enrollmentId;
   },
 });
 

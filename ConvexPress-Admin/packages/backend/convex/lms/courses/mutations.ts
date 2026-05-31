@@ -11,6 +11,7 @@ import { ConvexError } from "convex/values";
 import { mutation } from "../../_generated/server";
 import { requireMinimumRoleLevel } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
+import { emitEvent } from "../../helpers/events";
 import { generateUniqueCourseSlug } from "./helpers";
 import {
   createCourseArgs,
@@ -94,6 +95,7 @@ export const publish = mutation({
       publishedAt: course.publishedAt ?? Date.now(),
       updatedAt: Date.now(),
     });
+    await emitEvent(ctx, "lms.course_published", "lms", { courseId: args.courseId });
     return args.courseId;
   },
 });
