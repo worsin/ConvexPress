@@ -1,6 +1,7 @@
 import {
   BookOpen,
   Download,
+  GraduationCap,
   Heart,
   Package,
   Puzzle,
@@ -34,7 +35,8 @@ export type BuiltinAdminPluginId =
   | "tickets"
   | "customFields"
   | "recipes"
-  | "gallery";
+  | "gallery"
+  | "lms";
 
 /**
  * Union of platform-shipped + v2 extension ids. Retains literal
@@ -64,6 +66,7 @@ export interface BuiltinPluginSettingsValues {
   customFieldsEnabled: boolean;
   recipesEnabled: boolean;
   galleryEnabled: boolean;
+  lmsEnabled: boolean;
 }
 
 export type PluginSettingsValues = BuiltinPluginSettingsValues & Record<string, boolean>;
@@ -268,6 +271,18 @@ const PLATFORM_PLUGINS: AdminPluginDefinition[] = [
     adminAccessPrefixes: ["/gallery"],
     routePrefixes: ["/gallery"],
   },
+  {
+    id: "lms",
+    title: "LMS",
+    description:
+      "Courses, topics, and lessons with AI-assisted authoring and membership-gated access.",
+    icon: GraduationCap,
+    settingsKey: "lmsEnabled",
+    navSectionIds: ["lms"],
+    adminAccessPrefixes: ["/lms"],
+    routePrefixes: ["/courses", "/account/courses"],
+    defaultEnabled: true,
+  },
 ];
 
 // ─── Extension v2 scanner ────────────────────────────────────────────────────
@@ -341,6 +356,7 @@ const PLATFORM_DEFAULT_SETTINGS: BuiltinPluginSettingsValues = {
   customFieldsEnabled: true,
   recipesEnabled: true,
   galleryEnabled: true,
+  lmsEnabled: true,
 };
 
 /**
