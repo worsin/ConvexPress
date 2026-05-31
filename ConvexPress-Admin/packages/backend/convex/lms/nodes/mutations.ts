@@ -6,7 +6,7 @@
  * a topic). Author (60+) gated.
  */
 
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { requireMinimumRoleLevel } from "../../helpers/permissions";
@@ -146,5 +146,22 @@ export const moveNode = mutation({
     await ctx.db.patch(a._id, { position: b.position, updatedAt: Date.now() });
     await ctx.db.patch(b._id, { position: a.position, updatedAt: Date.now() });
     return args.nodeId;
+  },
+});
+
+/** Set an explicit order for a set of sibling nodes (drag-and-drop). */
+export const reorderNodes = mutation({
+  args: {
+    orderedIds: v.array(v.id("lms_nodes")),
+  },
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "lms");
+    await requireMinimumRoleLevel(ctx, 60);
+    let pos = 1;
+    for (const nodeId of args.orderedIds) {
+      await ctx.db.patch(nodeId, { position: pos, updatedAt: Date.now() });
+      pos += 1;
+    }
+    return { ok: true };
   },
 });
