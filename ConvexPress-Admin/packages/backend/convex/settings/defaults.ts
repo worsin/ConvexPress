@@ -206,6 +206,7 @@ export interface PluginsSettings {
   customFieldsEnabled: boolean;
   recipesEnabled: boolean;
   galleryEnabled: boolean;
+  lmsEnabled: boolean;
 }
 
 export interface PermalinkSettings {
@@ -1059,6 +1060,7 @@ export const PLUGINS_DEFAULTS: PluginsSettings = {
   customFieldsEnabled: true,
   recipesEnabled: true,
   galleryEnabled: true,
+  lmsEnabled: true,
 };
 
 // ─── Layout Assignment Defaults ─────────────────────────────────────────────

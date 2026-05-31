@@ -55,6 +55,30 @@ export const Route = createFileRoute("/_marketing/courses/$slug")({
           course?.excerpt ??
           `View the curriculum for ${course?.title ?? params.slug}.`,
         canonical: toAbsoluteUrl(`/courses/${params.slug}`, siteUrl),
+        ogType: "article",
+        jsonLdGraph: course
+          ? [
+              {
+                "@context": "https://schema.org",
+                "@type": "Course",
+                name: course.title,
+                description: course.excerpt ?? `Course: ${course.title}`,
+                url: toAbsoluteUrl(`/courses/${course.slug}`, siteUrl),
+                provider: {
+                  "@type": "Organization",
+                  name:
+                    (publicSettings as { siteTitle?: string | null })?.siteTitle ??
+                    "ConvexPress",
+                  sameAs: siteUrl ?? undefined,
+                },
+                hasCourseInstance: {
+                  "@type": "CourseInstance",
+                  courseMode: "online",
+                  courseWorkload: `${course.lessonCount ?? 0} lessons`,
+                },
+              },
+            ]
+          : undefined,
       }),
     };
   },
@@ -261,7 +285,17 @@ function CourseDetailContent({ course }: { course: Course }) {
                         ) : (
                           <BookOpen className="size-4 shrink-0 text-muted-foreground" />
                         )}
-                        <span className="truncate">{child.title}</span>
+                        {child.kind === "lesson" && child.isPreview ? (
+                          <Link
+                            to="/courses/$slug/$nodeId"
+                            params={{ slug: course.slug, nodeId: child._id }}
+                            className="truncate text-primary hover:underline"
+                          >
+                            {child.title}
+                          </Link>
+                        ) : (
+                          <span className="truncate">{child.title}</span>
+                        )}
                       </span>
                       {child.isPreview ? (
                         <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">

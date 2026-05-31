@@ -30,6 +30,7 @@ const CONTENT_TYPES = [
   { value: undefined, label: "All" },
   { value: "post", label: "Posts" },
   { value: "page", label: "Pages" },
+  { value: "course", label: "Courses" },
   { value: "media", label: "Media" },
 ] as const;
 

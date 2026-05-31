@@ -432,7 +432,7 @@ export interface SearchResult {
   slug: string;
   excerpt: string;
   highlightedExcerpt?: string;
-  contentType: "post" | "page" | "media" | "comment";
+  contentType: "post" | "page" | "media" | "comment" | "course";
   publishedAt?: string;
   author?: {
     displayName: string;

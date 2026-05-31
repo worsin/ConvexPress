@@ -68,9 +68,13 @@ export const verifyBySerial = query({
   args: { serial: v.string() },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return { valid: false };
+    const serial = args.serial.trim().toUpperCase();
+    if (!/^CERT-[A-Z0-9-]{6,80}$/.test(serial)) {
+      return { valid: false };
+    }
     const issue = await ctx.db
       .query("lms_certificate_issues")
-      .withIndex("by_serial", (q) => q.eq("serial", args.serial))
+      .withIndex("by_serial", (q) => q.eq("serial", serial))
       .first();
     if (!issue || issue.status !== "issued") return { valid: false };
     const user = await ctx.db.get(issue.userId);

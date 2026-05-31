@@ -96,6 +96,7 @@ export interface PublicSettings {
     customFieldsEnabled?: boolean;
     recipesEnabled?: boolean;
     galleryEnabled?: boolean;
+    lmsEnabled?: boolean;
   };
 
   // Block editor runtime config. The front-end renderer uses this to

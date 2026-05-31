@@ -272,6 +272,7 @@ export const getPublic = query({
         customFieldsEnabled: plugins.customFieldsEnabled,
         recipesEnabled: plugins.recipesEnabled,
         galleryEnabled: plugins.galleryEnabled,
+        lmsEnabled: plugins.lmsEnabled,
       },
 
       // Block editor runtime config. Public so the front-end renderer can

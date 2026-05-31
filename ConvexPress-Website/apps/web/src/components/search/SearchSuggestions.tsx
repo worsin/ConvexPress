@@ -16,7 +16,7 @@
 import * as React from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { FileText, Search, Newspaper, Image, MessageSquare } from "lucide-react";
+import { FileText, Search, Newspaper, Image, MessageSquare, GraduationCap } from "lucide-react";
 
 import { api } from "@convexpress-website/backend/generated/api";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,7 @@ const CONTENT_TYPE_ICONS: Record<string, typeof Newspaper> = {
   page: FileText,
   media: Image,
   comment: MessageSquare,
+  course: GraduationCap,
 };
 
 // ─── Component ──────────────────────────────────────────────────────────────

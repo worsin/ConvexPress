@@ -1,0 +1,49 @@
+import { expect, test } from "@playwright/test";
+import { smokeRoute } from "./_helpers";
+
+test.describe.configure({ mode: "parallel" });
+
+test("lms catalog [P1]", async ({ page }) => {
+  await smokeRoute(page, "/courses", {
+    expectHeading: /Courses|Learning/i,
+    expectSelector: "body",
+  });
+});
+
+test("lms first published course landing [P1]", async ({ page }) => {
+  await page.goto("/courses", { waitUntil: "domcontentloaded" });
+  const courseLinks = page.locator('a[href^="/courses/"]');
+  await Promise.race([
+    courseLinks.first().waitFor({ state: "visible", timeout: 20_000 }),
+    page.getByText(/No courses are published yet/i).waitFor({
+      state: "visible",
+      timeout: 20_000,
+    }),
+  ]).catch(() => undefined);
+  test.skip((await courseLinks.count()) === 0, "No published LMS courses");
+
+  await courseLinks.first().click();
+  await expect(page).toHaveURL(/\/courses\/[^/?#]+/, { timeout: 20_000 });
+  await expect(page.getByRole("heading").first()).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(page.getByText(/Curriculum|Course not found/i).first()).toBeVisible({
+    timeout: 20_000,
+  });
+});
+
+test("lms certificate verification [P1]", async ({ page }) => {
+  await smokeRoute(page, "/certificates/verify", {
+    expectHeading: /Verify certificate/i,
+    expectSelector: "#certificate-serial",
+  });
+
+  await page.locator("#certificate-serial").fill("CERT-NOT-A-REAL-SERIAL");
+  await page.getByRole("button", { name: /^verify$/i }).click();
+  await expect(page).toHaveURL(/serial=CERT-NOT-A-REAL-SERIAL/, {
+    timeout: 20_000,
+  });
+  await expect(page.getByText(/Certificate not found/i)).toBeVisible({
+    timeout: 20_000,
+  });
+});

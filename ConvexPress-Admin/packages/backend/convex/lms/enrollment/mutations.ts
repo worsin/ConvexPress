@@ -10,6 +10,9 @@ import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
 import { canUserAccessCourse } from "../access";
 
+const SELF_ENROLL_RATE_WINDOW_MS = 10 * 60 * 1000;
+const SELF_ENROLL_RATE_LIMIT = 20;
+
 export const enroll = mutation({
   args: {
     courseId: v.id("lms_courses"),
@@ -65,6 +68,20 @@ export const enroll = mutation({
             decision.reason === "membership_rule_missing"
               ? "This course requires a membership plan before learners can self-enroll."
               : "You do not have access to enroll in this course.",
+        });
+      }
+
+      const recentActiveEnrollments = await ctx.db
+        .query("lms_enrollments")
+        .withIndex("by_user", (q) => q.eq("userId", me._id).eq("status", "active"))
+        .collect();
+      const recentCount = recentActiveEnrollments.filter(
+        (row) => now - (row.createdAt ?? row.enrolledAt ?? 0) <= SELF_ENROLL_RATE_WINDOW_MS,
+      ).length;
+      if (recentCount >= SELF_ENROLL_RATE_LIMIT) {
+        throw new ConvexError({
+          code: "RATE_LIMITED",
+          message: "Too many enrollments in a short period. Try again later.",
         });
       }
     }

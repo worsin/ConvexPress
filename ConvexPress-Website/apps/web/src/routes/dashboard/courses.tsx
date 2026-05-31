@@ -140,8 +140,8 @@ function CourseCard({ course }: { course: LearningCourse }) {
           </div>
           {course.certificateSerial ? (
             <Link
-              to="/certificates/verify"
-              search={{ serial: course.certificateSerial }}
+              to="/certificates/$serial"
+              params={{ serial: course.certificateSerial }}
               className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline"
             >
               <Award className="size-3.5" aria-hidden="true" />

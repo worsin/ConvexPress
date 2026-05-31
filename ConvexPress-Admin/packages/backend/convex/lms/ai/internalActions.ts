@@ -49,20 +49,35 @@ export const generateLessonBodies = internalAction({
         "Write 4-6 short paragraphs with practical examples and a concrete takeaway.";
 
       try {
-        const bodyText = await ctx.runAction(
-          (internal as any).ai.internals.generateWithClaude,
-          {
-            systemPrompt,
-            userPrompt,
-            maxTokens: 5000,
-            task: "pageGeneration",
-          },
-        );
+        let bodyText: string | null = null;
+        let lastError: unknown = null;
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            bodyText = String(
+              await ctx.runAction((internal as any).ai.internals.generateWithClaude, {
+                systemPrompt,
+                userPrompt,
+                maxTokens: 5000,
+                task: "pageGeneration",
+              }),
+            ).trim();
+            break;
+          } catch (error) {
+            lastError = error;
+            await ctx.runMutation((internal as any).lms.ai.internals.updateJob, {
+              jobId: job._id,
+              status: "running",
+              progress: Math.min(95, Math.round(((index + 0.5) / Math.max(work.lessonJobs.length, 1)) * 100)),
+              error: `Retrying lesson generation (${attempt}/2)`,
+            });
+          }
+        }
+        if (!bodyText) throw lastError ?? new Error("Lesson generation returned empty content.");
         await ctx.runMutation((internal as any).lms.ai.internals.writeLessonBody, {
           jobId: job._id,
           generationId: args.generationId,
           nodeId: node._id,
-          bodyText: String(bodyText).trim(),
+          bodyText,
           prompt: userPrompt,
           sourcesJson: work.generation.sourcesJson,
         });

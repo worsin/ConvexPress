@@ -25,7 +25,12 @@ export function parseJsonObject(raw: string): unknown {
     .trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
-  return JSON.parse(start >= 0 && end >= start ? cleaned.slice(start, end + 1) : cleaned);
+  const candidate = start >= 0 && end >= start ? cleaned.slice(start, end + 1) : cleaned;
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    return JSON.parse(candidate.replace(/,\s*([}\]])/g, "$1"));
+  }
 }
 
 export function normalizeOutline(value: unknown): LmsOutline {

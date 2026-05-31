@@ -72,7 +72,7 @@ export function isPublicPluginEnabled(
     case "membership":
       return settings.plugins?.membershipEnabled === true;
     case "lms":
-      return settings.plugins?.lmsEnabled === true;
+      return settings.plugins?.lmsEnabled !== false;
     default:
       return false;
   }

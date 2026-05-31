@@ -91,6 +91,8 @@ export const onContentChanged = internalMutation({
       await upsertMedia(ctx, contentId, now);
     } else if (contentType === "comment") {
       await upsertComment(ctx, contentId, now);
+    } else if (contentType === "course") {
+      await upsertCourse(ctx, contentId, now);
     }
   },
 });
@@ -307,6 +309,87 @@ async function upsertMedia(
   }
 }
 
+async function upsertCourse(
+  ctx: MutationCtx,
+  contentId: string,
+  now: number,
+): Promise<void> {
+  let course;
+  try {
+    course = await ctx.db.get("lms_courses", contentId as Id<"lms_courses">);
+  } catch {
+    return;
+  }
+  if (!course) return;
+
+  const title = truncate(stripContentForSearch(course.title || ""), MAX_INDEXED_TITLE_LENGTH);
+  const description = stripContentForSearch(docToText(course.descriptionDoc));
+  const excerpt = stripContentForSearch(course.excerpt || "") || generateExcerpt(description);
+  const content = truncate(
+    [
+      title,
+      excerpt,
+      description,
+      ...(course.categoryIds ?? []),
+      ...(course.tagIds ?? []),
+    ].join("\n"),
+    MAX_INDEXED_CONTENT_LENGTH,
+  );
+
+  let authorName = "Unknown";
+  let authorId = "";
+  if (course.authorId) {
+    const author = await ctx.db.get("users", course.authorId);
+    if (author) {
+      authorName =
+        author.displayName ||
+        `${author.firstName ?? ""} ${author.lastName ?? ""}`.trim() ||
+        author.email;
+      authorId = getUserIdentifier(author);
+    }
+  }
+
+  const indexEntry = {
+    contentType: "course" as const,
+    contentId,
+    title,
+    content,
+    excerpt,
+    authorId,
+    authorName,
+    status: course.status === "published" ? "publish" : course.status,
+    categoryNames: course.categoryIds,
+    tagNames: course.tagIds,
+    url: `/courses/${course.slug}`,
+    boostScore: course.status === "published" ? 2 : undefined,
+    publishedAt: course.publishedAt,
+    indexedAt: now,
+    createdAt: course.createdAt,
+    updatedAt: course.updatedAt,
+  };
+
+  const existing = await ctx.db
+    .query("searchIndex")
+    .withIndex("by_content", (q) =>
+      q.eq("contentType", "course").eq("contentId", contentId),
+    )
+    .unique();
+
+  if (existing) {
+    await ctx.db.patch("searchIndex", existing._id, indexEntry);
+  } else {
+    await ctx.db.insert("searchIndex", indexEntry);
+  }
+}
+
+function docToText(doc: unknown): string {
+  const tree = doc as { content?: Array<{ content?: Array<{ text?: string }> }> };
+  if (!tree || !Array.isArray(tree.content)) return "";
+  return tree.content
+    .map((node) => (node.content ?? []).map((child) => child.text ?? "").join(""))
+    .join("\n\n");
+}
+
 /**
  * Upsert a comment into the search index.
  * Only indexes approved comments.
@@ -424,10 +507,10 @@ export const reindexAll = internalMutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    const stats = { post: 0, page: 0, media: 0, comment: 0, removed: 0, errors: 0 };
-    const contentTypes: Array<"post" | "page" | "media" | "comment"> = args.contentType
+    const stats = { post: 0, page: 0, media: 0, comment: 0, course: 0, removed: 0, errors: 0 };
+    const contentTypes: Array<"post" | "page" | "media" | "comment" | "course"> = args.contentType
       ? [args.contentType]
-      : ["post", "page", "media", "comment"];
+      : ["post", "page", "media", "comment", "course"];
 
     for (const ct of contentTypes) {
       try {
@@ -473,6 +556,20 @@ export const reindexAll = internalMutation({
               stats.errors++;
             }
           }
+        } else if (ct === "course") {
+          const items = await ctx.db
+            .query("lms_courses")
+            .withIndex("by_status", (q) => q.eq("status", "published"))
+            .take(500);
+
+          for (const item of items) {
+            try {
+              await upsertCourse(ctx, item._id.toString(), now);
+              stats.course++;
+            } catch {
+              stats.errors++;
+            }
+          }
         }
       } catch {
         stats.errors++;
@@ -493,6 +590,8 @@ export const reindexAll = internalMutation({
           source = await ctx.db.get("media", entry.contentId as Id<"media">);
         } else if (entry.contentType === "comment") {
           source = await ctx.db.get("comments", entry.contentId as Id<"comments">);
+        } else if (entry.contentType === "course") {
+          source = await ctx.db.get("lms_courses", entry.contentId as Id<"lms_courses">);
         }
         if (!source) {
           await ctx.db.delete("searchIndex", entry._id);
@@ -576,6 +675,8 @@ export const cleanupOrphanedIndex = internalMutation({
           source = await ctx.db.get("media", entry.contentId as Id<"media">);
         } else if (entry.contentType === "comment") {
           source = await ctx.db.get("comments", entry.contentId as Id<"comments">);
+        } else if (entry.contentType === "course") {
+          source = await ctx.db.get("lms_courses", entry.contentId as Id<"lms_courses">);
         }
         if (!source) {
           await ctx.db.delete("searchIndex", entry._id);

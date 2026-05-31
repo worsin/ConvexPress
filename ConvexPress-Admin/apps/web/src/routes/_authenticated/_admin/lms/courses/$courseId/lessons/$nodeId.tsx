@@ -11,6 +11,7 @@ import type { Id } from "@backend/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { ArrowLeft, History, PlayCircle, RotateCcw, Save, Sparkles, Video } from "lucide-react";
 import { MediaSelector } from "@/components/lms/MediaSelector";
+import { TiptapTextEditor } from "@/components/lms/TiptapTextEditor";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/lms/courses/$courseId/lessons/$nodeId",
@@ -217,12 +218,20 @@ function LessonEditorPage() {
             placeholder="Search videos"
           />
         </L>
-        <L label="Lesson body">
-          <textarea value={f.bodyText} onChange={(e) => set("bodyText", e.target.value)} rows={10} placeholder="Lesson content. Paragraphs separated by blank lines." className={inp} />
-        </L>
-        <L label="Materials & resources">
-          <textarea value={f.materialsText} onChange={(e) => set("materialsText", e.target.value)} rows={4} placeholder="Supplemental links, downloads, references…" className={inp} />
-        </L>
+        <TiptapTextEditor
+          label="Lesson body"
+          value={f.bodyText}
+          onChange={(value) => set("bodyText", value)}
+          placeholder="Lesson content. Paragraphs separated by blank lines."
+          minHeightClassName="min-h-64"
+        />
+        <TiptapTextEditor
+          label="Materials & resources"
+          value={f.materialsText}
+          onChange={(value) => set("materialsText", value)}
+          placeholder="Supplemental links, downloads, references..."
+          minHeightClassName="min-h-32"
+        />
       </div>
 
       <div className="mt-4 space-y-4 rounded-lg border border-border p-6">

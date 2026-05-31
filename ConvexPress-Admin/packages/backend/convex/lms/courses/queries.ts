@@ -73,7 +73,12 @@ export const listPublished = query({
 });
 
 export const listCatalog = query({
-  args: { search: v.optional(v.string()) },
+  args: {
+    search: v.optional(v.string()),
+    category: v.optional(v.string()),
+    tag: v.optional(v.string()),
+    accessMode: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     let courses = await ctx.db
@@ -83,7 +88,34 @@ export const listCatalog = query({
       .take(500);
     const search = args.search?.trim().toLowerCase();
     if (search) {
-      courses = courses.filter((course) => course.title.toLowerCase().includes(search));
+      courses = courses.filter((course) =>
+        [
+          course.title,
+          course.excerpt,
+          ...(course.categoryIds ?? []),
+          ...(course.tagIds ?? []),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(search),
+      );
+    }
+    if (args.category) {
+      const category = args.category.trim().toLowerCase();
+      courses = courses.filter((course) =>
+        (course.categoryIds ?? []).some((entry) => entry.toLowerCase() === category),
+      );
+    }
+    if (args.tag) {
+      const tag = args.tag.trim().toLowerCase();
+      courses = courses.filter((course) =>
+        (course.tagIds ?? []).some((entry) => entry.toLowerCase() === tag),
+      );
+    }
+    if (args.accessMode) {
+      const accessMode = args.accessMode.trim().toLowerCase();
+      courses = courses.filter((course) => (course.accessMode ?? "members") === accessMode);
     }
     const rows = [];
     for (const course of courses) {
@@ -95,7 +127,10 @@ export const listCatalog = query({
         excerpt: course.excerpt,
         featuredImageId: course.featuredImageId,
         accessMode: course.accessMode ?? "members",
+        categoryIds: course.categoryIds ?? [],
+        tagIds: course.tagIds ?? [],
         lessonCount: course.lessonCount ?? 0,
+        topicCount: course.topicCount ?? 0,
         allowed: access.allowed,
         accessReason: access.reason,
         requiresLogin: access.requiresLogin,
@@ -104,6 +139,56 @@ export const listCatalog = query({
     return rows;
   },
 });
+
+export const getCatalogFilters = query({
+  args: {},
+  handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "lms"))) {
+      return { categories: [], tags: [], accessModes: [] };
+    }
+    const courses = await ctx.db
+      .query("lms_courses")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .take(500);
+
+    function counts(values: unknown[]) {
+      const map = new Map<string, number>();
+      for (const value of values) {
+        if (typeof value !== "string") continue;
+        const normalized = value.trim().toLowerCase();
+        if (!normalized) continue;
+        map.set(normalized, (map.get(normalized) ?? 0) + 1);
+      }
+      return Array.from(map.entries())
+        .map(([slug, count]) => ({ slug, label: humanize(slug), count }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    return {
+      categories: counts(
+        courses.flatMap((course) =>
+          Array.isArray(course.categoryIds) ? course.categoryIds : [],
+        ),
+      ),
+      tags: counts(
+        courses.flatMap((course) =>
+          Array.isArray(course.tagIds) ? course.tagIds : [],
+        ),
+      ),
+      accessModes: counts(
+        courses.map((course) =>
+          typeof course.accessMode === "string" ? course.accessMode : "members",
+        ),
+      ),
+    };
+  },
+});
+
+function humanize(slug: string) {
+  return slug
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
 export const stats = query({
   args: {},

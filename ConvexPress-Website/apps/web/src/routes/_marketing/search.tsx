@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { buildSeoHead } from "@/lib/seo/head";
 
 /** Content type filter for search API */
-type SearchContentType = "post" | "page" | "media" | undefined;
+type SearchContentType = "post" | "page" | "media" | "course" | undefined;
 /** Sort order for search API */
 type SearchOrderBy = "relevance" | "date" | "title";
 

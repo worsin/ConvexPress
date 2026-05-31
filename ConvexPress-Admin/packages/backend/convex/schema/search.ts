@@ -30,6 +30,7 @@ export const searchableContentTypeValidator = v.union(
   v.literal("page"),
   v.literal("media"),
   v.literal("comment"),
+  v.literal("course"),
 );
 
 export const searchSourceValidator = v.union(
@@ -59,7 +60,7 @@ export const searchTables = {
    */
   searchIndex: defineTable({
     // ── Identity ──────────────────────────────────────────────────────────
-    contentType: searchableContentTypeValidator, // "post" | "page" | "media" | "comment"
+    contentType: searchableContentTypeValidator, // "post" | "page" | "media" | "comment" | "course"
     contentId: v.string(), // The _id of the referenced record (string for cross-table)
 
     // ── Searchable Fields (denormalized) ──────────────────────────────────

@@ -14,7 +14,12 @@ import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
 import { requireCourseAuthorOrEditor } from "../access";
-import { generateUniqueCourseSlug } from "./helpers";
+import {
+  deleteCourseSearchIndex,
+  generateUniqueCourseSlug,
+  normalizeCourseLabels,
+  upsertCourseSearchIndex,
+} from "./helpers";
 import {
   createCourseArgs,
   updateCourseArgs,
@@ -57,6 +62,7 @@ export const create = mutation({
       updatedAt: now,
     });
     await emitEvent(ctx, LMS_EVENTS.COURSE_CREATED, SYSTEM.LMS, { courseId, title });
+    await upsertCourseSearchIndex(ctx, courseId);
     return courseId;
   },
 });
@@ -91,8 +97,15 @@ export const update = mutation({
       }
       patch.title = title;
     }
+    if (rest.categoryIds !== undefined) {
+      patch.categoryIds = normalizeCourseLabels(rest.categoryIds);
+    }
+    if (rest.tagIds !== undefined) {
+      patch.tagIds = normalizeCourseLabels(rest.tagIds);
+    }
 
     await ctx.db.patch(courseId, patch as never);
+    await upsertCourseSearchIndex(ctx, courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_UPDATED, SYSTEM.LMS, { courseId });
     return courseId;
   },
@@ -110,6 +123,7 @@ export const publish = mutation({
       publishedAt: course.publishedAt ?? Date.now(),
       updatedAt: Date.now(),
     });
+    await upsertCourseSearchIndex(ctx, args.courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_PUBLISHED, SYSTEM.LMS, { courseId: args.courseId });
     return args.courseId;
   },
@@ -123,6 +137,7 @@ export const unpublish = mutation({
     const course = await ctx.db.get(args.courseId);
     if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
     await ctx.db.patch(args.courseId, { status: "draft", updatedAt: Date.now() });
+    await upsertCourseSearchIndex(ctx, args.courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_UNPUBLISHED, SYSTEM.LMS, { courseId: args.courseId });
     return args.courseId;
   },
@@ -136,6 +151,7 @@ export const archive = mutation({
     const course = await ctx.db.get(args.courseId);
     if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
     await ctx.db.patch(args.courseId, { status: "archived", updatedAt: Date.now() });
+    await deleteCourseSearchIndex(ctx, args.courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_ARCHIVED, SYSTEM.LMS, { courseId: args.courseId });
     return args.courseId;
   },
@@ -149,6 +165,7 @@ export const restore = mutation({
     const course = await ctx.db.get(args.courseId);
     if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
     await ctx.db.patch(args.courseId, { status: "draft", updatedAt: Date.now() });
+    await upsertCourseSearchIndex(ctx, args.courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_RESTORED, SYSTEM.LMS, { courseId: args.courseId });
     return args.courseId;
   },
@@ -204,6 +221,7 @@ export const remove = mutation({
       .collect();
     for (const rule of accessRules) await ctx.db.delete(rule._id);
 
+    await deleteCourseSearchIndex(ctx, args.courseId);
     await ctx.db.delete(args.courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_DELETED, SYSTEM.LMS, { courseId: args.courseId });
     return { deleted: true };
@@ -312,6 +330,7 @@ export const duplicate = mutation({
       sourceCourseId: args.courseId,
       courseId: newId,
     });
+    await upsertCourseSearchIndex(ctx, newId);
     return newId;
   },
 });

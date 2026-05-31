@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { FileText, Image, MessageSquare, Newspaper } from "lucide-react";
+import { FileText, GraduationCap, Image, MessageSquare, Newspaper } from "lucide-react";
 import DOMPurify from "isomorphic-dompurify";
 
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ const CONTENT_TYPE_CONFIG: Record<
   page: { icon: FileText, label: "Page" },
   media: { icon: Image, label: "Media" },
   comment: { icon: MessageSquare, label: "Comment" },
+  course: { icon: GraduationCap, label: "Course" },
 };
 
 function getResultUrl(result: SearchResult): string {
@@ -34,6 +35,8 @@ function getResultUrl(result: SearchResult): string {
       return `/${result.slug}`;
     case "media":
       return `/media/${result.slug}`;
+    case "course":
+      return `/courses/${result.slug}`;
     case "comment":
       // Comments link to parent post with anchor
       return result.slug ? `/blog/${result.slug}#comments` : "#";

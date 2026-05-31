@@ -97,6 +97,30 @@ export const recordOutlineGeneration = internalMutation({
   },
 });
 
+export const recordLessonRegeneration = internalMutation({
+  args: {
+    courseId: v.id("lms_courses"),
+    nodeId: v.id("lms_nodes"),
+    prompt: v.string(),
+    instructions: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireMinimumRoleLevel(ctx, 60);
+    return await ctx.db.insert("lms_ai_generations", {
+      targetType: "node",
+      targetId: String(args.nodeId),
+      courseId: args.courseId,
+      stage: "lesson_body",
+      model: "configured-ai-provider",
+      prompt: args.prompt,
+      briefJson: { regeneration: true, instructions: args.instructions },
+      label: "ai_assisted",
+      reviewStatus: "unreviewed",
+      createdAt: Date.now(),
+    });
+  },
+});
+
 export const getLessonBodyWork = internalQuery({
   args: { generationId: v.id("lms_ai_generations") },
   handler: async (ctx, args) => {

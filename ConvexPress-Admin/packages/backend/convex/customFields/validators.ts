@@ -329,7 +329,6 @@ export const listGroupsArgs = {
 
 /** Args for getting a single field group. */
 export const getGroupArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   groupId: v.optional(v.id("fieldGroups")),
   key: v.optional(v.string()),
 };

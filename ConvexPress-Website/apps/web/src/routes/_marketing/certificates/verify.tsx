@@ -1,5 +1,5 @@
 import { api } from "@convexpress-website/backend/generated/api";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Award, CheckCircle2, Search, XCircle } from "lucide-react";
 import { useState } from "react";
@@ -127,6 +127,13 @@ function VerifyCertificatePage() {
                     </dd>
                   </div>
                 </dl>
+                <Link
+                  to="/certificates/$serial"
+                  params={{ serial: result.serial }}
+                  className="mt-5 inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                >
+                  View certificate
+                </Link>
               </div>
             </div>
           </div>

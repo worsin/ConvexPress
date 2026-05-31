@@ -141,6 +141,7 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
   const recordHeartbeat = useMutation((api as any).lms.progress.mutations.recordHeartbeat);
   const issueCertificate = useMutation((api as any).lms.certificates.mutations.issueCertificate);
   const timeSpentRef = useRef(0);
+  const videoWatchedRef = useRef(0);
 
   const topics = tree?.topics ?? [];
   const orderedLessons = useMemo(
@@ -162,19 +163,24 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
 
   useEffect(() => {
     timeSpentRef.current = nodeProgress?.timeSpentSec ?? 0;
-  }, [nodeId, nodeProgress?.timeSpentSec]);
+    videoWatchedRef.current = nodeProgress?.videoWatchedFraction ?? 0;
+  }, [nodeId, nodeProgress?.timeSpentSec, nodeProgress?.videoWatchedFraction]);
 
   useEffect(() => {
     if (!lesson?.node || lessonLocked || access?.allowed === false) return;
     const timer = window.setInterval(() => {
       timeSpentRef.current += 15;
+      if (videoUrl) {
+        videoWatchedRef.current = Math.min(1, videoWatchedRef.current + 0.15);
+      }
       void recordHeartbeat({
         nodeId: nodeId as any,
         timeSpentSec: timeSpentRef.current,
+        watchedFraction: videoUrl ? videoWatchedRef.current : undefined,
       }).catch(() => undefined);
     }, 15000);
     return () => window.clearInterval(timer);
-  }, [access?.allowed, lesson?.node, lessonLocked, nodeId, recordHeartbeat]);
+  }, [access?.allowed, lesson?.node, lessonLocked, nodeId, recordHeartbeat, videoUrl]);
 
   async function run(label: string, fn: () => Promise<unknown>) {
     try {
@@ -330,19 +336,20 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
                   {lesson.node.requireVideoWatch ? (
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        videoWatchedRef.current = 1;
                         void run("Video watch recorded", () =>
                           recordHeartbeat({
                             nodeId: nodeId as any,
                             watchedFraction: 1,
                             timeSpentSec: timeSpentRef.current,
                           }),
-                        )
-                      }
+                        );
+                      }}
                       className="inline-flex items-center gap-1 text-primary hover:underline"
                     >
                       <PlayCircle className="size-3.5" aria-hidden="true" />
-                      Mark video watched
+                      {Math.round((nodeProgress?.videoWatchedFraction ?? 0) * 100)}% watched
                     </button>
                   ) : null}
                 </div>
@@ -408,11 +415,11 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
               </div>
               {myIssue ? (
                 <Link
-                  to="/certificates/verify"
-                  search={{ serial: myIssue.serial }}
+                  to="/certificates/$serial"
+                  params={{ serial: myIssue.serial }}
                   className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-muted"
                 >
-                  Verify certificate
+                  View certificate
                 </Link>
               ) : (
                 <button
