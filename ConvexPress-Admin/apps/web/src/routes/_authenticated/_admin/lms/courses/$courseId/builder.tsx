@@ -37,6 +37,7 @@ import {
   Type,
   PlayCircle,
   GripVertical,
+  Sparkles,
 } from "lucide-react";
 
 export const Route = createFileRoute(
@@ -130,8 +131,17 @@ function BuilderPage() {
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <div className="space-y-4">
             {topics.length === 0 && (
-              <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                No topics yet. Add your first topic below to start building.
+              <div className="rounded-lg border border-dashed border-border p-8 text-center">
+                <p className="mb-4 text-sm text-muted-foreground">
+                  No topics yet. Add one below, or generate the whole course with AI.
+                </p>
+                <Link
+                  to="/lms/courses/$courseId/generate"
+                  params={{ courseId }}
+                  className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                >
+                  <Sparkles className="h-4 w-4" /> Generate with AI
+                </Link>
               </div>
             )}
 
