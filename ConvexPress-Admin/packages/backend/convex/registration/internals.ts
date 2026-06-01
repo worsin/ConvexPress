@@ -166,6 +166,7 @@ export const handleExternalAuthUserCreated = internalMutation({
     // ─── 6. Create User Record ─────────────────────────────────────────
     const userId = await ctx.db.insert("users", {
       // External auth fields
+      authSource: "clerk",
       clerkUserId: args.externalAuthId,
       email,
       emailVerified: args.emailVerified,
@@ -189,6 +190,11 @@ export const handleExternalAuthUserCreated = internalMutation({
 
       // Account status
       status: "active",
+      clerkProvisioningStatus: "provisioned",
+      clerkProvisioningSource: "clerk_session",
+      clerkProvisioningReason: "registration_external_auth",
+      clerkProvisionedAt: now,
+      clerkProvisioningAttemptedAt: now,
 
       // Timestamps
       createdAt: now,

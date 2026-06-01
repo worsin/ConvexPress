@@ -1896,7 +1896,7 @@ export const upsertImportedReviewUser = internalMutation({
     const firstName = nameParts[0];
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined;
 
-    return await ctx.db.insert("users", {
+    const userId = await ctx.db.insert("users", {
       authSource: "local",
       email: normalizedEmail,
       emailVerified: false,
@@ -1907,10 +1907,27 @@ export const upsertImportedReviewUser = internalMutation({
       slug: `woo-review-${normalizedEmail.split("@")[0]?.replace(/[^a-z0-9]+/g, "-") || "user"}`,
       status: "active",
       registrationMethod: "import",
+      clerkProvisioningStatus: "pending",
+      clerkProvisioningSource: "woocommerce_review_import",
+      clerkProvisioningReason: "scheduled_after_review_user_import",
       createdAt: now,
       updatedAt: now,
       wpSourceSiteId: siteId,
     });
+
+    await ctx.scheduler.runAfter(0, internal.auth.clerkManagement.ensureUserInClerk, {
+      userId,
+      source: "woocommerce_review_import",
+      email: normalizedEmail,
+      username: `woo-review-${normalizedEmail.replace(/[^a-z0-9]+/g, "-")}`,
+      firstName: firstName || undefined,
+      lastName,
+      displayName,
+      setAuthSourceToClerk: true,
+      skipPasswordRequirement: true,
+    });
+
+    return userId;
   },
 });
 

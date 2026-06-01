@@ -49,6 +49,11 @@ export const provisionClerkUser = mutation({
             clerkUserId,
             authSource: "clerk",
             emailVerified: identity.emailVerified ?? true,
+            clerkProvisioningStatus: "linked_existing",
+            clerkProvisioningSource: "clerk_session",
+            clerkProvisioningReason: "session_email_match",
+            clerkProvisionedAt: now,
+            clerkProvisioningAttemptedAt: now,
             updatedAt: now,
           };
           if (firstName && !byEmail.firstName) patch.firstName = firstName;
@@ -89,6 +94,11 @@ export const provisionClerkUser = mutation({
       status: "active",
       roleId: subscriberRole?._id,
       registrationMethod: "self",
+      clerkProvisioningStatus: "provisioned",
+      clerkProvisioningSource: "clerk_session",
+      clerkProvisioningReason: "session_user_created",
+      clerkProvisionedAt: now,
+      clerkProvisioningAttemptedAt: now,
       registeredAt: now,
       createdAt: now,
       updatedAt: now,

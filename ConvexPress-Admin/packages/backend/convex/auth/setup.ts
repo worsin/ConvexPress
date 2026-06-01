@@ -2,6 +2,7 @@ import { action, internalMutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { hashPassword } from "./helpers";
+import type { Id } from "../_generated/dataModel";
 
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createFirstAdmin = action({
@@ -31,6 +32,16 @@ export const createFirstAdmin = action({
       username: args.username,
       passwordHash,
       displayName: args.displayName ?? args.username,
+    });
+
+    await ctx.runAction(internal.auth.clerkManagement.ensureUserInClerk, {
+      userId,
+      source: "first_admin",
+      email: args.email,
+      username: args.username,
+      displayName: args.displayName ?? args.username,
+      password: args.password,
+      setAuthSourceToClerk: false,
     });
 
     return { userId, message: "Administrator account created" };
@@ -66,7 +77,7 @@ export const provisionSmokeAdmin = action({
 
     const passwordHash = await hashPassword(args.password);
 
-    const result: { created: boolean; userId: string; email: string } = await ctx.runMutation(
+    const result: { created: boolean; userId: Id<"users">; email: string } = await ctx.runMutation(
       internal.auth.setup.upsertSmokeAdmin,
       {
         email: args.email,
@@ -74,6 +85,15 @@ export const provisionSmokeAdmin = action({
         passwordHash,
       },
     );
+
+    await ctx.runAction(internal.auth.clerkManagement.ensureUserInClerk, {
+      userId: result.userId,
+      source: "smoke_admin",
+      email: args.email,
+      username: args.username,
+      password: args.password,
+      setAuthSourceToClerk: false,
+    });
 
     return result;
   },
@@ -111,6 +131,9 @@ export const upsertSmokeAdmin = internalMutation({
         isInternal: true,
         internalRole: "admin",
         ...(adminRole ? { roleId: adminRole._id } : {}),
+        clerkProvisioningStatus: "pending",
+        clerkProvisioningSource: "smoke_admin",
+        clerkProvisioningReason: "pending_clerk_provisioning",
         updatedAt: now,
       });
       return { created: false, userId: existing._id, email: existing.email };
@@ -128,6 +151,9 @@ export const upsertSmokeAdmin = internalMutation({
       isInternal: true,
       internalRole: "admin",
       roleId: adminRole?._id,
+      clerkProvisioningStatus: "pending",
+      clerkProvisioningSource: "smoke_admin",
+      clerkProvisioningReason: "pending_clerk_provisioning",
       registrationMethod: "self",
       registeredAt: now,
       createdAt: now,

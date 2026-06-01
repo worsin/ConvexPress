@@ -17,6 +17,10 @@ import {
   shouldPreserveWpPostMetaKey,
 } from "../fieldPolicy";
 import { fullSiteFixture } from "./fixtures/fullSiteFixture";
+import {
+  buildClerkCreateUserPayload,
+  detectClerkPasswordHasher,
+} from "../../auth/clerkManagementHelpers";
 
 const originalFetch = globalThis.fetch;
 
@@ -344,5 +348,71 @@ describe("WordPress sync client", () => {
       ),
     ).rejects.toBeInstanceOf(WPApiError);
     expect(calls).toBe(1);
+  });
+});
+
+describe("WordPress user credential migration", () => {
+  test("detects Clerk-supported WordPress password hashers", () => {
+    expect(detectClerkPasswordHasher("$P$B12345678abcdefghijklmnopqrstuv")).toEqual({
+      supported: true,
+      hasher: "phpass",
+    });
+    expect(
+      detectClerkPasswordHasher("$2y$10$012345678901234567890uY4D5x6Z7a8B9c0D1e2F3g4H5i6J7k8L"),
+    ).toEqual({
+      supported: true,
+      hasher: "bcrypt",
+    });
+    expect(detectClerkPasswordHasher("$wp$2y$10$012345678901234567890uY4D5x6Z7a8B9c0D1e2F3g4H5i6J7k8L")).toEqual({
+      supported: false,
+      reason: "wordpress_6_8_sha384_bcrypt",
+    });
+  });
+
+  test("builds Clerk REST payloads for digest, password, and reset-required users", () => {
+    const digestPayload = buildClerkCreateUserPayload({
+      email: "author@example.test",
+      source: "wordpress_import",
+      userId: "user123",
+      externalId: "wp:site123:7",
+      firstName: "Ava",
+      lastName: "Author",
+      displayName: "Ava Author",
+      username: "ava",
+      passwordDigest: "$P$B12345678abcdefghijklmnopqrstuv",
+      passwordHasher: "phpass",
+    });
+    expect(digestPayload).toMatchObject({
+      external_id: "wp:site123:7",
+      email_address: ["author@example.test"],
+      first_name: "Ava",
+      last_name: "Author",
+      password_digest: "$P$B12345678abcdefghijklmnopqrstuv",
+      password_hasher: "phpass",
+      skip_legal_checks: true,
+    });
+    expect(digestPayload).not.toHaveProperty("skip_password_requirement");
+
+    const passwordPayload = buildClerkCreateUserPayload({
+      email: "admin@example.test",
+      source: "first_admin",
+      userId: "user456",
+      password: "safe-admin-password",
+    });
+    expect(passwordPayload).toMatchObject({
+      email_address: ["admin@example.test"],
+      password: "safe-admin-password",
+    });
+    expect(passwordPayload).not.toHaveProperty("skip_password_requirement");
+
+    const resetPayload = buildClerkCreateUserPayload({
+      email: "customer@example.test",
+      source: "admin_manual",
+      userId: "user789",
+    });
+    expect(resetPayload).toMatchObject({
+      email_address: ["customer@example.test"],
+      skip_password_requirement: true,
+    });
   });
 });

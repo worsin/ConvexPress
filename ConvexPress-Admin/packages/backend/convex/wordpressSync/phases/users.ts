@@ -26,6 +26,10 @@ import type { SyncError, PhaseProgress } from "../validators";
 import { WP_BATCH_SIZE, normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 import { createFinding } from "../helpers/idMapping";
 import { decryptSecret } from "../../api/crypto_helpers";
+import {
+  detectClerkPasswordHasher,
+  normalizeClerkEmail,
+} from "../../auth/clerkManagementHelpers";
 
 
 // ─── Source Hash Helper ───────────────────────────────────────────────────
@@ -34,7 +38,6 @@ function computeSourceHash(fields: Record<string, unknown>): string {
   const str = JSON.stringify(fields); let h = 0; for (let i = 0; i < str.length; i++) { h = ((h << 5) - h + str.charCodeAt(i)) | 0; } return h.toString(36);
 }
 
-type ClerkPasswordHasher = "phpass" | "bcrypt";
 type CredentialMigrationStatus =
   | "provisioned"
   | "linked_existing"
@@ -49,6 +52,7 @@ type CredentialMigrationPatch = {
   passwordHasher?: string;
   clerkUserId?: string;
   error?: string;
+  source?: "wordpress_import" | "wordpress_credential_backfill";
 };
 
 const WP_ENCRYPTION_KEY = process.env.WP_SYNC_ENCRYPTION_KEY;
@@ -67,74 +71,7 @@ async function decryptStoredSecret(secret: string | undefined): Promise<string |
 }
 
 function normalizeEmail(email: string | undefined): string | undefined {
-  const normalized = email?.trim().toLowerCase();
-  return normalized || undefined;
-}
-
-function detectClerkPasswordHasher(
-  passwordDigest: string | undefined,
-): { supported: true; hasher: ClerkPasswordHasher } | { supported: false; reason: string } {
-  if (!passwordDigest?.trim()) {
-    return { supported: false, reason: "missing_digest" };
-  }
-
-  const digest = passwordDigest.trim();
-
-  if (digest.startsWith("$wp$2y$")) {
-    return { supported: false, reason: "wordpress_6_8_sha384_bcrypt" };
-  }
-
-  if (digest.startsWith("$P$")) {
-    return { supported: true, hasher: "phpass" };
-  }
-
-  if (/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(digest)) {
-    return { supported: true, hasher: "bcrypt" };
-  }
-
-  return { supported: false, reason: "unsupported_digest_format" };
-}
-
-function asArray(value: unknown): Array<Record<string, unknown>> {
-  return Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => !!item && typeof item === "object") : [];
-}
-
-function extractClerkUserId(payload: unknown): string | undefined {
-  const record = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
-  return typeof record.id === "string" ? record.id : undefined;
-}
-
-function clerkErrorMessage(payload: string): string {
-  try {
-    const parsed = JSON.parse(payload) as { errors?: Array<{ message?: string; long_message?: string; code?: string }> };
-    const first = parsed.errors?.[0];
-    return first?.long_message || first?.message || first?.code || payload.slice(0, 300);
-  } catch {
-    return payload.slice(0, 300);
-  }
-}
-
-async function findClerkUserByEmail(
-  clerkSecretKey: string,
-  email: string,
-): Promise<string | undefined> {
-  const url = new URL("https://api.clerk.com/v1/users");
-  url.searchParams.set("email_address", email);
-  url.searchParams.set("limit", "1");
-
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${clerkSecretKey}`,
-      Accept: "application/json",
-    },
-  });
-
-  if (!response.ok) return undefined;
-
-  const data = await response.json();
-  const rows = Array.isArray(data) ? data : asArray((data as Record<string, unknown>)?.data);
-  const first = rows[0];
-  return typeof first?.id === "string" ? first.id : undefined;
+  return normalizeClerkEmail(email);
 }
 
 // ─── User Import Action ────────────────────────────────────────────────────
@@ -464,6 +401,9 @@ export const usersCreate = internalMutation({
 
       // Registration
       registrationMethod: "import",
+      clerkProvisioningStatus: "pending",
+      clerkProvisioningSource: "wordpress_import",
+      clerkProvisioningReason: "pending_clerk_provisioning",
 
       // WordPress import fields
       wpUserId: wpUser.id,
@@ -525,6 +465,20 @@ async function markCredentialMigration(
   userId: Id<"users">,
   patch: CredentialMigrationPatch,
 ) {
+  const source = patch.source ?? "wordpress_import";
+  const clerkStatus =
+    patch.status === "unsupported_hash" ? "reset_required" : patch.status;
+
+  await ctx.runMutation(internal.auth.clerkManagement.markClerkProvisioning, {
+    userId,
+    source,
+    status: clerkStatus,
+    reason: patch.reason,
+    error: patch.error,
+    clerkUserId: patch.clerkUserId,
+    setAuthSourceToClerk: true,
+  });
+
   await ctx.runMutation(
     internal.wordpressSync.phases.users.markImportedUserCredentialMigration,
     {
@@ -555,11 +509,13 @@ export const provisionImportedUserCredentials = internalAction({
   },
   handler: async (ctx, args) => {
     const email = normalizeEmail(args.email);
+    const source = args.jobId ? "wordpress_import" : "wordpress_credential_backfill";
 
     if (!email || email.endsWith("@imported.local")) {
       await markCredentialMigration(ctx, args.userId, {
         status: "skipped",
         reason: "missing_email",
+        source,
       });
       return { status: "skipped" as const };
     }
@@ -568,6 +524,7 @@ export const provisionImportedUserCredentials = internalAction({
       await markCredentialMigration(ctx, args.userId, {
         status: "reset_required",
         reason: "credential_export_not_configured",
+        source,
       });
       return { status: "reset_required" as const };
     }
@@ -576,6 +533,7 @@ export const provisionImportedUserCredentials = internalAction({
       await markCredentialMigration(ctx, args.userId, {
         status: "reset_required",
         reason: "credential_export_unavailable",
+        source,
       });
       return { status: "reset_required" as const };
     }
@@ -586,6 +544,7 @@ export const provisionImportedUserCredentials = internalAction({
       await markCredentialMigration(ctx, args.userId, {
         status: detected.reason === "missing_digest" ? "reset_required" : "unsupported_hash",
         reason: detected.reason,
+        source,
       });
 
       if (args.jobId && detected.reason !== "missing_digest") {
@@ -609,73 +568,31 @@ export const provisionImportedUserCredentials = internalAction({
       return { status: "reset_required" as const, reason: detected.reason };
     }
 
-    const { getServiceKeyFromAction } = await import("../../helpers/serviceKeys");
-    const clerkSecretKey = await getServiceKeyFromAction(
-      ctx,
-      "integrations.clerk",
-      "clerkSecretKey",
-      "CLERK_SECRET_KEY",
+    const provisioningResult = await ctx.runAction(
+      internal.auth.clerkManagement.ensureUserInClerk,
+      {
+        userId: args.userId,
+        source,
+        email,
+        username: args.username,
+        firstName: args.firstName,
+        lastName: args.lastName,
+        displayName: args.displayName,
+        passwordDigest: digest,
+        passwordHasher: detected.hasher,
+        externalId: `wp:${args.siteId}:${args.wpUserId}`,
+        setAuthSourceToClerk: true,
+      },
     );
 
-    if (!clerkSecretKey) {
-      await markCredentialMigration(ctx, args.userId, {
-        status: "reset_required",
-        reason: "clerk_secret_key_missing",
-        passwordHasher: detected.hasher,
-      });
-      return { status: "reset_required" as const };
-    }
-
-    const existingClerkUserId = await findClerkUserByEmail(clerkSecretKey, email);
-    if (existingClerkUserId) {
-      await markCredentialMigration(ctx, args.userId, {
-        status: "linked_existing",
-        reason: "email_already_existed_in_clerk",
-        clerkUserId: existingClerkUserId,
-        passwordHasher: detected.hasher,
-      });
-      return { status: "linked_existing" as const, clerkUserId: existingClerkUserId };
-    }
-
-    const body = {
-      external_id: `wp:${args.siteId}:${args.wpUserId}`,
-      email_address: [email],
-      first_name: args.firstName || undefined,
-      last_name: args.lastName || undefined,
-      password_digest: digest,
-      password_hasher: detected.hasher,
-      skip_legal_checks: true,
-      private_metadata: {
-        convexpress: {
-          source: "wordpress",
-          siteId: args.siteId,
-          wpUserId: args.wpUserId,
-          username: args.username,
-        },
-      },
-      public_metadata: {
-        displayName: args.displayName,
-      },
-    };
-
-    const response = await fetch("https://api.clerk.com/v1/users", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${clerkSecretKey}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-
-    const payloadText = await response.text();
-    if (!response.ok) {
-      const message = clerkErrorMessage(payloadText);
+    if (provisioningResult.status === "failed") {
+      const message = provisioningResult.error || provisioningResult.reason || "Unknown Clerk provisioning failure";
       await markCredentialMigration(ctx, args.userId, {
         status: "failed",
-        reason: "clerk_create_user_failed",
+        reason: provisioningResult.reason || "clerk_create_user_failed",
         passwordHasher: detected.hasher,
         error: message,
+        source,
       });
 
       if (args.jobId) {
@@ -697,24 +614,27 @@ export const provisionImportedUserCredentials = internalAction({
       return { status: "failed" as const, error: message };
     }
 
-    const clerkUserId = extractClerkUserId(JSON.parse(payloadText));
-    if (!clerkUserId) {
+    if (!provisioningResult.clerkUserId) {
       await markCredentialMigration(ctx, args.userId, {
         status: "failed",
         reason: "clerk_response_missing_user_id",
         passwordHasher: detected.hasher,
+        source,
       });
       return { status: "failed" as const };
     }
 
+    const status =
+      provisioningResult.status === "linked_existing" ? "linked_existing" : "provisioned";
     await markCredentialMigration(ctx, args.userId, {
-      status: "provisioned",
-      reason: "password_digest_imported",
-      clerkUserId,
+      status,
+      reason: provisioningResult.reason || "password_digest_imported",
+      clerkUserId: provisioningResult.clerkUserId,
       passwordHasher: detected.hasher,
+      source,
     });
 
-    return { status: "provisioned" as const, clerkUserId };
+    return { status, clerkUserId: provisioningResult.clerkUserId };
   },
 });
 

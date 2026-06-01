@@ -19,6 +19,7 @@
  */
 
 import { mutation } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { ConvexError } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { requireCan, resolveUserRole } from "../helpers/permissions";
@@ -466,8 +467,22 @@ export const createUser = mutation({
       slug,
       roleId,
       status: args.status ?? "active",
+      clerkProvisioningStatus: "pending",
+      clerkProvisioningSource: "admin_manual",
+      clerkProvisioningReason: "scheduled_after_manual_create",
       createdAt: now,
       updatedAt: now,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.auth.clerkManagement.ensureUserInClerk, {
+      userId,
+      source: "admin_manual",
+      email: args.email,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      displayName,
+      setAuthSourceToClerk: true,
+      skipPasswordRequirement: true,
     });
 
     // 7. Emit event

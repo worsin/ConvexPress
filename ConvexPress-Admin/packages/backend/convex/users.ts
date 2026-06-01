@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import {
   getCurrentUser as getUser,
@@ -129,14 +130,27 @@ export const bootstrapAdmin = mutation({
         ...(!user.slug ? { slug: username } : {}),
         updatedAt: Date.now(),
       });
+      if (!user.clerkUserId && identity.email) {
+        await ctx.scheduler.runAfter(0, internal.auth.clerkManagement.ensureUserInClerk, {
+          userId: user._id,
+          source: "bootstrap_admin",
+          email: identity.email,
+          firstName: identity.givenName ?? undefined,
+          lastName: identity.familyName ?? undefined,
+          displayName,
+          setAuthSourceToClerk: false,
+          skipPasswordRequirement: true,
+        });
+      }
       return { success: true, action: "updated", userId: user._id };
     } else {
       const now = Date.now();
+      const isLocalAdminAuth = identity.tokenIdentifier?.startsWith("convexpress-admin|");
       const userId = await ctx.db.insert("users", {
         // Store the identity subject in the appropriate field based on auth source
-        ...(identity.tokenIdentifier?.startsWith("convexpress-admin|")
+        ...(isLocalAdminAuth
           ? { authSource: "local" as const }
-          : { clerkUserId: identity.subject }),
+          : { authSource: "clerk" as const, clerkUserId: identity.subject }),
         email: identity.email || "",
         emailVerified: true,
         firstName: identity.givenName,
@@ -149,9 +163,27 @@ export const bootstrapAdmin = mutation({
         displayName,
         slug: username,
         status: "active",
+        clerkProvisioningStatus: isLocalAdminAuth ? "pending" : "linked_existing",
+        clerkProvisioningSource: "bootstrap_admin",
+        clerkProvisioningReason: isLocalAdminAuth
+          ? "scheduled_after_bootstrap_admin"
+          : "created_from_clerk_identity",
+        ...(!isLocalAdminAuth ? { clerkProvisionedAt: now } : {}),
         createdAt: now,
         updatedAt: now,
       });
+      if (isLocalAdminAuth && identity.email) {
+        await ctx.scheduler.runAfter(0, internal.auth.clerkManagement.ensureUserInClerk, {
+          userId,
+          source: "bootstrap_admin",
+          email: identity.email,
+          firstName: identity.givenName ?? undefined,
+          lastName: identity.familyName ?? undefined,
+          displayName,
+          setAuthSourceToClerk: false,
+          skipPasswordRequirement: true,
+        });
+      }
       return { success: true, action: "created", userId };
     }
   },

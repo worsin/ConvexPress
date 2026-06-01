@@ -46,6 +46,11 @@ export const upsertClerkUser = internalMutation({
         firstName: args.firstName,
         lastName: args.lastName,
         profilePictureUrl: args.profilePictureUrl,
+        clerkProvisioningStatus: "provisioned",
+        clerkProvisioningSource: "clerk_webhook",
+        clerkProvisioningReason: "webhook_user_update",
+        clerkProvisionedAt: now,
+        clerkProvisioningAttemptedAt: now,
         updatedAt: now,
       });
       return;
@@ -64,6 +69,11 @@ export const upsertClerkUser = internalMutation({
           clerkUserId: args.clerkUserId,
           authSource: "clerk",
           emailVerified: true,
+          clerkProvisioningStatus: "linked_existing",
+          clerkProvisioningSource: "clerk_webhook",
+          clerkProvisioningReason: "webhook_email_match",
+          clerkProvisionedAt: now,
+          clerkProvisioningAttemptedAt: now,
           updatedAt: now,
         };
         // Only override name/picture if Clerk provided values and the record doesn't already have them
@@ -105,6 +115,11 @@ export const upsertClerkUser = internalMutation({
       status: "active",
       roleId: subscriberRole?._id,
       registrationMethod: "self",
+      clerkProvisioningStatus: "provisioned",
+      clerkProvisioningSource: "clerk_webhook",
+      clerkProvisioningReason: "webhook_user_created",
+      clerkProvisionedAt: now,
+      clerkProvisioningAttemptedAt: now,
       registeredAt: now,
       createdAt: now,
       updatedAt: now,
