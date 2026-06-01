@@ -10,7 +10,7 @@ import { LmsRoutePending } from "@/components/lms/LmsRoutePending";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
 
-export const Route = createFileRoute("/_marketing/courses/$slug/$nodeId")({
+export const Route = createFileRoute("/_marketing/courses/$slug_/$nodeId")({
   loader: async ({ context: { queryClient }, params }) => {
     const publicSettings = await queryClient.ensureQueryData(
       convexQuery(api.settings.queries.getPublic, {}),

@@ -102,15 +102,15 @@ import { Route as ApiCommentsFeedIndexRouteImport } from './routes/api/comments/
 import { Route as MarketingSupportTicketsIndexRouteImport } from './routes/_marketing/support/tickets/index'
 import { Route as MarketingHelpCategorySlugIndexRouteImport } from './routes/_marketing/help/$categorySlug/index'
 import { Route as DashboardOrdersOrderIdReturnRouteImport } from './routes/dashboard/orders.$orderId.return'
-import { Route as DashboardCoursesSlugNodeIdRouteImport } from './routes/dashboard/courses.$slug.$nodeId'
+import { Route as DashboardCoursesSlugNodeIdRouteImport } from './routes/dashboard/courses_.$slug.$nodeId'
 import { Route as ApiCommentsFeedAtomRouteImport } from './routes/api/comments/feed/atom'
-import { Route as AccountCoursesSlugNodeIdRouteImport } from './routes/account.courses.$slug.$nodeId'
+import { Route as AccountCoursesSlugNodeIdRouteImport } from './routes/account.courses_.$slug.$nodeId'
 import { Route as MarketingSupportTicketsTicketIdRouteImport } from './routes/_marketing/support/tickets/$ticketId'
 import { Route as MarketingRecipesCategorySlugRouteImport } from './routes/_marketing/recipes/category/$slug'
 import { Route as MarketingHelpCollectionsSlugRouteImport } from './routes/_marketing/help/collections/$slug'
 import { Route as MarketingHelpCategorySlugArticleSlugRouteImport } from './routes/_marketing/help/$categorySlug/$articleSlug'
 import { Route as MarketingGalleryCategorySlugRouteImport } from './routes/_marketing/gallery/category/$slug'
-import { Route as MarketingCoursesSlugNodeIdRouteImport } from './routes/_marketing/courses/$slug.$nodeId'
+import { Route as MarketingCoursesSlugNodeIdRouteImport } from './routes/_marketing/courses/$slug_.$nodeId'
 import { Route as MarketingCheckoutConfirmationOrderIdRouteImport } from './routes/_marketing/checkout/confirmation_.$orderId'
 import { Route as MarketingCartSharedShareTokenRouteImport } from './routes/_marketing/cart/shared/$shareToken'
 import { Route as ApiTagSlugFeedIndexRouteImport } from './routes/api/tag/$slug/feed/index'
@@ -602,9 +602,9 @@ const DashboardOrdersOrderIdReturnRoute =
   } as any)
 const DashboardCoursesSlugNodeIdRoute =
   DashboardCoursesSlugNodeIdRouteImport.update({
-    id: '/$slug/$nodeId',
-    path: '/$slug/$nodeId',
-    getParentRoute: () => DashboardCoursesRoute,
+    id: '/courses_/$slug/$nodeId',
+    path: '/courses/$slug/$nodeId',
+    getParentRoute: () => DashboardRoute,
   } as any)
 const ApiCommentsFeedAtomRoute = ApiCommentsFeedAtomRouteImport.update({
   id: '/api/comments/feed/atom',
@@ -613,9 +613,9 @@ const ApiCommentsFeedAtomRoute = ApiCommentsFeedAtomRouteImport.update({
 } as any)
 const AccountCoursesSlugNodeIdRoute =
   AccountCoursesSlugNodeIdRouteImport.update({
-    id: '/$nodeId',
-    path: '/$nodeId',
-    getParentRoute: () => AccountCoursesSlugRoute,
+    id: '/account/courses_/$slug/$nodeId',
+    path: '/account/courses/$slug/$nodeId',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const MarketingSupportTicketsTicketIdRoute =
   MarketingSupportTicketsTicketIdRouteImport.update({
@@ -649,9 +649,9 @@ const MarketingGalleryCategorySlugRoute =
   } as any)
 const MarketingCoursesSlugNodeIdRoute =
   MarketingCoursesSlugNodeIdRouteImport.update({
-    id: '/$nodeId',
-    path: '/$nodeId',
-    getParentRoute: () => MarketingCoursesSlugRoute,
+    id: '/$slug_/$nodeId',
+    path: '/$slug/$nodeId',
+    getParentRoute: () => MarketingCoursesRoute,
   } as any)
 const MarketingCheckoutConfirmationOrderIdRoute =
   MarketingCheckoutConfirmationOrderIdRouteImport.update({
@@ -754,7 +754,7 @@ export interface FileRoutesByFullPath {
   '/api/robots': typeof ApiRobotsRoute
   '/dashboard/addresses': typeof DashboardAddressesRoute
   '/dashboard/comments': typeof DashboardCommentsRoute
-  '/dashboard/courses': typeof DashboardCoursesRouteWithChildren
+  '/dashboard/courses': typeof DashboardCoursesRoute
   '/dashboard/downloads': typeof DashboardDownloadsRoute
   '/dashboard/membership': typeof DashboardMembershipRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
@@ -780,7 +780,7 @@ export interface FileRoutesByFullPath {
   '/checkout/payment': typeof MarketingCheckoutPaymentRoute
   '/checkout/review': typeof MarketingCheckoutReviewRoute
   '/checkout/shipping': typeof MarketingCheckoutShippingRoute
-  '/courses/$slug': typeof MarketingCoursesSlugRouteWithChildren
+  '/courses/$slug': typeof MarketingCoursesSlugRoute
   '/forms/$slug': typeof MarketingFormsSlugRouteWithChildren
   '/gallery/$slug': typeof MarketingGallerySlugRoute
   '/help/$categorySlug': typeof MarketingHelpCategorySlugRouteWithChildren
@@ -792,7 +792,7 @@ export interface FileRoutesByFullPath {
   '/tag/$slug': typeof MarketingTagSlugRoute
   '/track/$token': typeof MarketingTrackTokenRoute
   '/wishlist/$token': typeof MarketingWishlistTokenRoute
-  '/account/courses/$slug': typeof AccountCoursesSlugRouteWithChildren
+  '/account/courses/$slug': typeof AccountCoursesSlugRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/feed/atom': typeof ApiFeedAtomRoute
   '/api/feed/rss2': typeof ApiFeedRss2Route
@@ -858,7 +858,7 @@ export interface FileRoutesByTo {
   '/api/robots': typeof ApiRobotsRoute
   '/dashboard/addresses': typeof DashboardAddressesRoute
   '/dashboard/comments': typeof DashboardCommentsRoute
-  '/dashboard/courses': typeof DashboardCoursesRouteWithChildren
+  '/dashboard/courses': typeof DashboardCoursesRoute
   '/dashboard/downloads': typeof DashboardDownloadsRoute
   '/dashboard/membership': typeof DashboardMembershipRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
@@ -885,7 +885,7 @@ export interface FileRoutesByTo {
   '/checkout/payment': typeof MarketingCheckoutPaymentRoute
   '/checkout/review': typeof MarketingCheckoutReviewRoute
   '/checkout/shipping': typeof MarketingCheckoutShippingRoute
-  '/courses/$slug': typeof MarketingCoursesSlugRouteWithChildren
+  '/courses/$slug': typeof MarketingCoursesSlugRoute
   '/forms/$slug': typeof MarketingFormsSlugRouteWithChildren
   '/gallery/$slug': typeof MarketingGallerySlugRoute
   '/help/search': typeof MarketingHelpSearchRoute
@@ -896,7 +896,7 @@ export interface FileRoutesByTo {
   '/tag/$slug': typeof MarketingTagSlugRoute
   '/track/$token': typeof MarketingTrackTokenRoute
   '/wishlist/$token': typeof MarketingWishlistTokenRoute
-  '/account/courses/$slug': typeof AccountCoursesSlugRouteWithChildren
+  '/account/courses/$slug': typeof AccountCoursesSlugRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/feed/atom': typeof ApiFeedAtomRoute
   '/api/feed/rss2': typeof ApiFeedRss2Route
@@ -975,7 +975,7 @@ export interface FileRoutesById {
   '/api/robots': typeof ApiRobotsRoute
   '/dashboard/addresses': typeof DashboardAddressesRoute
   '/dashboard/comments': typeof DashboardCommentsRoute
-  '/dashboard/courses': typeof DashboardCoursesRouteWithChildren
+  '/dashboard/courses': typeof DashboardCoursesRoute
   '/dashboard/downloads': typeof DashboardDownloadsRoute
   '/dashboard/membership': typeof DashboardMembershipRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
@@ -1002,7 +1002,7 @@ export interface FileRoutesById {
   '/_marketing/checkout/payment': typeof MarketingCheckoutPaymentRoute
   '/_marketing/checkout/review': typeof MarketingCheckoutReviewRoute
   '/_marketing/checkout/shipping': typeof MarketingCheckoutShippingRoute
-  '/_marketing/courses/$slug': typeof MarketingCoursesSlugRouteWithChildren
+  '/_marketing/courses/$slug': typeof MarketingCoursesSlugRoute
   '/_marketing/forms/$slug': typeof MarketingFormsSlugRouteWithChildren
   '/_marketing/gallery/$slug': typeof MarketingGallerySlugRoute
   '/_marketing/help/$categorySlug': typeof MarketingHelpCategorySlugRouteWithChildren
@@ -1014,7 +1014,7 @@ export interface FileRoutesById {
   '/_marketing/tag/$slug': typeof MarketingTagSlugRoute
   '/_marketing/track/$token': typeof MarketingTrackTokenRoute
   '/_marketing/wishlist/$token': typeof MarketingWishlistTokenRoute
-  '/account/courses/$slug': typeof AccountCoursesSlugRouteWithChildren
+  '/account/courses/$slug': typeof AccountCoursesSlugRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/feed/atom': typeof ApiFeedAtomRoute
   '/api/feed/rss2': typeof ApiFeedRss2Route
@@ -1038,15 +1038,15 @@ export interface FileRoutesById {
   '/api/feed/': typeof ApiFeedIndexRoute
   '/_marketing/cart/shared/$shareToken': typeof MarketingCartSharedShareTokenRoute
   '/_marketing/checkout/confirmation_/$orderId': typeof MarketingCheckoutConfirmationOrderIdRoute
-  '/_marketing/courses/$slug/$nodeId': typeof MarketingCoursesSlugNodeIdRoute
+  '/_marketing/courses/$slug_/$nodeId': typeof MarketingCoursesSlugNodeIdRoute
   '/_marketing/gallery/category/$slug': typeof MarketingGalleryCategorySlugRoute
   '/_marketing/help/$categorySlug/$articleSlug': typeof MarketingHelpCategorySlugArticleSlugRoute
   '/_marketing/help/collections/$slug': typeof MarketingHelpCollectionsSlugRoute
   '/_marketing/recipes/category/$slug': typeof MarketingRecipesCategorySlugRoute
   '/_marketing/support/tickets/$ticketId': typeof MarketingSupportTicketsTicketIdRoute
-  '/account/courses/$slug/$nodeId': typeof AccountCoursesSlugNodeIdRoute
+  '/account/courses_/$slug/$nodeId': typeof AccountCoursesSlugNodeIdRoute
   '/api/comments/feed/atom': typeof ApiCommentsFeedAtomRoute
-  '/dashboard/courses/$slug/$nodeId': typeof DashboardCoursesSlugNodeIdRoute
+  '/dashboard/courses_/$slug/$nodeId': typeof DashboardCoursesSlugNodeIdRoute
   '/dashboard/orders/$orderId/return': typeof DashboardOrdersOrderIdReturnRoute
   '/_marketing/help/$categorySlug/': typeof MarketingHelpCategorySlugIndexRoute
   '/_marketing/support/tickets/': typeof MarketingSupportTicketsIndexRoute
@@ -1377,15 +1377,15 @@ export interface FileRouteTypes {
     | '/api/feed/'
     | '/_marketing/cart/shared/$shareToken'
     | '/_marketing/checkout/confirmation_/$orderId'
-    | '/_marketing/courses/$slug/$nodeId'
+    | '/_marketing/courses/$slug_/$nodeId'
     | '/_marketing/gallery/category/$slug'
     | '/_marketing/help/$categorySlug/$articleSlug'
     | '/_marketing/help/collections/$slug'
     | '/_marketing/recipes/category/$slug'
     | '/_marketing/support/tickets/$ticketId'
-    | '/account/courses/$slug/$nodeId'
+    | '/account/courses_/$slug/$nodeId'
     | '/api/comments/feed/atom'
-    | '/dashboard/courses/$slug/$nodeId'
+    | '/dashboard/courses_/$slug/$nodeId'
     | '/dashboard/orders/$orderId/return'
     | '/_marketing/help/$categorySlug/'
     | '/_marketing/support/tickets/'
@@ -1422,6 +1422,7 @@ export interface RootRouteChildren {
   ApiSitemapStyleXslRoute: typeof ApiSitemapStyleXslRoute
   ApiSitemapXmlRoute: typeof ApiSitemapXmlRoute
   ApiFeedIndexRoute: typeof ApiFeedIndexRoute
+  AccountCoursesSlugNodeIdRoute: typeof AccountCoursesSlugNodeIdRoute
   ApiCommentsFeedAtomRoute: typeof ApiCommentsFeedAtomRoute
   ApiCommentsFeedIndexRoute: typeof ApiCommentsFeedIndexRoute
   ApiAuthorSlugFeedAtomRoute: typeof ApiAuthorSlugFeedAtomRoute
@@ -2087,12 +2088,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrdersOrderIdReturnRouteImport
       parentRoute: typeof DashboardOrdersOrderIdRoute
     }
-    '/dashboard/courses/$slug/$nodeId': {
-      id: '/dashboard/courses/$slug/$nodeId'
-      path: '/$slug/$nodeId'
+    '/dashboard/courses_/$slug/$nodeId': {
+      id: '/dashboard/courses_/$slug/$nodeId'
+      path: '/courses/$slug/$nodeId'
       fullPath: '/dashboard/courses/$slug/$nodeId'
       preLoaderRoute: typeof DashboardCoursesSlugNodeIdRouteImport
-      parentRoute: typeof DashboardCoursesRoute
+      parentRoute: typeof DashboardRoute
     }
     '/api/comments/feed/atom': {
       id: '/api/comments/feed/atom'
@@ -2101,12 +2102,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCommentsFeedAtomRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/account/courses/$slug/$nodeId': {
-      id: '/account/courses/$slug/$nodeId'
-      path: '/$nodeId'
+    '/account/courses_/$slug/$nodeId': {
+      id: '/account/courses_/$slug/$nodeId'
+      path: '/account/courses/$slug/$nodeId'
       fullPath: '/account/courses/$slug/$nodeId'
       preLoaderRoute: typeof AccountCoursesSlugNodeIdRouteImport
-      parentRoute: typeof AccountCoursesSlugRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_marketing/support/tickets/$ticketId': {
       id: '/_marketing/support/tickets/$ticketId'
@@ -2143,12 +2144,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingGalleryCategorySlugRouteImport
       parentRoute: typeof MarketingGalleryRoute
     }
-    '/_marketing/courses/$slug/$nodeId': {
-      id: '/_marketing/courses/$slug/$nodeId'
-      path: '/$nodeId'
+    '/_marketing/courses/$slug_/$nodeId': {
+      id: '/_marketing/courses/$slug_/$nodeId'
+      path: '/$slug/$nodeId'
       fullPath: '/courses/$slug/$nodeId'
       preLoaderRoute: typeof MarketingCoursesSlugNodeIdRouteImport
-      parentRoute: typeof MarketingCoursesSlugRoute
+      parentRoute: typeof MarketingCoursesRoute
     }
     '/_marketing/checkout/confirmation_/$orderId': {
       id: '/_marketing/checkout/confirmation_/$orderId'
@@ -2319,25 +2320,16 @@ const MarketingCheckoutRouteChildren: MarketingCheckoutRouteChildren = {
 const MarketingCheckoutRouteWithChildren =
   MarketingCheckoutRoute._addFileChildren(MarketingCheckoutRouteChildren)
 
-interface MarketingCoursesSlugRouteChildren {
+interface MarketingCoursesRouteChildren {
+  MarketingCoursesSlugRoute: typeof MarketingCoursesSlugRoute
+  MarketingCoursesIndexRoute: typeof MarketingCoursesIndexRoute
   MarketingCoursesSlugNodeIdRoute: typeof MarketingCoursesSlugNodeIdRoute
 }
 
-const MarketingCoursesSlugRouteChildren: MarketingCoursesSlugRouteChildren = {
-  MarketingCoursesSlugNodeIdRoute: MarketingCoursesSlugNodeIdRoute,
-}
-
-const MarketingCoursesSlugRouteWithChildren =
-  MarketingCoursesSlugRoute._addFileChildren(MarketingCoursesSlugRouteChildren)
-
-interface MarketingCoursesRouteChildren {
-  MarketingCoursesSlugRoute: typeof MarketingCoursesSlugRouteWithChildren
-  MarketingCoursesIndexRoute: typeof MarketingCoursesIndexRoute
-}
-
 const MarketingCoursesRouteChildren: MarketingCoursesRouteChildren = {
-  MarketingCoursesSlugRoute: MarketingCoursesSlugRouteWithChildren,
+  MarketingCoursesSlugRoute: MarketingCoursesSlugRoute,
   MarketingCoursesIndexRoute: MarketingCoursesIndexRoute,
+  MarketingCoursesSlugNodeIdRoute: MarketingCoursesSlugNodeIdRoute,
 }
 
 const MarketingCoursesRouteWithChildren =
@@ -2517,17 +2509,6 @@ const MarketingRouteWithChildren = MarketingRoute._addFileChildren(
   MarketingRouteChildren,
 )
 
-interface DashboardCoursesRouteChildren {
-  DashboardCoursesSlugNodeIdRoute: typeof DashboardCoursesSlugNodeIdRoute
-}
-
-const DashboardCoursesRouteChildren: DashboardCoursesRouteChildren = {
-  DashboardCoursesSlugNodeIdRoute: DashboardCoursesSlugNodeIdRoute,
-}
-
-const DashboardCoursesRouteWithChildren =
-  DashboardCoursesRoute._addFileChildren(DashboardCoursesRouteChildren)
-
 interface DashboardOrdersOrderIdRouteChildren {
   DashboardOrdersOrderIdReturnRoute: typeof DashboardOrdersOrderIdReturnRoute
 }
@@ -2583,7 +2564,7 @@ const DashboardSubscriptionsRouteWithChildren =
 interface DashboardRouteChildren {
   DashboardAddressesRoute: typeof DashboardAddressesRoute
   DashboardCommentsRoute: typeof DashboardCommentsRoute
-  DashboardCoursesRoute: typeof DashboardCoursesRouteWithChildren
+  DashboardCoursesRoute: typeof DashboardCoursesRoute
   DashboardDownloadsRoute: typeof DashboardDownloadsRoute
   DashboardMembershipRoute: typeof DashboardMembershipRoute
   DashboardNotificationsRoute: typeof DashboardNotificationsRoute
@@ -2597,12 +2578,13 @@ interface DashboardRouteChildren {
   DashboardSubscriptionsRoute: typeof DashboardSubscriptionsRouteWithChildren
   DashboardWishlistRoute: typeof DashboardWishlistRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardCoursesSlugNodeIdRoute: typeof DashboardCoursesSlugNodeIdRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAddressesRoute: DashboardAddressesRoute,
   DashboardCommentsRoute: DashboardCommentsRoute,
-  DashboardCoursesRoute: DashboardCoursesRouteWithChildren,
+  DashboardCoursesRoute: DashboardCoursesRoute,
   DashboardDownloadsRoute: DashboardDownloadsRoute,
   DashboardMembershipRoute: DashboardMembershipRoute,
   DashboardNotificationsRoute: DashboardNotificationsRoute,
@@ -2616,29 +2598,19 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardSubscriptionsRoute: DashboardSubscriptionsRouteWithChildren,
   DashboardWishlistRoute: DashboardWishlistRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardCoursesSlugNodeIdRoute: DashboardCoursesSlugNodeIdRoute,
 }
 
 const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
   DashboardRouteChildren,
 )
 
-interface AccountCoursesSlugRouteChildren {
-  AccountCoursesSlugNodeIdRoute: typeof AccountCoursesSlugNodeIdRoute
-}
-
-const AccountCoursesSlugRouteChildren: AccountCoursesSlugRouteChildren = {
-  AccountCoursesSlugNodeIdRoute: AccountCoursesSlugNodeIdRoute,
-}
-
-const AccountCoursesSlugRouteWithChildren =
-  AccountCoursesSlugRoute._addFileChildren(AccountCoursesSlugRouteChildren)
-
 interface AccountCoursesRouteChildren {
-  AccountCoursesSlugRoute: typeof AccountCoursesSlugRouteWithChildren
+  AccountCoursesSlugRoute: typeof AccountCoursesSlugRoute
 }
 
 const AccountCoursesRouteChildren: AccountCoursesRouteChildren = {
-  AccountCoursesSlugRoute: AccountCoursesSlugRouteWithChildren,
+  AccountCoursesSlugRoute: AccountCoursesSlugRoute,
 }
 
 const AccountCoursesRouteWithChildren = AccountCoursesRoute._addFileChildren(
@@ -2664,6 +2636,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSitemapStyleXslRoute: ApiSitemapStyleXslRoute,
   ApiSitemapXmlRoute: ApiSitemapXmlRoute,
   ApiFeedIndexRoute: ApiFeedIndexRoute,
+  AccountCoursesSlugNodeIdRoute: AccountCoursesSlugNodeIdRoute,
   ApiCommentsFeedAtomRoute: ApiCommentsFeedAtomRoute,
   ApiCommentsFeedIndexRoute: ApiCommentsFeedIndexRoute,
   ApiAuthorSlugFeedAtomRoute: ApiAuthorSlugFeedAtomRoute,

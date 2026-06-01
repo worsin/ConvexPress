@@ -4,10 +4,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
-import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { type PublicForm } from "@/components/forms/FormRenderer";
 import { FormWizard } from "@/extensions/forms/FormWizard";
 import { DraftExpiredNotice } from "@/extensions/forms/DraftExpiredNotice";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
 
 /**
@@ -46,21 +46,27 @@ type ResumeDraft =
 export const Route = createFileRoute("/_marketing/forms/$slug/resume/$token")({
   component: ResumeFormPage,
   loader: async ({ context: { queryClient }, params }) => {
-    const publicSettings = (await queryClient.ensureQueryData(
+    const publicSettings = await queryClient.ensureQueryData(
       convexQuery(api.settings.queries.getPublic, {}),
-    )) as { siteUrl?: string | null };
+    );
+    const formsEnabled = isPublicPluginEnabled("forms", publicSettings);
 
     // Prefetch BOTH queries for an SSR-first paint.
-    const [form] = await Promise.all([
-      queryClient.ensureQueryData(
-        convexQuery(getBySlugFn, { slug: params.slug }),
-      ) as Promise<PublicForm | null>,
-      queryClient.ensureQueryData(convexQuery(resumeFn, { token: params.token })),
-    ]);
+    const [form] = formsEnabled
+      ? await Promise.all([
+          queryClient.ensureQueryData(
+            convexQuery(getBySlugFn, { slug: params.slug }),
+          ) as Promise<PublicForm | null>,
+          queryClient.ensureQueryData(convexQuery(resumeFn, { token: params.token })),
+        ])
+      : [null];
 
-    const siteUrl = normalizeSiteUrl(publicSettings?.siteUrl);
+    const siteUrl = normalizeSiteUrl(
+      (publicSettings as { siteUrl?: string | null })?.siteUrl,
+    );
 
     return {
+      formsEnabled,
       seoHead: buildSeoHead({
         title: `Resume ${form?.title ?? params.slug} - ConvexPress`,
         description: `Resume your saved ${form?.title ?? params.slug} form.`,
@@ -73,11 +79,9 @@ export const Route = createFileRoute("/_marketing/forms/$slug/resume/$token")({
 });
 
 function ResumeFormPage() {
-  return (
-    <PublicPluginGate pluginId="forms">
-      <ResumeFormInner />
-    </PublicPluginGate>
-  );
+  const { formsEnabled } = Route.useLoaderData();
+  if (!formsEnabled) return <NotFoundPage />;
+  return <ResumeFormInner />;
 }
 
 function ResumeFormInner() {

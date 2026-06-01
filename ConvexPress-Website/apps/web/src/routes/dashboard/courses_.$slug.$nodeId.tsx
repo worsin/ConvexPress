@@ -18,7 +18,7 @@ import { LessonContentRenderer } from "@/components/lms/LessonContentRenderer";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export const Route = createFileRoute("/dashboard/courses/$slug/$nodeId")({
+export const Route = createFileRoute("/dashboard/courses_/$slug/$nodeId")({
   head: () => ({
     meta: [
       { name: "robots", content: "noindex" },

@@ -1,6 +1,6 @@
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/account/courses/$slug/$nodeId")({
+export const Route = createFileRoute("/account/courses_/$slug/$nodeId")({
   component: AccountCoursePlayerRedirect,
 });
 

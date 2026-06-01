@@ -5,8 +5,9 @@
  * Initializes the tracker on mount and tracks client-side navigations
  * via TanStack Router's useLocation hook.
  *
- * The VITE_CONVEX_URL environment variable provides the Convex deployment
- * URL, which is used to construct the tracking endpoint URL.
+ * The VITE_CONVEX_URL environment variable provides the Convex realtime URL.
+ * Analytics posts to the Convex HTTP action host, either from
+ * VITE_CONVEX_SITE_URL or the matching .convex.site URL.
  */
 
 import { useEffect, useRef } from "react";
@@ -17,7 +18,8 @@ import {
   destroyAnalytics,
 } from "@/lib/analytics/tracker";
 
-const CONVEX_URL = import.meta.env.VITE_CONVEX_URL as string;
+const CONVEX_URL = import.meta.env.VITE_CONVEX_URL as string | undefined;
+const CONVEX_SITE_URL = import.meta.env.VITE_CONVEX_SITE_URL as string | undefined;
 
 export function AnalyticsProvider() {
   const location = useLocation();
@@ -27,7 +29,7 @@ export function AnalyticsProvider() {
   // Initialize tracker on mount
   useEffect(() => {
     if (!CONVEX_URL || initializedRef.current) return;
-    initAnalytics(CONVEX_URL);
+    initAnalytics(CONVEX_URL, CONVEX_SITE_URL);
     initializedRef.current = true;
     prevPathRef.current = location.pathname;
 

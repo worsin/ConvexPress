@@ -127,6 +127,14 @@ async function findFirstHref(
 ): Promise<string | null> {
 	await page.goto(listPath, { waitUntil: "domcontentloaded" });
 	await expect(page.locator("#admin-content")).toBeVisible({ timeout: 20_000 });
+
+	const disabledPluginNotice = page
+		.getByRole("heading", { name: /disabled/i })
+		.first();
+	if (await disabledPluginNotice.isVisible().catch(() => false)) {
+		return null;
+	}
+
 	await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
 
 	const allLinks = await page.locator("a[href]").evaluateAll((els) =>

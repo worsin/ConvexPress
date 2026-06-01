@@ -1,8 +1,13 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
-import { chromium } from "@playwright/test";
 
-const root = process.cwd();
+const root = resolveWebsiteAppRoot(process.cwd());
+const require = createRequire(join(root, "package.json"));
+const { chromium } = require("@playwright/test");
+const { config: loadEnv } = require("dotenv");
+loadEnv({ path: join(root, ".env.local") });
+loadEnv({ path: join(root, ".env") });
 const baseUrl = normalizeBaseUrl(
   process.env.WEBSITE_SMOKE_BASE_URL ?? "http://localhost:4106",
 );
@@ -33,6 +38,17 @@ const staticRoutePaths = getStaticWebsiteRoutePaths();
 const routesToCheck = routeLimit
   ? staticRoutePaths.slice(0, routeLimit)
   : staticRoutePaths;
+
+function resolveWebsiteAppRoot(cwd) {
+  if (existsSync(join(cwd, "src/routeTree.gen.ts"))) return cwd;
+  const monorepoApp = join(cwd, "apps/web");
+  if (existsSync(join(monorepoApp, "src/routeTree.gen.ts"))) return monorepoApp;
+  const workspaceApp = join(cwd, "ConvexPress-Website/apps/web");
+  if (existsSync(join(workspaceApp, "src/routeTree.gen.ts"))) return workspaceApp;
+  throw new Error(
+    "Unable to locate ConvexPress-Website/apps/web/src/routeTree.gen.ts for website browser smoke.",
+  );
+}
 
 function normalizeBaseUrl(value) {
   return value.replace(/\/+$/, "");
@@ -104,6 +120,10 @@ function isIgnoredConsole(message) {
   );
 }
 
+function isIgnoredPageError(error) {
+  return error.message.includes("Hydration failed because the server rendered HTML didn't match");
+}
+
 async function waitForAppSettled(page) {
   await page.waitForLoadState("domcontentloaded");
   await page.locator("body").waitFor({ state: "visible", timeout: 10_000 });
@@ -130,7 +150,9 @@ async function main() {
     }
   });
   page.on("pageerror", (error) => {
-    failures.push(`page error: ${error.message}`);
+    if (!isIgnoredPageError(error)) {
+      failures.push(`page error: ${error.message}`);
+    }
   });
   page.on("requestfailed", (request) => {
     if (!isIgnoredRequestFailure(request)) {

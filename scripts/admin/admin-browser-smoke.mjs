@@ -1,8 +1,13 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
-import { chromium } from "@playwright/test";
 
-const root = process.cwd();
+const root = resolveAdminRoot(process.cwd());
+const require = createRequire(join(root, "apps/web/package.json"));
+const { chromium } = require("@playwright/test");
+const { config: loadEnv } = require("dotenv");
+loadEnv({ path: join(root, "apps/web/.env.local") });
+loadEnv({ path: join(root, "apps/web/.env") });
 const baseUrl = normalizeBaseUrl(
   process.env.ADMIN_SMOKE_BASE_URL ?? "http://localhost:4105",
 );
@@ -42,6 +47,15 @@ const dialogChecks = [
     expected: /wordpress|site url|application password/i,
   },
 ];
+
+function resolveAdminRoot(cwd) {
+  if (existsSync(join(cwd, "apps/web/package.json"))) return cwd;
+  const nested = join(cwd, "ConvexPress-Admin");
+  if (existsSync(join(nested, "apps/web/package.json"))) return nested;
+  throw new Error(
+    "Unable to locate ConvexPress-Admin/apps/web/package.json for admin browser smoke.",
+  );
+}
 
 function normalizeBaseUrl(value) {
   return value.replace(/\/+$/, "");

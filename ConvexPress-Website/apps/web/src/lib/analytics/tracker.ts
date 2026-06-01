@@ -99,6 +99,14 @@ let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let endpointUrl = "";
 let endpointDisabled = false;
 
+function analyticsBaseUrlFromConvexUrl(convexUrl: string): string {
+  const baseUrl = convexUrl.replace(/\/$/, "");
+  if (baseUrl.endsWith(".convex.cloud")) {
+    return baseUrl.replace(/\.convex\.cloud$/, ".convex.site");
+  }
+  return baseUrl;
+}
+
 function queueEvent(event: TrackingEvent) {
   eventQueue.push(event);
 
@@ -276,14 +284,19 @@ function sendExitEvent(visitorId: string, sessionId: string) {
  * Initialize the analytics tracker.
  *
  * @param convexUrl - The Convex deployment URL (e.g., "https://xxx.convex.cloud")
- *                    The tracking endpoint will be `${convexUrl}/api/analytics/track`
+ * @param siteUrl - Optional Convex HTTP action host (e.g., "https://xxx.convex.site").
+ *                  If omitted, standard Convex cloud URLs are mapped to their
+ *                  matching HTTP action host.
  */
-export function initAnalytics(convexUrl: string): void {
+export function initAnalytics(convexUrl: string, siteUrl?: string): void {
   // Respect Do Not Track
   if (navigator.doNotTrack === "1") return;
 
   // Set endpoint
-  endpointUrl = convexUrl.replace(/\/$/, "") + "/api/analytics/track";
+  const analyticsBaseUrl = siteUrl
+    ? siteUrl.replace(/\/$/, "")
+    : analyticsBaseUrlFromConvexUrl(convexUrl);
+  endpointUrl = analyticsBaseUrl + "/api/analytics/track";
   endpointDisabled = false;
 
   // Get or create anonymous IDs

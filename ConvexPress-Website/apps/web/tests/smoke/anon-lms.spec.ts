@@ -75,7 +75,7 @@ test("lms preview lesson deep-link [P1]", async ({ page }) => {
   await expect(page).toHaveURL(/\/courses\/[^/?#]+\/[^/?#]+/, {
     timeout: 20_000,
   });
-  await expect(page.getByText(/Preview lesson/i)).toBeVisible({
+  await expect(page.getByText(/^Preview lesson$/i).first()).toBeVisible({
     timeout: 20_000,
   });
   await expect(page.getByRole("heading").first()).toBeVisible({
