@@ -29,6 +29,21 @@ import {
   updateAccessRuleArgs,
 } from "./validators";
 
+const COURSE_URL_FIELDS = new Set([
+  "promoVideoUrl",
+  "externalButtonUrl",
+  "completionRedirectUrl",
+]);
+
+const NON_NEGATIVE_NUMBER_FIELDS = new Set(["price", "recurringPrice", "trialPrice"]);
+const NON_NEGATIVE_INT_FIELDS = new Set([
+  "trialDays",
+  "pointsAwarded",
+  "pointsRequired",
+  "accessDurationDays",
+  "seatLimit",
+]);
+
 export const create = mutation({
   args: createCourseArgs,
   handler: async (ctx, args) => {
@@ -77,12 +92,19 @@ export const update = mutation({
 
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(rest)) {
-      if (value !== undefined) patch[key] = value;
-    }
-    if (typeof rest.slug === "string" && rest.slug.length > 0) {
-      patch.slug = await generateUniqueCourseSlug(ctx, rest.slug, courseId);
-    } else if (typeof rest.title === "string" && rest.title.trim().length > 0 && !course.slug) {
-      patch.slug = await generateUniqueCourseSlug(ctx, rest.title, courseId);
+      if (value === undefined) continue;
+      if (key === "title" || key === "slug") continue;
+      if (COURSE_URL_FIELDS.has(key)) {
+        patch[key] = normalizeCourseUrl(value);
+      } else if (NON_NEGATIVE_NUMBER_FIELDS.has(key)) {
+        patch[key] = normalizeNonNegativeNumber(value);
+      } else if (NON_NEGATIVE_INT_FIELDS.has(key)) {
+        patch[key] = normalizeNonNegativeInt(value);
+      } else if (key === "billingInterval") {
+        patch[key] = normalizePositiveInt(value);
+      } else {
+        patch[key] = value;
+      }
     }
     if (typeof rest.title === "string") {
       const title = rest.title.trim();
@@ -96,6 +118,18 @@ export const update = mutation({
         });
       }
       patch.title = title;
+    }
+    if (typeof rest.slug === "string") {
+      const requestedSlug = rest.slug.trim();
+      const fallbackTitle =
+        typeof patch.title === "string" && patch.title.trim() ? patch.title : course.title;
+      patch.slug = await generateUniqueCourseSlug(
+        ctx,
+        requestedSlug || fallbackTitle,
+        courseId,
+      );
+    } else if (typeof rest.title === "string" && rest.title.trim().length > 0 && !course.slug) {
+      patch.slug = await generateUniqueCourseSlug(ctx, rest.title, courseId);
     }
     if (rest.categoryIds !== undefined) {
       patch.categoryIds = normalizeCourseLabels(rest.categoryIds);
@@ -223,6 +257,32 @@ export const remove = mutation({
     return { deleted: true };
   },
 });
+
+function normalizeCourseUrl(value: unknown): string | undefined {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return undefined;
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  try {
+    const url = new URL(raw);
+    if (url.protocol === "http:" || url.protocol === "https:") return url.toString();
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
+function normalizeNonNegativeNumber(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+}
+
+function normalizeNonNegativeInt(value: unknown): number {
+  return Math.floor(normalizeNonNegativeNumber(value));
+}
+
+function normalizePositiveInt(value: unknown): number {
+  return Math.max(1, normalizeNonNegativeInt(value));
+}
 
 export const duplicate = mutation({
   args: courseIdArg,

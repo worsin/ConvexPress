@@ -33,6 +33,7 @@ test("lms first published course landing [P1]", async ({ page }) => {
 });
 
 test("lms preview lesson deep-link [P1]", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto("/courses", { waitUntil: "domcontentloaded" });
   const courseLinks = page.locator('a[href^="/courses/"]');
   await Promise.race([
@@ -44,20 +45,33 @@ test("lms preview lesson deep-link [P1]", async ({ page }) => {
   ]).catch(() => undefined);
   test.skip((await courseLinks.count()) === 0, "No published LMS courses");
 
-  await courseLinks.first().click();
-  await expect(page).toHaveURL(/\/courses\/[^/?#]+/, { timeout: 20_000 });
+  const courseHrefs = await courseLinks.evaluateAll((links) =>
+    links
+      .map((link) => link.getAttribute("href"))
+      .filter((href): href is string => !!href),
+  );
+  let previewLink = page.locator('a[href^="/courses/"]').first();
+  let foundPreviewLesson = false;
 
-  const previewRows = page.locator("li", { hasText: /Preview/i });
-  await Promise.race([
-    previewRows.first().waitFor({ state: "visible", timeout: 20_000 }),
-    page.getByText(/Curriculum is being prepared/i).waitFor({
-      state: "visible",
+  for (const href of courseHrefs.slice(0, 10)) {
+    await page.goto(href, { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: /Curriculum/i })).toBeVisible({
       timeout: 20_000,
-    }),
-  ]).catch(() => undefined);
-  test.skip((await previewRows.count()) === 0, "No preview LMS lessons");
+    });
+    const candidate = page
+      .locator("li", { hasText: /Preview/i })
+      .locator('a[href^="/courses/"]')
+      .first();
+    if ((await candidate.count()) > 0) {
+      previewLink = candidate;
+      foundPreviewLesson = true;
+      break;
+    }
+  }
 
-  await previewRows.first().locator('a[href^="/courses/"]').click();
+  test.skip(!foundPreviewLesson, "No preview LMS lessons");
+
+  await previewLink.click();
   await expect(page).toHaveURL(/\/courses\/[^/?#]+\/[^/?#]+/, {
     timeout: 20_000,
   });

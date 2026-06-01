@@ -14,6 +14,7 @@ export const canAccessCourse = query({
     if (!(await isPluginEnabled(ctx, "lms"))) {
       return { allowed: false, reason: "disabled", requiresLogin: false };
     }
+    await assertCanReadUserAccess(ctx, args.userId);
     return await canUserAccessCourse(ctx, args);
   },
 });
@@ -24,6 +25,7 @@ export const canAccessNode = query({
     if (!(await isPluginEnabled(ctx, "lms"))) {
       return { allowed: false, reason: "disabled", requiresLogin: false };
     }
+    await assertCanReadUserAccess(ctx, args.userId);
     return await canUserAccessNode(ctx, args);
   },
 });
@@ -35,12 +37,22 @@ export const getEnrollment = query({
     const me = await getCurrentUser(ctx);
     const userId = args.userId ?? me?._id;
     if (!userId) return null;
+    if (args.userId && String(args.userId) !== String(me?._id)) {
+      await requireCan(ctx, "lms.enroll.manage");
+    }
     return await ctx.db
       .query("lms_enrollments")
       .withIndex("by_user_course", (q) => q.eq("userId", userId).eq("courseId", args.courseId))
       .first();
   },
 });
+
+async function assertCanReadUserAccess(ctx: any, userId?: string) {
+  if (!userId) return;
+  const me = await getCurrentUser(ctx);
+  if (String(userId) === String(me?._id)) return;
+  await requireCan(ctx, "lms.enroll.manage");
+}
 
 export const listEnrolleesForCourse = query({
   args: { courseId: v.id("lms_courses") },

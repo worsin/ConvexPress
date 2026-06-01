@@ -8,6 +8,36 @@ import { isPluginEnabled } from "../../helpers/plugins";
 import { currentUserCan } from "../../helpers/permissions";
 import { lmsCourseStatusValidator } from "../../schema/lms";
 import { canUserAccessCourse, requireCourseAuthorOrEditor } from "../access";
+import { docToText } from "../lessons/helpers";
+
+function publicCoursePayload(course: any) {
+  return {
+    _id: course._id,
+    title: course.title,
+    slug: course.slug,
+    status: course.status,
+    descriptionDoc: course.descriptionDoc,
+    excerpt: course.excerpt,
+    featuredImageId: course.featuredImageId,
+    promoVideoUrl: course.promoVideoUrl,
+    accessMode: course.accessMode ?? "members",
+    price: course.price,
+    recurringPrice: course.recurringPrice,
+    billingInterval: course.billingInterval,
+    billingUnit: course.billingUnit,
+    trialPrice: course.trialPrice,
+    trialDays: course.trialDays,
+    externalButtonUrl: course.externalButtonUrl,
+    progressionMode: course.progressionMode ?? "linear",
+    contentVisibility: course.contentVisibility ?? "enrollees_only",
+    startDate: course.startDate,
+    endDate: course.endDate,
+    lessonCount: course.lessonCount ?? 0,
+    topicCount: course.topicCount ?? 0,
+    certificateId: course.certificateId,
+    publishedAt: course.publishedAt,
+  };
+}
 
 export const list = query({
   args: {
@@ -43,8 +73,8 @@ export const getById = query({
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const course = await ctx.db.get(args.courseId);
     if (!course) return null;
-    if (course.status === "published") return course;
     if (await currentUserCan(ctx, "lms.course.view")) return course;
+    if (course.status === "published") return publicCoursePayload(course);
     return null;
   },
 });
@@ -61,7 +91,7 @@ export const getBySlug = query({
     if (course.status !== "published" && !(await currentUserCan(ctx, "lms.course.view"))) {
       return null;
     }
-    return course;
+    return publicCoursePayload(course);
   },
 });
 
@@ -69,11 +99,12 @@ export const listPublished = query({
   args: {},
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
-    return await ctx.db
+    const rows = await ctx.db
       .query("lms_courses")
       .withIndex("by_status", (q) => q.eq("status", "published"))
       .order("desc")
       .take(500);
+    return rows.map(publicCoursePayload);
   },
 });
 
@@ -97,6 +128,7 @@ export const listCatalog = query({
         [
           course.title,
           course.excerpt,
+          docToText(course.descriptionDoc),
           ...(course.categoryIds ?? []),
           ...(course.tagIds ?? []),
         ]

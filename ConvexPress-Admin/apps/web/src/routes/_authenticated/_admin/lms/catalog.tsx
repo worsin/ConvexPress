@@ -14,7 +14,9 @@ export const Route = createFileRoute("/_authenticated/_admin/lms/catalog")({
 
 function CatalogPage() {
   const [q, setQ] = useState("");
-  const courses = useQuery(api.lms.courses.queries.listPublished, {}) as
+  const courses = useQuery(api.lms.courses.queries.listCatalog, {
+    search: q.trim() || undefined,
+  }) as
     | Array<{
         _id: string;
         title: string;
@@ -27,10 +29,7 @@ function CatalogPage() {
         requiresLogin?: boolean;
       }>
     | undefined;
-  const needle = q.trim().toLowerCase();
-  const filtered = (courses ?? []).filter(
-    (course) => !needle || course.title.toLowerCase().includes(needle),
-  );
+  const filtered = courses ?? [];
 
   return (
     <div className="mx-auto max-w-5xl p-6">

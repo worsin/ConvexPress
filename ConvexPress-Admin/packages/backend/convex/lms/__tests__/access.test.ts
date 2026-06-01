@@ -2,21 +2,26 @@
 import { describe, expect, test } from "bun:test";
 
 import type { Id } from "../../_generated/dataModel";
+import { applyLessonGeneration } from "../ai/mutations";
 import { issueCertificate, reissueIssue } from "../certificates/mutations";
 import { getMyIssue, verifyBySerial } from "../certificates/queries";
 import { update as updateCourse, publish as publishCourse } from "../courses/mutations";
+import { getBySlug as getCourseBySlug } from "../courses/queries";
 import { enroll } from "../enrollment/mutations";
 import {
+  canAccessNode as queryCanAccessNode,
   canAccessCourse as queryCanAccessCourse,
+  getEnrollment as queryGetEnrollment,
   listMyLearning,
 } from "../enrollment/queries";
-import { getLessonForPlayer } from "../lessons/queries";
+import { getLessonForPlayer, getLessonPublicView } from "../lessons/queries";
 import { getCourseTree, getNode } from "../nodes/queries";
 import {
   markComplete,
   markIncomplete,
   recordHeartbeat,
 } from "../progress/mutations";
+import { getTopic } from "../topics/queries";
 import {
   canUserAccessCourse,
   canUserAccessNode,
@@ -256,6 +261,9 @@ function baseTables(overrides: Partial<Tables> = {}): Tables {
     membership_restriction_rules: [],
     membership_grants: [],
     membership_plans: [],
+    lms_ai_generations: [],
+    lms_jobs: [],
+    lms_lessonVersions: [],
     lms_certificates: [],
     lms_certificate_issues: [],
     media: [],
@@ -534,6 +542,30 @@ describe("LMS access decisions", () => {
     });
   });
 
+  test("keeps anonymous open-course lessons behind future date drip locks", async () => {
+    const tables = baseTables({
+      lms_courses: [course("course_open_drip", { accessMode: "open" })],
+      lms_nodes: [
+        node("topic_open_drip", "course_open_drip", "topic", { position: 1 }),
+        node("lesson_open_drip", "course_open_drip", "lesson", {
+          parentId: "topic_open_drip",
+          lessonDripMode: "specific_date",
+          lessonDripDate: now + 60_000,
+        }),
+      ],
+    });
+
+    await expect(
+      canUserAccessNode(createCtx(tables, null), {
+        nodeId: id("lesson_open_drip"),
+      }),
+    ).resolves.toMatchObject({
+      allowed: false,
+      reason: "drip_locked",
+      unlockAt: now + 60_000,
+    });
+  });
+
   test("enforces linear lesson progression after the first lesson", async () => {
     const tables = baseTables();
     const ctx = createCtx(tables);
@@ -582,6 +614,84 @@ describe("LMS access decisions", () => {
     });
   });
 
+  test("keeps preview lessons behind future date drip locks", async () => {
+    const tables = baseTables({
+      lms_nodes: [
+        ...baseTables().lms_nodes.filter((row) => row._id !== "lesson_preview"),
+        node("lesson_preview", "course_members", "lesson", {
+          isPreview: true,
+          parentId: "topic_members",
+          lessonDripMode: "specific_date",
+          lessonDripDate: now + 30_000,
+          position: 1,
+        }),
+      ],
+    });
+
+    await expect(
+      canUserAccessNode(createCtx(tables), {
+        nodeId: id("lesson_preview"),
+        userId: id("user_learner"),
+      }),
+    ).resolves.toMatchObject({
+      allowed: false,
+      reason: "drip_locked",
+      unlockAt: now + 30_000,
+    });
+  });
+
+  test("does not expose preview lessons from unpublished or archived courses", async () => {
+    const tables = baseTables({
+      lms_courses: [
+        ...baseTables().lms_courses,
+        course("course_archived", { accessMode: "members", status: "archived" }),
+      ],
+      lms_nodes: [
+        ...baseTables().lms_nodes,
+        node("topic_draft_preview", "course_draft", "topic", { position: 1 }),
+        node("lesson_draft_preview", "course_draft", "lesson", {
+          isPreview: true,
+          parentId: "topic_draft_preview",
+          position: 1,
+          bodyDoc: {
+            type: "doc",
+            content: [{ type: "paragraph", content: [{ type: "text", text: "Draft preview" }] }],
+          },
+        }),
+        node("topic_archived_preview", "course_archived", "topic", { position: 1 }),
+        node("lesson_archived_preview", "course_archived", "lesson", {
+          isPreview: true,
+          parentId: "topic_archived_preview",
+          position: 1,
+        }),
+      ],
+    });
+
+    await expect(
+      canUserAccessNode(createCtx(tables), {
+        nodeId: id("lesson_draft_preview"),
+        userId: id("user_learner"),
+      }),
+    ).resolves.toMatchObject({
+      allowed: false,
+      reason: "not_published",
+    });
+    await expect(
+      canUserAccessNode(createCtx(tables), {
+        nodeId: id("lesson_archived_preview"),
+        userId: id("user_learner"),
+      }),
+    ).resolves.toMatchObject({
+      allowed: false,
+      reason: "archived",
+    });
+    await expect(
+      (getLessonPublicView as any)._handler(createCtx(tables), {
+        nodeId: id("lesson_draft_preview"),
+      }),
+    ).resolves.toBeNull();
+  });
+
   test("lets staff preview unpublished courses", async () => {
     await expect(
       canUserAccessCourse(createCtx(baseTables(), "user_admin"), {
@@ -615,14 +725,19 @@ describe("LMS access decisions", () => {
       topics: [{ _id: "topic_draft", children: [{ _id: "lesson_draft" }] }],
     });
 
-    await expect(
-      (getLessonForPlayer as any)._handler(createCtx(tables, "user_lms_viewer"), {
+    const staffPayload = await (getLessonForPlayer as any)._handler(
+      createCtx(tables, "user_lms_viewer"),
+      {
         nodeId: id("lesson_draft"),
-      }),
-    ).resolves.toMatchObject({
+      },
+    );
+    expect(staffPayload).toMatchObject({
       bodyText: "Draft body",
       node: { _id: "lesson_draft" },
     });
+    expect(staffPayload.bodyDoc).toMatchObject({ type: "doc" });
+    expect(staffPayload.node.bodyDoc).toBeUndefined();
+    expect(staffPayload.node.materialsDoc).toBeUndefined();
 
     await expect(
       (getLessonForPlayer as any)._handler(createCtx(tables), {
@@ -639,6 +754,12 @@ describe("LMS access decisions", () => {
           type: "doc",
           content: [{ type: "paragraph", content: [{ type: "text", text: "Hidden body" }] }],
         },
+        materialsDoc: {
+          type: "doc",
+          content: [{ type: "paragraph", content: [{ type: "text", text: "Private note" }] }],
+        },
+        transcriptText: "Internal transcript",
+        aiVideoMediaId: "media_ai_video",
         videoUrl: "https://videos.example.test/private",
       }),
     );
@@ -656,6 +777,72 @@ describe("LMS access decisions", () => {
     });
     expect(payload.bodyDoc).toBeUndefined();
     expect(payload.videoUrl).toBeUndefined();
+
+    const lessonPayload = await (getLessonPublicView as any)._handler(createCtx(tables), {
+      nodeId: id("lesson_public_sensitive"),
+    });
+    expect(lessonPayload.bodyDoc).toMatchObject({ type: "doc" });
+    expect(lessonPayload.materialsDoc).toMatchObject({ type: "doc" });
+    expect(lessonPayload.node.bodyDoc).toBeUndefined();
+    expect(lessonPayload.node.materialsDoc).toBeUndefined();
+    expect(lessonPayload.node.transcriptText).toBeUndefined();
+    expect(lessonPayload.node.aiVideoMediaId).toBeUndefined();
+    expect(lessonPayload.node.videoUrl).toBe("https://videos.example.test/private");
+  });
+
+  test("keeps topic authoring queries behind LMS staff capabilities", async () => {
+    await expect(
+      (getTopic as any)._handler(createCtx(baseTables()), {
+        nodeId: id("topic_members"),
+      }),
+    ).resolves.toBeNull();
+
+    await expect(
+      (getTopic as any)._handler(createCtx(baseTables(), "user_lms_viewer"), {
+        nodeId: id("topic_members"),
+      }),
+    ).resolves.toMatchObject({
+      _id: "topic_members",
+      kind: "topic",
+    });
+  });
+
+  test("projects public course reads away from authoring-only fields", async () => {
+    const tables = baseTables({
+      lms_courses: [
+        course("course_public_projection", {
+          accessMode: "open",
+          slug: "public-projection",
+          descriptionDoc: {
+            type: "doc",
+            content: [{ type: "paragraph", content: [{ type: "text", text: "Public copy" }] }],
+          },
+          materialsDoc: {
+            type: "doc",
+            content: [{ type: "paragraph", content: [{ type: "text", text: "Private notes" }] }],
+          },
+          completionRedirectUrl: "https://example.com/after",
+          authorId: "user_admin",
+        }),
+      ],
+    });
+
+    const payload = await (getCourseBySlug as any)._handler(createCtx(tables, null), {
+      slug: "public-projection",
+    });
+
+    expect(payload).toMatchObject({
+      _id: "course_public_projection",
+      title: "course_public_projection",
+      slug: "public-projection",
+      accessMode: "open",
+      descriptionDoc: {
+        type: "doc",
+      },
+    });
+    expect(payload.authorId).toBeUndefined();
+    expect(payload.materialsDoc).toBeUndefined();
+    expect(payload.completionRedirectUrl).toBeUndefined();
   });
 
   test("disabled LMS plugin closes public query wrappers and write paths", async () => {
@@ -686,6 +873,64 @@ describe("LMS access decisions", () => {
     );
   });
 
+  test("blocks learners from querying another user's LMS access state", async () => {
+    const tables = baseTables({
+      users: [
+        ...baseTables().users,
+        {
+          _id: "user_other",
+          email: "other@example.com",
+          emailVerified: true,
+          roleId: "role_learner",
+          status: "active",
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      lms_enrollments: [
+        {
+          _id: "enrollment_other",
+          userId: "user_other",
+          courseId: "course_free",
+          source: "manual",
+          status: "active",
+          enrolledAt: now,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    });
+
+    await expectConvexCode(
+      (queryCanAccessCourse as any)._handler(createCtx(tables), {
+        courseId: id("course_free"),
+        userId: id("user_other"),
+      }),
+      "FORBIDDEN",
+    );
+    await expectConvexCode(
+      (queryCanAccessNode as any)._handler(createCtx(tables), {
+        nodeId: id("lesson_linear_1"),
+        userId: id("user_other"),
+      }),
+      "FORBIDDEN",
+    );
+    await expectConvexCode(
+      (queryGetEnrollment as any)._handler(createCtx(tables), {
+        courseId: id("course_free"),
+        userId: id("user_other"),
+      }),
+      "FORBIDDEN",
+    );
+
+    await expect(
+      (queryGetEnrollment as any)._handler(createCtx(tables, "user_admin"), {
+        courseId: id("course_free"),
+        userId: id("user_other"),
+      }),
+    ).resolves.toMatchObject({ _id: "enrollment_other" });
+  });
+
   test("requires author/editor roles for course edits and editor roles for publishing", async () => {
     await expectConvexCode(
       (updateCourse as any)._handler(createCtx(baseTables()), {
@@ -702,9 +947,137 @@ describe("LMS access decisions", () => {
       "FORBIDDEN",
     );
   });
+
+  test("normalizes course URL and numeric settings on update", async () => {
+    const tables = baseTables({
+      lms_courses: [course("course_safe", { accessMode: "buy", authorId: "user_admin" })],
+    });
+
+    await (updateCourse as any)._handler(createCtx(tables, "user_admin"), {
+      courseId: id("course_safe"),
+      title: "Better Title",
+      slug: "",
+      externalButtonUrl: "javascript:alert(1)",
+      promoVideoUrl: " https://youtube.com/watch?v=abc123 ",
+      completionRedirectUrl: "/thanks",
+      price: -15.5,
+      recurringPrice: Number.NaN,
+      billingInterval: -2,
+      trialDays: 1.8,
+      seatLimit: -4,
+    });
+
+    const courseRow = tables.lms_courses.find((row) => row._id === "course_safe");
+    expect(courseRow?.title).toBe("Better Title");
+    expect(courseRow?.slug).toBe("better-title");
+    expect(courseRow?.externalButtonUrl).toBeUndefined();
+    expect(courseRow?.promoVideoUrl).toBe("https://youtube.com/watch?v=abc123");
+    expect(courseRow?.completionRedirectUrl).toBe("/thanks");
+    expect(courseRow?.price).toBe(0);
+    expect(courseRow?.recurringPrice).toBe(0);
+    expect(courseRow?.billingInterval).toBe(1);
+    expect(courseRow?.trialDays).toBe(1);
+    expect(courseRow?.seatLimit).toBe(0);
+  });
 });
 
 describe("LMS learner runtime mutations", () => {
+  test("blocks stale AI draft application before it overwrites lesson body", async () => {
+    const tables = baseTables({
+      lms_courses: [course("course_ai", { accessMode: "free", authorId: "user_admin" })],
+      lms_nodes: [
+        node("lesson_ai", "course_ai", "lesson", {
+          bodyDoc: {
+            type: "doc",
+            content: [{ type: "paragraph", content: [{ type: "text", text: "Current body" }] }],
+          },
+          updatedAt: now + 100,
+        }),
+      ],
+      lms_ai_generations: [
+        {
+          _id: "generation_ai",
+          targetType: "node",
+          targetId: "lesson_ai",
+          courseId: "course_ai",
+          stage: "lesson_body",
+          model: "configured-ai-provider",
+          prompt: "Improve this lesson",
+          briefJson: { generatedBody: "Generated body" },
+          label: "ai_assisted",
+          reviewStatus: "unreviewed",
+          createdAt: now,
+        },
+      ],
+    });
+
+    await expectConvexCode(
+      (applyLessonGeneration as any)._handler(createCtx(tables, "user_admin"), {
+        generationId: id("generation_ai"),
+        nodeId: id("lesson_ai"),
+        expectedUpdatedAt: now,
+      }),
+      "EDIT_CONFLICT",
+    );
+
+    const lesson = tables.lms_nodes.find((row) => row._id === "lesson_ai");
+    expect(lesson?.bodyDoc?.content?.[0]?.content?.[0]?.text).toBe("Current body");
+    expect(tables.lms_lessonVersions).toHaveLength(0);
+    expect(tables.lms_ai_generations[0].reviewStatus).toBe("unreviewed");
+  });
+
+  test("applies reviewed AI drafts only after keeping a restorable lesson revision", async () => {
+    const tables = baseTables({
+      lms_courses: [course("course_ai", { accessMode: "free", authorId: "user_admin" })],
+      lms_nodes: [
+        node("lesson_ai", "course_ai", "lesson", {
+          bodyDoc: {
+            type: "doc",
+            content: [{ type: "paragraph", content: [{ type: "text", text: "Current body" }] }],
+          },
+          updatedAt: now,
+        }),
+      ],
+      lms_ai_generations: [
+        {
+          _id: "generation_ai",
+          targetType: "node",
+          targetId: "lesson_ai",
+          courseId: "course_ai",
+          stage: "lesson_body",
+          model: "configured-ai-provider",
+          prompt: "Improve this lesson",
+          briefJson: { generatedBody: "Generated body" },
+          label: "ai_assisted",
+          reviewStatus: "unreviewed",
+          createdAt: now,
+        },
+      ],
+    });
+
+    await expect(
+      (applyLessonGeneration as any)._handler(createCtx(tables, "user_admin"), {
+        generationId: id("generation_ai"),
+        nodeId: id("lesson_ai"),
+        expectedUpdatedAt: now,
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      changedFields: ["bodyDoc"],
+    });
+
+    const lesson = tables.lms_nodes.find((row) => row._id === "lesson_ai");
+    expect(lesson?.bodyDoc?.content?.[0]?.content?.[0]?.text).toBe("Generated body");
+    expect(tables.lms_lessonVersions[0]).toMatchObject({
+      nodeId: "lesson_ai",
+      editedBy: "user_admin",
+    });
+    expect(tables.lms_ai_generations[0]).toMatchObject({
+      reviewStatus: "reviewed",
+      reviewedBy: "user_admin",
+    });
+  });
+
   test("blocks enrollment when the course seat limit is full", async () => {
     const tables = baseTables({
       lms_courses: [

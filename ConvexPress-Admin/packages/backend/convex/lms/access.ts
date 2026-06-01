@@ -29,6 +29,15 @@ export interface LmsAccessDecision {
   matchingPlanIds?: string[];
 }
 
+const COURSE_LIFECYCLE_BLOCK_REASONS = new Set([
+  "not_found",
+  "archived",
+  "not_published",
+  "not_started",
+  "ended",
+  "disabled",
+]);
+
 export async function getActiveEnrollment(
   ctx: LmsCtx,
   userId: Id<"users">,
@@ -249,6 +258,28 @@ export async function resolveNodeUnlock(
   return { allowed: true, reason: "unlocked", requiresLogin: false, unlockAt };
 }
 
+export async function resolveAnonymousSpecificDateUnlock(
+  ctx: LmsCtx,
+  node: any,
+): Promise<LmsAccessDecision> {
+  const topic = node.parentId ? await ctx.db.get(node.parentId) : null;
+  const mode = node.lessonDripMode ?? topic?.topicDripMode ?? "immediately";
+  if (mode !== "specific_date") {
+    return { allowed: true, reason: "unlocked", requiresLogin: false };
+  }
+
+  const unlockAt = node.lessonDripDate ?? topic?.topicDripDate;
+  if (unlockAt && unlockAt > Date.now()) {
+    return {
+      allowed: false,
+      reason: "drip_locked",
+      requiresLogin: false,
+      unlockAt,
+    };
+  }
+  return { allowed: true, reason: "unlocked", requiresLogin: false, unlockAt };
+}
+
 async function getOrderedLessons(ctx: LmsCtx, courseId: Id<"lms_courses">) {
   const nodes = await ctx.db
     .query("lms_nodes")
@@ -317,12 +348,17 @@ export async function canUserAccessNode(
     userId,
   });
   if (!courseDecision.allowed) {
-    if (node.isPreview) {
+    if (node.isPreview && !COURSE_LIFECYCLE_BLOCK_REASONS.has(courseDecision.reason)) {
+      const previewDrip = await resolveAnonymousSpecificDateUnlock(ctx, node);
+      if (!previewDrip.allowed) return previewDrip;
       return { allowed: true, reason: "preview", requiresLogin: false };
     }
     return courseDecision;
   }
-  if (!userId) return courseDecision;
+  if (!userId) {
+    const anonymousDrip = await resolveAnonymousSpecificDateUnlock(ctx, node);
+    return anonymousDrip.allowed ? courseDecision : anonymousDrip;
+  }
 
   const prereq = await prerequisitesSatisfied(ctx, userId, node.courseId);
   if (!prereq.allowed) return prereq;

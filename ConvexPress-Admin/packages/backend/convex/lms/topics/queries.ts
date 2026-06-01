@@ -5,11 +5,21 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
+import { currentUserCan } from "../../helpers/permissions";
+
+async function canReadTopicAuthoring(ctx: any) {
+  return (
+    (await currentUserCan(ctx, "lms.course.view")) ||
+    (await currentUserCan(ctx, "lms.builder.manage")) ||
+    (await currentUserCan(ctx, "lms.lesson.edit"))
+  );
+}
 
 export const getTopic = query({
   args: { nodeId: v.id("lms_nodes") },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
+    if (!(await canReadTopicAuthoring(ctx))) return null;
     const node = await ctx.db.get(args.nodeId);
     if (!node || node.kind !== "topic") return null;
     return node;
@@ -20,6 +30,7 @@ export const listTopics = query({
   args: { courseId: v.id("lms_courses") },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
+    if (!(await canReadTopicAuthoring(ctx))) return [];
     return await ctx.db
       .query("lms_nodes")
       .withIndex("by_course_kind", (q) => q.eq("courseId", args.courseId).eq("kind", "topic"))
@@ -32,6 +43,7 @@ export const getTopicWithLessons = query({
   args: { nodeId: v.id("lms_nodes") },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
+    if (!(await canReadTopicAuthoring(ctx))) return null;
     const topic = await ctx.db.get(args.nodeId);
     if (!topic || topic.kind !== "topic") return null;
     const children = await ctx.db
@@ -55,6 +67,7 @@ export const resolveLessonDrip = query({
   args: { nodeId: v.id("lms_nodes") },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
+    if (!(await canReadTopicAuthoring(ctx))) return null;
     const lesson = await ctx.db.get(args.nodeId);
     if (!lesson || lesson.kind !== "lesson") return null;
     const topic = lesson.parentId ? await ctx.db.get(lesson.parentId) : null;

@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
+import { LessonContentRenderer } from "@/components/lms/LessonContentRenderer";
 import { MediaImage } from "@/components/media/MediaImage";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
@@ -90,6 +91,7 @@ type Course = {
   _id: string;
   title: string;
   slug: string;
+  descriptionDoc?: unknown;
   excerpt?: string;
   featuredImageId?: string;
   promoVideoUrl?: string;
@@ -242,6 +244,20 @@ function CourseDetailContent({ course }: { course: Course }) {
         </div>
       </section>
 
+      {course.descriptionDoc ? (
+        <section className="grid gap-3 border border-border bg-card p-6">
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+            About this course
+          </h2>
+          <LessonContentRenderer
+            doc={course.descriptionDoc}
+            fallbackText={course.excerpt}
+            emptyLabel="Course description is being prepared."
+            className="text-base leading-7"
+          />
+        </section>
+      ) : null}
+
       <section className="grid gap-5">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">
@@ -348,7 +364,7 @@ function CourseCta({
     return (
       <Link
         to="/login"
-        search={{ redirect: `/courses/${course.slug}` } as any}
+        search={{ returnTo: `/courses/${course.slug}` }}
         className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:opacity-90"
       >
         Sign in to enroll
@@ -357,8 +373,21 @@ function CourseCta({
     );
   }
 
+  if (!isSignedIn && course.accessMode === "open" && firstLessonId) {
+    return (
+      <Link
+        to="/courses/$slug/$nodeId"
+        params={{ slug: course.slug, nodeId: firstLessonId }}
+        className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:opacity-90"
+      >
+        Start learning
+        <ArrowRight className="size-4" aria-hidden="true" />
+      </Link>
+    );
+  }
+
   if (course.accessMode === "buy" || course.accessMode === "recurring") {
-    const href = course.externalButtonUrl || "/pricing";
+    const href = safeCourseUrl(course.externalButtonUrl) ?? "/pricing";
     return (
       <a
         href={href}
@@ -389,4 +418,16 @@ function CourseCta({
       for access.
     </div>
   );
+}
+
+function safeCourseUrl(value?: string | null): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }

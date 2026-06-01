@@ -9,7 +9,7 @@ import { currentUserCan } from "../../helpers/permissions";
 import { docToText } from "./helpers";
 import { canUserAccessNode, requireNodeCourseAuthorOrEditor } from "../access";
 
-function lessonPayload(node: any) {
+function lessonEditPayload(node: any) {
   return {
     node,
     bodyDoc: node.bodyDoc ?? null,
@@ -17,6 +17,29 @@ function lessonPayload(node: any) {
     bodyText: docToText(node.bodyDoc),
     materialsText: docToText(node.materialsDoc),
   };
+}
+
+function lessonRuntimePayload(node: any) {
+  return {
+    node: runtimeNode(node),
+    bodyDoc: node.bodyDoc ?? null,
+    materialsDoc: node.materialsDoc ?? null,
+    bodyText: docToText(node.bodyDoc),
+    materialsText: docToText(node.materialsDoc),
+  };
+}
+
+function runtimeNode(node: any) {
+  const {
+    bodyDoc: _bodyDoc,
+    materialsDoc: _materialsDoc,
+    transcriptText: _transcriptText,
+    audioMediaId: _audioMediaId,
+    captionsMediaId: _captionsMediaId,
+    aiVideoMediaId: _aiVideoMediaId,
+    ...publicNode
+  } = node;
+  return publicNode;
 }
 
 async function canPreviewLesson(ctx: any) {
@@ -33,7 +56,7 @@ export const getLessonForEdit = query({
     const node = await ctx.db.get(args.nodeId);
     if (!node || node.kind !== "lesson") return null;
     await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.lesson.edit");
-    return lessonPayload(node);
+    return lessonEditPayload(node);
   },
 });
 
@@ -47,7 +70,7 @@ export const getLessonForPlayer = query({
       const access = await canUserAccessNode(ctx, { nodeId: args.nodeId });
       if (!access.allowed) return null;
     }
-    return lessonPayload(node);
+    return lessonRuntimePayload(node);
   },
 });
 
@@ -59,7 +82,7 @@ export const getLessonPublicView = query({
     if (!node || node.kind !== "lesson") return null;
     const access = await canUserAccessNode(ctx, { nodeId: args.nodeId });
     if (!access.allowed) return null;
-    return lessonPayload(node);
+    return lessonRuntimePayload(node);
   },
 });
 
@@ -73,7 +96,7 @@ export const getLesson = query({
       const access = await canUserAccessNode(ctx, { nodeId: args.nodeId });
       if (!access.allowed) return null;
     }
-    return lessonPayload(node);
+    return lessonRuntimePayload(node);
   },
 });
 

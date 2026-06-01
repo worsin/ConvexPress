@@ -317,7 +317,11 @@ function LessonEditorPage() {
       return;
     }
     try {
-      const result = (await applyGeneration({ generationId, nodeId: id })) as LessonSaveResult;
+      const result = (await applyGeneration({
+        generationId,
+        nodeId: id,
+        expectedUpdatedAt: lastSavedAt ?? undefined,
+      })) as LessonSaveResult;
       if (result.updatedAt) {
         setLastSavedAt(result.updatedAt);
       }
@@ -326,7 +330,14 @@ function LessonEditorPage() {
       setRemoteConflictAt(null);
       toast.success("AI draft applied");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Apply failed");
+      const data = (err as { data?: { code?: string; message?: string; serverUpdatedAt?: number } })
+        ?.data;
+      if (data?.code === "EDIT_CONFLICT") {
+        setRemoteConflictAt(data.serverUpdatedAt ?? Date.now());
+        toast.error(data.message ?? "This lesson changed elsewhere. Review before applying again.");
+      } else {
+        toast.error(err instanceof Error ? err.message : "Apply failed");
+      }
     }
   }
 
@@ -981,7 +992,15 @@ function VideoPreview({
       </div>
     );
   }
-  const embedUrl = getEmbedUrl(url);
+  const safeUrl = safeVideoUrl(url);
+  if (!safeUrl) {
+    return (
+      <div className="border border-dashed border-border p-4 text-center text-xs text-destructive">
+        Video URL must use http or https.
+      </div>
+    );
+  }
+  const embedUrl = getEmbedUrl(safeUrl);
   if (embedUrl) {
     return (
       <div className="space-y-2">
@@ -998,12 +1017,12 @@ function VideoPreview({
   }
   return (
     <a
-      href={url}
+      href={safeUrl}
       target="_blank"
       rel="noreferrer"
       className="flex items-center justify-between gap-3 border border-border p-3 text-sm hover:bg-muted"
     >
-      <span className="min-w-0 truncate">{mediaTitle || url}</span>
+      <span className="min-w-0 truncate">{mediaTitle || safeUrl}</span>
       <ExternalLink className="size-4 shrink-0" aria-hidden="true" />
     </a>
   );
@@ -1036,13 +1055,29 @@ function isHttpUrl(value: string) {
   }
 }
 
-function getVideoProvider(url: string) {
-  const value = url.toLowerCase();
-  if (value.includes("youtube.com") || value.includes("youtu.be")) return "youtube";
-  if (value.includes("vimeo.com")) return "vimeo";
-  if (value.includes("wistia.")) return "wistia";
-  if (value.includes("bunnycdn") || value.includes("mediadelivery")) return "bunny";
-  return url ? "external" : "none";
+function getVideoProvider(value: string) {
+  const safeUrl = safeVideoUrl(value);
+  if (!safeUrl || safeUrl.startsWith("/")) return safeUrl ? "external" : "none";
+  let host: string;
+  try {
+    host = new URL(safeUrl).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return "external";
+  }
+  if (host === "youtube.com" || host === "m.youtube.com" || host === "youtu.be") return "youtube";
+  if (host === "vimeo.com" || host === "player.vimeo.com") return "vimeo";
+  if (host === "wistia.com" || host.endsWith(".wistia.com")) return "wistia";
+  if (
+    host === "bunnycdn.com" ||
+    host.endsWith(".bunnycdn.com") ||
+    host === "b-cdn.net" ||
+    host.endsWith(".b-cdn.net") ||
+    host === "mediadelivery.net" ||
+    host.endsWith(".mediadelivery.net")
+  ) {
+    return "bunny";
+  }
+  return "external";
 }
 
 function providerLabel(provider: string) {
@@ -1053,12 +1088,41 @@ function providerLabel(provider: string) {
   return "External video";
 }
 
-function getEmbedUrl(url: string) {
-  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
-  const vimeo = url.match(/vimeo\.com\/(\d+)/);
-  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
-  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+function getEmbedUrl(value: string) {
+  if (value.startsWith("/")) return null;
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      const id = url.pathname.startsWith("/shorts/")
+        ? url.pathname.split("/").filter(Boolean)[1]
+        : url.searchParams.get("v");
+      return id && /^[\w-]+$/.test(id) ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (host === "youtu.be") {
+      const id = url.pathname.split("/").filter(Boolean)[0];
+      return id && /^[\w-]+$/.test(id) ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (host === "vimeo.com" || host === "player.vimeo.com") {
+      const id = url.pathname.split("/").filter(Boolean).find((part) => /^\d+$/.test(part));
+      return id ? `https://player.vimeo.com/video/${id}` : null;
+    }
+  } catch {
+    return null;
+  }
   return null;
+}
+
+function safeVideoUrl(value?: string | null): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function readDraft(key: string): StoredDraft | null {

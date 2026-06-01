@@ -1,7 +1,6 @@
 /**
  * Certificate verification — /lms/verify
- * (A truly public verify page would live in the website app; this is the
- * admin-side verifier for MVP.)
+ * Admin-side lookup companion to the public website certificate verifier.
  */
 
 import { useState } from "react";

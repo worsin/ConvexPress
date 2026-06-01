@@ -3,7 +3,8 @@
  *
  * The admin editor stores a stable, markdown-like source string so authors can
  * work without a fresh editor dependency. These helpers persist it as structured
- * TipTap-compatible JSON so the LMS stays aligned with the wider content model.
+ * TipTap-compatible JSON so the LMS stays aligned with the wider content model,
+ * including LMS-safe image and embed blocks.
  */
 
 type TiptapTextNode = {
@@ -121,6 +122,20 @@ function parseBlocks(text: string): TiptapNode[] {
       flushList();
       continue;
     }
+    const image = parseImageLine(line.trim());
+    if (image) {
+      flushParagraph();
+      flushList();
+      blocks.push(image);
+      continue;
+    }
+    const embed = parseEmbedLine(line.trim());
+    if (embed) {
+      flushParagraph();
+      flushList();
+      blocks.push(embed);
+      continue;
+    }
     if (/^-{3,}$/.test(line.trim())) {
       flushParagraph();
       flushList();
@@ -200,11 +215,16 @@ function inlineNodes(text: string): TiptapTextNode[] {
     const token = match[0];
     const link = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
     if (link) {
-      nodes.push({
-        type: "text",
-        text: link[1],
-        marks: [{ type: "link", attrs: { href: link[2], target: "_blank" } }],
-      });
+      const href = normalizeInlineLinkUrl(link[2]);
+      nodes.push(
+        href
+          ? {
+              type: "text",
+              text: link[1],
+              marks: [{ type: "link", attrs: { href, target: "_blank" } }],
+            }
+          : { type: "text", text: link[1] },
+      );
     } else if (token.startsWith("**")) {
       nodes.push({ type: "text", text: token.slice(2, -2), marks: [{ type: "bold" }] });
     } else if (token.startsWith("_")) {
@@ -255,6 +275,8 @@ function nodeToText(node: TiptapNode | TiptapTextNode): string {
     return `\`\`\`\n${inline()}\n\`\`\``;
   }
   if (node.type === "horizontalRule") return "---";
+  if (node.type === "image") return imageNodeToText(node as TiptapNode);
+  if (node.type === "embed") return embedNodeToText(node as TiptapNode);
   return content.map(nodeToText).join("\n\n");
 }
 
@@ -264,16 +286,147 @@ function textNodeToText(node: TiptapTextNode): string {
     if (mark.type === "bold") text = `**${text}**`;
     if (mark.type === "italic") text = `_${text}_`;
     if (mark.type === "code") text = `\`${text}\``;
-    if (mark.type === "link") text = `[${text}](${String(mark.attrs?.href ?? "")})`;
+    if (mark.type === "link") {
+      const href = normalizeInlineLinkUrl(String(mark.attrs?.href ?? ""));
+      if (href) text = `[${text}](${href})`;
+    }
   }
   return text;
 }
 
+function parseImageLine(line: string): TiptapNode | null {
+  const image = line.match(/^!\[([^\]]*)\]\((.+)\)$/);
+  if (!image) return null;
+  const parsed = parseMediaTarget(image[2]);
+  if (!parsed) return null;
+  return {
+    type: "image",
+    attrs: {
+      ...parsed.attrs,
+      alt: cleanInlineAttr(image[1]),
+      ...(parsed.caption ? { caption: parsed.caption } : {}),
+    },
+  };
+}
+
+function parseEmbedLine(line: string): TiptapNode | null {
+  const embed = line.match(/^\{\{embed:([^}|]+)(?:\|([^}]+))?\}\}$/);
+  if (!embed) return null;
+  const url = normalizeHttpUrl(embed[1]);
+  if (!url) return null;
+  const title = cleanInlineAttr(embed[2] ?? "");
+  return {
+    type: "embed",
+    attrs: {
+      url,
+      src: url,
+      provider: detectVideoProvider(url),
+      ...(title ? { title } : {}),
+    },
+  };
+}
+
+function parseMediaTarget(rawTarget: string): { attrs: Record<string, unknown>; caption?: string } | null {
+  const target = rawTarget.trim();
+  const match = target.match(/^(\S+?)(?:\s+"([^"]*)")?$/);
+  if (!match) return null;
+  const destination = match[1];
+  const caption = cleanInlineAttr(match[2] ?? "");
+  if (destination.startsWith("media:")) {
+    const mediaId = destination.slice("media:".length).trim();
+    if (!mediaId || !/^[a-zA-Z0-9_-]+$/.test(mediaId)) return null;
+    return {
+      attrs: { mediaId },
+      caption,
+    };
+  }
+  const src = normalizeImageUrl(destination);
+  if (!src) return null;
+  return {
+    attrs: { src },
+    caption,
+  };
+}
+
+function imageNodeToText(node: TiptapNode): string {
+  const attrs = node.attrs ?? {};
+  const mediaId = cleanInlineAttr(String(attrs.mediaId ?? ""));
+  const src = normalizeImageUrl(String(attrs.src ?? attrs.url ?? ""));
+  const target = mediaId ? `media:${mediaId}` : src;
+  if (!target) return "";
+  const alt = cleanInlineAttr(String(attrs.alt ?? "Image")) || "Image";
+  const caption = cleanInlineAttr(String(attrs.caption ?? ""));
+  return `![${alt}](${target}${caption ? ` "${caption}"` : ""})`;
+}
+
+function embedNodeToText(node: TiptapNode): string {
+  const attrs = node.attrs ?? {};
+  const url = normalizeHttpUrl(String(attrs.url ?? attrs.src ?? ""));
+  if (!url) return "";
+  const title = cleanInlineAttr(String(attrs.title ?? ""));
+  return `{{embed:${url}${title ? `|${title}` : ""}}}`;
+}
+
+function normalizeImageUrl(value: string): string | null {
+  const raw = value.trim();
+  if (!raw) return null;
+  if (raw.startsWith("/")) return raw;
+  return normalizeHttpUrl(raw);
+}
+
+function normalizeHttpUrl(value: string): string | null {
+  const raw = value.trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function normalizeInlineLinkUrl(value: string): string | null {
+  const raw = value.trim();
+  if (!raw) return null;
+  if (raw.startsWith("/") || raw.startsWith("#")) return raw;
+  try {
+    const url = new URL(raw);
+    if (["http:", "https:", "mailto:", "tel:"].includes(url.protocol)) {
+      return url.toString();
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function cleanInlineAttr(value: string): string {
+  return value.replace(/[\n\r"\]{}|]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
 export function detectVideoProvider(url: string): string {
-  const u = url.toLowerCase();
-  if (u.includes("youtube.com") || u.includes("youtu.be")) return "youtube";
-  if (u.includes("vimeo.com")) return "vimeo";
-  if (u.includes("wistia.")) return "wistia";
-  if (u.includes("bunnycdn") || u.includes("mediadelivery")) return "bunny";
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return "other";
+  }
+
+  if (host === "youtube.com" || host === "m.youtube.com" || host === "youtu.be") {
+    return "youtube";
+  }
+  if (host === "vimeo.com" || host === "player.vimeo.com") return "vimeo";
+  if (host === "wistia.com" || host.endsWith(".wistia.com")) return "wistia";
+  if (
+    host === "bunnycdn.com" ||
+    host.endsWith(".bunnycdn.com") ||
+    host === "b-cdn.net" ||
+    host.endsWith(".b-cdn.net") ||
+    host === "mediadelivery.net" ||
+    host.endsWith(".mediadelivery.net")
+  ) {
+    return "bunny";
+  }
   return "other";
 }

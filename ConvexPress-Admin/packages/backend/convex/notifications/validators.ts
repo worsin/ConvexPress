@@ -886,7 +886,7 @@ export const NOTIFICATION_TYPES: Record<string, NotificationTypeConfig> = {
     defaultToastEnabled: true,
     icon: "BookOpenCheck",
     messageTemplate: 'Your course "{courseTitle}" has been published.',
-    actionUrlTemplate: "/lms/courses/{courseId}",
+    actionUrlTemplate: "/admin/lms/courses/{courseId}",
     actionLabel: "View Course",
     groupKeyTemplate: "lms.course_published:{courseId}",
   },

@@ -42,14 +42,15 @@ describe("notification engine registry", () => {
       "site",
       "email",
     ]);
-    expect(getNotificationChannelsForEvent("lms.enrolled")).toEqual([
-      "site",
-      "email",
-    ]);
-    expect(getNotificationChannelsForEvent("lms.unenrolled")).toEqual([
-      "site",
-      "email",
-    ]);
+    for (const eventCode of [
+      "lms.enrolled",
+      "lms.unenrolled",
+      "lms.course_completed",
+      "lms.certificate_issued",
+      "lms.certificate_revoked",
+    ]) {
+      expect(getNotificationChannelsForEvent(eventCode)).toEqual(["site", "email"]);
+    }
     expect(getNotificationChannelsForEvent("lms.course_published")).toEqual(["site"]);
     expect(getNotificationChannelsForEvent("lms.lesson_completed")).toEqual([]);
     expect(getNotificationChannelsForEvent("password.reset_requested")).toEqual([]);

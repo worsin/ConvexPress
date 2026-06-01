@@ -69,6 +69,7 @@ type Course = {
 type LessonDetail = {
   node: {
     _id: string;
+    courseId: string;
     title: string;
     isPreview?: boolean;
     videoUrl?: string;
@@ -90,7 +91,7 @@ function CoursePreviewLessonPage() {
     }) as any,
   ) as { data: LessonDetail | null };
 
-  if (!course || !lesson) {
+  if (!course || !lesson || String(lesson.node.courseId) !== String(course._id)) {
     return <NotFoundPage />;
   }
 
@@ -107,7 +108,7 @@ function CoursePreviewLessonPage() {
         </Link>
         <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
           <PlayCircle className="size-3.5" aria-hidden="true" />
-          Preview lesson
+          {course.accessMode === "open" ? "Open lesson" : "Preview lesson"}
         </span>
       </div>
 
@@ -159,11 +160,12 @@ function CoursePreviewLessonPage() {
       <div className="flex flex-wrap items-center justify-between gap-3 border border-border bg-card p-5">
         <div>
           <h2 className="text-sm font-semibold text-foreground">
-            Continue the full course
+            {course.accessMode === "open" ? "Explore the full course" : "Continue the full course"}
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Sign in or enroll from the course overview to unlock the full lesson
-            sequence.
+            {course.accessMode === "open"
+              ? "Use the course overview to browse the full lesson sequence."
+              : "Sign in or enroll from the course overview to unlock the full lesson sequence."}
           </p>
         </div>
         <Link
@@ -179,18 +181,14 @@ function CoursePreviewLessonPage() {
 }
 
 function VideoEmbed({ url }: { url: string }) {
-  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
-  const vimeo = url.match(/vimeo\.com\/(\d+)/);
-  const src = yt
-    ? `https://www.youtube.com/embed/${yt[1]}`
-    : vimeo
-      ? `https://player.vimeo.com/video/${vimeo[1]}`
-      : null;
+  const safeUrl = safeVideoUrl(url);
+  if (!safeUrl) return null;
+  const src = getVideoEmbedUrl(safeUrl);
 
   if (!src) {
     return (
       <a
-        href={url}
+        href={safeUrl}
         target="_blank"
         rel="noreferrer"
         className="text-sm font-medium text-primary hover:underline"
@@ -209,4 +207,41 @@ function VideoEmbed({ url }: { url: string }) {
       allowFullScreen
     />
   );
+}
+
+function safeVideoUrl(value?: string | null): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function getVideoEmbedUrl(value: string): string | null {
+  if (value.startsWith("/")) return null;
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      const id = url.pathname.startsWith("/shorts/")
+        ? url.pathname.split("/").filter(Boolean)[1]
+        : url.searchParams.get("v");
+      return id && /^[\w-]+$/.test(id) ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (host === "youtu.be") {
+      const id = url.pathname.split("/").filter(Boolean)[0];
+      return id && /^[\w-]+$/.test(id) ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (host === "vimeo.com" || host === "player.vimeo.com") {
+      const id = url.pathname.split("/").filter(Boolean).find((part) => /^\d+$/.test(part));
+      return id ? `https://player.vimeo.com/video/${id}` : null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }

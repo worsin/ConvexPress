@@ -115,6 +115,7 @@ export const applyLessonGeneration = mutation({
   args: {
     generationId: v.id("lms_ai_generations"),
     nodeId: v.optional(v.id("lms_nodes")),
+    expectedUpdatedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
@@ -135,6 +136,13 @@ export const applyLessonGeneration = mutation({
     const { user, node } = await requireNodeCourseAuthorOrEditor(ctx, nodeId, "lms.ai.generate");
     if (node.kind !== "lesson") {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Node is not a lesson" });
+    }
+    if (args.expectedUpdatedAt !== undefined && node.updatedAt !== args.expectedUpdatedAt) {
+      throw new ConvexError({
+        code: "EDIT_CONFLICT",
+        message: "This lesson changed since the AI draft panel loaded. Refresh before applying.",
+        serverUpdatedAt: node.updatedAt,
+      });
     }
     const generatedBody = String((generation.briefJson as any)?.generatedBody ?? "").trim();
     if (!generatedBody) {

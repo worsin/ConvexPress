@@ -10,7 +10,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
-import { textToDoc } from "./lessons/helpers";
+import { detectVideoProvider, textToDoc } from "./lessons/helpers";
 
 type AnyCtx = any;
 
@@ -40,7 +40,7 @@ async function upsertPluginSettings(ctx: AnyCtx, userId: Id<"users">) {
     .withIndex("by_section", (q: AnyCtx) => q.eq("section", "plugins"))
     .unique();
   const values = {
-    ...(existing?.values ?? {}),
+    ...existing?.values,
     lmsEnabled: true,
     membershipEnabled: true,
   };
@@ -316,7 +316,7 @@ async function addLesson(
     ),
     materialsDoc: options.materials ? textToDoc(options.materials) : undefined,
     videoUrl: options.videoUrl,
-    videoProvider: options.videoUrl?.includes("youtube") ? "youtube" : undefined,
+    videoProvider: options.videoUrl ? detectVideoProvider(options.videoUrl) : undefined,
     isPreview: options.isPreview,
     requireVideoWatch: options.requireVideoWatch,
     autoComplete: options.autoComplete,

@@ -185,12 +185,7 @@ function renderNode(node: TiptapNode, key: string): ReactNode {
     return <td key={key} className="border border-border px-3 py-2 align-top">{children}</td>;
   }
   if (node.type === "embed") {
-    const href = safeUrl(stringAttr(node.attrs?.url) ?? stringAttr(node.attrs?.src));
-    return href ? (
-      <a key={key} href={href} target="_blank" rel="noreferrer" className="text-primary underline">
-        Open embedded resource
-      </a>
-    ) : null;
+    return <LessonEmbed key={key} attrs={node.attrs} />;
   }
 
   return children.length > 0 ? <div key={key}>{children}</div> : null;
@@ -252,6 +247,40 @@ function LessonImage({ attrs }: { attrs?: Record<string, unknown> }) {
   );
 }
 
+function LessonEmbed({ attrs }: { attrs?: Record<string, unknown> }) {
+  const href = safeHttpUrl(stringAttr(attrs?.url) ?? stringAttr(attrs?.src));
+  if (!href) return null;
+  const title = stringAttr(attrs?.title) ?? "Embedded resource";
+  const embedSrc = videoEmbedSrc(href);
+
+  if (embedSrc) {
+    return (
+      <iframe
+        title={title}
+        src={embedSrc}
+        className="aspect-video w-full border border-border"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+      />
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center justify-between gap-3 border border-border bg-muted/40 p-4 text-sm text-foreground hover:bg-muted"
+    >
+      <span className="min-w-0">
+        <span className="block font-medium">{title}</span>
+        <span className="block truncate text-xs text-muted-foreground">{href}</span>
+      </span>
+      <span className="shrink-0 text-xs font-medium text-primary">Open</span>
+    </a>
+  );
+}
+
 function collectText(node: TiptapNode): string {
   if (node.type === "text") return node.text ?? "";
   return (node.content ?? []).map(collectText).join("");
@@ -286,6 +315,43 @@ function safeUrl(value?: string | null): string | null {
     const url = new URL(value);
     if (["http:", "https:", "mailto:", "tel:"].includes(url.protocol)) {
       return value;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function safeHttpUrl(value?: string | null): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (["http:", "https:"].includes(url.protocol)) {
+      return url.toString();
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function videoEmbedSrc(value: string): string | null {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, "");
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      const videoId = url.pathname.startsWith("/shorts/")
+        ? url.pathname.split("/")[2]
+        : url.searchParams.get("v");
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+    if (host === "youtu.be") {
+      const videoId = url.pathname.split("/").filter(Boolean)[0];
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+    if (host === "vimeo.com") {
+      const videoId = url.pathname.split("/").filter(Boolean)[0];
+      return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
     }
   } catch {
     return null;

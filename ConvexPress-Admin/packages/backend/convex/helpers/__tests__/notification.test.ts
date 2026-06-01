@@ -81,6 +81,55 @@ describe("notification helpers", () => {
     });
   });
 
+  test("builds LMS learner and author notifications with production routes", () => {
+    const enrolled = buildNotificationFromEvent(
+      "lms.enrolled",
+      NOTIFICATION_KEYS.LMS_ENROLLED,
+      {
+        courseId: "course_1",
+        courseTitle: "Mastering ConvexPress",
+        courseSlug: "mastering-convexpress",
+        nodeId: "lesson_1",
+        userId: "learner_1",
+      },
+    );
+    const certificateIssued = buildNotificationFromEvent(
+      "lms.certificate_issued",
+      NOTIFICATION_KEYS.LMS_CERTIFICATE_ISSUED,
+      {
+        certificateIssueId: "issue_1",
+        courseTitle: "Mastering ConvexPress",
+        serial: "CERT-ABC-123",
+        userId: "learner_1",
+      },
+    );
+    const coursePublished = buildNotificationFromEvent(
+      "lms.course_published",
+      NOTIFICATION_KEYS.LMS_COURSE_PUBLISHED,
+      {
+        courseId: "course_1",
+        courseTitle: "Mastering ConvexPress",
+        authorId: "author_1",
+      },
+    );
+
+    expect(enrolled).toMatchObject({
+      message: 'You are enrolled in "Mastering ConvexPress".',
+      actionUrl: "/dashboard/courses/mastering-convexpress/lesson_1",
+      groupKey: "lms.enrolled:course_1:learner_1",
+    });
+    expect(certificateIssued).toMatchObject({
+      message: 'Your certificate for "Mastering ConvexPress" is ready.',
+      actionUrl: "/certificates/CERT-ABC-123",
+      groupKey: "lms.certificate_issued:issue_1",
+    });
+    expect(coursePublished).toMatchObject({
+      message: 'Your course "Mastering ConvexPress" has been published.',
+      actionUrl: "/admin/lms/courses/course_1",
+      groupKey: "lms.course_published:course_1",
+    });
+  });
+
   test("honors explicit payload key overrides for employee and customer recipients", async () => {
     const ctx = { db: {} } as any;
 

@@ -56,9 +56,6 @@ export const Route = createFileRoute("/_marketing/courses/")({
       await queryClient.ensureQueryData(
         convexQuery(api.lms.courses.queries.listCatalog, buildCatalogArgs(deps)),
       );
-      await queryClient.ensureQueryData(
-        convexQuery(api.lms.courses.queries.getCatalogFilters, {}),
-      );
     }
 
     const canonicalQuery = new URLSearchParams();
@@ -143,9 +140,7 @@ function CoursesIndexPage() {
   const { data: courses } = useSuspenseQuery(
     convexQuery(api.lms.courses.queries.listCatalog, buildCatalogArgs({ q, category, tag, access })) as any,
   ) as { data: CourseCard[] };
-  const { data: filters } = useSuspenseQuery(
-    convexQuery(api.lms.courses.queries.getCatalogFilters, {}) as any,
-  ) as { data: CatalogFilters };
+  const filters = buildFilters(courses);
 
   function runSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -348,6 +343,27 @@ function FilterGroup({
       </div>
     </section>
   );
+}
+
+function buildFilters(courses: CourseCard[]): CatalogFilters {
+  return {
+    categories: countLabels(courses.flatMap((course) => course.categoryIds ?? [])),
+    tags: countLabels(courses.flatMap((course) => course.tagIds ?? [])),
+    accessModes: countLabels(courses.map((course) => course.accessMode ?? "members")),
+  };
+}
+
+function countLabels(values: string[]) {
+  const counts = new Map<string, number>();
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const slug = value.trim().toLowerCase();
+    if (!slug) continue;
+    counts.set(slug, (counts.get(slug) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([slug, count]) => ({ slug, label: humanize(slug), count }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 }
 
 function humanize(value: string) {

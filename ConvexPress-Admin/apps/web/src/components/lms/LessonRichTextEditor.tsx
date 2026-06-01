@@ -4,19 +4,26 @@ import {
   Code2,
   Eye,
   Heading2,
+  ImagePlus,
   Italic,
   LinkIcon,
   List,
   ListOrdered,
   MessageSquareQuote,
+  MonitorPlay,
   Pencil,
   Quote,
   SeparatorHorizontal,
 } from "lucide-react";
 
+import { api } from "@backend/convex/_generated/api";
+import type { Id } from "@backend/convex/_generated/dataModel";
+import { useQuery } from "convex-helpers/react/cache";
 import { cn } from "@/lib/utils";
+import { MediaSelector } from "./MediaSelector";
 
 type Mode = "write" | "preview";
+type InsertPanel = "media" | "embed" | null;
 
 interface LessonRichTextEditorProps {
   label: string;
@@ -39,6 +46,13 @@ export function LessonRichTextEditor({
 }: LessonRichTextEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [mode, setMode] = useState<Mode>("write");
+  const [insertPanel, setInsertPanel] = useState<InsertPanel>(null);
+  const [mediaImageId, setMediaImageId] = useState<Id<"media"> | null>(null);
+  const [mediaAlt, setMediaAlt] = useState("");
+  const [mediaCaption, setMediaCaption] = useState("");
+  const [externalImageUrl, setExternalImageUrl] = useState("");
+  const [embedUrl, setEmbedUrl] = useState("");
+  const [embedTitle, setEmbedTitle] = useState("");
   const id = editorId(label);
   const stats = useMemo(() => getStats(value), [value]);
 
@@ -63,6 +77,23 @@ export function LessonRichTextEditor({
     const end = textarea.selectionEnd;
     const next = `${value.slice(0, start)}${text}${value.slice(end)}`;
     replaceSelection(next, start + selectOffset);
+  }
+
+  function insertBlock(markup: string) {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      const prefix = value.trim() ? "\n\n" : "";
+      onChange(`${value}${prefix}${markup}`);
+      return;
+    }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const before = value.slice(0, start);
+    const after = value.slice(end);
+    const prefix = before.trim() && !before.endsWith("\n\n") ? (before.endsWith("\n") ? "\n" : "\n\n") : "";
+    const suffix = after.trim() && !after.startsWith("\n\n") ? (after.startsWith("\n") ? "\n" : "\n\n") : "";
+    const next = `${before}${prefix}${markup}${suffix}${after}`;
+    replaceSelection(next, before.length + prefix.length + markup.length);
   }
 
   function wrapSelection(before: string, after = before, fallback = "text") {
@@ -112,6 +143,29 @@ export function LessonRichTextEditor({
     }
   }
 
+  function insertSelectedMediaImage() {
+    if (!mediaImageId) return;
+    insertBlock(buildImageMarkup(`media:${mediaImageId}`, mediaAlt || "Image", mediaCaption));
+    setInsertPanel(null);
+  }
+
+  function insertExternalImage() {
+    const src = normalizePreviewUrl(externalImageUrl, true);
+    if (!src) return;
+    insertBlock(buildImageMarkup(src, mediaAlt || "Image", mediaCaption));
+    setExternalImageUrl("");
+    setInsertPanel(null);
+  }
+
+  function insertEmbed() {
+    const src = normalizePreviewUrl(embedUrl, false);
+    if (!src) return;
+    insertBlock(buildEmbedMarkup(src, embedTitle));
+    setEmbedUrl("");
+    setEmbedTitle("");
+    setInsertPanel(null);
+  }
+
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -154,6 +208,12 @@ export function LessonRichTextEditor({
             <ToolbarButton title="Link" disabled={disabled} onClick={() => wrapSelection("[", "](https://example.com)", "link text")}>
               <LinkIcon className="size-4" aria-hidden="true" />
             </ToolbarButton>
+            <ToolbarButton title="Image" disabled={disabled} onClick={() => setInsertPanel(insertPanel === "media" ? null : "media")}>
+              <ImagePlus className="size-4" aria-hidden="true" />
+            </ToolbarButton>
+            <ToolbarButton title="Embed" disabled={disabled} onClick={() => setInsertPanel(insertPanel === "embed" ? null : "embed")}>
+              <MonitorPlay className="size-4" aria-hidden="true" />
+            </ToolbarButton>
             <ToolbarButton title="Quote" disabled={disabled} onClick={() => prefixLines("> ")}>
               <Quote className="size-4" aria-hidden="true" />
             </ToolbarButton>
@@ -173,6 +233,33 @@ export function LessonRichTextEditor({
               <SeparatorHorizontal className="size-4" aria-hidden="true" />
             </ToolbarButton>
           </div>
+          {insertPanel === "media" ? (
+            <MediaInsertPanel
+              id={id}
+              disabled={disabled}
+              mediaImageId={mediaImageId}
+              onMediaImageIdChange={setMediaImageId}
+              alt={mediaAlt}
+              onAltChange={setMediaAlt}
+              caption={mediaCaption}
+              onCaptionChange={setMediaCaption}
+              externalImageUrl={externalImageUrl}
+              onExternalImageUrlChange={setExternalImageUrl}
+              onInsertMedia={insertSelectedMediaImage}
+              onInsertExternal={insertExternalImage}
+            />
+          ) : null}
+          {insertPanel === "embed" ? (
+            <EmbedInsertPanel
+              id={id}
+              disabled={disabled}
+              url={embedUrl}
+              onUrlChange={setEmbedUrl}
+              title={embedTitle}
+              onTitleChange={setEmbedTitle}
+              onInsert={insertEmbed}
+            />
+          ) : null}
           <textarea
             ref={textareaRef}
             id={id}
@@ -196,6 +283,166 @@ export function LessonRichTextEditor({
         <span>{stats.characters} characters</span>
       </div>
     </section>
+  );
+}
+
+function MediaInsertPanel({
+  id,
+  disabled,
+  mediaImageId,
+  onMediaImageIdChange,
+  alt,
+  onAltChange,
+  caption,
+  onCaptionChange,
+  externalImageUrl,
+  onExternalImageUrlChange,
+  onInsertMedia,
+  onInsertExternal,
+}: {
+  id: string;
+  disabled: boolean;
+  mediaImageId: Id<"media"> | null;
+  onMediaImageIdChange: (value: Id<"media"> | null) => void;
+  alt: string;
+  onAltChange: (value: string) => void;
+  caption: string;
+  onCaptionChange: (value: string) => void;
+  externalImageUrl: string;
+  onExternalImageUrlChange: (value: string) => void;
+  onInsertMedia: () => void;
+  onInsertExternal: () => void;
+}) {
+  const safeExternalImageUrl = normalizePreviewUrl(externalImageUrl, true);
+  return (
+    <div className="space-y-4 border border-border bg-muted/20 p-3">
+      <MediaSelector
+        value={mediaImageId}
+        onChange={onMediaImageIdChange}
+        mediaType="image"
+        placeholder="Search images"
+        disabled={disabled}
+      />
+      <div className="grid gap-3 md:grid-cols-2">
+        <InlineField label="Alt text" htmlFor={`${id}-image-alt`}>
+          <input
+            id={`${id}-image-alt`}
+            value={alt}
+            onChange={(event) => onAltChange(event.target.value)}
+            disabled={disabled}
+            className="h-9 w-full border border-border bg-background px-3 text-sm outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+          />
+        </InlineField>
+        <InlineField label="Caption" htmlFor={`${id}-image-caption`}>
+          <input
+            id={`${id}-image-caption`}
+            value={caption}
+            onChange={(event) => onCaptionChange(event.target.value)}
+            disabled={disabled}
+            className="h-9 w-full border border-border bg-background px-3 text-sm outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+          />
+        </InlineField>
+      </div>
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+        <InlineField label="Image URL" htmlFor={`${id}-image-url`}>
+          <input
+            id={`${id}-image-url`}
+            value={externalImageUrl}
+            onChange={(event) => onExternalImageUrlChange(event.target.value)}
+            disabled={disabled}
+            placeholder="https://example.com/image.jpg"
+            className="h-9 w-full border border-border bg-background px-3 text-sm outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+          />
+        </InlineField>
+        <button
+          type="button"
+          disabled={disabled || !mediaImageId}
+          onClick={onInsertMedia}
+          className="inline-flex h-9 items-center justify-center gap-1.5 self-end border border-border bg-background px-3 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <ImagePlus className="size-4" aria-hidden="true" />
+          Insert media
+        </button>
+        <button
+          type="button"
+          disabled={disabled || !safeExternalImageUrl}
+          onClick={onInsertExternal}
+          className="inline-flex h-9 items-center justify-center gap-1.5 self-end border border-border bg-background px-3 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <LinkIcon className="size-4" aria-hidden="true" />
+          Insert URL
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EmbedInsertPanel({
+  id,
+  disabled,
+  url,
+  onUrlChange,
+  title,
+  onTitleChange,
+  onInsert,
+}: {
+  id: string;
+  disabled: boolean;
+  url: string;
+  onUrlChange: (value: string) => void;
+  title: string;
+  onTitleChange: (value: string) => void;
+  onInsert: () => void;
+}) {
+  const safeUrl = normalizePreviewUrl(url, false);
+  return (
+    <div className="grid gap-3 border border-border bg-muted/20 p-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,0.8fr)_auto]">
+      <InlineField label="Embed URL" htmlFor={`${id}-embed-url`}>
+        <input
+          id={`${id}-embed-url`}
+          value={url}
+          onChange={(event) => onUrlChange(event.target.value)}
+          disabled={disabled}
+          placeholder="https://youtube.com/watch?v=..."
+          className="h-9 w-full border border-border bg-background px-3 text-sm outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+        />
+      </InlineField>
+      <InlineField label="Title" htmlFor={`${id}-embed-title`}>
+        <input
+          id={`${id}-embed-title`}
+          value={title}
+          onChange={(event) => onTitleChange(event.target.value)}
+          disabled={disabled}
+          className="h-9 w-full border border-border bg-background px-3 text-sm outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+        />
+      </InlineField>
+      <button
+        type="button"
+        disabled={disabled || !safeUrl}
+        onClick={onInsert}
+        className="inline-flex h-9 items-center justify-center gap-1.5 self-end border border-border bg-background px-3 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <MonitorPlay className="size-4" aria-hidden="true" />
+        Insert embed
+      </button>
+    </div>
+  );
+}
+
+function InlineField({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: ReactNode;
+}) {
+  return (
+    <label htmlFor={htmlFor} className="grid gap-1 text-xs font-medium text-muted-foreground">
+      {label}
+      {children}
+    </label>
   );
 }
 
@@ -274,6 +521,8 @@ type PreviewBlock =
   | { type: "bulletList"; items: string[] }
   | { type: "orderedList"; items: string[] }
   | { type: "code"; text: string }
+  | { type: "image"; alt: string; caption?: string; mediaId?: string; src?: string }
+  | { type: "embed"; url: string; title?: string }
   | { type: "rule" };
 
 function parsePreview(value: string): PreviewBlock[] {
@@ -314,6 +563,20 @@ function parsePreview(value: string): PreviewBlock[] {
     if (!line.trim()) {
       flushParagraph();
       flushList();
+      continue;
+    }
+    const image = parsePreviewImage(line.trim());
+    if (image) {
+      flushParagraph();
+      flushList();
+      blocks.push(image);
+      continue;
+    }
+    const embed = parsePreviewEmbed(line.trim());
+    if (embed) {
+      flushParagraph();
+      flushList();
+      blocks.push(embed);
       continue;
     }
     if (/^-{3,}$/.test(line.trim())) {
@@ -418,7 +681,52 @@ function renderBlock(block: PreviewBlock, index: number) {
   if (block.type === "rule") {
     return <hr key={index} className="border-border" />;
   }
+  if (block.type === "image") {
+    return <PreviewImage key={index} block={block} />;
+  }
+  if (block.type === "embed") {
+    return (
+      <a
+        key={index}
+        href={block.url}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-3 border border-border bg-muted/40 p-3 text-sm font-medium text-primary hover:bg-muted"
+      >
+        <MonitorPlay className="size-5 shrink-0" aria-hidden="true" />
+        <span className="min-w-0 truncate">{block.title || block.url}</span>
+      </a>
+    );
+  }
   return <p key={index}>{renderInline(block.text)}</p>;
+}
+
+function PreviewImage({
+  block,
+}: {
+  block: Extract<PreviewBlock, { type: "image" }>;
+}) {
+  const media = useQuery(
+    api.media.queries.get,
+    block.mediaId ? { mediaId: block.mediaId as Id<"media"> } : "skip",
+  ) as { title?: string | null; altText?: string | null; url?: string | null } | null | undefined;
+  const src = media?.url ?? block.src;
+  const alt = block.alt || media?.altText || media?.title || "";
+
+  return (
+    <figure className="space-y-2">
+      {block.mediaId && media === undefined ? (
+        <div className="h-56 w-full animate-pulse bg-muted" aria-hidden="true" />
+      ) : src ? (
+        <img src={src} alt={alt} loading="lazy" className="max-h-96 w-full object-contain" />
+      ) : (
+        <div className="border border-dashed border-border p-6 text-sm text-muted-foreground">
+          Selected media is not available.
+        </div>
+      )}
+      {block.caption ? <figcaption className="text-xs text-muted-foreground">{block.caption}</figcaption> : null}
+    </figure>
+  );
 }
 
 function renderInline(text: string) {
@@ -433,16 +741,21 @@ function renderInline(text: string) {
     const token = match[0];
     const link = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
     if (link) {
+      const href = normalizeInlineLinkUrl(link[2]);
       nodes.push(
-        <a
-          key={`${match.index}-link`}
-          href={link[2]}
-          target="_blank"
-          rel="noreferrer"
-          className="font-medium text-primary underline underline-offset-4"
-        >
-          {link[1]}
-        </a>,
+        href ? (
+          <a
+            key={`${match.index}-link`}
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-primary underline underline-offset-4"
+          >
+            {link[1]}
+          </a>
+        ) : (
+          link[1]
+        ),
       );
     } else if (token.startsWith("**")) {
       nodes.push(<strong key={`${match.index}-bold`}>{token.slice(2, -2)}</strong>);
@@ -473,6 +786,88 @@ function getStats(value: string) {
     characters: value.length,
     minutes: Math.max(1, Math.ceil(words / 220)),
   };
+}
+
+function parsePreviewImage(line: string): Extract<PreviewBlock, { type: "image" }> | null {
+  const image = line.match(/^!\[([^\]]*)\]\((.+)\)$/);
+  if (!image) return null;
+  const parsed = parseMediaTarget(image[2]);
+  if (!parsed) return null;
+  return {
+    type: "image",
+    alt: cleanMarkupText(image[1]),
+    caption: parsed.caption,
+    ...parsed.target,
+  };
+}
+
+function parsePreviewEmbed(line: string): Extract<PreviewBlock, { type: "embed" }> | null {
+  const embed = line.match(/^\{\{embed:([^}|]+)(?:\|([^}]+))?\}\}$/);
+  if (!embed) return null;
+  const url = normalizePreviewUrl(embed[1], false);
+  if (!url) return null;
+  return {
+    type: "embed",
+    url,
+    title: cleanMarkupText(embed[2] ?? ""),
+  };
+}
+
+function parseMediaTarget(
+  rawTarget: string,
+): { target: { mediaId?: string; src?: string }; caption?: string } | null {
+  const match = rawTarget.trim().match(/^(\S+?)(?:\s+"([^"]*)")?$/);
+  if (!match) return null;
+  const destination = match[1];
+  const caption = cleanMarkupText(match[2] ?? "");
+  if (destination.startsWith("media:")) {
+    const mediaId = destination.slice("media:".length).trim();
+    if (!/^[a-zA-Z0-9_-]+$/.test(mediaId)) return null;
+    return { target: { mediaId }, caption };
+  }
+  const src = normalizePreviewUrl(destination, true);
+  return src ? { target: { src }, caption } : null;
+}
+
+function buildImageMarkup(target: string, alt: string, caption: string) {
+  const safeAlt = cleanMarkupText(alt) || "Image";
+  const safeCaption = cleanMarkupText(caption);
+  return `![${safeAlt}](${target}${safeCaption ? ` "${safeCaption}"` : ""})`;
+}
+
+function buildEmbedMarkup(url: string, title: string) {
+  const safeTitle = cleanMarkupText(title);
+  return `{{embed:${url}${safeTitle ? `|${safeTitle}` : ""}}}`;
+}
+
+function normalizePreviewUrl(value: string, allowRelative: boolean): string | null {
+  const raw = value.trim();
+  if (!raw) return null;
+  if (allowRelative && raw.startsWith("/")) return raw;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function normalizeInlineLinkUrl(value: string): string | null {
+  const raw = value.trim();
+  if (!raw) return null;
+  if (raw.startsWith("/") || raw.startsWith("#")) return raw;
+  try {
+    const url = new URL(raw);
+    if (["http:", "https:", "mailto:", "tel:"].includes(url.protocol)) return url.toString();
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function cleanMarkupText(value: string) {
+  return value.replace(/[\n\r"\]{}|]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function editorId(label: string) {

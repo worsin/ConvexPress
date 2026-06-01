@@ -28,3 +28,7 @@ test("lms-certificates [P1]", async ({ authedPage }) => {
 test("lms-verify [P1]", async ({ authedPage }) => {
 	await smokeRoute(authedPage, "/lms/verify", { expectHeading: /Verify Certificate/ });
 });
+
+test("lms-settings [P1]", async ({ authedPage }) => {
+	await smokeRoute(authedPage, "/lms/settings", { expectHeading: /LMS Settings/ });
+});

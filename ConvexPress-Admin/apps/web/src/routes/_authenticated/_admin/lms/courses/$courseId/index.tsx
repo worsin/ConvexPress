@@ -204,6 +204,11 @@ function CourseSettingsPage() {
       toast.error("You do not have permission to edit courses.");
       return;
     }
+    const errors = validateCourseForm(form);
+    if (errors.length > 0) {
+      toast.error(errors[0]);
+      return;
+    }
     setSaving(true);
     try {
       await update({
@@ -607,6 +612,54 @@ function toDateInput(value?: number): string {
 function fromDateInput(value: string): number | undefined {
   if (!value) return undefined;
   return new Date(`${value}T00:00:00`).getTime();
+}
+
+function validateCourseForm(form: FormState): string[] {
+  const errors: string[] = [];
+  if (!form.title.trim()) errors.push("Course title is required.");
+  if (form.title.trim().length > 200) errors.push("Course title must be 200 characters or less.");
+  if (form.promoVideoUrl && !isSafeCourseUrl(form.promoVideoUrl)) {
+    errors.push("Promo video URL must use http, https, or a site-relative path.");
+  }
+  if (form.externalButtonUrl && !isSafeCourseUrl(form.externalButtonUrl)) {
+    errors.push("External access URL must use http, https, or a site-relative path.");
+  }
+  if (form.completionRedirectUrl && !isSafeCourseUrl(form.completionRedirectUrl)) {
+    errors.push("Completion redirect URL must use http, https, or a site-relative path.");
+  }
+  const numericValues = [
+    ["Price", form.price],
+    ["Recurring price", form.recurringPrice],
+    ["Billing interval", form.billingInterval],
+    ["Trial price", form.trialPrice],
+    ["Trial days", form.trialDays],
+    ["Points awarded", form.pointsAwarded],
+    ["Points required", form.pointsRequired],
+    ["Seat limit", form.seatLimit],
+    ["Access duration", form.accessDurationDays],
+  ] as const;
+  for (const [label, value] of numericValues) {
+    if (!Number.isFinite(value) || value < 0) errors.push(`${label} must be zero or greater.`);
+  }
+  if (form.billingInterval < 1) errors.push("Billing interval must be at least 1.");
+  const startDate = fromDateInput(form.startDate);
+  const endDate = fromDateInput(form.endDate);
+  if (startDate && endDate && endDate < startDate) {
+    errors.push("Course end date must be after the start date.");
+  }
+  return errors;
+}
+
+function isSafeCourseUrl(value: string): boolean {
+  const raw = value.trim();
+  if (!raw) return true;
+  if (raw.startsWith("/") && !raw.startsWith("//")) return true;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function QuickLink({

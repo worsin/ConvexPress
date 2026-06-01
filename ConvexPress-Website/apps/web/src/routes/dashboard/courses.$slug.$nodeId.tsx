@@ -482,13 +482,9 @@ function PlayerSkeleton() {
 }
 
 function VideoEmbed({ url }: { url: string }) {
-  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
-  const vimeo = url.match(/vimeo\.com\/(\d+)/);
-  const src = yt
-    ? `https://www.youtube.com/embed/${yt[1]}`
-    : vimeo
-      ? `https://player.vimeo.com/video/${vimeo[1]}`
-      : null;
+  const safeUrl = safeVideoUrl(url);
+  if (!safeUrl) return null;
+  const src = getVideoEmbedUrl(safeUrl);
 
   if (src) {
     return (
@@ -504,7 +500,7 @@ function VideoEmbed({ url }: { url: string }) {
 
   return (
     <a
-      href={url}
+      href={safeUrl}
       target="_blank"
       rel="noreferrer"
       className="inline-flex text-sm font-medium text-primary hover:underline"
@@ -512,6 +508,43 @@ function VideoEmbed({ url }: { url: string }) {
       Open lesson video
     </a>
   );
+}
+
+function safeVideoUrl(value?: string | null): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function getVideoEmbedUrl(value: string): string | null {
+  if (value.startsWith("/")) return null;
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      const id = url.pathname.startsWith("/shorts/")
+        ? url.pathname.split("/").filter(Boolean)[1]
+        : url.searchParams.get("v");
+      return id && /^[\w-]+$/.test(id) ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (host === "youtu.be") {
+      const id = url.pathname.split("/").filter(Boolean)[0];
+      return id && /^[\w-]+$/.test(id) ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (host === "vimeo.com" || host === "player.vimeo.com") {
+      const id = url.pathname.split("/").filter(Boolean).find((part) => /^\d+$/.test(part));
+      return id ? `https://player.vimeo.com/video/${id}` : null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 function formatDate(ts: number) {
