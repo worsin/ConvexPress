@@ -26,6 +26,23 @@ interface BootstrapConfig {
   pendingCredentials?: AdminGateProps["pendingCredentials"];
 }
 
+function deriveConvexSiteUrl(convexUrl: string | undefined): string | undefined {
+  if (!convexUrl) return undefined;
+
+  const cleaned = convexUrl.trim().replace(/\/+$/, "");
+  try {
+    const url = new URL(cleaned);
+    if (url.hostname.endsWith(".convex.cloud")) {
+      url.hostname = url.hostname.replace(/\.convex\.cloud$/, ".convex.site");
+      return url.toString().replace(/\/+$/, "");
+    }
+  } catch {
+    return cleaned;
+  }
+
+  return cleaned;
+}
+
 async function resolveConfig(): Promise<BootstrapConfig> {
   if (isElectron()) {
     const bridge = getElectronBridge()!;
@@ -47,7 +64,10 @@ async function resolveConfig(): Promise<BootstrapConfig> {
     const resolvedConvexUrl =
       convexUrl || import.meta.env.VITE_CONVEX_URL;
     const resolvedSiteUrl =
-      convexSiteUrl || import.meta.env.VITE_CONVEX_SITE_URL || resolvedConvexUrl;
+      convexSiteUrl ||
+      import.meta.env.VITE_CONVEX_SITE_URL ||
+      deriveConvexSiteUrl(resolvedConvexUrl) ||
+      resolvedConvexUrl;
 
     return {
       convexUrl: resolvedConvexUrl,
@@ -60,7 +80,10 @@ async function resolveConfig(): Promise<BootstrapConfig> {
   // Web mode -- env vars
   return {
     convexUrl: import.meta.env.VITE_CONVEX_URL,
-    convexSiteUrl: import.meta.env.VITE_CONVEX_SITE_URL,
+    convexSiteUrl:
+      import.meta.env.VITE_CONVEX_SITE_URL ||
+      deriveConvexSiteUrl(import.meta.env.VITE_CONVEX_URL) ||
+      import.meta.env.VITE_CONVEX_URL,
   };
 }
 

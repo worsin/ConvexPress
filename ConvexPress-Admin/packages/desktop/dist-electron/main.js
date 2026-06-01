@@ -117,10 +117,10 @@ function registerConfigHandlers() {
     store.set(key, value);
   });
   ipcMain2.handle("config:test-connection", async (_event, url) => {
-    const cleanUrl = url.replace(/\/$/, "");
+    const cleanUrl2 = url.replace(/\/$/, "");
     const endpoints = [
-      `${cleanUrl}/.well-known/openid-configuration`,
-      `${cleanUrl}/version`
+      `${cleanUrl2}/.well-known/openid-configuration`,
+      `${cleanUrl2}/version`
     ];
     for (const endpoint of endpoints) {
       try {
@@ -183,13 +183,31 @@ function registerAuthHandlers() {
 
 // electron/ipc/setup.ts
 var { ipcMain: ipcMain4 } = require("electron");
+function cleanUrl(value) {
+  return value.trim().replace(/\/+$/, "");
+}
+function deriveConvexSiteUrl(convexUrl) {
+  const cleaned = cleanUrl(convexUrl);
+  try {
+    const url = new URL(cleaned);
+    if (url.hostname.endsWith(".convex.cloud")) {
+      url.hostname = url.hostname.replace(/\.convex\.cloud$/, ".convex.site");
+      return cleanUrl(url.toString());
+    }
+  } catch {
+  }
+  return cleaned;
+}
 function registerSetupHandlers() {
   ipcMain4.handle(
     "setup:complete",
     (_event, config) => {
       try {
+        const convexUrl = cleanUrl(config.convexUrl);
+        const convexSiteUrl = config.convexSiteUrl ? cleanUrl(config.convexSiteUrl) : deriveConvexSiteUrl(convexUrl);
         store.set("mode", config.mode);
-        store.set("convexUrl", config.convexUrl);
+        store.set("convexUrl", convexUrl);
+        store.set("convexSiteUrl", convexSiteUrl);
         if (config.adminKey) {
           store.set("adminKey", config.adminKey);
         }
@@ -205,7 +223,7 @@ function registerSetupHandlers() {
         }
         store.set("setupComplete", true);
         console.log(
-          `[Setup IPC] Config saved: mode=${config.mode}, url=${config.convexUrl}`
+          `[Setup IPC] Config saved: mode=${config.mode}, url=${convexUrl}`
         );
         return { success: true };
       } catch (error) {
@@ -978,12 +996,11 @@ if (!gotTheLock) {
   app6.quit();
 } else {
   app6.on("second-instance", () => {
-    const win = windowManager.getMainWindow();
-    if (win) {
-      if (win.isMinimized()) win.restore();
-      win.show();
-      win.focus();
-    }
+    const win = windowManager.getMainWindow() ?? windowManager.getWizardWindow();
+    if (!win) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
   });
 }
 app6.whenReady().then(async () => {
@@ -1027,10 +1044,7 @@ app6.whenReady().then(async () => {
     }
     launchApp();
   });
-  if (isDev()) {
-    fileLog("[Main] Dev mode \u2014 launching app directly");
-    launchApp();
-  } else if (isSetupComplete()) {
+  if (isSetupComplete()) {
     fileLog("[Main] Setup complete \u2014 launching app");
     launchApp();
   } else {
@@ -1041,8 +1055,10 @@ app6.whenReady().then(async () => {
 app6.on("window-all-closed", () => {
 });
 app6.on("activate", () => {
-  if (isSetupComplete() || isDev()) {
+  if (isSetupComplete()) {
     windowManager.createMainWindow();
+  } else {
+    windowManager.createWizardWindow();
   }
 });
 app6.on("before-quit", () => {

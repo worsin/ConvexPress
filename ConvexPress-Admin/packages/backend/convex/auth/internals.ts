@@ -203,14 +203,24 @@ export const checkExistingAdmins = internalQuery({
       .query("roles")
       .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
       .unique();
-    if (!adminRole) return false;
 
-    const admin = await ctx.db
+    if (adminRole) {
+      const admin = await ctx.db
+        .query("users")
+        .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", adminRole._id))
+        .first();
+
+      if (admin) return true;
+    }
+
+    const legacyAdmins = await ctx.db
       .query("users")
-      .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", adminRole._id))
-      .first();
+      .withIndex("by_internal_role", (q: ConvexQueryBuilder) => q.eq("internalRole", "admin"))
+      .collect();
 
-    return !!admin;
+    return legacyAdmins.some(
+      (user: { isInternal?: boolean }) => user.isInternal === true,
+    );
   },
 });
 
@@ -232,8 +242,35 @@ export const createAdminUser = internalMutation({
       .query("roles")
       .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
       .unique();
+    if (!adminRole) {
+      throw new Error("Administrator role is not seeded");
+    }
 
     const now = Date.now();
+    const slug = args.username.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", args.email))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        authSource: "local",
+        username: args.username,
+        passwordHash: args.passwordHash,
+        displayName: args.displayName,
+        slug,
+        emailVerified: true,
+        status: "active",
+        isInternal: true,
+        internalRole: "admin",
+        roleId: adminRole._id,
+        registrationMethod: existing.registrationMethod ?? "self",
+        registeredAt: existing.registeredAt ?? now,
+        updatedAt: now,
+      });
+      return existing._id;
+    }
 
     return await ctx.db.insert("users", {
       authSource: "local",
@@ -241,10 +278,12 @@ export const createAdminUser = internalMutation({
       username: args.username,
       passwordHash: args.passwordHash,
       displayName: args.displayName,
-      slug: args.username.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+      slug,
       emailVerified: true,
       status: "active",
-      roleId: adminRole?._id,
+      isInternal: true,
+      internalRole: "admin",
+      roleId: adminRole._id,
       registrationMethod: "self",
       registeredAt: now,
       createdAt: now,

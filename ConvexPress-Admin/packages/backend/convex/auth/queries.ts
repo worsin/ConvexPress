@@ -32,13 +32,29 @@ export const hasAdmin = query({
       .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
       .unique();
 
-    if (!adminRole) return false;
+    if (!adminRole) {
+      const legacyAdmins = await ctx.db
+        .query("users")
+        .withIndex("by_internal_role", (q: ConvexQueryBuilder) => q.eq("internalRole", "admin"))
+        .collect();
+      return legacyAdmins.some(
+        (user: { isInternal?: boolean }) => user.isInternal === true,
+      );
+    }
 
     const admin = await ctx.db
       .query("users")
       .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", adminRole._id))
       .first();
 
-    return !!admin;
+    if (admin) return true;
+
+    const legacyAdmins = await ctx.db
+      .query("users")
+      .withIndex("by_internal_role", (q: ConvexQueryBuilder) => q.eq("internalRole", "admin"))
+      .collect();
+    return legacyAdmins.some(
+      (user: { isInternal?: boolean }) => user.isInternal === true,
+    );
   },
 });

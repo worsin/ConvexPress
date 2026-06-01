@@ -1,4 +1,5 @@
 import path from "node:path";
+import type { BrowserWindow as ElectronBrowserWindow } from "electron";
 import { isQuitting } from "./utils/app-state.js";
 import { isDev } from "./utils/platform.js";
 
@@ -24,10 +25,10 @@ function getRendererIndexPath(): string {
 }
 
 class WindowManager {
-  private mainWindow: BrowserWindow | null = null;
-  private wizardWindow: BrowserWindow | null = null;
+  private mainWindow: ElectronBrowserWindow | null = null;
+  private wizardWindow: ElectronBrowserWindow | null = null;
 
-  createMainWindow(): BrowserWindow {
+  createMainWindow(): ElectronBrowserWindow {
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.show();
       return this.mainWindow;
@@ -128,7 +129,7 @@ class WindowManager {
     return win;
   }
 
-  createWizardWindow(): BrowserWindow {
+  createWizardWindow(): ElectronBrowserWindow {
     if (this.wizardWindow && !this.wizardWindow.isDestroyed()) {
       this.wizardWindow.show();
       return this.wizardWindow;
@@ -169,11 +170,11 @@ class WindowManager {
     return win;
   }
 
-  getMainWindow(): BrowserWindow | null {
+  getMainWindow(): ElectronBrowserWindow | null {
     return this.mainWindow;
   }
 
-  getWizardWindow(): BrowserWindow | null {
+  getWizardWindow(): ElectronBrowserWindow | null {
     return this.wizardWindow;
   }
 
@@ -188,18 +189,18 @@ class WindowManager {
 export const windowManager = new WindowManager();
 
 // Re-export individual functions for convenience
-export function createMainWindow(): BrowserWindow {
+export function createMainWindow(): ElectronBrowserWindow {
   return windowManager.createMainWindow();
 }
 
-export function createWizardWindow(): BrowserWindow {
+export function createWizardWindow(): ElectronBrowserWindow {
   return windowManager.createWizardWindow();
 }
 
-export function getMainWindow(): BrowserWindow | null {
+export function getMainWindow(): ElectronBrowserWindow | null {
   return windowManager.getMainWindow();
 }
 
-export function getWizardWindow(): BrowserWindow | null {
+export function getWizardWindow(): ElectronBrowserWindow | null {
   return windowManager.getWizardWindow();
 }

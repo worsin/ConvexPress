@@ -181,9 +181,13 @@ contextBridge.exposeInMainWorld("convexpressSetup", {
    */
   saveConfig: (options: {
     convexUrl: string;
+    convexSiteUrl?: string;
     mode: "server" | "client";
     adminKey?: string;
     siteName?: string;
+    adminName?: string;
+    adminEmail?: string;
+    adminPassword?: string;
   }) =>
     ipcRenderer.invoke("setup:complete", options) as Promise<{
       success: boolean;

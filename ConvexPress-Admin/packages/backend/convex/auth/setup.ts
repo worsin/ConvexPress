@@ -14,6 +14,10 @@ export const createFirstAdmin = action({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    // Ensure the built-in WordPress roles exist before checking for or
+    // assigning the first administrator role on a fresh deployment.
+    await ctx.runMutation(internal.roles.internals.seedRoles);
+
     const existingAdmins = await ctx.runQuery(internal.auth.internals.checkExistingAdmins);
     if (existingAdmins) {
       throw new Error("An administrator account already exists");

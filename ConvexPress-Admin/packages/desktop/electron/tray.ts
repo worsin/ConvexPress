@@ -1,12 +1,17 @@
 import path from "node:path";
+import type {
+  BrowserWindow as ElectronBrowserWindow,
+  NativeImage as ElectronNativeImage,
+  Tray as ElectronTray,
+} from "electron";
 import { setQuitting } from "./utils/app-state.js";
 import { isDev } from "./utils/platform.js";
 
 const { app, Menu, nativeImage, Tray } = require("electron") as typeof import("electron");
 
-let tray: Tray | null = null;
+let tray: ElectronTray | null = null;
 
-function loadTrayIcon(): Electron.NativeImage {
+function loadTrayIcon(): ElectronNativeImage {
   const iconPath = isDev()
     ? path.join(__dirname, "../resources/iconTemplate.png")
     : path.join(process.resourcesPath, "iconTemplate.png");
@@ -17,8 +22,8 @@ function loadTrayIcon(): Electron.NativeImage {
 }
 
 export function createTray(wm: {
-  getMainWindow: () => Electron.BrowserWindow | null;
-  createMainWindow: () => Electron.BrowserWindow;
+  getMainWindow: () => ElectronBrowserWindow | null;
+  createMainWindow: () => ElectronBrowserWindow;
 }): void {
   if (tray) return; // Already created
 

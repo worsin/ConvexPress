@@ -142,13 +142,12 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on("second-instance", () => {
-    // Focus the existing window when a second instance is launched
-    const win = windowManager.getMainWindow();
-    if (win) {
-      if (win.isMinimized()) win.restore();
-      win.show();
-      win.focus();
-    }
+    // Focus whichever setup/app window is active when a second instance opens.
+    const win = windowManager.getMainWindow() ?? windowManager.getWizardWindow();
+    if (!win) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
   });
 }
 
@@ -210,10 +209,7 @@ app.whenReady().then(async () => {
   });
 
   // ---------- Check Setup State and Launch ----------
-  if (isDev()) {
-    fileLog("[Main] Dev mode — launching app directly");
-    launchApp();
-  } else if (isSetupComplete()) {
+  if (isSetupComplete()) {
     fileLog("[Main] Setup complete — launching app");
     launchApp();
   } else {
@@ -229,8 +225,10 @@ app.on("window-all-closed", () => {
 
 // macOS: recreate main window when dock icon is clicked
 app.on("activate", () => {
-  if (isSetupComplete() || isDev()) {
+  if (isSetupComplete()) {
     windowManager.createMainWindow();
+  } else {
+    windowManager.createWizardWindow();
   }
 });
 
