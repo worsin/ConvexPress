@@ -219,15 +219,17 @@ async function sortCatalogCourses(ctx: any, courses: any[], sort: string) {
   }
   if (sort === "popular") {
     const counts = new Map<string, number>();
-    for (const course of sorted) {
-      const enrollments = await ctx.db
-        .query("lms_enrollments")
-        .withIndex("by_course", (q: any) => q.eq("courseId", course._id).eq("status", "active"))
-        .collect();
-      counts.set(
-        String(course._id),
-        enrollments.filter((row: any) => !row.expiresAt || row.expiresAt > Date.now()).length,
-      );
+    const courseIds = new Set(sorted.map((course: any) => String(course._id)));
+    const activeEnrollments = await ctx.db
+      .query("lms_enrollments")
+      .withIndex("by_status_expires", (q: any) => q.eq("status", "active"))
+      .take(5000);
+    const now = Date.now();
+    for (const row of activeEnrollments) {
+      const courseId = String(row.courseId);
+      if (!courseIds.has(courseId)) continue;
+      if (row.expiresAt && row.expiresAt <= now) continue;
+      counts.set(courseId, (counts.get(courseId) ?? 0) + 1);
     }
     return sorted.sort((a: any, b: any) => {
       const diff = (counts.get(String(b._id)) ?? 0) - (counts.get(String(a._id)) ?? 0);

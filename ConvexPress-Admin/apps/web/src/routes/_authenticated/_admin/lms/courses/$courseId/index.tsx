@@ -209,6 +209,10 @@ function CourseSettingsPage() {
       toast.error(errors[0]);
       return;
     }
+    if (form.accessMode === "members" && membershipPlanIds.length === 0) {
+      toast.error("Choose at least one membership plan for member-only access.");
+      return;
+    }
     setSaving(true);
     try {
       await update({

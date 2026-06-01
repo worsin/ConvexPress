@@ -53,8 +53,8 @@ function VerifyPage() {
 
       {query && result !== undefined && (
         result.valid ? (
-          <div className="rounded-lg border border-green-500/40 bg-green-500/10 p-5">
-            <div className="mb-2 flex items-center gap-2 font-medium text-green-700">
+          <div className="rounded-lg border border-success/40 bg-success/10 p-5">
+            <div className="mb-2 flex items-center gap-2 font-medium text-success">
               <CheckCircle2 className="h-5 w-5" /> Valid certificate
             </div>
             <dl className="space-y-1 text-sm">
@@ -68,7 +68,7 @@ function VerifyPage() {
             </dl>
           </div>
         ) : (
-          <div className="flex items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 p-5 text-sm font-medium text-red-700">
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-5 text-sm font-medium text-destructive">
             <XCircle className="h-5 w-5" /> No certificate found for that serial.
           </div>
         )

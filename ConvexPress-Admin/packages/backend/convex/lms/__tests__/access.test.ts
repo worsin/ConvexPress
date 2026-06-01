@@ -2,10 +2,16 @@
 import { describe, expect, test } from "bun:test";
 
 import type { Id } from "../../_generated/dataModel";
+import { writeLessonBody } from "../ai/internals";
 import { applyLessonGeneration } from "../ai/mutations";
 import { issueCertificate, reissueIssue } from "../certificates/mutations";
 import { getMyIssue, verifyBySerial } from "../certificates/queries";
-import { update as updateCourse, publish as publishCourse } from "../courses/mutations";
+import {
+  duplicate as duplicateCourse,
+  update as updateCourse,
+  publish as publishCourse,
+  updateAccessRule,
+} from "../courses/mutations";
 import { getBySlug as getCourseBySlug, getCatalog } from "../courses/queries";
 import { expireExpiredEnrollments } from "../enrollment/internals";
 import { enroll, enrollByEmail } from "../enrollment/mutations";
@@ -1516,6 +1522,119 @@ describe("LMS access decisions", () => {
     expect(courseRow?.trialDays).toBe(1);
     expect(courseRow?.seatLimit).toBe(0);
   });
+
+  test("duplicates course prerequisites and membership access rules", async () => {
+    const tables = baseTables({
+      lms_courses: [
+        course("course_source", {
+          accessMode: "members",
+          prereqMode: "any",
+          title: "Source Course",
+          slug: "source-course",
+          authorId: "user_admin",
+        }),
+        course("course_required", { title: "Required Course", slug: "required-course" }),
+      ],
+      lms_course_prerequisites: [
+        {
+          _id: "prereq_source",
+          courseId: "course_source",
+          prereqCourseId: "course_required",
+          createdAt: now,
+        },
+      ],
+      membership_plans: [
+        {
+          _id: "plan_gold",
+          title: "Gold",
+          slug: "gold",
+          status: "active",
+          grantMode: "manual",
+          priority: 1,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      membership_restriction_rules: [
+        {
+          _id: "rule_source",
+          resourceType: "course",
+          resourceIdOrKey: "course_source",
+          ruleMode: "allow_only",
+          planIds: ["plan_gold"],
+          requiredCapabilities: ["lms.special"],
+          teaserMode: "custom_message",
+          customMessage: "Gold members only",
+          loginRequired: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    });
+
+    const newId = await (duplicateCourse as any)._handler(createCtx(tables, "user_admin"), {
+      courseId: id("course_source"),
+    });
+
+    expect(tables.lms_course_prerequisites).toContainEqual(
+      expect.objectContaining({
+        courseId: newId,
+        prereqCourseId: "course_required",
+      }),
+    );
+    expect(tables.membership_restriction_rules).toContainEqual(
+      expect.objectContaining({
+        resourceType: "course",
+        resourceIdOrKey: String(newId),
+        ruleMode: "allow_only",
+        planIds: ["plan_gold"],
+        requiredCapabilities: ["lms.special"],
+        teaserMode: "custom_message",
+        customMessage: "Gold members only",
+        loginRequired: true,
+      }),
+    );
+  });
+
+  test("emits a course access event when deleting the membership access rule", async () => {
+    const tables = baseTables({
+      lms_courses: [course("course_access", { accessMode: "members", authorId: "user_admin" })],
+      membership_restriction_rules: [
+        {
+          _id: "rule_access",
+          resourceType: "course",
+          resourceIdOrKey: "course_access",
+          ruleMode: "allow_only",
+          planIds: ["plan_gold"],
+          requiredCapabilities: [],
+          teaserMode: "custom_message",
+          customMessage: "Members only",
+          loginRequired: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    });
+
+    await expect(
+      (updateAccessRule as any)._handler(createCtx(tables, "user_admin"), {
+        courseId: id("course_access"),
+        planIds: [],
+      }),
+    ).resolves.toEqual({ ruleId: null, deleted: true });
+
+    expect(tables.membership_restriction_rules).toHaveLength(0);
+    expect(tables.events).toHaveLength(1);
+    expect(tables.events[0]).toMatchObject({
+      code: "lms.course_access_updated",
+      system: "lms",
+    });
+    expect(JSON.parse(tables.events[0].payload)).toMatchObject({
+      courseId: "course_access",
+      planCount: 0,
+      deleted: true,
+    });
+  });
 });
 
 describe("LMS learner runtime mutations", () => {
@@ -1612,6 +1731,73 @@ describe("LMS learner runtime mutations", () => {
     expect(tables.lms_ai_generations[0]).toMatchObject({
       reviewStatus: "reviewed",
       reviewedBy: "user_admin",
+    });
+  });
+
+  test("stores background AI lesson bodies as drafts when a lesson changed after queueing", async () => {
+    const tables = baseTables({
+      lms_courses: [course("course_ai", { accessMode: "free", authorId: "user_admin" })],
+      lms_nodes: [
+        node("lesson_ai", "course_ai", "lesson", {
+          bodyDoc: {
+            type: "doc",
+            content: [{ type: "paragraph", content: [{ type: "text", text: "Human edit" }] }],
+          },
+          updatedAt: now + 100,
+        }),
+      ],
+      lms_ai_generations: [
+        {
+          _id: "generation_outline",
+          targetType: "course",
+          targetId: "course_ai",
+          courseId: "course_ai",
+          stage: "outline",
+          model: "configured-ai-provider",
+          prompt: "Build outline",
+          briefJson: { outline: { topics: [] } },
+          label: "ai_assisted",
+          reviewStatus: "reviewed",
+          reviewedBy: "user_admin",
+          createdAt: now,
+        },
+      ],
+      lms_jobs: [
+        {
+          _id: "job_ai",
+          courseId: "course_ai",
+          generationId: "generation_outline",
+          kind: "lesson_body",
+          targetId: "lesson_ai",
+          status: "running",
+          progress: 50,
+          createdAt: now,
+        },
+      ],
+    });
+
+    await expect(
+      (writeLessonBody as any)._handler(createCtx(tables, "user_admin"), {
+        jobId: id("job_ai"),
+        generationId: id("generation_outline"),
+        nodeId: id("lesson_ai"),
+        bodyText: "Generated replacement body.",
+        prompt: "Write body",
+      }),
+    ).resolves.toEqual({ ok: true });
+
+    const lesson = tables.lms_nodes.find((row) => row._id === "lesson_ai");
+    expect(lesson?.bodyDoc?.content?.[0]?.content?.[0]?.text).toBe("Human edit");
+    expect(tables.lms_jobs[0]).toMatchObject({ status: "done", progress: 100 });
+    expect(tables.lms_ai_generations).toHaveLength(2);
+    expect(tables.lms_ai_generations[1]).toMatchObject({
+      targetType: "node",
+      targetId: "lesson_ai",
+      reviewStatus: "unreviewed",
+      briefJson: {
+        parentGenerationId: "generation_outline",
+        generatedBody: "Generated replacement body.",
+      },
     });
   });
 

@@ -111,7 +111,7 @@ type CertificateIssue = {
 
 function DashboardCoursePlayerPage() {
   return (
-    <PublicPluginGate pluginId="lms">
+    <PublicPluginGate pluginId="lms" pendingFallback={<PlayerSkeleton />}>
       <CoursePlayerContent />
     </PublicPluginGate>
   );

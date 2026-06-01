@@ -236,7 +236,7 @@ function PlayerPage() {
           {progress && progress.total > 0 && (
             <div className="flex items-center gap-2">
               <div className="h-2 w-40 overflow-hidden rounded-full bg-muted">
-                <div className="h-full bg-green-500" style={{ width: `${progress.percent}%` }} />
+                <div className="h-full bg-success" style={{ width: `${progress.percent}%` }} />
               </div>
               <span className="text-sm text-muted-foreground">{progress.percent}%</span>
             </div>
@@ -250,7 +250,7 @@ function PlayerPage() {
               Enroll
             </button>
           ) : (
-            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+            <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
               Enrolled
             </span>
           )}
@@ -259,9 +259,9 @@ function PlayerPage() {
 
       {/* Certificate banner on completion */}
       {progress?.percent === 100 && (course?.certificateId || completionRedirectUrl) && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-green-500/40 bg-green-500/10 p-3">
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-success/40 bg-success/10 p-3">
           <div className="flex items-center gap-2 text-sm">
-            <Award className="h-5 w-5 text-green-600" />
+            <Award className="h-5 w-5 text-success" />
             Course complete!{" "}
             {course?.certificateId
               ? myIssue
@@ -273,7 +273,7 @@ function PlayerPage() {
             {completionRedirectUrl ? (
               <a
                 href={completionRedirectUrl}
-                className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+                className="rounded-md border border-success/40 bg-success/10 px-3 py-1.5 text-sm font-medium text-success hover:bg-success/15"
               >
                 Continue
               </a>
@@ -282,7 +282,7 @@ function PlayerPage() {
               <button
                 type="button"
                 onClick={() => run("Certificate issued", () => issueCert({ courseId: id }))}
-                className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+                className="rounded-md border border-success/40 bg-success/10 px-3 py-1.5 text-sm font-medium text-success hover:bg-success/15"
               >
                 Get certificate
               </button>
@@ -322,7 +322,7 @@ function PlayerPage() {
                         {locked ? (
                           <Lock className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                         ) : isDone ? (
-                          <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-500" />
+                          <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-success" />
                         ) : (
                           <Circle className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                         )}
@@ -440,7 +440,7 @@ function PlayerPage() {
                       }
                       className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm hover:bg-muted"
                     >
-                      <CheckCircle2 className="h-4 w-4 text-green-500" /> Completed — undo
+                      <CheckCircle2 className="h-4 w-4 text-success" /> Completed — undo
                     </button>
                   ) : lesson.node.showMarkComplete === false ? (
                     <div className="text-sm text-muted-foreground">

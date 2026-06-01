@@ -17,6 +17,9 @@ import { z } from "zod";
 import { useState } from "react";
 
 import { MediaImage } from "@/components/media/MediaImage";
+import { NotFoundPage } from "@/components/blog/NotFoundPage";
+import { CourseImageFallback } from "@/components/lms/CourseImageFallback";
+import { LmsRoutePending } from "@/components/lms/LmsRoutePending";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
 
@@ -55,6 +58,10 @@ function buildCatalogArgs({
   };
 }
 
+function buildLegacyCatalogArgs(q?: string) {
+  return q?.trim() ? { search: q.trim() } : {};
+}
+
 export const Route = createFileRoute("/_marketing/courses/")({
   validateSearch: coursesSearchSchema,
   loaderDeps: ({ search }) => ({
@@ -73,13 +80,27 @@ export const Route = createFileRoute("/_marketing/courses/")({
       (publicSettings as { siteUrl?: string | null })?.siteUrl,
     );
 
-    if (isPublicPluginEnabled("lms", publicSettings)) {
-      await queryClient.ensureQueryData(
-        convexQuery((api as any).lms.courses.queries.getCatalog, buildCatalogArgs(deps)),
-      );
-      await queryClient.ensureQueryData(
-        convexQuery((api as any).lms.courses.queries.getCatalogFilters, {}),
-      );
+    let catalogMode: "server" | "legacy" = "server";
+
+    const lmsEnabled = isPublicPluginEnabled("lms", publicSettings);
+
+    if (lmsEnabled) {
+      try {
+        await queryClient.ensureQueryData(
+          convexQuery((api as any).lms.courses.queries.getCatalog, buildCatalogArgs(deps)),
+        );
+        await queryClient.ensureQueryData(
+          convexQuery((api as any).lms.courses.queries.getCatalogFilters, {}),
+        );
+      } catch {
+        catalogMode = "legacy";
+        await queryClient.ensureQueryData(
+          convexQuery((api as any).lms.courses.queries.listCatalog, buildLegacyCatalogArgs(deps.q)),
+        );
+        await queryClient.ensureQueryData(
+          convexQuery((api as any).lms.courses.queries.listCatalog, {}),
+        );
+      }
     }
 
     const canonicalQuery = new URLSearchParams();
@@ -94,6 +115,8 @@ export const Route = createFileRoute("/_marketing/courses/")({
       : "/courses";
 
     return {
+      catalogMode,
+      lmsEnabled,
       seoHead: buildSeoHead({
         title: deps.q ? `Courses matching ${deps.q} - ConvexPress` : "Courses - ConvexPress",
         description: "Browse published courses from the ConvexPress learning catalog.",
@@ -102,6 +125,7 @@ export const Route = createFileRoute("/_marketing/courses/")({
     };
   },
   head: ({ loaderData }) => loaderData?.seoHead ?? {},
+  pendingComponent: () => <LmsRoutePending label="Loading courses" />,
   component: CoursesIndexPage,
 });
 
@@ -168,6 +192,12 @@ function formatCents(amount: number) {
 }
 
 function CoursesIndexPage() {
+  const { catalogMode, lmsEnabled } = Route.useLoaderData();
+  if (!lmsEnabled) return <NotFoundPage />;
+  return catalogMode === "legacy" ? <LegacyCatalogPage /> : <ServerCatalogPage />;
+}
+
+function ServerCatalogPage() {
   const navigate = Route.useNavigate();
   const { q, category, tag, access, sort, page } = Route.useLoaderDeps();
   const [query, setQuery] = useState(q);
@@ -211,6 +241,106 @@ function CoursesIndexPage() {
     } as any);
   }
 
+  return (
+    <CatalogShell
+      query={query}
+      setQuery={setQuery}
+      runSearch={runSearch}
+      filters={filters}
+      activeFilters={{ q, category, tag, access, sort }}
+      catalog={catalog}
+      courses={courses}
+      changeSort={changeSort}
+    />
+  );
+}
+
+function LegacyCatalogPage() {
+  const navigate = Route.useNavigate();
+  const deps = Route.useLoaderDeps();
+  const { q, category, tag, access, sort } = deps;
+  const [query, setQuery] = useState(q);
+  const { data: searchCourses } = useSuspenseQuery(
+    convexQuery(
+      (api as any).lms.courses.queries.listCatalog,
+      buildLegacyCatalogArgs(q),
+    ) as any,
+  ) as { data: CourseCard[] };
+  const { data: allCourses } = useSuspenseQuery(
+    convexQuery((api as any).lms.courses.queries.listCatalog, {}) as any,
+  ) as { data: CourseCard[] };
+  const catalog = buildLegacyCatalog(searchCourses, deps);
+  const filters = buildLegacyFilters(allCourses);
+
+  function runSearch(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void navigate({
+      to: "/courses",
+      search: {
+        q: query.trim() || undefined,
+        category: category || undefined,
+        tag: tag || undefined,
+        access: access || undefined,
+        sort: sort === "newest" ? undefined : sort,
+        page: undefined,
+      },
+    } as any);
+  }
+
+  function changeSort(nextSort: string) {
+    void navigate({
+      to: "/courses",
+      search: {
+        q: q || undefined,
+        category: category || undefined,
+        tag: tag || undefined,
+        access: access || undefined,
+        sort: nextSort === "newest" ? undefined : nextSort,
+        page: undefined,
+      },
+    } as any);
+  }
+
+  return (
+    <CatalogShell
+      query={query}
+      setQuery={setQuery}
+      runSearch={runSearch}
+      filters={filters}
+      activeFilters={{ q, category, tag, access, sort }}
+      catalog={catalog}
+      courses={catalog.items}
+      changeSort={changeSort}
+    />
+  );
+}
+
+function CatalogShell({
+  query,
+  setQuery,
+  runSearch,
+  filters,
+  activeFilters,
+  catalog,
+  courses,
+  changeSort,
+}: {
+  query: string;
+  setQuery: (value: string) => void;
+  runSearch: (event: React.FormEvent<HTMLFormElement>) => void;
+  filters: CatalogFilters;
+  activeFilters: {
+    q?: string;
+    category?: string;
+    tag?: string;
+    access?: string;
+    sort?: string;
+  };
+  catalog: CatalogResult;
+  courses: CourseCard[];
+  changeSort: (nextSort: string) => void;
+}) {
+  const { q, category, tag, access, sort } = activeFilters;
   return (
     <div className="flex flex-col gap-10">
       <section className="grid gap-6 border border-border bg-card p-6 shadow-sm sm:p-8">
@@ -316,9 +446,10 @@ function CoursesIndexPage() {
                           sizes="(max-width: 768px) 100vw, 33vw"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center bg-muted text-sm text-muted-foreground">
-                          Course
-                        </div>
+                        <CourseImageFallback
+                          title={course.title}
+                          subtitle={accessLabel(course)}
+                        />
                       )}
                     </div>
                     <div className="flex flex-col gap-4 p-5">
@@ -372,6 +503,78 @@ function CoursesIndexPage() {
       </div>
     </div>
   );
+}
+
+function buildLegacyCatalog(courses: CourseCard[], deps: ReturnType<typeof Route.useLoaderDeps>): CatalogResult {
+  const pageSize = 12;
+  const requestedPage = Math.max(Math.floor(deps.page ?? 1), 1);
+  let rows = courses.filter((course) => {
+    if (deps.category && !hasSlug(course.categoryIds, deps.category)) return false;
+    if (deps.tag && !hasSlug(course.tagIds, deps.tag)) return false;
+    if (deps.access && (course.accessMode ?? "members") !== deps.access) return false;
+    return true;
+  });
+
+  rows = sortLegacyCatalogRows(rows, deps.sort ?? "newest");
+  const total = rows.length;
+  const totalPages = total > 0 ? Math.ceil(total / pageSize) : 0;
+  const safePage = totalPages > 0 ? Math.min(requestedPage, totalPages) : 1;
+  const start = (safePage - 1) * pageSize;
+
+  return {
+    items: rows.slice(start, start + pageSize),
+    total,
+    page: safePage,
+    pageSize,
+    totalPages,
+  };
+}
+
+function sortLegacyCatalogRows(courses: CourseCard[], sort = "newest") {
+  const rows = [...courses];
+  if (sort === "title_asc") {
+    return rows.sort((a, b) => a.title.localeCompare(b.title));
+  }
+  if (sort === "title_desc") {
+    return rows.sort((a, b) => b.title.localeCompare(a.title));
+  }
+  if (sort === "popular") {
+    return rows.sort((a, b) => {
+      const accessDiff = Number(b.allowed === true) - Number(a.allowed === true);
+      return accessDiff || a.title.localeCompare(b.title);
+    });
+  }
+  return rows;
+}
+
+function buildLegacyFilters(courses: CourseCard[]): CatalogFilters {
+  function counts(values: unknown[]) {
+    const map = new Map<string, number>();
+    for (const value of values) {
+      if (typeof value !== "string") continue;
+      const slug = normalizeSlug(value);
+      if (!slug) continue;
+      map.set(slug, (map.get(slug) ?? 0) + 1);
+    }
+    return Array.from(map.entries())
+      .map(([slug, count]) => ({ slug, label: humanize(slug), count }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  return {
+    categories: counts(courses.flatMap((course) => course.categoryIds ?? [])),
+    tags: counts(courses.flatMap((course) => course.tagIds ?? [])),
+    accessModes: counts(courses.map((course) => course.accessMode ?? "members")),
+  };
+}
+
+function hasSlug(values: string[] | undefined, slug: string) {
+  const normalized = normalizeSlug(slug);
+  return (values ?? []).some((value) => normalizeSlug(value) === normalized);
+}
+
+function normalizeSlug(value: string) {
+  return value.trim().toLowerCase();
 }
 
 function FilterGroup({

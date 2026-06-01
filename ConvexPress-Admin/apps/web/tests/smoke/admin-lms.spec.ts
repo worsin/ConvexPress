@@ -1,7 +1,7 @@
 import { test } from "./_fixtures";
 import { smokeRoute } from "./_helpers";
 
-test.describe.configure({ mode: "parallel" });
+test.describe.configure({ mode: "serial" });
 
 test("lms-overview [P1]", async ({ authedPage }) => {
 	await smokeRoute(authedPage, "/lms", { expectHeading: /LMS/ });

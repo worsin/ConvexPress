@@ -11,15 +11,18 @@ import {
 interface PublicPluginGateProps {
   pluginId: PublicPluginId;
   children: ReactNode;
+  pendingFallback?: ReactNode;
 }
 
 export function PublicPluginGate({
   pluginId,
   children,
+  pendingFallback = null,
 }: PublicPluginGateProps) {
   const settings = useQuery(api.settings.queries.getPublic);
 
-  if (!settings) return null;
+  if (settings === undefined) return <>{pendingFallback}</>;
+  if (!settings) return <NotFoundPage />;
   if (!isPublicPluginEnabled(pluginId, settings)) {
     return <NotFoundPage />;
   }

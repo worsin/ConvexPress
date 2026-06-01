@@ -106,8 +106,8 @@ function GeneratePage() {
         <h1 className="text-2xl font-semibold">Generate with AI</h1>
       </div>
 
-      <div className="mb-6 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-        <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+      <div className="mb-6 flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+        <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
         <p className="text-muted-foreground">
           Generates a Course - Topic - Lesson outline, then waits for explicit
           approval before creating lessons and queued lesson-body jobs. Requires

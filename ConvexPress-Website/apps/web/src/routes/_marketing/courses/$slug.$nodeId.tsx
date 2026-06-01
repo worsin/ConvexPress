@@ -6,6 +6,7 @@ import { ArrowLeft, BookOpen, Lock, PlayCircle } from "lucide-react";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { LessonContentRenderer } from "@/components/lms/LessonContentRenderer";
+import { LmsRoutePending } from "@/components/lms/LmsRoutePending";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
 
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/_marketing/courses/$slug/$nodeId")({
 
     if (!isPublicPluginEnabled("lms", publicSettings)) {
       return {
+        lmsEnabled: false,
         seoHead: buildSeoHead({
           title: "Course preview - ConvexPress",
           canonical: toAbsoluteUrl(
@@ -42,6 +44,7 @@ export const Route = createFileRoute("/_marketing/courses/$slug/$nodeId")({
     }
 
     return {
+      lmsEnabled: true,
       seoHead: buildSeoHead({
         title: `${course?.title ?? params.slug} preview - ConvexPress`,
         description:
@@ -55,6 +58,7 @@ export const Route = createFileRoute("/_marketing/courses/$slug/$nodeId")({
     };
   },
   head: ({ loaderData }) => loaderData?.seoHead ?? {},
+  pendingComponent: () => <LmsRoutePending label="Loading preview lesson" />,
   component: CoursePreviewLessonPage,
 });
 
@@ -81,6 +85,16 @@ type LessonDetail = {
 };
 
 function CoursePreviewLessonPage() {
+  const { lmsEnabled } = Route.useLoaderData();
+
+  if (!lmsEnabled) {
+    return <NotFoundPage />;
+  }
+
+  return <CoursePreviewLessonEnabled />;
+}
+
+function CoursePreviewLessonEnabled() {
   const { slug, nodeId } = Route.useParams();
   const { data: course } = useSuspenseQuery(
     convexQuery(api.lms.courses.queries.getBySlug, { slug }) as any,

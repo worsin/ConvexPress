@@ -5,6 +5,7 @@ import { Award, BookOpen, GraduationCap, PlayCircle } from "lucide-react";
 
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import { EmptyState } from "@/components/dashboard/EmptyState";
+import { CourseImageFallback } from "@/components/lms/CourseImageFallback";
 import { MediaImage } from "@/components/media/MediaImage";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,7 +39,7 @@ type LearningCourse = {
 
 function DashboardCoursesPage() {
   return (
-    <PublicPluginGate pluginId="lms">
+    <PublicPluginGate pluginId="lms" pendingFallback={<CoursesSkeleton />}>
       <DashboardCoursesContent />
     </PublicPluginGate>
   );
@@ -121,9 +122,7 @@ function CourseCard({ course }: { course: LearningCourse }) {
             sizes="(max-width: 1024px) 100vw, 50vw"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            Course
-          </div>
+          <CourseImageFallback title={course.title} subtitle={`${percent}% complete`} />
         )}
       </div>
 

@@ -158,8 +158,6 @@ export const generateCourse = action({
         });
       }
     }
-      });
-    }
 
     const stats = outlineStats(outline);
     const generationId = await ctx.runMutation(

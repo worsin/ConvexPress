@@ -1,5 +1,6 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 
+import { LmsRoutePending } from "@/components/lms/LmsRoutePending";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 
 export const Route = createFileRoute("/_marketing/certificates")({
@@ -8,7 +9,10 @@ export const Route = createFileRoute("/_marketing/certificates")({
 
 function CertificatesLayout() {
   return (
-    <PublicPluginGate pluginId="lms">
+    <PublicPluginGate
+      pluginId="lms"
+      pendingFallback={<LmsRoutePending label="Loading certificates" />}
+    >
       <Outlet />
     </PublicPluginGate>
   );

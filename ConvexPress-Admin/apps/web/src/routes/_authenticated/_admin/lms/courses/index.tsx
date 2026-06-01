@@ -35,9 +35,9 @@ const STATUS_TABS: { value: StatusFilter; label: string }[] = [
 ];
 
 const STATUS_BADGE: Record<string, string> = {
-  published: "bg-green-100 text-green-800",
-  draft: "bg-amber-100 text-amber-800",
-  archived: "bg-gray-200 text-gray-700",
+  published: "bg-success/10 text-success",
+  draft: "bg-warning/10 text-warning",
+  archived: "bg-muted text-muted-foreground",
 };
 
 function CourseListPage() {
@@ -255,7 +255,7 @@ function CourseListPage() {
                               void run("Deleted", () => remove({ courseId: course._id }));
                             }
                           }}
-                          className="rounded p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                          className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>

@@ -37,7 +37,7 @@ function LMSSettingsPage() {
         <div className="space-y-4">
           <div className="rounded-lg border border-border p-5">
             <div className="mb-1 flex items-center gap-2 font-medium">
-              <ShieldCheck className="h-4 w-4 text-green-500" /> Extension enabled
+              <ShieldCheck className="h-4 w-4 text-success" /> Extension enabled
             </div>
             <p className="text-sm text-muted-foreground">
               The LMS extension is active. New courses default to{" "}

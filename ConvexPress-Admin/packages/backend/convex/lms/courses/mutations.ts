@@ -382,6 +382,39 @@ export const duplicate = mutation({
         updatedAt: now,
       });
     }
+
+    const prereqs = await db
+      .query("lms_course_prerequisites")
+      .withIndex("by_course", (q: any) => q.eq("courseId", args.courseId))
+      .collect();
+    for (const prereq of prereqs) {
+      await db.insert("lms_course_prerequisites", {
+        courseId: newId,
+        prereqCourseId: prereq.prereqCourseId,
+        createdAt: now,
+      });
+    }
+
+    const accessRules = await db
+      .query("membership_restriction_rules")
+      .withIndex("by_resource", (q: any) =>
+        q.eq("resourceType", "course").eq("resourceIdOrKey", String(args.courseId)),
+      )
+      .collect();
+    for (const rule of accessRules) {
+      await db.insert("membership_restriction_rules", {
+        resourceType: "course",
+        resourceIdOrKey: String(newId),
+        ruleMode: rule.ruleMode,
+        planIds: rule.planIds ?? [],
+        requiredCapabilities: rule.requiredCapabilities ?? [],
+        teaserMode: rule.teaserMode,
+        customMessage: rule.customMessage,
+        loginRequired: rule.loginRequired,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
     await emitEvent(ctx, LMS_EVENTS.COURSE_DUPLICATED, SYSTEM.LMS, {
       sourceCourseId: args.courseId,
       courseId: newId,
@@ -459,6 +492,11 @@ export const updateAccessRule = mutation({
     if (args.planIds.length === 0) {
       if (existing) await ctx.db.delete(existing._id);
       await ctx.db.patch(args.courseId, { updatedAt: now });
+      await emitEvent(ctx, LMS_EVENTS.COURSE_ACCESS_UPDATED, SYSTEM.LMS, {
+        courseId: args.courseId,
+        planCount: 0,
+        deleted: !!existing,
+      });
       return { ruleId: null, deleted: !!existing };
     }
 

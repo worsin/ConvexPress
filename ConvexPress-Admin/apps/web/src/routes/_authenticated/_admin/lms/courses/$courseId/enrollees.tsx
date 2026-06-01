@@ -126,7 +126,7 @@ function EnrolleesPage() {
                           toast.error(err instanceof Error ? err.message : "Failed");
                         }
                       }}
-                      className="rounded p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <UserMinus className="h-4 w-4" />
                     </button>

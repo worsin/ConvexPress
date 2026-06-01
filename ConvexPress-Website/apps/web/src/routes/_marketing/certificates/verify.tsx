@@ -54,9 +54,9 @@ function VerifyCertificatePage() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8 py-12">
-      <section className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
+      <section className="rounded-lg border border-border bg-card p-8 shadow-sm">
         <div className="flex items-start gap-4">
-          <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+          <div className="rounded-lg bg-primary/10 p-3 text-primary">
             <Award className="size-6" aria-hidden="true" />
           </div>
           <div className="min-w-0">

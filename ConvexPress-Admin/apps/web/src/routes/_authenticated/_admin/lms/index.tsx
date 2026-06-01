@@ -42,8 +42,8 @@ function LMSOverview() {
       {canViewCourses ? (
         <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Total courses" value={stats?.total} />
-          <Stat label="Published" value={stats?.published} accent="text-green-500" />
-          <Stat label="Drafts" value={stats?.draft} accent="text-amber-500" />
+          <Stat label="Published" value={stats?.published} accent="text-success" />
+          <Stat label="Drafts" value={stats?.draft} accent="text-warning" />
           <Stat label="Archived" value={stats?.archived} />
         </div>
       ) : null}

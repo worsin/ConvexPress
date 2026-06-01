@@ -15,7 +15,9 @@ import {
 import { toast } from "sonner";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
+import { CourseImageFallback } from "@/components/lms/CourseImageFallback";
 import { LessonContentRenderer } from "@/components/lms/LessonContentRenderer";
+import { LmsRoutePending } from "@/components/lms/LmsRoutePending";
 import { MediaImage } from "@/components/media/MediaImage";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
@@ -31,6 +33,7 @@ export const Route = createFileRoute("/_marketing/courses/$slug")({
 
     if (!isPublicPluginEnabled("lms", publicSettings)) {
       return {
+        lmsEnabled: false,
         seoHead: buildSeoHead({
           title: "Course - ConvexPress",
           canonical: toAbsoluteUrl(`/courses/${params.slug}`, siteUrl),
@@ -50,6 +53,7 @@ export const Route = createFileRoute("/_marketing/courses/$slug")({
     }
 
     return {
+      lmsEnabled: true,
       seoHead: buildSeoHead({
         title: `${course?.title ?? params.slug} - Course - ConvexPress`,
         description:
@@ -84,6 +88,7 @@ export const Route = createFileRoute("/_marketing/courses/$slug")({
     };
   },
   head: ({ loaderData }) => loaderData?.seoHead ?? {},
+  pendingComponent: () => <LmsRoutePending label="Loading course" />,
   component: CourseDetailPage,
 });
 
@@ -122,6 +127,16 @@ type CourseTree = {
 };
 
 function CourseDetailPage() {
+  const { lmsEnabled } = Route.useLoaderData();
+
+  if (!lmsEnabled) {
+    return <NotFoundPage />;
+  }
+
+  return <CourseDetailEnabled />;
+}
+
+function CourseDetailEnabled() {
   const { slug } = Route.useParams();
   const { data: course } = useSuspenseQuery(
     convexQuery(api.lms.courses.queries.getBySlug, { slug }) as any,
@@ -184,7 +199,7 @@ function CourseDetailContent({ course }: { course: Course }) {
       </div>
 
       <section className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
+        <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
           <div className="aspect-[4/3] bg-muted/40">
             {course.featuredImageId ? (
               <MediaImage
@@ -196,14 +211,15 @@ function CourseDetailContent({ course }: { course: Course }) {
                 loading="eager"
               />
             ) : (
-              <div className="flex h-full items-center justify-center bg-muted text-sm text-muted-foreground">
-                Course
-              </div>
+              <CourseImageFallback
+                title={course.title}
+                subtitle={`${course.lessonCount ?? 0} lessons`}
+              />
             )}
           </div>
         </div>
 
-        <div className="flex flex-col gap-6 rounded-[2rem] border border-border bg-card p-8 shadow-sm">
+        <div className="flex flex-col gap-6 rounded-lg border border-border bg-card p-8 shadow-sm">
           <div className="flex flex-wrap gap-2 text-xs font-medium">
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-primary">
               <BookOpen className="size-3" aria-hidden="true" />
@@ -269,7 +285,7 @@ function CourseDetailContent({ course }: { course: Course }) {
         </div>
 
         {tree.topics.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
             Curriculum is being prepared.
           </div>
         ) : (
@@ -413,7 +429,7 @@ function CourseCta({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+    <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
       This course is restricted. Check your membership or contact the site team
       for access.
     </div>

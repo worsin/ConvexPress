@@ -8,6 +8,7 @@ import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
 import { cleanGeneratedLessonText, normalizeOutline, outlineStats, textToDoc } from "./helpers";
 import { requireCourseAuthorOrEditor, requireNodeCourseAuthorOrEditor } from "../access";
+import { docToText } from "../lessons/helpers";
 
 export const assertCourseGenerationAccess = internalQuery({
   args: { courseId: v.id("lms_courses") },
@@ -177,29 +178,41 @@ export const writeLessonBody = internalMutation({
   },
   handler: async (ctx, args) => {
     const job = await ctx.db.get(args.jobId);
+    const generation = await ctx.db.get(args.generationId);
     const node = await ctx.db.get(args.nodeId);
-    if (!job || !node || node.kind !== "lesson") {
+    if (!job || !generation || !node || node.kind !== "lesson") {
       throw new ConvexError({ code: "NOT_FOUND", message: "Lesson generation job not found" });
     }
     const now = Date.now();
     const bodyText = cleanGeneratedLessonText(args.bodyText);
-    await ctx.db.patch(args.nodeId, {
-      bodyDoc: textToDoc(bodyText),
-      updatedAt: now,
-    });
-    await ctx.db.insert("lms_ai_generations", {
+    const existingBodyText = docToText(node.bodyDoc).trim();
+    const changedAfterQueue =
+      typeof job.createdAt === "number" &&
+      typeof node.updatedAt === "number" &&
+      node.updatedAt > job.createdAt;
+    const canAutoApply = !existingBodyText && !changedAfterQueue;
+    const childGeneration: Record<string, unknown> = {
       targetType: "node",
       targetId: String(args.nodeId),
       courseId: node.courseId,
       stage: "lesson_body",
       model: "configured-ai-provider",
       prompt: args.prompt,
-      briefJson: { parentGenerationId: args.generationId },
+      briefJson: { parentGenerationId: args.generationId, generatedBody: bodyText },
       sourcesJson: args.sourcesJson,
       label: "ai_assisted",
-      reviewStatus: "unreviewed",
+      reviewStatus: canAutoApply ? "reviewed" : "unreviewed",
       createdAt: now,
-    });
+    };
+    if (canAutoApply) {
+      childGeneration.reviewedAt = now;
+      if (generation.reviewedBy) childGeneration.reviewedBy = generation.reviewedBy;
+      await ctx.db.patch(args.nodeId, {
+        bodyDoc: textToDoc(bodyText),
+        updatedAt: now,
+      });
+    }
+    await ctx.db.insert("lms_ai_generations", childGeneration as never);
     await ctx.db.patch(args.jobId, {
       status: "done",
       progress: 100,
@@ -209,6 +222,7 @@ export const writeLessonBody = internalMutation({
       courseId: node.courseId,
       nodeId: args.nodeId,
       generationId: args.generationId,
+      applied: canAutoApply,
     });
     return { ok: true };
   },
@@ -238,6 +252,7 @@ export const storeLessonBodyDraft = internalMutation({
     }
     await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.ai.generate");
     const now = Date.now();
+    const bodyText = cleanGeneratedLessonText(args.bodyText);
     await ctx.db.patch(args.generationId, {
       prompt: args.prompt,
       briefJson: {
