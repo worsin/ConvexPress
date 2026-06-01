@@ -27,7 +27,8 @@ export type PluginId =
   | "customFields"
   | "recipes"
   | "gallery"
-  | "lms";
+  | "lms"
+  | "forms";
 
 /** Maps pluginId → the key in the `plugins` settings section. */
 export const PLUGIN_SETTINGS_KEY: Record<PluginId, string> = {
@@ -45,6 +46,7 @@ export const PLUGIN_SETTINGS_KEY: Record<PluginId, string> = {
   recipes: "recipesEnabled",
   gallery: "galleryEnabled",
   lms: "lmsEnabled",
+  forms: "formsEnabled",
 };
 
 /** Parent plugin dependency chain. Sub-extension inherits its parent's enablement. */
@@ -73,4 +75,5 @@ export const PLUGIN_DEFAULTS: Record<PluginId, boolean> = {
   recipes: true,
   gallery: true,
   lms: true,
+  forms: false,
 };

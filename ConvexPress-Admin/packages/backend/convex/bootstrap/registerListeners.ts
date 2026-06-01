@@ -1193,6 +1193,103 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
     description:
       "Sends confirmation email when a subscription is paused.",
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FORMS EXTENSION — Form Notification System (v2 scanner-discovered)
+  // One handler (`dispatch`) bound to each of the three form trigger events.
+  // It resolves + sends each form's configured notifications (email + site).
+  // handlerType "action" because dispatch is an internalAction (fans out to
+  // sub-mutations for per-row delivery isolation). priority 20 = alongside
+  // other email handlers, after site notifications/audit.
+  // NOTE: new listeners require a `bootstrap.registerListeners.run` after deploy.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    eventCode: "form.submitted",
+    name: "Form Notifications: Submitted",
+    handlerModule: "extensions/forms/notifications",
+    handlerFunction: "dispatch",
+    handlerType: "action",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "forms",
+    description:
+      "Resolves + sends configured form notifications on submission.",
+  },
+  {
+    eventCode: "form.progress_saved",
+    name: "Form Notifications: Progress Saved",
+    handlerModule: "extensions/forms/notifications",
+    handlerFunction: "dispatch",
+    handlerType: "action",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "forms",
+    description:
+      "Resolves + sends configured form notifications when progress is saved (resume emails).",
+  },
+  {
+    eventCode: "form.action_failed",
+    name: "Form Notifications: Action Failed",
+    handlerModule: "extensions/forms/notifications",
+    handlerFunction: "dispatch",
+    handlerType: "action",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "forms",
+    description:
+      "Resolves + sends configured form notifications when a post-submit action fails.",
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FORMS EXTENSION — Form Actions & Feeds System (v2 scanner-discovered)
+  // `runActions` (internalMutation) loads enabled form actions on submission,
+  // evaluates conditional logic, and enqueues an isolated per-action dispatch.
+  // handlerType "internal" because runActions is an internalMutation (a mutation
+  // cannot runAction, so it only schedules; dispatchAction does the I/O).
+  // priority 30 = runs after notifications/site/audit for this event.
+  // NOTE: new listeners require a `bootstrap.registerListeners.run` after deploy.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    eventCode: "form.submitted",
+    name: "Forms: Run post-submit actions",
+    handlerModule: "extensions/forms/actions",
+    handlerFunction: "runActions",
+    handlerType: "internal",
+    priority: 30,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "forms",
+    description:
+      "Loads enabled form actions, evaluates conditional logic, and enqueues isolated per-action dispatch.",
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FORMS ANALYTICS — Form Analytics & Export System (v2 scanner-discovered)
+  // Increments the `completed` funnel counter on form.submitted (isComplete
+  // only). priority 50 = analytics tier (after notifications/email).
+  // NOTE: new listeners require a `bootstrap.registerListeners.run` after deploy.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    eventCode: "form.submitted",
+    name: "Forms Analytics: Increment completed funnel stage",
+    handlerModule: "extensions/forms/analytics",
+    handlerFunction: "onFormSubmitted",
+    handlerType: "internal",
+    priority: 50,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "forms",
+    description:
+      "Increments form_funnel_stats 'completed' on form.submitted when isComplete:true.",
+  },
 ];
 
 const EFFECTIVE_LISTENER_DEFINITIONS: ListenerDef[] = [

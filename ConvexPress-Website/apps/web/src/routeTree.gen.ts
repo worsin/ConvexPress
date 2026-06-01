@@ -85,6 +85,7 @@ import { Route as MarketingPageSplatRouteImport } from './routes/_marketing/page
 import { Route as MarketingHelpSearchRouteImport } from './routes/_marketing/help/search'
 import { Route as MarketingHelpCategorySlugRouteImport } from './routes/_marketing/help/$categorySlug'
 import { Route as MarketingGallerySlugRouteImport } from './routes/_marketing/gallery/$slug'
+import { Route as MarketingFormsSlugRouteImport } from './routes/_marketing/forms.$slug'
 import { Route as MarketingCoursesSlugRouteImport } from './routes/_marketing/courses/$slug'
 import { Route as MarketingCheckoutShippingRouteImport } from './routes/_marketing/checkout/shipping'
 import { Route as MarketingCheckoutReviewRouteImport } from './routes/_marketing/checkout/review'
@@ -120,6 +121,7 @@ import { Route as ApiTagSlugFeedAtomRouteImport } from './routes/api/tag/$slug/f
 import { Route as ApiCategorySlugFeedAtomRouteImport } from './routes/api/category/$slug/feed/atom'
 import { Route as ApiBlogSlugFeedAtomRouteImport } from './routes/api/blog/$slug/feed/atom'
 import { Route as ApiAuthorSlugFeedAtomRouteImport } from './routes/api/author/$slug/feed/atom'
+import { Route as MarketingFormsSlugResumeTokenRouteImport } from './routes/_marketing/forms.$slug.resume.$token'
 import { Route as MarketingBlogYearMonthSlugRouteImport } from './routes/_marketing/blog/$year/$month/$slug'
 import { Route as MarketingBlogYearMonthDaySlugRouteImport } from './routes/_marketing/blog/$year/$month/$day/$slug'
 
@@ -506,6 +508,11 @@ const MarketingGallerySlugRoute = MarketingGallerySlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => MarketingGalleryRoute,
 } as any)
+const MarketingFormsSlugRoute = MarketingFormsSlugRouteImport.update({
+  id: '/forms/$slug',
+  path: '/forms/$slug',
+  getParentRoute: () => MarketingRoute,
+} as any)
 const MarketingCoursesSlugRoute = MarketingCoursesSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -699,6 +706,12 @@ const ApiAuthorSlugFeedAtomRoute = ApiAuthorSlugFeedAtomRouteImport.update({
   path: '/api/author/$slug/feed/atom',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingFormsSlugResumeTokenRoute =
+  MarketingFormsSlugResumeTokenRouteImport.update({
+    id: '/resume/$token',
+    path: '/resume/$token',
+    getParentRoute: () => MarketingFormsSlugRoute,
+  } as any)
 const MarketingBlogYearMonthSlugRoute =
   MarketingBlogYearMonthSlugRouteImport.update({
     id: '/blog/$year/$month/$slug',
@@ -768,6 +781,7 @@ export interface FileRoutesByFullPath {
   '/checkout/review': typeof MarketingCheckoutReviewRoute
   '/checkout/shipping': typeof MarketingCheckoutShippingRoute
   '/courses/$slug': typeof MarketingCoursesSlugRouteWithChildren
+  '/forms/$slug': typeof MarketingFormsSlugRouteWithChildren
   '/gallery/$slug': typeof MarketingGallerySlugRoute
   '/help/$categorySlug': typeof MarketingHelpCategorySlugRouteWithChildren
   '/help/search': typeof MarketingHelpSearchRoute
@@ -816,6 +830,7 @@ export interface FileRoutesByFullPath {
   '/support/tickets/': typeof MarketingSupportTicketsIndexRoute
   '/api/comments/feed/': typeof ApiCommentsFeedIndexRoute
   '/blog/$year/$month/$slug': typeof MarketingBlogYearMonthSlugRoute
+  '/forms/$slug/resume/$token': typeof MarketingFormsSlugResumeTokenRoute
   '/api/author/$slug/feed/atom': typeof ApiAuthorSlugFeedAtomRoute
   '/api/blog/$slug/feed/atom': typeof ApiBlogSlugFeedAtomRoute
   '/api/category/$slug/feed/atom': typeof ApiCategorySlugFeedAtomRoute
@@ -871,6 +886,7 @@ export interface FileRoutesByTo {
   '/checkout/review': typeof MarketingCheckoutReviewRoute
   '/checkout/shipping': typeof MarketingCheckoutShippingRoute
   '/courses/$slug': typeof MarketingCoursesSlugRouteWithChildren
+  '/forms/$slug': typeof MarketingFormsSlugRouteWithChildren
   '/gallery/$slug': typeof MarketingGallerySlugRoute
   '/help/search': typeof MarketingHelpSearchRoute
   '/page/$': typeof MarketingPageSplatRoute
@@ -918,6 +934,7 @@ export interface FileRoutesByTo {
   '/support/tickets': typeof MarketingSupportTicketsIndexRoute
   '/api/comments/feed': typeof ApiCommentsFeedIndexRoute
   '/blog/$year/$month/$slug': typeof MarketingBlogYearMonthSlugRoute
+  '/forms/$slug/resume/$token': typeof MarketingFormsSlugResumeTokenRoute
   '/api/author/$slug/feed/atom': typeof ApiAuthorSlugFeedAtomRoute
   '/api/blog/$slug/feed/atom': typeof ApiBlogSlugFeedAtomRoute
   '/api/category/$slug/feed/atom': typeof ApiCategorySlugFeedAtomRoute
@@ -986,6 +1003,7 @@ export interface FileRoutesById {
   '/_marketing/checkout/review': typeof MarketingCheckoutReviewRoute
   '/_marketing/checkout/shipping': typeof MarketingCheckoutShippingRoute
   '/_marketing/courses/$slug': typeof MarketingCoursesSlugRouteWithChildren
+  '/_marketing/forms/$slug': typeof MarketingFormsSlugRouteWithChildren
   '/_marketing/gallery/$slug': typeof MarketingGallerySlugRoute
   '/_marketing/help/$categorySlug': typeof MarketingHelpCategorySlugRouteWithChildren
   '/_marketing/help/search': typeof MarketingHelpSearchRoute
@@ -1034,6 +1052,7 @@ export interface FileRoutesById {
   '/_marketing/support/tickets/': typeof MarketingSupportTicketsIndexRoute
   '/api/comments/feed/': typeof ApiCommentsFeedIndexRoute
   '/_marketing/blog/$year/$month/$slug': typeof MarketingBlogYearMonthSlugRoute
+  '/_marketing/forms/$slug/resume/$token': typeof MarketingFormsSlugResumeTokenRoute
   '/api/author/$slug/feed/atom': typeof ApiAuthorSlugFeedAtomRoute
   '/api/blog/$slug/feed/atom': typeof ApiBlogSlugFeedAtomRoute
   '/api/category/$slug/feed/atom': typeof ApiCategorySlugFeedAtomRoute
@@ -1102,6 +1121,7 @@ export interface FileRouteTypes {
     | '/checkout/review'
     | '/checkout/shipping'
     | '/courses/$slug'
+    | '/forms/$slug'
     | '/gallery/$slug'
     | '/help/$categorySlug'
     | '/help/search'
@@ -1150,6 +1170,7 @@ export interface FileRouteTypes {
     | '/support/tickets/'
     | '/api/comments/feed/'
     | '/blog/$year/$month/$slug'
+    | '/forms/$slug/resume/$token'
     | '/api/author/$slug/feed/atom'
     | '/api/blog/$slug/feed/atom'
     | '/api/category/$slug/feed/atom'
@@ -1205,6 +1226,7 @@ export interface FileRouteTypes {
     | '/checkout/review'
     | '/checkout/shipping'
     | '/courses/$slug'
+    | '/forms/$slug'
     | '/gallery/$slug'
     | '/help/search'
     | '/page/$'
@@ -1252,6 +1274,7 @@ export interface FileRouteTypes {
     | '/support/tickets'
     | '/api/comments/feed'
     | '/blog/$year/$month/$slug'
+    | '/forms/$slug/resume/$token'
     | '/api/author/$slug/feed/atom'
     | '/api/blog/$slug/feed/atom'
     | '/api/category/$slug/feed/atom'
@@ -1319,6 +1342,7 @@ export interface FileRouteTypes {
     | '/_marketing/checkout/review'
     | '/_marketing/checkout/shipping'
     | '/_marketing/courses/$slug'
+    | '/_marketing/forms/$slug'
     | '/_marketing/gallery/$slug'
     | '/_marketing/help/$categorySlug'
     | '/_marketing/help/search'
@@ -1367,6 +1391,7 @@ export interface FileRouteTypes {
     | '/_marketing/support/tickets/'
     | '/api/comments/feed/'
     | '/_marketing/blog/$year/$month/$slug'
+    | '/_marketing/forms/$slug/resume/$token'
     | '/api/author/$slug/feed/atom'
     | '/api/blog/$slug/feed/atom'
     | '/api/category/$slug/feed/atom'
@@ -1943,6 +1968,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingGallerySlugRouteImport
       parentRoute: typeof MarketingGalleryRoute
     }
+    '/_marketing/forms/$slug': {
+      id: '/_marketing/forms/$slug'
+      path: '/forms/$slug'
+      fullPath: '/forms/$slug'
+      preLoaderRoute: typeof MarketingFormsSlugRouteImport
+      parentRoute: typeof MarketingRoute
+    }
     '/_marketing/courses/$slug': {
       id: '/_marketing/courses/$slug'
       path: '/$slug'
@@ -2188,6 +2220,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthorSlugFeedAtomRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_marketing/forms/$slug/resume/$token': {
+      id: '/_marketing/forms/$slug/resume/$token'
+      path: '/resume/$token'
+      fullPath: '/forms/$slug/resume/$token'
+      preLoaderRoute: typeof MarketingFormsSlugResumeTokenRouteImport
+      parentRoute: typeof MarketingFormsSlugRoute
+    }
     '/_marketing/blog/$year/$month/$slug': {
       id: '/_marketing/blog/$year/$month/$slug'
       path: '/blog/$year/$month/$slug'
@@ -2399,6 +2438,17 @@ const MarketingSupportRouteChildren: MarketingSupportRouteChildren = {
 const MarketingSupportRouteWithChildren =
   MarketingSupportRoute._addFileChildren(MarketingSupportRouteChildren)
 
+interface MarketingFormsSlugRouteChildren {
+  MarketingFormsSlugResumeTokenRoute: typeof MarketingFormsSlugResumeTokenRoute
+}
+
+const MarketingFormsSlugRouteChildren: MarketingFormsSlugRouteChildren = {
+  MarketingFormsSlugResumeTokenRoute: MarketingFormsSlugResumeTokenRoute,
+}
+
+const MarketingFormsSlugRouteWithChildren =
+  MarketingFormsSlugRoute._addFileChildren(MarketingFormsSlugRouteChildren)
+
 interface MarketingRouteChildren {
   MarketingSlugRoute: typeof MarketingSlugRoute
   MarketingArchiveRoute: typeof MarketingArchiveRoute
@@ -2421,6 +2471,7 @@ interface MarketingRouteChildren {
   MarketingAuthorSlugRoute: typeof MarketingAuthorSlugRoute
   MarketingBlogSlugRoute: typeof MarketingBlogSlugRoute
   MarketingCategorySlugRoute: typeof MarketingCategorySlugRoute
+  MarketingFormsSlugRoute: typeof MarketingFormsSlugRouteWithChildren
   MarketingPageSplatRoute: typeof MarketingPageSplatRoute
   MarketingTagSlugRoute: typeof MarketingTagSlugRoute
   MarketingTrackTokenRoute: typeof MarketingTrackTokenRoute
@@ -2452,6 +2503,7 @@ const MarketingRouteChildren: MarketingRouteChildren = {
   MarketingAuthorSlugRoute: MarketingAuthorSlugRoute,
   MarketingBlogSlugRoute: MarketingBlogSlugRoute,
   MarketingCategorySlugRoute: MarketingCategorySlugRoute,
+  MarketingFormsSlugRoute: MarketingFormsSlugRouteWithChildren,
   MarketingPageSplatRoute: MarketingPageSplatRoute,
   MarketingTagSlugRoute: MarketingTagSlugRoute,
   MarketingTrackTokenRoute: MarketingTrackTokenRoute,

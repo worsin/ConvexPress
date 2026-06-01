@@ -17,7 +17,6 @@ import {
   LinkIcon,
   ListIcon,
   MailIcon,
-  MapPinIcon,
   MessageSquareIcon,
   PaletteIcon,
   PanelTopIcon,
@@ -37,9 +36,9 @@ import {
   FolderIcon,
   TagIcon,
   SplitIcon,
+  CalculatorIcon,
+  ShoppingCartIcon,
 } from "lucide-react";
-
-import { cn } from "@/lib/utils";
 
 interface FieldTypeSelectorProps {
   onSelect: (type: string) => void;
@@ -76,11 +75,14 @@ export const FIELD_TYPE_LABELS: Record<string, string> = {
   time_picker: "Time Picker",
   color_picker: "Color Picker",
   message: "Message",
+  page_break: "Page Break",
   accordion: "Accordion",
   tab: "Tab",
   group: "Group",
   repeater: "Repeater",
   flexible_content: "Flexible Content",
+  calculation: "Calculation",
+  product: "Product",
 };
 
 interface FieldTypeCategory {
@@ -150,6 +152,7 @@ const FIELD_TYPE_CATEGORIES: FieldTypeCategory[] = [
     label: "Layout",
     types: [
       { slug: "message", label: "Message", description: "Display-only text block", icon: <MessageSquareIcon className="size-3.5" /> },
+      { slug: "page_break", label: "Page Break", description: "Split a form into steps", icon: <LayersIcon className="size-3.5" /> },
       { slug: "accordion", label: "Accordion", description: "Collapsible section", icon: <PanelTopIcon className="size-3.5" /> },
       { slug: "tab", label: "Tab", description: "Tabbed section divider", icon: <FolderIcon className="size-3.5" /> },
     ],
@@ -160,6 +163,13 @@ const FIELD_TYPE_CATEGORIES: FieldTypeCategory[] = [
       { slug: "group", label: "Group", description: "Sub-field container", icon: <GroupIcon className="size-3.5" /> },
       { slug: "repeater", label: "Repeater", description: "Repeatable row of fields", icon: <RepeatIcon className="size-3.5" /> },
       { slug: "flexible_content", label: "Flexible Content", description: "Multiple layout types", icon: <SplitIcon className="size-3.5" /> },
+    ],
+  },
+  {
+    label: "Calculation",
+    types: [
+      { slug: "calculation", label: "Calculation", description: "Derived value from a formula", icon: <CalculatorIcon className="size-3.5" /> },
+      { slug: "product", label: "Product", description: "Priced line item (price × qty)", icon: <ShoppingCartIcon className="size-3.5" /> },
     ],
   },
 ];

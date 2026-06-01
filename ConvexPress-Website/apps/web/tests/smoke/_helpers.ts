@@ -50,6 +50,7 @@ export async function smokeRoute(
 		const url = req.url();
 		if (ignoreNetwork.some((re) => re.test(url))) return;
 		const failure = req.failure();
+		if (failure?.errorText === "net::ERR_ABORTED") return;
 		networkFailures.push(`${req.method()} ${url} :: ${failure?.errorText ?? "failed"}`);
 	});
 

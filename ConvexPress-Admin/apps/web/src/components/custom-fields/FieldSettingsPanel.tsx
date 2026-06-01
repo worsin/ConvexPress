@@ -14,7 +14,8 @@ import type { Id } from "@backend/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { ConditionalLogicBuilder } from "@/components/custom-fields/ConditionalLogicBuilder";
 import { FIELD_TYPE_LABELS } from "@/components/custom-fields/FieldTypeSelector";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { CalculationEditor } from "@/components/forms/CalculationEditor";
+import { getErrorMessage } from "@/lib/utils";
 
 interface FieldSettingsPanelProps {
   field: {
@@ -52,14 +53,14 @@ const SUPPORTED_TYPES = [
   "select", "checkbox", "radio", "button_group", "true_false",
   "link", "post_object", "page_link", "relationship", "taxonomy", "user",
   "date_picker", "date_time_picker", "time_picker", "color_picker",
-  "message", "accordion", "tab",
+  "message", "page_break", "accordion", "tab",
   "group", "repeater", "flexible_content",
+  "calculation", "product",
 ];
 
 export function FieldSettingsPanel({
   field,
   allFields,
-  groupId,
 }: FieldSettingsPanelProps) {
   const updateField = useMutation(api.customFields.mutations.updateField);
 
@@ -246,6 +247,8 @@ export function FieldSettingsPanel({
         type={type}
         settings={parsedSettings}
         onUpdate={updateSettings}
+        fieldKey={field.key}
+        siblingFields={siblingFields}
       />
 
       {/* Wrapper settings (collapsible) */}
@@ -339,13 +342,36 @@ interface TypeSpecificSettingsProps {
   type: string;
   settings: Record<string, any>;
   onUpdate: (key: string, value: unknown) => void;
+  fieldKey: string;
+  siblingFields: Array<{
+    _id: string;
+    label: string;
+    name: string;
+    key: string;
+    type: string;
+  }>;
 }
 
 function TypeSpecificSettings({
   type,
   settings,
   onUpdate,
+  fieldKey,
+  siblingFields,
 }: TypeSpecificSettingsProps) {
+  // Computed types route to the dedicated Calculation & Pricing inspector.
+  if (type === "calculation" || type === "product") {
+    return (
+      <CalculationEditor
+        type={type}
+        fieldKey={fieldKey}
+        settings={settings}
+        onUpdate={onUpdate}
+        siblingFields={siblingFields}
+      />
+    );
+  }
+
   switch (type) {
     case "text":
     case "email":

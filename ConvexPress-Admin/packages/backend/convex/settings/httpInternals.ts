@@ -84,6 +84,14 @@ export const getPublicInternal = internalQuery({
     const discussion = sections.discussion ?? {};
     const permalinks = sections.permalinks ?? {};
     const privacy = sections.privacy ?? {};
+    const pluginsDefaults = getDefaults("plugins");
+    const pluginsDoc = await ctx.db
+      .query("settings")
+      .withIndex("by_section", (q) => q.eq("section", "plugins"))
+      .unique();
+    const plugins = pluginsDoc
+      ? { ...pluginsDefaults, ...(pluginsDoc.values as Record<string, unknown>) }
+      : { ...pluginsDefaults };
 
     return {
       // General (excluding adminEmail)
@@ -126,6 +134,24 @@ export const getPublicInternal = internalQuery({
       // Privacy
       privacyPolicyPageId: privacy.privacyPolicyPageId,
       showPrivacyPolicyLink: privacy.showPrivacyPolicyLink,
+
+      // Public plugin flags. These are feature visibility controls, not secrets.
+      plugins: {
+        commerceEnabled: plugins.commerceEnabled,
+        commerceSubscriptionsEnabled: plugins.commerceSubscriptionsEnabled,
+        commerceDigitalEnabled: plugins.commerceDigitalEnabled,
+        commerceReviewsEnabled: plugins.commerceReviewsEnabled,
+        commerceWishlistsEnabled: plugins.commerceWishlistsEnabled,
+        commerceBundlesEnabled: plugins.commerceBundlesEnabled,
+        commerceReturnsEnabled: plugins.commerceReturnsEnabled,
+        membershipEnabled: plugins.membershipEnabled,
+        knowledgeBaseEnabled: plugins.knowledgeBaseEnabled,
+        ticketsEnabled: plugins.ticketsEnabled,
+        customFieldsEnabled: plugins.customFieldsEnabled,
+        recipesEnabled: plugins.recipesEnabled,
+        galleryEnabled: plugins.galleryEnabled,
+        formsEnabled: plugins.formsEnabled,
+      },
     };
   },
 });

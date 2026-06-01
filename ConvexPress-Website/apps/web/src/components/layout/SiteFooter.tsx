@@ -205,6 +205,7 @@ function FooterContent({ footerConfig, siteIdentity, siteTitle }: FooterContentP
           >
             <input
               type="email"
+              aria-label="Email address for newsletter"
               placeholder="you@example.com"
               value={newsletterEmail}
               onChange={(event) => {

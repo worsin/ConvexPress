@@ -1,8 +1,8 @@
 /**
  * Role & Capability System - Capability Type Definitions
  *
- * Complete TypeScript type system for all 138 capabilities across 23 domains,
- * plus 10 meta-capabilities that resolve based on context (ownership, etc.).
+ * Complete TypeScript type system for concrete capabilities across system
+ * domains, plus meta-capabilities that resolve based on context.
  *
  * This is the single source of truth for capability strings used throughout
  * the ConvexPress authorization layer.
@@ -291,6 +291,24 @@ type TicketCapability =
   | "ticket.viewAnalytics"
   | "ticket.viewInternalNotes";
 
+// ─── Form Capabilities (14) ─────────────────────────────────────────────────
+
+type FormCapability =
+  | "form.view"
+  | "form.create"
+  | "form.update"
+  | "form.delete"
+  | "form.duplicate"
+  | "form.view_entries"
+  | "form.edit_entry"
+  | "form.delete_entry"
+  | "form.manage_notifications"
+  | "form.manage_confirmations"
+  | "form.manage_actions"
+  | "form.view_analytics"
+  | "form.export_entries"
+  | "form.manage_security";
+
 // ─── Commerce Returns Capabilities (5) ──────────────────────────────────────
 
 type CommerceReturnsCapability =
@@ -410,7 +428,7 @@ export type MetaCapability =
 // ─── Combined Capability Type ───────────────────────────────────────────────
 
 /**
- * Union type of all 165 concrete capabilities across 26 domains.
+ * Union type of all concrete capabilities.
  * Use this type for capability arrays on roles and for permission checks.
  */
 export type Capability =
@@ -442,6 +460,7 @@ export type Capability =
   | KBCapability
   | LMSCapability
   | TicketCapability
+  | FormCapability
   | CommerceReturnsCapability
   | CommerceBundlesCapability
   | CommerceReviewsCapability
@@ -460,7 +479,7 @@ export type AnyCapability = Capability | MetaCapability;
 // ─── Runtime Constants ──────────────────────────────────────────────────────
 
 /**
- * Complete array of all 138 valid capability strings.
+ * Complete array of all valid concrete capability strings.
  * Used for validation, seeding, and admin UI display.
  */
 export const ALL_CAPABILITIES: Capability[] = [
@@ -668,6 +687,21 @@ export const ALL_CAPABILITIES: Capability[] = [
   "ticket.manageCannedResponses",
   "ticket.viewAnalytics",
   "ticket.viewInternalNotes",
+  // Forms (14)
+  "form.view",
+  "form.create",
+  "form.update",
+  "form.delete",
+  "form.duplicate",
+  "form.view_entries",
+  "form.edit_entry",
+  "form.delete_entry",
+  "form.manage_notifications",
+  "form.manage_confirmations",
+  "form.manage_actions",
+  "form.view_analytics",
+  "form.export_entries",
+  "form.manage_security",
   // Commerce Returns (5)
   "commerce.returns.view",
   "commerce.returns.review",
@@ -1005,6 +1039,22 @@ export const CAPABILITY_DOMAINS: Record<string, Capability[]> = {
     "ticket.manageCannedResponses",
     "ticket.viewAnalytics",
     "ticket.viewInternalNotes",
+  ],
+  Forms: [
+    "form.view",
+    "form.create",
+    "form.update",
+    "form.delete",
+    "form.duplicate",
+    "form.view_entries",
+    "form.edit_entry",
+    "form.delete_entry",
+    "form.manage_notifications",
+    "form.manage_confirmations",
+    "form.manage_actions",
+    "form.view_analytics",
+    "form.export_entries",
+    "form.manage_security",
   ],
   "Commerce Bundles": [
     "commerce.bundles.view",

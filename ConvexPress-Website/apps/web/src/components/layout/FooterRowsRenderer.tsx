@@ -337,6 +337,7 @@ function NewsletterCellRenderer({ cell }: { cell: FooterNewsletterCell }) {
       <form onSubmit={onSubmit} className="flex gap-2">
         <input
           type="email"
+          aria-label="Email address for newsletter"
           placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}

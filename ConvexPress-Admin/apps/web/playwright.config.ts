@@ -8,7 +8,8 @@ loadEnv({ path: path.resolve(__dirname, ".env.local") });
 loadEnv({ path: path.resolve(__dirname, ".env") });
 
 const PORT = Number(process.env.PLAYWRIGHT_PORT ?? 4105);
-const BASE_URL = `http://localhost:${PORT}`;
+const HOST = process.env.PLAYWRIGHT_HOST ?? "127.0.0.1";
+const BASE_URL = `http://${HOST}:${PORT}`;
 
 export default defineConfig({
 	testDir: "./tests/smoke",

@@ -140,6 +140,14 @@ export const createCheckoutIntent = mutation({
 		couponCode: v.optional(v.string()),
 		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		returnUrl: v.optional(v.string()),
+		// Additive (Form Commerce & Subscription Action): optional linkage so a
+		// form-driven checkout stamps the originating form + submission onto the
+		// intent row (the columns already exist on the table). Both default to
+		// undefined for the existing direct-signup callers — fully back-compatible.
+		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+		formId: v.optional(v.id("forms")),
+		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+		formSubmissionId: v.optional(v.id("form_submissions")),
 	},
 	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 	handler: async (ctx, args) => {
@@ -272,8 +280,10 @@ export const createCheckoutIntent = mutation({
 				email: customerEmail,
 				orderId: undefined,
 				orderItemIds: undefined,
-				formId: undefined,
-				formSubmissionId: undefined,
+				// Stamp the form linkage when present (form-driven checkout); the
+				// existing direct-signup callers pass neither, so this stays undefined.
+				formId: args.formId,
+				formSubmissionId: args.formSubmissionId,
 				selectedOfferIds: [args.offerId],
 				pricingSnapshot: {
 					offerId: args.offerId,

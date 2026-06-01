@@ -48,6 +48,7 @@ export const SYSTEM = {
   CHECKOUT: "checkout",
   WISHLIST: "wishlist",
   LMS: "lms",
+  FORMS: "forms",
 } as const;
 
 export type SystemSlug = (typeof SYSTEM)[keyof typeof SYSTEM];
@@ -359,6 +360,38 @@ export const LMS_EVENTS = {
   AI_LESSON_GENERATED: "lms.ai_lesson_generated",
 } as const;
 
+/**
+ * Forms extension events (12) — v2 scanner-discovered extension.
+ * Emitted with system slug SYSTEM.FORMS ("forms"); codes use the
+ * 2-segment "form.action" form required by the dispatcher contract.
+ */
+export const FORM_EVENTS = {
+  CREATED: "form.created",
+  UPDATED: "form.updated",
+  DELETED: "form.deleted",
+  SUBMITTED: "form.submitted",
+  PROGRESS_SAVED: "form.progress_saved",
+  ENTRY_UPDATED: "form.entry_updated",
+  ENTRY_DELETED: "form.entry_deleted",
+  // Emitted by the Form Actions & Feeds System when a post-submit action
+  // completes successfully. The Notification consumer + run-history view read it.
+  ACTION_COMPLETED: "form.action_completed",
+  // Emitted by the Form Actions & Feeds System when a post-submit action
+  // fails terminally. Registered here so the Notification consumer + config
+  // validator have a canonical code.
+  ACTION_FAILED: "form.action_failed",
+  // Emitted by the Form Commerce & Subscription Action after a checkout intent
+  // is created (zero-amount or paid). Funnel/analytics + notifications read it.
+  SUBSCRIPTION_STARTED: "form.subscription_started",
+  // Emitted by the Form Spam & Submission Security System when the submission
+  // guard blocks an attempt (honeypot/time-trap, rate limit, or CAPTCHA).
+  // Payload: { formId, reason, ip? } — `ip` omitted when unknown.
+  SPAM_BLOCKED: "form.spam_blocked",
+  // Emitted by the Form Analytics & Export System after an entry CSV export is
+  // assembled. Payload: { formId, count, format, exportedBy? }.
+  ENTRIES_EXPORTED: "form.entries_exported",
+} as const;
+
 // ─── All Event Codes ───────────────────────────────────────────────────────
 
 /**
@@ -398,6 +431,7 @@ export const ALL_EVENT_CODES: string[] = [
   ...Object.values(CHECKOUT_EVENTS),
   ...Object.values(WISHLIST_EVENTS),
   ...Object.values(LMS_EVENTS),
+  ...Object.values(FORM_EVENTS),
 ];
 
 /** Set for O(1) lookup of valid event codes. */
@@ -448,6 +482,7 @@ export const EVENT_CODES_BY_SYSTEM: Record<string, readonly string[]> = {
   [SYSTEM.CHECKOUT]: Object.values(CHECKOUT_EVENTS),
   [SYSTEM.WISHLIST]: Object.values(WISHLIST_EVENTS),
   [SYSTEM.LMS]: Object.values(LMS_EVENTS),
+  [SYSTEM.FORMS]: Object.values(FORM_EVENTS),
 };
 
 // ─── Wildcard / Global Patterns ────────────────────────────────────────────
@@ -564,6 +599,9 @@ const CRITICAL_RETENTION_CODES: Set<string> = new Set([
   LMS_EVENTS.NODE_DELETED,
   LMS_EVENTS.UNENROLLED,
   LMS_EVENTS.CERTIFICATE_REVOKED,
+  // Forms deletion events (form + submission removal — compliance/recovery)
+  FORM_EVENTS.DELETED,
+  FORM_EVENTS.ENTRY_DELETED,
   // Audit events (compliance)
   AUDIT_EVENTS.CLEARED,
   AUDIT_EVENTS.EXPORTED,

@@ -85,6 +85,8 @@ const ALL_ADMIN_PAGES: string[] = [
   "/admin/support/*",
   "/admin/lms",
   "/admin/lms/*",
+  "/forms",
+  "/admin/forms",
 ];
 
 const EDITOR_PAGES: string[] = [
@@ -111,6 +113,8 @@ const EDITOR_PAGES: string[] = [
   "/admin/tickets/*",
   "/admin/lms",
   "/admin/lms/*",
+  "/forms",
+  "/admin/forms",
 ];
 
 const AUTHOR_PAGES: string[] = [
@@ -138,12 +142,13 @@ const SUBSCRIBER_PAGES: string[] = ["/admin/users/profile"];
 // ─── Capability Sets ────────────────────────────────────────────────────────
 
 /**
- * Administrator: ALL 138 capabilities. Full system access.
+ * Administrator: all registered concrete capabilities. Full system access.
  */
 const ADMINISTRATOR_CAPABILITIES: Capability[] = [...ALL_CAPABILITIES];
 
 /**
- * Editor: 78 capabilities. All content + moderation, no settings/users/roles.
+ * Editor: content, moderation, analytics, and Forms operations; no
+ * settings/users/roles.
  */
 const EDITOR_CAPABILITIES: Capability[] = [
   // All post capabilities (13)
@@ -255,6 +260,21 @@ const EDITOR_CAPABILITIES: Capability[] = [
   "lms.enroll.manage",
   "lms.certificate.manage",
   "lms.settings.manage",
+  // Forms (14)
+  "form.view",
+  "form.create",
+  "form.update",
+  "form.delete",
+  "form.duplicate",
+  "form.view_entries",
+  "form.edit_entry",
+  "form.delete_entry",
+  "form.manage_notifications",
+  "form.manage_confirmations",
+  "form.manage_actions",
+  "form.view_analytics",
+  "form.export_entries",
+  "form.manage_security",
 ];
 
 /**

@@ -15,6 +15,12 @@ import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { FIELD_RENDERERS } from "../fields";
 import { evaluateConditionalLogic } from "../conditionalLogic";
+import {
+  recomputeForm,
+  COMPUTED_TYPES,
+  type CalcFieldDef,
+  type RepeaterRow,
+} from "@/components/forms/calc";
 import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -88,6 +94,38 @@ export function MetaboxRenderer({ group, fields, entityType, entityId }: Metabox
   const topLevelFields = useMemo(() => {
     return fields.filter((f) => !f.parentFieldId);
   }, [fields]);
+
+  // Live recompute of computed fields (Form Calculation & Pricing System, UX
+  // only — the authoritative value is recomputed server-side at submit). We feed
+  // the recompute the full value map + any repeater rows, then display the
+  // derived value for `calculation`/`product` fields. Full recompute is fine for
+  // v1 (the topo walk is cheap); profile before adding dirty-subgraph recompute.
+  const computedDisplay = useMemo(() => {
+    const calcDefs = fields as unknown as CalcFieldDef[];
+    const repeaters: Record<string, RepeaterRow[]> = {};
+    for (const f of fields) {
+      if (f.type !== "repeater") continue;
+      const raw = valueMap[f.key];
+      if (typeof raw !== "string" || raw.trim() === "") continue;
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          repeaters[f.key] = parsed.filter(
+            (r): r is RepeaterRow => typeof r === "object" && r !== null,
+          );
+        }
+      } catch {
+        /* skip */
+      }
+    }
+    const { computed } = recomputeForm(calcDefs, valueMap, repeaters);
+    // Serialize each computed value to the string the renderer expects.
+    const out: Record<string, string> = {};
+    for (const [key, val] of Object.entries(computed)) {
+      out[key] = typeof val === "number" ? String(val) : JSON.stringify(val);
+    }
+    return out;
+  }, [fields, valueMap]);
 
   // Auto-save dirty values
   const autoSave = useCallback(() => {
@@ -181,7 +219,11 @@ export function MetaboxRenderer({ group, fields, entityType, entityId }: Metabox
               );
             }
 
-            const currentValue = valueMap[field.key] ?? field.defaultValue ?? "";
+            // Computed fields display their live-recomputed value (not the
+            // stored/dirty raw value), which is read-only in the UI.
+            const currentValue = COMPUTED_TYPES.has(field.type)
+              ? computedDisplay[field.key] ?? valueMap[field.key] ?? ""
+              : valueMap[field.key] ?? field.defaultValue ?? "";
 
             return (
               <Renderer

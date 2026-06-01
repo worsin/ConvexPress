@@ -51,6 +51,15 @@ export interface ConditionalRule {
   fieldKey?: string;
   operator: ConditionalOperator;
   value: string;
+  /**
+   * How `value` is interpreted (Form Logic & Validation System, additive):
+   * `"literal"` (default / absent) compares against the literal `value`;
+   * `"field"` treats `value` as another field's KEY and compares against that
+   * field's live value (cross-field operand). Absent ⇒ literal for back-compat.
+   * The field-scope evaluator in THIS file ignores it (literal only); cross-field
+   * resolution lives in the sibling `formLogic.ts` evaluator.
+   */
+  operandKind?: "literal" | "field";
 }
 
 export interface ConditionalLogicData {

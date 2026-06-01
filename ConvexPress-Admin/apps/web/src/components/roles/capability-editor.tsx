@@ -1,7 +1,7 @@
 /**
  * Capability Editor Component
  *
- * Displays all 138 capabilities grouped by domain (Posts, Pages, Media, etc.)
+ * Displays all registered capabilities grouped by domain.
  * with toggle switches for each capability and a "Toggle All" control per group.
  *
  * WordPress equivalent: User Role Editor plugin's capability matrix.
@@ -288,4 +288,3 @@ function CapabilityItem({
     </label>
   );
 }
-

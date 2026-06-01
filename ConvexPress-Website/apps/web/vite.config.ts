@@ -1,8 +1,31 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
+
+const appDir = fileURLToPath(new URL(".", import.meta.url));
+const workspaceDir = path.resolve(appDir, "../..");
+
+function realpathIfPresent(target: string) {
+  try {
+    return fs.realpathSync(target);
+  } catch {
+    return target;
+  }
+}
+
+const fsAllow = Array.from(
+  new Set([
+    workspaceDir,
+    realpathIfPresent(workspaceDir),
+    realpathIfPresent(path.join(appDir, "node_modules")),
+    realpathIfPresent(path.join(workspaceDir, "node_modules")),
+  ]),
+);
 
 function hasUsableClerkKey(value: string | undefined) {
   return Boolean(value && /^pk_(test|live)_/.test(value) && !value.includes("PLACEHOLDER"));
@@ -43,6 +66,9 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 4106,
       strictPort: true,
+      fs: {
+        allow: fsAllow,
+      },
     },
     preview: {
       port: 4106,
