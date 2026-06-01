@@ -5,7 +5,7 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
-import { hasMinimumRoleLevel } from "../../helpers/permissions";
+import { currentUserCan } from "../../helpers/permissions";
 import { docToText } from "./helpers";
 import { canUserAccessNode, requireNodeCourseAuthorOrEditor } from "../access";
 
@@ -17,6 +17,13 @@ function lessonPayload(node: any) {
     bodyText: docToText(node.bodyDoc),
     materialsText: docToText(node.materialsDoc),
   };
+}
+
+async function canPreviewLesson(ctx: any) {
+  return (
+    (await currentUserCan(ctx, "lms.course.view")) ||
+    (await currentUserCan(ctx, "lms.lesson.edit"))
+  );
 }
 
 export const getLessonForEdit = query({
@@ -36,8 +43,7 @@ export const getLessonForPlayer = query({
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const node = await ctx.db.get(args.nodeId);
     if (!node || node.kind !== "lesson") return null;
-    const canAuthor = await hasMinimumRoleLevel(ctx, 60);
-    if (!canAuthor) {
+    if (!(await canPreviewLesson(ctx))) {
       const access = await canUserAccessNode(ctx, { nodeId: args.nodeId });
       if (!access.allowed) return null;
     }
@@ -63,8 +69,7 @@ export const getLesson = query({
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const node = await ctx.db.get(args.nodeId);
     if (!node || node.kind !== "lesson") return null;
-    const canAuthor = await hasMinimumRoleLevel(ctx, 60);
-    if (!canAuthor) {
+    if (!(await canPreviewLesson(ctx))) {
       const access = await canUserAccessNode(ctx, { nodeId: args.nodeId });
       if (!access.allowed) return null;
     }

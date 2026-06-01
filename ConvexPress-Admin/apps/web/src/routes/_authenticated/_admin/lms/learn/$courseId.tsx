@@ -120,6 +120,12 @@ function PlayerPage() {
   const topics = tree?.topics ?? [];
   const completed = new Set(progress?.completedNodeIds ?? []);
   const orderedLessons = topics.flatMap((t) => t.children.filter((c) => c.kind === "lesson"));
+  const currentIndex = orderedLessons.findIndex((lessonNode) => lessonNode._id === selectedId);
+  const previousLesson = currentIndex > 0 ? orderedLessons[currentIndex - 1] : null;
+  const nextLesson =
+    currentIndex >= 0 && currentIndex < orderedLessons.length - 1
+      ? orderedLessons[currentIndex + 1]
+      : null;
   const isLinear = course?.progressionMode === "linear";
   const allowed = access?.allowed ?? false;
   const lessonAllowed = selectedAccess?.allowed ?? allowed;
@@ -350,36 +356,54 @@ function PlayerPage() {
                   />
                 </div>
               )}
-              <div className="border-t border-border pt-4">
-                {completed.has(selectedId) ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+                <button
+                  type="button"
+                  disabled={!previousLesson}
+                  onClick={() => previousLesson && setSelectedId(previousLesson._id)}
+                  className="rounded-md border border-border px-4 py-2 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Previous lesson
+                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {completed.has(selectedId) ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        run("Marked incomplete", () =>
+                          markIncomplete({ nodeId: selectedId as Id<"lms_nodes"> }),
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm hover:bg-muted"
+                    >
+                      <CheckCircle2 className="h-4 w-4 text-green-500" /> Completed — undo
+                    </button>
+                  ) : lesson.node.showMarkComplete === false ? (
+                    <div className="text-sm text-muted-foreground">
+                      This lesson completes automatically after its requirements are met.
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        run("Lesson complete", () =>
+                          markComplete({ nodeId: selectedId as Id<"lms_nodes"> }),
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                    >
+                      <CheckCircle2 className="h-4 w-4" /> Mark complete
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() =>
-                      run("Marked incomplete", () =>
-                        markIncomplete({ nodeId: selectedId as Id<"lms_nodes"> }),
-                      )
-                    }
-                    className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm hover:bg-muted"
+                    disabled={!nextLesson || isLocked(nextLesson._id)}
+                    onClick={() => nextLesson && !isLocked(nextLesson._id) && setSelectedId(nextLesson._id)}
+                    className="rounded-md border border-border px-4 py-2 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <CheckCircle2 className="h-4 w-4 text-green-500" /> Completed — undo
+                    Next lesson
                   </button>
-                ) : lesson.node.showMarkComplete === false ? (
-                  <div className="text-sm text-muted-foreground">
-                    This lesson completes automatically after its requirements are met.
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      run("Lesson complete", () =>
-                        markComplete({ nodeId: selectedId as Id<"lms_nodes"> }),
-                      )
-                    }
-                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-                  >
-                    <CheckCircle2 className="h-4 w-4" /> Mark complete
-                  </button>
-                )}
+                </div>
               </div>
             </div>
           )}

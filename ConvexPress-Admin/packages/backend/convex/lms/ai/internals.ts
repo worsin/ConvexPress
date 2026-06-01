@@ -4,7 +4,6 @@
 
 import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery } from "../../_generated/server";
-import { requireMinimumRoleLevel } from "../../helpers/permissions";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
 import { normalizeOutline, outlineStats, textToDoc } from "./helpers";
@@ -49,7 +48,7 @@ export const createJob = internalMutation({
     targetId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireMinimumRoleLevel(ctx, 60);
+    await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.ai.generate");
     return await ctx.db.insert("lms_jobs", {
       courseId: args.courseId,
       generationId: args.generationId,
@@ -98,7 +97,7 @@ export const recordOutlineGeneration = internalMutation({
     lessonCount: v.number(),
   },
   handler: async (ctx, args) => {
-    await requireMinimumRoleLevel(ctx, 60);
+    await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.ai.generate");
     const generationId = await ctx.db.insert("lms_ai_generations", {
       targetType: "course",
       targetId: String(args.courseId),
@@ -130,7 +129,7 @@ export const recordLessonRegeneration = internalMutation({
     instructions: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireMinimumRoleLevel(ctx, 60);
+    await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.ai.generate");
     return await ctx.db.insert("lms_ai_generations", {
       targetType: "node",
       targetId: String(args.nodeId),
@@ -236,6 +235,7 @@ export const storeLessonBodyDraft = internalMutation({
         message: "Generation does not belong to this lesson.",
       });
     }
+    await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.ai.generate");
     const now = Date.now();
     await ctx.db.patch(args.generationId, {
       prompt: args.prompt,
@@ -266,7 +266,7 @@ export const storeLessonBodyDraft = internalMutation({
 export const materializeOutline = internalMutation({
   args: { courseId: v.id("lms_courses"), outline: v.any(), prompt: v.string() },
   handler: async (ctx, args): Promise<{ topicCount: number; lessonCount: number }> => {
-    await requireMinimumRoleLevel(ctx, 60);
+    await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.ai.generate");
     const outline = normalizeOutline(args.outline);
     const now = Date.now();
     const existingTopics = await ctx.db

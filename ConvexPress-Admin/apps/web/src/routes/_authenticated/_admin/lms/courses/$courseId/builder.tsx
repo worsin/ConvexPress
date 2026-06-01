@@ -39,6 +39,8 @@ import {
   PlayCircle,
   GripVertical,
   Sparkles,
+  Check,
+  X,
 } from "lucide-react";
 
 export const Route = createFileRoute(
@@ -63,11 +65,19 @@ function BuilderPage() {
   const { can } = useAuth();
   const { courseId } = Route.useParams();
   const id = courseId as Id<"lms_courses">;
+  const canViewCourses = can("lms.course.view");
   const canManageBuilder = can("lms.builder.manage");
   const canEditLessons = can("lms.lesson.edit");
   const canGenerateAi = can("lms.ai.generate");
-  const course = useQuery(api.lms.courses.queries.getById, { courseId: id });
-  const tree = useQuery(api.lms.nodes.queries.getCourseTree, { courseId: id }) as
+  const canOpenBuilder = canViewCourses || canManageBuilder || canEditLessons;
+  const course = useQuery(
+    api.lms.courses.queries.getById,
+    canOpenBuilder ? { courseId: id } : "skip",
+  );
+  const tree = useQuery(
+    api.lms.nodes.queries.getCourseTree,
+    canOpenBuilder ? { courseId: id } : "skip",
+  ) as
     | { topics: Topic[] }
     | undefined;
 
@@ -81,6 +91,19 @@ function BuilderPage() {
   );
 
   const topics = tree?.topics ?? [];
+
+  if (!canOpenBuilder) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-muted-foreground">
+          You do not have permission to view this course builder.
+        </p>
+        <Link to="/lms" className="text-sm text-primary hover:underline">
+          Back to LMS
+        </Link>
+      </div>
+    );
+  }
 
   async function addTopic() {
     if (!canManageBuilder) {
@@ -219,17 +242,31 @@ function TopicBlock({
   const deleteNode = useMutation(api.lms.nodes.mutations.deleteNode);
   const moveNode = useMutation(api.lms.nodes.mutations.moveNode);
   const [newLesson, setNewLesson] = useState("");
+  const [newHeading, setNewHeading] = useState("");
+  const [editingTopic, setEditingTopic] = useState(false);
+  const [topicDraft, setTopicDraft] = useState(topic.title);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: topic._id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
 
-  function rename(nodeId: string, current: string) {
+  function startTopicRename() {
     if (!canManageBuilder) return;
-    const title = window.prompt("Rename", current);
-    if (title && title.trim() && title !== current) {
-      void run("Renamed", () => renameNode({ nodeId: nodeId as Id<"lms_nodes">, title: title.trim() }));
+    setTopicDraft(topic.title);
+    setEditingTopic(true);
+  }
+
+  async function saveTopicRename() {
+    const title = topicDraft.trim();
+    if (!canManageBuilder || !title || title === topic.title) {
+      setEditingTopic(false);
+      setTopicDraft(topic.title);
+      return;
     }
+    await run("Renamed", () =>
+      renameNode({ nodeId: topic._id as Id<"lms_nodes">, title }),
+    );
+    setEditingTopic(false);
   }
 
   async function addLesson(kind: "lesson" | "section_heading") {
@@ -237,7 +274,7 @@ function TopicBlock({
       toast.error("You do not have permission to manage the curriculum.");
       return;
     }
-    const title = kind === "lesson" ? newLesson.trim() : window.prompt("Section heading") ?? "";
+    const title = kind === "lesson" ? newLesson.trim() : newHeading.trim();
     if (!title.trim()) return;
     await run(kind === "lesson" ? "Lesson added" : "Heading added", () =>
       createNode({
@@ -248,18 +285,53 @@ function TopicBlock({
       }),
     );
     if (kind === "lesson") setNewLesson("");
+    if (kind === "section_heading") setNewHeading("");
   }
 
   return (
     <div ref={setNodeRef} style={style} className="rounded-lg border border-border">
       <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2">
         {canManageBuilder ? (
-          <button type="button" className="cursor-grab text-muted-foreground" {...attributes} {...listeners} title="Drag to reorder">
+          <button
+            type="button"
+            className="cursor-grab text-muted-foreground"
+            {...attributes}
+            {...listeners}
+            title="Drag to reorder"
+            aria-label={`Drag ${topic.title} to reorder`}
+          >
             <GripVertical className="h-4 w-4" />
           </button>
         ) : null}
         <Layers className="h-4 w-4 text-muted-foreground" />
-        {canManageBuilder ? (
+        {editingTopic ? (
+          <form
+            className="flex flex-1 items-center gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveTopicRename();
+            }}
+          >
+            <input
+              value={topicDraft}
+              onChange={(event) => setTopicDraft(event.target.value)}
+              aria-label="Topic title"
+              className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <IconBtn title="Save topic title" onClick={() => void saveTopicRename()}>
+              <Check className="h-4 w-4" />
+            </IconBtn>
+            <IconBtn
+              title="Cancel topic rename"
+              onClick={() => {
+                setEditingTopic(false);
+                setTopicDraft(topic.title);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </IconBtn>
+          </form>
+        ) : canManageBuilder ? (
           <Link
             to="/lms/courses/$courseId/topics/$nodeId"
             params={{ courseId, nodeId: topic._id }}
@@ -278,7 +350,7 @@ function TopicBlock({
             <IconBtn title="Move down" disabled={isLast} onClick={() => void run("", () => moveNode({ nodeId: topic._id as Id<"lms_nodes">, direction: "down" }))}>
               <ChevronDown className="h-4 w-4" />
             </IconBtn>
-            <IconBtn title="Rename" onClick={() => rename(topic._id, topic.title)}>
+            <IconBtn title="Rename" onClick={startTopicRename}>
               <Pencil className="h-4 w-4" />
             </IconBtn>
             <IconBtn title="Delete topic" danger onClick={() => {
@@ -306,7 +378,6 @@ function TopicBlock({
               renameNode={renameNode}
               deleteNode={deleteNode}
               moveNode={moveNode}
-              rename={rename}
               canManageBuilder={canManageBuilder}
               canEditLessons={canEditLessons}
             />
@@ -315,23 +386,39 @@ function TopicBlock({
       </div>
 
       {canManageBuilder ? (
-        <div className="flex items-center gap-2 px-4 py-2">
-          <Plus className="h-4 w-4 text-muted-foreground" />
-          <input
-            value={newLesson}
-            onChange={(e) => setNewLesson(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void addLesson("lesson");
-            }}
-            placeholder="New lesson title…"
-            className="flex-1 bg-transparent text-sm outline-none"
-          />
-          <button type="button" onClick={() => void addLesson("lesson")} className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">
-            Add Lesson
-          </button>
-          <button type="button" onClick={() => void addLesson("section_heading")} className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">
-            Add Heading
-          </button>
+        <div className="grid gap-2 px-4 py-3 sm:grid-cols-2">
+          <div className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5">
+            <Plus className="h-4 w-4 text-muted-foreground" />
+            <input
+              value={newLesson}
+              onChange={(e) => setNewLesson(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void addLesson("lesson");
+              }}
+              placeholder="New lesson title..."
+              aria-label="New lesson title"
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+            />
+            <button type="button" onClick={() => void addLesson("lesson")} className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">
+              Add
+            </button>
+          </div>
+          <div className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5">
+            <Type className="h-4 w-4 text-muted-foreground" />
+            <input
+              value={newHeading}
+              onChange={(e) => setNewHeading(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void addLesson("section_heading");
+              }}
+              placeholder="New heading title..."
+              aria-label="New section heading title"
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+            />
+            <button type="button" onClick={() => void addLesson("section_heading")} className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">
+              Add
+            </button>
+          </div>
         </div>
       ) : null}
     </div>
@@ -343,9 +430,9 @@ function ChildRow({
   child,
   isFirst,
   isLast,
+  renameNode,
   moveNode,
   deleteNode,
-  rename,
   canManageBuilder,
   canEditLessons,
 }: {
@@ -356,18 +443,45 @@ function ChildRow({
   renameNode: (a: { nodeId: Id<"lms_nodes">; title: string }) => Promise<unknown>;
   deleteNode: (a: { nodeId: Id<"lms_nodes"> }) => Promise<unknown>;
   moveNode: (a: { nodeId: Id<"lms_nodes">; direction: "up" | "down" }) => Promise<unknown>;
-  rename: (nodeId: string, current: string) => void;
   canManageBuilder: boolean;
   canEditLessons: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: child._id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  const [editing, setEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(child.title);
+
+  function startRename() {
+    if (!canManageBuilder) return;
+    setDraftTitle(child.title);
+    setEditing(true);
+  }
+
+  async function saveRename() {
+    const title = draftTitle.trim();
+    if (!canManageBuilder || !title || title === child.title) {
+      setEditing(false);
+      setDraftTitle(child.title);
+      return;
+    }
+    await run("Renamed", () =>
+      renameNode({ nodeId: child._id as Id<"lms_nodes">, title }),
+    );
+    setEditing(false);
+  }
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2 px-4 py-2">
       {canManageBuilder ? (
-        <button type="button" className="cursor-grab text-muted-foreground" {...attributes} {...listeners} title="Drag to reorder">
+        <button
+          type="button"
+          className="cursor-grab text-muted-foreground"
+          {...attributes}
+          {...listeners}
+          title="Drag to reorder"
+          aria-label={`Drag ${child.title} to reorder`}
+        >
           <GripVertical className="h-4 w-4" />
         </button>
       ) : null}
@@ -376,7 +490,34 @@ function ChildRow({
       ) : (
         <PlayCircle className="h-4 w-4 text-muted-foreground" />
       )}
-      {child.kind === "lesson" && canEditLessons ? (
+      {editing ? (
+        <form
+          className="flex flex-1 items-center gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void saveRename();
+          }}
+        >
+          <input
+            value={draftTitle}
+            onChange={(event) => setDraftTitle(event.target.value)}
+            aria-label={`${child.kind === "lesson" ? "Lesson" : "Heading"} title`}
+            className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <IconBtn title="Save title" onClick={() => void saveRename()}>
+            <Check className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn
+            title="Cancel rename"
+            onClick={() => {
+              setEditing(false);
+              setDraftTitle(child.title);
+            }}
+          >
+            <X className="h-4 w-4" />
+          </IconBtn>
+        </form>
+      ) : child.kind === "lesson" && canEditLessons ? (
         <Link to="/lms/courses/$courseId/lessons/$nodeId" params={{ courseId, nodeId: child._id }} className="flex-1 text-sm hover:underline">
           {child.title}
         </Link>
@@ -391,7 +532,7 @@ function ChildRow({
           <IconBtn title="Move down" disabled={isLast} onClick={() => void run("", () => moveNode({ nodeId: child._id as Id<"lms_nodes">, direction: "down" }))}>
             <ChevronDown className="h-4 w-4" />
           </IconBtn>
-          <IconBtn title="Rename" onClick={() => rename(child._id, child.title)}>
+          <IconBtn title="Rename" onClick={startRename}>
             <Pencil className="h-4 w-4" />
           </IconBtn>
           <IconBtn title="Delete" danger onClick={() => {
@@ -423,10 +564,11 @@ function IconBtn({
     <button
       type="button"
       title={title}
+      aria-label={title}
       disabled={disabled}
       onClick={onClick}
       className={`rounded p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30 ${
-        danger ? "hover:text-red-600" : "hover:text-foreground"
+        danger ? "hover:text-destructive" : "hover:text-foreground"
       }`}
     >
       {children}

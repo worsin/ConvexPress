@@ -5,7 +5,8 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
-import { hasMinimumRoleLevel } from "../../helpers/permissions";
+import { currentUserCan } from "../../helpers/permissions";
+import { canUserAccessNode } from "../access";
 
 function serializeNode(node: any) {
   const {
@@ -23,14 +24,21 @@ function serializeNode(node: any) {
   return publicNode;
 }
 
+async function canPreviewCourseTree(ctx: any) {
+  return (
+    (await currentUserCan(ctx, "lms.course.view")) ||
+    (await currentUserCan(ctx, "lms.builder.manage")) ||
+    (await currentUserCan(ctx, "lms.lesson.edit"))
+  );
+}
+
 export const getCourseTree = query({
   args: { courseId: v.id("lms_courses") },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return { topics: [] };
     const course = await ctx.db.get(args.courseId);
     if (!course) return { topics: [] };
-    const canAuthor = await hasMinimumRoleLevel(ctx, 60);
-    if (course.status !== "published" && !canAuthor) return { topics: [] };
+    if (course.status !== "published" && !(await canPreviewCourseTree(ctx))) return { topics: [] };
 
     const nodes = await ctx.db
       .query("lms_nodes")
@@ -56,6 +64,24 @@ export const getNode = query({
   args: { nodeId: v.id("lms_nodes") },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
-    return await ctx.db.get(args.nodeId);
+    const node = await ctx.db.get(args.nodeId);
+    if (!node) return null;
+
+    const canManageNode =
+      (await currentUserCan(ctx, "lms.builder.manage")) ||
+      (await currentUserCan(ctx, "lms.lesson.edit"));
+    if (canManageNode) return node;
+
+    if (node.kind === "lesson") {
+      const access = await canUserAccessNode(ctx, { nodeId: args.nodeId });
+      return access.allowed ? serializeNode(node) : null;
+    }
+
+    const course = await ctx.db.get(node.courseId);
+    if (!course) return null;
+    if (course.status === "published" || (await currentUserCan(ctx, "lms.course.view"))) {
+      return serializeNode(node);
+    }
+    return null;
   },
 });

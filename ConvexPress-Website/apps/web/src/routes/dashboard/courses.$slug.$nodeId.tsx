@@ -153,9 +153,11 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
   );
   const completed = new Set(progress?.completedNodeIds ?? []);
   const currentIndex = orderedLessons.findIndex((child) => child._id === nodeId);
-  const nextLesson = orderedLessons
-    .slice(Math.max(currentIndex + 1, 0))
-    .find((child) => !completed.has(child._id));
+  const previousLesson = currentIndex > 0 ? orderedLessons[currentIndex - 1] : null;
+  const nextLesson =
+    currentIndex >= 0 && currentIndex < orderedLessons.length - 1
+      ? orderedLessons[currentIndex + 1]
+      : null;
   const isLinear = course.progressionMode === "linear";
   const lessonLocked =
     selectedAccess?.allowed === false ||
@@ -355,6 +357,16 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
+                  {previousLesson ? (
+                    <Link
+                      to="/dashboard/courses/$slug/$nodeId"
+                      params={{ slug: course.slug, nodeId: previousLesson._id }}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                    >
+                      Previous lesson
+                    </Link>
+                  ) : null}
+
                   {nodeProgress?.completed ? (
                     <button
                       type="button"

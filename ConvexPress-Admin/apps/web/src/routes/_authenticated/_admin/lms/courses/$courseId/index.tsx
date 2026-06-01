@@ -100,28 +100,40 @@ function CourseSettingsPage() {
   const { can } = useAuth();
   const { courseId } = Route.useParams();
   const id = courseId as Id<"lms_courses">;
+  const canViewCourses = can("lms.course.view");
   const canEdit = can("lms.course.edit");
   const canPublish = can("lms.course.publish");
   const canManageBuilder = can("lms.builder.manage");
   const canGenerateAi = can("lms.ai.generate");
   const canManageEnrollments = can("lms.enroll.manage");
   const canManageCertificates = can("lms.certificate.manage");
-  const course = useQuery(api.lms.courses.queries.getById, { courseId: id });
-  const templates = useQuery(api.lms.certificates.queries.listTemplates, {}) as
+  const course = useQuery(
+    api.lms.courses.queries.getById,
+    canViewCourses || canEdit ? { courseId: id } : "skip",
+  );
+  const templates = useQuery(
+    api.lms.certificates.queries.listTemplates,
+    canManageCertificates ? {} : "skip",
+  ) as
     | Array<{ _id: string; title: string }>
     | undefined;
-  const courses = useQuery(api.lms.courses.queries.list, {}) as
+  const courses = useQuery(api.lms.courses.queries.list, canViewCourses ? {} : "skip") as
     | Array<{ _id: Id<"lms_courses">; title: string; status: string }>
     | undefined;
-  const prereqs = useQuery(api.lms.courses.queries.getPrerequisites, { courseId: id }) as
+  const prereqs = useQuery(
+    api.lms.courses.queries.getPrerequisites,
+    canViewCourses ? { courseId: id } : "skip",
+  ) as
     | Array<{ courseId: Id<"lms_courses">; title: string; status: string }>
     | undefined;
-  const accessRule = useQuery((api as any).lms.courses.queries.getAccessRule, {
-    courseId: id,
-  }) as { planIds?: PlanId[]; customMessage?: string } | null | undefined;
-  const membershipPlans = useQuery((api as any).membership.queries.listPlans, {
-    status: "active",
-  }) as Array<{ _id: PlanId; title: string; slug: string; status?: string }> | null | undefined;
+  const accessRule = useQuery(
+    (api as any).lms.courses.queries.getAccessRule,
+    canEdit ? { courseId: id } : "skip",
+  ) as { planIds?: PlanId[]; customMessage?: string } | null | undefined;
+  const membershipPlans = useQuery(
+    (api as any).membership.queries.listPlans,
+    canEdit ? { status: "active" } : "skip",
+  ) as Array<{ _id: PlanId; title: string; slug: string; status?: string }> | null | undefined;
 
   const update = useMutation(api.lms.courses.mutations.update);
   const updatePrerequisites = useMutation(api.lms.courses.mutations.updatePrerequisites);
@@ -253,6 +265,17 @@ function CourseSettingsPage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Action failed");
     }
+  }
+
+  if (!canViewCourses && !canEdit) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-muted-foreground">You do not have permission to view LMS courses.</p>
+        <Link to="/lms" className="text-sm text-primary hover:underline">
+          Back to LMS
+        </Link>
+      </div>
+    );
   }
 
   if (course === undefined) {

@@ -6,6 +6,8 @@ import { issueCertificate } from "../certificates/mutations";
 import { update as updateCourse, publish as publishCourse } from "../courses/mutations";
 import { enroll } from "../enrollment/mutations";
 import { canAccessCourse as queryCanAccessCourse } from "../enrollment/queries";
+import { getLessonForPlayer } from "../lessons/queries";
+import { getCourseTree, getNode } from "../nodes/queries";
 import {
   markComplete,
   markIncomplete,
@@ -24,6 +26,20 @@ type Tables = Record<string, Row[]>;
 
 const ADMIN_ISSUER = "https://convexpress-admin.local";
 const now = 1_800_000_000_000;
+const LMS_ADMIN_CAPABILITIES = [
+  "lms.course.view",
+  "lms.course.create",
+  "lms.course.edit",
+  "lms.course.publish",
+  "lms.course.delete",
+  "lms.lesson.edit",
+  "lms.lesson.delete",
+  "lms.builder.manage",
+  "lms.ai.generate",
+  "lms.enroll.manage",
+  "lms.certificate.manage",
+  "lms.settings.manage",
+];
 
 function id<T extends string>(value: string): Id<T> {
   return value as Id<T>;
@@ -125,14 +141,21 @@ function baseTables(overrides: Partial<Tables> = {}): Tables {
         _id: "role_admin",
         slug: "administrator",
         level: 100,
-        capabilities: ["lms.course.view", "lms.course.edit"],
+        capabilities: LMS_ADMIN_CAPABILITIES,
         status: "active",
       },
       {
         _id: "role_editor",
         slug: "editor",
         level: 80,
-        capabilities: ["lms.course.view", "lms.course.edit"],
+        capabilities: [
+          "lms.course.view",
+          "lms.course.create",
+          "lms.course.edit",
+          "lms.lesson.edit",
+          "lms.builder.manage",
+          "lms.ai.generate",
+        ],
         status: "active",
       },
       {
@@ -140,6 +163,13 @@ function baseTables(overrides: Partial<Tables> = {}): Tables {
         slug: "subscriber",
         level: 20,
         capabilities: [],
+        status: "active",
+      },
+      {
+        _id: "role_lms_viewer",
+        slug: "lms-viewer",
+        level: 20,
+        capabilities: ["lms.course.view"],
         status: "active",
       },
     ],
@@ -158,6 +188,15 @@ function baseTables(overrides: Partial<Tables> = {}): Tables {
         email: "learner@example.com",
         emailVerified: true,
         roleId: "role_learner",
+        status: "active",
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        _id: "user_lms_viewer",
+        email: "viewer@example.com",
+        emailVerified: true,
+        roleId: "role_lms_viewer",
         status: "active",
         createdAt: now,
         updatedAt: now,
@@ -547,6 +586,71 @@ describe("LMS access decisions", () => {
       allowed: true,
       reason: "staff_preview",
     });
+  });
+
+  test("uses LMS capabilities instead of role level for author preview reads", async () => {
+    const tables = baseTables();
+    tables.lms_nodes.push(
+      node("topic_draft", "course_draft", "topic", { position: 1 }),
+      node("lesson_draft", "course_draft", "lesson", {
+        parentId: "topic_draft",
+        position: 1,
+        bodyDoc: {
+          type: "doc",
+          content: [{ type: "paragraph", content: [{ type: "text", text: "Draft body" }] }],
+        },
+      }),
+    );
+
+    await expect(
+      (getCourseTree as any)._handler(createCtx(tables, "user_lms_viewer"), {
+        courseId: id("course_draft"),
+      }),
+    ).resolves.toMatchObject({
+      topics: [{ _id: "topic_draft", children: [{ _id: "lesson_draft" }] }],
+    });
+
+    await expect(
+      (getLessonForPlayer as any)._handler(createCtx(tables, "user_lms_viewer"), {
+        nodeId: id("lesson_draft"),
+      }),
+    ).resolves.toMatchObject({
+      bodyText: "Draft body",
+      node: { _id: "lesson_draft" },
+    });
+
+    await expect(
+      (getLessonForPlayer as any)._handler(createCtx(tables), {
+        nodeId: id("lesson_draft"),
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("keeps generic node reads from leaking lesson authoring payloads to learners", async () => {
+    const tables = baseTables();
+    tables.lms_nodes.push(
+      node("lesson_public_sensitive", "course_free", "lesson", {
+        bodyDoc: {
+          type: "doc",
+          content: [{ type: "paragraph", content: [{ type: "text", text: "Hidden body" }] }],
+        },
+        videoUrl: "https://videos.example.test/private",
+      }),
+    );
+
+    await expect(
+      (getNode as any)._handler(createCtx(tables), {
+        nodeId: id("lesson_public_sensitive"),
+      }),
+    ).resolves.toMatchObject({
+      _id: "lesson_public_sensitive",
+      title: "lesson_public_sensitive",
+    });
+    const payload = await (getNode as any)._handler(createCtx(tables), {
+      nodeId: id("lesson_public_sensitive"),
+    });
+    expect(payload.bodyDoc).toBeUndefined();
+    expect(payload.videoUrl).toBeUndefined();
   });
 
   test("disabled LMS plugin closes public query wrappers and write paths", async () => {
