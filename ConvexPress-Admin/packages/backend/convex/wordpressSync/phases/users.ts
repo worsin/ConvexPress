@@ -11,21 +11,130 @@
  *   - Default Subscriber role (can be upgraded later)
  */
 
-import { internalAction, internalMutation } from "../../_generated/server";
+import { action, internalAction, internalMutation, internalQuery } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
-import { fetchWPUsers, type WPUser } from "../helpers/wpClient";
+import {
+  fetchWPUserPasswordDigests,
+  fetchWPUsers,
+  type WPUser,
+  type WPUserPasswordDigest,
+} from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
 import { WP_BATCH_SIZE, normalizeImportConfig, FINDING_CODES, siteCredentialsValidator } from "../validators";
 import { createFinding } from "../helpers/idMapping";
+import { decryptSecret } from "../../api/crypto_helpers";
 
 
 // ─── Source Hash Helper ───────────────────────────────────────────────────
 
 function computeSourceHash(fields: Record<string, unknown>): string {
   const str = JSON.stringify(fields); let h = 0; for (let i = 0; i < str.length; i++) { h = ((h << 5) - h + str.charCodeAt(i)) | 0; } return h.toString(36);
+}
+
+type ClerkPasswordHasher = "phpass" | "bcrypt";
+type CredentialMigrationStatus =
+  | "provisioned"
+  | "linked_existing"
+  | "reset_required"
+  | "unsupported_hash"
+  | "skipped"
+  | "failed";
+
+type CredentialMigrationPatch = {
+  status: CredentialMigrationStatus;
+  reason?: string;
+  passwordHasher?: string;
+  clerkUserId?: string;
+  error?: string;
+};
+
+const WP_ENCRYPTION_KEY = process.env.WP_SYNC_ENCRYPTION_KEY;
+const DEFAULT_USER_PASSWORD_EXPORT_PATH = "/convexpress/v1/user-password-digests";
+
+async function decryptStoredSecret(secret: string | undefined): Promise<string | undefined> {
+  if (!secret) return undefined;
+  if (WP_ENCRYPTION_KEY && secret.includes(":")) {
+    try {
+      return await decryptSecret(secret, WP_ENCRYPTION_KEY);
+    } catch {
+      return secret;
+    }
+  }
+  return secret;
+}
+
+function normalizeEmail(email: string | undefined): string | undefined {
+  const normalized = email?.trim().toLowerCase();
+  return normalized || undefined;
+}
+
+function detectClerkPasswordHasher(
+  passwordDigest: string | undefined,
+): { supported: true; hasher: ClerkPasswordHasher } | { supported: false; reason: string } {
+  if (!passwordDigest?.trim()) {
+    return { supported: false, reason: "missing_digest" };
+  }
+
+  const digest = passwordDigest.trim();
+
+  if (digest.startsWith("$wp$2y$")) {
+    return { supported: false, reason: "wordpress_6_8_sha384_bcrypt" };
+  }
+
+  if (digest.startsWith("$P$")) {
+    return { supported: true, hasher: "phpass" };
+  }
+
+  if (/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(digest)) {
+    return { supported: true, hasher: "bcrypt" };
+  }
+
+  return { supported: false, reason: "unsupported_digest_format" };
+}
+
+function asArray(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => !!item && typeof item === "object") : [];
+}
+
+function extractClerkUserId(payload: unknown): string | undefined {
+  const record = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
+  return typeof record.id === "string" ? record.id : undefined;
+}
+
+function clerkErrorMessage(payload: string): string {
+  try {
+    const parsed = JSON.parse(payload) as { errors?: Array<{ message?: string; long_message?: string; code?: string }> };
+    const first = parsed.errors?.[0];
+    return first?.long_message || first?.message || first?.code || payload.slice(0, 300);
+  } catch {
+    return payload.slice(0, 300);
+  }
+}
+
+async function findClerkUserByEmail(
+  clerkSecretKey: string,
+  email: string,
+): Promise<string | undefined> {
+  const url = new URL("https://api.clerk.com/v1/users");
+  url.searchParams.set("email_address", email);
+  url.searchParams.set("limit", "1");
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${clerkSecretKey}`,
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) return undefined;
+
+  const data = await response.json();
+  const rows = Array.isArray(data) ? data : asArray((data as Record<string, unknown>)?.data);
+  const first = rows[0];
+  return typeof first?.id === "string" ? first.id : undefined;
 }
 
 // ─── User Import Action ────────────────────────────────────────────────────
@@ -77,6 +186,40 @@ export const importBatch = internalAction({
         ? fetchedUsers.slice(0, Math.max(0, entityLimit - cursor))
         : fetchedUsers;
     const effectiveTotal = entityLimit !== undefined ? Math.min(total, entityLimit) : total;
+    const credentialExportPath =
+      credentials.userPasswordExportPath || DEFAULT_USER_PASSWORD_EXPORT_PATH;
+    const credentialExportConfigured = Boolean(credentials.userPasswordExportSecret);
+    const passwordDigestByWpId = new Map<number, WPUserPasswordDigest>();
+    let credentialExportFailed = false;
+
+    if (credentialExportConfigured && wpUsers.length > 0) {
+      try {
+        const digestResult = await fetchWPUserPasswordDigests(
+          credentials,
+          credentialExportPath,
+          credentials.userPasswordExportSecret!,
+          wpUsers.map((user) => user.id),
+        );
+        for (const row of digestResult.data) {
+          passwordDigestByWpId.set(row.id, row);
+        }
+      } catch (error) {
+        credentialExportFailed = true;
+        await createFinding(ctx, {
+          siteId,
+          jobId,
+          severity: "warning",
+          phase: "users",
+          code: FINDING_CODES.USER_PASSWORD_EXPORT_UNAVAILABLE,
+          message:
+            "WordPress user password digest endpoint could not be reached. Imported users will require password reset fallback.",
+          sourceType: "user",
+          metadata: {
+            error: error instanceof Error ? error.message : String(error),
+          },
+        });
+      }
+    }
 
     // Update total if not set
     if (progress.total === 0 && effectiveTotal > 0) {
@@ -177,6 +320,24 @@ export const importBatch = internalAction({
             siteId,
           });
 
+          await ctx.runAction(
+            internal.wordpressSync.phases.users.provisionImportedUserCredentials,
+            {
+              userId,
+              siteId,
+              wpUserId: wpUser.id,
+              email: wpUser.email,
+              username: wpUser.username,
+              firstName: wpUser.first_name,
+              lastName: wpUser.last_name,
+              displayName: wpUser.name,
+              passwordDigest: passwordDigestByWpId.get(wpUser.id)?.user_pass,
+              credentialExportConfigured,
+              credentialExportFailed,
+              jobId,
+            },
+          );
+
           // Create ID mapping with sourceHash
           await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
             siteId,
@@ -239,23 +400,22 @@ export const usersCreate = internalMutation({
   },
   handler: async (ctx, { wpUser, siteId }) => {
     const now = Date.now();
+    const normalizedEmail = normalizeEmail(wpUser.email);
 
     // Check if user already exists by email
-    if (wpUser.email) {
+    if (normalizedEmail) {
       const existing = await ctx.db
         .query("users")
-        .withIndex("by_email", (q) => q.eq("email", wpUser.email!))
+        .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
         .first();
 
       if (existing) {
         // User exists - just update with WP reference if not set
-        if (!existing.wpUserId) {
-          await ctx.db.patch(existing._id, {
-            wpUserId: wpUser.id,
-            wpSourceSiteId: siteId,
-            updatedAt: now,
-          });
-        }
+        await ctx.db.patch(existing._id, {
+          ...(!existing.wpUserId ? { wpUserId: wpUser.id } : {}),
+          ...(!existing.wpSourceSiteId ? { wpSourceSiteId: siteId } : {}),
+          updatedAt: now,
+        });
         return existing._id;
       }
     }
@@ -283,7 +443,7 @@ export const usersCreate = internalMutation({
     const userId = await ctx.db.insert("users", {
       // Auth source - imported users don't have external auth
       authSource: "local",
-      email: wpUser.email || `wp-user-${wpUser.id}@imported.local`,
+      email: normalizedEmail || `wp-user-${wpUser.id}@imported.local`,
       emailVerified: false,
 
       // Profile fields
@@ -308,6 +468,8 @@ export const usersCreate = internalMutation({
       // WordPress import fields
       wpUserId: wpUser.id,
       wpSourceSiteId: siteId,
+      wpCredentialMigrationStatus: "reset_required",
+      wpCredentialMigrationReason: "pending_clerk_provisioning",
 
       // Timestamps
       createdAt: now,
@@ -315,5 +477,357 @@ export const usersCreate = internalMutation({
     });
 
     return userId;
+  },
+});
+
+// ─── Credential Migration State ───────────────────────────────────────────
+
+export const markImportedUserCredentialMigration = internalMutation({
+  args: {
+    userId: v.id("users"),
+    status: v.union(
+      v.literal("provisioned"),
+      v.literal("linked_existing"),
+      v.literal("reset_required"),
+      v.literal("unsupported_hash"),
+      v.literal("skipped"),
+      v.literal("failed"),
+    ),
+    reason: v.optional(v.string()),
+    passwordHasher: v.optional(v.string()),
+    clerkUserId: v.optional(v.string()),
+    error: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const patch: Record<string, unknown> = {
+      wpCredentialMigrationStatus: args.status,
+      wpCredentialMigrationReason: args.reason,
+      wpCredentialPasswordHasher: args.passwordHasher,
+      wpCredentialMigratedAt: Date.now(),
+      wpCredentialMigrationError: args.error,
+      updatedAt: Date.now(),
+    };
+
+    if (args.clerkUserId) {
+      patch.clerkUserId = args.clerkUserId;
+      patch.authSource = "clerk";
+      patch.emailVerified = true;
+    }
+
+    await ctx.db.patch(args.userId, patch);
+  },
+});
+
+async function markCredentialMigration(
+  ctx: {
+    runMutation: (ref: any, args: any) => Promise<any>;
+  },
+  userId: Id<"users">,
+  patch: CredentialMigrationPatch,
+) {
+  await ctx.runMutation(
+    internal.wordpressSync.phases.users.markImportedUserCredentialMigration,
+    {
+      userId,
+      status: patch.status,
+      reason: patch.reason,
+      passwordHasher: patch.passwordHasher,
+      clerkUserId: patch.clerkUserId,
+      error: patch.error,
+    },
+  );
+}
+
+export const provisionImportedUserCredentials = internalAction({
+  args: {
+    userId: v.id("users"),
+    siteId: v.id("wordpressSites"),
+    wpUserId: v.number(),
+    email: v.optional(v.string()),
+    username: v.optional(v.string()),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    passwordDigest: v.optional(v.string()),
+    credentialExportConfigured: v.boolean(),
+    credentialExportFailed: v.boolean(),
+    jobId: v.optional(v.id("wordpressSyncJobs")),
+  },
+  handler: async (ctx, args) => {
+    const email = normalizeEmail(args.email);
+
+    if (!email || email.endsWith("@imported.local")) {
+      await markCredentialMigration(ctx, args.userId, {
+        status: "skipped",
+        reason: "missing_email",
+      });
+      return { status: "skipped" as const };
+    }
+
+    if (!args.credentialExportConfigured) {
+      await markCredentialMigration(ctx, args.userId, {
+        status: "reset_required",
+        reason: "credential_export_not_configured",
+      });
+      return { status: "reset_required" as const };
+    }
+
+    if (args.credentialExportFailed) {
+      await markCredentialMigration(ctx, args.userId, {
+        status: "reset_required",
+        reason: "credential_export_unavailable",
+      });
+      return { status: "reset_required" as const };
+    }
+
+    const digest = args.passwordDigest?.trim();
+    const detected = detectClerkPasswordHasher(digest);
+    if (!detected.supported) {
+      await markCredentialMigration(ctx, args.userId, {
+        status: detected.reason === "missing_digest" ? "reset_required" : "unsupported_hash",
+        reason: detected.reason,
+      });
+
+      if (args.jobId && detected.reason !== "missing_digest") {
+        await createFinding(ctx, {
+          siteId: args.siteId,
+          jobId: args.jobId,
+          severity: "warning",
+          phase: "users",
+          code: FINDING_CODES.USER_PASSWORD_HASH_UNSUPPORTED,
+          message:
+            "Imported WordPress user has a password hash format Clerk cannot ingest directly; user will require reset fallback.",
+          sourceType: "user",
+          sourceId: String(args.wpUserId),
+          destinationTable: "users",
+          wpId: args.wpUserId,
+          convexId: args.userId,
+          metadata: { reason: detected.reason },
+        });
+      }
+
+      return { status: "reset_required" as const, reason: detected.reason };
+    }
+
+    const { getServiceKeyFromAction } = await import("../../helpers/serviceKeys");
+    const clerkSecretKey = await getServiceKeyFromAction(
+      ctx,
+      "integrations.clerk",
+      "clerkSecretKey",
+      "CLERK_SECRET_KEY",
+    );
+
+    if (!clerkSecretKey) {
+      await markCredentialMigration(ctx, args.userId, {
+        status: "reset_required",
+        reason: "clerk_secret_key_missing",
+        passwordHasher: detected.hasher,
+      });
+      return { status: "reset_required" as const };
+    }
+
+    const existingClerkUserId = await findClerkUserByEmail(clerkSecretKey, email);
+    if (existingClerkUserId) {
+      await markCredentialMigration(ctx, args.userId, {
+        status: "linked_existing",
+        reason: "email_already_existed_in_clerk",
+        clerkUserId: existingClerkUserId,
+        passwordHasher: detected.hasher,
+      });
+      return { status: "linked_existing" as const, clerkUserId: existingClerkUserId };
+    }
+
+    const body = {
+      external_id: `wp:${args.siteId}:${args.wpUserId}`,
+      email_address: [email],
+      first_name: args.firstName || undefined,
+      last_name: args.lastName || undefined,
+      password_digest: digest,
+      password_hasher: detected.hasher,
+      skip_legal_checks: true,
+      private_metadata: {
+        convexpress: {
+          source: "wordpress",
+          siteId: args.siteId,
+          wpUserId: args.wpUserId,
+          username: args.username,
+        },
+      },
+      public_metadata: {
+        displayName: args.displayName,
+      },
+    };
+
+    const response = await fetch("https://api.clerk.com/v1/users", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${clerkSecretKey}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    const payloadText = await response.text();
+    if (!response.ok) {
+      const message = clerkErrorMessage(payloadText);
+      await markCredentialMigration(ctx, args.userId, {
+        status: "failed",
+        reason: "clerk_create_user_failed",
+        passwordHasher: detected.hasher,
+        error: message,
+      });
+
+      if (args.jobId) {
+        await createFinding(ctx, {
+          siteId: args.siteId,
+          jobId: args.jobId,
+          severity: "warning",
+          phase: "users",
+          code: FINDING_CODES.CLERK_USER_PROVISIONING_FAILED,
+          message: `Clerk user provisioning failed for imported WordPress user: ${message}`,
+          sourceType: "user",
+          sourceId: String(args.wpUserId),
+          destinationTable: "users",
+          wpId: args.wpUserId,
+          convexId: args.userId,
+        });
+      }
+
+      return { status: "failed" as const, error: message };
+    }
+
+    const clerkUserId = extractClerkUserId(JSON.parse(payloadText));
+    if (!clerkUserId) {
+      await markCredentialMigration(ctx, args.userId, {
+        status: "failed",
+        reason: "clerk_response_missing_user_id",
+        passwordHasher: detected.hasher,
+      });
+      return { status: "failed" as const };
+    }
+
+    await markCredentialMigration(ctx, args.userId, {
+      status: "provisioned",
+      reason: "password_digest_imported",
+      clerkUserId,
+      passwordHasher: detected.hasher,
+    });
+
+    return { status: "provisioned" as const, clerkUserId };
+  },
+});
+
+export const getCredentialBackfillBatch = internalQuery({
+  args: {
+    siteId: v.id("wordpressSites"),
+    afterWpId: v.optional(v.number()),
+    limit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const afterWpId = args.afterWpId ?? -1;
+    const mappings = await ctx.db
+      .query("wpIdMappings")
+      .withIndex("by_wp_id", (q) =>
+        q.eq("siteId", args.siteId).eq("objectType", "user").gt("wpId", afterWpId),
+      )
+      .take(args.limit);
+
+    const users = [];
+    for (const mapping of mappings) {
+      const user = await ctx.db.get(mapping.convexId as Id<"users">);
+      if (!user || user.clerkUserId || !user.wpUserId) continue;
+      users.push({
+        userId: user._id,
+        wpUserId: user.wpUserId,
+        email: user.email,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        displayName: user.displayName,
+      });
+    }
+
+    return {
+      users,
+      nextAfterWpId: mappings.length > 0 ? mappings[mappings.length - 1]!.wpId : afterWpId,
+      hasMore: mappings.length === args.limit,
+    };
+  },
+});
+
+export const backfillImportedUserCredentials = action({
+  args: {
+    siteId: v.id("wordpressSites"),
+    afterWpId: v.optional(v.number()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.runQuery(internal.settings.internals.requireManageOptionsInternal, {});
+
+    const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, {
+      siteId: args.siteId,
+    });
+    if (!site) {
+      return { processed: 0, hasMore: false, nextAfterWpId: args.afterWpId ?? -1 };
+    }
+
+    const passwordExportPath = site.userPasswordExportPath || DEFAULT_USER_PASSWORD_EXPORT_PATH;
+    const passwordExportSecret = await decryptStoredSecret(site.userPasswordExportSecret);
+    const decryptedPassword = await decryptStoredSecret(site.applicationPassword) ?? site.applicationPassword;
+    const limit = Math.min(Math.max(args.limit ?? 100, 1), 100);
+    const batch = await ctx.runQuery(
+      internal.wordpressSync.phases.users.getCredentialBackfillBatch,
+      {
+        siteId: args.siteId,
+        afterWpId: args.afterWpId,
+        limit,
+      },
+    );
+
+    let digestByWpId = new Map<number, WPUserPasswordDigest>();
+    let credentialExportFailed = false;
+    if (passwordExportSecret && batch.users.length > 0) {
+      try {
+        const digestResult = await fetchWPUserPasswordDigests(
+          {
+            siteUrl: site.siteUrl,
+            username: site.username,
+            applicationPassword: decryptedPassword,
+          },
+          passwordExportPath,
+          passwordExportSecret,
+          batch.users.map((user: { wpUserId: number }) => user.wpUserId),
+        );
+        digestByWpId = new Map(digestResult.data.map((row) => [row.id, row]));
+      } catch {
+        credentialExportFailed = true;
+      }
+    }
+
+    for (const user of batch.users) {
+      await ctx.runAction(
+        internal.wordpressSync.phases.users.provisionImportedUserCredentials,
+        {
+          userId: user.userId,
+          siteId: args.siteId,
+          wpUserId: user.wpUserId,
+          email: user.email,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          displayName: user.displayName,
+          passwordDigest: digestByWpId.get(user.wpUserId)?.user_pass,
+          credentialExportConfigured: Boolean(passwordExportSecret),
+          credentialExportFailed,
+        },
+      );
+    }
+
+    return {
+      processed: batch.users.length,
+      hasMore: batch.hasMore,
+      nextAfterWpId: batch.nextAfterWpId,
+    };
   },
 });

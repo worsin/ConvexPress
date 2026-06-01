@@ -9,13 +9,18 @@ import { action } from "../_generated/server";
 import { v, ConvexError } from "convex/values";
 import { internal, api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { testConnection, getContentCounts } from "./helpers/wpClient";
+import {
+  testConnection,
+  getContentCounts,
+  testWPUserPasswordDigestEndpoint,
+} from "./helpers/wpClient";
 import { decryptSecret } from "../api/crypto_helpers";
 import { WPAdapter } from "./helpers/adapters/wpAdapter";
 import { WooAdapter } from "./helpers/adapters/wooAdapter";
 
 // Environment variable for decrypting application passwords
 const WP_ENCRYPTION_KEY = process.env.WP_SYNC_ENCRYPTION_KEY;
+const DEFAULT_USER_PASSWORD_EXPORT_PATH = "/convexpress/v1/user-password-digests";
 
 /**
  * Helper to decrypt application password if encrypted.
@@ -64,6 +69,10 @@ export const testSiteConnection = action({
     wooConsumerSecret: v.optional(v.string()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    userPasswordExportPath: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    userPasswordExportSecret: v.optional(v.string()),
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
@@ -111,6 +120,8 @@ export const testSiteConnection = action({
           woocommerceApi: false, // Will be detected during first meta fetch
           customMetaEndpointConfigured: false,
           customMetaEndpointDetected: false,
+          userPasswordExportEndpointConfigured: false,
+          userPasswordExportEndpointDetected: false,
           elementorDetected: false, // Will be detected during first meta fetch
           mediaAccessible: true, // Assume true if we can reach the API
         }
@@ -127,6 +138,8 @@ export const testSiteConnection = action({
         let wooKey: string | undefined;
         let wooSecret: string | undefined;
         let wooAuthMode: "shared" | "separate" = "shared";
+        let userPasswordExportPath: string | undefined;
+        let userPasswordExportSecret: string | undefined;
 
         if (args.siteId) {
           const site = await ctx.runQuery(
@@ -137,10 +150,20 @@ export const testSiteConnection = action({
           wooKey = await decryptStoredSecret(site?.wooConsumerKey);
           wooSecret = await decryptStoredSecret(site?.wooConsumerSecret);
           wooAuthMode = (site?.wooAuthMode ?? "shared") as "shared" | "separate";
+          userPasswordExportPath =
+            site?.userPasswordExportPath ||
+            (site?.userPasswordExportSecret ? DEFAULT_USER_PASSWORD_EXPORT_PATH : undefined);
+          userPasswordExportSecret = await decryptStoredSecret(site?.userPasswordExportSecret);
         } else {
           wooKey = args.wooConsumerKey?.trim() || undefined;
           wooSecret = args.wooConsumerSecret?.trim() || undefined;
           wooAuthMode = args.wooAuthMode ?? "shared";
+          userPasswordExportPath =
+            args.userPasswordExportPath?.trim() ||
+            (args.userPasswordExportSecret?.trim()
+              ? DEFAULT_USER_PASSWORD_EXPORT_PATH
+              : undefined);
+          userPasswordExportSecret = args.userPasswordExportSecret?.trim() || undefined;
         }
 
         const adapterConfig = {
@@ -167,8 +190,27 @@ export const testSiteConnection = action({
           }
         }
 
+        const credentialCapabilities = {
+          userPasswordExportEndpointConfigured: Boolean(
+            userPasswordExportPath && userPasswordExportSecret,
+          ),
+          userPasswordExportEndpointDetected: false,
+        };
+
+        if (userPasswordExportPath && userPasswordExportSecret) {
+          const userDigestProbe = await testWPUserPasswordDigestEndpoint(
+            credentials,
+            userPasswordExportPath,
+            userPasswordExportSecret,
+          );
+          credentialCapabilities.userPasswordExportEndpointDetected = userDigestProbe.success;
+        }
+
         // Use the deep probe results instead of defaults
-        fullCapabilities = fullCaps;
+        fullCapabilities = {
+          ...fullCaps,
+          ...credentialCapabilities,
+        };
       } catch {
         // Fall back to basic capabilities on any failure
       }

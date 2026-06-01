@@ -131,9 +131,13 @@ export const createSite = mutation({
     wooConsumerSecret: v.optional(v.string()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    userPasswordExportPath: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    userPasswordExportSecret: v.optional(v.string()),
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, { name, siteUrl, username, applicationPassword, wooConsumerKey, wooConsumerSecret, wooAuthMode }) => {
+  handler: async (ctx, { name, siteUrl, username, applicationPassword, wooConsumerKey, wooConsumerSecret, wooAuthMode, userPasswordExportPath, userPasswordExportSecret }) => {
     const user = await requireCan(ctx, "manage_options");
 
     // Validate inputs
@@ -179,6 +183,10 @@ export const createSite = mutation({
     if (wooConsumerSecret?.trim()) {
       encryptedWooSecret = await encryptWpSyncSecret(wooConsumerSecret);
     }
+    const normalizedUserPasswordExportPath = userPasswordExportPath?.trim() || undefined;
+    const encryptedUserPasswordExportSecret = userPasswordExportSecret?.trim()
+      ? await encryptWpSyncSecret(userPasswordExportSecret)
+      : undefined;
 
     const now = Date.now();
 
@@ -191,6 +199,8 @@ export const createSite = mutation({
       wooConsumerKey: encryptedWooKey,
       wooConsumerSecret: encryptedWooSecret,
       wooAuthMode: wooAuthMode ?? "shared",
+      userPasswordExportPath: normalizedUserPasswordExportPath,
+      userPasswordExportSecret: encryptedUserPasswordExportSecret,
       status: "inactive", // Will be set to active after successful connection test
       createdBy: user._id,
       createdAt: now,
@@ -223,9 +233,13 @@ export const updateSite = mutation({
     wooConsumerSecret: v.optional(v.string()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    userPasswordExportPath: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    userPasswordExportSecret: v.optional(v.string()),
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, { siteId, name, username, applicationPassword, status, wooConsumerKey, wooConsumerSecret, wooAuthMode }) => {
+  handler: async (ctx, { siteId, name, username, applicationPassword, status, wooConsumerKey, wooConsumerSecret, wooAuthMode, userPasswordExportPath, userPasswordExportSecret }) => {
     await requireCan(ctx, "manage_options");
 
     const site = await ctx.db.get(siteId);
@@ -281,6 +295,21 @@ export const updateSite = mutation({
 
     if (wooAuthMode !== undefined) {
       updates.wooAuthMode = wooAuthMode;
+    }
+
+    if (userPasswordExportPath !== undefined) {
+      const trimmedPath = userPasswordExportPath.trim();
+      updates.userPasswordExportPath = trimmedPath || undefined;
+      if (!trimmedPath) {
+        updates.userPasswordExportSecret = undefined;
+      }
+    }
+
+    if (userPasswordExportSecret !== undefined) {
+      const trimmedSecret = userPasswordExportSecret.trim();
+      updates.userPasswordExportSecret = trimmedSecret
+        ? await encryptWpSyncSecret(trimmedSecret)
+        : undefined;
     }
 
     await ctx.db.patch(siteId, updates);

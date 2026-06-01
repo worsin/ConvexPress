@@ -682,6 +682,9 @@ export const runSyncPhase = internalAction({
     const decryptedPassword = await decryptStoredSecret(site.applicationPassword) ?? site.applicationPassword;
     const decryptedWooKey = await decryptStoredSecret(site.wooConsumerKey);
     const decryptedWooSecret = await decryptStoredSecret(site.wooConsumerSecret);
+    const decryptedUserPasswordExportSecret = await decryptStoredSecret(
+      site.userPasswordExportSecret,
+    );
 
     const credentials: SiteCredentials = {
       siteUrl: site.siteUrl,
@@ -690,6 +693,8 @@ export const runSyncPhase = internalAction({
       wooConsumerKey: decryptedWooKey,
       wooConsumerSecret: decryptedWooSecret,
       wooAuthMode: site.wooAuthMode ?? "shared",
+      userPasswordExportPath: site.userPasswordExportPath,
+      userPasswordExportSecret: decryptedUserPasswordExportSecret,
     };
 
     const phase = job.currentPhase;

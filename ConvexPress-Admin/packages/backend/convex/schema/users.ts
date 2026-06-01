@@ -127,6 +127,20 @@ export const usersTables = {
     // === WordPress Import Fields ===
     wpUserId: v.optional(v.number()), // Original WordPress user ID
     wpSourceSiteId: v.optional(v.id("wordpressSites")), // Source WordPress site
+    wpCredentialMigrationStatus: v.optional(
+      v.union(
+        v.literal("provisioned"),
+        v.literal("linked_existing"),
+        v.literal("reset_required"),
+        v.literal("unsupported_hash"),
+        v.literal("skipped"),
+        v.literal("failed"),
+      ),
+    ),
+    wpCredentialMigrationReason: v.optional(v.string()),
+    wpCredentialPasswordHasher: v.optional(v.string()),
+    wpCredentialMigratedAt: v.optional(v.number()),
+    wpCredentialMigrationError: v.optional(v.string()),
   })
     .index("by_email", ["email"])
     .index("by_slug", ["slug"])

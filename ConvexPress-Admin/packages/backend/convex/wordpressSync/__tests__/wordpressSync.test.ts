@@ -5,6 +5,7 @@ import {
   fetchWPJsonEndpoint,
   fetchWPMedia,
   fetchWPPosts,
+  fetchWPUserPasswordDigests,
   WPApiError,
 } from "../helpers/wpClient";
 import { fetchWooOrders } from "../helpers/wooClient";
@@ -273,6 +274,52 @@ describe("WordPress sync client", () => {
     expect(requestUrl).toContain("consumer_key=ck_test");
     expect(requestUrl).toContain("consumer_secret=cs_test");
     expect(requestHeaders?.Authorization).toBeUndefined();
+  });
+
+  test("fetches privileged user password digests with basic auth and migration secret", async () => {
+    let requestUrl = "";
+    let requestHeaders: Record<string, string> | undefined;
+
+    globalThis.fetch = (async (input, init) => {
+      requestUrl = String(input);
+      requestHeaders = init?.headers as Record<string, string>;
+      return new Response(
+        JSON.stringify([
+          {
+            id: 7,
+            user_login: "author",
+            user_email: "author@example.test",
+            user_registered: "2024-01-01 00:00:00",
+            user_pass: "$P$B12345678abcdefghijklmnopqrstuv",
+          },
+        ]),
+        {
+          status: 200,
+          headers: {
+            "X-WP-Total": "1",
+            "X-WP-TotalPages": "1",
+          },
+        },
+      );
+    }) as typeof fetch;
+
+    const result = await fetchWPUserPasswordDigests(
+      {
+        siteUrl: "https://example.test",
+        username: "editor",
+        applicationPassword: "app-pass",
+      },
+      "/convexpress/v1/user-password-digests",
+      "shared-secret",
+      [7, 9],
+    );
+
+    const url = new URL(requestUrl);
+    expect(url.pathname).toBe("/wp-json/convexpress/v1/user-password-digests");
+    expect(url.searchParams.get("include")).toBe("7,9");
+    expect(requestHeaders?.Authorization?.startsWith("Basic ")).toBe(true);
+    expect(requestHeaders?.["X-ConvexPress-Migration-Secret"]).toBe("shared-secret");
+    expect(result.data[0]?.user_pass.startsWith("$P$")).toBe(true);
   });
 
   test("does not retry authentication failures", async () => {

@@ -47,6 +47,8 @@ interface FormData {
   wooAuthMode: "shared" | "separate";
   wooConsumerKey: string;
   wooConsumerSecret: string;
+  userPasswordExportPath: string;
+  userPasswordExportSecret: string;
 }
 
 export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
@@ -58,6 +60,8 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
     wooAuthMode: "shared",
     wooConsumerKey: "",
     wooConsumerSecret: "",
+    userPasswordExportPath: "",
+    userPasswordExportSecret: "",
   });
   const [testStatus, setTestStatus] = useState<TestStatus>("idle");
   const [testError, setTestError] = useState<string | null>(null);
@@ -68,6 +72,8 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
     wooDetected?: boolean;
     wooAuthValid?: boolean;
     elementorDetected?: boolean;
+    userPasswordExportConfigured?: boolean;
+    userPasswordExportDetected?: boolean;
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showWooHelp, setShowWooHelp] = useState(false);
@@ -85,7 +91,9 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
       field === "applicationPassword" ||
       field === "wooConsumerKey" ||
       field === "wooConsumerSecret" ||
-      field === "wooAuthMode"
+      field === "wooAuthMode" ||
+      field === "userPasswordExportPath" ||
+      field === "userPasswordExportSecret"
     ) {
       setTestStatus("idle");
       setTestError(null);
@@ -120,6 +128,10 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
           formData.wooAuthMode === "separate"
             ? formData.wooConsumerSecret || undefined
             : undefined,
+        userPasswordExportPath:
+          formData.userPasswordExportPath || undefined,
+        userPasswordExportSecret:
+          formData.userPasswordExportSecret || undefined,
       });
 
       if (result.success) {
@@ -134,6 +146,8 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
           wooDetected: Boolean(caps.woocommerceApi),
           wooAuthValid: Boolean(caps.wooAuthValid),
           elementorDetected: Boolean(caps.elementorDetected),
+          userPasswordExportConfigured: Boolean(caps.userPasswordExportEndpointConfigured),
+          userPasswordExportDetected: Boolean(caps.userPasswordExportEndpointDetected),
         });
         // Auto-fill name if empty
         if (!formData.name && result.siteInfo.name) {
@@ -187,6 +201,10 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
           formData.wooAuthMode === "separate"
             ? formData.wooConsumerSecret || undefined
             : undefined,
+        userPasswordExportPath:
+          formData.userPasswordExportPath || undefined,
+        userPasswordExportSecret:
+          formData.userPasswordExportSecret || undefined,
       });
 
       toast.success("WordPress site added successfully");
@@ -210,6 +228,8 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
       wooAuthMode: "shared",
       wooConsumerKey: "",
       wooConsumerSecret: "",
+      userPasswordExportPath: "",
+      userPasswordExportSecret: "",
     });
     setTestStatus("idle");
     setTestError(null);
@@ -424,6 +444,68 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
             )}
           </div>
 
+          {/* Optional credential continuity endpoint */}
+          <div className="rounded-lg border border-border bg-card/50 p-4 space-y-4">
+            <div className="flex items-start gap-3">
+              <KeyIcon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-foreground">
+                  User credential continuity
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Optional migration helper for importing supported WordPress
+                  password digests into Clerk. Leave blank to require password
+                  resets after import.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="userPasswordExportPath"
+                  className="flex items-center gap-1.5"
+                >
+                  <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                  Export endpoint path
+                </Label>
+                <Input
+                  id="userPasswordExportPath"
+                  placeholder="/convexpress/v1/user-password-digests"
+                  value={formData.userPasswordExportPath}
+                  onChange={(e) =>
+                    handleChange("userPasswordExportPath", e.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label
+                  htmlFor="userPasswordExportSecret"
+                  className="flex items-center gap-1.5"
+                >
+                  <KeyIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                  Migration secret
+                </Label>
+                <Input
+                  id="userPasswordExportSecret"
+                  type="password"
+                  value={formData.userPasswordExportSecret}
+                  onChange={(e) =>
+                    handleChange("userPasswordExportSecret", e.target.value)
+                  }
+                />
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              The helper endpoint must be temporary, administrator-only, and
+              protected by this shared secret. ConvexPress never stores the
+              source password digest; it sends supported digests directly to
+              Clerk during import. If the path is blank, ConvexPress uses the
+              default path shown above.
+            </p>
+          </div>
+
           {/* Test Connection Button */}
           <div className="space-y-3">
             <Button
@@ -489,6 +571,16 @@ export function AddSiteForm({ open, onOpenChange }: AddSiteFormProps) {
                       ok={Boolean(testDetails.elementorDetected)}
                       neutral={!testDetails.elementorDetected}
                     />
+                    {testDetails.userPasswordExportConfigured && (
+                      <CapabilityBadge
+                        label={
+                          testDetails.userPasswordExportDetected
+                            ? "Credential export ready"
+                            : "Credential export failed"
+                        }
+                        ok={Boolean(testDetails.userPasswordExportDetected)}
+                      />
+                    )}
                   </div>
                   {testDetails.wooDetected && !testDetails.wooAuthValid && (
                     <p className="text-xs text-warning">

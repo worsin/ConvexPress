@@ -25,6 +25,9 @@
 - **Product Category System** — imports `product_cat` taxonomy.
 - **Order System** — imports `shop_order` post-type.
 - **Customer System** — imports WP `users` with customer profile.
+- **Auth / Password Management / Clerk** — optional credential continuity
+  imports supported WordPress password digests into Clerk and records
+  reset-required state for users that cannot be migrated directly.
 - **Media System** — imports WP `attachment` post-type + downloads binaries.
 - **Discount System** — imports WooCommerce coupons.
 - **Commerce Subscriptions** — imports WooCommerce Subscriptions (Automattic) where present.
@@ -55,6 +58,10 @@ schema where possible; unmapped fields round-tripped via `rawSourceMeta`).
 - Admin "Sync Job" UI with progress bars and error log.
 - Media binary download + re-upload to Convex Storage.
 - Per-phase settings: skip / run / dry-run.
+- Optional privileged WordPress helper endpoint for `wp_users.user_pass`
+  export, guarded by WP Application Password authentication plus a shared
+  migration secret. This endpoint is temporary and must be removed after the
+  migration.
 - Scheduled re-sync (optional daily cron).
 - **NEW:** Full WooCommerce Product Add-Ons round-trip (per audit — Bundles + Add-Ons currently drop fields).
 - **NEW:** Full WooCommerce coupon round-trip (per audit — Discount System's importer drops several fields).
@@ -119,6 +126,9 @@ importer-field expansions.
 - `wordpressSync.phases.taxonomies.importCategoriesAndTags`
 - `wordpressSync.phases.reconciliation.reconcileAfterImport`
 - `wordpressSync.helpers.wpClient` + `wooClient` — fetchers
+- `wordpressSync.phases.users.provisionImportedUserCredentials` — Clerk
+  provisioning/linking for imported WP users with supported `phpass`/bcrypt
+  digests; reset fallback for unsupported or missing hashes
 - `wordpressSync.helpers.phpUnserialize` — Woo serialized-meta decoder
 - `wordpressSync.helpers.elementor` — Elementor block converter
 

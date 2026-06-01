@@ -202,6 +202,10 @@ export const siteCredentialsValidator = v.object({
   wooConsumerSecret: v.optional(v.string()),
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  userPasswordExportPath: v.optional(v.string()),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  userPasswordExportSecret: v.optional(v.string()),
 });
 
 export interface SiteCredentials {
@@ -211,6 +215,8 @@ export interface SiteCredentials {
   wooConsumerKey?: string;
   wooConsumerSecret?: string;
   wooAuthMode?: "shared" | "separate";
+  userPasswordExportPath?: string;
+  userPasswordExportSecret?: string;
 }
 
 // ─── Import Config ────────────────────────────────────────────────────────
@@ -377,6 +383,9 @@ export const FINDING_CODES = {
   MISSING_RELATIONSHIP_TARGET: "MISSING_RELATIONSHIP_TARGET",
   ELEMENTOR_PARSE_FAILED: "ELEMENTOR_PARSE_FAILED",
   META_ENDPOINT_UNAVAILABLE: "META_ENDPOINT_UNAVAILABLE",
+  USER_PASSWORD_EXPORT_UNAVAILABLE: "USER_PASSWORD_EXPORT_UNAVAILABLE",
+  USER_PASSWORD_HASH_UNSUPPORTED: "USER_PASSWORD_HASH_UNSUPPORTED",
+  CLERK_USER_PROVISIONING_FAILED: "CLERK_USER_PROVISIONING_FAILED",
   UNRESOLVED_MEDIA_URL: "UNRESOLVED_MEDIA_URL",
   MEDIA_REWRITE_APPLIED: "MEDIA_REWRITE_APPLIED",
   ORDER_TOTAL_MISMATCH: "ORDER_TOTAL_MISMATCH",
@@ -410,6 +419,10 @@ export const createSiteArgsValidator = v.object({
   siteUrl: v.string(),
   username: v.string(),
   applicationPassword: v.string(),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  userPasswordExportPath: v.optional(v.string()),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  userPasswordExportSecret: v.optional(v.string()),
 });
 
 // ─── Update Site Args ──────────────────────────────────────────────────────
@@ -424,6 +437,10 @@ export const updateSiteArgsValidator = v.object({
   username: v.optional(v.string()),
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   applicationPassword: v.optional(v.string()),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  userPasswordExportPath: v.optional(v.string()),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  userPasswordExportSecret: v.optional(v.string()),
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   status: v.optional(siteStatusValidator),
 });

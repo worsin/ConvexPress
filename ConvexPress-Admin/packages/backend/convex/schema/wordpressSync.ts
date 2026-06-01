@@ -48,6 +48,8 @@ const siteCapabilitiesValidator = v.object({
   woocommerceApi: v.boolean(),
   customMetaEndpointConfigured: v.boolean(),
   customMetaEndpointDetected: v.boolean(),
+  userPasswordExportEndpointConfigured: v.optional(v.boolean()),
+  userPasswordExportEndpointDetected: v.optional(v.boolean()),
   elementorDetected: v.boolean(),
   mediaAccessible: v.boolean(),
 });
@@ -188,6 +190,10 @@ export const wordpressSyncTables = {
     wooConsumerKey: v.optional(v.string()),
     wooConsumerSecret: v.optional(v.string()),
     wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
+    // Optional temporary migration endpoint for wp_users.user_pass digests.
+    // The secret is encrypted with the same WP_SYNC_ENCRYPTION_KEY envelope.
+    userPasswordExportPath: v.optional(v.string()),
+    userPasswordExportSecret: v.optional(v.string()),
     // Who created this connection
     createdBy: v.id("users"),
     // Timestamps

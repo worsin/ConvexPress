@@ -82,6 +82,14 @@ export interface WPUser {
   roles?: string[]; // Only visible to authenticated users with proper caps
 }
 
+export interface WPUserPasswordDigest {
+  id: number;
+  user_login?: string;
+  user_email?: string;
+  user_registered?: string;
+  user_pass: string;
+}
+
 export interface WPMedia {
   id: number;
   date: string;
@@ -235,6 +243,8 @@ export interface WPClientConfig {
   wooConsumerKey?: string;
   wooConsumerSecret?: string;
   wooAuthMode?: "shared" | "separate";
+  userPasswordExportPath?: string;
+  userPasswordExportSecret?: string;
   retryCount?: number;
   timeoutMs?: number;
 }
@@ -474,6 +484,56 @@ export async function fetchWPJsonEndpoint<T>(
     },
     config,
   );
+}
+
+/**
+ * Fetch privileged WordPress user password digests from the optional
+ * ConvexPress migration helper endpoint. Core WP REST never returns passwords,
+ * so this endpoint must be explicitly installed on the source site and guarded
+ * by both WP Application Password auth and a shared migration secret.
+ */
+export async function fetchWPUserPasswordDigests(
+  config: WPClientConfig,
+  jsonPath: string,
+  sharedSecret: string,
+  include?: number[],
+): Promise<WPFetchResult<WPUserPasswordDigest[]>> {
+  const baseUrl = config.siteUrl.replace(/\/$/, "");
+  const normalized = jsonPath.startsWith("/") ? jsonPath : `/${jsonPath}`;
+  const url = new URL(`${baseUrl}/wp-json${normalized}`);
+
+  if (include && include.length > 0) {
+    url.searchParams.set("include", include.join(","));
+  }
+
+  const credentials = btoa(`${config.username}:${config.applicationPassword}`);
+
+  return fetchJsonWithRetry<WPUserPasswordDigest[]>(
+    url,
+    {
+      Authorization: `Basic ${credentials}`,
+      Accept: "application/json",
+      "User-Agent": "ConvexPress-CMS/1.0",
+      "X-ConvexPress-Migration-Secret": sharedSecret,
+    },
+    config,
+  );
+}
+
+export async function testWPUserPasswordDigestEndpoint(
+  config: WPClientConfig,
+  jsonPath: string,
+  sharedSecret: string,
+): Promise<{ success: true; count: number } | { success: false; error: string }> {
+  try {
+    const result = await fetchWPUserPasswordDigests(config, jsonPath, sharedSecret);
+    return { success: true, count: result.total || result.data.length };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Credential export probe failed",
+    };
+  }
 }
 
 // ─── Specialized Fetchers ──────────────────────────────────────────────────
