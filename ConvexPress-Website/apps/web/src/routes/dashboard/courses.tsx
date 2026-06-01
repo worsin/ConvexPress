@@ -33,6 +33,7 @@ type LearningCourse = {
   completedCount: number;
   nextNodeId?: string | null;
   certificateSerial?: string;
+  certificatePdfUrl?: string;
 };
 
 function DashboardCoursesPage() {
@@ -139,14 +140,26 @@ function CourseCard({ course }: { course: LearningCourse }) {
             ) : null}
           </div>
           {course.certificateSerial ? (
-            <Link
-              to="/certificates/$serial"
-              params={{ serial: course.certificateSerial }}
-              className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline"
-            >
-              <Award className="size-3.5" aria-hidden="true" />
-              Certificate
-            </Link>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <Link
+                to="/certificates/$serial"
+                params={{ serial: course.certificateSerial }}
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                <Award className="size-3.5" aria-hidden="true" />
+                Certificate
+              </Link>
+              {course.certificatePdfUrl ? (
+                <a
+                  href={course.certificatePdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  Download PDF
+                </a>
+              ) : null}
+            </div>
           ) : null}
         </div>
 

@@ -43,7 +43,9 @@ export const getMyIssue = query({
       .query("lms_certificate_issues")
       .withIndex("by_user_course", (q) => q.eq("userId", userId).eq("courseId", args.courseId))
       .first();
-    return issue?.status === "issued" ? issue : null;
+    if (issue?.status !== "issued") return null;
+    const pdfUrl = await resolveIssuePdfUrl(ctx, issue);
+    return { ...issue, pdfUrl: pdfUrl ?? undefined };
   },
 });
 
@@ -62,10 +64,7 @@ export const listIssues = query({
     for (const issue of issues) {
       const user = await ctx.db.get(issue.userId);
       const course = await ctx.db.get(issue.courseId);
-      const pdfMedia = issue.pdfMediaId ? await ctx.db.get(issue.pdfMediaId) : null;
-      const pdfUrl = pdfMedia?.storageId
-        ? await ctx.storage.getUrl(pdfMedia.storageId)
-        : pdfMedia?.url;
+      const pdfUrl = await resolveIssuePdfUrl(ctx, issue);
       rows.push({
         ...issue,
         learnerName: user?.displayName ?? user?.email ?? "Unknown",
@@ -95,10 +94,7 @@ export const verifyBySerial = query({
     const course = await ctx.db.get(issue.courseId);
     const certificate = await ctx.db.get(issue.certificateId);
     const completion = await findCompletion(ctx, issue.userId, issue.courseId);
-    const pdfMedia = issue.pdfMediaId ? await ctx.db.get(issue.pdfMediaId) : null;
-    const pdfUrl = pdfMedia?.storageId
-      ? await ctx.storage.getUrl(pdfMedia.storageId)
-      : pdfMedia?.url;
+    const pdfUrl = await resolveIssuePdfUrl(ctx, issue);
     const learnerName = user?.displayName ?? user?.email ?? "Unknown";
     const courseTitle = course?.title ?? "Unknown course";
     const certificateTitle = certificate?.title ?? "Certificate of Completion";
@@ -131,4 +127,14 @@ async function findCompletion(ctx: any, userId: string, courseId: string) {
     .withIndex("by_user", (q: any) => q.eq("userId", userId))
     .collect();
   return completions.find((completion: any) => completion.courseId === courseId) ?? null;
+}
+
+async function resolveIssuePdfUrl(ctx: any, issue: { pdfMediaId?: string }) {
+  if (!issue.pdfMediaId) return null;
+  const pdfMedia = await ctx.db.get(issue.pdfMediaId);
+  if (!pdfMedia) return null;
+  if (pdfMedia.storageId && ctx.storage?.getUrl) {
+    return await ctx.storage.getUrl(pdfMedia.storageId);
+  }
+  return pdfMedia.url ?? null;
 }

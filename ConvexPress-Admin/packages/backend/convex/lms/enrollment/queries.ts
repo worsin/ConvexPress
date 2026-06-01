@@ -147,6 +147,10 @@ export const listMyLearning = query({
           q.eq("userId", me._id).eq("courseId", enrollment.courseId),
         )
         .first();
+      const certificatePdfUrl =
+        certificateIssue?.status === "issued"
+          ? await resolveCertificatePdfUrl(ctx, certificateIssue)
+          : null;
 
       rows.push({
         enrollmentId: enrollment._id,
@@ -163,9 +167,20 @@ export const listMyLearning = query({
         nextNodeId: next?._id ?? orderedLessons[0]?._id ?? null,
         certificateSerial:
           certificateIssue?.status === "issued" ? certificateIssue.serial : undefined,
+        certificatePdfUrl: certificatePdfUrl ?? undefined,
       });
     }
 
     return rows.sort((a, b) => b.enrolledAt - a.enrolledAt);
   },
 });
+
+async function resolveCertificatePdfUrl(ctx: any, issue: { pdfMediaId?: string }) {
+  if (!issue.pdfMediaId) return null;
+  const media = await ctx.db.get(issue.pdfMediaId);
+  if (!media) return null;
+  if (media.storageId && ctx.storage?.getUrl) {
+    return await ctx.storage.getUrl(media.storageId);
+  }
+  return media.url ?? null;
+}

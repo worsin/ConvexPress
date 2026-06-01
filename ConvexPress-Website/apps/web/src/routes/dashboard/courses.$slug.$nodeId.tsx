@@ -85,6 +85,7 @@ type NodeProgress = {
 type CertificateIssue = {
   serial: string;
   issuedAt: number;
+  pdfUrl?: string;
 };
 
 function DashboardCoursePlayerPage() {
@@ -426,13 +427,25 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
                 </div>
               </div>
               {myIssue ? (
-                <Link
-                  to="/certificates/$serial"
-                  params={{ serial: myIssue.serial }}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-muted"
-                >
-                  View certificate
-                </Link>
+                <div className="flex flex-wrap gap-2">
+                  {myIssue.pdfUrl ? (
+                    <a
+                      href={myIssue.pdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+                    >
+                      Download PDF
+                    </a>
+                  ) : null}
+                  <Link
+                    to="/certificates/$serial"
+                    params={{ serial: myIssue.serial }}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-muted"
+                  >
+                    View certificate
+                  </Link>
+                </div>
               ) : (
                 <button
                   type="button"

@@ -3,10 +3,13 @@ import { describe, expect, test } from "bun:test";
 
 import type { Id } from "../../_generated/dataModel";
 import { issueCertificate, reissueIssue } from "../certificates/mutations";
-import { verifyBySerial } from "../certificates/queries";
+import { getMyIssue, verifyBySerial } from "../certificates/queries";
 import { update as updateCourse, publish as publishCourse } from "../courses/mutations";
 import { enroll } from "../enrollment/mutations";
-import { canAccessCourse as queryCanAccessCourse } from "../enrollment/queries";
+import {
+  canAccessCourse as queryCanAccessCourse,
+  listMyLearning,
+} from "../enrollment/queries";
 import { getLessonForPlayer } from "../lessons/queries";
 import { getCourseTree, getNode } from "../nodes/queries";
 import {
@@ -1107,6 +1110,78 @@ describe("LMS learner runtime mutations", () => {
     expect(result.certificateText).toContain("Pat Learner completed Certificate Track");
     expect(result.certificateText).toContain("42 points");
     expect(result.certificateText).toContain("Serial CERT-ALIAS-123456");
+  });
+
+  test("learner certificate queries expose stored PDF download URLs", async () => {
+    const tables = baseTables({
+      lms_courses: [
+        course("course_learner_pdf", {
+          accessMode: "free",
+          title: "Learner PDF Course",
+        }),
+      ],
+      lms_nodes: [
+        node("topic_learner_pdf", "course_learner_pdf", "topic", { position: 1 }),
+        node("lesson_learner_pdf", "course_learner_pdf", "lesson", {
+          parentId: "topic_learner_pdf",
+          position: 1,
+        }),
+      ],
+      lms_enrollments: [
+        {
+          _id: "enrollment_learner_pdf",
+          userId: "user_learner",
+          courseId: "course_learner_pdf",
+          source: "manual",
+          status: "active",
+          enrolledAt: now,
+        },
+      ],
+      lms_progress: [
+        {
+          _id: "progress_learner_pdf",
+          userId: "user_learner",
+          courseId: "course_learner_pdf",
+          nodeId: "lesson_learner_pdf",
+          completed: true,
+          completedAt: now,
+        },
+      ],
+      lms_certificate_issues: [
+        {
+          _id: "issue_learner_pdf",
+          userId: "user_learner",
+          courseId: "course_learner_pdf",
+          certificateId: "certificate_learner_pdf",
+          serial: "CERT-LEARNER-PDF",
+          pdfMediaId: "media_learner_pdf",
+          issuedAt: now,
+          status: "issued",
+        },
+      ],
+      media: [
+        {
+          _id: "media_learner_pdf",
+          url: "https://example.com/certificates/CERT-LEARNER-PDF.pdf",
+        },
+      ],
+    });
+
+    await expect(
+      (getMyIssue as any)._handler(createCtx(tables), {
+        courseId: id("course_learner_pdf"),
+      }),
+    ).resolves.toMatchObject({
+      serial: "CERT-LEARNER-PDF",
+      pdfUrl: "https://example.com/certificates/CERT-LEARNER-PDF.pdf",
+    });
+    await expect((listMyLearning as any)._handler(createCtx(tables))).resolves.toEqual([
+      expect.objectContaining({
+        slug: "course_learner_pdf",
+        certificateSerial: "CERT-LEARNER-PDF",
+        certificatePdfUrl: "https://example.com/certificates/CERT-LEARNER-PDF.pdf",
+      }),
+    ]);
   });
 
   test("admins can explicitly reissue revoked certificate records", async () => {

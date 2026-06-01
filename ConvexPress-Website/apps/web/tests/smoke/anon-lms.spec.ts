@@ -32,6 +32,43 @@ test("lms first published course landing [P1]", async ({ page }) => {
   });
 });
 
+test("lms preview lesson deep-link [P1]", async ({ page }) => {
+  await page.goto("/courses", { waitUntil: "domcontentloaded" });
+  const courseLinks = page.locator('a[href^="/courses/"]');
+  await Promise.race([
+    courseLinks.first().waitFor({ state: "visible", timeout: 20_000 }),
+    page.getByText(/No courses are published yet/i).waitFor({
+      state: "visible",
+      timeout: 20_000,
+    }),
+  ]).catch(() => undefined);
+  test.skip((await courseLinks.count()) === 0, "No published LMS courses");
+
+  await courseLinks.first().click();
+  await expect(page).toHaveURL(/\/courses\/[^/?#]+/, { timeout: 20_000 });
+
+  const previewRows = page.locator("li", { hasText: /Preview/i });
+  await Promise.race([
+    previewRows.first().waitFor({ state: "visible", timeout: 20_000 }),
+    page.getByText(/Curriculum is being prepared/i).waitFor({
+      state: "visible",
+      timeout: 20_000,
+    }),
+  ]).catch(() => undefined);
+  test.skip((await previewRows.count()) === 0, "No preview LMS lessons");
+
+  await previewRows.first().locator('a[href^="/courses/"]').click();
+  await expect(page).toHaveURL(/\/courses\/[^/?#]+\/[^/?#]+/, {
+    timeout: 20_000,
+  });
+  await expect(page.getByText(/Preview lesson/i)).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(page.getByRole("heading").first()).toBeVisible({
+    timeout: 20_000,
+  });
+});
+
 test("lms certificate verification [P1]", async ({ page }) => {
   await smokeRoute(page, "/certificates/verify", {
     expectHeading: /Verify certificate/i,
@@ -45,5 +82,11 @@ test("lms certificate verification [P1]", async ({ page }) => {
   });
   await expect(page.getByText(/Certificate not found/i)).toBeVisible({
     timeout: 20_000,
+  });
+});
+
+test("lms certificate detail [P1]", async ({ page }) => {
+  await smokeRoute(page, "/certificates/CERT-NOT-A-REAL-SERIAL", {
+    expectHeading: /Certificate not found/i,
   });
 });
