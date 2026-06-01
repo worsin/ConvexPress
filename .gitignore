@@ -77,9 +77,12 @@ Thumbs.db
 /CLAUDE_*.md
 /TYPECHECK_AND_AUDIT_REMAINING.md
 
-# Convex-generated codegen output that should regenerate locally
+# Convex-generated codegen output. Keep the Admin backend bindings tracked so
+# CI can typecheck without a deployment key; ignore other generated copies.
 **/_generated/
 **/convex/_generated/
+!ConvexPress-Admin/packages/backend/convex/_generated/
+!ConvexPress-Admin/packages/backend/convex/_generated/**
 
 # Local Claude Code workspace state
 .claude/projects/
