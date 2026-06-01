@@ -103,6 +103,16 @@ describe("notification helpers", () => {
         userId: "learner_1",
       },
     );
+    const enrollmentExpired = buildNotificationFromEvent(
+      "lms.enrollment_expired",
+      NOTIFICATION_KEYS.LMS_ENROLLMENT_EXPIRED,
+      {
+        courseId: "course_1",
+        courseTitle: "Mastering ConvexPress",
+        courseSlug: "mastering-convexpress",
+        userId: "learner_1",
+      },
+    );
     const coursePublished = buildNotificationFromEvent(
       "lms.course_published",
       NOTIFICATION_KEYS.LMS_COURSE_PUBLISHED,
@@ -122,6 +132,11 @@ describe("notification helpers", () => {
       message: 'Your certificate for "Mastering ConvexPress" is ready.',
       actionUrl: "/certificates/CERT-ABC-123",
       groupKey: "lms.certificate_issued:issue_1",
+    });
+    expect(enrollmentExpired).toMatchObject({
+      message: 'Your access to "Mastering ConvexPress" has expired.',
+      actionUrl: "/courses/mastering-convexpress",
+      groupKey: "lms.enrollment_expired:course_1:learner_1",
     });
     expect(coursePublished).toMatchObject({
       message: 'Your course "Mastering ConvexPress" has been published.',

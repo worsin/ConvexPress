@@ -7,12 +7,13 @@
  * URL patterns:
  *   /api/sitemap-posts-1.xml
  *   /api/sitemap-pages-1.xml
+ *   /api/sitemap-courses-1.xml
  *   /api/sitemap-categories-1.xml
  *   /api/sitemap-tags-1.xml
  *   /api/sitemap-authors-1.xml
  *
  * Validates:
- *   - type must be one of: posts, pages, categories, tags, authors
+ *   - type must be one of: posts, pages, courses, categories, tags, authors
  *   - page must be >= 1
  *
  * Headers:
@@ -29,11 +30,11 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convexpress-website/backend/generated/api";
 
 /** Valid sitemap content types */
-type SitemapType = "posts" | "pages" | "categories" | "tags" | "authors";
+type SitemapType = "posts" | "pages" | "courses" | "categories" | "tags" | "authors";
 
 const CONVEX_URL = process.env.VITE_CONVEX_URL || "";
 
-const VALID_TYPES = new Set(["posts", "pages", "categories", "tags", "authors"]);
+const VALID_TYPES = new Set(["posts", "pages", "courses", "categories", "tags", "authors"]);
 
 export const Route = createFileRoute("/api/sitemap-$type-$page/xml")({
   server: {

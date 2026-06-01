@@ -110,6 +110,7 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
       },
       { id: "lms-catalog", label: "Catalog", to: "/lms/catalog" },
       { id: "lms-mylearning", label: "My Learning", to: "/lms/my-courses" },
+      { id: "lms-enrollments", label: "Enrollments", to: "/lms/enrollments", capability: "lms.enroll.manage" },
       { id: "lms-certificates", label: "Certificates", to: "/lms/certificates", capability: "lms.certificate.manage" },
       { id: "lms-settings", label: "Settings", to: "/lms/settings", capability: "lms.settings.manage" },
     ],

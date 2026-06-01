@@ -6,7 +6,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery } from "../../_generated/server";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
-import { normalizeOutline, outlineStats, textToDoc } from "./helpers";
+import { cleanGeneratedLessonText, normalizeOutline, outlineStats, textToDoc } from "./helpers";
 import { requireCourseAuthorOrEditor, requireNodeCourseAuthorOrEditor } from "../access";
 
 export const assertCourseGenerationAccess = internalQuery({
@@ -182,8 +182,9 @@ export const writeLessonBody = internalMutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Lesson generation job not found" });
     }
     const now = Date.now();
+    const bodyText = cleanGeneratedLessonText(args.bodyText);
     await ctx.db.patch(args.nodeId, {
-      bodyDoc: textToDoc(args.bodyText),
+      bodyDoc: textToDoc(bodyText),
       updatedAt: now,
     });
     await ctx.db.insert("lms_ai_generations", {
@@ -241,7 +242,7 @@ export const storeLessonBodyDraft = internalMutation({
       prompt: args.prompt,
       briefJson: {
         ...(generation.briefJson as Record<string, unknown> | undefined),
-        generatedBody: args.bodyText,
+        generatedBody: bodyText,
       },
       sourcesJson: args.sourcesJson ?? generation.sourcesJson,
       reviewStatus: "unreviewed",

@@ -99,6 +99,7 @@ import { Route as AuthenticatedAdminMediaUploadRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminLmsVerifyRouteImport } from './routes/_authenticated/_admin/lms/verify'
 import { Route as AuthenticatedAdminLmsSettingsRouteImport } from './routes/_authenticated/_admin/lms/settings'
 import { Route as AuthenticatedAdminLmsMyCoursesRouteImport } from './routes/_authenticated/_admin/lms/my-courses'
+import { Route as AuthenticatedAdminLmsEnrollmentsRouteImport } from './routes/_authenticated/_admin/lms/enrollments'
 import { Route as AuthenticatedAdminLmsCatalogRouteImport } from './routes/_authenticated/_admin/lms/catalog'
 import { Route as AuthenticatedAdminLayoutsNewRouteImport } from './routes/_authenticated/_admin/layouts/new'
 import { Route as AuthenticatedAdminLayoutsAssignRouteImport } from './routes/_authenticated/_admin/layouts/assign'
@@ -786,6 +787,12 @@ const AuthenticatedAdminLmsMyCoursesRoute =
   AuthenticatedAdminLmsMyCoursesRouteImport.update({
     id: '/my-courses',
     path: '/my-courses',
+    getParentRoute: () => AuthenticatedAdminLmsRoute,
+  } as any)
+const AuthenticatedAdminLmsEnrollmentsRoute =
+  AuthenticatedAdminLmsEnrollmentsRouteImport.update({
+    id: '/enrollments',
+    path: '/enrollments',
     getParentRoute: () => AuthenticatedAdminLmsRoute,
   } as any)
 const AuthenticatedAdminLmsCatalogRoute =
@@ -1770,6 +1777,7 @@ export interface FileRoutesByFullPath {
   '/layouts/assign': typeof AuthenticatedAdminLayoutsAssignRoute
   '/layouts/new': typeof AuthenticatedAdminLayoutsNewRoute
   '/lms/catalog': typeof AuthenticatedAdminLmsCatalogRoute
+  '/lms/enrollments': typeof AuthenticatedAdminLmsEnrollmentsRoute
   '/lms/my-courses': typeof AuthenticatedAdminLmsMyCoursesRoute
   '/lms/settings': typeof AuthenticatedAdminLmsSettingsRoute
   '/lms/verify': typeof AuthenticatedAdminLmsVerifyRoute
@@ -1992,6 +2000,7 @@ export interface FileRoutesByTo {
   '/layouts/assign': typeof AuthenticatedAdminLayoutsAssignRoute
   '/layouts/new': typeof AuthenticatedAdminLayoutsNewRoute
   '/lms/catalog': typeof AuthenticatedAdminLmsCatalogRoute
+  '/lms/enrollments': typeof AuthenticatedAdminLmsEnrollmentsRoute
   '/lms/my-courses': typeof AuthenticatedAdminLmsMyCoursesRoute
   '/lms/settings': typeof AuthenticatedAdminLmsSettingsRoute
   '/lms/verify': typeof AuthenticatedAdminLmsVerifyRoute
@@ -2230,6 +2239,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/layouts/assign': typeof AuthenticatedAdminLayoutsAssignRoute
   '/_authenticated/_admin/layouts/new': typeof AuthenticatedAdminLayoutsNewRoute
   '/_authenticated/_admin/lms/catalog': typeof AuthenticatedAdminLmsCatalogRoute
+  '/_authenticated/_admin/lms/enrollments': typeof AuthenticatedAdminLmsEnrollmentsRoute
   '/_authenticated/_admin/lms/my-courses': typeof AuthenticatedAdminLmsMyCoursesRoute
   '/_authenticated/_admin/lms/settings': typeof AuthenticatedAdminLmsSettingsRoute
   '/_authenticated/_admin/lms/verify': typeof AuthenticatedAdminLmsVerifyRoute
@@ -2467,6 +2477,7 @@ export interface FileRouteTypes {
     | '/layouts/assign'
     | '/layouts/new'
     | '/lms/catalog'
+    | '/lms/enrollments'
     | '/lms/my-courses'
     | '/lms/settings'
     | '/lms/verify'
@@ -2689,6 +2700,7 @@ export interface FileRouteTypes {
     | '/layouts/assign'
     | '/layouts/new'
     | '/lms/catalog'
+    | '/lms/enrollments'
     | '/lms/my-courses'
     | '/lms/settings'
     | '/lms/verify'
@@ -2926,6 +2938,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/layouts/assign'
     | '/_authenticated/_admin/layouts/new'
     | '/_authenticated/_admin/lms/catalog'
+    | '/_authenticated/_admin/lms/enrollments'
     | '/_authenticated/_admin/lms/my-courses'
     | '/_authenticated/_admin/lms/settings'
     | '/_authenticated/_admin/lms/verify'
@@ -3734,6 +3747,13 @@ declare module '@tanstack/react-router' {
       path: '/my-courses'
       fullPath: '/lms/my-courses'
       preLoaderRoute: typeof AuthenticatedAdminLmsMyCoursesRouteImport
+      parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
+    '/_authenticated/_admin/lms/enrollments': {
+      id: '/_authenticated/_admin/lms/enrollments'
+      path: '/enrollments'
+      fullPath: '/lms/enrollments'
+      preLoaderRoute: typeof AuthenticatedAdminLmsEnrollmentsRouteImport
       parentRoute: typeof AuthenticatedAdminLmsRoute
     }
     '/_authenticated/_admin/lms/catalog': {
@@ -5203,6 +5223,7 @@ const AuthenticatedAdminKbRouteWithChildren =
 
 interface AuthenticatedAdminLmsRouteChildren {
   AuthenticatedAdminLmsCatalogRoute: typeof AuthenticatedAdminLmsCatalogRoute
+  AuthenticatedAdminLmsEnrollmentsRoute: typeof AuthenticatedAdminLmsEnrollmentsRoute
   AuthenticatedAdminLmsMyCoursesRoute: typeof AuthenticatedAdminLmsMyCoursesRoute
   AuthenticatedAdminLmsSettingsRoute: typeof AuthenticatedAdminLmsSettingsRoute
   AuthenticatedAdminLmsVerifyRoute: typeof AuthenticatedAdminLmsVerifyRoute
@@ -5221,6 +5242,7 @@ interface AuthenticatedAdminLmsRouteChildren {
 
 const AuthenticatedAdminLmsRouteChildren: AuthenticatedAdminLmsRouteChildren = {
   AuthenticatedAdminLmsCatalogRoute: AuthenticatedAdminLmsCatalogRoute,
+  AuthenticatedAdminLmsEnrollmentsRoute: AuthenticatedAdminLmsEnrollmentsRoute,
   AuthenticatedAdminLmsMyCoursesRoute: AuthenticatedAdminLmsMyCoursesRoute,
   AuthenticatedAdminLmsSettingsRoute: AuthenticatedAdminLmsSettingsRoute,
   AuthenticatedAdminLmsVerifyRoute: AuthenticatedAdminLmsVerifyRoute,

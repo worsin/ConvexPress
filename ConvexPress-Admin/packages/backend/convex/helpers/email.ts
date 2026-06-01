@@ -117,6 +117,7 @@ export const EMAIL_TEMPLATES = {
   // LMS
   LMS_COURSE_ENROLLED: "lms-course-enrolled",
   LMS_COURSE_UNENROLLED: "lms-course-unenrolled",
+  LMS_ENROLLMENT_EXPIRED: "lms-enrollment-expired",
   LMS_COURSE_COMPLETED: "lms-course-completed",
   LMS_CERTIFICATE_ISSUED: "lms-certificate-issued",
   LMS_CERTIFICATE_REVOKED: "lms-certificate-revoked",

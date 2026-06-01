@@ -42,6 +42,16 @@ import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { isSitemapEnabled } from "./helpers/settings";
 
+async function markCoursesStale(ctx: any) {
+  if (!(await isSitemapEnabled(ctx))) return;
+
+  await ctx.scheduler.runAfter(
+    0,
+    internal.sitemaps.mutations.markStale,
+    { types: ["courses"] },
+  );
+}
+
 // ─── Post Event Subscribers ─────────────────────────────────────────────────
 
 /**
@@ -306,6 +316,23 @@ export const onPageDeleted = internalMutation({
       { types: ["pages"] },
     );
   },
+});
+
+// ─── LMS Course Event Subscribers ───────────────────────────────────────────
+
+/**
+ * Handle LMS course lifecycle/content events that can change public course URLs
+ * or remove course landing pages from search-engine discovery.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onLmsCourseChanged = internalMutation({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    eventId: v.optional(v.id("events")),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    payload: v.optional(v.string()),
+  },
+  handler: markCoursesStale,
 });
 
 // ─── Taxonomy Event Subscribers ─────────────────────────────────────────────

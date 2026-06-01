@@ -5,7 +5,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
-import { GraduationCap, BookOpen, Award, Settings, Compass } from "lucide-react";
+import { Award, BookOpen, Compass, GraduationCap, Settings, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/_admin/lms/")({
@@ -15,6 +15,7 @@ export const Route = createFileRoute("/_authenticated/_admin/lms/")({
 const CARDS = [
   { to: "/lms/courses" as const, icon: BookOpen, title: "Courses", desc: "Create and manage courses, topics, and lessons.", capability: "lms.course.view" },
   { to: "/lms/catalog" as const, icon: Compass, title: "Catalog", desc: "Browse published courses as a learner." },
+  { to: "/lms/enrollments" as const, icon: Users, title: "Enrollments", desc: "Search learner access and revoke enrollments.", capability: "lms.enroll.manage" },
   { to: "/lms/certificates" as const, icon: Award, title: "Certificates", desc: "Design completion certificate templates.", capability: "lms.certificate.manage" },
   { to: "/lms/settings" as const, icon: Settings, title: "Settings", desc: "Configure LMS defaults and AI generation.", capability: "lms.settings.manage" },
 ];
@@ -47,7 +48,7 @@ function LMSOverview() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {visibleCards.map((card) => (
           <Link
             key={card.title}

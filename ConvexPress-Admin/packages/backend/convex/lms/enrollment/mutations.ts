@@ -13,6 +13,10 @@ import { canUserAccessCourse } from "../access";
 const SELF_ENROLL_RATE_WINDOW_MS = 10 * 60 * 1000;
 const SELF_ENROLL_RATE_LIMIT = 20;
 
+function isCurrentlyActiveEnrollment(enrollment: { status?: string; expiresAt?: number | null }, now: number) {
+  return enrollment.status === "active" && (!enrollment.expiresAt || enrollment.expiresAt > now);
+}
+
 export const enroll = mutation({
   args: {
     courseId: v.id("lms_courses"),
@@ -47,25 +51,12 @@ export const enroll = mutation({
       course.accessDurationDays && course.accessDurationDays > 0
         ? now + course.accessDurationDays * 24 * 60 * 60 * 1000
         : undefined;
+    const selfEnrollment = !args.userId || args.userId === me._id;
+    const existingIsCurrentlyActive = existing
+      ? isCurrentlyActiveEnrollment(existing, now)
+      : false;
 
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        status: "active",
-        source: args.source ?? existing.source,
-        expiresAt,
-        updatedAt: now,
-      });
-      await emitEvent(ctx, LMS_EVENTS.ENROLLED, SYSTEM.LMS, {
-        courseId: args.courseId,
-        userId: targetUserId,
-        enrollmentId: existing._id,
-        source: args.source ?? existing.source,
-        reactivated: true,
-      });
-      return existing._id;
-    }
-
-    if (!args.userId || args.userId === me._id) {
+    if (selfEnrollment) {
       const decision = await canUserAccessCourse(ctx, { courseId: args.courseId, userId: me._id });
       const selfEnrollable = decision.allowed || decision.reason === "free" || decision.reason === "open";
       if (!selfEnrollable) {
@@ -77,31 +68,55 @@ export const enroll = mutation({
               : "You do not have access to enroll in this course.",
         });
       }
+      if (existingIsCurrentlyActive) return existing!._id;
 
       const recentActiveEnrollments = await ctx.db
         .query("lms_enrollments")
         .withIndex("by_user", (q) => q.eq("userId", me._id).eq("status", "active"))
         .collect();
-      const recentCount = recentActiveEnrollments.filter(
-        (row) => now - (row.createdAt ?? row.enrolledAt ?? 0) <= SELF_ENROLL_RATE_WINDOW_MS,
-      ).length;
+      const recentCount = recentActiveEnrollments
+        .filter((row) => isCurrentlyActiveEnrollment(row, now))
+        .filter(
+          (row) => now - (row.createdAt ?? row.enrolledAt ?? 0) <= SELF_ENROLL_RATE_WINDOW_MS,
+        ).length;
       if (recentCount >= SELF_ENROLL_RATE_LIMIT) {
         throw new ConvexError({
           code: "RATE_LIMITED",
           message: "Too many enrollments in a short period. Try again later.",
         });
       }
+    } else if (existingIsCurrentlyActive) {
+      return existing!._id;
     }
 
     // Seat limit.
-    if (course.seatLimit && course.seatLimit > 0) {
+    if (!existingIsCurrentlyActive && course.seatLimit && course.seatLimit > 0) {
       const active = await ctx.db
         .query("lms_enrollments")
         .withIndex("by_course", (q) => q.eq("courseId", args.courseId).eq("status", "active"))
         .collect();
-      if (active.length >= course.seatLimit) {
+      const activeCount = active.filter((row) => isCurrentlyActiveEnrollment(row, now)).length;
+      if (activeCount >= course.seatLimit) {
         throw new ConvexError({ code: "SEAT_LIMIT", message: "Course is full" });
       }
+    }
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        status: "active",
+        source: args.source ?? existing.source,
+        enrolledAt: existingIsCurrentlyActive ? existing.enrolledAt : now,
+        expiresAt,
+        updatedAt: now,
+      });
+      await emitEvent(ctx, LMS_EVENTS.ENROLLED, SYSTEM.LMS, {
+        courseId: args.courseId,
+        userId: targetUserId,
+        enrollmentId: existing._id,
+        source: args.source ?? existing.source,
+        reactivated: true,
+      });
+      return existing._id;
     }
 
     const enrollmentId = await ctx.db.insert("lms_enrollments", {
@@ -157,6 +172,8 @@ export const enrollByEmail = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCan(ctx, "lms.enroll.manage");
+    const course = await ctx.db.get(args.courseId);
+    if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
     const user = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email.trim().toLowerCase()))
@@ -165,20 +182,43 @@ export const enrollByEmail = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "No user with that email" });
     }
     const now = Date.now();
+    const expiresAt =
+      course.accessDurationDays && course.accessDurationDays > 0
+        ? now + course.accessDurationDays * 24 * 60 * 60 * 1000
+        : undefined;
     const existing = await ctx.db
       .query("lms_enrollments")
       .withIndex("by_user_course", (q) =>
         q.eq("userId", user._id).eq("courseId", args.courseId),
       )
       .first();
+    const existingIsCurrentlyActive = existing
+      ? isCurrentlyActiveEnrollment(existing, now)
+      : false;
+    if (!existingIsCurrentlyActive && course.seatLimit && course.seatLimit > 0) {
+      const active = await ctx.db
+        .query("lms_enrollments")
+        .withIndex("by_course", (q) => q.eq("courseId", args.courseId).eq("status", "active"))
+        .collect();
+      const activeCount = active.filter((row) => isCurrentlyActiveEnrollment(row, now)).length;
+      if (activeCount >= course.seatLimit) {
+        throw new ConvexError({ code: "SEAT_LIMIT", message: "Course is full" });
+      }
+    }
     if (existing) {
-      await ctx.db.patch(existing._id, { status: "active", updatedAt: now });
+      await ctx.db.patch(existing._id, {
+        status: "active",
+        source: "manual",
+        enrolledAt: existingIsCurrentlyActive ? existing.enrolledAt : now,
+        expiresAt,
+        updatedAt: now,
+      });
       await emitEvent(ctx, LMS_EVENTS.ENROLLED, SYSTEM.LMS, {
         courseId: args.courseId,
         userId: user._id,
         enrollmentId: existing._id,
         source: "manual",
-        reactivated: true,
+        reactivated: !existingIsCurrentlyActive,
       });
       return existing._id;
     }
@@ -187,6 +227,7 @@ export const enrollByEmail = mutation({
       courseId: args.courseId,
       source: "manual",
       enrolledAt: now,
+      expiresAt,
       status: "active",
       createdAt: now,
       updatedAt: now,

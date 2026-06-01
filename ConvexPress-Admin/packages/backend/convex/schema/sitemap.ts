@@ -33,6 +33,7 @@ export const sitemapTypeValidator = v.union(
   v.literal("index"),
   v.literal("posts"),
   v.literal("pages"),
+  v.literal("courses"),
   v.literal("categories"),
   v.literal("tags"),
   v.literal("authors"),

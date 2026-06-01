@@ -58,6 +58,15 @@ type CourseProgress = {
   completedCount: number;
   completedNodeIds: string[];
   nextNodeId: string | null;
+  completionRedirectUrl?: string | null;
+};
+
+type UnlockState = {
+  nodeId: string;
+  allowed: boolean;
+  reason: string;
+  requiresLogin?: boolean;
+  unlockAt?: number | null;
 };
 
 type LessonDetail = {
@@ -80,6 +89,18 @@ type NodeProgress = {
   completed?: boolean;
   timeSpentSec?: number;
   videoWatchedFraction?: number;
+};
+
+type CompletionGate = {
+  allowed: boolean;
+  reason: string;
+  requiresLogin?: boolean;
+  watchedFraction?: number;
+  requiredWatchedFraction?: number;
+  timeSpentSec?: number;
+  minTimeSeconds?: number;
+  videoRemainingFraction?: number;
+  timeRemainingSec?: number;
 };
 
 type CertificateIssue = {
@@ -123,6 +144,12 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
   const selectedAccess = useQuery((api as any).lms.enrollment.queries.canAccessNode, {
     nodeId: nodeId as any,
   }) as { allowed: boolean; reason: string } | undefined;
+  const unlockSchedule = useQuery(
+    (api as any).lms.enrollment.queries.getCourseUnlockSchedule,
+    {
+      courseId: course._id as any,
+    },
+  ) as UnlockState[] | undefined;
   const progress = useQuery((api as any).lms.progress.queries.getCourseProgress, {
     courseId: course._id as any,
   }) as CourseProgress | undefined;
@@ -132,6 +159,9 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
   const nodeProgress = useQuery((api as any).lms.progress.queries.getNodeProgress, {
     nodeId: nodeId as any,
   }) as NodeProgress | null | undefined;
+  const completionGate = useQuery((api as any).lms.progress.queries.canComplete, {
+    nodeId: nodeId as any,
+  }) as CompletionGate | undefined;
   const myIssue = useQuery((api as any).lms.certificates.queries.getMyIssue, {
     courseId: course._id as any,
   }) as CertificateIssue | null | undefined;
@@ -152,6 +182,10 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
     () => topics.flatMap((topic) => topic.children.filter((child) => child.kind === "lesson")),
     [topics],
   );
+  const unlockByNodeId = useMemo(
+    () => new Map((unlockSchedule ?? []).map((item) => [String(item.nodeId), item])),
+    [unlockSchedule],
+  );
   const completed = new Set(progress?.completedNodeIds ?? []);
   const currentIndex = orderedLessons.findIndex((child) => child._id === nodeId);
   const previousLesson = currentIndex > 0 ? orderedLessons[currentIndex - 1] : null;
@@ -160,7 +194,9 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
       ? orderedLessons[currentIndex + 1]
       : null;
   const isLinear = course.progressionMode === "linear";
+  const selectedUnlock = unlockByNodeId.get(nodeId);
   const lessonLocked =
+    selectedUnlock?.allowed === false ||
     selectedAccess?.allowed === false ||
     (isLinear &&
       currentIndex > 0 &&
@@ -204,7 +240,9 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
     tree === undefined ||
     progress === undefined ||
     access === undefined ||
+    unlockSchedule === undefined ||
     lesson === undefined ||
+    completionGate === undefined ||
     selectedAccess === undefined
   ) {
     return <PlayerSkeleton />;
@@ -213,6 +251,14 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
   if (!orderedLessons.some((child) => child._id === nodeId)) {
     return <NotFoundPage />;
   }
+  const completionRedirectUrl = safeCourseUrl(progress.completionRedirectUrl);
+  const completionState = getCompletionState(lesson, nodeProgress, videoUrl, completionGate);
+  const selectedLockReason =
+    selectedUnlock?.allowed === false
+      ? formatLockReason(selectedUnlock)
+      : selectedAccess?.allowed === false
+        ? formatLockReason(selectedAccess)
+        : "Complete the required earlier lessons or check your enrollment before continuing.";
 
   return (
     <div className="grid gap-6 xl:grid-cols-[18rem_1fr]">
@@ -251,12 +297,14 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
                     const lessonIndex = orderedLessons.findIndex(
                       (lessonNode) => lessonNode._id === child._id,
                     );
+                    const unlock = unlockByNodeId.get(child._id);
                     const locked =
-                      isLinear &&
-                      lessonIndex > 0 &&
-                      orderedLessons
-                        .slice(0, lessonIndex)
-                        .some((lessonNode) => !completed.has(lessonNode._id));
+                      unlock?.allowed === false ||
+                      (isLinear &&
+                        lessonIndex > 0 &&
+                        orderedLessons
+                          .slice(0, lessonIndex)
+                          .some((lessonNode) => !completed.has(lessonNode._id)));
                     return (
                       <Link
                         key={child._id}
@@ -266,8 +314,11 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
                           "flex items-center gap-2 border border-border px-3 py-2 text-xs transition-colors",
                           child._id === nodeId
                             ? "bg-primary text-primary-foreground"
+                            : locked
+                              ? "bg-muted/50 text-muted-foreground hover:bg-muted"
                             : "bg-card text-foreground hover:bg-muted",
                         ].join(" ")}
+                        title={locked && unlock ? formatLockReason(unlock) : undefined}
                       >
                         {locked ? (
                           <Lock className="size-3.5 shrink-0" aria-hidden="true" />
@@ -293,8 +344,7 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
               <Lock className="size-8 text-muted-foreground" aria-hidden="true" />
               <h2 className="text-lg font-semibold text-foreground">Lesson locked</h2>
               <p className="max-w-md text-sm text-muted-foreground">
-                Complete the required earlier lessons or check your enrollment
-                before continuing.
+                {selectedLockReason}
               </p>
             </div>
           ) : (
@@ -337,23 +387,10 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
                     {nodeProgress?.timeSpentSec ?? 0}s tracked
                   </span>
                   {lesson.node.requireVideoWatch ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        videoWatchedRef.current = 1;
-                        void run("Video watch recorded", () =>
-                          recordHeartbeat({
-                            nodeId: nodeId as any,
-                            watchedFraction: 1,
-                            timeSpentSec: timeSpentRef.current,
-                          }),
-                        );
-                      }}
-                      className="inline-flex items-center gap-1 text-primary hover:underline"
-                    >
+                    <span className="inline-flex items-center gap-1">
                       <PlayCircle className="size-3.5" aria-hidden="true" />
                       {Math.round((nodeProgress?.videoWatchedFraction ?? 0) * 100)}% watched
-                    </button>
+                    </span>
                   ) : null}
                 </div>
 
@@ -383,12 +420,18 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
                   ) : lesson.node.showMarkComplete === false ? null : (
                     <button
                       type="button"
+                      disabled={!completionState.canComplete}
                       onClick={() =>
                         void run("Lesson complete", () =>
                           markComplete({ nodeId: nodeId as any }),
                         )
                       }
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                      title={
+                        completionState.canComplete
+                          ? undefined
+                          : completionState.requirements.join(" ")
+                      }
                     >
                       <CheckCircle2 className="size-4" aria-hidden="true" />
                       Mark complete
@@ -406,59 +449,81 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
                   ) : null}
                 </div>
               </div>
+
+              {!nodeProgress?.completed &&
+              lesson.node.showMarkComplete !== false &&
+              completionState.requirements.length > 0 ? (
+                <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                  {completionState.requirements.join(" ")}
+                </div>
+              ) : null}
             </article>
           )}
         </div>
 
-        {progress.percent >= 100 && course.certificateId ? (
+        {progress.percent >= 100 && (course.certificateId || completionRedirectUrl) ? (
           <div className="border border-border bg-card p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-start gap-3">
                 <Award className="mt-0.5 size-5 text-primary" aria-hidden="true" />
                 <div>
                   <h2 className="text-sm font-semibold text-foreground">
-                    Certificate
+                    {course.certificateId ? "Certificate" : "Course complete"}
                   </h2>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {myIssue
-                      ? `Issued ${formatDate(myIssue.issuedAt)}`
-                      : "Your course is complete. Issue your certificate."}
+                    {course.certificateId
+                      ? myIssue
+                        ? `Issued ${formatDate(myIssue.issuedAt)}`
+                        : "Your course is complete. Issue your certificate."
+                      : "Your course is complete. Continue with the next step."}
                   </p>
                 </div>
               </div>
-              {myIssue ? (
-                <div className="flex flex-wrap gap-2">
-                  {myIssue.pdfUrl ? (
-                    <a
-                      href={myIssue.pdfUrl}
-                      target="_blank"
-                      rel="noreferrer"
+              <div className="flex flex-wrap gap-2">
+                {completionRedirectUrl ? (
+                  <a
+                    href={completionRedirectUrl}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+                  >
+                    Continue
+                  </a>
+                ) : null}
+                {course.certificateId ? (
+                  myIssue ? (
+                    <>
+                      {myIssue.pdfUrl ? (
+                        <a
+                          href={myIssue.pdfUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+                        >
+                          Download PDF
+                        </a>
+                      ) : null}
+                      <Link
+                        to="/certificates/$serial"
+                        params={{ serial: myIssue.serial }}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-muted"
+                      >
+                        View certificate
+                      </Link>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void run("Certificate issued", () =>
+                          issueCertificate({ courseId: course._id as any }),
+                        )
+                      }
                       className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
                     >
-                      Download PDF
-                    </a>
-                  ) : null}
-                  <Link
-                    to="/certificates/$serial"
-                    params={{ serial: myIssue.serial }}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-muted"
-                  >
-                    View certificate
-                  </Link>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() =>
-                    void run("Certificate issued", () =>
-                      issueCertificate({ courseId: course._id as any }),
-                    )
-                  }
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
-                >
-                  Issue certificate
-                </button>
-              )}
+                      Issue certificate
+                    </button>
+                  )
+                ) : null}
+              </div>
             </div>
           </div>
         ) : null}
@@ -545,6 +610,123 @@ function getVideoEmbedUrl(value: string): string | null {
     return null;
   }
   return null;
+}
+
+function getCompletionState(
+  lesson: LessonDetail | null | undefined,
+  progress: NodeProgress | null | undefined,
+  videoUrl?: string,
+  gate?: CompletionGate,
+) {
+  const requirements: string[] = [];
+  const watched = gate?.watchedFraction ?? progress?.videoWatchedFraction ?? 0;
+  const timeSpent = gate?.timeSpentSec ?? progress?.timeSpentSec ?? 0;
+  const minTime = gate?.minTimeSeconds ?? lesson?.node.minTimeSeconds ?? 0;
+
+  if (gate && gate.allowed) {
+    return { canComplete: true, requirements };
+  }
+
+  if (gate?.reason === "mark_complete_disabled") {
+    requirements.push("Manual completion is disabled for this lesson.");
+  } else if (gate?.reason === "video_required" || lesson?.node.requireVideoWatch) {
+    if (!videoUrl) {
+      requirements.push("This lesson requires video completion, but no video is attached.");
+    } else if ((gate?.videoRemainingFraction ?? Math.max(0, 0.9 - watched)) > 0) {
+      const required = Math.round((gate?.requiredWatchedFraction ?? 0.9) * 100);
+      requirements.push(`Watch ${Math.max(0, required - Math.round(watched * 100))}% more of the video.`);
+    }
+  }
+
+  const timeRemaining = gate?.timeRemainingSec ?? Math.max(0, minTime - timeSpent);
+  if ((gate?.reason === "time_required" || minTime > 0) && timeRemaining > 0) {
+    requirements.push(`Spend ${formatDuration(timeRemaining)} more in the lesson.`);
+  }
+
+  if (gate && !gate.allowed && requirements.length === 0) {
+    requirements.push(formatCompletionGateReason(gate));
+  }
+
+  return {
+    canComplete: requirements.length === 0,
+    requirements,
+  };
+}
+
+function formatCompletionGateReason(gate: CompletionGate) {
+  switch (gate.reason) {
+    case "login_required":
+      return "Sign in before completing this lesson.";
+    case "previous_lesson_required":
+      return "Complete the previous lessons before marking this one complete.";
+    case "drip_locked":
+      return "This lesson is still locked.";
+    case "prerequisites_required":
+      return "Complete the prerequisite course before completing this lesson.";
+    default:
+      return "This lesson is not ready to complete yet.";
+  }
+}
+
+function formatLockReason(state: { reason?: string; unlockAt?: number | null }) {
+  switch (state.reason) {
+    case "drip_locked":
+      return state.unlockAt
+        ? `This lesson unlocks ${formatDateTime(state.unlockAt)}.`
+        : "This lesson has not unlocked yet.";
+    case "previous_lesson_required":
+      return "Complete the previous lessons before continuing.";
+    case "prerequisites_required":
+      return "Complete the required prerequisite course before continuing.";
+    case "login_required":
+      return "Sign in before continuing this lesson.";
+    case "purchase_required":
+      return "Purchase or unlock this course before continuing.";
+    case "membership_rule_missing":
+    case "no_matching_plan":
+    case "membership_disabled":
+      return "Your membership does not currently unlock this lesson.";
+    case "enrollment_required_for_drip":
+      return "Enroll in the course before this lesson can unlock.";
+    case "not_started":
+      return state.unlockAt
+        ? `This course opens ${formatDateTime(state.unlockAt)}.`
+        : "This course is not open yet.";
+    case "ended":
+      return "This course is no longer available.";
+    default:
+      return "Complete the required earlier lessons or check your enrollment before continuing.";
+  }
+}
+
+function formatDuration(seconds: number) {
+  const safeSeconds = Math.max(0, Math.ceil(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const remaining = safeSeconds % 60;
+  if (minutes <= 0) return `${remaining}s`;
+  if (remaining === 0) return `${minutes}m`;
+  return `${minutes}m ${remaining}s`;
+}
+
+function formatDateTime(ts: number) {
+  return new Date(ts).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function safeCourseUrl(value?: string | null): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function formatDate(ts: number) {

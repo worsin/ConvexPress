@@ -7,6 +7,7 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
+import { cleanGeneratedLessonText } from "./helpers";
 
 export const generateLessonBodies = internalAction({
   args: { generationId: v.id("lms_ai_generations") },
@@ -53,14 +54,14 @@ export const generateLessonBodies = internalAction({
         let lastError: unknown = null;
         for (let attempt = 1; attempt <= 2; attempt++) {
           try {
-            bodyText = String(
+            bodyText = cleanGeneratedLessonText(
               await ctx.runAction((internal as any).ai.internals.generateWithClaude, {
                 systemPrompt,
                 userPrompt,
                 maxTokens: 5000,
                 task: "pageGeneration",
               }),
-            ).trim();
+            );
             break;
           } catch (error) {
             lastError = error;

@@ -63,6 +63,18 @@ function safeVideoUrl(value?: string | null): string | null {
   }
 }
 
+function safeCourseUrl(value?: string | null): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 function getVideoEmbedUrl(value: string): string | null {
   if (value.startsWith("/")) return null;
   try {
@@ -103,7 +115,13 @@ function PlayerPage() {
     | { allowed: boolean; reason: string; requiresLogin: boolean }
     | undefined;
   const progress = useQuery(api.lms.progress.queries.getCourseProgress, { courseId: id }) as
-    | { percent: number; total: number; completedNodeIds: string[]; nextNodeId: string | null }
+    | {
+        percent: number;
+        total: number;
+        completedNodeIds: string[];
+        nextNodeId: string | null;
+        completionRedirectUrl?: string | null;
+      }
     | undefined;
   const myIssue = useQuery(api.lms.certificates.queries.getMyIssue, { courseId: id });
 
@@ -201,6 +219,7 @@ function PlayerPage() {
       toast.error(err instanceof Error ? err.message : "Action failed");
     }
   }
+  const completionRedirectUrl = safeCourseUrl(progress?.completionRedirectUrl);
 
   return (
     <div className="mx-auto max-w-6xl p-6">
@@ -239,22 +258,36 @@ function PlayerPage() {
       </div>
 
       {/* Certificate banner on completion */}
-      {progress?.percent === 100 && course?.certificateId && (
+      {progress?.percent === 100 && (course?.certificateId || completionRedirectUrl) && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-green-500/40 bg-green-500/10 p-3">
           <div className="flex items-center gap-2 text-sm">
             <Award className="h-5 w-5 text-green-600" />
             Course complete!{" "}
-            {myIssue ? "Your certificate has been issued." : "Claim your certificate."}
+            {course?.certificateId
+              ? myIssue
+                ? "Your certificate has been issued."
+                : "Claim your certificate."
+              : "Continue with the next step."}
           </div>
-          {!myIssue && (
-            <button
-              type="button"
-              onClick={() => run("Certificate issued", () => issueCert({ courseId: id }))}
-              className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-            >
-              Get certificate
-            </button>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {completionRedirectUrl ? (
+              <a
+                href={completionRedirectUrl}
+                className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+              >
+                Continue
+              </a>
+            ) : null}
+            {course?.certificateId && !myIssue ? (
+              <button
+                type="button"
+                onClick={() => run("Certificate issued", () => issueCert({ courseId: id }))}
+                className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+              >
+                Get certificate
+              </button>
+            ) : null}
+          </div>
         </div>
       )}
 

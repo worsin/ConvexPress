@@ -168,6 +168,72 @@ describe("LMS enrollment bridge", () => {
     });
   });
 
+  test("membership and purchase grants respect course seat limits", async () => {
+    const tables = baseTables({
+      lms_courses: [
+        {
+          _id: "course_members",
+          title: "Members course",
+          slug: "members-course",
+          accessMode: "members",
+          status: "published",
+          seatLimit: 1,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          _id: "course_purchase",
+          title: "Purchase course",
+          slug: "purchase-course",
+          accessMode: "buy",
+          status: "published",
+          seatLimit: 1,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      lms_enrollments: [
+        {
+          _id: "enrollment_members_full",
+          userId: "user_other",
+          courseId: "course_members",
+          source: "manual",
+          enrolledAt: now,
+          status: "active",
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          _id: "enrollment_purchase_full",
+          userId: "user_other",
+          courseId: "course_purchase",
+          source: "manual",
+          enrolledAt: now,
+          status: "active",
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    });
+
+    const membership = await syncMembershipPlanCourseEnrollmentsHandler(createCtx(tables), {
+      userId: "user_learner",
+      planId: "plan_gold",
+      status: "active",
+      sourceRef: "grant_manual",
+    });
+    const purchase = await syncPurchasedCourseEnrollmentsHandler(createCtx(tables), {
+      orderId: "order_course",
+      action: "grant",
+    });
+
+    expect(membership.skippedSeatLimit).toBe(1);
+    expect(purchase.skippedSeatLimit).toBe(1);
+    expect(
+      tables.lms_enrollments.some((row) => row.userId === "user_learner"),
+    ).toBe(false);
+  });
+
   test("membership revocation keeps enrollment when another required plan is active", async () => {
     const tables = baseTables({
       membership_restriction_rules: [

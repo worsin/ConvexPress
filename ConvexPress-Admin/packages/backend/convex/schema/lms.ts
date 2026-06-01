@@ -247,7 +247,8 @@ export const lmsTables = {
   })
     .index("by_user", ["userId", "status"])
     .index("by_course", ["courseId", "status"])
-    .index("by_user_course", ["userId", "courseId"]),
+    .index("by_user_course", ["userId", "courseId"])
+    .index("by_status_expires", ["status", "expiresAt"]),
 
   lms_progress: defineTable({
     userId: v.id("users"),

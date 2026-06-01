@@ -12,7 +12,12 @@
 import { action } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { v, ConvexError } from "convex/values";
-import { normalizeOutline, outlineStats, parseJsonObject } from "./helpers";
+import {
+  cleanGeneratedLessonText,
+  normalizeOutline,
+  outlineStats,
+  parseJsonObject,
+} from "./helpers";
 
 export const generateCourse = action({
   args: {
@@ -111,15 +116,48 @@ export const generateCourse = action({
     let outline;
     try {
       outline = normalizeOutline(parseJsonObject(raw));
-    } catch {
+    } catch (firstParseError) {
       await ctx.runMutation((internal as any).lms.ai.internals.updateJob, {
         jobId,
-        status: "failed",
-        error: "AI returned content that was not valid LMS outline JSON.",
+        status: "running",
+        progress: 70,
+        error: "Retrying outline JSON cleanup.",
       });
-      throw new ConvexError({
-        code: "PARSE_ERROR",
-        message: "AI returned content that was not valid LMS outline JSON. Try again.",
+      try {
+        const repairSystemPrompt =
+          "You repair malformed JSON. Output ONLY valid minified JSON matching the requested schema.";
+        const repairPrompt =
+          `Repair this LMS course outline into valid JSON with shape ` +
+          `{"topics":[{"title":"...","summary":"...","lessons":[{"title":"...","brief":"...","outcomes":["..."]}]}]}. ` +
+          `Preserve useful lesson titles, briefs, outcomes, and topic ordering. Malformed content:\n${raw.slice(0, 20000)}`;
+        raw = await ctx.runAction(
+          (internal as any).ai.internals.generateWithClaude,
+          {
+            systemPrompt: repairSystemPrompt,
+            userPrompt: repairPrompt,
+            maxTokens: 8000,
+            task: "pageGeneration",
+          },
+        );
+        outline = normalizeOutline(parseJsonObject(raw));
+      } catch (repairError) {
+        await ctx.runMutation((internal as any).lms.ai.internals.updateJob, {
+          jobId,
+          status: "failed",
+          progress: 0,
+          error:
+            repairError instanceof Error
+              ? repairError.message
+              : firstParseError instanceof Error
+                ? firstParseError.message
+                : "AI returned content that was not valid LMS outline JSON.",
+        });
+        throw new ConvexError({
+          code: "PARSE_ERROR",
+          message: "AI returned content that was not valid LMS outline JSON. Try again.",
+        });
+      }
+    }
       });
     }
 
@@ -208,11 +246,23 @@ export const regenerateLesson = action({
           : "AI generation failed. Please try again.",
       });
     }
+    let bodyText: string;
+    try {
+      bodyText = cleanGeneratedLessonText(raw);
+    } catch (error) {
+      await ctx.runMutation((internal as any).lms.ai.internals.updateJob, {
+        jobId,
+        status: "failed",
+        progress: 0,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
     await ctx.runMutation((internal as any).lms.ai.internals.storeLessonBodyDraft, {
       jobId,
       generationId,
       nodeId: args.nodeId,
-      bodyText: String(raw).trim(),
+      bodyText,
       prompt: userPrompt,
     });
     return { ok: true, generationId: String(generationId) };

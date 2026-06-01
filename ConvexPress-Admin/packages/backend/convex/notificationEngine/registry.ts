@@ -433,6 +433,20 @@ export const EMAIL_EVENT_HANDLER_ROUTES: NotificationEngineListenerDef[] = [
       "Routes LMS course-access removal emails through the email notification system.",
   },
   {
+    eventCode: "lms.enrollment_expired",
+    name: `${ENGINE_LISTENER_NAME_PREFIX} Email lms.enrollment_expired`,
+    handlerModule: "emails/internals",
+    handlerFunction: "onLmsEnrollmentExpired",
+    handlerType: "internal",
+    priority: 20,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "email",
+    description:
+      "Routes LMS course-access expiration emails through the email notification system.",
+  },
+  {
     eventCode: "lms.course_completed",
     name: `${ENGINE_LISTENER_NAME_PREFIX} Email lms.course_completed`,
     handlerModule: "emails/internals",
@@ -640,6 +654,7 @@ const LEGACY_EMAIL_HANDLER_FUNCTIONS = new Set([
   "onKbCommentCreated",
   "onLmsCourseEnrolled",
   "onLmsCourseUnenrolled",
+  "onLmsEnrollmentExpired",
   "onLmsCourseCompleted",
   "onLmsCertificateIssued",
   "onLmsCertificateRevoked",

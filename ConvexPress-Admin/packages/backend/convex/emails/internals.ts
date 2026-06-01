@@ -2348,6 +2348,40 @@ const onLmsCourseUnenrolledConfig: any = {
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onLmsCourseUnenrolled = internalMutation(onLmsCourseUnenrolledConfig);
 
+const onLmsEnrollmentExpiredConfig: any = {
+  args: { eventId: v.id("events") },
+  handler: async (ctx: any, args: any) => {
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
+
+    const { event, payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const lms = await getLmsContext(ctx, payload, settings.siteUrl);
+    if (!lms.learner?.email) return;
+    const expiredAt =
+      typeof payload.expiresAt === "number"
+        ? new Date(payload.expiresAt).toISOString()
+        : "";
+
+    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.LMS_ENROLLMENT_EXPIRED, {
+      recipientEmail: lms.learner.email,
+      recipientName: toDisplayName(lms.learner),
+      recipientUserId: getUserIdentifier(lms.learner),
+      variables: {
+        course_title: lms.courseTitle,
+        course_public_url: lms.coursePublicUrl,
+        expired_at: expiredAt,
+        expired_at_sentence: expiredAt ? ` on ${expiredAt}` : "",
+      },
+      eventId: args.eventId,
+      correlationId: event.correlationId,
+    });
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onLmsEnrollmentExpired = internalMutation(onLmsEnrollmentExpiredConfig);
+
 const onLmsCourseCompletedConfig: any = {
   args: { eventId: v.id("events") },
   handler: async (ctx: any, args: any) => {

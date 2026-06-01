@@ -19,6 +19,7 @@ type SyncResult = {
   keptByAlternateGrant: number;
   skippedExistingOtherSource: number;
   skippedMissingCourse: number;
+  skippedSeatLimit: number;
 };
 
 const emptyResult = (): SyncResult => ({
@@ -29,6 +30,7 @@ const emptyResult = (): SyncResult => ({
   keptByAlternateGrant: 0,
   skippedExistingOtherSource: 0,
   skippedMissingCourse: 0,
+  skippedSeatLimit: 0,
 });
 
 export async function syncMembershipPlanCourseEnrollmentsHandler(
@@ -166,6 +168,41 @@ export const syncPurchasedCourseEnrollments = internalMutation({
   handler: syncPurchasedCourseEnrollmentsHandler,
 });
 
+export async function expireExpiredEnrollmentsHandler(
+  ctx: any,
+  args: { limit?: number } = {},
+): Promise<{ expired: number; skipped?: string }> {
+  if (!(await isPluginEnabled(ctx, "lms"))) return { expired: 0, skipped: "lms_disabled" };
+  const now = Date.now();
+  const limit = Math.min(Math.max(args.limit ?? 200, 1), 500);
+  const enrollments = await ctx.db
+    .query("lms_enrollments")
+    .withIndex("by_status_expires", (q: any) =>
+      q.eq("status", "active").lt("expiresAt", now),
+    )
+    .take(limit);
+
+  for (const enrollment of enrollments) {
+    await ctx.db.patch(enrollment._id, { status: "expired", updatedAt: now });
+    await emitEvent(ctx, LMS_EVENTS.ENROLLMENT_EXPIRED, SYSTEM.LMS, {
+      courseId: enrollment.courseId,
+      userId: enrollment.userId,
+      enrollmentId: enrollment._id,
+      source: enrollment.source,
+      membershipPlanId: enrollment.membershipPlanId,
+      sourceRef: enrollment.sourceRef,
+      expiresAt: enrollment.expiresAt,
+    });
+  }
+
+  return { expired: enrollments.length };
+}
+
+export const expireExpiredEnrollments = internalMutation({
+  args: { limit: v.optional(v.number()) },
+  handler: expireExpiredEnrollmentsHandler,
+});
+
 async function findCourseIdsForPlan(ctx: any, planId: any) {
   const rules = await ctx.db.query("membership_restriction_rules").collect();
   return Array.from(
@@ -223,7 +260,12 @@ async function upsertEnrollment(
     sourceRef?: string;
     expiresAt?: number;
   },
-): Promise<keyof Pick<SyncResult, "created" | "reactivated" | "refreshed" | "skippedExistingOtherSource">> {
+): Promise<
+  keyof Pick<
+    SyncResult,
+    "created" | "reactivated" | "refreshed" | "skippedExistingOtherSource" | "skippedSeatLimit"
+  >
+> {
   const existing = await findEnrollment(ctx, args.userId, args.course._id);
   const now = Date.now();
   const expiresAt =
@@ -232,15 +274,20 @@ async function upsertEnrollment(
       ? now + args.course.accessDurationDays * 24 * 60 * 60 * 1000
       : undefined);
 
+  const existingIsCurrentlyActive = isCurrentlyActiveEnrollment(existing, now);
   if (existing) {
-    if (existing.status === "active" && existing.source !== args.source) {
+    if (existingIsCurrentlyActive && existing.source !== args.source) {
       return "skippedExistingOtherSource";
     }
-    const reactivated = existing.status !== "active";
+    if (!existingIsCurrentlyActive && !(await courseSeatAvailable(ctx, args.course, now))) {
+      return "skippedSeatLimit";
+    }
+    const reactivated = !existingIsCurrentlyActive;
     await ctx.db.patch(existing._id, {
       source: args.source,
       membershipPlanId: args.membershipPlanId,
       sourceRef: args.sourceRef,
+      enrolledAt: existingIsCurrentlyActive ? existing.enrolledAt : now,
       expiresAt,
       status: "active",
       updatedAt: now,
@@ -255,6 +302,10 @@ async function upsertEnrollment(
       reactivated,
     });
     return reactivated ? "reactivated" : "refreshed";
+  }
+
+  if (!(await courseSeatAvailable(ctx, args.course, now))) {
+    return "skippedSeatLimit";
   }
 
   const enrollmentId = await ctx.db.insert("lms_enrollments", {
@@ -278,6 +329,20 @@ async function upsertEnrollment(
     sourceRef: args.sourceRef,
   });
   return "created";
+}
+
+function isCurrentlyActiveEnrollment(enrollment: any, now: number) {
+  return enrollment?.status === "active" && (!enrollment.expiresAt || enrollment.expiresAt > now);
+}
+
+async function courseSeatAvailable(ctx: any, course: any, now: number) {
+  if (!course.seatLimit || course.seatLimit <= 0) return true;
+  const active = await ctx.db
+    .query("lms_enrollments")
+    .withIndex("by_course", (q: any) => q.eq("courseId", course._id).eq("status", "active"))
+    .collect();
+  const activeCount = active.filter((row: any) => isCurrentlyActiveEnrollment(row, now)).length;
+  return activeCount < course.seatLimit;
 }
 
 async function revokeEnrollment(

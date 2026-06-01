@@ -8,7 +8,14 @@
 
 // ─── Core Types ─────────────────────────────────────────────────────────────
 
-export type SitemapType = "index" | "posts" | "pages" | "categories" | "tags" | "authors";
+export type SitemapType =
+  | "index"
+  | "posts"
+  | "pages"
+  | "courses"
+  | "categories"
+  | "tags"
+  | "authors";
 
 export type ContentSitemapType = Exclude<SitemapType, "index">;
 
@@ -88,12 +95,14 @@ export interface SitemapSettings {
   enabled: boolean;
   include_posts: boolean;
   include_pages: boolean;
+  include_courses: boolean;
   include_categories: boolean;
   include_tags: boolean;
   include_authors: boolean;
   max_urls_per_sitemap: number;
   changefreq_posts: SitemapChangefreq;
   changefreq_pages: SitemapChangefreq;
+  changefreq_courses: SitemapChangefreq;
   changefreq_categories: SitemapChangefreq;
   changefreq_tags: SitemapChangefreq;
   changefreq_authors: SitemapChangefreq;
@@ -101,6 +110,7 @@ export interface SitemapSettings {
   priority_homepage: number;
   priority_posts: number;
   priority_pages: number;
+  priority_courses: number;
   priority_categories: number;
   priority_tags: number;
   priority_authors: number;

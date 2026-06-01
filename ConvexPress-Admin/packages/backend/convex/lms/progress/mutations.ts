@@ -22,7 +22,10 @@ async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_course
     .query("lms_progress")
     .withIndex("by_user_course", (q: any) => q.eq("userId", userId).eq("courseId", courseId))
     .collect();
-  const completed = progressRows.filter((p: any) => p.completed).length;
+  const lessonIds = new Set(lessons.map((lesson: any) => String(lesson._id)));
+  const completed = progressRows.filter(
+    (p: any) => p.completed && lessonIds.has(String(p.nodeId)),
+  ).length;
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   const existing = await ctx.db
@@ -275,7 +278,13 @@ export const markIncomplete = mutation({
     await requirePluginEnabled(ctx, "lms");
     const user = await requireAuth(ctx);
     const node = await ctx.db.get(args.nodeId);
-    if (!node) throw new ConvexError({ code: "NOT_FOUND", message: "Lesson not found" });
+    if (!node || node.kind !== "lesson") {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Not a lesson" });
+    }
+    const access = await canUserAccessNode(ctx, { nodeId: args.nodeId, userId: user._id });
+    if (!access.allowed) {
+      throw new ConvexError({ code: "ACCESS_DENIED", message: access.reason });
+    }
     const existing = await ctx.db
       .query("lms_progress")
       .withIndex("by_user_node", (q) => q.eq("userId", user._id).eq("nodeId", args.nodeId))

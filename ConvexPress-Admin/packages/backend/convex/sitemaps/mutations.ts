@@ -142,6 +142,7 @@ export const updateSettings = mutation({
     const changefreqFields = [
       "changefreq_posts",
       "changefreq_pages",
+      "changefreq_courses",
       "changefreq_categories",
       "changefreq_tags",
       "changefreq_authors",
@@ -163,6 +164,7 @@ export const updateSettings = mutation({
       "priority_homepage",
       "priority_posts",
       "priority_pages",
+      "priority_courses",
       "priority_categories",
       "priority_tags",
       "priority_authors",
@@ -185,6 +187,7 @@ export const updateSettings = mutation({
     const inclusionChanged =
       newSettings.include_posts !== undefined && newSettings.include_posts !== currentSettings.include_posts ||
       newSettings.include_pages !== undefined && newSettings.include_pages !== currentSettings.include_pages ||
+      newSettings.include_courses !== undefined && newSettings.include_courses !== currentSettings.include_courses ||
       newSettings.include_categories !== undefined && newSettings.include_categories !== currentSettings.include_categories ||
       newSettings.include_tags !== undefined && newSettings.include_tags !== currentSettings.include_tags ||
       newSettings.include_authors !== undefined && newSettings.include_authors !== currentSettings.include_authors;

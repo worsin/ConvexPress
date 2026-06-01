@@ -5,8 +5,15 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
-import { getCurrentUser, requireCan } from "../../helpers/permissions";
+import { currentUserCan, getCurrentUser, requireCan } from "../../helpers/permissions";
 import { canUserAccessCourse, canUserAccessNode } from "../access";
+
+function isActiveEnrollment(enrollment: { status?: string; expiresAt?: number | null }) {
+  return (
+    enrollment.status === "active" &&
+    (!enrollment.expiresAt || enrollment.expiresAt > Date.now())
+  );
+}
 
 export const canAccessCourse = query({
   args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
@@ -30,6 +37,49 @@ export const canAccessNode = query({
   },
 });
 
+export const getCourseUnlockSchedule = query({
+  args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "lms"))) return [];
+    await assertCanReadUserAccess(ctx, args.userId);
+
+    const course = await ctx.db.get(args.courseId);
+    if (!course) return [];
+    if (course.status !== "published" && !(await canPreviewCourseSchedule(ctx))) {
+      return [];
+    }
+
+    const nodes = await ctx.db
+      .query("lms_nodes")
+      .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
+      .collect();
+    const topics = nodes
+      .filter((node) => node.kind === "topic")
+      .sort((a, b) => a.position - b.position);
+    const orderedLessons = topics.flatMap((topic) =>
+      nodes
+        .filter((node) => node.parentId === topic._id && node.kind === "lesson")
+        .sort((a, b) => a.position - b.position),
+    );
+
+    const schedule = [];
+    for (const lesson of orderedLessons) {
+      const decision = await canUserAccessNode(ctx, {
+        nodeId: lesson._id,
+        userId: args.userId,
+      });
+      schedule.push({
+        nodeId: lesson._id,
+        allowed: decision.allowed,
+        reason: decision.reason,
+        requiresLogin: decision.requiresLogin,
+        unlockAt: decision.unlockAt,
+      });
+    }
+    return schedule;
+  },
+});
+
 export const getEnrollment = query({
   args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
   handler: async (ctx, args) => {
@@ -40,10 +90,11 @@ export const getEnrollment = query({
     if (args.userId && String(args.userId) !== String(me?._id)) {
       await requireCan(ctx, "lms.enroll.manage");
     }
-    return await ctx.db
+    const enrollment = await ctx.db
       .query("lms_enrollments")
       .withIndex("by_user_course", (q) => q.eq("userId", userId).eq("courseId", args.courseId))
       .first();
+    return enrollment && isActiveEnrollment(enrollment) ? enrollment : null;
   },
 });
 
@@ -52,6 +103,14 @@ async function assertCanReadUserAccess(ctx: any, userId?: string) {
   const me = await getCurrentUser(ctx);
   if (String(userId) === String(me?._id)) return;
   await requireCan(ctx, "lms.enroll.manage");
+}
+
+async function canPreviewCourseSchedule(ctx: any) {
+  return (
+    (await currentUserCan(ctx, "lms.course.view")) ||
+    (await currentUserCan(ctx, "lms.builder.manage")) ||
+    (await currentUserCan(ctx, "lms.lesson.edit"))
+  );
 }
 
 export const listEnrolleesForCourse = query({
@@ -64,7 +123,7 @@ export const listEnrolleesForCourse = query({
       .withIndex("by_course", (q) => q.eq("courseId", args.courseId).eq("status", "active"))
       .collect();
     const rows = [];
-    for (const e of enrollments) {
+    for (const e of enrollments.filter(isActiveEnrollment)) {
       const user = await ctx.db.get(e.userId);
       rows.push({
         enrollmentId: e._id,
@@ -80,6 +139,75 @@ export const listEnrolleesForCourse = query({
   },
 });
 
+export const listEnrollments = query({
+  args: {
+    status: v.optional(
+      v.union(
+        v.literal("active"),
+        v.literal("expired"),
+        v.literal("revoked"),
+        v.literal("all"),
+      ),
+    ),
+    search: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "lms"))) return [];
+    await requireCan(ctx, "lms.enroll.manage");
+
+    const requestedStatus = args.status ?? "active";
+    const limit = Math.min(Math.max(Math.floor(args.limit ?? 100), 1), 250);
+    const enrollments = await listEnrollmentRowsForStatus(ctx, requestedStatus);
+
+    const needle = args.search?.trim().toLowerCase();
+    const rows = [];
+    for (const enrollment of enrollments) {
+      const effectiveStatus = getEffectiveEnrollmentStatus(enrollment);
+      if (requestedStatus !== "all" && effectiveStatus !== requestedStatus) continue;
+
+      const [user, course] = await Promise.all([
+        ctx.db.get(enrollment.userId),
+        ctx.db.get(enrollment.courseId),
+      ]);
+      const learnerName = user?.displayName ?? user?.email ?? "Unknown learner";
+      const learnerEmail = user?.email ?? "";
+      const courseTitle = course?.title ?? "Deleted course";
+      if (
+        needle &&
+        ![
+          learnerName,
+          learnerEmail,
+          courseTitle,
+          enrollment.source,
+          effectiveStatus,
+        ].some((value) => value.toLowerCase().includes(needle))
+      ) {
+        continue;
+      }
+
+      rows.push({
+        enrollmentId: enrollment._id,
+        userId: enrollment.userId,
+        courseId: enrollment.courseId,
+        learnerName,
+        learnerEmail,
+        courseTitle,
+        courseSlug: course?.slug,
+        source: enrollment.source,
+        status: effectiveStatus,
+        enrolledAt: enrollment.enrolledAt,
+        expiresAt: enrollment.expiresAt,
+        updatedAt: enrollment.updatedAt,
+      });
+    }
+
+    return rows
+      .sort((a, b) => (b.updatedAt ?? b.enrolledAt) - (a.updatedAt ?? a.enrolledAt))
+      .slice(0, limit);
+  },
+});
+
 export const listMyEnrollments = query({
   args: {},
   handler: async (ctx) => {
@@ -91,9 +219,11 @@ export const listMyEnrollments = query({
       .withIndex("by_user", (q) => q.eq("userId", me._id).eq("status", "active"))
       .collect();
     const rows = [];
-    for (const e of enrollments) {
+    for (const e of enrollments.filter(isActiveEnrollment)) {
       const course = await ctx.db.get(e.courseId);
       if (course) {
+        const access = await canUserAccessCourse(ctx, { courseId: e.courseId, userId: me._id });
+        if (!access.allowed) continue;
         rows.push({
           enrollmentId: e._id,
           courseId: e.courseId,
@@ -121,9 +251,14 @@ export const listMyLearning = query({
       .collect();
 
     const rows = [];
-    for (const enrollment of enrollments) {
+    for (const enrollment of enrollments.filter(isActiveEnrollment)) {
       const course = await ctx.db.get(enrollment.courseId);
-      if (!course || course.status === "archived") continue;
+      if (!course) continue;
+      const access = await canUserAccessCourse(ctx, {
+        courseId: enrollment.courseId,
+        userId: me._id,
+      });
+      if (!access.allowed) continue;
 
       const nodes = await ctx.db
         .query("lms_nodes")
@@ -186,6 +321,43 @@ export const listMyLearning = query({
     return rows.sort((a, b) => b.enrolledAt - a.enrolledAt);
   },
 });
+
+function getEffectiveEnrollmentStatus(enrollment: {
+  status?: string;
+  expiresAt?: number | null;
+}) {
+  if (enrollment.status === "active" && enrollment.expiresAt && enrollment.expiresAt <= Date.now()) {
+    return "expired";
+  }
+  return enrollment.status ?? "revoked";
+}
+
+async function listEnrollmentRowsForStatus(ctx: any, status: string) {
+  if (status === "all") {
+    return await ctx.db.query("lms_enrollments").take(500);
+  }
+
+  if (status === "expired") {
+    const [explicitExpired, overdueActive] = await Promise.all([
+      ctx.db
+        .query("lms_enrollments")
+        .withIndex("by_status_expires", (q: any) => q.eq("status", "expired"))
+        .collect(),
+      ctx.db
+        .query("lms_enrollments")
+        .withIndex("by_status_expires", (q: any) =>
+          q.eq("status", "active").lt("expiresAt", Date.now()),
+        )
+        .collect(),
+    ]);
+    return [...explicitExpired, ...overdueActive];
+  }
+
+  return await ctx.db
+    .query("lms_enrollments")
+    .withIndex("by_status_expires", (q: any) => q.eq("status", status))
+    .collect();
+}
 
 async function resolveCertificatePdfUrl(ctx: any, issue: { pdfMediaId?: string }) {
   if (!issue.pdfMediaId) return null;

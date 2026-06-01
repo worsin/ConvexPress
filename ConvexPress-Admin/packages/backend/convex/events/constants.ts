@@ -351,6 +351,7 @@ export const LMS_EVENTS = {
   LESSON_VERSION_RESTORED: "lms.lesson_version_restored",
   ENROLLED: "lms.enrolled",
   UNENROLLED: "lms.unenrolled",
+  ENROLLMENT_EXPIRED: "lms.enrollment_expired",
   COURSE_COMPLETED: "lms.course_completed",
   CERTIFICATE_ISSUED: "lms.certificate_issued",
   CERTIFICATE_REVOKED: "lms.certificate_revoked",

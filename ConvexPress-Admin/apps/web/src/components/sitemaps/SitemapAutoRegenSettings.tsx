@@ -36,7 +36,7 @@ export function SitemapAutoRegenSettings({
         <div>
           <Label className="text-xs font-medium">Auto-regenerate on content changes</Label>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            Automatically regenerate the sitemap when posts, pages, or taxonomies are published, updated, or deleted.
+            Automatically regenerate the sitemap when posts, pages, courses, or taxonomies are published, updated, or deleted.
           </p>
         </div>
       </div>

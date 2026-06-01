@@ -21,6 +21,7 @@ import {
   FileText,
   Tag,
   FolderOpen,
+  GraduationCap,
   Users,
   FileStack,
 } from "lucide-react";
@@ -28,7 +29,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardAction } from "@/componen
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SitemapRegenerateButton } from "./SitemapRegenerateButton";
-import { CONTENT_TYPE_LABELS } from "@/lib/sitemaps/constants";
+import { CONTENT_SITEMAP_TYPES, CONTENT_TYPE_LABELS } from "@/lib/sitemaps/constants";
 import type { SitemapStatus, ContentSitemapType } from "@/lib/sitemaps/types";
 
 interface SitemapStatusCardProps {
@@ -40,6 +41,7 @@ interface SitemapStatusCardProps {
 const TYPE_ICONS: Record<ContentSitemapType, React.ReactNode> = {
   posts: <FileText className="size-3.5" />,
   pages: <FileStack className="size-3.5" />,
+  courses: <GraduationCap className="size-3.5" />,
   categories: <FolderOpen className="size-3.5" />,
   tags: <Tag className="size-3.5" />,
   authors: <Users className="size-3.5" />,
@@ -204,8 +206,8 @@ export function SitemapStatusCard({
               <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                 URL Breakdown
               </p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                {(["posts", "pages", "categories", "tags", "authors"] as const).map((type) => {
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                {CONTENT_SITEMAP_TYPES.map((type) => {
                   const typeStats = status.perType[type];
                   if (!typeStats || typeStats.urlCount === 0) return null;
                   return (

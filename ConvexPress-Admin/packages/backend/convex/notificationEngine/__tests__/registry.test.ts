@@ -45,6 +45,7 @@ describe("notification engine registry", () => {
     for (const eventCode of [
       "lms.enrolled",
       "lms.unenrolled",
+      "lms.enrollment_expired",
       "lms.course_completed",
       "lms.certificate_issued",
       "lms.certificate_revoked",

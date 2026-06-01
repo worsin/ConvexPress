@@ -38,6 +38,7 @@ import {
   buildUrlSetXml,
   buildSitemapIndexXml,
   buildContentUrl,
+  buildCourseUrl,
   buildCategoryUrl,
   buildTagUrl,
   buildAuthorUrl,
@@ -66,6 +67,7 @@ import {
   readSiteUrl,
   getNoindexPostIds,
 } from "./helpers/settings";
+import { isPluginEnabled } from "../helpers/plugins";
 
 // ─── Local Helpers ────────────────────────────────────────────────────────────
 
@@ -94,6 +96,7 @@ interface SitemapGatheredData {
   siteUrl: string;
   posts?: Array<{ id: string; slug: string; publishedAt: number; updatedAt: number }>;
   pages?: Array<{ id: string; slug: string; path?: string; publishedAt: number; updatedAt: number; menuOrder: number; title: string }>;
+  courses?: Array<{ id: string; slug: string; publishedAt: number; updatedAt: number; title: string }>;
   categories?: Array<{ id: string; slug: string; updatedAt: number; count: number }>;
   tags?: Array<{ id: string; slug: string; updatedAt: number; count: number }>;
   authors?: Array<{ id: string; slug: string; latestPublishedAt: number }>;
@@ -179,6 +182,30 @@ export const gatherSitemapData = internalQuery({
             title: p.title,
           };
         });
+    }
+
+    // Courses
+    if (
+      typesSet.has("courses") &&
+      settings.include_courses &&
+      (await isPluginEnabled(ctx, "lms"))
+    ) {
+      const courses = await ctx.db
+        .query("lms_courses")
+        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "published"))
+        .collect();
+
+      result.courses = courses
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
+        .filter((course) => Boolean(course.slug))
+        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
+        .map((course) => ({
+          id: course._id,
+          slug: course.slug,
+          publishedAt: course.publishedAt ?? course.createdAt,
+          updatedAt: course.updatedAt,
+          title: course.title,
+        }));
     }
 
     // Categories
@@ -680,6 +707,54 @@ export const regenerateStale = internalAction({
       } else {
         await ctx.runMutation(internal.sitemaps.internals.deleteCacheByType, {
           type: "pages",
+        });
+      }
+
+      // ── Generate Courses Sitemap ──────────────────────────────────────
+      if (settings.include_courses && data.courses) {
+        const courses = data.courses;
+
+        courses.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
+
+        const urlEntries: SitemapUrlEntry[] = courses.map((course) => ({
+          loc: buildCourseUrl(siteUrl, course.slug),
+          lastmod: toW3CDatetime(course.updatedAt || course.publishedAt),
+          changefreq: toChangefreq(settings.changefreq_courses, "weekly"),
+          priority: settings.priority_courses || 0.6,
+        }));
+
+        if (urlEntries.length > 0) {
+          const courseChunks = paginate(urlEntries, maxUrlsPerSitemap);
+          for (let i = 0; i < courseChunks.length; i++) {
+            const pageNum = i + 1;
+            const pageUrls = courseChunks[i];
+            const xml = buildUrlSetXml(pageUrls);
+            const hashData = pageUrls.map((u) => `${u.loc}:${u.lastmod}`);
+            const hash = await computeContentHashAsync(hashData);
+
+            if (force || existingHashes[`courses:${pageNum}`] !== hash) {
+              await ctx.runMutation(internal.sitemaps.internals.upsertCache, {
+                type: "courses",
+                page: pageNum,
+                xml,
+                urlCount: pageUrls.length,
+                generatedAt: Date.now(),
+                generationDurationMs: Date.now() - startTime,
+                contentHash: hash,
+              });
+              sitemapsGenerated++;
+            }
+            totalUrls += pageUrls.length;
+
+            indexEntries.push({
+              loc: buildSubSitemapUrl(siteUrl, "courses", pageNum),
+              lastmod: toW3CDatetime(Date.now()),
+            });
+          }
+        }
+      } else {
+        await ctx.runMutation(internal.sitemaps.internals.deleteCacheByType, {
+          type: "courses",
         });
       }
 

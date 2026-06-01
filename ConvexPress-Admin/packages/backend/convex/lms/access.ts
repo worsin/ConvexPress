@@ -117,9 +117,11 @@ export async function canUserAccessCourse(
 
   const me = await getCurrentUser(ctx as any);
   const userId = args.userId ?? me?._id;
+  const checkingAnotherUser = !!args.userId && String(args.userId) !== String(me?._id);
   const staffPreview =
-    (await currentUserCan(ctx as any, "lms.course.view")) ||
-    (await currentUserCan(ctx as any, "lms.course.edit"));
+    !checkingAnotherUser &&
+    ((await currentUserCan(ctx as any, "lms.course.view")) ||
+      (await currentUserCan(ctx as any, "lms.course.edit")));
   if (course.status !== "published" && !staffPreview) {
     return { allowed: false, reason: "not_published", requiresLogin: false };
   }

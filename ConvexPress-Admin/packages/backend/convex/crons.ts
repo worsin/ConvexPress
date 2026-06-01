@@ -152,6 +152,15 @@ crons.daily(
   internal.events.internals.retentionCleanup,
 );
 
+// ─── LMS System ──────────────────────────────────────────────────────────────
+// Daily sweep for enrollment access-duration expirations. Read paths also guard
+// expired rows, but this normalizes row state and emits expiration events.
+crons.daily(
+  "lms-expire-enrollments",
+  { hourUTC: 3, minuteUTC: 20 },
+  (internal as any).lms.enrollment.internals.expireExpiredEnrollments,
+);
+
 // ─── Content Editor System ──────────────────────────────────────────────────
 // Hourly cleanup of expired editor locks (locks older than 2 minutes).
 // Editor locks use a 30s heartbeat; any lock not renewed for 2+ minutes is stale.

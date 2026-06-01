@@ -260,6 +260,18 @@ export function buildContentUrl(siteUrl: string, slug: string, type: "post" | "p
 }
 
 /**
+ * Build a public course landing URL from its slug.
+ *
+ * @param siteUrl - The site's base URL
+ * @param slug - The course slug
+ * @returns Full URL (e.g., "https://example.com/courses/my-course")
+ */
+export function buildCourseUrl(siteUrl: string, slug: string): string {
+  const base = siteUrl.replace(/\/+$/, "");
+  return `${base}/courses/${slug}`;
+}
+
+/**
  * Build a category archive URL.
  *
  * @param siteUrl - The site's base URL

@@ -877,6 +877,92 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
       "Marks pages sitemap stale when a page is permanently deleted.",
   },
 
+  // --- LMS course events -> mark courses stale ---
+  {
+    eventCode: "lms.course_published",
+    name: "Sitemap: LMS course published",
+    handlerModule: "sitemaps/subscribers",
+    handlerFunction: "onLmsCourseChanged",
+    handlerType: "internal",
+    priority: 70,
+    maxRetries: 2,
+    retryDelayMs: 5000,
+    retryBackoff: "exponential",
+    system: "sitemap",
+    description:
+      "Marks courses sitemap stale when an LMS course is published.",
+  },
+  {
+    eventCode: "lms.course_unpublished",
+    name: "Sitemap: LMS course unpublished",
+    handlerModule: "sitemaps/subscribers",
+    handlerFunction: "onLmsCourseChanged",
+    handlerType: "internal",
+    priority: 70,
+    maxRetries: 2,
+    retryDelayMs: 5000,
+    retryBackoff: "exponential",
+    system: "sitemap",
+    description:
+      "Marks courses sitemap stale when an LMS course is unpublished.",
+  },
+  {
+    eventCode: "lms.course_updated",
+    name: "Sitemap: LMS course updated",
+    handlerModule: "sitemaps/subscribers",
+    handlerFunction: "onLmsCourseChanged",
+    handlerType: "internal",
+    priority: 70,
+    maxRetries: 2,
+    retryDelayMs: 5000,
+    retryBackoff: "exponential",
+    system: "sitemap",
+    description:
+      "Marks courses sitemap stale when an LMS course URL or content changes.",
+  },
+  {
+    eventCode: "lms.course_archived",
+    name: "Sitemap: LMS course archived",
+    handlerModule: "sitemaps/subscribers",
+    handlerFunction: "onLmsCourseChanged",
+    handlerType: "internal",
+    priority: 70,
+    maxRetries: 2,
+    retryDelayMs: 5000,
+    retryBackoff: "exponential",
+    system: "sitemap",
+    description:
+      "Marks courses sitemap stale when an LMS course is archived.",
+  },
+  {
+    eventCode: "lms.course_restored",
+    name: "Sitemap: LMS course restored",
+    handlerModule: "sitemaps/subscribers",
+    handlerFunction: "onLmsCourseChanged",
+    handlerType: "internal",
+    priority: 70,
+    maxRetries: 2,
+    retryDelayMs: 5000,
+    retryBackoff: "exponential",
+    system: "sitemap",
+    description:
+      "Marks courses sitemap stale when an LMS course is restored.",
+  },
+  {
+    eventCode: "lms.course_deleted",
+    name: "Sitemap: LMS course deleted",
+    handlerModule: "sitemaps/subscribers",
+    handlerFunction: "onLmsCourseChanged",
+    handlerType: "internal",
+    priority: 70,
+    maxRetries: 2,
+    retryDelayMs: 5000,
+    retryBackoff: "exponential",
+    system: "sitemap",
+    description:
+      "Marks courses sitemap stale when an LMS course is deleted.",
+  },
+
   // --- Taxonomy events → mark categories or tags stale ---
   {
     eventCode: "taxonomy.category_created",

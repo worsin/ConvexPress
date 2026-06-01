@@ -403,6 +403,13 @@ export const EMAIL_TEMPLATE_REGISTRY: EmailTemplateRegistryEntry[] = [
     description: "Course access removal notice for learners.",
   },
   {
+    slug: "lms-enrollment-expired",
+    category: "lms",
+    triggerKind: "event",
+    canonicalEventCode: "lms.enrollment_expired",
+    description: "Course access expiration notice for learners.",
+  },
+  {
     slug: "lms-course-completed",
     category: "lms",
     triggerKind: "event",

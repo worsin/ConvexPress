@@ -1396,6 +1396,35 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
   },
 
   {
+    slug: "lms-enrollment-expired",
+    name: "LMS Course Access Expired",
+    description: "Sent when a learner's time-limited course access expires",
+    subjectTemplate: "Access expired: {course_title}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Course access expired</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Your access to <strong>{course_title}</strong> expired{expired_at_sentence}.
+      </p>
+      <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
+        You can review the course page or contact the site team if you need access restored.
+      </p>
+      <a href="{course_public_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View course</a>
+    `),
+    preheaderText: "Your course access has expired",
+    availableVariables: [
+      { name: "recipient_name", description: "Learner display name", required: false, defaultValue: "there" },
+      { name: "course_title", description: "Course title", required: true },
+      { name: "course_public_url", description: "Public course URL", required: true },
+      { name: "expired_at", description: "Expiration timestamp", required: false },
+      { name: "expired_at_sentence", description: "Human-readable expiration suffix", required: false, defaultValue: " recently" },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "lms",
+    eventCode: "lms.enrollment_expired",
+  },
+
+  {
     slug: "lms-course-completed",
     name: "LMS Course Completed",
     description: "Sent when a learner completes a course",

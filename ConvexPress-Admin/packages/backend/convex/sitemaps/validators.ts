@@ -38,6 +38,8 @@ export const contentSitemapTypeValidator = v.union(
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("pages"),
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  v.literal("courses"),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("categories"),
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("tags"),
@@ -47,13 +49,14 @@ export const contentSitemapTypeValidator = v.union(
 
 // ─── Sitemap Type Constants ──────────────────────────────────────────────────
 
-export type SitemapType = "index" | "posts" | "pages" | "categories" | "tags" | "authors";
+export type SitemapType = "index" | "posts" | "pages" | "courses" | "categories" | "tags" | "authors";
 
 export type ContentSitemapType = Exclude<SitemapType, "index">;
 
 export const CONTENT_SITEMAP_TYPES: ContentSitemapType[] = [
   "posts",
   "pages",
+  "courses",
   "categories",
   "tags",
   "authors",
@@ -97,6 +100,7 @@ export const DEFAULT_SITEMAP_SETTINGS = {
   // Content type inclusion
   include_posts: true,
   include_pages: true,
+  include_courses: true,
   include_categories: true,
   include_tags: false,
   include_authors: false,
@@ -107,6 +111,7 @@ export const DEFAULT_SITEMAP_SETTINGS = {
   // Default changefreq per content type
   changefreq_posts: "weekly" as SitemapChangefreq,
   changefreq_pages: "monthly" as SitemapChangefreq,
+  changefreq_courses: "weekly" as SitemapChangefreq,
   changefreq_categories: "weekly" as SitemapChangefreq,
   changefreq_tags: "weekly" as SitemapChangefreq,
   changefreq_authors: "monthly" as SitemapChangefreq,
@@ -116,6 +121,7 @@ export const DEFAULT_SITEMAP_SETTINGS = {
   priority_homepage: 1.0,
   priority_posts: 0.6,
   priority_pages: 0.6,
+  priority_courses: 0.6,
   priority_categories: 0.4,
   priority_tags: 0.3,
   priority_authors: 0.3,
@@ -191,6 +197,8 @@ export const updateSettingsArgs = {
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     include_pages: v.optional(v.boolean()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    include_courses: v.optional(v.boolean()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     include_categories: v.optional(v.boolean()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     include_tags: v.optional(v.boolean()),
@@ -202,6 +210,8 @@ export const updateSettingsArgs = {
     changefreq_posts: v.optional(v.string()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     changefreq_pages: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    changefreq_courses: v.optional(v.string()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     changefreq_categories: v.optional(v.string()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
@@ -216,6 +226,8 @@ export const updateSettingsArgs = {
     priority_posts: v.optional(v.number()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     priority_pages: v.optional(v.number()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    priority_courses: v.optional(v.number()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     priority_categories: v.optional(v.number()),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
@@ -278,6 +290,7 @@ export function isValidDebounceMs(value: number): boolean {
 export const TYPE_TO_INCLUDE_KEY: Record<ContentSitemapType, keyof SitemapSettings> = {
   posts: "include_posts",
   pages: "include_pages",
+  courses: "include_courses",
   categories: "include_categories",
   tags: "include_tags",
   authors: "include_authors",
@@ -289,6 +302,7 @@ export const TYPE_TO_INCLUDE_KEY: Record<ContentSitemapType, keyof SitemapSettin
 export const TYPE_TO_CHANGEFREQ_KEY: Record<ContentSitemapType, keyof SitemapSettings> = {
   posts: "changefreq_posts",
   pages: "changefreq_pages",
+  courses: "changefreq_courses",
   categories: "changefreq_categories",
   tags: "changefreq_tags",
   authors: "changefreq_authors",
@@ -300,6 +314,7 @@ export const TYPE_TO_CHANGEFREQ_KEY: Record<ContentSitemapType, keyof SitemapSet
 export const TYPE_TO_PRIORITY_KEY: Record<ContentSitemapType, keyof SitemapSettings> = {
   posts: "priority_posts",
   pages: "priority_pages",
+  courses: "priority_courses",
   categories: "priority_categories",
   tags: "priority_tags",
   authors: "priority_authors",

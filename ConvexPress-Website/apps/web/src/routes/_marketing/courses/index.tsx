@@ -2,7 +2,17 @@ import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convexpress-website/backend/generated/api";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BookOpen, Filter, GraduationCap, Lock, Search, Users, X } from "lucide-react";
+import {
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  GraduationCap,
+  Lock,
+  Search,
+  Users,
+  X,
+} from "lucide-react";
 import { z } from "zod";
 import { useState } from "react";
 
@@ -15,6 +25,8 @@ const coursesSearchSchema = z.object({
   category: z.string().optional(),
   tag: z.string().optional(),
   access: z.string().optional(),
+  sort: z.enum(["newest", "title_asc", "title_desc", "popular"]).optional(),
+  page: z.coerce.number().int().positive().optional(),
 });
 
 function buildCatalogArgs({
@@ -22,17 +34,24 @@ function buildCatalogArgs({
   category,
   tag,
   access,
+  sort,
+  page,
 }: {
   q?: string;
   category?: string;
   tag?: string;
   access?: string;
+  sort?: string;
+  page?: number;
 }) {
   return {
     search: q || undefined,
     category: category || undefined,
     tag: tag || undefined,
     accessMode: access || undefined,
+    sort: sort || "newest",
+    page: page || 1,
+    pageSize: 12,
   };
 }
 
@@ -43,6 +62,8 @@ export const Route = createFileRoute("/_marketing/courses/")({
     category: search.category?.trim() ?? "",
     tag: search.tag?.trim() ?? "",
     access: search.access?.trim() ?? "",
+    sort: search.sort ?? "newest",
+    page: search.page ?? 1,
   }),
   loader: async ({ context: { queryClient }, deps }) => {
     const publicSettings = await queryClient.ensureQueryData(
@@ -54,7 +75,10 @@ export const Route = createFileRoute("/_marketing/courses/")({
 
     if (isPublicPluginEnabled("lms", publicSettings)) {
       await queryClient.ensureQueryData(
-        convexQuery(api.lms.courses.queries.listCatalog, buildCatalogArgs(deps)),
+        convexQuery((api as any).lms.courses.queries.getCatalog, buildCatalogArgs(deps)),
+      );
+      await queryClient.ensureQueryData(
+        convexQuery((api as any).lms.courses.queries.getCatalogFilters, {}),
       );
     }
 
@@ -63,6 +87,8 @@ export const Route = createFileRoute("/_marketing/courses/")({
     if (deps.category) canonicalQuery.set("category", deps.category);
     if (deps.tag) canonicalQuery.set("tag", deps.tag);
     if (deps.access) canonicalQuery.set("access", deps.access);
+    if (deps.sort && deps.sort !== "newest") canonicalQuery.set("sort", deps.sort);
+    if (deps.page > 1) canonicalQuery.set("page", String(deps.page));
     const canonicalPath = canonicalQuery.size
       ? `/courses?${canonicalQuery.toString()}`
       : "/courses";
@@ -104,6 +130,14 @@ type CatalogFilters = {
   accessModes: CatalogFilter[];
 };
 
+type CatalogResult = {
+  items: CourseCard[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
 function accessLabel(course: CourseCard) {
   switch (course.accessMode) {
     case "open":
@@ -135,12 +169,18 @@ function formatCents(amount: number) {
 
 function CoursesIndexPage() {
   const navigate = Route.useNavigate();
-  const { q, category, tag, access } = Route.useLoaderDeps();
+  const { q, category, tag, access, sort, page } = Route.useLoaderDeps();
   const [query, setQuery] = useState(q);
-  const { data: courses } = useSuspenseQuery(
-    convexQuery(api.lms.courses.queries.listCatalog, buildCatalogArgs({ q, category, tag, access })) as any,
-  ) as { data: CourseCard[] };
-  const filters = buildFilters(courses);
+  const { data: catalog } = useSuspenseQuery(
+    convexQuery(
+      (api as any).lms.courses.queries.getCatalog,
+      buildCatalogArgs({ q, category, tag, access, sort, page }),
+    ) as any,
+  ) as { data: CatalogResult };
+  const { data: filters } = useSuspenseQuery(
+    convexQuery((api as any).lms.courses.queries.getCatalogFilters, {}) as any,
+  ) as { data: CatalogFilters };
+  const courses = catalog.items;
 
   function runSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -151,6 +191,22 @@ function CoursesIndexPage() {
         category: category || undefined,
         tag: tag || undefined,
         access: access || undefined,
+        sort: sort === "newest" ? undefined : sort,
+        page: undefined,
+      },
+    } as any);
+  }
+
+  function changeSort(nextSort: string) {
+    void navigate({
+      to: "/courses",
+      search: {
+        q: q || undefined,
+        category: category || undefined,
+        tag: tag || undefined,
+        access: access || undefined,
+        sort: nextSort === "newest" ? undefined : nextSort,
+        page: undefined,
       },
     } as any);
   }
@@ -215,84 +271,103 @@ function CoursesIndexPage() {
         </aside>
 
         <main className="min-w-0">
-      {courses.length === 0 ? (
-        <div className="border border-dashed border-border p-10 text-center">
-          <GraduationCap className="mx-auto mb-3 size-10 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            {q || category || tag || access
-              ? "No courses match those filters."
-              : "No courses are published yet."}
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {courses.map((course) => (
-            <article
-              key={course._id}
-              className="group overflow-hidden border border-border bg-card shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
-            >
-              <Link to="/courses/$slug" params={{ slug: course.slug }} className="block">
-                <div className="aspect-[4/3] bg-muted/40">
-                  {course.featuredImageId ? (
-                    <MediaImage
-                      mediaId={course.featuredImageId as any}
-                      alt={course.title}
-                      className="h-full w-full object-cover"
-                      preferredSize="large"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center bg-muted text-sm text-muted-foreground">
-                      Course
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              {catalog.total === 1 ? "1 course" : `${catalog.total} courses`}
+            </p>
+            <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+              Sort
+              <select
+                value={sort}
+                onChange={(event) => changeSort(event.target.value)}
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground"
+              >
+                <option value="newest">Newest</option>
+                <option value="popular">Popular</option>
+                <option value="title_asc">A-Z</option>
+                <option value="title_desc">Z-A</option>
+              </select>
+            </label>
+          </div>
+          {courses.length === 0 ? (
+            <div className="border border-dashed border-border p-10 text-center">
+              <GraduationCap className="mx-auto mb-3 size-10 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                {q || category || tag || access
+                  ? "No courses match those filters."
+                  : "No courses are published yet."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {courses.map((course) => (
+                <article
+                  key={course._id}
+                  className="group overflow-hidden border border-border bg-card shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
+                >
+                  <Link to="/courses/$slug" params={{ slug: course.slug }} className="block">
+                    <div className="aspect-[4/3] bg-muted/40">
+                      {course.featuredImageId ? (
+                        <MediaImage
+                          mediaId={course.featuredImageId as any}
+                          alt={course.title}
+                          className="h-full w-full object-cover"
+                          preferredSize="large"
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center bg-muted text-sm text-muted-foreground">
+                          Course
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-4 p-5">
-                  <div className="flex flex-wrap gap-2 text-xs font-medium">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-primary">
-                      <Lock className="size-3" aria-hidden="true" />
-                      {accessLabel(course)}
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
-                      <BookOpen className="size-3" aria-hidden="true" />
-                      {course.lessonCount ?? 0} lessons
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
-                      <Users className="size-3" aria-hidden="true" />
-                      {course.topicCount ?? 0} topics
-                    </span>
-                  </div>
-
-                  <div>
-                    <h2 className="text-xl font-semibold text-foreground">
-                      {course.title}
-                    </h2>
-                    {course.excerpt ? (
-                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">
-                        {course.excerpt}
-                      </p>
-                    ) : null}
-                    {(course.categoryIds?.length || course.tagIds?.length) ? (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {[...(course.categoryIds ?? []), ...(course.tagIds ?? [])]
-                          .slice(0, 5)
-                          .map((label) => (
-                            <span
-                              key={label}
-                              className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
-                            >
-                              {humanize(label)}
-                            </span>
-                          ))}
+                    <div className="flex flex-col gap-4 p-5">
+                      <div className="flex flex-wrap gap-2 text-xs font-medium">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-primary">
+                          <Lock className="size-3" aria-hidden="true" />
+                          {accessLabel(course)}
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+                          <BookOpen className="size-3" aria-hidden="true" />
+                          {course.lessonCount ?? 0} lessons
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+                          <Users className="size-3" aria-hidden="true" />
+                          {course.topicCount ?? 0} topics
+                        </span>
                       </div>
-                    ) : null}
-                  </div>
-                </div>
-              </Link>
-            </article>
-          ))}
-        </div>
-      )}
+
+                      <div>
+                        <h2 className="text-xl font-semibold text-foreground">
+                          {course.title}
+                        </h2>
+                        {course.excerpt ? (
+                          <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">
+                            {course.excerpt}
+                          </p>
+                        ) : null}
+                        {(course.categoryIds?.length || course.tagIds?.length) ? (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {[...(course.categoryIds ?? []), ...(course.tagIds ?? [])]
+                              .slice(0, 5)
+                              .map((label) => (
+                                <span
+                                  key={label}
+                                  className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+                                >
+                                  {humanize(label)}
+                                </span>
+                              ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </Link>
+                </article>
+              ))}
+            </div>
+          )}
+          <Pagination catalog={catalog} />
         </main>
       </div>
     </div>
@@ -310,7 +385,7 @@ function FilterGroup({
   active?: string;
   param: "access" | "category" | "tag";
 }) {
-  const { q, category, tag, access } = Route.useLoaderDeps();
+  const { q, category, tag, access, sort } = Route.useLoaderDeps();
   if (!items.length) return null;
   return (
     <section className="space-y-2 border border-border bg-card p-4">
@@ -328,6 +403,8 @@ function FilterGroup({
               category: param === "category" ? item.slug : category || undefined,
               tag: param === "tag" ? item.slug : tag || undefined,
               access: param === "access" ? item.slug : access || undefined,
+              sort: sort === "newest" ? undefined : sort,
+              page: undefined,
             }}
             className={[
               "flex items-center justify-between gap-2 px-2 py-1.5 text-xs transition-colors",
@@ -345,25 +422,48 @@ function FilterGroup({
   );
 }
 
-function buildFilters(courses: CourseCard[]): CatalogFilters {
-  return {
-    categories: countLabels(courses.flatMap((course) => course.categoryIds ?? [])),
-    tags: countLabels(courses.flatMap((course) => course.tagIds ?? [])),
-    accessModes: countLabels(courses.map((course) => course.accessMode ?? "members")),
+function Pagination({ catalog }: { catalog: CatalogResult }) {
+  const { q, category, tag, access, sort } = Route.useLoaderDeps();
+  if (catalog.totalPages <= 1) return null;
+  const baseSearch = {
+    q: q || undefined,
+    category: category || undefined,
+    tag: tag || undefined,
+    access: access || undefined,
+    sort: sort === "newest" ? undefined : sort,
   };
-}
+  const previousPage = catalog.page > 1 ? catalog.page - 1 : null;
+  const nextPage = catalog.page < catalog.totalPages ? catalog.page + 1 : null;
 
-function countLabels(values: string[]) {
-  const counts = new Map<string, number>();
-  for (const value of values) {
-    if (typeof value !== "string") continue;
-    const slug = value.trim().toLowerCase();
-    if (!slug) continue;
-    counts.set(slug, (counts.get(slug) ?? 0) + 1);
-  }
-  return Array.from(counts.entries())
-    .map(([slug, count]) => ({ slug, label: humanize(slug), count }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  return (
+    <nav className="mt-8 flex flex-wrap items-center justify-between gap-3" aria-label="Course pages">
+      <p className="text-xs text-muted-foreground">
+        Page {catalog.page} of {catalog.totalPages}
+      </p>
+      <div className="flex items-center gap-2">
+        {previousPage ? (
+          <Link
+            to="/courses"
+            search={{ ...baseSearch, page: previousPage === 1 ? undefined : previousPage }}
+            className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+          >
+            <ChevronLeft className="size-4" aria-hidden="true" />
+            Previous
+          </Link>
+        ) : null}
+        {nextPage ? (
+          <Link
+            to="/courses"
+            search={{ ...baseSearch, page: nextPage }}
+            className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+          >
+            Next
+            <ChevronRight className="size-4" aria-hidden="true" />
+          </Link>
+        ) : null}
+      </div>
+    </nav>
+  );
 }
 
 function humanize(value: string) {

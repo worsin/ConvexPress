@@ -10,6 +10,13 @@ import { lmsCourseStatusValidator } from "../../schema/lms";
 import { canUserAccessCourse, requireCourseAuthorOrEditor } from "../access";
 import { docToText } from "../lessons/helpers";
 
+const catalogSortValidator = v.union(
+  v.literal("newest"),
+  v.literal("title_asc"),
+  v.literal("title_desc"),
+  v.literal("popular"),
+);
+
 function publicCoursePayload(course: any) {
   return {
     _id: course._id,
@@ -114,68 +121,145 @@ export const listCatalog = query({
     category: v.optional(v.string()),
     tag: v.optional(v.string()),
     accessMode: v.optional(v.string()),
+    sort: v.optional(catalogSortValidator),
   },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
-    let courses = await ctx.db
-      .query("lms_courses")
-      .withIndex("by_status", (q) => q.eq("status", "published"))
-      .order("desc")
-      .take(500);
-    const search = args.search?.trim().toLowerCase();
-    if (search) {
-      courses = courses.filter((course) =>
-        [
-          course.title,
-          course.excerpt,
-          docToText(course.descriptionDoc),
-          ...(course.categoryIds ?? []),
-          ...(course.tagIds ?? []),
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(search),
-      );
-    }
-    if (args.category) {
-      const category = args.category.trim().toLowerCase();
-      courses = courses.filter((course) =>
-        (course.categoryIds ?? []).some((entry) => entry.toLowerCase() === category),
-      );
-    }
-    if (args.tag) {
-      const tag = args.tag.trim().toLowerCase();
-      courses = courses.filter((course) =>
-        (course.tagIds ?? []).some((entry) => entry.toLowerCase() === tag),
-      );
-    }
-    if (args.accessMode) {
-      const accessMode = args.accessMode.trim().toLowerCase();
-      courses = courses.filter((course) => (course.accessMode ?? "members") === accessMode);
-    }
-    const rows = [];
-    for (const course of courses) {
-      const access = await canUserAccessCourse(ctx, { courseId: course._id });
-      rows.push({
-        _id: course._id,
-        title: course.title,
-        slug: course.slug,
-        excerpt: course.excerpt,
-        featuredImageId: course.featuredImageId,
-        accessMode: course.accessMode ?? "members",
-        categoryIds: course.categoryIds ?? [],
-        tagIds: course.tagIds ?? [],
-        lessonCount: course.lessonCount ?? 0,
-        topicCount: course.topicCount ?? 0,
-        allowed: access.allowed,
-        accessReason: access.reason,
-        requiresLogin: access.requiresLogin,
-      });
-    }
-    return rows;
+    const courses = await getFilteredCatalogCourses(ctx, args);
+    const sorted = await sortCatalogCourses(ctx, courses, args.sort ?? "newest");
+    return await Promise.all(sorted.map((course) => catalogCoursePayload(ctx, course)));
   },
 });
+
+export const getCatalog = query({
+  args: {
+    search: v.optional(v.string()),
+    category: v.optional(v.string()),
+    tag: v.optional(v.string()),
+    accessMode: v.optional(v.string()),
+    sort: v.optional(catalogSortValidator),
+    page: v.optional(v.number()),
+    pageSize: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "lms"))) {
+      return { items: [], total: 0, page: 1, pageSize: 12, totalPages: 0 };
+    }
+    const pageSize = Math.min(Math.max(Math.floor(args.pageSize ?? 12), 1), 48);
+    const page = Math.max(Math.floor(args.page ?? 1), 1);
+    const courses = await getFilteredCatalogCourses(ctx, args);
+    const sorted = await sortCatalogCourses(ctx, courses, args.sort ?? "newest");
+    const total = sorted.length;
+    const totalPages = total > 0 ? Math.ceil(total / pageSize) : 0;
+    const safePage = totalPages > 0 ? Math.min(page, totalPages) : 1;
+    const start = (safePage - 1) * pageSize;
+    const items = await Promise.all(
+      sorted.slice(start, start + pageSize).map((course) => catalogCoursePayload(ctx, course)),
+    );
+    return { items, total, page: safePage, pageSize, totalPages };
+  },
+});
+
+async function getFilteredCatalogCourses(
+  ctx: any,
+  args: {
+    search?: string;
+    category?: string;
+    tag?: string;
+    accessMode?: string;
+  },
+) {
+  let courses = await ctx.db
+    .query("lms_courses")
+    .withIndex("by_status", (q: any) => q.eq("status", "published"))
+    .order("desc")
+    .take(500);
+  const search = args.search?.trim().toLowerCase();
+  if (search) {
+    courses = courses.filter((course: any) =>
+      [
+        course.title,
+        course.excerpt,
+        docToText(course.descriptionDoc),
+        ...(course.categoryIds ?? []),
+        ...(course.tagIds ?? []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(search),
+    );
+  }
+  if (args.category) {
+    const category = args.category.trim().toLowerCase();
+    courses = courses.filter((course: any) =>
+      (course.categoryIds ?? []).some((entry: string) => entry.toLowerCase() === category),
+    );
+  }
+  if (args.tag) {
+    const tag = args.tag.trim().toLowerCase();
+    courses = courses.filter((course: any) =>
+      (course.tagIds ?? []).some((entry: string) => entry.toLowerCase() === tag),
+    );
+  }
+  if (args.accessMode) {
+    const accessMode = args.accessMode.trim().toLowerCase();
+    courses = courses.filter((course: any) => (course.accessMode ?? "members") === accessMode);
+  }
+  return courses;
+}
+
+async function sortCatalogCourses(ctx: any, courses: any[], sort: string) {
+  const sorted = [...courses];
+  if (sort === "title_asc") {
+    return sorted.sort((a: any, b: any) => a.title.localeCompare(b.title));
+  }
+  if (sort === "title_desc") {
+    return sorted.sort((a: any, b: any) => b.title.localeCompare(a.title));
+  }
+  if (sort === "popular") {
+    const counts = new Map<string, number>();
+    for (const course of sorted) {
+      const enrollments = await ctx.db
+        .query("lms_enrollments")
+        .withIndex("by_course", (q: any) => q.eq("courseId", course._id).eq("status", "active"))
+        .collect();
+      counts.set(
+        String(course._id),
+        enrollments.filter((row: any) => !row.expiresAt || row.expiresAt > Date.now()).length,
+      );
+    }
+    return sorted.sort((a: any, b: any) => {
+      const diff = (counts.get(String(b._id)) ?? 0) - (counts.get(String(a._id)) ?? 0);
+      return diff || a.title.localeCompare(b.title);
+    });
+  }
+  return sorted.sort(
+    (a: any, b: any) =>
+      (b.publishedAt ?? b.updatedAt ?? b.createdAt ?? 0) -
+        (a.publishedAt ?? a.updatedAt ?? a.createdAt ?? 0) ||
+      b.title.localeCompare(a.title),
+  );
+}
+
+async function catalogCoursePayload(ctx: any, course: any) {
+  const access = await canUserAccessCourse(ctx, { courseId: course._id });
+  return {
+    _id: course._id,
+    title: course.title,
+    slug: course.slug,
+    excerpt: course.excerpt,
+    featuredImageId: course.featuredImageId,
+    accessMode: course.accessMode ?? "members",
+    categoryIds: course.categoryIds ?? [],
+    tagIds: course.tagIds ?? [],
+    lessonCount: course.lessonCount ?? 0,
+    topicCount: course.topicCount ?? 0,
+    allowed: access.allowed,
+    accessReason: access.reason,
+    requiresLogin: access.requiresLogin,
+  };
+}
 
 export const getCatalogFilters = query({
   args: {},

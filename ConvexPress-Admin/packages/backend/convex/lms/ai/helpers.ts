@@ -33,6 +33,20 @@ export function parseJsonObject(raw: string): unknown {
   }
 }
 
+export function cleanGeneratedLessonText(raw: string): string {
+  const text = String(raw)
+    .replace(/^```(?:markdown|md|text)?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+  if (text.length < 10) {
+    throw new ConvexError({
+      code: "EMPTY_GENERATION",
+      message: "AI returned an empty lesson draft. Try again.",
+    });
+  }
+  return text.slice(0, 100000);
+}
+
 export function normalizeOutline(value: unknown): LmsOutline {
   const topics = Array.isArray((value as { topics?: unknown })?.topics)
     ? ((value as { topics: unknown[] }).topics as LmsOutlineTopic[])

@@ -103,9 +103,10 @@ export const NOTIFICATION_KEYS = {
   SUBSCRIPTION_CANCELLED: "subscription_cancelled",
   SUBSCRIPTION_PAUSED: "subscription_paused",
 
-  // LMS (6)
+  // LMS (7)
   LMS_ENROLLED: "lms_enrolled",
   LMS_UNENROLLED: "lms_unenrolled",
+  LMS_ENROLLMENT_EXPIRED: "lms_enrollment_expired",
   LMS_COURSE_COMPLETED: "lms_course_completed",
   LMS_CERTIFICATE_ISSUED: "lms_certificate_issued",
   LMS_CERTIFICATE_REVOKED: "lms_certificate_revoked",
@@ -821,6 +822,23 @@ export const NOTIFICATION_TYPES: Record<string, NotificationTypeConfig> = {
     actionUrlTemplate: "/courses/{courseSlug}",
     actionLabel: "View Course",
     groupKeyTemplate: "lms.unenrolled:{courseId}:{userId}",
+  },
+  [NOTIFICATION_KEYS.LMS_ENROLLMENT_EXPIRED]: {
+    key: NOTIFICATION_KEYS.LMS_ENROLLMENT_EXPIRED,
+    name: "Course Access Expired",
+    category: "LMS",
+    eventCode: "lms.enrollment_expired",
+    type: "warning",
+    recipientType: "customer",
+    recipientPayloadKeys: ["userId"],
+    persistent: true,
+    defaultSiteEnabled: true,
+    defaultToastEnabled: true,
+    icon: "ClockAlert",
+    messageTemplate: 'Your access to "{courseTitle}" has expired.',
+    actionUrlTemplate: "/courses/{courseSlug}",
+    actionLabel: "View Course",
+    groupKeyTemplate: "lms.enrollment_expired:{courseId}:{userId}",
   },
   [NOTIFICATION_KEYS.LMS_COURSE_COMPLETED]: {
     key: NOTIFICATION_KEYS.LMS_COURSE_COMPLETED,
