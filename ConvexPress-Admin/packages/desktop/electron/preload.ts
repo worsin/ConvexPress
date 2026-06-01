@@ -35,6 +35,8 @@ const ALLOWED_INVOKE_CHANNELS = new Set([
 const ALLOWED_ON_CHANNELS = new Set([
   // Window events
   "window:maximized",
+  // Setup wizard
+  "setup:progress",
   // Theme events
   "theme:os-changed",
   // Navigation (main process can push routes)
@@ -188,11 +190,26 @@ contextBridge.exposeInMainWorld("convexpressSetup", {
     adminName?: string;
     adminEmail?: string;
     adminPassword?: string;
+    clientIdentifier?: string;
+    clientPassword?: string;
   }) =>
     ipcRenderer.invoke("setup:complete", options) as Promise<{
       success: boolean;
       error?: string;
     }>,
+
+  /**
+   * Listen for setup deployment progress.
+   */
+  onProgress: (
+    callback: (event: { phase: string; message: string }) => void
+  ): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, payload: unknown) => {
+      callback(payload as { phase: string; message: string });
+    };
+    ipcRenderer.on("setup:progress", handler);
+    return () => ipcRenderer.removeListener("setup:progress", handler);
+  },
 
   /**
    * Get platform info for the wizard UI.

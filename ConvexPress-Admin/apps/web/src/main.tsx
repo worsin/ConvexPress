@@ -24,6 +24,7 @@ interface BootstrapConfig {
   convexSiteUrl: string;
   electronMode?: "server" | "client";
   pendingCredentials?: AdminGateProps["pendingCredentials"];
+  pendingLoginCredentials?: AdminGateProps["pendingLoginCredentials"];
 }
 
 function deriveConvexSiteUrl(convexUrl: string | undefined): string | undefined {
@@ -57,6 +58,9 @@ async function resolveConfig(): Promise<BootstrapConfig> {
     const pending = (await bridge.config.get("pendingAdminCredentials")) as
       | AdminGateProps["pendingCredentials"]
       | null;
+    const pendingLogin = (await bridge.config.get("pendingLoginCredentials")) as
+      | AdminGateProps["pendingLoginCredentials"]
+      | null;
 
     // In dev mode, the electron-store may be empty (fresh install / no setup
     // wizard completed yet). Fall back to Vite env vars so the app can still
@@ -74,6 +78,7 @@ async function resolveConfig(): Promise<BootstrapConfig> {
       convexSiteUrl: resolvedSiteUrl,
       electronMode,
       pendingCredentials: pending ?? undefined,
+      pendingLoginCredentials: pendingLogin ?? undefined,
     };
   }
 
@@ -112,6 +117,7 @@ async function bootstrap() {
         <AdminGate
           mode={config.electronMode}
           pendingCredentials={config.pendingCredentials}
+          pendingLoginCredentials={config.pendingLoginCredentials}
         >
           {children}
         </AdminGate>

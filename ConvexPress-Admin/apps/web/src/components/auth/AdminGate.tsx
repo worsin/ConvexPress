@@ -11,7 +11,8 @@
  *     a manual admin creation form. Otherwise renders children (normal flow).
  *
  *   - **Client mode**: If no admin exists on the connected deployment, shows
- *     a "Waiting for server setup" message. Otherwise renders children.
+ *     a "Waiting for server setup" message. If client credentials were
+ *     collected during setup, logs in once and then renders children.
  *
  *   - **Web mode (no Electron)**: Passthrough -- renders children immediately.
  *     The normal login page handles unauthenticated users.
@@ -37,6 +38,10 @@ export interface AdminGateProps {
     displayName?: string;
     username?: string;
   };
+  pendingLoginCredentials?: {
+    identifier: string;
+    password: string;
+  };
 }
 
 // ---- AdminGate --------------------------------------------------------------
@@ -45,9 +50,11 @@ export function AdminGate({
   children,
   mode,
   pendingCredentials,
+  pendingLoginCredentials,
 }: AdminGateProps) {
   const { isAuthenticated, isLoading: authLoading } = useLocalAuthContext();
   const [signupComplete, setSignupComplete] = useState(false);
+  const [loginComplete, setLoginComplete] = useState(false);
 
   // Only query hasAdmin when unauthenticated (skip otherwise).
   const hasAdmin = useQuery(
@@ -56,6 +63,7 @@ export function AdminGate({
   );
 
   const shouldAutoSignup = !!pendingCredentials && mode === "server";
+  const shouldAutoLogin = !!pendingLoginCredentials && mode === "client";
 
   // Web mode -- passthrough
   if (!isElectron() && !mode) {
@@ -64,6 +72,10 @@ export function AdminGate({
 
   // Auto-signup just completed -- render children while auth state catches up
   if (signupComplete) {
+    return <>{children}</>;
+  }
+
+  if (loginComplete) {
     return <>{children}</>;
   }
 
@@ -100,9 +112,68 @@ export function AdminGate({
     return <AdminCreationForm />;
   }
 
+  if (shouldAutoLogin) {
+    return (
+      <AutoLogin
+        credentials={pendingLoginCredentials}
+        onComplete={() => setLoginComplete(true)}
+      />
+    );
+  }
+
   // Admin exists, user is not authenticated -- the normal auth flow
   // (login page) will handle this via the router's auth guard.
   return <>{children}</>;
+}
+
+// ---- AutoLogin ---------------------------------------------------------------
+
+function AutoLogin({
+  credentials,
+  onComplete,
+}: {
+  credentials: NonNullable<AdminGateProps["pendingLoginCredentials"]>;
+  onComplete: () => void;
+}) {
+  const { login } = useLocalAuthContext();
+  const [error, setError] = useState<string | null>(null);
+  const attempted = useRef(false);
+
+  useEffect(() => {
+    if (attempted.current) return;
+    attempted.current = true;
+
+    async function doLogin() {
+      try {
+        await login(credentials.identifier, credentials.password);
+        if (isElectron() && window.convexpress) {
+          await window.convexpress.config.set("pendingLoginCredentials", null);
+        }
+        toast.success("Signed in to ConvexPress.");
+        onComplete();
+      } catch (err) {
+        console.error("[AutoLogin] Failed:", err);
+        setError(err instanceof Error ? err.message : "Login failed");
+      }
+    }
+
+    doLogin();
+  }, [credentials, login, onComplete]);
+
+  if (error) {
+    return <LoginFailure message={error} />;
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="mt-4 text-sm text-muted-foreground">
+          Signing in...
+        </p>
+      </div>
+    </div>
+  );
 }
 
 // ---- AutoSignup -------------------------------------------------------------
@@ -353,6 +424,24 @@ function WaitingForServer() {
         <p className="mt-2 text-sm text-muted-foreground">
           The server administrator has not finished setting up yet. Please
           contact your administrator and try again once the server is ready.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ---- LoginFailure -----------------------------------------------------------
+
+function LoginFailure({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center shadow-sm">
+        <h1 className="text-xl font-semibold text-foreground">
+          Sign In Failed
+        </h1>
+        <p className="mt-2 text-sm text-destructive">{message}</p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Restart setup or clear the saved credentials, then try again.
         </p>
       </div>
     </div>

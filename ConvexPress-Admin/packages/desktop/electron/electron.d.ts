@@ -57,10 +57,18 @@ export interface ConvexPressSetupAPI {
     mode: "server" | "client";
     adminKey?: string;
     siteName?: string;
+    adminName?: string;
+    adminEmail?: string;
+    adminPassword?: string;
+    clientIdentifier?: string;
+    clientPassword?: string;
   }) => Promise<{
     success: boolean;
     error?: string;
   }>;
+  onProgress: (
+    callback: (event: { phase: string; message: string }) => void,
+  ) => () => void;
   getPlatform: () => Promise<{
     os: string;
     arch: string;

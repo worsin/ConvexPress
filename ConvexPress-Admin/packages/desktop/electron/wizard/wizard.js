@@ -12,6 +12,8 @@ const state = {
   adminName: "",
   adminEmail: "",
   adminPassword: "",
+  clientIdentifier: "",
+  clientPassword: "",
   currentStep: "welcome",
 };
 
@@ -24,6 +26,8 @@ const STEP_DOT_INDEX = {
   "admin-create": 4,
   "client-url": 2,
   "client-test": 3,
+  "client-credentials": 4,
+  provision: 4,
   complete: 4,
 };
 
@@ -39,10 +43,13 @@ const steps = {
   "admin-create": $("step-admin-create"),
   "client-url": $("step-client-url"),
   "client-test": $("step-client-test"),
+  "client-credentials": $("step-client-credentials"),
+  provision: $("step-provision"),
   complete: $("step-complete"),
 };
 
 const dots = Array.from(document.querySelectorAll(".step-indicators .dot"));
+let removeProgressListener = null;
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 
@@ -256,7 +263,43 @@ $("btn-client-test-back").addEventListener("click", () => {
 });
 
 $("btn-client-test-next").addEventListener("click", () => {
+  showStep("client-credentials");
+});
+
+// ── Step: Client — Credentials ───────────────────────────────────────────
+
+function proceedFromClientCredentials() {
+  const identifier = $("input-client-identifier").value.trim();
+  const password = $("input-client-password").value;
+
+  if (!identifier || !password) {
+    setError(
+      "client-credentials-error",
+      "Please enter your username/email and password.",
+    );
+    return;
+  }
+
+  setError("client-credentials-error", "");
+  state.clientIdentifier = identifier;
+  state.clientPassword = password;
   completeSetup();
+}
+
+$("btn-client-credentials-next").addEventListener(
+  "click",
+  proceedFromClientCredentials,
+);
+$("btn-client-credentials-back").addEventListener("click", () =>
+  showStep("client-test"),
+);
+["input-client-identifier", "input-client-password"].forEach((id) => {
+  $(id).addEventListener("input", () =>
+    setError("client-credentials-error", ""),
+  );
+  $(id).addEventListener("keydown", (e) => {
+    if (e.key === "Enter") proceedFromClientCredentials();
+  });
 });
 
 // ── Connection Test (shared) ──────────────────────────────────────────────
@@ -321,24 +364,104 @@ async function completeSetup() {
     }
   }
 
+  if (state.mode === "client") {
+    options.clientIdentifier = state.clientIdentifier;
+    options.clientPassword = state.clientPassword;
+  }
+
   try {
-    await window.convexpressSetup.saveConfig(options);
+    showProvisionInProgress(
+      state.mode === "server"
+        ? "Deploying Convex backend code..."
+        : "Saving connection details...",
+    );
+
+    const result = await window.convexpressSetup.saveConfig(options);
+    if (result && result.success === false) {
+      throw new Error(result.error || "Setup failed.");
+    }
+    if (removeProgressListener) {
+      removeProgressListener();
+      removeProgressListener = null;
+    }
 
     // Set completion message based on mode
     const completeMsg = $("complete-message");
     if (state.mode === "server") {
       completeMsg.textContent =
-        "Your admin account will be created when the app launches for the first time.";
+        "Backend deployed. Your admin account is ready and ConvexPress will sign you in now.";
     } else {
       completeMsg.textContent =
-        "Sign in with the credentials provided by your administrator.";
+        "Connection saved. ConvexPress will sign you in with the credentials you provided.";
     }
 
     showStep("complete");
+    setTimeout(() => {
+      try {
+        window.convexpressSetup.launchApp();
+      } catch (err) {
+        console.error("launchApp failed:", err);
+      }
+    }, 700);
   } catch (err) {
     console.error("Failed to save config:", err);
+    showProvisionError(
+      err && err.message
+        ? err.message
+        : "Setup failed. Check the details and try again.",
+    );
   }
 }
+
+function showProvisionInProgress(message) {
+  setError("provision-error", "");
+  $("provision-actions").classList.add("hidden");
+
+  const statusEl = $("provision-status");
+  statusEl.className = "test-status";
+  statusEl.innerHTML = `<div class="spinner"></div><p id="provision-message">${escapeHtml(message)}</p>`;
+
+  if (removeProgressListener) {
+    removeProgressListener();
+    removeProgressListener = null;
+  }
+
+  if (window.convexpressSetup.onProgress) {
+    removeProgressListener = window.convexpressSetup.onProgress((event) => {
+      const nextMessage =
+        event && event.message ? event.message : "Working on setup...";
+      const messageEl = $("provision-message");
+      if (messageEl) messageEl.textContent = nextMessage;
+    });
+  }
+
+  showStep("provision");
+}
+
+function showProvisionError(message) {
+  if (removeProgressListener) {
+    removeProgressListener();
+    removeProgressListener = null;
+  }
+
+  const statusEl = $("provision-status");
+  statusEl.className = "test-status error";
+  statusEl.innerHTML = `<div class="status-icon">&#10007;</div><p id="provision-message">Setup failed.</p>`;
+  setError("provision-error", message);
+  $("provision-actions").classList.remove("hidden");
+}
+
+$("btn-provision-back").addEventListener("click", () => {
+  if (state.mode === "server") {
+    showStep("admin-create");
+    return;
+  }
+  showStep("client-credentials");
+});
+
+$("btn-provision-retry").addEventListener("click", () => {
+  completeSetup();
+});
 
 // ── Step: Complete ────────────────────────────────────────────────────────
 

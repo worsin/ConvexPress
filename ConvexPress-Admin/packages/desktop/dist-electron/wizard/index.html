@@ -96,7 +96,7 @@
       </div>
       <div class="step-actions hidden" id="server-test-actions">
         <button class="btn btn-ghost" id="btn-server-test-back">&larr; Change URL</button>
-        <button class="btn btn-primary" id="btn-server-test-next">Next</button>
+        <button class="btn btn-primary" id="btn-server-test-next">Create Admin Account</button>
       </div>
     </div>
 
@@ -123,7 +123,7 @@
       <div class="validation-error hidden" id="admin-create-error"></div>
       <div class="step-actions">
         <button class="btn btn-ghost" id="btn-admin-create-back">&larr; Back</button>
-        <button class="btn btn-primary" id="btn-admin-create-next">Complete Setup</button>
+        <button class="btn btn-primary" id="btn-admin-create-next">Deploy and Create Admin</button>
       </div>
     </div>
 
@@ -151,11 +151,45 @@
       </div>
       <div class="step-actions hidden" id="client-test-actions">
         <button class="btn btn-ghost" id="btn-client-test-back">&larr; Change URL</button>
-        <button class="btn btn-primary" id="btn-client-test-next">Complete Setup</button>
+        <button class="btn btn-primary" id="btn-client-test-next">Enter Credentials</button>
       </div>
     </div>
 
-    <!-- Step 6: Complete -->
+    <!-- Step 5b: Client — Credentials -->
+    <div class="step hidden" id="step-client-credentials">
+      <h2>Sign In</h2>
+      <p>Enter the admin credentials for this ConvexPress site:</p>
+      <div class="form-group">
+        <label for="input-client-identifier">Email or Username</label>
+        <input type="text" id="input-client-identifier" placeholder="admin@example.com" />
+      </div>
+      <div class="form-group">
+        <label for="input-client-password">Password</label>
+        <input type="password" id="input-client-password" placeholder="Your password" />
+      </div>
+      <div class="validation-error hidden" id="client-credentials-error"></div>
+      <div class="step-actions">
+        <button class="btn btn-ghost" id="btn-client-credentials-back">&larr; Back</button>
+        <button class="btn btn-primary" id="btn-client-credentials-next">Complete Setup</button>
+      </div>
+    </div>
+
+    <!-- Step 6: Provisioning -->
+    <div class="step hidden" id="step-provision">
+      <h2>Setting Up ConvexPress</h2>
+      <p id="provision-intro">Preparing your site. This can take a minute on a new deployment.</p>
+      <div class="test-status" id="provision-status">
+        <div class="spinner"></div>
+        <p id="provision-message">Starting setup...</p>
+      </div>
+      <div class="validation-error hidden" id="provision-error"></div>
+      <div class="step-actions hidden" id="provision-actions">
+        <button class="btn btn-ghost" id="btn-provision-back">&larr; Back</button>
+        <button class="btn btn-primary" id="btn-provision-retry">Retry</button>
+      </div>
+    </div>
+
+    <!-- Step 7: Complete -->
     <div class="step hidden" id="step-complete">
       <div class="step-icon">
         <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">

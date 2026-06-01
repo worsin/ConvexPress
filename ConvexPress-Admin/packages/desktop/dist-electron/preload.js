@@ -34,6 +34,8 @@ var ALLOWED_INVOKE_CHANNELS = /* @__PURE__ */ new Set([
 var ALLOWED_ON_CHANNELS = /* @__PURE__ */ new Set([
   // Window events
   "window:maximized",
+  // Setup wizard
+  "setup:progress",
   // Theme events
   "theme:os-changed",
   // Navigation (main process can push routes)
@@ -132,6 +134,16 @@ import_electron.contextBridge.exposeInMainWorld("convexpressSetup", {
    * Save setup configuration and mark setup as complete.
    */
   saveConfig: (options) => import_electron.ipcRenderer.invoke("setup:complete", options),
+  /**
+   * Listen for setup deployment progress.
+   */
+  onProgress: (callback) => {
+    const handler = (_event, payload) => {
+      callback(payload);
+    };
+    import_electron.ipcRenderer.on("setup:progress", handler);
+    return () => import_electron.ipcRenderer.removeListener("setup:progress", handler);
+  },
   /**
    * Get platform info for the wizard UI.
    */

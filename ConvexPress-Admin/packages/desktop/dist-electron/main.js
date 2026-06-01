@@ -23,8 +23,8 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // electron/main.ts
-var import_node_path6 = __toESM(require("path"));
-var import_node_fs4 = require("fs");
+var import_node_path7 = __toESM(require("path"));
+var import_node_fs5 = require("fs");
 
 // electron/ipc/window.ts
 var { ipcMain, BrowserWindow } = require("electron");
@@ -182,6 +182,11 @@ function registerAuthHandlers() {
 }
 
 // electron/ipc/setup.ts
+var import_node_child_process = require("child_process");
+var import_node_fs2 = require("fs");
+var import_node_os = require("os");
+var import_node_path2 = __toESM(require("path"));
+var import_node_crypto = require("crypto");
 var { ipcMain: ipcMain4 } = require("electron");
 function cleanUrl(value) {
   return value.trim().replace(/\/+$/, "");
@@ -198,13 +203,225 @@ function deriveConvexSiteUrl(convexUrl) {
   }
   return cleaned;
 }
+function deriveDeployment(config) {
+  const deployKey = config.adminKey?.trim();
+  if (!deployKey) {
+    throw new Error("Deploy key is required for server setup.");
+  }
+  const [deployment] = deployKey.split("|", 1);
+  if (!deployment || !deployment.startsWith("prod:")) {
+    throw new Error("Deploy key must start with a production deployment reference.");
+  }
+  const deploymentName = deployment.replace(/^prod:/, "");
+  if (!deploymentName) {
+    throw new Error("Deploy key is missing the deployment name.");
+  }
+  return { deployKey, deployment };
+}
+function resolveBackendRoot() {
+  const candidates = [
+    import_node_path2.default.resolve(__dirname, "../../backend"),
+    import_node_path2.default.resolve(process.cwd(), "../backend"),
+    import_node_path2.default.resolve(process.cwd(), "../../packages/backend")
+  ];
+  for (const candidate of candidates) {
+    if ((0, import_node_fs2.existsSync)(import_node_path2.default.join(candidate, "package.json")) && (0, import_node_fs2.existsSync)(import_node_path2.default.join(candidate, "convex"))) {
+      return candidate;
+    }
+  }
+  throw new Error(
+    "Could not find the Convex backend source. Reinstall from a full ConvexPress checkout and try again."
+  );
+}
+function generateAuthPrivateKey() {
+  const { privateKey } = (0, import_node_crypto.generateKeyPairSync)("ec", {
+    namedCurve: "P-256"
+  });
+  return privateKey.export({
+    type: "pkcs8",
+    format: "pem"
+  });
+}
+function parseEnvFile(filePath) {
+  if (!(0, import_node_fs2.existsSync)(filePath)) return {};
+  const env = {};
+  const raw = (0, import_node_fs2.readFileSync)(filePath, "utf8");
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const match = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(trimmed);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    let value = rawValue.trim();
+    if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
+      value = value.slice(1, -1);
+    }
+    env[key] = value.replace(/\\n/g, "\n");
+  }
+  return env;
+}
+function loadLocalEnv(backendRoot) {
+  const candidates = [
+    import_node_path2.default.resolve(backendRoot, ".env.local"),
+    import_node_path2.default.resolve(backendRoot, "../../.env.local"),
+    import_node_path2.default.resolve(backendRoot, "../../apps/web/.env.local"),
+    import_node_path2.default.resolve(backendRoot, "../../apps/web/.env")
+  ];
+  return candidates.reduce(
+    (merged, filePath) => ({ ...merged, ...parseEnvFile(filePath) }),
+    {}
+  );
+}
+function readEnvValue(name) {
+  const value = process.env[name]?.trim();
+  return value ? value : void 0;
+}
+function readSetupEnvValue(name, localEnv) {
+  const processValue = readEnvValue(name);
+  if (processValue) return processValue;
+  const localValue = localEnv[name]?.trim();
+  return localValue ? localValue : void 0;
+}
+function envFileValue(value) {
+  return JSON.stringify(value);
+}
+function inferClerkIssuerDomain(localEnv) {
+  const explicit = readSetupEnvValue("CLERK_JWT_ISSUER_DOMAIN", localEnv);
+  if (explicit) return explicit;
+  const publishableKey = readSetupEnvValue(
+    "VITE_CLERK_PUBLISHABLE_KEY",
+    localEnv
+  );
+  if (!publishableKey) return void 0;
+  const encoded = publishableKey.replace(/^pk_(test|live)_/, "");
+  try {
+    const decoded = Buffer.from(encoded, "base64").toString("utf8");
+    const host = decoded.replace(/\$$/, "").trim();
+    if (!host) return void 0;
+    return host.startsWith("http") ? host : `https://${host}`;
+  } catch {
+    return void 0;
+  }
+}
+function createBackendEnvFile(convexSiteUrl, backendRoot) {
+  const localEnv = loadLocalEnv(backendRoot);
+  const tempDir = (0, import_node_fs2.mkdtempSync)(import_node_path2.default.join((0, import_node_os.tmpdir)(), "convexpress-setup-"));
+  const filePath = import_node_path2.default.join(tempDir, "convex-env.local");
+  const envVars = {
+    AUTH_PRIVATE_KEY: readSetupEnvValue("AUTH_PRIVATE_KEY", localEnv) ?? generateAuthPrivateKey(),
+    AUTH_ISSUER_URL: convexSiteUrl
+  };
+  const clerkSecret = readSetupEnvValue("CLERK_SECRET_KEY", localEnv);
+  if (clerkSecret) envVars.CLERK_SECRET_KEY = clerkSecret;
+  const clerkIssuerDomain = inferClerkIssuerDomain(localEnv);
+  if (clerkIssuerDomain) envVars.CLERK_JWT_ISSUER_DOMAIN = clerkIssuerDomain;
+  const siteUrl = readSetupEnvValue("SITE_URL", localEnv);
+  if (siteUrl) envVars.SITE_URL = siteUrl;
+  const contents = Object.entries(envVars).map(([key, value]) => `${key}=${envFileValue(value)}`).join("\n");
+  (0, import_node_fs2.writeFileSync)(filePath, `${contents}
+`, { mode: 384 });
+  return {
+    filePath,
+    cleanup: () => (0, import_node_fs2.rmSync)(tempDir, { recursive: true, force: true })
+  };
+}
+function runCommand(command, args, options) {
+  return new Promise((resolve, reject) => {
+    const child = (0, import_node_child_process.spawn)(command, args, {
+      cwd: options.cwd,
+      env: options.env,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    let stderr = "";
+    child.stdout.on("data", (data) => {
+      const message = data.toString().trim();
+      if (message) options.onOutput?.(message);
+    });
+    child.stderr.on("data", (data) => {
+      const message = data.toString().trim();
+      if (message) {
+        stderr += `${message}
+`;
+        options.onOutput?.(message);
+      }
+    });
+    child.on("error", reject);
+    child.on("exit", (code, signal) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(
+        new Error(
+          `${command} ${args.join(" ")} failed ${signal ? `with signal ${signal}` : `with exit code ${code}`}${stderr ? `: ${stderr.trim()}` : ""}`
+        )
+      );
+    });
+  });
+}
+async function deployServerBackend(config, convexSiteUrl, sendProgress) {
+  const { deployKey, deployment } = deriveDeployment(config);
+  const backendRoot = resolveBackendRoot();
+  const env = {
+    ...process.env,
+    CONVEX_DEPLOYMENT: deployment,
+    CONVEX_DEPLOY_KEY: deployKey
+  };
+  sendProgress("environment", "Preparing backend environment.");
+  const envFile = createBackendEnvFile(convexSiteUrl, backendRoot);
+  try {
+    sendProgress("environment", "Syncing required backend environment variables.");
+    await runCommand(
+      "bunx",
+      ["convex", "env", "set", "--from-file", envFile.filePath, "--force"],
+      {
+        cwd: backendRoot,
+        env,
+        onOutput: (message) => console.log(`[Setup IPC] Convex env: ${message}`)
+      }
+    );
+  } finally {
+    envFile.cleanup();
+  }
+  sendProgress("codegen", "Regenerating extension schema index.");
+  await runCommand("node", ["scripts/generate-extension-index.mjs"], {
+    cwd: backendRoot,
+    env,
+    onOutput: (message) => console.log(`[Setup IPC] Codegen: ${message}`)
+  });
+  sendProgress("deploy", "Deploying Convex backend code.");
+  await runCommand(
+    "bunx",
+    [
+      "convex",
+      "deploy",
+      "--typecheck",
+      "disable",
+      "--message",
+      "ConvexPress desktop setup wizard"
+    ],
+    {
+      cwd: backendRoot,
+      env,
+      onOutput: (message) => console.log(`[Setup IPC] Convex deploy: ${message}`)
+    }
+  );
+}
 function registerSetupHandlers() {
   ipcMain4.handle(
     "setup:complete",
-    (_event, config) => {
+    async (event, config) => {
+      const sendProgress = (phase, message) => {
+        event.sender.send("setup:progress", { phase, message });
+      };
       try {
+        sendProgress("validating", "Validating setup configuration.");
         const convexUrl = cleanUrl(config.convexUrl);
         const convexSiteUrl = config.convexSiteUrl ? cleanUrl(config.convexSiteUrl) : deriveConvexSiteUrl(convexUrl);
+        if (config.mode === "server") {
+          await deployServerBackend(config, convexSiteUrl, sendProgress);
+        }
+        sendProgress("saving", "Saving local desktop configuration.");
         store.set("mode", config.mode);
         store.set("convexUrl", convexUrl);
         store.set("convexSiteUrl", convexSiteUrl);
@@ -221,7 +438,14 @@ function registerSetupHandlers() {
             password: config.adminPassword
           });
         }
+        if (config.clientIdentifier || config.clientPassword) {
+          store.set("pendingLoginCredentials", {
+            identifier: config.clientIdentifier,
+            password: config.clientPassword
+          });
+        }
         store.set("setupComplete", true);
+        sendProgress("complete", "Setup configuration saved.");
         console.log(
           `[Setup IPC] Config saved: mode=${config.mode}, url=${convexUrl}`
         );
@@ -235,42 +459,42 @@ function registerSetupHandlers() {
 }
 
 // electron/app-updater.ts
-var import_node_child_process = require("child_process");
-var import_node_fs3 = require("fs");
-var import_node_path3 = require("path");
+var import_node_child_process2 = require("child_process");
+var import_node_fs4 = require("fs");
+var import_node_path4 = require("path");
 var import_node_util = require("util");
 var import_node_events = require("events");
 
 // electron/version.ts
-var import_node_fs2 = require("fs");
-var import_node_path2 = require("path");
-var import_node_os = require("os");
+var import_node_fs3 = require("fs");
+var import_node_path3 = require("path");
+var import_node_os2 = require("os");
 var MANIFEST_FILENAME = ".convexpress-version.json";
 function getManifestPath(installPath) {
-  return (0, import_node_path2.join)(installPath, MANIFEST_FILENAME);
+  return (0, import_node_path3.join)(installPath, MANIFEST_FILENAME);
 }
 function readManifest(installPath) {
   const manifestPath = getManifestPath(installPath);
-  if (!(0, import_node_fs2.existsSync)(manifestPath)) return null;
+  if (!(0, import_node_fs3.existsSync)(manifestPath)) return null;
   try {
-    return JSON.parse((0, import_node_fs2.readFileSync)(manifestPath, "utf-8"));
+    return JSON.parse((0, import_node_fs3.readFileSync)(manifestPath, "utf-8"));
   } catch {
     return null;
   }
 }
 function writeManifest(installPath, manifest) {
   const targetPath = getManifestPath(installPath);
-  const tempPath = (0, import_node_path2.join)(
-    (0, import_node_os.tmpdir)(),
+  const tempPath = (0, import_node_path3.join)(
+    (0, import_node_os2.tmpdir)(),
     `convexpress-manifest-${Date.now()}-${Math.random().toString(36).slice(2)}.json`
   );
-  (0, import_node_fs2.writeFileSync)(tempPath, JSON.stringify(manifest, null, 2));
-  (0, import_node_fs2.renameSync)(tempPath, targetPath);
+  (0, import_node_fs3.writeFileSync)(tempPath, JSON.stringify(manifest, null, 2));
+  (0, import_node_fs3.renameSync)(tempPath, targetPath);
 }
 
 // electron/app-updater.ts
 var { net: net2 } = require("electron");
-var execFileAsync = (0, import_node_util.promisify)(import_node_child_process.execFile);
+var execFileAsync = (0, import_node_util.promisify)(import_node_child_process2.execFile);
 var AppUpdater = class extends import_node_events.EventEmitter {
   installPath;
   checkIntervalMs;
@@ -548,7 +772,7 @@ var AppUpdater = class extends import_node_events.EventEmitter {
     });
   }
   async detectPackageManager() {
-    if ((0, import_node_fs3.existsSync)((0, import_node_path3.join)(this.installPath, "bun.lock")) || (0, import_node_fs3.existsSync)((0, import_node_path3.join)(this.installPath, ".bun-version"))) {
+    if ((0, import_node_fs4.existsSync)((0, import_node_path4.join)(this.installPath, "bun.lock")) || (0, import_node_fs4.existsSync)((0, import_node_path4.join)(this.installPath, ".bun-version"))) {
       try {
         await execFileAsync("bun", ["--version"], { shell: true });
         return "bun";
@@ -560,7 +784,7 @@ var AppUpdater = class extends import_node_events.EventEmitter {
 };
 
 // electron/window-manager.ts
-var import_node_path4 = __toESM(require("path"));
+var import_node_path5 = __toESM(require("path"));
 
 // electron/utils/app-state.ts
 var quitting = false;
@@ -580,13 +804,13 @@ function isDev() {
 // electron/window-manager.ts
 var { app: app3, BrowserWindow: BrowserWindow2, shell } = require("electron");
 function getPreloadPath() {
-  return import_node_path4.default.join(__dirname, "preload.js");
+  return import_node_path5.default.join(__dirname, "preload.js");
 }
 function getIconPath() {
-  return import_node_path4.default.join(__dirname, "../resources/icon.png");
+  return import_node_path5.default.join(__dirname, "../resources/icon.png");
 }
 function getRendererIndexPath() {
-  return import_node_path4.default.join(__dirname, "..", "dist", "index.html");
+  return import_node_path5.default.join(__dirname, "..", "dist", "index.html");
 }
 var WindowManager = class {
   mainWindow = null;
@@ -694,7 +918,7 @@ var WindowManager = class {
         sandbox: true
       }
     });
-    win.loadFile(import_node_path4.default.join(__dirname, "wizard", "index.html"));
+    win.loadFile(import_node_path5.default.join(__dirname, "wizard", "index.html"));
     win.once("ready-to-show", () => {
       win.show();
     });
@@ -854,11 +1078,11 @@ function registerAllIpcHandlers() {
 }
 
 // electron/tray.ts
-var import_node_path5 = __toESM(require("path"));
+var import_node_path6 = __toESM(require("path"));
 var { app: app5, Menu, nativeImage, Tray } = require("electron");
 var tray = null;
 function loadTrayIcon() {
-  const iconPath = isDev() ? import_node_path5.default.join(__dirname, "../resources/iconTemplate.png") : import_node_path5.default.join(process.resourcesPath, "iconTemplate.png");
+  const iconPath = isDev() ? import_node_path6.default.join(__dirname, "../resources/iconTemplate.png") : import_node_path6.default.join(process.resourcesPath, "iconTemplate.png");
   const image = nativeImage.createFromPath(iconPath);
   image.setTemplateImage(false);
   return image;
@@ -916,20 +1140,20 @@ var {
 } = require("electron");
 app6.setName("ConvexPress");
 if (isDev()) {
-  app6.setPath("userData", import_node_path6.default.join(app6.getPath("userData"), "-dev"));
+  app6.setPath("userData", import_node_path7.default.join(app6.getPath("userData"), "-dev"));
 }
-var LOG_FILE = import_node_path6.default.join(app6.getPath("userData"), "convexpress-debug.log");
+var LOG_FILE = import_node_path7.default.join(app6.getPath("userData"), "convexpress-debug.log");
 function fileLog(msg) {
   const line = `[${(/* @__PURE__ */ new Date()).toISOString()}] ${msg}
 `;
   try {
-    (0, import_node_fs4.appendFileSync)(LOG_FILE, line);
+    (0, import_node_fs5.appendFileSync)(LOG_FILE, line);
   } catch {
   }
   safeLog(msg);
 }
 try {
-  (0, import_node_fs4.writeFileSync)(
+  (0, import_node_fs5.writeFileSync)(
     LOG_FILE,
     `=== ConvexPress started ${(/* @__PURE__ */ new Date()).toISOString()} ===
 `
@@ -978,7 +1202,7 @@ function launchApp() {
     }
   });
   if (app6.isPackaged && !isDev()) {
-    const installPath = import_node_path6.default.dirname(app6.getAppPath());
+    const installPath = import_node_path7.default.dirname(app6.getAppPath());
     const manifest = readManifest(installPath);
     if (manifest) {
       fileLog(`[Main] App-content updater initialized at ${installPath}`);
