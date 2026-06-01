@@ -7,6 +7,7 @@
 
 // @ts-nocheck
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import { internalMutation } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { textToDoc } from "./lessons/helpers";
@@ -197,7 +198,7 @@ async function ensureCertificate(ctx: AnyCtx, userId: Id<"users">) {
   if (existing) {
     await ctx.db.patch(existing._id, {
       templateDoc: textToDoc(
-        "Certificate of Completion\n\nAwarded to {{learnerName}} for completing {{courseTitle}}.",
+        "Certificate of Completion\n\nAwarded to {{learner_name}} for completing {{course_title}}.",
       ),
       orientation: "landscape",
       isActive: true,
@@ -208,7 +209,7 @@ async function ensureCertificate(ctx: AnyCtx, userId: Id<"users">) {
   return (await ctx.db.insert("lms_certificates", {
     title: "LMS Paid Tester Certificate",
     templateDoc: textToDoc(
-      "Certificate of Completion\n\nAwarded to {{learnerName}} for completing {{courseTitle}}.",
+      "Certificate of Completion\n\nAwarded to {{learner_name}} for completing {{course_title}}.",
     ),
     orientation: "landscape",
     isActive: true,
@@ -392,13 +393,16 @@ async function completeCourse(
     percent: 100,
     pointsEarned: 10,
   });
-  await ctx.db.insert("lms_certificate_issues", {
+  const issueId = await ctx.db.insert("lms_certificate_issues", {
     userId,
     courseId,
     certificateId,
     serial: SEED_CERT_SERIAL,
     issuedAt: now,
     status: "issued",
+  });
+  await ctx.scheduler.runAfter(0, (internal as any).lms.certificates.actions.renderCertificatePdf, {
+    issueId,
   });
 }
 

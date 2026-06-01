@@ -6,7 +6,10 @@ import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
 import { getCurrentUser, requireCan } from "../../helpers/permissions";
-import { docToText } from "../lessons/helpers";
+import {
+  buildCertificateMergeValues,
+  renderCertificateText,
+} from "./rendering";
 
 export const listTemplates = query({
   args: {},
@@ -59,10 +62,15 @@ export const listIssues = query({
     for (const issue of issues) {
       const user = await ctx.db.get(issue.userId);
       const course = await ctx.db.get(issue.courseId);
+      const pdfMedia = issue.pdfMediaId ? await ctx.db.get(issue.pdfMediaId) : null;
+      const pdfUrl = pdfMedia?.storageId
+        ? await ctx.storage.getUrl(pdfMedia.storageId)
+        : pdfMedia?.url;
       rows.push({
         ...issue,
         learnerName: user?.displayName ?? user?.email ?? "Unknown",
         courseTitle: course?.title ?? "Unknown course",
+        pdfUrl: pdfUrl ?? undefined,
       });
     }
     return rows.sort((a, b) => b.issuedAt - a.issuedAt);
@@ -86,38 +94,41 @@ export const verifyBySerial = query({
     const user = await ctx.db.get(issue.userId);
     const course = await ctx.db.get(issue.courseId);
     const certificate = await ctx.db.get(issue.certificateId);
+    const completion = await findCompletion(ctx, issue.userId, issue.courseId);
+    const pdfMedia = issue.pdfMediaId ? await ctx.db.get(issue.pdfMediaId) : null;
+    const pdfUrl = pdfMedia?.storageId
+      ? await ctx.storage.getUrl(pdfMedia.storageId)
+      : pdfMedia?.url;
+    const learnerName = user?.displayName ?? user?.email ?? "Unknown";
+    const courseTitle = course?.title ?? "Unknown course";
+    const certificateTitle = certificate?.title ?? "Certificate of Completion";
     return {
       valid: true,
-      learnerName: user?.displayName ?? user?.email ?? "Unknown",
-      courseTitle: course?.title ?? "Unknown course",
+      learnerName,
+      courseTitle,
       issuedAt: issue.issuedAt,
       serial: issue.serial,
-      certificateTitle: certificate?.title ?? "Certificate of Completion",
+      pdfUrl: pdfUrl ?? undefined,
+      certificateTitle,
       orientation: certificate?.orientation ?? "landscape",
       certificateText: renderCertificateText(certificate?.templateDoc, {
-        learnerName: user?.displayName ?? user?.email ?? "Unknown",
-        courseTitle: course?.title ?? "Unknown course",
-        issuedDate: formatDate(issue.issuedAt),
-        serial: issue.serial,
-        certificateTitle: certificate?.title ?? "Certificate of Completion",
+        ...buildCertificateMergeValues({
+          learnerName,
+          courseTitle,
+          issuedAt: issue.issuedAt,
+          serial: issue.serial,
+          certificateTitle,
+          points: completion?.pointsEarned ?? course?.pointsAwarded,
+        }),
       }),
     };
   },
 });
 
-function renderCertificateText(templateDoc: unknown, vars: Record<string, string>) {
-  const fallback =
-    "Certificate of Completion\n\nAwarded to {{learnerName}} for completing {{courseTitle}}.\n\nIssued {{issuedDate}}\nSerial {{serial}}";
-  const source = docToText(templateDoc) || fallback;
-  return source.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_match, key: string) => {
-    return vars[key] ?? "";
-  });
-}
-
-function formatDate(timestamp: number) {
-  return new Date(timestamp).toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+async function findCompletion(ctx: any, userId: string, courseId: string) {
+  const completions = await ctx.db
+    .query("lms_course_completions")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .collect();
+  return completions.find((completion: any) => completion.courseId === courseId) ?? null;
 }

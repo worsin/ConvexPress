@@ -22,6 +22,7 @@ type VerificationResult =
       courseTitle: string;
       issuedAt: number;
       serial: string;
+      pdfUrl?: string;
       certificateTitle: string;
       orientation: "landscape" | "portrait";
       certificateText: string;
@@ -80,14 +81,26 @@ function CertificatePreviewPage() {
             <Printer className="size-4" aria-hidden="true" />
             Print
           </button>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90"
-          >
-            <Download className="size-4" aria-hidden="true" />
-            Save PDF
-          </button>
+          {result.pdfUrl ? (
+            <a
+              href={result.pdfUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90"
+            >
+              <Download className="size-4" aria-hidden="true" />
+              Download PDF
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90"
+            >
+              <Download className="size-4" aria-hidden="true" />
+              Save PDF
+            </button>
+          )}
         </div>
       </div>
 

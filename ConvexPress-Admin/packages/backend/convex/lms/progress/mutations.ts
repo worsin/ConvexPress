@@ -3,6 +3,7 @@
  */
 
 import { ConvexError, v } from "convex/values";
+import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { requireAuth } from "../../helpers/permissions";
@@ -58,6 +59,7 @@ async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_course
           certificateId: course.certificateId,
           serial,
           issuedAt: Date.now(),
+          pdfMediaId: undefined,
           revokedAt: undefined,
           revokedBy: undefined,
           revocationReason: undefined,
@@ -71,6 +73,7 @@ async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_course
           serial,
           reissued: true,
         });
+        await scheduleCertificatePdfRender(ctx, existingIssue._id);
       } else if (!existingIssue) {
         const serial = `CERT-${Date.now().toString(36).toUpperCase()}-${String(userId).slice(-6).toUpperCase()}`;
         const certificateIssueId = await ctx.db.insert("lms_certificate_issues", {
@@ -88,6 +91,9 @@ async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_course
           certificateIssueId,
           serial,
         });
+        await scheduleCertificatePdfRender(ctx, certificateIssueId);
+      } else if (!existingIssue.pdfMediaId) {
+        await scheduleCertificatePdfRender(ctx, existingIssue._id);
       }
     }
   } else if (rec) {
@@ -110,6 +116,14 @@ async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_course
     }
   }
   return { percent, completed, total };
+}
+
+async function scheduleCertificatePdfRender(ctx: any, issueId: string) {
+  await ctx.scheduler.runAfter(
+    0,
+    (internal as any).lms.certificates.actions.renderCertificatePdf,
+    { issueId },
+  );
 }
 
 export const markComplete = mutation({

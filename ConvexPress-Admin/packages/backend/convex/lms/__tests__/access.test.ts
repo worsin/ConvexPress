@@ -2,7 +2,8 @@
 import { describe, expect, test } from "bun:test";
 
 import type { Id } from "../../_generated/dataModel";
-import { issueCertificate } from "../certificates/mutations";
+import { issueCertificate, reissueIssue } from "../certificates/mutations";
+import { verifyBySerial } from "../certificates/queries";
 import { update as updateCourse, publish as publishCourse } from "../courses/mutations";
 import { enroll } from "../enrollment/mutations";
 import { canAccessCourse as queryCanAccessCourse } from "../enrollment/queries";
@@ -254,6 +255,7 @@ function baseTables(overrides: Partial<Tables> = {}): Tables {
     membership_plans: [],
     lms_certificates: [],
     lms_certificate_issues: [],
+    media: [],
     searchIndex: [],
     eventListeners: [],
     eventListenerExecutions: [],
@@ -1035,4 +1037,147 @@ describe("LMS learner runtime mutations", () => {
     });
     expect(tables.lms_certificate_issues[0].serial).not.toBe("CERT-OLD");
   });
+
+  test("public certificate verification renders PRD merge tokens and PDF links", async () => {
+    const tables = baseTables({
+      lms_courses: [
+        course("course_certificate_aliases", {
+          accessMode: "free",
+          title: "Certificate Track",
+          pointsAwarded: 42,
+        }),
+      ],
+      lms_course_completions: [
+        {
+          _id: "completion_aliases",
+          userId: "user_learner",
+          courseId: "course_certificate_aliases",
+          percent: 100,
+          completedAt: now,
+          pointsEarned: 42,
+        },
+      ],
+      lms_certificates: [
+        {
+          _id: "certificate_aliases",
+          title: "Mastery Certificate",
+          templateDoc: textToDoc(
+            "{{certificate_title}}\n\n{{learner_name}} completed {{course_title}} on {{completion_date}} for {{points}} points.\n\nSerial {{serial}}",
+          ),
+          orientation: "portrait",
+          isActive: true,
+          createdBy: "user_admin",
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      lms_certificate_issues: [
+        {
+          _id: "issue_aliases",
+          userId: "user_learner",
+          courseId: "course_certificate_aliases",
+          certificateId: "certificate_aliases",
+          serial: "CERT-ALIAS-123456",
+          pdfMediaId: "media_certificate_pdf",
+          issuedAt: now,
+          status: "issued",
+        },
+      ],
+      media: [
+        {
+          _id: "media_certificate_pdf",
+          url: "https://example.com/certificates/CERT-ALIAS-123456.pdf",
+        },
+      ],
+    });
+    const learner = tables.users.find((user) => user._id === "user_learner");
+    if (learner) learner.displayName = "Pat Learner";
+
+    const result = await (verifyBySerial as any)._handler(createCtx(tables, null), {
+      serial: "cert-alias-123456",
+    });
+    expect(result).toMatchObject({
+      valid: true,
+      learnerName: "Pat Learner",
+      courseTitle: "Certificate Track",
+      certificateTitle: "Mastery Certificate",
+      orientation: "portrait",
+      pdfUrl: "https://example.com/certificates/CERT-ALIAS-123456.pdf",
+    });
+    expect(result.certificateText).toContain("Pat Learner completed Certificate Track");
+    expect(result.certificateText).toContain("42 points");
+    expect(result.certificateText).toContain("Serial CERT-ALIAS-123456");
+  });
+
+  test("admins can explicitly reissue revoked certificate records", async () => {
+    const tables = baseTables({
+      lms_courses: [
+        course("course_explicit_reissue", {
+          accessMode: "free",
+          certificateId: "certificate_1",
+        }),
+      ],
+      lms_course_completions: [
+        {
+          _id: "completion_explicit_reissue",
+          userId: "user_learner",
+          courseId: "course_explicit_reissue",
+          percent: 100,
+          completedAt: now,
+        },
+      ],
+      lms_certificates: [
+        {
+          _id: "certificate_1",
+          title: "Completion",
+          templateDoc: {},
+          orientation: "landscape",
+          isActive: true,
+          createdBy: "user_admin",
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      lms_certificate_issues: [
+        {
+          _id: "issue_explicit_reissue",
+          userId: "user_learner",
+          courseId: "course_explicit_reissue",
+          certificateId: "certificate_1",
+          serial: "CERT-OLD-EXPLICIT",
+          pdfMediaId: "media_old_pdf",
+          issuedAt: now,
+          revokedAt: now,
+          revokedBy: "user_admin",
+          revocationReason: "Manual revoke",
+          status: "revoked",
+        },
+      ],
+    });
+
+    await expect(
+      (reissueIssue as any)._handler(createCtx(tables, "user_admin"), {
+        issueId: id("issue_explicit_reissue"),
+      }),
+    ).resolves.toBe("issue_explicit_reissue");
+    expect(tables.lms_certificate_issues[0]).toMatchObject({
+      status: "issued",
+      certificateId: "certificate_1",
+    });
+    expect(tables.lms_certificate_issues[0].serial).not.toBe("CERT-OLD-EXPLICIT");
+    expect(tables.lms_certificate_issues[0].pdfMediaId).toBeUndefined();
+    expect(tables.events[0]).toMatchObject({
+      code: "lms.certificate_issued",
+    });
+  });
 });
+
+function textToDoc(text: string) {
+  return {
+    type: "doc",
+    content: text.split(/\n{2,}/).map((block) => ({
+      type: "paragraph",
+      content: block ? [{ type: "text", text: block.replace(/\n/g, " ") }] : [],
+    })),
+  };
+}

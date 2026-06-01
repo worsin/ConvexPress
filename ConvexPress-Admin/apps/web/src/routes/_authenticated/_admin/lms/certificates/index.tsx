@@ -9,7 +9,7 @@ import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { toast } from "sonner";
-import { Award, Ban, CheckCircle2, Copy, Eye, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { Award, Ban, CheckCircle2, Copy, Download, Eye, Loader2, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/_admin/lms/certificates/")({
@@ -32,6 +32,7 @@ type CertificateIssue = {
   learnerName: string;
   courseTitle: string;
   issuedAt: number;
+  pdfUrl?: string;
   revokedAt?: number;
   revocationReason?: string;
 };
@@ -44,18 +45,37 @@ type TemplateDraft = {
 };
 
 const defaultTemplateText =
-  "Certificate of Completion\n\nAwarded to {{learnerName}} for completing {{courseTitle}}.\n\nIssued {{issuedDate}}\nSerial {{serial}}";
+  "Certificate of Completion\n\nAwarded to {{learner_name}} for completing {{course_title}}.\n\nIssued {{completion_date}}\nSerial {{serial}}";
 
 const sampleValues: Record<string, string> = {
   learnerName: "Alex Learner",
+  learner_name: "Alex Learner",
   courseTitle: "Foundations of ConvexPress",
+  course_title: "Foundations of ConvexPress",
   issuedDate: new Date().toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }),
+  issued_date: new Date().toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }),
+  completionDate: new Date().toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }),
+  completion_date: new Date().toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
   }),
   serial: "CERT-SAMPLE-000001",
   certificateTitle: "Certificate of Completion",
+  certificate_title: "Certificate of Completion",
+  points: "10",
 };
 
 function CertificatesPage() {
@@ -77,6 +97,7 @@ function CertificatesPage() {
   const update = useMutation(api.lms.certificates.mutations.updateTemplate);
   const remove = useMutation(api.lms.certificates.mutations.deleteTemplate);
   const revokeIssue = useMutation((api as any).lms.certificates.mutations.revokeIssue);
+  const reissueIssue = useMutation((api as any).lms.certificates.mutations.reissueIssue);
 
   const [title, setTitle] = useState("");
   const [selectedId, setSelectedId] = useState<Id<"lms_certificates"> | null>(null);
@@ -301,6 +322,18 @@ function CertificatesPage() {
                   toast.error(err instanceof Error ? err.message : "Failed");
                 }
               }}
+              onReissue={async (issue) => {
+                if (!canManageCertificates) {
+                  toast.error("You do not have permission to reissue certificates.");
+                  return;
+                }
+                try {
+                  await reissueIssue({ issueId: issue._id });
+                  toast.success("Certificate reissued");
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Failed");
+                }
+              }}
             />
           </section>
 
@@ -357,8 +390,8 @@ function CertificatesPage() {
                     />
                   </Field>
                   <p className="text-xs leading-5 text-muted-foreground">
-                    Tokens: {"{{learnerName}}"}, {"{{courseTitle}}"}, {"{{issuedDate}}"},{" "}
-                    {"{{serial}}"}, {"{{certificateTitle}}"}
+                    Tokens: {"{{learner_name}}"}, {"{{course_title}}"}, {"{{completion_date}}"},{" "}
+                    {"{{serial}}"}, {"{{points}}"}, {"{{certificate_title}}"}
                   </p>
                 </div>
               )}
@@ -394,12 +427,14 @@ function IssuedCertificates({
   showIssues,
   onShowIssues,
   onRevoke,
+  onReissue,
   canRevoke,
 }: {
   issues: CertificateIssue[] | undefined;
   showIssues: boolean;
   onShowIssues: () => void;
   onRevoke: (issue: CertificateIssue) => Promise<void>;
+  onReissue: (issue: CertificateIssue) => Promise<void>;
   canRevoke: boolean;
 }) {
   return (
@@ -458,6 +493,17 @@ function IssuedCertificates({
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex items-center gap-1">
+                      {issue.pdfUrl ? (
+                        <a
+                          href={issue.pdfUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Download PDF"
+                          className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          <Download className="size-4" aria-hidden="true" />
+                        </a>
+                      ) : null}
                       <button
                         type="button"
                         title="Copy serial"
@@ -476,7 +522,17 @@ function IssuedCertificates({
                         >
                           <Ban className="size-4" aria-hidden="true" />
                         </button>
-                      ) : null}
+                      ) : (
+                        <button
+                          type="button"
+                          title="Reissue certificate"
+                          onClick={() => void onReissue(issue)}
+                          disabled={!canRevoke}
+                          className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          <RotateCcw className="size-4" aria-hidden="true" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
