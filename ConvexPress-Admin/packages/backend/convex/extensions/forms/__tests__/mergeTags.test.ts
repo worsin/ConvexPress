@@ -416,7 +416,7 @@ describe("legacy resolveMergeTags — behavior", () => {
     expect(resolveMergeTags("{submission:id}", c)).toBe("sub_99");
     // resumeToken is URL-encoded into the path; trailing slash trimmed.
     expect(resolveMergeTags("{form:resume_url}", c)).toBe(
-      "https://site.test/forms/contact-us?resume=tok%201",
+      "https://site.test/forms/contact-us/resume/tok%201",
     );
   });
 

@@ -26,9 +26,8 @@
  * `./commerce` (subscription). Importing them here guarantees both the CRUD
  * validator and the runner see a fully populated registry.
  *
- * SURFACED capability: form.manage_actions (registered by the Role expert).
- * The `form.*` caps are not yet in the closed `Capability` union, so we cast at
- * every requireCan call site via `formCap(...)`, exactly like mutations.ts.
+ * Capability: form.manage_actions. `formCap(...)` keeps the Forms authorization
+ * surface explicit at each requireCan call site.
  */
 
 import {
@@ -42,6 +41,7 @@ import { internal } from "../../_generated/api";
 import { v, ConvexError } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
+import { isPluginEnabled, requirePluginEnabled } from "../../helpers/plugins";
 import type { Capability } from "../../types/capabilities";
 import { evaluateConditionalLogic } from "./conditionalLogic";
 import {
@@ -57,9 +57,8 @@ import "./commerce";
 // ─── Local helpers ───────────────────────────────────────────────────────────
 
 /**
- * Cast a `form.*` capability string to `Capability`. See file header — these
- * are surfaced here but registered by the Role expert, so they aren't in the
- * union yet. Centralizing the cast keeps the intent explicit and greppable.
+ * Local wrapper for Forms capability strings. Centralizing it keeps the
+ * authorization surface explicit and greppable.
  */
 function formCap(cap: string): Capability {
   return cap as Capability;
@@ -120,6 +119,7 @@ export const availableActionTypes = query({
   args: {},
   handler: async (ctx) => {
     await requireCan(ctx, formCap("form.manage_actions"));
+    await requirePluginEnabled(ctx, "forms");
     return listActionTypes().map((d) => ({ type: d.type, label: d.label }));
   },
 });
@@ -129,6 +129,7 @@ export const listActions = query({
   args: { formId: v.id("forms") },
   handler: async (ctx, { formId }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
+    await requirePluginEnabled(ctx, "forms");
     return await ctx.db
       .query("form_actions")
       .withIndex("by_form_order", (q) => q.eq("formId", formId))
@@ -141,6 +142,7 @@ export const listRunsForSubmission = query({
   args: { submissionId: v.id("form_submissions") },
   handler: async (ctx, { submissionId }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
+    await requirePluginEnabled(ctx, "forms");
     return await ctx.db
       .query("form_action_runs")
       .withIndex("by_submission", (q) => q.eq("submissionId", submissionId))
@@ -161,6 +163,8 @@ export const listRunsForSubmission = query({
 export const getPendingPayment = query({
   args: { submissionId: v.id("form_submissions") },
   handler: async (ctx, { submissionId }) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) return null;
+
     const runs = await ctx.db
       .query("form_action_runs")
       .withIndex("by_submission", (q) => q.eq("submissionId", submissionId))
@@ -202,6 +206,7 @@ export const listRecentRuns = query({
   },
   handler: async (ctx, { formId, status, limit }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
+    await requirePluginEnabled(ctx, "forms");
     const take = Math.min(limit ?? 50, 200);
     if (status) {
       return await ctx.db
@@ -233,6 +238,7 @@ export const createAction = mutation({
   },
   handler: async (ctx, args) => {
     await requireCan(ctx, formCap("form.manage_actions"));
+    await requirePluginEnabled(ctx, "forms");
 
     const label = args.label.trim();
     if (!label) {
@@ -283,6 +289,7 @@ export const updateAction = mutation({
   },
   handler: async (ctx, args) => {
     await requireCan(ctx, formCap("form.manage_actions"));
+    await requirePluginEnabled(ctx, "forms");
 
     const action = await ctx.db.get(args.actionId);
     if (!action) {
@@ -332,6 +339,7 @@ export const reorderActions = mutation({
   },
   handler: async (ctx, { formId, orderedIds }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
+    await requirePluginEnabled(ctx, "forms");
     for (let i = 0; i < orderedIds.length; i++) {
       const row = await ctx.db.get(orderedIds[i]!);
       // Only reorder rows that belong to this form (defensive).
@@ -347,6 +355,7 @@ export const deleteAction = mutation({
   args: { actionId: v.id("form_actions") },
   handler: async (ctx, { actionId }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
+    await requirePluginEnabled(ctx, "forms");
     const action = await ctx.db.get(actionId);
     if (!action) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Action not found." });
@@ -365,6 +374,7 @@ export const replayRun = mutation({
   args: { runId: v.id("form_action_runs") },
   handler: async (ctx, { runId }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
+    await requirePluginEnabled(ctx, "forms");
     const run = await ctx.db.get(runId);
     if (!run) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Run not found." });
@@ -529,6 +539,8 @@ export const emitActionEvent = internalMutation({
 export const runActions = internalMutation({
   args: { eventId: v.id("events") },
   handler: async (ctx, { eventId }) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) return;
+
     const event = await ctx.db.get(eventId);
     if (!event) return;
 
@@ -642,6 +654,8 @@ export const runActions = internalMutation({
 export const dispatchAction = internalAction({
   args: { runId: v.id("form_action_runs") },
   handler: async (ctx, { runId }) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) return;
+
     const run = await ctx.runQuery(
       internal.extensions.forms.actions.getRun,
       { runId },

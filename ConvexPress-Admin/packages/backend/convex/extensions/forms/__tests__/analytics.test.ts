@@ -33,6 +33,11 @@ import {
   abandonCutoff,
   parseMeta,
   alreadyAbandonCounted,
+  decidePublicFunnelWrite,
+  normalizeSessionNonce,
+  publicFunnelEventExpired,
+  publicFunnelWindowStart,
+  summarizeOperationalHealth,
   type FunnelTotals,
   type FunnelStatRowLike,
 } from "../analytics";
@@ -385,6 +390,198 @@ describe("parseMeta — tolerant meta parse", () => {
     expect(parseMeta("42")).toEqual({});
     expect(parseMeta("true")).toEqual({});
     expect(parseMeta('"hi"')).toEqual({});
+  });
+});
+
+// ─── Public funnel write guard (abuse protection) ────────────────────────────
+
+describe("public funnel write guard", () => {
+  test("publicFunnelWindowStart floors timestamps to a fixed window", () => {
+    expect(publicFunnelWindowStart(1_234, 1_000)).toBe(1_000);
+    expect(publicFunnelWindowStart(59_999, 60_000)).toBe(0);
+    expect(publicFunnelWindowStart(60_000, 60_000)).toBe(60_000);
+  });
+
+  test("normalizeSessionNonce trims, drops blanks, and bounds length", () => {
+    expect(normalizeSessionNonce(undefined)).toBe(undefined);
+    expect(normalizeSessionNonce("   ")).toBe(undefined);
+    expect(normalizeSessionNonce("  abc  ")).toBe("abc");
+    expect(normalizeSessionNonce("x".repeat(200))).toBe("x".repeat(128));
+  });
+
+  test("started writes dedupe by session nonce before incrementing", () => {
+    expect(
+      decidePublicFunnelWrite({
+        stage: "started",
+        hasSessionNonce: true,
+        duplicateSession: true,
+        acceptedInWindow: 0,
+      }),
+    ).toEqual({ record: false, reason: "duplicate_started" });
+  });
+
+  test("missing started nonce still records unless the window is clamped", () => {
+    expect(
+      decidePublicFunnelWrite({
+        stage: "started",
+        hasSessionNonce: false,
+        duplicateSession: true,
+        acceptedInWindow: 0,
+      }),
+    ).toEqual({ record: true, reason: "recorded" });
+  });
+
+  test("per-form/stage public window clamp blocks once the limit is reached", () => {
+    expect(
+      decidePublicFunnelWrite({
+        stage: "viewed",
+        hasSessionNonce: false,
+        duplicateSession: false,
+        acceptedInWindow: 239,
+        windowLimit: 240,
+      }),
+    ).toEqual({ record: true, reason: "recorded" });
+    expect(
+      decidePublicFunnelWrite({
+        stage: "viewed",
+        hasSessionNonce: false,
+        duplicateSession: false,
+        acceptedInWindow: 240,
+        windowLimit: 240,
+      }),
+    ).toEqual({ record: false, reason: "window_clamped" });
+  });
+
+  test("publicFunnelEventExpired applies the short retention boundary", () => {
+    const now = 1_000_000;
+    const retention = 10_000;
+    expect(publicFunnelEventExpired(now - retention - 1, now, retention)).toBe(
+      true,
+    );
+    expect(publicFunnelEventExpired(now - retention, now, retention)).toBe(false);
+    expect(publicFunnelEventExpired(undefined, now, retention)).toBe(false);
+  });
+});
+
+describe("summarizeOperationalHealth — bounded ops dashboard math", () => {
+  const NOW = 1_700_000_000_000;
+  const HOUR = 60 * 60 * 1000;
+
+  test("empty samples produce a calm all-zero snapshot", () => {
+    expect(
+      summarizeOperationalHealth({
+        checkedAt: NOW,
+        windowMs: HOUR,
+        staleCutoff: NOW - 24 * HOUR,
+        actionRuns: [],
+        attempts: [],
+        publicEvents: [],
+        partialDrafts: [],
+      }),
+    ).toEqual({
+      checkedAt: NOW,
+      windowMs: HOUR,
+      actionRuns: {
+        failed: 0,
+        pending: 0,
+        awaitingPayment: 0,
+        latestFailureAt: undefined,
+      },
+      submissionAttempts: {
+        buckets: 0,
+        attempts: 0,
+        blocked: 0,
+        maxBucketCount: 0,
+      },
+      publicFunnel: {
+        acceptedEvents: 0,
+        viewed: 0,
+        started: 0,
+      },
+      staleDrafts: {
+        count: 0,
+      },
+      needsAttention: false,
+    });
+  });
+
+  test("counts action status samples and tracks the latest failure timestamp", () => {
+    const health = summarizeOperationalHealth({
+      checkedAt: NOW,
+      windowMs: HOUR,
+      staleCutoff: NOW - 24 * HOUR,
+      actionRuns: [
+        { status: "failed", createdAt: NOW - 10, updatedAt: NOW - 5 },
+        { status: "failed", createdAt: NOW - 50, updatedAt: NOW - 40 },
+        { status: "pending", createdAt: NOW - 30, updatedAt: NOW - 20 },
+        {
+          status: "awaiting_payment",
+          createdAt: NOW - 15,
+          updatedAt: NOW - 15,
+        },
+      ],
+      attempts: [],
+      publicEvents: [],
+      partialDrafts: [],
+    });
+
+    expect(health.actionRuns.failed).toBe(2);
+    expect(health.actionRuns.pending).toBe(1);
+    expect(health.actionRuns.awaitingPayment).toBe(1);
+    expect(health.actionRuns.latestFailureAt).toBe(NOW - 5);
+    expect(health.needsAttention).toBe(true);
+  });
+
+  test("sums submission pressure and accepted public funnel events", () => {
+    const health = summarizeOperationalHealth({
+      checkedAt: NOW,
+      windowMs: HOUR,
+      staleCutoff: NOW - 24 * HOUR,
+      actionRuns: [],
+      attempts: [
+        { count: 4, blockedCount: 1 },
+        { count: 8, blockedCount: 3 },
+        { count: -99, blockedCount: -1 },
+      ],
+      publicEvents: [
+        { stage: "viewed" },
+        { stage: "viewed" },
+        { stage: "started" },
+      ],
+      partialDrafts: [],
+    });
+
+    expect(health.submissionAttempts.buckets).toBe(3);
+    expect(health.submissionAttempts.attempts).toBe(12);
+    expect(health.submissionAttempts.blocked).toBe(4);
+    expect(health.submissionAttempts.maxBucketCount).toBe(8);
+    expect(health.publicFunnel).toEqual({
+      acceptedEvents: 3,
+      viewed: 2,
+      started: 1,
+    });
+    expect(health.needsAttention).toBe(true);
+  });
+
+  test("flags only drafts strictly older than the abandonment cutoff", () => {
+    const cutoff = NOW - 24 * HOUR;
+    const health = summarizeOperationalHealth({
+      checkedAt: NOW,
+      windowMs: HOUR,
+      staleCutoff: cutoff,
+      actionRuns: [],
+      attempts: [],
+      publicEvents: [],
+      partialDrafts: [
+        { submittedAt: cutoff - 1 },
+        { submittedAt: cutoff },
+        { submittedAt: cutoff + 1 },
+        {},
+      ],
+    });
+
+    expect(health.staleDrafts.count).toBe(1);
+    expect(health.needsAttention).toBe(true);
   });
 });
 

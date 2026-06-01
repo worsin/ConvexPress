@@ -15,20 +15,21 @@
  * here for the message body; the Website re-sanitizes client-side with
  * isomorphic-dompurify as defense-in-depth.
  *
- * SURFACED capability: form.manage_confirmations (registered by Role expert).
+ * Capability: form.manage_confirmations.
  */
 
 import { query, mutation } from "../../_generated/server";
 import { v, ConvexError } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
+import { isPluginEnabled, requirePluginEnabled } from "../../helpers/plugins";
 import { sanitizeCommentContent } from "../../helpers/comment";
 import type { Capability } from "../../types/capabilities";
 import { evaluateConditionalLogic } from "./conditionalLogic";
 
 // ─── Local validators / helpers ─────────────────────────────────────────────
 
-/** Cast a `form.*` capability string to `Capability` (registered by Role expert). */
+/** Local wrapper for Forms capability strings. */
 function formCap(cap: string): Capability {
   return cap as Capability;
 }
@@ -301,9 +302,8 @@ async function nextOrder(ctx: any, formId: Id<"forms">): Promise<number> {
 export const listConfirmations = query({
   args: { formId: v.id("forms") },
   handler: async (ctx, { formId }) => {
-    const user = await requireCan(ctx, formCap("form.manage_confirmations"));
-    // Lazy-seed so the editor always shows ≥1 row.
-    await ensureDefault(ctx, formId, user._id);
+    await requireCan(ctx, formCap("form.manage_confirmations"));
+    await requirePluginEnabled(ctx, "forms");
 
     const rows = await ctx.db
       .query("form_confirmations")
@@ -320,6 +320,21 @@ export const listConfirmations = query({
 
 // ─── Config mutations (all gated) ────────────────────────────────────────────
 
+export const ensureDefaultConfirmation = mutation({
+  args: { formId: v.id("forms") },
+  handler: async (ctx, { formId }) => {
+    const user = await requireCan(ctx, formCap("form.manage_confirmations"));
+    await requirePluginEnabled(ctx, "forms");
+    await ensureDefault(ctx, formId, user._id);
+    return await ctx.db
+      .query("form_confirmations")
+      .withIndex("by_form_default", (q) =>
+        q.eq("formId", formId).eq("isDefault", true),
+      )
+      .first();
+  },
+});
+
 export const createConfirmation = mutation({
   args: {
     formId: v.id("forms"),
@@ -332,6 +347,7 @@ export const createConfirmation = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.manage_confirmations"));
+    await requirePluginEnabled(ctx, "forms");
     await ensureDefault(ctx, args.formId, user._id);
 
     const name = args.name.trim();
@@ -383,6 +399,7 @@ export const updateConfirmation = mutation({
   },
   handler: async (ctx, { confirmationId, patch }) => {
     const user = await requireCan(ctx, formCap("form.manage_confirmations"));
+    await requirePluginEnabled(ctx, "forms");
 
     const existing = await ctx.db.get(confirmationId);
     if (!existing) {
@@ -428,8 +445,16 @@ export const reorderConfirmations = mutation({
     formId: v.id("forms"),
     order: v.array(v.id("form_confirmations")),
   },
-  handler: async (ctx, { order }) => {
+  handler: async (ctx, { formId, order }) => {
     await requireCan(ctx, formCap("form.manage_confirmations"));
+    await requirePluginEnabled(ctx, "forms");
+    const rows = await Promise.all(order.map((id) => ctx.db.get(id)));
+    if (rows.some((row) => !row || row.formId !== formId)) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "One or more confirmations were not found for this form.",
+      });
+    }
     await Promise.all(
       order.map((id, index) => ctx.db.patch(id, { order: index })),
     );
@@ -444,6 +469,7 @@ export const setDefaultConfirmation = mutation({
   },
   handler: async (ctx, { formId, confirmationId }) => {
     const user = await requireCan(ctx, formCap("form.manage_confirmations"));
+    await requirePluginEnabled(ctx, "forms");
 
     const target = await ctx.db.get(confirmationId);
     if (!target || target.formId !== formId) {
@@ -483,6 +509,7 @@ export const deleteConfirmation = mutation({
   args: { confirmationId: v.id("form_confirmations") },
   handler: async (ctx, { confirmationId }) => {
     await requireCan(ctx, formCap("form.manage_confirmations"));
+    await requirePluginEnabled(ctx, "forms");
 
     const existing = await ctx.db.get(confirmationId);
     if (!existing) {
@@ -517,6 +544,10 @@ export const resolveConfirmation = query({
     submissionId: v.id("form_submissions"),
   },
   handler: async (ctx, { formId, submissionId }) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) {
+      return buildConfirmationResult(null, null, {}, { title: "", slug: "" }, null);
+    }
+
     const all = await ctx.db
       .query("form_confirmations")
       .withIndex("by_form_order", (q) => q.eq("formId", formId))

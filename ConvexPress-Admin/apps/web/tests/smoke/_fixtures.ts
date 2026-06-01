@@ -31,20 +31,28 @@ export const test = base.extend<{ authedPage: import("@playwright/test").Page }>
 		}
 
 		const context = await browser.newContext();
-
-		const isEmail = username.includes("@");
-		const body = isEmail
-			? { email: username, password }
-			: { username, password };
-
-		const response = await context.request.post(`${convexSiteUrl}/auth/login`, {
-			data: body,
-			headers: { "Content-Type": "application/json" },
-		});
-
-		expect(response.ok(), `login request failed: ${response.status()}`).toBe(true);
-
 		const page = await context.newPage();
+
+		await page.goto("/", { waitUntil: "domcontentloaded" });
+		const loginHeading = page.getByRole("heading", {
+			name: /convexpress admin/i,
+		});
+		const adminContent = page.locator("#admin-content");
+
+		const alreadyAuthed = await adminContent
+			.waitFor({ state: "visible", timeout: 5_000 })
+			.then(() => true)
+			.catch(() => false);
+
+		if (!alreadyAuthed) {
+			await expect(loginHeading).toBeVisible({ timeout: 45_000 });
+			await page.getByLabel("Email or Username").fill(username);
+			await page.getByLabel("Password").fill(password);
+			await page.getByRole("button", { name: /^sign in$/i }).click();
+		}
+
+		await expect(adminContent).toBeVisible({ timeout: 45_000 });
+		await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
 
 		await use(page);
 

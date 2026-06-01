@@ -28,6 +28,10 @@ import {
   isValidSlug,
   nextCopySlug,
   normalizeSettings,
+  parseFormSettings,
+  formEntryLimit,
+  formRequiresLogin,
+  evaluateFormTimeAvailability,
   isValidStatusTransition,
   remapFieldReferences,
   remapFormulaRefs,
@@ -146,6 +150,53 @@ describe("normalizeSettings", () => {
   test("malformed JSON is rejected", () => {
     const r = normalizeSettings("{not json");
     expect(r.ok).toBe(false);
+  });
+
+  test("entryLimit must be a positive integer", () => {
+    expect(normalizeSettings('{"entryLimit":0}').ok).toBe(false);
+    expect(normalizeSettings('{"entryLimit":1.5}').ok).toBe(false);
+    expect(normalizeSettings('{"entryLimit":1}').ok).toBe(true);
+  });
+
+  test("scheduleEnd cannot be before scheduleStart", () => {
+    expect(normalizeSettings('{"scheduleStart":10,"scheduleEnd":9}').ok).toBe(
+      false,
+    );
+    expect(normalizeSettings('{"scheduleStart":10,"scheduleEnd":10}').ok).toBe(
+      true,
+    );
+  });
+
+  test("login aliases are both accepted for read paths", () => {
+    expect(formRequiresLogin(parseFormSettings('{"requireLogin":true}'))).toBe(
+      true,
+    );
+    expect(formRequiresLogin(parseFormSettings('{"loginRequired":true}'))).toBe(
+      true,
+    );
+  });
+
+  test("entry limit read helper ignores absent or invalid legacy data", () => {
+    expect(formEntryLimit(parseFormSettings("{}"))).toBe(null);
+    expect(formEntryLimit(parseFormSettings('{"entryLimit":5}'))).toBe(5);
+    expect(formEntryLimit(parseFormSettings('{"entryLimit":"5"}'))).toBe(null);
+  });
+
+  test("availability detects disabled and schedule windows", () => {
+    expect(evaluateFormTimeAvailability({ disabled: true }, 10)).toMatchObject({
+      open: false,
+      code: "FORM_DISABLED",
+    });
+    expect(
+      evaluateFormTimeAvailability({ scheduleStart: 20 }, 10),
+    ).toMatchObject({ open: false, code: "FORM_NOT_OPEN" });
+    expect(evaluateFormTimeAvailability({ scheduleEnd: 5 }, 10)).toMatchObject({
+      open: false,
+      code: "FORM_CLOSED",
+    });
+    expect(
+      evaluateFormTimeAvailability({ scheduleStart: 5, scheduleEnd: 15 }, 10),
+    ).toEqual({ open: true });
   });
 });
 

@@ -10,10 +10,9 @@
  *   - final submit (isComplete:true) with server-error → step mapping,
  *   - first-view + first-interaction funnel pings (Analytics System §12).
  *
- * Resume-token resiliency (PLAN §0.B): on the first autosave we mint a client
- * token (`crypto.randomUUID()`, lazily inside the handler — SSR-safe). We PREFER
- * any server-returned token (`res.resumeToken ?? local`) so the wizard upgrades
- * transparently when the Submission System starts minting + returning one.
+ * Resume-token resiliency (PLAN §0.B): the Submission System mints the bearer
+ * resume token on the first autosave. The wizard only stores and reuses the
+ * server-returned token for later autosaves/final submit.
  *
  * Degrades to single-page: when there is exactly one active step it renders the
  * one step with no progress bar and a plain Submit — like the bare renderer.
@@ -24,9 +23,11 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation } from "convex/react";
+import { useAuth } from "@clerk/clerk-react";
+import { useAction, useConvex, useMutation } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 
+import { AuthError } from "@/components/auth/AuthError";
 import {
   FormRenderer,
   SubmittedConfirmation,
@@ -45,8 +46,34 @@ import { StepProgress } from "./StepProgress";
 import { StepNav } from "./StepNav";
 import { AutosaveIndicator, type SaveState } from "./AutosaveIndicator";
 import { ResumeBanner } from "./ResumeBanner";
+import {
+  FormLoginRequiredNotice,
+  FormStateNotice,
+  getFormClosedState,
+  parsePublicFormSettings,
+  publicFormRequiresLogin,
+} from "./StateNotices";
+import { FormSecurityControls } from "./SecurityControls";
+import {
+  buildSubmitSecurityEnvelope,
+  captchaConfigProblem,
+  captchaIsRequired,
+} from "./security";
 
 const DEFAULT_AUTOSAVE_DELAY_MS = 1000;
+
+function browserNonce(prefix: string): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `${prefix}_${crypto.randomUUID()}`;
+  }
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    return `${prefix}_${hex}`;
+  }
+  return `${prefix}_${Date.now().toString(36)}`;
+}
 
 export interface FormWizardOptions {
   autosave?: boolean;
@@ -110,6 +137,7 @@ export function FormWizard({
   onSubmitted,
   options,
 }: FormWizardProps) {
+  const { isLoaded, isSignedIn } = useAuth();
   const opts = {
     autosave: options?.autosave ?? true,
     autosaveDelayMs: options?.autosaveDelayMs ?? DEFAULT_AUTOSAVE_DELAY_MS,
@@ -118,9 +146,13 @@ export function FormWizard({
   };
 
   const submit = useMutation((api as any).extensions.forms.mutations.submit);
+  const submitWithCaptcha = useAction(
+    (api as any).extensions.forms.mutations.submitWithCaptcha,
+  );
   const recordFunnel = useMutation(
     (api as any).extensions.forms.analytics.recordFunnelPublic,
   );
+  const convex = useConvex();
 
   // ── Derived step model (pure) ───────────────────────────────────────────────
   const steps = useMemo<WizardStep[]>(
@@ -167,10 +199,15 @@ export function FormWizard({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submittedResult, setSubmittedResult] = useState<{
     submissionId: string;
     isComplete: boolean;
   } | null>(null);
+  const [renderedMessage, setRenderedMessage] = useState("");
+  const [honeypotValue, setHoneypotValue] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
 
   // Refs (no re-render): resume token, last submission id, debounce timer,
   // renderer handle, and the latest values for the debounced flush.
@@ -179,6 +216,7 @@ export function FormWizard({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rendererRef = useRef<FormRendererHandle | null>(null);
   const valuesRef = useRef(values);
+  const startedAtRef = useRef(Date.now());
   valuesRef.current = values;
 
   // ── Live active steps + clamp ───────────────────────────────────────────────
@@ -213,6 +251,16 @@ export function FormWizard({
   const current = activeSteps[clampedIndex];
   const isFinal = clampedIndex === activeSteps.length - 1;
   const isSinglePage = activeSteps.length <= 1;
+  const formSettings = useMemo(
+    () => parsePublicFormSettings(form.settings),
+    [form.settings],
+  );
+  const closedState = useMemo(
+    () => getFormClosedState(formSettings, form.availability),
+    [formSettings, form.availability],
+  );
+  const loginRequired = publicFormRequiresLogin(formSettings, form.availability);
+  const loginBlocked = loginRequired && (!isLoaded || !isSignedIn);
 
   // ── Funnel analytics (Analytics System §12) ─────────────────────────────────
   // first VIEW on mount; first INTERACTION (started) on the first value change.
@@ -243,20 +291,19 @@ export function FormWizard({
   const flushAutosave = useCallback(async () => {
     if (!opts.autosave) return;
     setSaveState("saving");
-    // Lazily mint a client token on first save (SSR-safe — handler only).
-    if (!resumeTokenRef.current) {
-      resumeTokenRef.current =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `r_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    }
     try {
       const res = await submit({
         formId: form._id as any,
         values: buildPayload(),
         isComplete: false,
-        resumeToken: resumeTokenRef.current,
+        resumeToken: resumeTokenRef.current || undefined,
         currentStep: clampedIndex,
+        ...buildSubmitSecurityEnvelope({
+          security: form.security,
+          honeypotValue,
+          startedAt: startedAtRef.current,
+          isComplete: false,
+        }),
       });
       submissionIdRef.current = res?.submissionId;
       // Prefer a server-returned token if/when the Submission System mints one.
@@ -267,7 +314,15 @@ export function FormWizard({
       // Non-blocking: keep input working; retry on the next change / step.
       setSaveState("save-error");
     }
-  }, [opts.autosave, submit, form._id, buildPayload, clampedIndex]);
+  }, [
+    opts.autosave,
+    submit,
+    form._id,
+    form.security,
+    honeypotValue,
+    buildPayload,
+    clampedIndex,
+  ]);
 
   const scheduleAutosave = useCallback(() => {
     if (!opts.autosave) return;
@@ -289,14 +344,12 @@ export function FormWizard({
     (next: Record<string, string>) => {
       valuesRef.current = next;
       setValues(next);
+      setSubmitError(null);
       // First interaction → funnel "started" (deduped client-side).
       if (!startedRef.current) {
         startedRef.current = true;
         if (!sessionNonceRef.current) {
-          sessionNonceRef.current =
-            typeof crypto !== "undefined" && "randomUUID" in crypto
-              ? crypto.randomUUID()
-              : `s_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+          sessionNonceRef.current = browserNonce("forms_started");
         }
         void recordFunnel({
           formId: form._id as any,
@@ -341,20 +394,65 @@ export function FormWizard({
     const ok = rendererRef.current?.validate() ?? true;
     if (!ok) return;
     if (timerRef.current) clearTimeout(timerRef.current);
+    setSubmitError(null);
+    const captchaProblem = captchaConfigProblem(form.security);
+    if (captchaProblem) {
+      setSubmitError(captchaProblem);
+      return;
+    }
+    if (captchaIsRequired(form.security) && !captchaToken.trim()) {
+      setSubmitError(
+        captchaError ?? "Please complete the verification challenge.",
+      );
+      return;
+    }
     setIsSubmitting(true);
     try {
-      const res = await submit({
+      const submitComplete = captchaIsRequired(form.security)
+        ? submitWithCaptcha
+        : submit;
+      const res = await submitComplete({
         formId: form._id as any,
         values: buildPayload(),
         isComplete: true,
         resumeToken: resumeTokenRef.current,
+        ...buildSubmitSecurityEnvelope({
+          security: form.security,
+          honeypotValue,
+          captchaToken,
+          startedAt: startedAtRef.current,
+          isComplete: true,
+        }),
       });
+
+      try {
+        const ref = await convex.query(
+          (api as any).extensions.forms.confirmations.resolveConfirmation,
+          { formId: form._id as any, submissionId: res.submissionId },
+        );
+
+        if (ref?.type === "redirect" && ref.redirectUrl) {
+          window.location.assign(ref.redirectUrl as string);
+          return;
+        }
+        if (ref?.type === "page" && ref.pagePath) {
+          window.location.assign(ref.pagePath as string);
+          return;
+        }
+        if (ref?.type === "message" && typeof ref.renderedMessage === "string") {
+          setRenderedMessage(ref.renderedMessage);
+        }
+      } catch {
+        setRenderedMessage("");
+      }
+
       setSubmittedResult(res);
       onSubmitted?.(res);
     } catch (err: unknown) {
       // Map server field errors back to the step that owns each field, jump to
       // the FIRST offending step, and do NOT treat as complete.
-      const { serverFieldErrors } = parseSubmitError(err);
+      const { message, serverFieldErrors } = parseSubmitError(err);
+      setSubmitError(message);
       if (serverFieldErrors && serverFieldErrors.length > 0) {
         const offendingKeys = new Set(serverFieldErrors.map((e) => e.fieldKey));
         let firstStep = -1;
@@ -374,15 +472,30 @@ export function FormWizard({
     } finally {
       setIsSubmitting(false);
     }
-  }, [submit, form._id, buildPayload, onSubmitted, activeSteps]);
+  }, [
+    submit,
+    submitWithCaptcha,
+    convex,
+    form._id,
+    form.security,
+    buildPayload,
+    onSubmitted,
+    activeSteps,
+    honeypotValue,
+    captchaToken,
+    captchaError,
+  ]);
 
   // ── Post-submit confirmation handoff ────────────────────────────────────────
-  // Reuse the renderer's confirmation view (the wizard owns the submit, so it
-  // owns the thank-you). The Confirmation System's redirect/page resolution
-  // happens in the single-page renderer; here we keep the static thank-you and
-  // hand the result to `onSubmitted` for any host-level confirmation flow.
+  // Reuse the renderer's confirmation view. The wizard owns the submit lifecycle,
+  // so it also resolves the Confirmation System's redirect/page/message result.
   if (submittedResult) {
-    return <SubmittedConfirmation formTitle={form.title} renderedMessage="" />;
+    return (
+      <SubmittedConfirmation
+        formTitle={form.title}
+        renderedMessage={renderedMessage}
+      />
+    );
   }
 
   if (!current) {
@@ -396,7 +509,7 @@ export function FormWizard({
   return (
     <div
       data-slot="form-wizard"
-      className="flex flex-col gap-6 rounded-2xl border border-border bg-card p-6"
+      className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6"
     >
       <div className="flex flex-col gap-1.5 border-b border-border pb-4">
         <h1 className="text-xl font-semibold text-foreground">{form.title}</h1>
@@ -407,46 +520,65 @@ export function FormWizard({
 
       {resumeToken ? <ResumeBanner stepNumber={clampedIndex + 1} /> : null}
 
-      {opts.showProgress && !isSinglePage ? (
-        <StepProgress
-          activeSteps={activeSteps}
-          currentIndex={clampedIndex}
-          furthestIndex={furthestStep}
-          allowBackNav={opts.allowBackNav}
-          onJumpTo={jumpTo}
-        />
-      ) : null}
+      {!closedState.open ? (
+        <FormStateNotice state={closedState} />
+      ) : loginBlocked ? (
+        <FormLoginRequiredNotice />
+      ) : (
+        <>
+          {opts.showProgress && !isSinglePage ? (
+            <StepProgress
+              activeSteps={activeSteps}
+              currentIndex={clampedIndex}
+              furthestIndex={furthestStep}
+              allowBackNav={opts.allowBackNav}
+              onJumpTo={jumpTo}
+            />
+          ) : null}
 
-      <FormRenderer
-        // Re-mount the renderer per step so its internal field error state is
-        // scoped to the step (keyed on the step index).
-        key={`step-${current.index}`}
-        form={form}
-        step={{
-          index: clampedIndex,
-          total: activeSteps.length,
-          fieldKeys: current.fieldKeys,
-        }}
-        initialValues={values}
-        onValuesChange={onValuesChange}
-        hideSubmit
-        onReady={(handle) => {
-          rendererRef.current = handle;
-        }}
-      />
+          {submitError ? <AuthError message={submitError} /> : null}
 
-      <StepNav
-        canBack={clampedIndex > 0 && opts.allowBackNav}
-        isFinal={isFinal}
-        onBack={goBack}
-        onNext={goNext}
-        onSubmit={onFinalSubmit}
-        isSubmitting={isSubmitting}
-        nextLabel={labels.nextLabel}
-        prevLabel={labels.prevLabel}
-      />
+          <FormRenderer
+            // Re-mount the renderer per step so its internal field error state is
+            // scoped to the step (keyed on the step index).
+            key={`step-${current.index}`}
+            form={form}
+            step={{
+              index: clampedIndex,
+              total: activeSteps.length,
+              fieldKeys: current.fieldKeys,
+            }}
+            initialValues={values}
+            onValuesChange={onValuesChange}
+            hideSubmit
+            onReady={(handle) => {
+              rendererRef.current = handle;
+            }}
+          />
 
-      <AutosaveIndicator saveState={saveState} savedAt={savedAt} />
+          <FormSecurityControls
+            formId={form._id}
+            security={form.security}
+            honeypotValue={honeypotValue}
+            onHoneypotChange={setHoneypotValue}
+            onCaptchaTokenChange={setCaptchaToken}
+            onCaptchaErrorChange={setCaptchaError}
+          />
+
+          <StepNav
+            canBack={clampedIndex > 0 && opts.allowBackNav}
+            isFinal={isFinal}
+            onBack={goBack}
+            onNext={goNext}
+            onSubmit={onFinalSubmit}
+            isSubmitting={isSubmitting}
+            nextLabel={labels.nextLabel}
+            prevLabel={labels.prevLabel}
+          />
+
+          <AutosaveIndicator saveState={saveState} savedAt={savedAt} />
+        </>
+      )}
     </div>
   );
 }

@@ -63,6 +63,7 @@ export function HomeView({
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
+            aria-label="Search for help"
             placeholder="Search for help..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}

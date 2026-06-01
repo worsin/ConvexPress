@@ -29,9 +29,8 @@ import {
 } from "@/components/ui/select";
 
 /**
- * Cast a `form.*` capability string to `Capability`. Mirrors the backend helper
- * in convex/extensions/forms/spam.ts — surfaced here, registered by the
- * Role/Capability expert, so not yet in the closed `Capability` union.
+ * Local wrapper for Forms capability strings. Mirrors the backend helper and
+ * keeps the settings authorization surface explicit.
  */
 const formCap = (cap: string): Capability => cap as Capability;
 
@@ -71,7 +70,7 @@ function FormsSettingsContent() {
   if (!canManage) {
     return (
       <div className="mx-auto max-w-3xl p-6">
-        <div className="rounded-3xl border border-border bg-card p-8 text-center">
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
           <ShieldOff className="mx-auto mb-3 size-8 text-muted-foreground/40" />
           <h1 className="text-lg font-semibold text-foreground">
             Insufficient permissions
@@ -124,7 +123,7 @@ function SecuritySettingsForm() {
   if (settings === undefined || form === null) {
     return (
       <div className="mx-auto max-w-3xl p-6">
-        <div className="h-64 animate-pulse rounded-3xl border border-border bg-card" />
+        <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />
       </div>
     );
   }
@@ -249,7 +248,7 @@ function SecuritySettingsForm() {
           ) : null}
 
           {/* Secret presence (read-only; booleans only — never the secret). */}
-          <div className="rounded-2xl border border-border bg-muted/20 p-3">
+          <div className="rounded-lg border border-border bg-muted/20 p-3">
             <p className="mb-2 text-xs font-medium text-muted-foreground">
               Secret keys (environment)
             </p>

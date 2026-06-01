@@ -64,10 +64,7 @@ export const Route = createFileRoute("/_marketing/forms/$slug/resume/$token")({
       seoHead: buildSeoHead({
         title: `Resume ${form?.title ?? params.slug} - ConvexPress`,
         description: `Resume your saved ${form?.title ?? params.slug} form.`,
-        canonical: toAbsoluteUrl(
-          `/forms/${params.slug}/resume/${params.token}`,
-          siteUrl,
-        ),
+        canonical: toAbsoluteUrl(`/forms/${params.slug}`, siteUrl),
         robots: "noindex",
       }),
     };
@@ -105,6 +102,10 @@ function ResumeFormInner() {
         <DraftExpiredNotice slug={slug} />
       </div>
     );
+  }
+
+  if (draft.formSlug !== slug) {
+    return <NotFoundPage />;
   }
 
   return (

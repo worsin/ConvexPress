@@ -7,7 +7,7 @@
  *   - Website:  ConvexPress-Website/apps/web/src/lib/forms/calc/parse.ts
  *
  * `parse(formula) -> Node` turns a formula string into the closed AST from
- * grammar.ts. NO `eval`/`Function` — a hand-written scanner + Pratt parser only.
+ * grammar.ts using a hand-written scanner + Pratt parser only.
  * Enforces: the function allow-list + arity, `{row.x}` only as an aggregate
  * function argument, and node-count / depth caps (DoS guard). On any violation it
  * throws CalcError with a friendly message + position.

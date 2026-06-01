@@ -36,6 +36,7 @@ import {
   emailMarketingConfigSchema,
   renderBodyTemplate,
   isSafeOutboundUrl,
+  registerFirstPartyActionTypes,
 } from "../actionTypes";
 import { evaluateConditionalLogic } from "../conditionalLogic";
 import {
@@ -297,6 +298,177 @@ describe("config schemas enforce the SSRF guard at validation time", () => {
       emailFieldKey: "email",
     });
     expect(r.success).toBe(false);
+  });
+});
+
+// ─── Mocked provider/action contracts ────────────────────────────────────────
+
+function actionCtx(values: Record<string, string> = {}): ActionRunContext {
+  return {
+    ctx: {
+      runQuery: async () => null,
+      runMutation: async () => null,
+      runAction: async () => null,
+    },
+    formId: "forms:fixture",
+    submissionId: "form_submissions:fixture",
+    values,
+    attempt: 1,
+  };
+}
+
+async function withMockFetch<T>(
+  fn: (calls: Array<{ url: string; init?: RequestInit }>) => Promise<T>,
+  response: Response = new Response("ok", { status: 200 }),
+): Promise<T> {
+  const prior = globalThis.fetch;
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  globalThis.fetch = (async (url: RequestInfo | URL, init?: RequestInit) => {
+    calls.push({ url: String(url), init });
+    return response;
+  }) as typeof fetch;
+  try {
+    return await fn(calls);
+  } finally {
+    globalThis.fetch = prior;
+  }
+}
+
+describe("mocked provider action contracts", () => {
+  test("webhook posts the rendered body and records a 2xx success", async () => {
+    __resetActionRegistryForTests();
+    registerFirstPartyActionTypes();
+    const webhook = getActionType("webhook");
+    let result: ActionResult | undefined;
+    await withMockFetch(async (calls) => {
+      result = await webhook!.run(
+        actionCtx({ email: "ada@example.test" }),
+        {
+          url: "https://hooks.example.test/form",
+          bodyTemplate: '{"email":"{email}"}',
+          headers: { "x-test": "1" },
+        },
+      );
+      expect(calls.length).toBe(1);
+      expect(calls[0]!.url).toBe("https://hooks.example.test/form");
+      expect(calls[0]!.init?.method).toBe("POST");
+      expect(calls[0]!.init?.body).toBe('{"email":"ada@example.test"}');
+      expect((calls[0]!.init?.headers as Record<string, string>)["x-test"]).toBe(
+        "1",
+      );
+    });
+    expect(result).toEqual({ ok: true, data: { status: 200 } });
+  });
+
+  test("webhook classifies 5xx as retryable and 4xx as permanent", async () => {
+    __resetActionRegistryForTests();
+    registerFirstPartyActionTypes();
+    const webhook = getActionType("webhook")!;
+    const retryable = await withMockFetch(
+      async () =>
+        webhook.run(actionCtx(), {
+          url: "https://hooks.example.test/form",
+        }),
+      new Response("nope", { status: 503 }),
+    );
+    expect(retryable.ok).toBe(false);
+    expect(retryable.retryable).toBe(true);
+
+    const permanent = await withMockFetch(
+      async () =>
+        webhook.run(actionCtx(), {
+          url: "https://hooks.example.test/form",
+        }),
+      new Response("bad", { status: 400 }),
+    );
+    expect(permanent.ok).toBe(false);
+    expect(permanent.retryable).toBe(false);
+  });
+
+  test("lead_capture without endpoint fails cleanly without fetch", async () => {
+    __resetActionRegistryForTests();
+    registerFirstPartyActionTypes();
+    const lead = getActionType("lead_capture")!;
+    const result = await withMockFetch(async (calls) => {
+      const r = await lead.run(actionCtx({ name: "Ada" }), {
+        fieldMap: { name: "firstname" },
+      });
+      expect(calls.length).toBe(0);
+      return r;
+    });
+    expect(result.ok).toBe(false);
+    expect(result.retryable).toBe(false);
+  });
+
+  test("lead_capture posts mapped properties with bearer credentials", async () => {
+    __resetActionRegistryForTests();
+    registerFirstPartyActionTypes();
+    const lead = getActionType("lead_capture")!;
+    let result: ActionResult | undefined;
+    await withMockFetch(async (calls) => {
+      result = await lead.run(
+        actionCtx({ name: "Ada", email: "ada@example.test" }),
+        {
+          endpoint: "https://crm.example.test/leads",
+          apiKey: "secret-token",
+          fieldMap: { name: "firstname", email: "email" },
+        },
+      );
+      expect(calls.length).toBe(1);
+      expect(calls[0]!.init?.body).toBe(
+        JSON.stringify({
+          properties: { firstname: "Ada", email: "ada@example.test" },
+        }),
+      );
+      expect(
+        (calls[0]!.init?.headers as Record<string, string>).authorization,
+      ).toBe("Bearer secret-token");
+    });
+    expect(result).toEqual({ ok: true, data: { status: 200 } });
+  });
+
+  test("email_marketing rejects submissions without the mapped email", async () => {
+    __resetActionRegistryForTests();
+    registerFirstPartyActionTypes();
+    const email = getActionType("email_marketing")!;
+    const result = await email.run(actionCtx({}), {
+      endpoint: "https://mail.example.test/subscribe",
+      listId: "audience-1",
+      emailFieldKey: "email",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.retryable).toBe(false);
+  });
+
+  test("email_marketing posts list, email, and merge fields", async () => {
+    __resetActionRegistryForTests();
+    registerFirstPartyActionTypes();
+    const email = getActionType("email_marketing")!;
+    let result: ActionResult | undefined;
+    await withMockFetch(async (calls) => {
+      result = await email.run(
+        actionCtx({ email: "ada@example.test", name: "Ada" }),
+        {
+          endpoint: "https://mail.example.test/subscribe",
+          apiKey: "mail-token",
+          listId: "audience-1",
+          emailFieldKey: "email",
+          mergeFields: { name: "FNAME" },
+        },
+      );
+      expect(calls.length).toBe(1);
+      expect(calls[0]!.init?.body).toBe(
+        JSON.stringify({
+          listId: "audience-1",
+          email: "ada@example.test",
+          mergeFields: { FNAME: "Ada" },
+        }),
+      );
+      expect(
+        (calls[0]!.init?.headers as Record<string, string>).authorization,
+      ).toBe("Bearer mail-token");
+    });
+    expect(result).toEqual({ ok: true, data: { status: 200 } });
   });
 });
 

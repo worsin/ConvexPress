@@ -29,6 +29,9 @@ import { describe, expect, test } from "bun:test";
 
 import {
   honeypotTripped,
+  shouldEnforceCaptcha,
+  shouldEnforceTimeTrap,
+  shouldRunRateLimit,
   timeTrapReason,
   rateWindowStart,
   rateLimitDecision,
@@ -39,10 +42,18 @@ import {
   SUBMIT_PAYLOAD_LIMITS,
 } from "../submitGuards";
 import {
+  generateResumeToken,
+  isGeneratedResumeToken,
+  RESUME_TOKEN_BYTES,
+  RESUME_TOKEN_PREFIX,
+} from "../tokens";
+import {
+  compileZodFromVisibleFields,
   recomputeVisibility,
   validateSubmission,
   type LogicFieldDef,
 } from "../formLogic";
+import { relaxRequiredForDrafts } from "../draftValidation";
 
 // ─── Shared helpers (mirrors formLogic.test.ts dialect) ─────────────────────
 
@@ -100,6 +111,109 @@ describe("honeypotTripped (Stage 1a)", () => {
 
   test("disabled honeypot never trips, even with a value present", () => {
     expect(honeypotTripped(false, "definitely-a-bot")).toBe(null);
+  });
+});
+
+describe("resume tokens", () => {
+  test("server-minted resume token has 256 bits of hex entropy", () => {
+    const token = generateResumeToken();
+    expect(token.startsWith(RESUME_TOKEN_PREFIX)).toBe(true);
+    expect(token.length).toBe(RESUME_TOKEN_PREFIX.length + RESUME_TOKEN_BYTES * 2);
+    expect(isGeneratedResumeToken(token)).toBe(true);
+  });
+
+  test("two generated resume tokens are not reused", () => {
+    const tokens = new Set(
+      Array.from({ length: 32 }, () => generateResumeToken()),
+    );
+    expect(tokens.size).toBe(32);
+  });
+
+  test("caller-supplied resume tokens must match the server-minted shape", () => {
+    expect(isGeneratedResumeToken("resume_short")).toBe(false);
+    expect(isGeneratedResumeToken("draft_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")).toBe(false);
+    expect(isGeneratedResumeToken(`resume_${"g".repeat(64)}`)).toBe(false);
+    expect(isGeneratedResumeToken(`resume_${"a".repeat(63)}`)).toBe(false);
+    expect(isGeneratedResumeToken(`resume_${"a".repeat(65)}`)).toBe(false);
+    expect(isGeneratedResumeToken(`resume_${"a".repeat(64)}`)).toBe(true);
+  });
+});
+
+describe("shouldEnforceCaptcha", () => {
+  test("draft autosaves skip CAPTCHA even when a provider is enabled", () => {
+    expect(
+      shouldEnforceCaptcha({
+        captchaEnabled: true,
+        captchaProvider: "turnstile",
+        enforceCaptcha: false,
+      }),
+    ).toBe(false);
+  });
+
+  test("complete submissions enforce CAPTCHA when enabled with a provider", () => {
+    expect(
+      shouldEnforceCaptcha({
+        captchaEnabled: true,
+        captchaProvider: "turnstile",
+        enforceCaptcha: true,
+      }),
+    ).toBe(true);
+  });
+
+  test("disabled CAPTCHA or provider none never enforces", () => {
+    expect(
+      shouldEnforceCaptcha({
+        captchaEnabled: false,
+        captchaProvider: "turnstile",
+      }),
+    ).toBe(false);
+    expect(
+      shouldEnforceCaptcha({
+        captchaEnabled: true,
+        captchaProvider: "none",
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("draft-safe spam enforcement gates", () => {
+  test("draft autosaves skip final-submit time trap", () => {
+    expect(shouldEnforceTimeTrap(false)).toBe(false);
+    expect(shouldEnforceTimeTrap(true)).toBe(true);
+    expect(shouldEnforceTimeTrap()).toBe(true);
+  });
+
+  test("draft autosaves skip rate limiting", () => {
+    expect(
+      shouldRunRateLimit({
+        rateLimitEnabled: true,
+        ip: "1.2.3.4",
+        perFormLimit: undefined,
+        enforceRateLimit: false,
+      }),
+    ).toBe(false);
+  });
+
+  test("unknown IP does not become a shared per-IP bucket", () => {
+    expect(
+      shouldRunRateLimit({
+        rateLimitEnabled: true,
+        ip: "unknown",
+        perFormLimit: undefined,
+        enforceRateLimit: true,
+      }),
+    ).toBe(false);
+  });
+
+  test("unknown IP can still use an explicit per-form ceiling", () => {
+    expect(
+      shouldRunRateLimit({
+        rateLimitEnabled: true,
+        ip: "unknown",
+        perFormLimit: 100,
+        enforceRateLimit: true,
+      }),
+    ).toBe(true);
   });
 });
 
@@ -438,6 +552,68 @@ describe("required-field bypass is prevented (visibility from authored rules)", 
     expect(vis.hiddenFieldKeys.has("internal_flag")).toBe(true);
     const res = validateSubmission([secret], valueMap, vis, validate);
     expect(res.ok).toBe(true);
+  });
+});
+
+describe("draft autosave validation", () => {
+  test("drafts accept omitted required and requiredWhen fields", () => {
+    const email = field({ key: "email", type: "email", required: true });
+    const status = field({ key: "status" });
+    const reason = field({
+      key: "reason",
+      required: false,
+      settings: cl({
+        requiredWhen: {
+          action: "show",
+          logic: "and",
+          rules: [{ field: "status", operator: "==", value: "other" }],
+        },
+      }),
+    });
+    const valueMap = { status: "other" };
+    const vis = recomputeVisibility([email, status, reason], valueMap);
+    const draftDefs = relaxRequiredForDrafts([email, status, reason]);
+
+    const validation = validateSubmission(draftDefs, valueMap, vis, validate);
+    const zodResult = compileZodFromVisibleFields(
+      draftDefs,
+      vis,
+      valueMap,
+    ).safeParse(valueMap);
+
+    expect(validation.ok).toBe(true);
+    expect(zodResult.success).toBe(true);
+  });
+
+  test("drafts still validate malformed supplied values", () => {
+    const email = field({ key: "email", type: "email", required: true });
+    const valueMap = { email: "not-an-email" };
+    const vis = recomputeVisibility([email], valueMap);
+    const validateEmail = (
+      type: string,
+      value: string,
+      _settings: Record<string, unknown>,
+      required: boolean,
+    ) => {
+      const empty = !value || value === "" || value === "[]" || value === "{}";
+      if (empty && required) {
+        return { valid: false, error: "This field is required." };
+      }
+      if (type === "email" && value && !value.includes("@")) {
+        return { valid: false, error: "Enter a valid email address." };
+      }
+      return { valid: true };
+    };
+
+    const validation = validateSubmission(
+      relaxRequiredForDrafts([email]),
+      valueMap,
+      vis,
+      validateEmail,
+    );
+
+    expect(validation.ok).toBe(false);
+    expect(validation.errors.email).toBe("Enter a valid email address.");
   });
 });
 

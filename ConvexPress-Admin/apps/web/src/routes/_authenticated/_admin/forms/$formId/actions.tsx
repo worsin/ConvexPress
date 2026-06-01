@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 
 /**
  * Form Actions & Feeds — admin editor.
@@ -59,7 +60,7 @@ import { Textarea } from "@/components/ui/textarea";
  * with status chips and a replay button on failed rows.
  */
 
-/** Cast a `form.*` capability string to `Capability` (registered by Role expert). */
+/** Local wrapper for Forms capability strings. */
 const formCap = (cap: string): Capability => cap as Capability;
 
 type RunStatus = "pending" | "completed" | "failed" | "awaiting_payment";
@@ -141,6 +142,8 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
 
   const [editingId, setEditingId] = useState<Id<"form_actions"> | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ActionRow | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const siblingFields: SiblingField[] = useMemo(
     () =>
@@ -180,7 +183,7 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
   if (form === null) {
     return (
       <div className="mx-auto max-w-4xl p-6">
-        <div className="rounded-3xl border border-border bg-card p-8">
+        <div className="rounded-lg border border-border bg-card p-8">
           <h1 className="text-xl font-semibold text-foreground">
             Form not found
           </h1>
@@ -214,17 +217,22 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
   };
 
   const handleDelete = (row: ActionRow) => {
-    if (
-      !window.confirm(
-        `Delete the action "${row.label}"? Run history is retained.`,
-      )
-    ) {
-      return;
+    setPendingDelete(row);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteAction({ actionId: pendingDelete._id });
+      toast.success("Action deleted.");
+      if (editingId === pendingDelete._id) setEditingId(null);
+      setPendingDelete(null);
+    } catch {
+      toast.error("Failed to delete action.");
+    } finally {
+      setIsDeleting(false);
     }
-    void deleteAction({ actionId: row._id })
-      .then(() => toast.success("Action deleted."))
-      .catch(() => toast.error("Failed to delete action."));
-    if (editingId === row._id) setEditingId(null);
   };
 
   return (
@@ -274,7 +282,7 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
       ) : null}
 
       {rows.length === 0 && !isCreating ? (
-        <div className="rounded-3xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center">
+        <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-10 text-center">
           <p className="text-sm text-muted-foreground">
             No actions yet. Click &ldquo;Add Action&rdquo; to create one.
           </p>
@@ -347,6 +355,19 @@ function ActionsContent({ formId }: { formId: Id<"forms"> }) {
             .catch(() => toast.error("Failed to replay run."))
         }
       />
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onClose={() => {
+          if (!isDeleting) setPendingDelete(null);
+        }}
+        onConfirm={() => void confirmDelete()}
+        title="Delete this action?"
+        message={`Delete "${pendingDelete?.label ?? "this action"}"? Run history is retained.`}
+        confirmLabel="Delete"
+        destructive
+        isExecuting={isDeleting}
+      />
     </div>
   );
 }
@@ -377,7 +398,7 @@ function SortableActionRow({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3"
+      className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3"
     >
       <button
         type="button"
@@ -485,7 +506,7 @@ function ActionEditor({
   };
 
   return (
-    <section className="rounded-3xl border border-primary/40 bg-card p-5">
+    <section className="rounded-lg border border-primary/40 bg-card p-5">
       <h2 className="text-lg font-medium text-foreground">
         {initial ? "Edit action" : "New action"}
       </h2>
@@ -945,7 +966,7 @@ function FieldMapEditor({
 function FieldKeyHint({ siblingFields }: { siblingFields: SiblingField[] }) {
   if (siblingFields.length === 0) return null;
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-muted/10 px-3 py-2">
+    <div className="rounded-lg border border-dashed border-border bg-muted/10 px-3 py-2">
       <p className="text-[11px] font-medium text-foreground">Field keys</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {siblingFields.map((f) => (
@@ -992,7 +1013,7 @@ function RunHistoryPanel({
   onReplay: (runId: Id<"form_action_runs">) => void;
 }) {
   return (
-    <section className="rounded-3xl border border-border bg-card p-5">
+    <section className="rounded-lg border border-border bg-card p-5">
       <h2 className="text-lg font-medium text-foreground">Recent runs</h2>
       <p className="mt-1 text-xs text-muted-foreground">
         The latest action runs for this form. Failed runs can be replayed.
@@ -1011,7 +1032,7 @@ function RunHistoryPanel({
             return (
               <div
                 key={run._id}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-background px-3 py-2"
+                className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2"
               >
                 <Badge variant="secondary">{typeLabels[run.type] ?? run.type}</Badge>
                 <Badge variant={STATUS_VARIANTS[run.status] ?? "outline"}>
@@ -1046,7 +1067,7 @@ function RunHistoryPanel({
 function PermissionDenied() {
   return (
     <div className="mx-auto max-w-3xl p-6">
-      <div className="rounded-3xl border border-border bg-card p-8 text-center">
+      <div className="rounded-lg border border-border bg-card p-8 text-center">
         <ShieldOff className="mx-auto mb-3 size-8 text-muted-foreground/40" />
         <h1 className="text-lg font-semibold text-foreground">
           Insufficient permissions

@@ -184,6 +184,7 @@ export const pluginsValuesValidator = v.object({
   customFieldsEnabled: v.boolean(),
   recipesEnabled: v.boolean(),
   galleryEnabled: v.boolean(),
+  formsEnabled: v.boolean(),
 });
 
 /**

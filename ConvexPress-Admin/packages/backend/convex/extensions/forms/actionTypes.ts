@@ -3,10 +3,10 @@
  *
  * Registers the framework-validating P1 types into the action registry:
  *   - `webhook`        — real outbound POST with optional HMAC signature.
- *   - `lead_capture`   — provider-dispatch stub (real config validation; POSTs
- *                        to the configured endpoint or fails cleanly when creds
- *                        are absent). Full provider SDKs are out of P1 scope.
- *   - `email_marketing`— provider-dispatch stub (list + merge-field mapping).
+ *   - `lead_capture`   — provider endpoint adapter (real config validation;
+ *                        POSTs to the configured endpoint or fails cleanly when
+ *                        creds are absent). Full provider SDKs are out of P1.
+ *   - `email_marketing`— provider endpoint adapter (list + merge-field mapping).
  *
  * `account_registration` / `subscription` / `payment` are NOT here — the
  * Commerce & Subscription system registers `subscription` (and later `payment`)
@@ -24,6 +24,7 @@
 import { z } from "zod";
 import {
   registerActionType,
+  type ActionTypeDefinition,
   type ActionResult,
   type ActionRunContext,
 } from "./actionRegistry";
@@ -193,7 +194,7 @@ const webhookConfigSchema = z.object({
 
 type WebhookConfig = z.infer<typeof webhookConfigSchema>;
 
-registerActionType<WebhookConfig>({
+export const webhookActionType: ActionTypeDefinition<WebhookConfig> = {
   type: "webhook",
   label: "Webhook",
   validateConfig(config) {
@@ -253,9 +254,9 @@ registerActionType<WebhookConfig>({
       };
     }
   },
-});
+};
 
-// ─── lead_capture (provider-dispatch stub) ───────────────────────────────────
+// ─── lead_capture (provider endpoint adapter) ────────────────────────────────
 
 const leadCaptureConfigSchema = z.object({
   /** Optional CRM endpoint; absent ⇒ "provider not configured". */
@@ -287,7 +288,7 @@ function projectFields(
   return out;
 }
 
-registerActionType<LeadCaptureConfig>({
+export const leadCaptureActionType: ActionTypeDefinition<LeadCaptureConfig> = {
   type: "lead_capture",
   label: "Lead Capture (CRM)",
   validateConfig(config) {
@@ -346,9 +347,9 @@ registerActionType<LeadCaptureConfig>({
       };
     }
   },
-});
+};
 
-// ─── email_marketing (provider-dispatch stub) ────────────────────────────────
+// ─── email_marketing (provider endpoint adapter) ─────────────────────────────
 
 const emailMarketingConfigSchema = z.object({
   endpoint: z
@@ -367,7 +368,7 @@ const emailMarketingConfigSchema = z.object({
 
 type EmailMarketingConfig = z.infer<typeof emailMarketingConfigSchema>;
 
-registerActionType<EmailMarketingConfig>({
+export const emailMarketingActionType: ActionTypeDefinition<EmailMarketingConfig> = {
   type: "email_marketing",
   label: "Email Marketing",
   validateConfig(config) {
@@ -442,7 +443,15 @@ registerActionType<EmailMarketingConfig>({
       };
     }
   },
-});
+};
+
+export function registerFirstPartyActionTypes(): void {
+  registerActionType(webhookActionType);
+  registerActionType(leadCaptureActionType);
+  registerActionType(emailMarketingActionType);
+}
+
+registerFirstPartyActionTypes();
 
 // Export the schemas so the admin editor / tests can reuse them if needed.
 // `isSafeOutboundUrl` is exported above (declaration export); re-listing it here

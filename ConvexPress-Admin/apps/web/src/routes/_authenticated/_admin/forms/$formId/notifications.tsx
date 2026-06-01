@@ -47,11 +47,11 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 
 /**
- * Cast a `form.*` capability string to `Capability`. Mirrors the backend
- * helper — the form capabilities are surfaced here but registered by the
- * Role/Capability expert, so they aren't in the closed `Capability` union yet.
+ * Local wrapper for Forms capability strings. Mirrors the backend helper and
+ * keeps the notifications authorization surface explicit.
  */
 const formCap = (cap: string): Capability => cap as Capability;
 
@@ -138,6 +138,10 @@ function NotificationsContent({ formId }: { formId: Id<"forms"> }) {
     null,
   );
   const [isCreating, setIsCreating] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<NotificationRow | null>(
+    null,
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const siblingFields: SiblingField[] = useMemo(
     () =>
@@ -173,7 +177,7 @@ function NotificationsContent({ formId }: { formId: Id<"forms"> }) {
   if (form === null) {
     return (
       <div className="mx-auto max-w-4xl p-6">
-        <div className="rounded-3xl border border-border bg-card p-8">
+        <div className="rounded-lg border border-border bg-card p-8">
           <h1 className="text-xl font-semibold text-foreground">
             Form not found
           </h1>
@@ -207,10 +211,22 @@ function NotificationsContent({ formId }: { formId: Id<"forms"> }) {
   };
 
   const handleDelete = (row: NotificationRow) => {
-    void removeRow({ notificationId: row._id })
-      .then(() => toast.success("Notification deleted."))
-      .catch(() => toast.error("Failed to delete notification."));
-    if (editingId === row._id) setEditingId(null);
+    setPendingDelete(row);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setIsDeleting(true);
+    try {
+      await removeRow({ notificationId: pendingDelete._id });
+      toast.success("Notification deleted.");
+      if (editingId === pendingDelete._id) setEditingId(null);
+      setPendingDelete(null);
+    } catch {
+      toast.error("Failed to delete notification.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -264,7 +280,7 @@ function NotificationsContent({ formId }: { formId: Id<"forms"> }) {
       ) : null}
 
       {rows.length === 0 && !isCreating ? (
-        <div className="rounded-3xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center">
+        <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-10 text-center">
           <p className="text-sm text-muted-foreground">
             No notifications yet. Click &ldquo;Add Notification&rdquo; to create
             one.
@@ -325,6 +341,19 @@ function NotificationsContent({ formId }: { formId: Id<"forms"> }) {
       )}
 
       <MergeTagHint />
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onClose={() => {
+          if (!isDeleting) setPendingDelete(null);
+        }}
+        onConfirm={() => void confirmDelete()}
+        title="Delete this notification?"
+        message={`Delete "${pendingDelete?.name ?? "this notification"}"? Future events will no longer use it.`}
+        confirmLabel="Delete"
+        destructive
+        isExecuting={isDeleting}
+      />
     </div>
   );
 }
@@ -353,7 +382,7 @@ function SortableNotificationRow({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3"
+      className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3"
     >
       <button
         type="button"
@@ -478,7 +507,7 @@ function NotificationEditor({
   };
 
   return (
-    <section className="rounded-3xl border border-primary/40 bg-card p-5">
+    <section className="rounded-lg border border-primary/40 bg-card p-5">
       <h2 className="text-lg font-medium text-foreground">
         {initial ? "Edit notification" : "New notification"}
       </h2>
@@ -623,7 +652,7 @@ function NotificationEditor({
 
 function MergeTagHint() {
   return (
-    <section className="rounded-2xl border border-dashed border-border bg-muted/10 px-4 py-3">
+    <section className="rounded-lg border border-dashed border-border bg-muted/10 px-4 py-3">
       <p className="text-xs font-medium text-foreground">Available merge tags</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {MERGE_TAG_HINTS.map((tag) => (
@@ -642,7 +671,7 @@ function MergeTagHint() {
 function PermissionDenied() {
   return (
     <div className="mx-auto max-w-3xl p-6">
-      <div className="rounded-3xl border border-border bg-card p-8 text-center">
+      <div className="rounded-lg border border-border bg-card p-8 text-center">
         <ShieldOff className="mx-auto mb-3 size-8 text-muted-foreground/40" />
         <h1 className="text-lg font-semibold text-foreground">
           Insufficient permissions

@@ -466,4 +466,13 @@ crons.daily(
   {},
 );
 
+// Daily sweep of short-retention public funnel guard rows. The aggregate
+// counters live in `form_funnel_stats`; this only trims dedupe/clamp evidence.
+crons.daily(
+  "forms:sweep-public-funnel-events",
+  { hourUTC: 2, minuteUTC: 50 },
+  internal.extensions.forms.analytics.sweepPublicFunnelEvents,
+  {},
+);
+
 export default crons;

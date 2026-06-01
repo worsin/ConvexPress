@@ -11,20 +11,21 @@
  *
  * Stage sources:
  *   - viewed / started → the public renderer (recordFunnelPublic), on mount +
- *     first interaction.
+ *     first interaction. Public writes are deduped/clamped via
+ *     `form_funnel_public_events` before the aggregate counter increments.
  *   - completed → the `form.submitted` event listener (onFormSubmitted), only
  *     when isComplete:true. The submit mutation is UNCHANGED (already emits it).
  *   - abandoned → the daily sweep over stale `partial` submissions.
  *
- * CAPABILITY TYPING: `form.view_analytics` is SURFACED here but REGISTERED by
- * the Role/Capability expert, so it isn't in the closed `Capability` union yet —
- * we cast at the requireCan call site (mirrors mutations.ts).
+ * Capability: form.view_analytics. `formCap(...)` keeps the Forms authorization
+ * surface explicit at the requireCan call site.
  */
 
 import { internalMutation, mutation, query } from "../../_generated/server";
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
+import { isPluginEnabled, requirePluginEnabled } from "../../helpers/plugins";
 import type { Capability } from "../../types/capabilities";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -33,12 +34,24 @@ import type { Capability } from "../../types/capabilities";
 const ABANDON_TTL_MS = 24 * 60 * 60 * 1000;
 /** Max rows the sweep processes per invocation (stay within mutation limits). */
 const SWEEP_BATCH = 100;
+/** Bounded operational health samples; dashboards must never collect unbounded tables. */
+const ACTION_HEALTH_LIMIT = 50;
+const ATTEMPT_HEALTH_LIMIT = 200;
+const PUBLIC_EVENT_HEALTH_LIMIT = 500;
+const PARTIAL_DRAFT_HEALTH_LIMIT = 200;
+const OPERATIONAL_HEALTH_WINDOW_MS = 60 * 60 * 1000;
+/** Public funnel write clamp: accepted writes per form+stage per minute. */
+const PUBLIC_FUNNEL_WINDOW_MS = 60 * 1000;
+const PUBLIC_FUNNEL_WINDOW_LIMIT = 240;
+const PUBLIC_FUNNEL_EVENT_RETENTION_MS = 48 * 60 * 60 * 1000;
+const PUBLIC_FUNNEL_SWEEP_BATCH = 500;
+const SESSION_NONCE_MAX_LENGTH = 128;
 
 type FunnelStage = "viewed" | "started" | "completed" | "abandoned";
 
 // ─── Module-local helpers ───────────────────────────────────────────────────
 
-/** Cast a `form.*` capability string to `Capability` (see file header). */
+/** Local wrapper for Forms capability strings. */
 function formCap(cap: string): Capability {
   return cap as Capability;
 }
@@ -214,6 +227,194 @@ export function alreadyAbandonCounted(meta: Record<string, unknown>): boolean {
   return meta.abandonCounted === true;
 }
 
+/** Fixed-window start for the public analytics write clamp. */
+export function publicFunnelWindowStart(
+  now: number,
+  windowMs: number = PUBLIC_FUNNEL_WINDOW_MS,
+): number {
+  return Math.floor(now / windowMs) * windowMs;
+}
+
+/** Normalize a client-generated analytics nonce into a bounded, non-empty key. */
+export function normalizeSessionNonce(
+  nonce: string | undefined,
+): string | undefined {
+  const trimmed = nonce?.trim();
+  if (!trimmed) return undefined;
+  return trimmed.slice(0, SESSION_NONCE_MAX_LENGTH);
+}
+
+export type PublicFunnelDecisionReason =
+  | "recorded"
+  | "duplicate_started"
+  | "window_clamped";
+
+/**
+ * Decide whether a public funnel write should increment the aggregate counter.
+ * `started` is deduped by sessionNonce/day when a nonce is present; every stage
+ * is protected by a per-form/stage fixed-window clamp.
+ */
+export function decidePublicFunnelWrite(args: {
+  stage: "viewed" | "started";
+  hasSessionNonce: boolean;
+  duplicateSession: boolean;
+  acceptedInWindow: number;
+  windowLimit?: number;
+}): { record: boolean; reason: PublicFunnelDecisionReason } {
+  if (
+    args.stage === "started" &&
+    args.hasSessionNonce &&
+    args.duplicateSession
+  ) {
+    return { record: false, reason: "duplicate_started" };
+  }
+  const limit = args.windowLimit ?? PUBLIC_FUNNEL_WINDOW_LIMIT;
+  if (args.acceptedInWindow >= limit) {
+    return { record: false, reason: "window_clamped" };
+  }
+  return { record: true, reason: "recorded" };
+}
+
+/** Has a public funnel guard event aged past the short retention horizon? */
+export function publicFunnelEventExpired(
+  createdAt: number | undefined,
+  now: number,
+  retentionMs: number = PUBLIC_FUNNEL_EVENT_RETENTION_MS,
+): boolean {
+  if (typeof createdAt !== "number" || !Number.isFinite(createdAt)) {
+    return false;
+  }
+  return createdAt < now - retentionMs;
+}
+
+type ActionRunStatus = "failed" | "pending" | "awaiting_payment";
+
+export interface OperationalActionRunLike {
+  status: ActionRunStatus;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface OperationalAttemptBucketLike {
+  count: number;
+  blockedCount?: number;
+}
+
+export interface OperationalPublicFunnelEventLike {
+  stage: "viewed" | "started";
+}
+
+export interface OperationalDraftLike {
+  submittedAt?: number;
+}
+
+export interface FormsOperationalHealth {
+  checkedAt: number;
+  windowMs: number;
+  actionRuns: {
+    failed: number;
+    pending: number;
+    awaitingPayment: number;
+    latestFailureAt?: number;
+  };
+  submissionAttempts: {
+    buckets: number;
+    attempts: number;
+    blocked: number;
+    maxBucketCount: number;
+  };
+  publicFunnel: {
+    acceptedEvents: number;
+    viewed: number;
+    started: number;
+  };
+  staleDrafts: {
+    count: number;
+  };
+  needsAttention: boolean;
+}
+
+/**
+ * Collapse bounded operational samples into one dashboard payload. This is
+ * intentionally approximate/recent, not a full historical report: production
+ * observability reads must stay indexed and bounded.
+ */
+export function summarizeOperationalHealth(args: {
+  checkedAt: number;
+  windowMs: number;
+  staleCutoff: number;
+  actionRuns: OperationalActionRunLike[];
+  attempts: OperationalAttemptBucketLike[];
+  publicEvents: OperationalPublicFunnelEventLike[];
+  partialDrafts: OperationalDraftLike[];
+}): FormsOperationalHealth {
+  let failed = 0;
+  let pending = 0;
+  let awaitingPayment = 0;
+  let latestFailureAt: number | undefined;
+
+  for (const run of args.actionRuns) {
+    if (run.status === "failed") {
+      failed += 1;
+      const at = Number.isFinite(run.updatedAt) ? run.updatedAt : run.createdAt;
+      latestFailureAt =
+        latestFailureAt === undefined ? at : Math.max(latestFailureAt, at);
+    } else if (run.status === "pending") {
+      pending += 1;
+    } else if (run.status === "awaiting_payment") {
+      awaitingPayment += 1;
+    }
+  }
+
+  let attempts = 0;
+  let blocked = 0;
+  let maxBucketCount = 0;
+  for (const bucket of args.attempts) {
+    const count = Math.max(0, Math.floor(bucket.count || 0));
+    const blockedCount = Math.max(0, Math.floor(bucket.blockedCount || 0));
+    attempts += count;
+    blocked += blockedCount;
+    maxBucketCount = Math.max(maxBucketCount, count);
+  }
+
+  let viewed = 0;
+  let started = 0;
+  for (const event of args.publicEvents) {
+    if (event.stage === "viewed") viewed += 1;
+    if (event.stage === "started") started += 1;
+  }
+
+  const staleDraftCount = args.partialDrafts.filter((draft) =>
+    isAbandoned(draft.submittedAt, args.staleCutoff),
+  ).length;
+
+  return {
+    checkedAt: args.checkedAt,
+    windowMs: args.windowMs,
+    actionRuns: {
+      failed,
+      pending,
+      awaitingPayment,
+      latestFailureAt,
+    },
+    submissionAttempts: {
+      buckets: args.attempts.length,
+      attempts,
+      blocked,
+      maxBucketCount,
+    },
+    publicFunnel: {
+      acceptedEvents: viewed + started,
+      viewed,
+      started,
+    },
+    staleDrafts: {
+      count: staleDraftCount,
+    },
+    needsAttention: failed > 0 || blocked > 0 || staleDraftCount > 0,
+  };
+}
+
 /**
  * Upsert a `form_funnel_stats` counter: +1 on the (formId, day, stage) row, or
  * insert it at 1. Patches `count` ONLY (the row has no `updatedAt` column).
@@ -251,6 +452,8 @@ export const recordFunnel = internalMutation({
     sessionNonce: v.optional(v.string()),
   },
   handler: async (ctx, { formId, stage }) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) return;
+
     const form = await ctx.db.get(formId);
     if (!form || form.status !== "published") return;
     await incrementStage(ctx, formId, utcDay(Date.now()), stage);
@@ -263,11 +466,8 @@ export const recordFunnel = internalMutation({
  * PUBLIC funnel-write surface for the Website renderer (no auth, no requireCan).
  * The ONLY externally-reachable funnel write; it can only INCREMENT
  * `viewed`/`started` and cannot read the table. Published-form guard kept.
- *
- * TODO(§9): coarse `started` dedup per `sessionNonce`/day + a per-form per-window
- * write clamp for rate-sanity. v1 ships the published-form guard + silent no-op
- * only; this stays a no-throw path. No new table in v1 (the Spam system owns
- * `form_submission_attempts`).
+ * Abuse protection is intentionally silent: duplicate/clamped writes return a
+ * small status object but never throw, so analytics cannot break a public form.
  */
 export const recordFunnelPublic = mutation({
   args: {
@@ -275,10 +475,65 @@ export const recordFunnelPublic = mutation({
     stage: v.union(v.literal("viewed"), v.literal("started")),
     sessionNonce: v.optional(v.string()),
   },
-  handler: async (ctx, { formId, stage }) => {
+  handler: async (ctx, { formId, stage, sessionNonce }) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) {
+      return { recorded: false, reason: "disabled" as const };
+    }
+
     const form = await ctx.db.get(formId);
-    if (!form || form.status !== "published") return;
-    await incrementStage(ctx, formId, utcDay(Date.now()), stage);
+    if (!form || form.status !== "published") {
+      return { recorded: false, reason: "unpublished" as const };
+    }
+
+    const now = Date.now();
+    const day = utcDay(now);
+    const normalizedNonce = normalizeSessionNonce(sessionNonce);
+    const windowStart = publicFunnelWindowStart(now);
+
+    let duplicateSession = false;
+    if (stage === "started" && normalizedNonce) {
+      const prior = await ctx.db
+        .query("form_funnel_public_events")
+        .withIndex("by_form_stage_day_nonce", (q: any) =>
+          q
+            .eq("formId", formId)
+            .eq("stage", stage)
+            .eq("day", day)
+            .eq("sessionNonce", normalizedNonce),
+        )
+        .first();
+      duplicateSession = !!prior;
+    }
+
+    const acceptedInWindow = (
+      await ctx.db
+        .query("form_funnel_public_events")
+        .withIndex("by_form_stage_window", (q: any) =>
+          q.eq("formId", formId).eq("stage", stage).eq("windowStart", windowStart),
+        )
+        .take(PUBLIC_FUNNEL_WINDOW_LIMIT)
+    ).length;
+
+    const decision = decidePublicFunnelWrite({
+      stage,
+      hasSessionNonce: !!normalizedNonce,
+      duplicateSession,
+      acceptedInWindow,
+    });
+    if (!decision.record) {
+      return { recorded: false, reason: decision.reason };
+    }
+
+    await ctx.db.insert("form_funnel_public_events", {
+      formId,
+      day,
+      stage,
+      sessionNonce: normalizedNonce,
+      windowStart,
+      createdAt: now,
+    });
+    await incrementStage(ctx, formId, day, stage);
+    return { recorded: true, reason: decision.reason };
   },
 });
 
@@ -293,6 +548,8 @@ export const recordFunnelPublic = mutation({
 export const onFormSubmitted = internalMutation({
   args: { eventId: v.id("events") },
   handler: async (ctx, { eventId }) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) return;
+
     const ev = await ctx.db.get(eventId);
     if (!ev) return;
     let p: any;
@@ -322,6 +579,7 @@ export const getFunnel = query({
   },
   handler: async (ctx, { formId, from, to }) => {
     await requireCan(ctx, formCap("form.view_analytics"));
+    await requirePluginEnabled(ctx, "forms");
 
     const rows = await ctx.db
       .query("form_funnel_stats")
@@ -334,6 +592,98 @@ export const getFunnel = query({
     const rates = computeRates(totals);
 
     return { totals, rates, byDay };
+  },
+});
+
+/**
+ * Bounded operational snapshot for the form analytics page. This is the
+ * paid-tester "is anything on fire?" surface: recent action failures/retries,
+ * rate-limit pressure, public funnel write volume, and stale drafts due for the
+ * abandonment sweep.
+ */
+export const getOperationalHealth = query({
+  args: { formId: v.id("forms") },
+  handler: async (ctx, { formId }) => {
+    await requireCan(ctx, formCap("form.view_analytics"));
+    await requirePluginEnabled(ctx, "forms");
+
+    const now = Date.now();
+    const windowStart = now - OPERATIONAL_HEALTH_WINDOW_MS;
+    const staleCutoff = abandonCutoff(now);
+
+    const [
+      failedRuns,
+      pendingRuns,
+      awaitingPaymentRuns,
+      attempts,
+      viewedEvents,
+      startedEvents,
+      stalePartials,
+    ] = await Promise.all([
+      ctx.db
+        .query("form_action_runs")
+        .withIndex("by_form_status", (q: any) =>
+          q.eq("formId", formId).eq("status", "failed"),
+        )
+        .order("desc")
+        .take(ACTION_HEALTH_LIMIT),
+      ctx.db
+        .query("form_action_runs")
+        .withIndex("by_form_status", (q: any) =>
+          q.eq("formId", formId).eq("status", "pending"),
+        )
+        .order("desc")
+        .take(ACTION_HEALTH_LIMIT),
+      ctx.db
+        .query("form_action_runs")
+        .withIndex("by_form_status", (q: any) =>
+          q.eq("formId", formId).eq("status", "awaiting_payment"),
+        )
+        .order("desc")
+        .take(ACTION_HEALTH_LIMIT),
+      ctx.db
+        .query("form_submission_attempts")
+        .withIndex("by_form_window", (q: any) =>
+          q.eq("formId", formId).gte("windowStart", windowStart),
+        )
+        .take(ATTEMPT_HEALTH_LIMIT),
+      ctx.db
+        .query("form_funnel_public_events")
+        .withIndex("by_form_stage_window", (q: any) =>
+          q.eq("formId", formId).eq("stage", "viewed").gte("windowStart", windowStart),
+        )
+        .take(PUBLIC_EVENT_HEALTH_LIMIT),
+      ctx.db
+        .query("form_funnel_public_events")
+        .withIndex("by_form_stage_window", (q: any) =>
+          q.eq("formId", formId).eq("stage", "started").gte("windowStart", windowStart),
+        )
+        .take(PUBLIC_EVENT_HEALTH_LIMIT),
+      ctx.db
+        .query("form_submissions")
+        .withIndex("by_form_status", (q: any) =>
+          q.eq("formId", formId).eq("status", "partial"),
+        )
+        .filter((q: any) => q.lt(q.field("submittedAt"), staleCutoff))
+        .take(PARTIAL_DRAFT_HEALTH_LIMIT),
+    ]);
+
+    return summarizeOperationalHealth({
+      checkedAt: now,
+      windowMs: OPERATIONAL_HEALTH_WINDOW_MS,
+      staleCutoff,
+      actionRuns: [
+        ...(failedRuns as OperationalActionRunLike[]),
+        ...(pendingRuns as OperationalActionRunLike[]),
+        ...(awaitingPaymentRuns as OperationalActionRunLike[]),
+      ],
+      attempts: attempts as OperationalAttemptBucketLike[],
+      publicEvents: [
+        ...(viewedEvents as OperationalPublicFunnelEventLike[]),
+        ...(startedEvents as OperationalPublicFunnelEventLike[]),
+      ],
+      partialDrafts: stalePartials as OperationalDraftLike[],
+    });
   },
 });
 
@@ -351,6 +701,8 @@ export const getFunnel = query({
 export const sweepAbandoned = internalMutation({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) return { swept: 0 };
+
     const cutoff = abandonCutoff(Date.now());
     const rows = await ctx.db
       .query("form_submissions")
@@ -381,5 +733,31 @@ export const sweepAbandoned = internalMutation({
     }
 
     return { swept };
+  },
+});
+
+// ─── sweepPublicFunnelEvents (internal — short-retention guard rows) ──────────
+
+/**
+ * Delete short-retention public funnel guard rows. Aggregate analytics remain in
+ * `form_funnel_stats`; these rows only prove dedupe/clamp decisions.
+ */
+export const sweepPublicFunnelEvents = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const cutoff = now - PUBLIC_FUNNEL_EVENT_RETENTION_MS;
+    const rows = await ctx.db
+      .query("form_funnel_public_events")
+      .withIndex("by_createdAt", (q: any) => q.lt("createdAt", cutoff))
+      .take(PUBLIC_FUNNEL_SWEEP_BATCH);
+
+    let deleted = 0;
+    for (const row of rows) {
+      if (!publicFunnelEventExpired(row.createdAt, now)) continue;
+      await ctx.db.delete(row._id);
+      deleted += 1;
+    }
+    return { deleted };
   },
 });

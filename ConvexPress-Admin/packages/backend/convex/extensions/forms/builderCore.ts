@@ -94,6 +94,27 @@ export function isValidStatusTransition(from: FormStatus, to: FormStatus): boole
 
 // ─── Default settings ────────────────────────────────────────────────────────
 
+export interface FormSettings {
+  disabled?: boolean | null;
+  scheduleStart?: number | null;
+  scheduleEnd?: number | null;
+  schedule?: { startsAt?: number | null; endsAt?: number | null } | null;
+  entryLimit?: number | null;
+  requireLogin?: boolean | null;
+  loginRequired?: boolean | null;
+  confirmationRef?: string | null;
+  notificationRefs?: string[] | null;
+  [key: string]: unknown;
+}
+
+export type FormTimeAvailability =
+  | { open: true }
+  | {
+      open: false;
+      code: "FORM_DISABLED" | "FORM_NOT_OPEN" | "FORM_CLOSED";
+      message: string;
+    };
+
 /**
  * Default form-level settings applied on create when the caller supplies none.
  * Kept intentionally minimal/JSON-serializable — the builder UI fills the rest.
@@ -113,16 +134,170 @@ export const DEFAULT_FORM_SETTINGS_JSON = "{}";
  */
 export function normalizeSettings(
   settings: string | undefined,
-): { ok: true; value: string } | { ok: false } {
+): { ok: true; value: string } | { ok: false; error: string } {
   if (settings === undefined || settings === "") {
     return { ok: true, value: DEFAULT_FORM_SETTINGS_JSON };
   }
+  let parsed: unknown;
   try {
-    JSON.parse(settings);
-    return { ok: true, value: settings };
+    parsed = JSON.parse(settings);
   } catch {
-    return { ok: false };
+    return { ok: false, error: "Form settings must be valid JSON." };
   }
+  const error = validateFormSettings(parsed);
+  if (error) return { ok: false, error };
+  return { ok: true, value: settings };
+}
+
+/**
+ * Parse stored settings for read/enforcement paths. Invalid/malformed legacy
+ * settings fall back to `{}` here; writes still go through `normalizeSettings`.
+ */
+export function parseFormSettings(settings: string | null | undefined): FormSettings {
+  if (!settings) return {};
+  try {
+    const parsed = JSON.parse(settings);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return parsed as FormSettings;
+  } catch {
+    return {};
+  }
+}
+
+/** True for either historical spelling (`requireLogin`) or renderer spelling. */
+export function formRequiresLogin(settings: FormSettings): boolean {
+  return settings.requireLogin === true || settings.loginRequired === true;
+}
+
+/** Positive integer entry cap, or null when unlimited/invalid legacy data. */
+export function formEntryLimit(settings: FormSettings): number | null {
+  return positiveIntegerOrNull(settings.entryLimit);
+}
+
+/** Flat builder spelling wins; nested renderer spelling remains accepted. */
+export function formScheduleStart(settings: FormSettings): number | null {
+  return finiteNumberOrNull(settings.scheduleStart) ??
+    finiteNumberOrNull(settings.schedule?.startsAt);
+}
+
+/** Flat builder spelling wins; nested renderer spelling remains accepted. */
+export function formScheduleEnd(settings: FormSettings): number | null {
+  return finiteNumberOrNull(settings.scheduleEnd) ??
+    finiteNumberOrNull(settings.schedule?.endsAt);
+}
+
+/** Time-window availability, excluding login and entry-count checks. */
+export function evaluateFormTimeAvailability(
+  settings: FormSettings,
+  now: number,
+): FormTimeAvailability {
+  if (settings.disabled === true) {
+    return {
+      open: false,
+      code: "FORM_DISABLED",
+      message: "This form is not currently accepting responses.",
+    };
+  }
+
+  const start = formScheduleStart(settings);
+  if (start !== null && now < start) {
+    return {
+      open: false,
+      code: "FORM_NOT_OPEN",
+      message: "This form is not open yet.",
+    };
+  }
+
+  const end = formScheduleEnd(settings);
+  if (end !== null && now > end) {
+    return {
+      open: false,
+      code: "FORM_CLOSED",
+      message: "This form is closed.",
+    };
+  }
+
+  return { open: true };
+}
+
+function validateFormSettings(parsed: unknown): string | null {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return "Form settings must be a JSON object.";
+  }
+  const settings = parsed as FormSettings;
+
+  const boolKeys = ["disabled", "requireLogin", "loginRequired"] as const;
+  for (const key of boolKeys) {
+    const value = settings[key];
+    if (value !== undefined && value !== null && typeof value !== "boolean") {
+      return `Form settings.${key} must be a boolean.`;
+    }
+  }
+
+  const numberKeys = ["scheduleStart", "scheduleEnd"] as const;
+  for (const key of numberKeys) {
+    const value = settings[key];
+    if (value !== undefined && value !== null && !isFiniteNumber(value)) {
+      return `Form settings.${key} must be a timestamp.`;
+    }
+  }
+
+  if (settings.entryLimit !== undefined && settings.entryLimit !== null) {
+    if (!Number.isInteger(settings.entryLimit) || settings.entryLimit <= 0) {
+      return "Form settings.entryLimit must be a positive integer.";
+    }
+  }
+
+  const schedule = settings.schedule;
+  if (schedule !== undefined && schedule !== null) {
+    if (!schedule || typeof schedule !== "object" || Array.isArray(schedule)) {
+      return "Form settings.schedule must be an object.";
+    }
+    for (const key of ["startsAt", "endsAt"] as const) {
+      const value = schedule[key];
+      if (value !== undefined && value !== null && !isFiniteNumber(value)) {
+        return `Form settings.schedule.${key} must be a timestamp.`;
+      }
+    }
+  }
+
+  const start = formScheduleStart(settings);
+  const end = formScheduleEnd(settings);
+  if (start !== null && end !== null && end < start) {
+    return "Form settings.scheduleEnd must be greater than or equal to scheduleStart.";
+  }
+
+  if (
+    settings.confirmationRef !== undefined &&
+    settings.confirmationRef !== null &&
+    typeof settings.confirmationRef !== "string"
+  ) {
+    return "Form settings.confirmationRef must be a string.";
+  }
+  if (settings.notificationRefs !== undefined && settings.notificationRefs !== null) {
+    if (
+      !Array.isArray(settings.notificationRefs) ||
+      settings.notificationRefs.some((ref) => typeof ref !== "string")
+    ) {
+      return "Form settings.notificationRefs must be an array of strings.";
+    }
+  }
+
+  return null;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function finiteNumberOrNull(value: unknown): number | null {
+  return isFiniteNumber(value) ? value : null;
+}
+
+function positiveIntegerOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value > 0
+    ? value
+    : null;
 }
 
 // ─── DUPLICATE: field-reference remapping (bug fix core) ─────────────────────

@@ -76,7 +76,7 @@ function EditFormContent({ formId }: { formId: Id<"forms"> }) {
   if (form === null) {
     return (
       <div className="mx-auto max-w-6xl p-6">
-        <div className="rounded-3xl border border-border bg-card p-8">
+        <div className="rounded-lg border border-border bg-card p-8">
           <h1 className="text-xl font-semibold text-foreground">
             Form not found
           </h1>
@@ -130,8 +130,14 @@ function EditFormContent({ formId }: { formId: Id<"forms"> }) {
           <Link to="/forms/$formId/notifications" params={{ formId }}>
             <Button variant="outline">Notifications</Button>
           </Link>
+          <Link to="/forms/$formId/settings" params={{ formId }}>
+            <Button variant="outline">Settings</Button>
+          </Link>
           <Link to="/forms/$formId/confirmations" params={{ formId }}>
             <Button variant="outline">Confirmations</Button>
+          </Link>
+          <Link to="/forms/$formId/entries" params={{ formId }}>
+            <Button variant="outline">Entries</Button>
           </Link>
           <Link to="/forms/$formId/actions" params={{ formId }}>
             <Button variant="outline">Actions</Button>
@@ -155,7 +161,7 @@ function EditFormContent({ formId }: { formId: Id<"forms"> }) {
         </div>
       </div>
 
-      <section className="rounded-3xl border border-border bg-card p-5">
+      <section className="rounded-lg border border-border bg-card p-5">
         <h2 className="text-lg font-medium text-foreground">Form Details</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           <div className="grid gap-2">
@@ -189,7 +195,7 @@ function EditFormContent({ formId }: { formId: Id<"forms"> }) {
 
           <div className="grid gap-2">
             <span className="text-sm font-medium">Slug</span>
-            <code className="rounded-2xl bg-muted/50 px-3 py-2 text-xs text-foreground">
+            <code className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-foreground">
               {form.slug}
             </code>
           </div>
@@ -209,7 +215,7 @@ function EditFormContent({ formId }: { formId: Id<"forms"> }) {
       {!fieldGroupId ? (
         // Defensive: every form created via mutations.create has a backing
         // group, but guard against a form that somehow lacks one.
-        <section className="rounded-3xl border border-border bg-card p-5">
+        <section className="rounded-lg border border-border bg-card p-5">
           <p className="text-sm text-muted-foreground">
             This form has no field group yet.
           </p>
@@ -227,7 +233,7 @@ function EditFormContent({ formId }: { formId: Id<"forms"> }) {
         </div>
       ) : group === null ? (
         // Not found: the backing group is missing.
-        <section className="rounded-3xl border border-border bg-card p-5">
+        <section className="rounded-lg border border-border bg-card p-5">
           <p className="text-sm text-muted-foreground">
             The field group backing this form could not be loaded.
           </p>

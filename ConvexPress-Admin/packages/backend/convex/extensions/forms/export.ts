@@ -13,14 +13,15 @@
  * goes through the `emitExported` internalMutation wrapper (mirrors
  * auditLogs/internals.ts → emitExportEvent).
  *
- * CAPABILITY TYPING: `form.export_entries` is SURFACED here but REGISTERED by the
- * Role/Capability expert — cast at the requireCan call site.
+ * Capability: form.export_entries. `formCap(...)` keeps the Forms authorization
+ * surface explicit at the requireCan call site.
  */
 
 import { action, internalMutation, internalQuery } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal, api } from "../../_generated/api";
 import { requireCan } from "../../helpers/permissions";
+import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { FORM_EVENTS, SYSTEM } from "../../events/constants";
 import type { Capability } from "../../types/capabilities";
@@ -246,6 +247,7 @@ export const assertExportAuth = internalQuery({
   args: {},
   handler: async (ctx) => {
     await requireCan(ctx, formCap("form.export_entries"));
+    await requirePluginEnabled(ctx, "forms");
     return null;
   },
 });

@@ -16,9 +16,8 @@
  *     do NOT invent new keys there — see PLAN Ground Truth #5).
  * Selection/iteration glue is the only orchestration this file owns.
  *
- * SURFACED capability: form.manage_notifications (registered by Role expert).
- * The `form.*` caps are not yet in the closed `Capability` union, so we cast at
- * every requireCan call site via `formCap(...)`, exactly like mutations.ts.
+ * Capability: form.manage_notifications. `formCap(...)` keeps the Forms
+ * authorization surface explicit at each requireCan call site.
  */
 
 import {
@@ -32,6 +31,7 @@ import { internal } from "../../_generated/api";
 import { v, ConvexError } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
+import { isPluginEnabled, requirePluginEnabled } from "../../helpers/plugins";
 import { resolveNotificationRecipients } from "../../helpers/notification";
 import type { Capability } from "../../types/capabilities";
 import { evaluateConditionalLogic } from "./conditionalLogic";
@@ -40,9 +40,8 @@ import { resolveMergeTags, isValidEmail, type MergeContext } from "./mergeTags";
 // ─── Local validators / helpers ─────────────────────────────────────────────
 
 /**
- * Cast a `form.*` capability string to `Capability`. See file header — these
- * are surfaced here but registered by the Role expert, so they aren't in the
- * union yet. Centralizing the cast keeps the intent explicit and greppable.
+ * Local wrapper for Forms capability strings. Centralizing it keeps the
+ * authorization surface explicit and greppable.
  */
 function formCap(cap: string): Capability {
   return cap as Capability;
@@ -203,12 +202,44 @@ export function assembleNotificationContent(
   };
 }
 
+const RESUME_NOTIFICATION_SENT_AT_META_KEY = "resumeNotificationSentAt";
+
+function parseSubmissionMeta(meta: string | undefined): Record<string, unknown> {
+  if (!meta) return {};
+  try {
+    const parsed = JSON.parse(meta);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+export function progressNotificationAlreadySent(
+  meta: string | undefined,
+): boolean {
+  const parsed = parseSubmissionMeta(meta);
+  return typeof parsed[RESUME_NOTIFICATION_SENT_AT_META_KEY] === "number";
+}
+
+export function markProgressNotificationSentMeta(
+  meta: string | undefined,
+  sentAt: number,
+): string {
+  return JSON.stringify({
+    ...parseSubmissionMeta(meta),
+    [RESUME_NOTIFICATION_SENT_AT_META_KEY]: sentAt,
+  });
+}
+
 // ─── Admin query: list rows for a form (gated) ───────────────────────────────
 
 export const listForForm = query({
   args: { formId: v.id("forms") },
   handler: async (ctx, { formId }) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
+    await requirePluginEnabled(ctx, "forms");
     const rows = await ctx.db
       .query("form_notifications")
       .withIndex("by_form", (q) => q.eq("formId", formId))
@@ -234,6 +265,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
+    await requirePluginEnabled(ctx, "forms");
 
     const name = args.name.trim();
     if (!name) {
@@ -285,6 +317,7 @@ export const update = mutation({
   },
   handler: async (ctx, { notificationId, patch }) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
+    await requirePluginEnabled(ctx, "forms");
 
     const existing = await ctx.db.get(notificationId);
     if (!existing) {
@@ -339,8 +372,16 @@ export const reorder = mutation({
     formId: v.id("forms"),
     orderedIds: v.array(v.id("form_notifications")),
   },
-  handler: async (ctx, { orderedIds }) => {
+  handler: async (ctx, { formId, orderedIds }) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
+    await requirePluginEnabled(ctx, "forms");
+    const rows = await Promise.all(orderedIds.map((id) => ctx.db.get(id)));
+    if (rows.some((row) => !row || row.formId !== formId)) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "One or more notifications were not found for this form.",
+      });
+    }
     await Promise.all(
       orderedIds.map((id, index) => ctx.db.patch(id, { order: index })),
     );
@@ -352,6 +393,7 @@ export const remove = mutation({
   args: { notificationId: v.id("form_notifications") },
   handler: async (ctx, { notificationId }) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
+    await requirePluginEnabled(ctx, "forms");
     await ctx.db.delete(notificationId);
     return { success: true };
   },
@@ -486,6 +528,24 @@ export const _createSiteNotificationForAdmins = internalMutation({
   },
 });
 
+export const _claimProgressNotification = internalMutation({
+  args: { submissionId: v.id("form_submissions") },
+  handler: async (ctx, { submissionId }) => {
+    const submission = await ctx.db.get(submissionId);
+    if (!submission) return { claimed: false };
+    if (progressNotificationAlreadySent(submission.meta)) {
+      return { claimed: false };
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(submissionId, {
+      meta: markProgressNotificationSentMeta(submission.meta, now),
+      updatedAt: now,
+    });
+    return { claimed: true };
+  },
+});
+
 // ─── The event-subscribed dispatch handler (internalAction) ──────────────────
 
 /**
@@ -500,6 +560,8 @@ export const _createSiteNotificationForAdmins = internalMutation({
 export const dispatch = internalAction({
   args: { eventId: v.id("events") },
   handler: async (ctx, { eventId }) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) return;
+
     // ── Load + parse the event ──────────────────────────────────────────────
     const event = await ctx.runQuery(
       internal.extensions.forms.notifications._getEvent,
@@ -582,6 +644,7 @@ export const dispatch = internalAction({
     // The decision (does this row fire?), the recipient resolution, and the
     // subject/body assembly are all the extracted PURE cores above. This loop
     // is the orchestration shell: gate → resolve → enqueue/insert per channel.
+    let progressNotificationClaimed: boolean | null = null;
     for (const row of rows) {
       try {
         // Firing rule + conditional routing (pure).
@@ -611,6 +674,18 @@ export const dispatch = internalAction({
               `[FormNotification] skip no_recipient (row=${row._id} form=${formId})`,
             );
             continue;
+          }
+          if (eventCode === "form.progress_saved") {
+            if (!submissionId) continue;
+            if (progressNotificationClaimed === null) {
+              const claim = await ctx.runMutation(
+                internal.extensions.forms.notifications
+                  ._claimProgressNotification,
+                { submissionId },
+              );
+              progressNotificationClaimed = claim.claimed === true;
+            }
+            if (!progressNotificationClaimed) continue;
           }
           await ctx.runMutation(internal.emails.internals.queueRenderedEmail, {
             recipientEmail: recipient.email,

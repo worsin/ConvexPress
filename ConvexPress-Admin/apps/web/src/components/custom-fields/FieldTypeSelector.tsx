@@ -78,6 +78,7 @@ export const FIELD_TYPE_LABELS: Record<string, string> = {
   time_picker: "Time Picker",
   color_picker: "Color Picker",
   message: "Message",
+  page_break: "Page Break",
   accordion: "Accordion",
   tab: "Tab",
   group: "Group",
@@ -154,6 +155,7 @@ const FIELD_TYPE_CATEGORIES: FieldTypeCategory[] = [
     label: "Layout",
     types: [
       { slug: "message", label: "Message", description: "Display-only text block", icon: <MessageSquareIcon className="size-3.5" /> },
+      { slug: "page_break", label: "Page Break", description: "Split a form into steps", icon: <LayersIcon className="size-3.5" /> },
       { slug: "accordion", label: "Accordion", description: "Collapsible section", icon: <PanelTopIcon className="size-3.5" /> },
       { slug: "tab", label: "Tab", description: "Tabbed section divider", icon: <FolderIcon className="size-3.5" /> },
     ],

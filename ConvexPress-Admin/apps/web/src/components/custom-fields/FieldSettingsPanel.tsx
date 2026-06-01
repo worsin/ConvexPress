@@ -53,7 +53,7 @@ const SUPPORTED_TYPES = [
   "select", "checkbox", "radio", "button_group", "true_false",
   "link", "post_object", "page_link", "relationship", "taxonomy", "user",
   "date_picker", "date_time_picker", "time_picker", "color_picker",
-  "message", "accordion", "tab",
+  "message", "page_break", "accordion", "tab",
   "group", "repeater", "flexible_content",
   "calculation", "product",
 ];

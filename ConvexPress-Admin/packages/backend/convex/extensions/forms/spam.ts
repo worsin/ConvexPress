@@ -1,7 +1,7 @@
 /**
  * ConvexPress Forms — Spam & Submission Security guard (v2 extension)
  * API paths:
- *   internal.extensions.forms.spam.{guardSubmission,verifyCaptcha,sweepAttempts}
+ *   internal.extensions.forms.spam.{guardSubmission,verifyCaptcha,runCaptchaVerification,getCaptchaPolicy,sweepAttempts}
  *   api.extensions.forms.spam.{getSecuritySettings,updateSecuritySettings}
  *
  * This module owns the 3-stage submission guard, the CAPTCHA verification
@@ -32,6 +32,7 @@
 import {
   internalMutation,
   internalAction,
+  internalQuery,
   query,
   mutation,
 } from "../../_generated/server";
@@ -39,6 +40,7 @@ import { internal } from "../../_generated/api";
 import { v, ConvexError } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
+import { isPluginEnabled, requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { FORM_EVENTS, SYSTEM } from "../../events/constants";
 import type { Capability } from "../../types/capabilities";
@@ -65,9 +67,8 @@ export interface SubmissionSecurityVerdict {
 }
 
 /**
- * Cast a `form.*` capability string to `Capability`. These are surfaced by the
- * Forms extension but registered by the Role/Capability expert, so they aren't
- * in the closed union yet. Mirrors the cast in `mutations.ts`/`nav.ts`.
+ * Local wrapper for Forms capability strings. Centralizing it keeps the
+ * authorization surface explicit and greppable.
  */
 function formCap(cap: string): Capability {
   return cap as Capability;
@@ -178,6 +179,42 @@ export function honeypotTripped(
   if (!honeypotEnabled) return null;
   if (honeypotValue && honeypotValue.trim() !== "") return "honeypot";
   return null;
+}
+
+/** CAPTCHA is enforced for final submissions, but skipped for draft autosaves. */
+export function shouldEnforceCaptcha(args: {
+  captchaEnabled: boolean;
+  captchaProvider: "turnstile" | "hcaptcha" | "recaptcha" | "none";
+  enforceCaptcha?: boolean;
+}): boolean {
+  return (
+    (args.enforceCaptcha ?? true) &&
+    args.captchaEnabled &&
+    args.captchaProvider !== "none"
+  );
+}
+
+/** Draft autosaves should not trip final-submit timing heuristics. */
+export function shouldEnforceTimeTrap(enforceTimeTrap?: boolean): boolean {
+  return enforceTimeTrap ?? true;
+}
+
+/**
+ * Rate limiting needs either a real client IP or an explicit per-form ceiling.
+ * A Convex mutation without an HTTP front door has `ip:"unknown"`; treating that
+ * as a shared visitor bucket would false-positive across every public user.
+ */
+export function shouldRunRateLimit(args: {
+  rateLimitEnabled: boolean;
+  ip: string;
+  perFormLimit: number | undefined | null;
+  enforceRateLimit?: boolean;
+}): boolean {
+  return (
+    (args.enforceRateLimit ?? true) &&
+    args.rateLimitEnabled &&
+    (args.ip !== "unknown" || args.perFormLimit != null)
+  );
 }
 
 /**
@@ -350,6 +387,9 @@ export const guardSubmission = internalMutation({
     captchaToken: v.optional(v.string()),
     startedAt: v.optional(v.number()),
     ip: v.optional(v.string()),
+    enforceCaptcha: v.optional(v.boolean()),
+    enforceTimeTrap: v.optional(v.boolean()),
+    enforceRateLimit: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<SubmissionSecurityVerdict> => {
     const settings = await loadSecuritySettings(ctx);
@@ -378,18 +418,27 @@ export const guardSubmission = internalMutation({
       }
       // Time-trap only when the client stamped startedAt; missing ⇒ skip (degrade
       // gracefully rather than punishing a client that didn't send the stamp).
-      const ttReason = timeTrapReason(
-        settings.honeypotEnabled,
-        args.startedAt,
-        now,
-        settings.minFillMs,
-        settings.maxFormAgeMs,
-      );
-      if (ttReason) return block(ttReason);
+      if (shouldEnforceTimeTrap(args.enforceTimeTrap)) {
+        const ttReason = timeTrapReason(
+          settings.honeypotEnabled,
+          args.startedAt,
+          now,
+          settings.minFillMs,
+          settings.maxFormAgeMs,
+        );
+        if (ttReason) return block(ttReason);
+      }
     }
 
     // ── Stage 2: per-ip+form rate limit ────────────────────────────────────
-    if (settings.rateLimitEnabled) {
+    if (
+      shouldRunRateLimit({
+        rateLimitEnabled: settings.rateLimitEnabled,
+        ip,
+        perFormLimit: settings.perFormLimit,
+        enforceRateLimit: args.enforceRateLimit,
+      })
+    ) {
       const windowMs = settings.windowMs;
       const windowStart = rateWindowStart(now, windowMs);
 
@@ -422,7 +471,10 @@ export const guardSubmission = internalMutation({
       // attempt and the per-ip-before-per-form ordering live there.
       const decision = rateLimitDecision({
         priorIpCount: bucket?.count ?? 0,
-        perIpPerFormLimit: settings.perIpPerFormLimit,
+        perIpPerFormLimit:
+          ip === "unknown"
+            ? Number.MAX_SAFE_INTEGER
+            : settings.perIpPerFormLimit,
         priorFormTotal,
         perFormLimit: settings.perFormLimit,
       });
@@ -456,12 +508,16 @@ export const guardSubmission = internalMutation({
     // public `submit` mutation) performs the token-PRESENCE + skip-for-logged-in
     // checks here, and the cryptographic `siteverify` round-trip lives in the
     // `verifyCaptcha` internalAction below. That action is invoked by the
-    // action-capable front door (`runCaptchaVerification`) — the documented seam
-    // for when an HTTP-action wraps submit and can forward the client IP. Until
-    // that front door is wired, an enabled CAPTCHA still blocks the dominant bot
-    // case (no/blank token) and, with `failClosed`, blocks when no provider
-    // secret is configured (misconfig is fail-closed by policy).
-    if (settings.captchaEnabled && settings.captchaProvider !== "none") {
+    // action-capable `submitWithCaptcha` front door. Direct mutation submissions
+    // fail closed when CAPTCHA is enabled, so provider verification cannot be
+    // bypassed by calling `submit` directly.
+    if (
+      shouldEnforceCaptcha({
+        captchaEnabled: settings.captchaEnabled,
+        captchaProvider: settings.captchaProvider,
+        enforceCaptcha: args.enforceCaptcha,
+      })
+    ) {
       // Optionally skip CAPTCHA for authenticated submitters.
       let isLoggedIn = false;
       if (settings.skipForLoggedIn) {
@@ -479,7 +535,11 @@ export const guardSubmission = internalMutation({
         }
         // Misconfiguration (enabled provider, no ENV secret) is treated as a
         // CAPTCHA we cannot verify → apply the fail-closed policy synchronously.
-        const providerEnv = CAPTCHA_ENDPOINTS[settings.captchaProvider].env;
+        const captchaProvider = settings.captchaProvider;
+        if (captchaProvider === "none") {
+          return { ok: true, block: false, score: 0 };
+        }
+        const providerEnv = CAPTCHA_ENDPOINTS[captchaProvider].env;
         const secretPresent = !!process.env[providerEnv];
         if (!secretPresent && settings.failClosed) {
           return block("captcha_unavailable");
@@ -503,8 +563,7 @@ export const guardSubmission = internalMutation({
  * provider verdict to the same `SubmissionSecurityVerdict` shape, applying the
  * fail-closed policy on `unreachable`. Kept here so the guard's CAPTCHA policy
  * has exactly one home; `guardSubmission` (mutation) owns Stages 1–2 + token
- * presence, this (action) owns the network verdict. Not yet on the hot path —
- * the public submit is a mutation today (PRD §3.3, Submission System contract).
+ * presence, this (action) owns the network verdict for `submitWithCaptcha`.
  */
 export const runCaptchaVerification = internalAction({
   args: {
@@ -562,6 +621,28 @@ export const runCaptchaVerification = internalAction({
   },
 });
 
+export const getCaptchaPolicy = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) {
+      return {
+        captchaEnabled: false,
+        captchaProvider: "none" as const,
+        recaptchaMinScore: SECURITY_DEFAULTS.recaptchaMinScore,
+        failClosed: SECURITY_DEFAULTS.failClosed,
+      };
+    }
+
+    const settings = await loadSecuritySettings(ctx);
+    return {
+      captchaEnabled: settings.captchaEnabled,
+      captchaProvider: settings.captchaProvider,
+      recaptchaMinScore: settings.recaptchaMinScore,
+      failClosed: settings.failClosed,
+    };
+  },
+});
+
 // ─── Retention sweep (cron) ─────────────────────────────────────────────────
 
 /**
@@ -572,6 +653,8 @@ export const runCaptchaVerification = internalAction({
 export const sweepAttempts = internalMutation({
   args: {},
   handler: async (ctx) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) return { deleted: 0 };
+
     const settings = await loadSecuritySettings(ctx);
     const cutoff = Date.now() - settings.attemptRetentionMs;
 
@@ -652,6 +735,7 @@ export const getSecuritySettings = query({
   args: {},
   handler: async (ctx) => {
     await requireCan(ctx, formCap("form.manage_security"));
+    await requirePluginEnabled(ctx, "forms");
     const settings = await loadSecuritySettings(ctx);
     return {
       ...settings,
@@ -692,6 +776,7 @@ export const updateSecuritySettings = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.manage_security"));
+    await requirePluginEnabled(ctx, "forms");
     assertNoSecretKeyInArgs(args as Record<string, unknown>);
     validateThresholds(args);
 

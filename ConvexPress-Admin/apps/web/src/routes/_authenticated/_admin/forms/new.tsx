@@ -26,18 +26,25 @@ function NewFormContent() {
   const createForm = useMutation(api.extensions.forms.mutations.create);
 
   const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCreate = async () => {
     const trimmed = title.trim();
+    const normalizedSlug = slugify(slug || trimmed);
     if (!trimmed) {
       toast.error("Form title is required.");
+      return;
+    }
+    if (!normalizedSlug) {
+      toast.error("Form slug must contain at least one letter or number.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const form = await createForm({ title: trimmed });
+      const form = await createForm({ title: trimmed, slug: normalizedSlug });
       if (!form) {
         toast.error("Failed to create form.");
         return;
@@ -74,7 +81,7 @@ function NewFormContent() {
         </Link>
       </div>
 
-      <section className="rounded-3xl border border-border bg-card p-5">
+      <section className="rounded-lg border border-border bg-card p-5">
         <div className="grid gap-4">
           <div className="grid gap-2">
             <label htmlFor="form-title" className="text-sm font-medium">
@@ -84,7 +91,11 @@ function NewFormContent() {
               id="form-title"
               value={title}
               autoFocus
-              onChange={(event) => setTitle(event.target.value)}
+              onChange={(event) => {
+                const nextTitle = event.target.value;
+                setTitle(nextTitle);
+                if (!slugTouched) setSlug(slugify(nextTitle));
+              }}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !isSubmitting) {
                   event.preventDefault();
@@ -98,10 +109,31 @@ function NewFormContent() {
             </p>
           </div>
 
+          <div className="grid gap-2">
+            <label htmlFor="form-slug" className="text-sm font-medium">
+              Slug
+            </label>
+            <Input
+              id="form-slug"
+              value={slug}
+              onChange={(event) => {
+                setSlugTouched(true);
+                setSlug(slugify(event.target.value));
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !isSubmitting) {
+                  event.preventDefault();
+                  void handleCreate();
+                }
+              }}
+              placeholder="contact-us"
+            />
+          </div>
+
           <div className="flex justify-end">
             <Button
               onClick={() => void handleCreate()}
-              disabled={isSubmitting || !title.trim()}
+              disabled={isSubmitting || !title.trim() || !slugify(slug || title)}
             >
               {isSubmitting ? (
                 <>
@@ -118,6 +150,15 @@ function NewFormContent() {
           </div>
         </div>
       </section>
-    </div>
-  );
+	    </div>
+	  );
+	}
+
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 96);
 }

@@ -29,6 +29,8 @@ import {
   resolveNotificationRecipient,
   assembleNotificationContent,
   sanitizeEmailHeader,
+  progressNotificationAlreadySent,
+  markProgressNotificationSentMeta,
 } from "../notifications";
 import type { MergeContext } from "../mergeTags";
 
@@ -209,6 +211,32 @@ describe("notificationFiresForSubmission", () => {
         { fk_plan: "vip" },
       ),
     ).toBe(false);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// progress notification one-shot meta — autosave email spam guard
+// ════════════════════════════════════════════════════════════════════════════
+
+describe("progress notification one-shot meta", () => {
+  test("missing or malformed meta has not been sent", () => {
+    expect(progressNotificationAlreadySent(undefined)).toBe(false);
+    expect(progressNotificationAlreadySent("{not json")).toBe(false);
+    expect(progressNotificationAlreadySent(JSON.stringify({ pricing: {} }))).toBe(
+      false,
+    );
+  });
+
+  test("marking preserves sibling meta and makes future sends skip", () => {
+    const marked = markProgressNotificationSentMeta(
+      JSON.stringify({ pricing: { oneTime: 1200 } }),
+      12345,
+    );
+    expect(JSON.parse(marked)).toEqual({
+      pricing: { oneTime: 1200 },
+      resumeNotificationSentAt: 12345,
+    });
+    expect(progressNotificationAlreadySent(marked)).toBe(true);
   });
 });
 

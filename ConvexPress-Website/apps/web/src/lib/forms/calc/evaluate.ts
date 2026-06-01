@@ -7,8 +7,8 @@
  *   - Website:  ConvexPress-Website/apps/web/src/lib/forms/calc/evaluate.ts
  *
  * `evalAst(node, scope) -> number`. A pure, deterministic, side-effect-free
- * recursive walk over the closed AST. NO `eval`/`Function`. The result is ALWAYS
- * a finite number:
+ * recursive walk over the closed AST. It never executes formula text as code.
+ * The result is ALWAYS a finite number:
  *   - non-numeric / empty / NaN operands coerce to `scope.treatBlankAs` (def 0);
  *   - divide-by-zero and modulo-by-zero return 0 (never Infinity/NaN);
  *   - comparisons and logical ops return 1 / 0.

@@ -21,7 +21,7 @@ export function DraftExpiredNotice({ slug }: DraftExpiredNoticeProps) {
       role="status"
       data-slot="draft-expired"
       tabIndex={-1}
-      className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-10 text-center outline-none"
+      className="flex flex-col items-center gap-4 rounded-lg border border-border bg-card p-10 text-center outline-none"
     >
       <FileClock className="size-10 text-muted-foreground" aria-hidden="true" />
       <div className="flex flex-col gap-1.5">

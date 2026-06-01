@@ -15,11 +15,8 @@ import type { Capability } from "@backend/convex/types/capabilities";
 import type { AdminNavSection } from "@/lib/admin-shell/types";
 
 /**
- * Cast a `form.*` capability string to `Capability`. Mirrors the backend
- * helper in convex/extensions/forms/mutations.ts — the 7 form capabilities are
- * SURFACED by this extension but REGISTERED by the Role/Capability expert, so
- * they aren't in the closed `Capability` union yet. Once they're registered
- * these casts become no-ops and can be dropped.
+ * Local wrapper for Forms capability strings. Mirrors the backend helper and
+ * keeps the nav authorization surface explicit.
  */
 const formCap = (cap: string): Capability => cap as Capability;
 

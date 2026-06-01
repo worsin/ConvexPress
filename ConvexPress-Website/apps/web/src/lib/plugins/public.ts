@@ -72,13 +72,7 @@ export function isPublicPluginEnabled(
     case "membership":
       return settings.plugins?.membershipEnabled === true;
     case "forms":
-      // The Admin's public settings query does not (yet) surface a
-      // `formsEnabled` flag, so this fails OPEN: a published form renders
-      // publicly unless an explicit `formsEnabled === false` is present.
-      // The authoritative published/unpublished gate is enforced server-side
-      // by `forms.queries.getBySlug` (unpublished → null → 404). When the
-      // Admin later surfaces the flag, an explicit `false` disables here.
-      return settings.plugins?.formsEnabled !== false;
+      return settings.plugins?.formsEnabled === true;
     default:
       return false;
   }

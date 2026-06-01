@@ -11,9 +11,9 @@
  *   - Admin FE: apps/web/src/components/forms/calc/grammar.ts
  *   - Website:  ConvexPress-Website/apps/web/src/lib/forms/calc/grammar.ts
  *
- * Pure module: no `window`, no Convex, no React, NO `eval`/`Function`/dynamic
- * code path. The formula text is tokenized → parsed to this closed AST → walked
- * by a hand-written evaluator. There is nothing to escape into.
+ * Pure module: no browser globals, platform imports, UI imports, or dynamic
+ * code execution path. The formula text is tokenized → parsed to this closed AST
+ * → walked by a hand-written evaluator. There is nothing to escape into.
  *
  * The grammar is intentionally small and CLOSED (anything not listed is a parse
  * error): number literals, `{field_key}` references, `{row.subKey}` aggregate

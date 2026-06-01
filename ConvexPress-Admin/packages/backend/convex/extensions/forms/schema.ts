@@ -75,9 +75,11 @@ export const tables = {
     resumeToken: v.optional(v.string()),
     currentStep: v.optional(v.number()),
 
-    // Admin entry-ops flags (Entry Management System).
-    read: v.boolean(),
-    starred: v.boolean(),
+    // Admin entry-ops flags (Entry Management System). Optional so this
+    // additive extension field is safe for rows written before the inbox
+    // shipped; query projections normalize missing values to false.
+    read: v.optional(v.boolean()),
+    starred: v.optional(v.boolean()),
 
     // Free-form meta bag for additive cross-system data (e.g. analytics
     // abandon marker) without re-migrating this table.
@@ -88,6 +90,8 @@ export const tables = {
   })
     .index("by_form", ["formId"])
     .index("by_form_status", ["formId", "status"])
+    .index("by_form_read", ["formId", "read"])
+    .index("by_form_starred", ["formId", "starred"])
     .index("by_status", ["status"])
     .index("by_resumeToken", ["resumeToken"]),
 
@@ -197,6 +201,28 @@ export const tables = {
     ),
     count: v.number(),
   }).index("by_form_day", ["formId", "day", "stage"]),
+
+  // ── Public funnel write guard (Analytics abuse protection) ─────────────
+  // One short-retention row per ACCEPTED public `viewed`/`started` write. This
+  // keeps the public analytics mutation cheap to clamp by per-form/stage minute
+  // and lets `started` dedupe by sessionNonce/day without storing IP addresses
+  // or respondent PII.
+  form_funnel_public_events: defineTable({
+    formId: v.id("forms"),
+    day: v.string(), // YYYY-MM-DD bucket
+    stage: v.union(v.literal("viewed"), v.literal("started")),
+    sessionNonce: v.optional(v.string()),
+    windowStart: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_form_stage_day_nonce", [
+      "formId",
+      "stage",
+      "day",
+      "sessionNonce",
+    ])
+    .index("by_form_stage_window", ["formId", "stage", "windowStart"])
+    .index("by_createdAt", ["createdAt"]),
 
   // ── Spam / rate limiting (Form Spam & Submission Security System) ────────
   // The ORIGINAL 4 fields ({ ip, formId, windowStart, count }) and the

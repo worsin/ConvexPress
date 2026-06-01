@@ -1,21 +1,44 @@
+import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
-import { FileText, Plus } from "lucide-react";
+import { Archive, Copy, FileText, Plus } from "lucide-react";
+import { toast } from "sonner";
 
 import { api } from "@backend/convex/_generated/api";
 import type { Capability } from "@backend/convex/types/capabilities";
 import { PluginGuard } from "@/components/plugins/PluginGuard";
 import { useCan } from "@/hooks/useCan";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * Cast a `form.*` capability string to `Capability`. Mirrors the backend
- * helper in convex/extensions/forms/mutations.ts — the form capabilities are
- * surfaced here but registered by the Role/Capability expert, so they aren't in
- * the closed `Capability` union yet. These casts become no-ops once registered.
+ * Local wrapper for Forms capability strings. Mirrors the backend helper and
+ * keeps the list authorization surface explicit.
  */
 const formCap = (cap: string): Capability => cap as Capability;
+type FormStatus = "draft" | "published" | "archived";
+type StatusFilter = "active" | FormStatus;
+type PendingAction =
+  | { kind: "duplicate"; form: FormListRow }
+  | { kind: "archive"; form: FormListRow }
+  | null;
+
+interface FormListRow {
+  _id: string;
+  title: string;
+  slug: string;
+  status: FormStatus;
+  fieldCount?: number;
+}
 
 export const Route = createFileRoute("/_authenticated/_admin/forms/")({
   component: FormsListPage,
@@ -34,12 +57,21 @@ function FormsListPage() {
 
 function FormsListContent() {
   const navigate = useNavigate();
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [isActing, setIsActing] = useState(false);
   const canCreate = useCan(formCap("form.create"));
+  const canDuplicate = useCan(formCap("form.duplicate"));
+  const canDelete = useCan(formCap("form.delete"));
+  const canViewEntries = useCan(formCap("form.view_entries"));
+  const duplicateForm = useMutation(api.extensions.forms.mutations.duplicate);
+  const archiveForm = useMutation(api.extensions.forms.mutations.remove);
 
   // Cached, paginated query. convex-helpers cache keeps the data stable across
   // route transitions.
   const result = useQuery(api.extensions.forms.queries.list, {
     paginationOpts: { numItems: 20, cursor: null },
+    status: statusFilter === "active" ? undefined : statusFilter,
   });
 
   if (result === undefined) return <ListSkeleton />;
@@ -51,7 +83,7 @@ function FormsListContent() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+          <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
             <FileText className="size-5 text-primary" />
           </div>
           <div>
@@ -72,6 +104,23 @@ function FormsListContent() {
         ) : null}
       </div>
 
+      <div className="flex items-center justify-between gap-3">
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Active forms</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="published">Published</SelectItem>
+            <SelectItem value="archived">Archived</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* List */}
       {forms.length === 0 ? (
         <EmptyState
@@ -86,11 +135,12 @@ function FormsListContent() {
                 <th className="px-3 py-2 font-medium">Title</th>
                 <th className="px-3 py-2 font-medium">Slug</th>
                 <th className="px-3 py-2 font-medium">Status</th>
+                <th className="px-3 py-2 font-medium">Fields</th>
                 <th className="px-3 py-2 font-medium" aria-label="actions" />
               </tr>
             </thead>
             <tbody>
-              {forms.map((form: { _id: string; title: string; slug: string; status: string }) => (
+              {forms.map((form: FormListRow) => (
                 <tr key={form._id} className="border-t border-border">
                   <td className="px-3 py-2 font-medium text-foreground">
                     <Link
@@ -107,14 +157,57 @@ function FormsListContent() {
                   <td className="px-3 py-2">
                     <StatusBadge status={form.status} />
                   </td>
+                  <td className="px-3 py-2 text-muted-foreground">
+                    {form.fieldCount ?? 0}
+                  </td>
                   <td className="px-3 py-2 text-right text-muted-foreground">
-                    <Link
-                      to="/forms/$formId/edit"
-                      params={{ formId: form._id }}
-                      className="text-xs hover:underline"
-                    >
-                      Edit
-                    </Link>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {canViewEntries ? (
+                        <Link
+                          to="/forms/$formId/entries"
+                          params={{ formId: form._id }}
+                          className="text-xs hover:underline"
+                        >
+                          Entries
+                        </Link>
+                      ) : null}
+                      <Link
+                        to="/forms/$formId/edit"
+                        params={{ formId: form._id }}
+                        className="text-xs hover:underline"
+                      >
+                        Edit
+                      </Link>
+                      <Link
+                        to="/forms/$formId/settings"
+                        params={{ formId: form._id }}
+                        className="text-xs hover:underline"
+                      >
+                        Settings
+                      </Link>
+                      {canDuplicate ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setPendingAction({ kind: "duplicate", form })}
+                        >
+                          <Copy className="size-3.5" data-icon="inline-start" />
+                          Duplicate
+                        </Button>
+                      ) : null}
+                      {canDelete && form.status !== "archived" ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                          onClick={() => setPendingAction({ kind: "archive", form })}
+                        >
+                          <Archive className="size-3.5" data-icon="inline-start" />
+                          Archive
+                        </Button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -122,8 +215,55 @@ function FormsListContent() {
           </table>
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingAction !== null}
+        onClose={() => (isActing ? undefined : setPendingAction(null))}
+        onConfirm={() => void runPendingAction()}
+        title={
+          pendingAction?.kind === "archive"
+            ? "Archive this form?"
+            : "Duplicate this form?"
+        }
+        message={
+          pendingAction?.kind === "archive"
+            ? `Archive "${pendingAction.form.title}"? Existing entries are preserved.`
+            : `Create a draft copy of "${pendingAction?.form.title ?? "this form"}"?`
+        }
+        confirmLabel={pendingAction?.kind === "archive" ? "Archive" : "Duplicate"}
+        destructive={pendingAction?.kind === "archive"}
+        isExecuting={isActing}
+      />
     </div>
   );
+
+  async function runPendingAction() {
+    if (!pendingAction) return;
+    setIsActing(true);
+    try {
+      if (pendingAction.kind === "duplicate") {
+        const copy = await duplicateForm({ id: pendingAction.form._id as any });
+        toast.success("Form duplicated.");
+        setPendingAction(null);
+        if (copy?._id) {
+          await navigate({
+            to: "/forms/$formId/edit",
+            params: { formId: copy._id },
+          });
+        }
+      } else {
+        await archiveForm({ id: pendingAction.form._id as any });
+        toast.success("Form archived.");
+        setPendingAction(null);
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Form action failed.",
+      );
+    } finally {
+      setIsActing(false);
+    }
+  }
 }
 
 function StatusBadge({ status }: { status: string }) {

@@ -10,6 +10,22 @@
 import { query } from "../../_generated/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { currentUserCan } from "../../helpers/permissions";
+import { isPluginEnabled } from "../../helpers/plugins";
+import type { Id } from "../../_generated/dataModel";
+import type { Capability } from "../../types/capabilities";
+import {
+  parseFormSettings,
+  evaluateFormTimeAvailability,
+  formEntryLimit,
+  formRequiresLogin,
+} from "./builderCore";
+import { loadSecuritySettings } from "./spam";
+import { isGeneratedResumeToken } from "./tokens";
+
+function formCap(cap: string): Capability {
+  return cap as Capability;
+}
 
 const formStatus = v.union(
   v.literal("draft"),
@@ -24,6 +40,184 @@ const submissionStatus = v.union(
   v.literal("deleted"),
 );
 
+type SubmissionDoc = {
+  _id: Id<"form_submissions">;
+  formId: Id<"forms">;
+  status: "partial" | "complete" | "spam" | "deleted";
+  submittedAt?: number;
+  completedAt?: number;
+  ip?: string;
+  userAgent?: string;
+  referrer?: string;
+  userId?: Id<"users">;
+  resumeToken?: string;
+  currentStep?: number;
+  read?: boolean;
+  starred?: boolean;
+  meta?: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+async function completeSubmissionCountAtLimit(
+  ctx: { db: { query: any } },
+  formId: Id<"forms">,
+  limit: number,
+): Promise<boolean> {
+  const rows = await ctx.db
+    .query("form_submissions")
+    .withIndex("by_form_status", (q: any) =>
+      q.eq("formId", formId).eq("status", "complete"),
+    )
+    .take(limit);
+  return rows.length >= limit;
+}
+
+async function countFieldsForForm(
+  ctx: { db: { query: any } },
+  fieldGroupId: Id<"fieldGroups"> | undefined,
+): Promise<number> {
+  if (!fieldGroupId) return 0;
+  const fields = await ctx.db
+    .query("fieldDefinitions")
+    .withIndex("by_group", (q: any) => q.eq("groupId", fieldGroupId))
+    .collect();
+  return fields.length;
+}
+
+async function withFieldCounts<
+  T extends { fieldGroupId?: Id<"fieldGroups"> },
+>(
+  ctx: { db: { query: any } },
+  forms: T[],
+): Promise<Array<T & { fieldCount: number }>> {
+  return await Promise.all(
+    forms.map(async (form) => ({
+      ...form,
+      fieldCount: await countFieldsForForm(ctx, form.fieldGroupId),
+    })),
+  );
+}
+
+function normalizeSubmissionRow<T extends SubmissionDoc>(
+  row: T,
+): T & { read: boolean; starred: boolean } {
+  return {
+    ...row,
+    read: row.read === true,
+    starred: row.starred === true,
+  };
+}
+
+function normalizeEntrySearch(search: string | undefined): string {
+  return (search ?? "").trim().toLowerCase().slice(0, 128);
+}
+
+function parseSearchCursor(cursor: string | null): number {
+  const parsed = cursor ? Number.parseInt(cursor, 10) : 0;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function submissionMatchesSearch(row: SubmissionDoc, term: string): boolean {
+  return [
+    row._id,
+    row.status,
+    row.referrer,
+    row.userId,
+    row.resumeToken,
+    row.ip,
+    row.userAgent,
+  ]
+    .filter(Boolean)
+    .some((value) => String(value).toLowerCase().includes(term));
+}
+
+async function submissionValuesMatchSearch(
+  ctx: { db: { query: any } },
+  submissionId: Id<"form_submissions">,
+  term: string,
+): Promise<boolean> {
+  const values = await ctx.db
+    .query("fieldValues")
+    .withIndex("by_entity", (q: any) =>
+      q
+        .eq("entityType", "form_submission")
+        .eq("entityId", submissionId as string),
+    )
+    .collect();
+
+  return values.some((value: { fieldName?: string; fieldKey?: string; value?: string }) =>
+    [value.fieldName, value.fieldKey, value.value]
+      .filter(Boolean)
+      .some((part) => String(part).toLowerCase().includes(term)),
+  );
+}
+
+async function searchSubmissions(
+  ctx: { db: { query: any } },
+  formId: Id<"forms">,
+  status: "partial" | "complete" | "spam" | "deleted" | undefined,
+  paginationOpts: { numItems: number; cursor: string | null },
+  term: string,
+  read: boolean | undefined,
+  starred: boolean | undefined,
+) {
+  const rows: SubmissionDoc[] = status
+    ? await ctx.db
+        .query("form_submissions")
+        .withIndex("by_form_status", (q: any) =>
+          q.eq("formId", formId).eq("status", status),
+        )
+        .order("desc")
+        .collect()
+    : await ctx.db
+        .query("form_submissions")
+        .withIndex("by_form", (q: any) => q.eq("formId", formId))
+        .order("desc")
+        .collect();
+
+  const matched: SubmissionDoc[] = [];
+  for (const row of rows) {
+    if (read !== undefined && (row.read === true) !== read) continue;
+    if (starred !== undefined && (row.starred === true) !== starred) continue;
+    if (
+      !term ||
+      submissionMatchesSearch(row, term) ||
+      (await submissionValuesMatchSearch(ctx, row._id, term))
+    ) {
+      matched.push(row);
+    }
+  }
+
+  const cursorIndex = parseSearchCursor(paginationOpts.cursor);
+  const numItems = Math.max(1, paginationOpts.numItems);
+  const page = matched
+    .slice(cursorIndex, cursorIndex + numItems)
+    .map(normalizeSubmissionRow);
+  const nextCursor = cursorIndex + numItems;
+  const isDone = nextCursor >= matched.length;
+  return {
+    page,
+    isDone,
+    continueCursor: isDone ? "" : String(nextCursor),
+  };
+}
+
+function authorDisplayName(
+  user:
+    | {
+        displayName?: string;
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+      }
+    | null,
+): string {
+  if (!user) return "Unknown user";
+  const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ");
+  return user.displayName || fullName || user.email || "Unknown user";
+}
+
 // ─── Admin: paginated forms list ─────────────────────────────────────────────
 export const list = query({
   args: {
@@ -33,15 +227,33 @@ export const list = query({
   handler: async (ctx, { paginationOpts, status }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return { page: [], isDone: true, continueCursor: null };
+    if (!(await isPluginEnabled(ctx, "forms"))) {
+      return { page: [], isDone: true, continueCursor: null };
+    }
+    if (!(await currentUserCan(ctx, formCap("form.view")))) {
+      return { page: [], isDone: true, continueCursor: null };
+    }
 
     if (status) {
-      return await ctx.db
+      const result = await ctx.db
         .query("forms")
         .withIndex("by_status", (q) => q.eq("status", status))
         .order("desc")
         .paginate(paginationOpts);
+      return {
+        ...result,
+        page: await withFieldCounts(ctx, result.page),
+      };
     }
-    return await ctx.db.query("forms").order("desc").paginate(paginationOpts);
+    const result = await ctx.db
+      .query("forms")
+      .filter((q) => q.neq(q.field("status"), "archived"))
+      .order("desc")
+      .paginate(paginationOpts);
+    return {
+      ...result,
+      page: await withFieldCounts(ctx, result.page),
+    };
   },
 });
 
@@ -51,6 +263,8 @@ export const getForm = query({
   handler: async (ctx, { id }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
+    if (!(await isPluginEnabled(ctx, "forms"))) return null;
+    if (!(await currentUserCan(ctx, formCap("form.view")))) return null;
     return await ctx.db.get(id);
   },
 });
@@ -59,6 +273,8 @@ export const getForm = query({
 export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, { slug }) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) return null;
+
     const form = await ctx.db
       .query("forms")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
@@ -72,6 +288,25 @@ export const getBySlug = query({
           .withIndex("by_group", (q) => q.eq("groupId", groupId))
           .collect()
       : [];
+    const settings = parseFormSettings(form.settings);
+    const security = await loadSecuritySettings(ctx);
+    const timeAvailability = evaluateFormTimeAvailability(settings, Date.now());
+    const entryLimit = formEntryLimit(settings);
+    const entryLimitReached =
+      entryLimit !== null
+        ? await completeSubmissionCountAtLimit(ctx, form._id, entryLimit)
+        : false;
+    const closed =
+      !timeAvailability.open || entryLimitReached
+        ? {
+            code: !timeAvailability.open
+              ? timeAvailability.code
+              : "ENTRY_LIMIT_REACHED",
+            message: !timeAvailability.open
+              ? timeAvailability.message
+              : "This form has reached its entry limit.",
+          }
+        : null;
 
     return {
       _id: form._id,
@@ -79,6 +314,21 @@ export const getBySlug = query({
       slug: form.slug,
       description: form.description,
       settings: form.settings,
+      availability: {
+        open: closed === null,
+        code: closed?.code,
+        message: closed?.message,
+        loginRequired: formRequiresLogin(settings),
+        entryLimitReached,
+      },
+      security: {
+        honeypotEnabled: security.honeypotEnabled,
+        honeypotFieldName: security.honeypotFieldName,
+        captchaEnabled: security.captchaEnabled,
+        captchaProvider: security.captchaProvider,
+        captchaSiteKey: security.captchaSiteKey ?? null,
+        recaptchaMinScore: security.recaptchaMinScore,
+      },
       fields: fieldDefs.map((f) => ({
         _id: f._id,
         label: f.label,
@@ -153,6 +403,9 @@ export function projectResumeValues(
 export const resume = query({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) return null;
+    if (!isGeneratedResumeToken(token)) return null;
+
     const sub = await ctx.db
       .query("form_submissions")
       .withIndex("by_resumeToken", (q) => q.eq("resumeToken", token))
@@ -200,25 +453,95 @@ export const listSubmissions = query({
     formId: v.id("forms"),
     paginationOpts: paginationOptsValidator,
     status: v.optional(submissionStatus),
+    search: v.optional(v.string()),
+    read: v.optional(v.boolean()),
+    starred: v.optional(v.boolean()),
   },
-  handler: async (ctx, { formId, paginationOpts, status }) => {
+  handler: async (
+    ctx,
+    { formId, paginationOpts, status, search, read, starred },
+  ) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return { page: [], isDone: true, continueCursor: null };
+    if (!(await isPluginEnabled(ctx, "forms"))) {
+      return { page: [], isDone: true, continueCursor: null };
+    }
+    if (!(await currentUserCan(ctx, formCap("form.view_entries")))) {
+      return { page: [], isDone: true, continueCursor: null };
+    }
+
+    const term = normalizeEntrySearch(search);
+    if (term || read !== undefined || starred !== undefined) {
+      return await searchSubmissions(
+        ctx,
+        formId,
+        status,
+        paginationOpts,
+        term,
+        read,
+        starred,
+      );
+    }
 
     if (status) {
-      return await ctx.db
+      const result = await ctx.db
         .query("form_submissions")
         .withIndex("by_form_status", (q) =>
           q.eq("formId", formId).eq("status", status),
         )
         .order("desc")
         .paginate(paginationOpts);
+      return {
+        ...result,
+        page: result.page.map(normalizeSubmissionRow),
+      };
     }
-    return await ctx.db
+    const result = await ctx.db
       .query("form_submissions")
       .withIndex("by_form", (q) => q.eq("formId", formId))
       .order("desc")
       .paginate(paginationOpts);
+    return {
+      ...result,
+      page: result.page.map(normalizeSubmissionRow),
+    };
+  },
+});
+
+// ─── Admin: notes for a single submission ───────────────────────────────────
+export const listNotes = query({
+  args: {
+    submissionId: v.id("form_submissions"),
+    formId: v.optional(v.id("forms")),
+  },
+  handler: async (ctx, { submissionId, formId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    if (!(await isPluginEnabled(ctx, "forms"))) return [];
+    if (!(await currentUserCan(ctx, formCap("form.view_entries")))) return [];
+
+    const submission = await ctx.db.get(submissionId);
+    if (!submission) return [];
+    if (formId !== undefined && submission.formId !== formId) return [];
+
+    const notes = await ctx.db
+      .query("form_submission_notes")
+      .withIndex("by_submission", (q) => q.eq("submissionId", submissionId))
+      .collect();
+
+    const enrichedNotes = await Promise.all(
+      notes
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .map(async (note) => {
+          const author = await ctx.db.get(note.authorId);
+          return {
+            ...note,
+            authorName: authorDisplayName(author),
+            authorEmail: author?.email,
+          };
+        }),
+    );
+    return enrichedNotes;
   },
 });
 
@@ -228,9 +551,12 @@ export const getSubmission = query({
   handler: async (ctx, { id }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
+    if (!(await isPluginEnabled(ctx, "forms"))) return null;
+    if (!(await currentUserCan(ctx, formCap("form.view_entries")))) return null;
 
     const submission = await ctx.db.get(id);
     if (!submission) return null;
+    const form = await ctx.db.get(submission.formId);
 
     const values = await ctx.db
       .query("fieldValues")
@@ -239,10 +565,39 @@ export const getSubmission = query({
       )
       .collect();
 
+    const fieldGroupId = form?.fieldGroupId;
+    const fieldDefs = fieldGroupId
+      ? await ctx.db
+          .query("fieldDefinitions")
+          .withIndex("by_group", (q) => q.eq("groupId", fieldGroupId))
+          .collect()
+      : [];
+    const fieldByKey = new Map(fieldDefs.map((field) => [field.key, field]));
+    const enrichedValues = values.map((value) => {
+      const field = fieldByKey.get(value.fieldKey);
+      return {
+        ...value,
+        fieldLabel: field?.label ?? value.fieldName ?? value.fieldKey,
+        fieldType: field?.type,
+      };
+    });
+
     const notes = await ctx.db
       .query("form_submission_notes")
       .withIndex("by_submission", (q) => q.eq("submissionId", id))
       .collect();
+    const enrichedNotes = await Promise.all(
+      notes
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .map(async (note) => {
+          const author = await ctx.db.get(note.authorId);
+          return {
+            ...note,
+            authorName: authorDisplayName(author),
+            authorEmail: author?.email,
+          };
+        }),
+    );
 
     // Surface the trusted, server-recomputed pricing summary (integer cents)
     // from `meta.pricing` so the Commerce / Subscription Action + Confirmation
@@ -250,7 +605,12 @@ export const getSubmission = query({
     // Calculation & Pricing PRD §5). Null when the form carries no pricing.
     const pricing = parseMetaPricing(submission.meta);
 
-    return { submission, values, notes, pricing };
+    return {
+      submission: normalizeSubmissionRow(submission),
+      values: enrichedValues,
+      notes: enrichedNotes,
+      pricing,
+    };
   },
 });
 
@@ -258,6 +618,7 @@ export const getSubmission = query({
 export const getSubmissionPricing = query({
   args: { id: v.id("form_submissions") },
   handler: async (ctx, { id }) => {
+    if (!(await isPluginEnabled(ctx, "forms"))) return null;
     const submission = await ctx.db.get(id);
     if (!submission) return null;
     return parseMetaPricing(submission.meta);

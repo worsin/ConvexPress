@@ -14,11 +14,15 @@ import { Link } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import {
+  Activity,
+  AlertTriangle,
   BarChart3,
+  Clock,
   Download,
   Eye,
   CheckCircle2,
   MousePointerClick,
+  ShieldAlert,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -26,6 +30,7 @@ import { toast } from "sonner";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { useCan } from "@/hooks/useCan";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -50,6 +55,31 @@ interface FunnelResult {
   totals: FunnelTotals;
   rates: FunnelRates;
   byDay: FunnelDay[];
+}
+interface OperationalHealth {
+  checkedAt: number;
+  windowMs: number;
+  actionRuns: {
+    failed: number;
+    pending: number;
+    awaitingPayment: number;
+    latestFailureAt?: number;
+  };
+  submissionAttempts: {
+    buckets: number;
+    attempts: number;
+    blocked: number;
+    maxBucketCount: number;
+  };
+  publicFunnel: {
+    acceptedEvents: number;
+    viewed: number;
+    started: number;
+  };
+  staleDrafts: {
+    count: number;
+  };
+  needsAttention: boolean;
 }
 
 /** UTC "YYYY-MM-DD" for an epoch-ms timestamp. */
@@ -77,6 +107,9 @@ export function FormAnalyticsPage({ formId }: { formId: Id<"forms"> }) {
     from: range.from,
     to: range.to,
   }) as FunnelResult | undefined;
+  const health = useQuery(api.extensions.forms.analytics.getOperationalHealth, {
+    formId,
+  }) as OperationalHealth | undefined;
 
   return (
     <div className="space-y-6">
@@ -94,14 +127,133 @@ export function FormAnalyticsPage({ formId }: { formId: Id<"forms"> }) {
       {funnel === undefined ? (
         <AnalyticsSkeleton />
       ) : funnel.totals.viewed === 0 && funnel.totals.completed === 0 ? (
-        <EmptyAnalytics formId={formId} />
+        <>
+          <OperationalHealthPanel formId={formId} health={health} />
+          <EmptyAnalytics formId={formId} />
+        </>
       ) : (
         <>
           <FunnelSummaryCards totals={funnel.totals} rates={funnel.rates} />
+          <OperationalHealthPanel formId={formId} health={health} />
           <FunnelChart totals={funnel.totals} byDay={funnel.byDay} range={range} />
           <DropOffCallout totals={funnel.totals} />
         </>
       )}
+    </div>
+  );
+}
+
+// ─── Operational health ─────────────────────────────────────────────────────
+
+function OperationalHealthPanel({
+  formId,
+  health,
+}: {
+  formId: Id<"forms">;
+  health: OperationalHealth | undefined;
+}) {
+  if (health === undefined) {
+    return <Skeleton className="h-36 rounded-lg" />;
+  }
+
+  const windowMinutes = Math.round(health.windowMs / 60_000);
+  return (
+    <section className="space-y-3 rounded-lg border border-border p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Activity className="size-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">
+            Operational health
+          </h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={health.needsAttention ? "destructive" : "secondary"}>
+            {health.needsAttention ? "Needs attention" : "Calm"}
+          </Badge>
+          <span className="text-xs text-muted-foreground">
+            Last {windowMinutes} min
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <OpsMetric
+          icon={AlertTriangle}
+          label="Failed actions"
+          value={health.actionRuns.failed}
+          detail={`${health.actionRuns.pending} pending, ${health.actionRuns.awaitingPayment} awaiting payment`}
+          tone={health.actionRuns.failed > 0 ? "danger" : "normal"}
+        />
+        <OpsMetric
+          icon={ShieldAlert}
+          label="Blocked submits"
+          value={health.submissionAttempts.blocked}
+          detail={`${health.submissionAttempts.attempts} attempts across ${health.submissionAttempts.buckets} buckets`}
+          tone={health.submissionAttempts.blocked > 0 ? "danger" : "normal"}
+        />
+        <OpsMetric
+          icon={MousePointerClick}
+          label="Funnel writes"
+          value={health.publicFunnel.acceptedEvents}
+          detail={`${health.publicFunnel.viewed} views, ${health.publicFunnel.started} starts accepted`}
+        />
+        <OpsMetric
+          icon={Clock}
+          label="Stale drafts"
+          value={health.staleDrafts.count}
+          detail="Due for abandonment sweep"
+          tone={health.staleDrafts.count > 0 ? "danger" : "normal"}
+        />
+      </div>
+
+      {health.actionRuns.failed > 0 ? (
+        <Link
+          to="/forms/$formId/actions"
+          params={{ formId }}
+          className="inline-flex text-xs font-medium text-primary hover:underline"
+        >
+          Review action run history
+        </Link>
+      ) : null}
+    </section>
+  );
+}
+
+function OpsMetric({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  tone = "normal",
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
+  detail: string;
+  tone?: "normal" | "danger";
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-3">
+      <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+        <Icon
+          className={
+            tone === "danger" ? "size-4 text-destructive" : "size-4"
+          }
+        />
+        <span className="text-xs font-medium uppercase tracking-wider">
+          {label}
+        </span>
+      </div>
+      <div
+        className={
+          tone === "danger"
+            ? "text-2xl font-bold tabular-nums text-destructive"
+            : "text-2xl font-bold tabular-nums text-foreground"
+        }
+      >
+        {value}
+      </div>
+      <div className="mt-1 text-xs text-muted-foreground">{detail}</div>
     </div>
   );
 }

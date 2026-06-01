@@ -10,12 +10,11 @@
  *     are skipped (not rendered, not validated, not submitted).
  *   - Validates required + visible fields client-side for UX only. The backend
  *     re-validates authoritatively in `forms.mutations.submit`.
- *   - Submits via `(api as any).extensions.forms.mutations.submit` with
- *     `isComplete: true`, then shows a thank-you confirmation.
+ *   - Submits via `submit` (or `submitWithCaptcha` when CAPTCHA is enabled)
+ *     with `isComplete: true`, then resolves the configured confirmation.
  *
- * Multi-step, calculations, merge-tags, save-and-continue, and spam/captcha are
- * intentionally OUT OF SCOPE here — those are later systems. This is a clean
- * single-page render+submit.
+ * Multi-step, calculations, merge-tags, save-and-continue, confirmations, and
+ * spam/captcha all layer onto this renderer without forking the field contract.
  *
  * `api` is imported the same way the rest of the Website imports it (from
  * `@convexpress-website/backend/generated/api`) and cast to `any` for the
@@ -23,7 +22,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useConvex } from "convex/react";
+import { useAuth } from "@clerk/clerk-react";
+import { useAction, useMutation, useConvex } from "convex/react";
 import DOMPurify from "isomorphic-dompurify";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
@@ -50,6 +50,21 @@ import {
   FormFieldRenderer,
   type PublicFormField,
 } from "@/components/forms/FormFieldRenderer";
+import {
+  FormLoginRequiredNotice,
+  FormStateNotice,
+  getFormClosedState,
+  parsePublicFormSettings,
+  publicFormRequiresLogin,
+  type PublicFormAvailability,
+} from "@/extensions/forms/StateNotices";
+import { FormSecurityControls } from "@/extensions/forms/SecurityControls";
+import {
+  buildSubmitSecurityEnvelope,
+  captchaConfigProblem,
+  captchaIsRequired,
+  type PublicFormSecurity,
+} from "@/extensions/forms/security";
 
 export interface PublicForm {
   _id: string;
@@ -57,6 +72,8 @@ export interface PublicForm {
   slug: string;
   description?: string | null;
   settings: string;
+  availability?: PublicFormAvailability;
+  security?: PublicFormSecurity;
   fields: PublicFormField[];
 }
 
@@ -138,7 +155,11 @@ export function FormRenderer({
   initialValues,
   onReady,
 }: FormRendererProps) {
+  const { isLoaded, isSignedIn } = useAuth();
   const submit = useMutation((api as any).extensions.forms.mutations.submit);
+  const submitWithCaptcha = useAction(
+    (api as any).extensions.forms.mutations.submitWithCaptcha,
+  );
   const convex = useConvex();
 
   // When hosted by the wizard (a step is injected), suppress the built-in
@@ -162,6 +183,10 @@ export function FormRenderer({
   const [submitted, setSubmitted] = useState(false);
   // Resolved server-side confirmation message HTML (empty → static fallback).
   const [renderedMessage, setRenderedMessage] = useState<string>("");
+  const [honeypotValue, setHoneypotValue] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
+  const startedAtRef = useRef(Date.now());
 
   // Visibility recompute on every render from the current value map. When a
   // wizard step is injected, the rendered/validated/submitted set is the
@@ -175,6 +200,16 @@ export function FormRenderer({
     () => selectVisibleFields(fields, values, stepKeySet),
     [fields, values, stepKeySet],
   );
+  const formSettings = useMemo(
+    () => parsePublicFormSettings(form.settings),
+    [form.settings],
+  );
+  const closedState = useMemo(
+    () => getFormClosedState(formSettings, form.availability),
+    [formSettings, form.availability],
+  );
+  const loginRequired = publicFormRequiresLogin(formSettings, form.availability);
+  const loginBlocked = loginRequired && (!isLoaded || !isSignedIn);
 
   // Live calculation recompute (Form Calculation & Pricing System) — UX only.
   // The server re-derives every computed field authoritatively at submit (the
@@ -259,17 +294,39 @@ export function FormRenderer({
       setFormError("Please fix the highlighted fields and try again.");
       return;
     }
+    const captchaProblem = captchaConfigProblem(form.security);
+    if (captchaProblem) {
+      setFormError(captchaProblem);
+      return;
+    }
+    if (captchaIsRequired(form.security) && !captchaToken.trim()) {
+      setFormError(
+        captchaError ?? "Please complete the verification challenge.",
+      );
+      return;
+    }
 
     // Submit only visible, value-bearing fields, keyed by fieldKey. Layout +
     // security (captcha/honeypot) types are dropped by `buildSubmitPayload`.
     const payloadValues = buildSubmitPayload(visibleFields, values);
+    const securityEnvelope = buildSubmitSecurityEnvelope({
+      security: form.security,
+      honeypotValue,
+      captchaToken,
+      startedAt: startedAtRef.current,
+      isComplete: true,
+    });
 
     setIsSubmitting(true);
     try {
-      const res = await submit({
+      const submitComplete = captchaIsRequired(form.security)
+        ? submitWithCaptcha
+        : submit;
+      const res = await submitComplete({
         formId: form._id as any,
         values: payloadValues,
         isComplete: true,
+        ...securityEnvelope,
       });
 
       // Resolve the configured confirmation (message / redirect / page). Any
@@ -372,13 +429,47 @@ export function FormRenderer({
     );
   }
 
+  if (!closedState.open) {
+    return (
+      <section
+        data-slot="form-renderer"
+        className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6"
+      >
+        <div className="flex flex-col gap-1.5 border-b border-border pb-4">
+          <h1 className="text-xl font-semibold text-foreground">{form.title}</h1>
+          {form.description ? (
+            <p className="text-sm text-muted-foreground">{form.description}</p>
+          ) : null}
+        </div>
+        <FormStateNotice state={closedState} />
+      </section>
+    );
+  }
+
+  if (loginBlocked) {
+    return (
+      <section
+        data-slot="form-renderer"
+        className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6"
+      >
+        <div className="flex flex-col gap-1.5 border-b border-border pb-4">
+          <h1 className="text-xl font-semibold text-foreground">{form.title}</h1>
+          {form.description ? (
+            <p className="text-sm text-muted-foreground">{form.description}</p>
+          ) : null}
+        </div>
+        <FormLoginRequiredNotice />
+      </section>
+    );
+  }
+
   // ── Standalone single-page mode — unchanged behavior. ───────────────────────
   return (
     <form
       onSubmit={handleSubmit}
       noValidate
       data-slot="form-renderer"
-      className="flex flex-col gap-6 rounded-2xl border border-border bg-card p-6"
+      className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6"
     >
       <div className="flex flex-col gap-1.5 border-b border-border pb-4">
         <h1 className="text-xl font-semibold text-foreground">{form.title}</h1>
@@ -390,6 +481,15 @@ export function FormRenderer({
       {formError ? <AuthError message={formError} /> : null}
 
       {fieldList}
+
+      <FormSecurityControls
+        formId={form._id}
+        security={form.security}
+        honeypotValue={honeypotValue}
+        onHoneypotChange={setHoneypotValue}
+        onCaptchaTokenChange={setCaptchaToken}
+        onCaptchaErrorChange={setCaptchaError}
+      />
 
       <Button type="submit" size="lg" disabled={isSubmitting}>
         {isSubmitting ? (
@@ -437,7 +537,7 @@ export function SubmittedConfirmation({
       data-slot="form-success"
       role="status"
       tabIndex={-1}
-      className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-10 text-center outline-none"
+      className="flex flex-col items-center gap-4 rounded-lg border border-border bg-card p-10 text-center outline-none"
     >
       <CheckCircle2 className="size-10 text-primary" aria-hidden="true" />
       {safeMessage ? (

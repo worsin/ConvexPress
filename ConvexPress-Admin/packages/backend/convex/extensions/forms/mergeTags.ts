@@ -53,7 +53,7 @@ function buildResumeUrl(ctx: MergeContext): string {
   const token = payloadString(ctx.payload, "resumeToken");
   if (!token) return "";
   const base = (ctx.settings.siteUrl || "").replace(/\/$/, "");
-  const path = `/forms/${ctx.form.slug}?resume=${encodeURIComponent(token)}`;
+  const path = `/forms/${ctx.form.slug}/resume/${encodeURIComponent(token)}`;
   return base ? `${base}${path}` : path;
 }
 

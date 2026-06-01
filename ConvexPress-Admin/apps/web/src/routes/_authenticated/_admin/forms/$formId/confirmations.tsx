@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
@@ -111,6 +111,9 @@ function ConfirmationsContent({ formId }: { formId: Id<"forms"> }) {
     canManage ? { formId } : "skip",
   ) as ConfirmationRow[] | undefined;
 
+  const ensureDefault = useMutation(
+    api.extensions.forms.confirmations.ensureDefaultConfirmation,
+  );
   const createRow = useMutation(
     api.extensions.forms.confirmations.createConfirmation,
   );
@@ -132,6 +135,7 @@ function ConfirmationsContent({ formId }: { formId: Id<"forms"> }) {
   );
   const [isCreating, setIsCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ConfirmationRow | null>(null);
+  const ensureDefaultInFlight = useRef<Id<"forms"> | null>(null);
 
   const siblingFields: SiblingField[] = useMemo(
     () =>
@@ -144,6 +148,21 @@ function ConfirmationsContent({ formId }: { formId: Id<"forms"> }) {
       })),
     [fields],
   );
+
+  useEffect(() => {
+    if (!canManage || rows === undefined) return;
+    if (rows.some((row) => row.isDefault)) {
+      ensureDefaultInFlight.current = null;
+      return;
+    }
+    if (ensureDefaultInFlight.current === formId) return;
+
+    ensureDefaultInFlight.current = formId;
+    void ensureDefault({ formId }).catch(() => {
+      ensureDefaultInFlight.current = null;
+      toast.error("Failed to prepare the default confirmation.");
+    });
+  }, [canManage, ensureDefault, formId, rows]);
 
   if (!canManage) return <PermissionDenied />;
 
@@ -160,7 +179,7 @@ function ConfirmationsContent({ formId }: { formId: Id<"forms"> }) {
   if (form === null) {
     return (
       <div className="mx-auto max-w-4xl p-6">
-        <div className="rounded-3xl border border-border bg-card p-8">
+        <div className="rounded-lg border border-border bg-card p-8">
           <h1 className="text-xl font-semibold text-foreground">
             Form not found
           </h1>
@@ -258,7 +277,13 @@ function ConfirmationsContent({ formId }: { formId: Id<"forms"> }) {
       ) : null}
 
       <div className="flex flex-col gap-3">
-        {rows.map((row) =>
+        {rows.length === 0 ? (
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+            <LoaderIcon className="size-4 animate-spin" data-icon="inline-start" />
+            Preparing default confirmation...
+          </div>
+        ) : (
+          rows.map((row) =>
           editingId === row._id ? (
             <ConfirmationEditor
               key={row._id}
@@ -302,6 +327,7 @@ function ConfirmationsContent({ formId }: { formId: Id<"forms"> }) {
               onDelete={() => setDeleteTarget(row)}
             />
           ),
+          )
         )}
       </div>
 
@@ -356,7 +382,7 @@ function ConfirmationRowItem({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+    <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
       <div className="flex shrink-0 flex-col">
         <Button
           variant="ghost"
@@ -499,7 +525,7 @@ function ConfirmationEditor({
   };
 
   return (
-    <section className="rounded-3xl border border-primary/40 bg-card p-5">
+    <section className="rounded-lg border border-primary/40 bg-card p-5">
       <h2 className="text-lg font-medium text-foreground">
         {initial ? "Edit confirmation" : "New confirmation"}
         {initial?.isDefault ? (
@@ -633,7 +659,7 @@ function ConfirmationEditor({
 
 function MergeTagHint() {
   return (
-    <section className="rounded-2xl border border-dashed border-border bg-muted/10 px-4 py-3">
+    <section className="rounded-lg border border-dashed border-border bg-muted/10 px-4 py-3">
       <p className="text-xs font-medium text-foreground">
         Available merge tags (message type)
       </p>
@@ -654,7 +680,7 @@ function MergeTagHint() {
 function PermissionDenied() {
   return (
     <div className="mx-auto max-w-3xl p-6">
-      <div className="rounded-3xl border border-border bg-card p-8 text-center">
+      <div className="rounded-lg border border-border bg-card p-8 text-center">
         <ShieldOff className="mx-auto mb-3 size-8 text-muted-foreground/40" />
         <h1 className="text-lg font-semibold text-foreground">
           Insufficient permissions

@@ -10,24 +10,21 @@
  *
  * Authorization contract:
  *   - Every ADMIN mutation starts with requireCan("form.<cap>").
- *   - `submit` is the PUBLIC unauthenticated endpoint — NO requireCan. It has
- *     a clear spam-guard TODO seam (see verifySubmissionSecurity) but does NOT
- *     implement captcha here.
+ *   - `submit` is the PUBLIC unauthenticated endpoint — NO requireCan. It runs
+ *     the spam/security guard before validation or writes.
  *
- * NOTE ON CAPABILITY TYPING: the `form.*` capabilities are SURFACED by this
- * extension but REGISTERED by the Role/Capability expert (they are not yet in
- * the closed `Capability` union in types/capabilities.ts). We therefore cast
- * the capability strings to `Capability` at the requireCan call sites. Once the
- * Role expert adds a FormCapability member to the union, the casts become
- * no-ops and can be dropped.
+ * NOTE ON CAPABILITY TYPING: the `form.*` capabilities are registered in the
+ * central `Capability` union. `formCap(...)` remains as a local, greppable
+ * wrapper around Forms authorization call sites.
  */
 
-import { mutation } from "../../_generated/server";
+import { action, internalMutation, mutation } from "../../_generated/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { requireCan, getUserIdentifier } from "../../helpers/permissions";
+import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { validateFieldValue } from "../../helpers/customFieldValidation";
 import { LAYOUT_FIELD_TYPES } from "../../customFields/validators";
@@ -43,6 +40,7 @@ import {
   compileZodFromVisibleFields,
   type LogicFieldDef,
 } from "./formLogic";
+import { relaxRequiredForDrafts } from "./draftValidation";
 // Form Calculation & Pricing System (server-authoritative). The submit path
 // recomputes every computed field in INTEGER CENTS before persisting answers, so
 // a tampered client `lineTotal`/`subtotal` is discarded. Save-time graph
@@ -61,6 +59,7 @@ import {
 // `submit` rejects an oversized/abusive payload BEFORE any DB work. A
 // within-bounds submission (every legitimate form) is unaffected.
 import { checkSubmissionPayload } from "./submitGuards";
+import { generateResumeToken, isGeneratedResumeToken } from "./tokens";
 // Builder pure core (slug/settings/status/duplicate-remap). Extracted from this
 // file so the admin CRUD logic is unit-testable without a Convex ctx. The
 // mutations compose these; behavior is unchanged. `remapFieldReferences` is the
@@ -70,6 +69,10 @@ import {
   slugify,
   nextCopySlug,
   normalizeSettings,
+  parseFormSettings,
+  evaluateFormTimeAvailability,
+  formEntryLimit,
+  formRequiresLogin,
   remapFieldReferences,
 } from "./builderCore";
 
@@ -89,9 +92,8 @@ const submissionStatus = v.union(
 );
 
 /**
- * Cast a `form.*` capability string to `Capability`. See file header — these
- * are surfaced here but registered by the Role expert, so they aren't in the
- * union yet. Centralizing the cast keeps the intent explicit and greppable.
+ * Local wrapper for Forms capability strings. Centralizing it keeps the
+ * authorization surface explicit and greppable.
  */
 function formCap(cap: string): Capability {
   return cap as Capability;
@@ -213,10 +215,75 @@ function ensureJsonSettings(settings: string | undefined): string {
   if (!result.ok) {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
-      message: "Form settings must be valid JSON.",
+      message: result.error,
     });
   }
   return result.value;
+}
+
+function normalizeCurrentStep(step: number | undefined): number | undefined {
+  if (step === undefined || !Number.isFinite(step)) return undefined;
+  return Math.max(0, Math.floor(step));
+}
+
+async function completeSubmissionCountAtLimit(
+  ctx: { db: { query: any } },
+  formId: Id<"forms">,
+  limit: number,
+): Promise<boolean> {
+  const rows = await ctx.db
+    .query("form_submissions")
+    .withIndex("by_form_status", (q: any) =>
+      q.eq("formId", formId).eq("status", "complete"),
+    )
+    .take(limit);
+  return rows.length >= limit;
+}
+
+async function assertFormAcceptsSubmission(
+  ctx: {
+    db: { query: any };
+    auth: { getUserIdentity: () => Promise<{ subject: string } | null> };
+  },
+  form: { _id: Id<"forms">; settings: string },
+  isComplete: boolean,
+): Promise<{ identity: { subject: string } | null; resumeToken?: string }> {
+  const settings = parseFormSettings(form.settings);
+  const availability = evaluateFormTimeAvailability(settings, Date.now());
+  if (!availability.open) {
+    throw new ConvexError({
+      code: availability.code,
+      message: availability.message,
+    });
+  }
+
+  let identity: { subject: string } | null = null;
+  try {
+    identity = await ctx.auth.getUserIdentity();
+  } catch {
+    identity = null;
+  }
+
+  if (formRequiresLogin(settings) && !identity) {
+    throw new ConvexError({
+      code: "LOGIN_REQUIRED",
+      message: "Please sign in to submit this form.",
+    });
+  }
+
+  const entryLimit = formEntryLimit(settings);
+  if (
+    isComplete &&
+    entryLimit !== null &&
+    (await completeSubmissionCountAtLimit(ctx, form._id, entryLimit))
+  ) {
+    throw new ConvexError({
+      code: "ENTRY_LIMIT_REACHED",
+      message: "This form has reached its entry limit.",
+    });
+  }
+
+  return { identity };
 }
 
 /** Throw if a slug is already taken by another form. */
@@ -281,27 +348,14 @@ async function deriveCopySlug(
 
 /**
  * Save-time validation of a form's calculation graph (Form Calculation & Pricing
- * System, PRD §8). Loads the form's field definitions and rejects the operation
- * when any computed field's formula:
+ * System, PRD §8). Rejects the operation when any computed field's formula:
  *   - references a field key that does not exist (dangling ref), OR
  *   - participates in a circular dependency (`grand_total ↔ subtotal`, self-ref),
  *   - or fails to parse.
  * A cyclic/invalid form can never publish. Acyclic forms (and forms with no
  * computed fields) pass silently. The runtime renderer still degrades safely.
  */
-async function assertCalcGraphValid(
-  ctx: { db: { query: any } },
-  fieldGroupId: Id<"fieldGroups"> | undefined,
-): Promise<void> {
-  if (!fieldGroupId) return;
-  const fieldDefs = await ctx.db
-    .query("fieldDefinitions")
-    .withIndex("by_group", (q: any) => q.eq("groupId", fieldGroupId))
-    .collect();
-
-  // The generated Docs structurally satisfy CalcFieldDef (key/type/settings).
-  const calcDefs = fieldDefs as unknown as CalcFieldDef[];
-
+function assertCalcDefinitionsValid(calcDefs: CalcFieldDef[]): void {
   const formulaErrors = collectFormulaErrors(calcDefs);
   if (formulaErrors.length > 0) {
     const first = formulaErrors[0]!;
@@ -327,6 +381,42 @@ async function assertCalcGraphValid(
       message: `Calculation fields form a circular reference: ${formatCycle(cycles[0]!)}.`,
     });
   }
+}
+
+/**
+ * Publish-time builder gate (Forms Builder PRD): a live form must contain at
+ * least one value-bearing response field, and must also pass the calculation
+ * graph validation above. Layout/security controls (`page_break`, `captcha`,
+ * `honeypot`, etc.) do not count as respondent answers.
+ */
+async function assertPublishableForm(
+  ctx: { db: { query: any } },
+  fieldGroupId: Id<"fieldGroups"> | undefined,
+): Promise<void> {
+  if (!fieldGroupId) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "Add at least one response field before publishing this form.",
+    });
+  }
+
+  const fieldDefs = await ctx.db
+    .query("fieldDefinitions")
+    .withIndex("by_group", (q: any) => q.eq("groupId", fieldGroupId))
+    .collect();
+
+  const hasValueField = fieldDefs.some(
+    (field: { type: string }) => !LAYOUT_FIELD_TYPES.has(field.type),
+  );
+  if (!hasValueField) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "Add at least one response field before publishing this form.",
+    });
+  }
+
+  const calcDefs = fieldDefs as unknown as CalcFieldDef[];
+  assertCalcDefinitionsValid(calcDefs);
 }
 
 /**
@@ -363,6 +453,189 @@ function mergeMetaPricing(
   return JSON.stringify(base);
 }
 
+function parseFieldSettings(settings: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(settings);
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function assertSubmissionForForm(
+  submission: { formId: Id<"forms"> },
+  formId: Id<"forms"> | undefined,
+): void {
+  if (formId !== undefined && submission.formId !== formId) {
+    throw new ConvexError({
+      code: "NOT_FOUND",
+      message: "Submission not found for this form.",
+    });
+  }
+}
+
+async function prepareEntryValueEdits(
+  ctx: { db: { get: any; query: any; patch: any; insert: any } },
+  submission: {
+    _id: Id<"form_submissions">;
+    formId: Id<"forms">;
+    meta?: string;
+  },
+  edits: Array<{ fieldKey: string; value: string }> | undefined,
+  actorIdentifier: string,
+  now: number,
+): Promise<{ changed: boolean; meta?: string }> {
+  if (!edits || edits.length === 0) return { changed: false };
+
+  const editMap = new Map<string, string>();
+  for (const edit of edits) {
+    const fieldKey = edit.fieldKey.trim();
+    if (!fieldKey) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Edited field key cannot be empty.",
+      });
+    }
+    editMap.set(fieldKey, edit.value);
+  }
+  if (editMap.size === 0) return { changed: false };
+
+  const form = await ctx.db.get(submission.formId);
+  if (!form?.fieldGroupId) {
+    throw new ConvexError({
+      code: "VALIDATION_ERROR",
+      message: "This form has no editable field group.",
+    });
+  }
+
+  const fieldDefs = await ctx.db
+    .query("fieldDefinitions")
+    .withIndex("by_group", (q: any) => q.eq("groupId", form.fieldGroupId))
+    .collect();
+  const fieldByKey = new Map<string, (typeof fieldDefs)[number]>();
+  for (const field of fieldDefs) fieldByKey.set(field.key, field);
+
+  const currentRows = await ctx.db
+    .query("fieldValues")
+    .withIndex("by_entity", (q: any) =>
+      q
+        .eq("entityType", "form_submission")
+        .eq("entityId", submission._id as string),
+    )
+    .collect();
+  const rowByKey = new Map<string, (typeof currentRows)[number]>();
+  const valueMap: Record<string, string> = {};
+  for (const row of currentRows) {
+    rowByKey.set(row.fieldKey, row);
+    valueMap[row.fieldKey] = row.value;
+  }
+
+  let changed = false;
+  for (const [fieldKey, value] of editMap) {
+    const field = fieldByKey.get(fieldKey);
+    if (!field) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `Unknown field "${fieldKey}".`,
+      });
+    }
+    if (LAYOUT_FIELD_TYPES.has(field.type)) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `Field "${field.label}" does not store an answer value.`,
+      });
+    }
+    if (field.type === "calculation") {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `Field "${field.label}" is server-computed and cannot be edited directly.`,
+      });
+    }
+
+    const validation = validateFieldValue(
+      field.type,
+      value,
+      parseFieldSettings(field.settings),
+      field.required,
+    );
+    if (!validation.valid) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `${field.label}: ${validation.error ?? "Invalid value."}`,
+      });
+    }
+
+    if (valueMap[fieldKey] !== value) changed = true;
+    valueMap[fieldKey] = value;
+  }
+
+  // Keep server-authoritative calculation/product rows and meta.pricing in sync
+  // with any admin-edited source values.
+  const repeaters: Record<string, RepeaterRow[]> = {};
+  for (const field of fieldDefs) {
+    if (field.type !== "repeater") continue;
+    const raw = valueMap[field.key];
+    if (typeof raw !== "string" || raw.trim() === "") continue;
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        repeaters[field.key] = parsed.filter(
+          (row): row is RepeaterRow => typeof row === "object" && row !== null,
+        );
+      }
+    } catch {
+      // Malformed repeater values validated above when directly edited; ignore
+      // legacy malformed rows during pricing recompute.
+    }
+  }
+
+  const calcResult = recomputeAuthoritative(
+    fieldDefs as unknown as CalcFieldDef[],
+    valueMap,
+    repeaters,
+  );
+  for (const [fieldKey, computedValue] of Object.entries(calcResult.computed)) {
+    const serialized = serializeComputedValue(computedValue);
+    if (valueMap[fieldKey] !== serialized) changed = true;
+    valueMap[fieldKey] = serialized;
+    editMap.set(fieldKey, serialized);
+  }
+
+  if (!changed) return { changed: false };
+
+  const entityId = submission._id as string;
+  for (const [fieldKey, value] of editMap) {
+    const field = fieldByKey.get(fieldKey);
+    if (!field) continue;
+    const existing = rowByKey.get(fieldKey);
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        value,
+        fieldName: field.name,
+        updatedBy: actorIdentifier,
+        updatedAt: now,
+      });
+    } else {
+      await ctx.db.insert("fieldValues", {
+        entityType: "form_submission",
+        entityId,
+        fieldKey,
+        fieldName: field.name,
+        value,
+        updatedBy: actorIdentifier,
+        updatedAt: now,
+      });
+    }
+  }
+
+  return {
+    changed: true,
+    meta: mergeMetaPricing(submission.meta, calcResult.pricing),
+  };
+}
+
 // ─── create ──────────────────────────────────────────────────────────────────
 
 /**
@@ -378,6 +651,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.create"));
+    await requirePluginEnabled(ctx, "forms");
 
     const title = args.title.trim();
     if (!title) {
@@ -463,6 +737,7 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.update"));
+    await requirePluginEnabled(ctx, "forms");
 
     const form = await ctx.db.get(args.id);
     if (!form) throw new ConvexError({ code: "NOT_FOUND", message: "Form not found." });
@@ -513,9 +788,9 @@ export const update = mutation({
     }
 
     if (args.status !== undefined && args.status !== form.status) {
-      // Publishing via update must clear the same calc-graph gate as publish().
+      // Publishing via update must clear the same publishability gate as publish().
       if (args.status === "published") {
-        await assertCalcGraphValid(ctx, form.fieldGroupId);
+        await assertPublishableForm(ctx, form.fieldGroupId);
       }
       patch.status = args.status;
       changedFields.push("status");
@@ -553,14 +828,15 @@ export const publish = mutation({
   args: { id: v.id("forms") },
   handler: async (ctx, { id }) => {
     const user = await requireCan(ctx, formCap("form.update"));
+    await requirePluginEnabled(ctx, "forms");
 
     const form = await ctx.db.get(id);
     if (!form) throw new ConvexError({ code: "NOT_FOUND", message: "Form not found." });
     if (form.status === "published") return form;
 
-    // A form with a cyclic / dangling / invalid calculation graph can never go
-    // live (Form Calculation & Pricing PRD §8).
-    await assertCalcGraphValid(ctx, form.fieldGroupId);
+    // Empty forms and forms with a cyclic / dangling / invalid calculation graph
+    // can never go live (Forms Builder PRD + Calculation & Pricing PRD §8).
+    await assertPublishableForm(ctx, form.fieldGroupId);
 
     const now = Date.now();
     await ctx.db.patch(id, {
@@ -589,6 +865,7 @@ export const unpublish = mutation({
   args: { id: v.id("forms") },
   handler: async (ctx, { id }) => {
     const user = await requireCan(ctx, formCap("form.update"));
+    await requirePluginEnabled(ctx, "forms");
 
     const form = await ctx.db.get(id);
     if (!form) throw new ConvexError({ code: "NOT_FOUND", message: "Form not found." });
@@ -621,6 +898,7 @@ export const remove = mutation({
   args: { id: v.id("forms") },
   handler: async (ctx, { id }) => {
     const user = await requireCan(ctx, formCap("form.delete"));
+    await requirePluginEnabled(ctx, "forms");
 
     const form = await ctx.db.get(id);
     if (!form) throw new ConvexError({ code: "NOT_FOUND", message: "Form not found." });
@@ -651,6 +929,7 @@ export const duplicate = mutation({
   args: { id: v.id("forms") },
   handler: async (ctx, { id }) => {
     const user = await requireCan(ctx, formCap("form.duplicate"));
+    await requirePluginEnabled(ctx, "forms");
 
     const source = await ctx.db.get(id);
     if (!source) throw new ConvexError({ code: "NOT_FOUND", message: "Form not found." });
@@ -798,28 +1077,53 @@ export const duplicate = mutation({
  * visibility is recomputed here, a hidden field is treated as not-required and
  * its value ignored, and every visible field is run through validateFieldValue.
  *
- * Spam protection is intentionally a SEAM, not implemented here (see the
- * TODO below). captchaToken/honeypot are accepted so the public client contract
- * is stable, but they are not yet verified.
+ * Spam protection is enforced before validation or writes via the Forms security
+ * guard. `submitWithCaptcha` is the public action front door for CAPTCHA-enabled
+ * final submissions; it verifies the provider token before calling the internal
+ * mutation. Draft autosaves and non-CAPTCHA forms continue to use this mutation.
  */
-export const submit = mutation({
-  args: {
-    formId: v.id("forms"),
-    values: v.array(
-      v.object({
-        fieldKey: v.string(),
-        value: v.string(),
-      }),
-    ),
-    isComplete: v.optional(v.boolean()),
-    resumeToken: v.optional(v.string()),
-    captchaToken: v.optional(v.string()),
-    honeypot: v.optional(v.string()),
-    // Time-trap stamp (ms epoch) set by the Forms Renderer when the form first
-    // mounts; the spam guard rejects sub-`minFillMs` and stale submissions.
-    startedAt: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
+const submitArgsValidator = {
+  formId: v.id("forms"),
+  values: v.array(
+    v.object({
+      fieldKey: v.string(),
+      value: v.string(),
+    }),
+  ),
+  isComplete: v.optional(v.boolean()),
+  resumeToken: v.optional(v.string()),
+  currentStep: v.optional(v.number()),
+  captchaToken: v.optional(v.string()),
+  honeypot: v.optional(v.string()),
+  // Time-trap stamp (ms epoch) set by the Forms Renderer when the form first
+  // mounts; the spam guard rejects sub-`minFillMs` and stale submissions.
+  startedAt: v.optional(v.number()),
+};
+
+type SubmitArgs = {
+  formId: Id<"forms">;
+  values: Array<{ fieldKey: string; value: string }>;
+  isComplete?: boolean;
+  resumeToken?: string;
+  currentStep?: number;
+  captchaToken?: string;
+  honeypot?: string;
+  startedAt?: number;
+};
+
+async function submitForm(
+  ctx: any,
+  args: SubmitArgs,
+  options: { captchaVerified?: boolean } = {},
+) {
+    await requirePluginEnabled(ctx, "forms");
+    if (
+      args.resumeToken !== undefined &&
+      !isGeneratedResumeToken(args.resumeToken)
+    ) {
+      throw new ConvexError({ code: "REJECTED", message: "Submission rejected" });
+    }
+
     // (a) Load form; only published forms accept submissions.
     const form = await ctx.db.get(args.formId);
     if (!form || form.status !== "published") {
@@ -828,6 +1132,13 @@ export const submit = mutation({
         message: "Form is not available for submission.",
       });
     }
+
+    const isComplete = args.isComplete ?? false;
+    const { identity: submitterIdentity } = await assertFormAcceptsSubmission(
+      ctx,
+      form,
+      isComplete,
+    );
 
     // (a2) Payload bounds (DoS guard). This endpoint is public + unauthenticated,
     // so before ANY further work we cap the size/shape of `values` (entry count,
@@ -839,6 +1150,23 @@ export const submit = mutation({
     const payloadCheck = checkSubmissionPayload(args.values);
     if (!payloadCheck.ok) {
       throw new ConvexError({ code: "REJECTED", message: "Submission rejected" });
+    }
+
+    // CAPTCHA provider verification requires an action (outbound fetch); a
+    // mutation cannot do that. If CAPTCHA is enabled, complete submissions must
+    // arrive via `submitWithCaptcha`, which verifies first and then calls the
+    // internal mutation with `captchaVerified:true`.
+    if (isComplete && !options.captchaVerified) {
+      const policy = await ctx.runQuery(
+        internal.extensions.forms.spam.getCaptchaPolicy,
+        {},
+      );
+      if (policy.captchaEnabled && policy.captchaProvider !== "none") {
+        throw new ConvexError({
+          code: "REJECTED",
+          message: "Submission rejected",
+        });
+      }
     }
 
     // (b) Spam guard — runs FIRST, before any validation or write. The guard
@@ -857,13 +1185,18 @@ export const submit = mutation({
         captchaToken: args.captchaToken,
         startedAt: args.startedAt,
         ip: undefined,
+        enforceCaptcha: isComplete && !options.captchaVerified,
+        enforceTimeTrap: isComplete,
+        enforceRateLimit: isComplete,
       },
     );
     if (guard.block) {
       throw new ConvexError({ code: "REJECTED", message: "Submission rejected" });
     }
 
-    const isComplete = args.isComplete ?? false;
+    const currentStep = normalizeCurrentStep(args.currentStep);
+    const effectiveResumeToken =
+      args.resumeToken ?? (!isComplete ? generateResumeToken() : undefined);
 
     // (c) Load the form's field definitions via the backing group.
     const formGroupId = form.fieldGroupId;
@@ -901,15 +1234,22 @@ export const submit = mutation({
     // fieldKey -> message; we re-attach `label` from the def to preserve the
     // existing wire contract `errors: [{ fieldKey, label, error }]`.
     const labelByKey = new Map(fieldDefs.map((d: FieldDef) => [d.key, d.label]));
+    const validationDefs = isComplete
+      ? logicDefs
+      : relaxRequiredForDrafts(logicDefs);
     const validation = validateSubmission(
-      logicDefs,
+      validationDefs,
       valueMap,
       visibility,
       validateFieldValue,
     );
 
     const zodErrors: Record<string, string> = {};
-    const zodSchema = compileZodFromVisibleFields(logicDefs, visibility, valueMap);
+    const zodSchema = compileZodFromVisibleFields(
+      validationDefs,
+      visibility,
+      valueMap,
+    );
     const zodResult = zodSchema.safeParse(valueMap);
     if (!zodResult.success) {
       for (const issue of zodResult.error.issues) {
@@ -1001,16 +1341,24 @@ export const submit = mutation({
     const now = Date.now();
     let submissionId: Id<"form_submissions">;
     let existing = null;
-    if (args.resumeToken) {
+    if (effectiveResumeToken) {
       existing = await ctx.db
         .query("form_submissions")
         .withIndex("by_resumeToken", (q: any) =>
-          q.eq("resumeToken", args.resumeToken),
+          q.eq("resumeToken", effectiveResumeToken),
         )
         .first();
     }
+    if (
+      args.resumeToken !== undefined &&
+      (!existing ||
+        existing.formId !== args.formId ||
+        existing.status !== "partial")
+    ) {
+      throw new ConvexError({ code: "REJECTED", message: "Submission rejected" });
+    }
 
-    if (existing && existing.formId === args.formId && existing.status !== "deleted") {
+    if (existing) {
       submissionId = existing._id;
       // Merge the recomputed pricing into any existing meta bag so we don't
       // clobber sibling-system markers (e.g. an analytics abandon flag).
@@ -1019,7 +1367,8 @@ export const submit = mutation({
         status: isComplete ? ("complete" as const) : ("partial" as const),
         submittedAt: existing.submittedAt ?? now,
         completedAt: isComplete ? now : existing.completedAt,
-        resumeToken: args.resumeToken,
+        resumeToken: effectiveResumeToken,
+        currentStep: currentStep ?? existing.currentStep,
         meta: mergedMeta,
         updatedAt: now,
       });
@@ -1036,8 +1385,8 @@ export const submit = mutation({
         userAgent: undefined,
         referrer: undefined,
         userId: undefined,
-        resumeToken: args.resumeToken,
-        currentStep: undefined,
+        resumeToken: effectiveResumeToken,
+        currentStep,
         read: false,
         starred: false,
         meta: metaJson,
@@ -1048,13 +1397,7 @@ export const submit = mutation({
 
     // Resolve the acting identity for fieldValues.updatedBy. Anonymous public
     // submissions use the "guest" sentinel; a logged-in submitter uses their id.
-    let actorIdentifier = "guest";
-    try {
-      const identity = await ctx.auth.getUserIdentity();
-      if (identity) actorIdentifier = identity.subject;
-    } catch {
-      // No auth context (anonymous public submit) — keep the "guest" sentinel.
-    }
+    const actorIdentifier = submitterIdentity?.subject ?? "guest";
 
     // (g) Persist each submitted value as a fieldValue scoped to this
     // submission. Only values for KNOWN, VISIBLE fields are written (hidden
@@ -1117,12 +1460,67 @@ export const submit = mutation({
       await emitEvent(ctx, FORM_EVENTS.PROGRESS_SAVED, SYSTEM.FORMS, {
         formId: args.formId,
         submissionId,
-        resumeToken: args.resumeToken,
-        step: existing?.currentStep,
+        resumeToken: effectiveResumeToken,
+        step: currentStep ?? existing?.currentStep ?? 0,
       });
     }
 
-    return { submissionId, isComplete };
+    return { submissionId, isComplete, resumeToken: effectiveResumeToken };
+}
+
+export const submit = mutation({
+  args: submitArgsValidator,
+  handler: async (ctx, args) => submitForm(ctx, args),
+});
+
+export const submitInternal = internalMutation({
+  args: submitArgsValidator,
+  handler: async (ctx, args) =>
+    submitForm(ctx, args, { captchaVerified: true }),
+});
+
+export const submitWithCaptcha = action({
+  args: submitArgsValidator,
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "forms");
+
+    const isComplete = args.isComplete ?? false;
+    if (isComplete) {
+      const policy = await ctx.runQuery(
+        internal.extensions.forms.spam.getCaptchaPolicy,
+        {},
+      );
+      const captchaRequired =
+        policy.captchaEnabled && policy.captchaProvider !== "none";
+      if (captchaRequired) {
+        if (!args.captchaToken?.trim()) {
+          throw new ConvexError({
+            code: "REJECTED",
+            message: "Submission rejected",
+          });
+        }
+        const verdict = await ctx.runAction(
+          internal.extensions.forms.spam.runCaptchaVerification,
+          {
+            provider: policy.captchaProvider,
+            token: args.captchaToken,
+            recaptchaMinScore: policy.recaptchaMinScore,
+            failClosed: policy.failClosed,
+          },
+        );
+        if (verdict.block) {
+          throw new ConvexError({
+            code: "REJECTED",
+            message: "Submission rejected",
+          });
+        }
+      }
+    }
+
+    return await ctx.runMutation(
+      internal.extensions.forms.mutations.submitInternal,
+      args,
+    );
   },
 });
 
@@ -1135,25 +1533,34 @@ export const submit = mutation({
 export const updateEntry = mutation({
   args: {
     id: v.id("form_submissions"),
+    formId: v.optional(v.id("forms")),
     read: v.optional(v.boolean()),
     starred: v.optional(v.boolean()),
     status: v.optional(submissionStatus),
+    values: v.optional(
+      v.array(v.object({ fieldKey: v.string(), value: v.string() })),
+    ),
   },
   handler: async (ctx, args) => {
-    await requireCan(ctx, formCap("form.edit_entry"));
+    const user = await requireCan(ctx, formCap("form.edit_entry"));
+    await requirePluginEnabled(ctx, "forms");
 
     const submission = await ctx.db.get(args.id);
     if (!submission) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Submission not found." });
     }
+    assertSubmissionForForm(submission, args.formId);
 
     const patch: Record<string, unknown> = {};
     const changedFields: string[] = [];
-    if (args.read !== undefined && args.read !== submission.read) {
+    if (args.read !== undefined && args.read !== (submission.read === true)) {
       patch.read = args.read;
       changedFields.push("read");
     }
-    if (args.starred !== undefined && args.starred !== submission.starred) {
+    if (
+      args.starred !== undefined &&
+      args.starred !== (submission.starred === true)
+    ) {
       patch.starred = args.starred;
       changedFields.push("starred");
     }
@@ -1162,17 +1569,31 @@ export const updateEntry = mutation({
       changedFields.push("status");
     }
 
+    const now = Date.now();
+    const valueEdit = await prepareEntryValueEdits(
+      ctx,
+      submission,
+      args.values,
+      getUserIdentifier(user),
+      now,
+    );
+    if (valueEdit.changed) {
+      if (valueEdit.meta !== undefined) patch.meta = valueEdit.meta;
+      changedFields.push("values");
+    }
+
     if (changedFields.length === 0) {
       return submission;
     }
 
-    patch.updatedAt = Date.now();
+    patch.updatedAt = now;
     await ctx.db.patch(args.id, patch);
 
     await emitEvent(ctx, FORM_EVENTS.ENTRY_UPDATED, SYSTEM.FORMS, {
       formId: submission.formId,
       submissionId: args.id,
       changedFields,
+      updatedBy: getUserIdentifier(user),
     });
 
     return await ctx.db.get(args.id);
@@ -1186,14 +1607,16 @@ export const updateEntry = mutation({
  * Requires `form.delete_entry`.
  */
 export const deleteEntry = mutation({
-  args: { id: v.id("form_submissions") },
-  handler: async (ctx, { id }) => {
-    await requireCan(ctx, formCap("form.delete_entry"));
+  args: { id: v.id("form_submissions"), formId: v.optional(v.id("forms")) },
+  handler: async (ctx, { id, formId }) => {
+    const user = await requireCan(ctx, formCap("form.delete_entry"));
+    await requirePluginEnabled(ctx, "forms");
 
     const submission = await ctx.db.get(id);
     if (!submission) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Submission not found." });
     }
+    assertSubmissionForForm(submission, formId);
 
     await ctx.db.patch(id, {
       status: "deleted" as const,
@@ -1203,6 +1626,7 @@ export const deleteEntry = mutation({
     await emitEvent(ctx, FORM_EVENTS.ENTRY_DELETED, SYSTEM.FORMS, {
       formId: submission.formId,
       submissionId: id,
+      deletedBy: getUserIdentifier(user),
     });
 
     return { success: true };
@@ -1218,10 +1642,12 @@ export const deleteEntry = mutation({
 export const addNote = mutation({
   args: {
     submissionId: v.id("form_submissions"),
+    formId: v.optional(v.id("forms")),
     body: v.string(),
   },
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.edit_entry"));
+    await requirePluginEnabled(ctx, "forms");
 
     const body = args.body.trim();
     if (!body) {
@@ -1235,6 +1661,7 @@ export const addNote = mutation({
     if (!submission) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Submission not found." });
     }
+    assertSubmissionForForm(submission, args.formId);
 
     const noteId = await ctx.db.insert("form_submission_notes", {
       submissionId: args.submissionId,
@@ -1243,6 +1670,136 @@ export const addNote = mutation({
       createdAt: Date.now(),
     });
 
+    await emitEvent(ctx, FORM_EVENTS.ENTRY_UPDATED, SYSTEM.FORMS, {
+      formId: submission.formId,
+      submissionId: args.submissionId,
+      changedFields: ["notes"],
+      updatedBy: getUserIdentifier(user),
+    });
+
     return await ctx.db.get(noteId);
+  },
+});
+
+// ─── updateEntryBulk ────────────────────────────────────────────────────────
+
+/**
+ * Best-effort bulk entry patch. Requires `form.edit_entry`.
+ * Each row is still form-scoped; skipped ids are reported instead of aborting
+ * the whole batch so a stale selection does not block the valid rows.
+ */
+export const updateEntryBulk = mutation({
+  args: {
+    formId: v.id("forms"),
+    ids: v.array(v.id("form_submissions")),
+    read: v.optional(v.boolean()),
+    starred: v.optional(v.boolean()),
+    status: v.optional(submissionStatus),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireCan(ctx, formCap("form.edit_entry"));
+    await requirePluginEnabled(ctx, "forms");
+
+    if (args.ids.length > 100) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Bulk entry updates are limited to 100 rows.",
+      });
+    }
+
+    const ok: Id<"form_submissions">[] = [];
+    const failed: Id<"form_submissions">[] = [];
+
+    for (const id of args.ids) {
+      const submission = await ctx.db.get(id);
+      if (!submission || submission.formId !== args.formId) {
+        failed.push(id);
+        continue;
+      }
+
+      const patch: Record<string, unknown> = {};
+      const changedFields: string[] = [];
+      if (args.read !== undefined && args.read !== (submission.read === true)) {
+        patch.read = args.read;
+        changedFields.push("read");
+      }
+      if (
+        args.starred !== undefined &&
+        args.starred !== (submission.starred === true)
+      ) {
+        patch.starred = args.starred;
+        changedFields.push("starred");
+      }
+      if (args.status !== undefined && args.status !== submission.status) {
+        patch.status = args.status;
+        changedFields.push("status");
+      }
+
+      if (changedFields.length === 0) {
+        ok.push(id);
+        continue;
+      }
+
+      patch.updatedAt = Date.now();
+      await ctx.db.patch(id, patch);
+      await emitEvent(ctx, FORM_EVENTS.ENTRY_UPDATED, SYSTEM.FORMS, {
+        formId: submission.formId,
+        submissionId: id,
+        changedFields,
+        bulk: true,
+        updatedBy: getUserIdentifier(user),
+      });
+      ok.push(id);
+    }
+
+    return { ok, failed };
+  },
+});
+
+// ─── deleteEntryBulk (soft delete) ──────────────────────────────────────────
+
+/**
+ * Best-effort bulk soft delete. Requires `form.delete_entry`.
+ */
+export const deleteEntryBulk = mutation({
+  args: {
+    formId: v.id("forms"),
+    ids: v.array(v.id("form_submissions")),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireCan(ctx, formCap("form.delete_entry"));
+    await requirePluginEnabled(ctx, "forms");
+
+    if (args.ids.length > 100) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Bulk entry deletes are limited to 100 rows.",
+      });
+    }
+
+    const ok: Id<"form_submissions">[] = [];
+    const failed: Id<"form_submissions">[] = [];
+
+    for (const id of args.ids) {
+      const submission = await ctx.db.get(id);
+      if (!submission || submission.formId !== args.formId) {
+        failed.push(id);
+        continue;
+      }
+
+      await ctx.db.patch(id, {
+        status: "deleted" as const,
+        updatedAt: Date.now(),
+      });
+      await emitEvent(ctx, FORM_EVENTS.ENTRY_DELETED, SYSTEM.FORMS, {
+        formId: submission.formId,
+        submissionId: id,
+        bulk: true,
+        deletedBy: getUserIdentifier(user),
+      });
+      ok.push(id);
+    }
+
+    return { ok, failed };
   },
 });
