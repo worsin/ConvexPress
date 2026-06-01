@@ -83,6 +83,13 @@ export const EMAIL_TEMPLATES = {
   SUBSCRIPTION_TRIAL_ENDING: "subscription-trial-ending",
   SUBSCRIPTION_CANCELLED: "subscription-cancelled",
   SUBSCRIPTION_PAUSED: "subscription-paused",
+
+  // LMS
+  LMS_COURSE_ENROLLED: "lms-course-enrolled",
+  LMS_COURSE_UNENROLLED: "lms-course-unenrolled",
+  LMS_COURSE_COMPLETED: "lms-course-completed",
+  LMS_CERTIFICATE_ISSUED: "lms-certificate-issued",
+  LMS_CERTIFICATE_REVOKED: "lms-certificate-revoked",
 } as const;
 
 // ─── Unsubscribe Categories ─────────────────────────────────────────────────
@@ -208,6 +215,10 @@ export const EMAIL_CATEGORY_CONFIG: Record<
     label: "Subscription",
     className: "bg-indigo-500/10 text-indigo-700 border-indigo-500/20",
   },
+  lms: {
+    label: "LMS",
+    className: "bg-violet-500/10 text-violet-700 border-violet-500/20",
+  },
 };
 
 // ─── Category Filter Options ────────────────────────────────────────────────
@@ -224,6 +235,7 @@ export const CATEGORY_OPTIONS = [
   { label: "Commerce", value: "commerce" },
   { label: "Shipping", value: "shipping" },
   { label: "Subscription", value: "subscription" },
+  { label: "LMS", value: "lms" },
 ];
 
 // ─── Status Filter Options ──────────────────────────────────────────────────

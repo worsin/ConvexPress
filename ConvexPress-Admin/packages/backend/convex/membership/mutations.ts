@@ -34,6 +34,7 @@ import {
 } from "../schema/membership";
 import { requirePluginEnabled } from "../helpers/plugins";
 import { membershipResourceTypeValidator } from "./validators";
+import { syncMembershipPlanCourseEnrollmentsHandler } from "../lms/enrollment/internals";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PLAN CRUD
@@ -404,6 +405,14 @@ export const grantMembership = mutation({
       updatedAt: now,
     });
 
+    await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
+      userId: args.userId,
+      planId: args.planId,
+      status: "active",
+      expiresAt: args.endsAt,
+      sourceRef: args.sourceRef,
+    });
+
     return grantId;
   },
 });
@@ -449,11 +458,18 @@ export const revokeMembership = mutation({
       status: "revoked",
       revokedAt: now,
       metadata: {
-        ...(grant.metadata ?? {}),
+        ...grant.metadata,
         revokeReason: args.reason,
         revokedAt: now,
       },
       updatedAt: now,
+    });
+
+    await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
+      userId: grant.userId,
+      planId: grant.planId,
+      status: "revoked",
+      sourceRef: grant.sourceRef,
     });
 
     return { revoked: true };
@@ -528,7 +544,7 @@ export const extendGrant = mutation({
     await ctx.db.patch(args.grantId, {
       endsAt: args.newExpiresAt,
       metadata: {
-        ...(grant.metadata ?? {}),
+        ...grant.metadata,
         history: [...existingHistory, historyEntry],
         lastExtendReason: args.reason,
         lastExtendedAt: now,

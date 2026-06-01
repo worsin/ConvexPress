@@ -5,15 +5,17 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
-import { requireMinimumRoleLevel } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
+import { emitEvent } from "../../helpers/events";
+import { LMS_EVENTS, SYSTEM } from "../../events/constants";
 import { normalizeOutline } from "./helpers";
+import { requireCourseAuthorOrEditor, requireNodeCourseAuthorOrEditor } from "../access";
+import { textToDoc } from "../lessons/helpers";
 
 export const approveOutline = mutation({
   args: { generationId: v.id("lms_ai_generations") },
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    const user = await requireMinimumRoleLevel(ctx, 60);
     const generation = await ctx.db.get(args.generationId);
     if (!generation || generation.stage !== "outline" || generation.targetType !== "course") {
       throw new ConvexError({ code: "NOT_FOUND", message: "Outline generation not found" });
@@ -23,6 +25,7 @@ export const approveOutline = mutation({
     }
     const course = await ctx.db.get(generation.courseId);
     if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
+    const { user } = await requireCourseAuthorOrEditor(ctx, generation.courseId, "lms.ai.generate");
 
     const outline = normalizeOutline((generation.briefJson as any)?.outline);
     const now = Date.now();
@@ -107,3 +110,90 @@ export const approveOutline = mutation({
     return { topicCount, lessonCount };
   },
 });
+
+export const applyLessonGeneration = mutation({
+  args: {
+    generationId: v.id("lms_ai_generations"),
+    nodeId: v.optional(v.id("lms_nodes")),
+  },
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "lms");
+    const generation = await ctx.db.get(args.generationId);
+    if (!generation || generation.stage !== "lesson_body" || generation.targetType !== "node") {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Lesson generation not found" });
+    }
+    if (generation.reviewStatus === "reviewed") {
+      throw new ConvexError({ code: "ALREADY_APPLIED", message: "AI draft already applied" });
+    }
+    const nodeId = args.nodeId ?? (generation.targetId as any);
+    if (String(nodeId) !== generation.targetId) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Generation does not belong to this lesson.",
+      });
+    }
+    const { user, node } = await requireNodeCourseAuthorOrEditor(ctx, nodeId, "lms.ai.generate");
+    if (node.kind !== "lesson") {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Node is not a lesson" });
+    }
+    const generatedBody = String((generation.briefJson as any)?.generatedBody ?? "").trim();
+    if (!generatedBody) {
+      throw new ConvexError({
+        code: "EMPTY_GENERATION",
+        message: "This AI draft does not contain lesson body content.",
+      });
+    }
+
+    const now = Date.now();
+    await ctx.db.insert("lms_lessonVersions", {
+      nodeId,
+      bodyDoc: node.bodyDoc ?? textToDoc(""),
+      snapshotJson: lessonSnapshot(node),
+      editedBy: user._id,
+      createdAt: now,
+    });
+    await ctx.db.patch(nodeId, {
+      bodyDoc: textToDoc(generatedBody),
+      updatedAt: now,
+    });
+    await ctx.db.patch(args.generationId, {
+      reviewStatus: "reviewed",
+      reviewedBy: user._id,
+      reviewedAt: now,
+    });
+    await emitEvent(ctx, LMS_EVENTS.LESSON_UPDATED, SYSTEM.LMS, {
+      courseId: node.courseId,
+      nodeId,
+      source: "ai_generation",
+      generationId: args.generationId,
+      changedFields: ["bodyDoc"],
+    });
+    return { ok: true, updatedAt: now, changedFields: ["bodyDoc"] };
+  },
+});
+
+function lessonSnapshot(node: any) {
+  const snapshot = {
+    title: node.title,
+    bodyDoc: node.bodyDoc,
+    materialsDoc: node.materialsDoc,
+    videoUrl: node.videoUrl,
+    videoProvider: node.videoProvider,
+    videoMediaId: node.videoMediaId,
+    isPreview: node.isPreview,
+    requireVideoWatch: node.requireVideoWatch,
+    autoComplete: node.autoComplete,
+    completionDelaySec: node.completionDelaySec,
+    minTimeSeconds: node.minTimeSeconds,
+    showMarkComplete: node.showMarkComplete,
+    lessonDripMode: node.lessonDripMode,
+    lessonDripOffsetDays: node.lessonDripOffsetDays,
+    lessonDripDate: node.lessonDripDate,
+  };
+  return {
+    values: Object.fromEntries(Object.entries(snapshot).filter(([, value]) => value !== undefined)),
+    unsetFields: Object.entries(snapshot)
+      .filter(([, value]) => value === undefined)
+      .map(([field]) => field),
+  };
+}

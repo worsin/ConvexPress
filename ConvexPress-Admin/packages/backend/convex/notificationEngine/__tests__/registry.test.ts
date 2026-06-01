@@ -42,6 +42,16 @@ describe("notification engine registry", () => {
       "site",
       "email",
     ]);
+    expect(getNotificationChannelsForEvent("lms.enrolled")).toEqual([
+      "site",
+      "email",
+    ]);
+    expect(getNotificationChannelsForEvent("lms.unenrolled")).toEqual([
+      "site",
+      "email",
+    ]);
+    expect(getNotificationChannelsForEvent("lms.course_published")).toEqual(["site"]);
+    expect(getNotificationChannelsForEvent("lms.lesson_completed")).toEqual([]);
     expect(getNotificationChannelsForEvent("password.reset_requested")).toEqual([]);
   });
 

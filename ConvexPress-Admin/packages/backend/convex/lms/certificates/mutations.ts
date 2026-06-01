@@ -4,10 +4,13 @@
 
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
-import { requireAuth, requireMinimumRoleLevel } from "../../helpers/permissions";
+import { requireAuth, requireCan } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
+
+const DEFAULT_TEMPLATE_TEXT =
+  "Certificate of Completion\n\nAwarded to {{learnerName}} for completing {{courseTitle}}.\n\nIssued {{issuedDate}}\nSerial {{serial}}";
 
 export const createTemplate = mutation({
   args: {
@@ -17,14 +20,11 @@ export const createTemplate = mutation({
   },
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    const user = await requireMinimumRoleLevel(ctx, 80);
+    const user = await requireCan(ctx, "lms.certificate.manage");
     const now = Date.now();
     return await ctx.db.insert("lms_certificates", {
       title: args.title.trim() || "Certificate",
-      templateDoc: args.templateDoc ?? {
-        type: "doc",
-        content: [{ type: "paragraph", content: [{ type: "text", text: "Certificate of Completion" }] }],
-      },
+      templateDoc: args.templateDoc ?? textToDoc(DEFAULT_TEMPLATE_TEXT),
       orientation: args.orientation ?? "landscape",
       isActive: true,
       createdBy: user._id,
@@ -44,10 +44,17 @@ export const updateTemplate = mutation({
   },
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    await requireMinimumRoleLevel(ctx, 80);
+    await requireCan(ctx, "lms.certificate.manage");
     const { certificateId, ...rest } = args;
+    const certificate = await ctx.db.get(certificateId);
+    if (!certificate) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Certificate template not found" });
+    }
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
-    for (const [k, val] of Object.entries(rest)) if (val !== undefined) patch[k] = val;
+    for (const [k, val] of Object.entries(rest)) {
+      if (val === undefined) continue;
+      patch[k] = k === "title" ? String(val).trim() || "Certificate" : val;
+    }
     await ctx.db.patch(certificateId, patch as never);
     return certificateId;
   },
@@ -57,7 +64,7 @@ export const deleteTemplate = mutation({
   args: { certificateId: v.id("lms_certificates") },
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    await requireMinimumRoleLevel(ctx, 80);
+    await requireCan(ctx, "lms.certificate.manage");
     const assignedCourses = await ctx.db.query("lms_courses").collect();
     if (assignedCourses.some((course) => course.certificateId === args.certificateId)) {
       throw new ConvexError({
@@ -85,13 +92,20 @@ export const issueCertificate = mutation({
     const me = await requireAuth(ctx);
     const userId = args.userId ?? me._id;
     if (args.userId && args.userId !== me._id) {
-      await requireMinimumRoleLevel(ctx, 80);
+      await requireCan(ctx, "lms.certificate.manage");
     }
 
     const course = await ctx.db.get(args.courseId);
     if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
     if (!course.certificateId) {
       throw new ConvexError({ code: "NO_CERTIFICATE", message: "Course has no certificate" });
+    }
+    const certificate = await ctx.db.get(course.certificateId);
+    if (!certificate || !certificate.isActive) {
+      throw new ConvexError({
+        code: "CERTIFICATE_INACTIVE",
+        message: "The assigned certificate template is inactive.",
+      });
     }
 
     const completions = await ctx.db
@@ -109,10 +123,18 @@ export const issueCertificate = mutation({
       .first();
     if (existing?.status === "issued") return existing._id;
 
-    const serial = `CERT-${Date.now().toString(36).toUpperCase()}-${String(userId).slice(-6).toUpperCase()}`;
+    const serial = newCertificateSerial(userId);
     const issuedAt = Date.now();
     const issueId = existing
-      ? (await ctx.db.patch(existing._id, { serial, issuedAt, status: "issued" }), existing._id)
+      ? (await ctx.db.patch(existing._id, {
+          certificateId: course.certificateId,
+          serial,
+          issuedAt,
+          revokedAt: undefined,
+          revokedBy: undefined,
+          revocationReason: undefined,
+          status: "issued",
+        }), existing._id)
       : await ctx.db.insert("lms_certificate_issues", {
           userId,
           courseId: args.courseId,
@@ -125,6 +147,7 @@ export const issueCertificate = mutation({
       userId,
       courseId: args.courseId,
       certificateId: course.certificateId,
+      certificateIssueId: issueId,
       serial,
     });
     return issueId;
@@ -132,20 +155,45 @@ export const issueCertificate = mutation({
 });
 
 export const revokeIssue = mutation({
-  args: { issueId: v.id("lms_certificate_issues") },
+  args: { issueId: v.id("lms_certificate_issues"), reason: v.optional(v.string()) },
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    await requireMinimumRoleLevel(ctx, 80);
+    const user = await requireCan(ctx, "lms.certificate.manage");
     const issue = await ctx.db.get(args.issueId);
     if (!issue) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Certificate issue not found" });
     }
-    await ctx.db.patch(args.issueId, { status: "revoked" });
+    if (issue.status === "revoked") {
+      return { ok: true, alreadyRevoked: true };
+    }
+    await ctx.db.patch(args.issueId, {
+      status: "revoked",
+      revokedAt: Date.now(),
+      revokedBy: user._id,
+      revocationReason: args.reason?.trim() || undefined,
+    });
     await emitEvent(ctx, LMS_EVENTS.CERTIFICATE_REVOKED, SYSTEM.LMS, {
       userId: issue.userId,
       courseId: issue.courseId,
       certificateIssueId: args.issueId,
+      reason: args.reason?.trim() || undefined,
     });
     return { ok: true };
   },
 });
+
+function textToDoc(text: string) {
+  return {
+    type: "doc",
+    content: text.split(/\n{2,}/).map((block) => ({
+      type: "paragraph",
+      content: block
+        ? [{ type: "text", text: block.replace(/\n/g, " ") }]
+        : [],
+    })),
+  };
+}
+
+function newCertificateSerial(userId: string) {
+  return `CERT-${Date.now().toString(36).toUpperCase()}-${String(userId).slice(-6).toUpperCase()}`;
+}

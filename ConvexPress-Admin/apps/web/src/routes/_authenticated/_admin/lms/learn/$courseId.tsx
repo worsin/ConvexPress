@@ -21,6 +21,8 @@ import {
   Award,
 } from "lucide-react";
 
+import { LessonContentRenderer } from "@/components/lms/LessonContentRenderer";
+
 export const Route = createFileRoute("/_authenticated/_admin/lms/learn/$courseId")({
   component: PlayerPage,
 });
@@ -83,7 +85,7 @@ function PlayerPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const timeSpentRef = useRef(0);
   const lesson = useQuery(
-    api.lms.lessons.queries.getLesson,
+    (api as any).lms.lessons.queries.getLessonForPlayer,
     selectedId ? { nodeId: selectedId as Id<"lms_nodes"> } : "skip",
   ) as
     | {
@@ -95,6 +97,8 @@ function PlayerPage() {
           minTimeSeconds?: number;
           showMarkComplete?: boolean;
         };
+        bodyDoc?: unknown;
+        materialsDoc?: unknown;
         bodyText: string;
         materialsText: string;
       }
@@ -328,17 +332,22 @@ function PlayerPage() {
                   )}
                 </div>
               )}
-              <div className="prose prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed">
-                {lesson.bodyText || (
-                  <span className="text-muted-foreground">No content yet.</span>
-                )}
-              </div>
-              {lesson.materialsText && (
+              <LessonContentRenderer
+                doc={lesson.bodyDoc}
+                fallbackText={lesson.bodyText}
+                emptyLabel="No content yet."
+              />
+              {(lesson.materialsDoc || lesson.materialsText) && (
                 <div className="rounded-lg border border-border p-4">
                   <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
                     Materials &amp; resources
                   </div>
-                  <div className="whitespace-pre-wrap text-sm">{lesson.materialsText}</div>
+                  <LessonContentRenderer
+                    doc={lesson.materialsDoc}
+                    fallbackText={lesson.materialsText}
+                    emptyLabel="No materials yet."
+                    className="space-y-3"
+                  />
                 </div>
               )}
               <div className="border-t border-border pt-4">

@@ -29,6 +29,7 @@ import {
 
 import { LessonRichTextEditor } from "@/components/lms/LessonRichTextEditor";
 import { MediaSelector } from "@/components/lms/MediaSelector";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute(
@@ -73,6 +74,8 @@ type LessonQueryResult = {
     lessonDripDate?: number;
     updatedAt?: number;
   };
+  bodyDoc?: unknown;
+  materialsDoc?: unknown;
   bodyText: string;
   materialsText: string;
 };
@@ -80,7 +83,21 @@ type LessonQueryResult = {
 type LessonVersion = {
   _id: Id<"lms_lessonVersions">;
   bodyText: string;
+  snapshotFields?: string[];
   createdAt: number;
+};
+
+type LessonAiGeneration = {
+  _id: Id<"lms_ai_generations">;
+  reviewStatus: "unreviewed" | "reviewed";
+  generatedBodyText: string;
+  createdAt: number;
+  reviewedAt?: number;
+};
+
+type LessonSaveResult = {
+  updatedAt?: number;
+  changedFields?: string[];
 };
 
 type StoredDraft = {
@@ -107,22 +124,30 @@ const emptyForm: LessonForm = {
 };
 
 const inputClass =
-  "w-full rounded-none border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary";
+  "w-full rounded-none border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-70";
 
 function LessonEditorPage() {
+  const { can } = useAuth();
+  const canEditLesson = can("lms.lesson.edit");
+  const canGenerateAi = can("lms.ai.generate");
   const { courseId, nodeId } = Route.useParams();
   const id = nodeId as Id<"lms_nodes">;
   const draftKey = `convexpress:lms:lesson-draft:${id}`;
-  const lesson = useQuery(api.lms.lessons.queries.getLesson, { nodeId: id }) as
+  const lesson = useQuery((api as any).lms.lessons.queries.getLessonForEdit, { nodeId: id }) as
     | LessonQueryResult
     | null
     | undefined;
   const versions = useQuery(api.lms.lessons.queries.listVersions, { nodeId: id }) as
     | LessonVersion[]
     | undefined;
+  const generations = useQuery(
+    (api as any).lms.ai.queries.listNodeGenerations,
+    canGenerateAi ? { nodeId: id } : "skip",
+  ) as LessonAiGeneration[] | undefined;
 
   const update = useMutation(api.lms.lessons.mutations.updateLessonContent);
   const restoreVersion = useMutation(api.lms.lessons.mutations.restoreLessonVersion);
+  const applyGeneration = useMutation((api as any).lms.ai.mutations.applyLessonGeneration);
   const regenerate = useAction(api.lms.ai.actions.regenerateLesson);
 
   const [form, setForm] = useState<LessonForm>(emptyForm);
@@ -132,6 +157,7 @@ function LessonEditorPage() {
   const [draft, setDraft] = useState<StoredDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [remoteConflictAt, setRemoteConflictAt] = useState<number | null>(null);
 
   const videoMedia = useQuery(
     api.media.queries.get,
@@ -148,16 +174,21 @@ function LessonEditorPage() {
     if (!lesson?.node) return;
     const nextLoadedKey = `${id}:${lesson.node.updatedAt ?? 0}`;
     if (loadedKey === nextLoadedKey) return;
+    if (loadedKey && isDirty) {
+      setRemoteConflictAt(lesson.node.updatedAt ?? Date.now());
+      return;
+    }
     const nextForm = formFromLesson(lesson);
     const snapshot = snapshotForm(nextForm);
     setForm(nextForm);
     setLastSavedSnapshot(snapshot);
     setLastSavedAt(lesson.node.updatedAt ?? null);
     setLoadedKey(nextLoadedKey);
+    setRemoteConflictAt(null);
 
     const stored = readDraft(draftKey);
     setDraft(stored && stored.baseSnapshot === snapshot ? stored : null);
-  }, [draftKey, id, lesson, loadedKey]);
+  }, [draftKey, id, isDirty, lesson, loadedKey]);
 
   useEffect(() => {
     if (!lastSavedSnapshot) return;
@@ -180,6 +211,10 @@ function LessonEditorPage() {
   }, [isDirty]);
 
   const handleSave = useCallback(async () => {
+    if (!canEditLesson) {
+      toast.error("You do not have permission to edit lessons.");
+      return;
+    }
     const errors = validateForm(form);
     if (errors.length > 0) {
       toast.error(errors[0]);
@@ -188,8 +223,9 @@ function LessonEditorPage() {
     const clean = cleanForm(form);
     setSaving(true);
     try {
-      await update({
+      const result = (await update({
         nodeId: id,
+        expectedUpdatedAt: lastSavedAt ?? undefined,
         title: clean.title,
         videoUrl: clean.videoUrl,
         videoMediaId: clean.videoMediaId ?? undefined,
@@ -204,20 +240,29 @@ function LessonEditorPage() {
         dripMode: clean.dripMode,
         dripOffsetDays: clean.dripOffsetDays,
         dripDate: fromDateTimeInput(clean.dripDate),
-      });
+      })) as LessonSaveResult;
+      const savedAt = result.updatedAt ?? Date.now();
       const snapshot = snapshotForm(clean);
       setForm(clean);
       setLastSavedSnapshot(snapshot);
-      setLastSavedAt(Date.now());
+      setLastSavedAt(savedAt);
+      setRemoteConflictAt(null);
       clearDraft(draftKey);
       setDraft(null);
       toast.success("Lesson saved");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      const data = (err as { data?: { code?: string; message?: string; serverUpdatedAt?: number } })
+        ?.data;
+      if (data?.code === "EDIT_CONFLICT") {
+        setRemoteConflictAt(data.serverUpdatedAt ?? Date.now());
+        toast.error(data.message ?? "This lesson changed elsewhere. Review before saving again.");
+      } else {
+        toast.error(err instanceof Error ? err.message : "Save failed");
+      }
     } finally {
       setSaving(false);
     }
-  }, [draftKey, form, id, update]);
+  }, [canEditLesson, draftKey, form, id, lastSavedAt, update]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -234,6 +279,10 @@ function LessonEditorPage() {
   }
 
   async function handleRegenerate() {
+    if (!canGenerateAi) {
+      toast.error("You do not have permission to generate LMS content.");
+      return;
+    }
     if (isDirty) {
       toast.error("Save or discard lesson changes before regenerating content.");
       return;
@@ -244,7 +293,7 @@ function LessonEditorPage() {
       await regenerate({ nodeId: id });
       clearDraft(draftKey);
       setDraft(null);
-      toast.success("Lesson content regenerated", { id: tid });
+      toast.success("AI draft generated. Review it before applying.", { id: tid });
     } catch (err) {
       const data = (err as { data?: { message?: string } })?.data;
       toast.error(data?.message ?? (err instanceof Error ? err.message : "Failed"), {
@@ -255,12 +304,46 @@ function LessonEditorPage() {
     }
   }
 
-  async function handleRestore(versionId: Id<"lms_lessonVersions">) {
-    if (!window.confirm("Restore this lesson body revision?")) return;
+  async function handleApplyGeneration(generationId: Id<"lms_ai_generations">) {
+    if (!canGenerateAi || !canEditLesson) {
+      toast.error("You do not have permission to apply AI drafts.");
+      return;
+    }
+    if (isDirty) {
+      toast.error("Save or discard lesson changes before applying an AI draft.");
+      return;
+    }
+    if (!window.confirm("Apply this AI draft to the lesson body? A revision of the current body will be kept.")) {
+      return;
+    }
     try {
-      await restoreVersion({ nodeId: id, versionId });
+      const result = (await applyGeneration({ generationId, nodeId: id })) as LessonSaveResult;
+      if (result.updatedAt) {
+        setLastSavedAt(result.updatedAt);
+      }
       clearDraft(draftKey);
       setDraft(null);
+      setRemoteConflictAt(null);
+      toast.success("AI draft applied");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Apply failed");
+    }
+  }
+
+  async function handleRestore(versionId: Id<"lms_lessonVersions">) {
+    if (!canEditLesson) {
+      toast.error("You do not have permission to restore lesson revisions.");
+      return;
+    }
+    if (!window.confirm("Restore this lesson revision? Current lesson state will be kept as a new revision.")) return;
+    try {
+      const result = (await restoreVersion({ nodeId: id, versionId })) as LessonSaveResult;
+      if (result.updatedAt) {
+        setLastSavedAt(result.updatedAt);
+      }
+      clearDraft(draftKey);
+      setDraft(null);
+      setRemoteConflictAt(null);
       toast.success("Lesson version restored");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Restore failed");
@@ -318,30 +401,33 @@ function LessonEditorPage() {
             id="lesson-title"
             value={form.title}
             onChange={(event) => set("title", event.target.value)}
+            disabled={!canEditLesson}
             aria-invalid={validation.some((error) => error.includes("title"))}
             placeholder="Lesson title"
-            className="w-full rounded-none border-0 border-b border-border bg-transparent px-0 pb-3 text-3xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground focus:border-primary md:text-4xl"
+            className="w-full rounded-none border-0 border-b border-border bg-transparent px-0 pb-3 text-3xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-70 md:text-4xl"
           />
         </div>
         <div className="flex flex-wrap items-start justify-end gap-2">
-          <button
-            type="button"
-            onClick={handleRegenerate}
-            disabled={regenerating || isDirty}
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-none border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
-            title={
-              isDirty
-                ? "Save or discard changes before AI regeneration"
-                : "Regenerate this lesson's content with AI"
-            }
-          >
-            <Sparkles className="size-4" aria-hidden="true" />
-            {regenerating ? "Generating..." : "AI regenerate"}
-          </button>
+          {canGenerateAi ? (
+            <button
+              type="button"
+              onClick={handleRegenerate}
+              disabled={regenerating || isDirty || !canEditLesson}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-none border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+              title={
+                isDirty
+                  ? "Save or discard changes before AI draft generation"
+                  : "Generate a reviewable AI draft for this lesson"
+              }
+            >
+              <Sparkles className="size-4" aria-hidden="true" />
+              {regenerating ? "Generating..." : "AI draft"}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving || validation.length > 0}
+            disabled={saving || validation.length > 0 || !canEditLesson}
             className="inline-flex min-h-10 items-center gap-1.5 rounded-none bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {saving ? (
@@ -369,6 +455,8 @@ function LessonEditorPage() {
         />
       ) : null}
 
+      {remoteConflictAt ? <RemoteConflictNotice updatedAt={remoteConflictAt} /> : null}
+
       {validation.length > 0 ? <ValidationSummary errors={validation} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
@@ -381,6 +469,7 @@ function LessonEditorPage() {
               placeholder="Write the lesson body..."
               description="Structured lesson content saved as TipTap-compatible JSON."
               minRows={18}
+              disabled={!canEditLesson}
             />
           </section>
 
@@ -392,6 +481,7 @@ function LessonEditorPage() {
               placeholder="Links, downloads, reference notes..."
               description="Learner-facing supplemental resources for this lesson."
               minRows={8}
+              disabled={!canEditLesson}
             />
           </section>
         </main>
@@ -431,6 +521,7 @@ function LessonEditorPage() {
                   id="lesson-video-url"
                   value={form.videoUrl}
                   onChange={(event) => set("videoUrl", event.target.value)}
+                  disabled={!canEditLesson}
                   placeholder="https://youtube.com/watch?v=..."
                   className={inputClass}
                   aria-invalid={validation.some((error) => error.includes("video URL"))}
@@ -442,6 +533,7 @@ function LessonEditorPage() {
                   value={form.videoMediaId}
                   onChange={(value) => set("videoMediaId", value)}
                   placeholder="Search videos"
+                  disabled={!canEditLesson}
                 />
               </Field>
               <VideoPreview url={videoPreviewUrl} provider={videoProvider} mediaTitle={videoMedia?.title} />
@@ -454,21 +546,25 @@ function LessonEditorPage() {
                 label="Free preview"
                 checked={form.isPreview}
                 onChange={(value) => set("isPreview", value)}
+                disabled={!canEditLesson}
               />
               <ToggleField
                 label="Require video watch"
                 checked={form.requireVideoWatch}
                 onChange={(value) => set("requireVideoWatch", value)}
+                disabled={!canEditLesson}
               />
               <ToggleField
                 label="Auto-complete"
                 checked={form.autoComplete}
                 onChange={(value) => set("autoComplete", value)}
+                disabled={!canEditLesson}
               />
               <ToggleField
                 label="Show mark complete"
                 checked={form.showMarkComplete}
                 onChange={(value) => set("showMarkComplete", value)}
+                disabled={!canEditLesson}
               />
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Delay sec." htmlFor="lesson-completion-delay">
@@ -478,6 +574,7 @@ function LessonEditorPage() {
                     min={0}
                     value={form.completionDelaySec}
                     onChange={(event) => set("completionDelaySec", numberValue(event.target.value))}
+                    disabled={!canEditLesson}
                     className={inputClass}
                   />
                 </Field>
@@ -488,6 +585,7 @@ function LessonEditorPage() {
                     min={0}
                     value={form.minTimeSeconds}
                     onChange={(event) => set("minTimeSeconds", numberValue(event.target.value))}
+                    disabled={!canEditLesson}
                     className={inputClass}
                   />
                 </Field>
@@ -502,6 +600,7 @@ function LessonEditorPage() {
                   id="lesson-drip-mode"
                   value={form.dripMode}
                   onChange={(event) => set("dripMode", event.target.value as DripMode)}
+                  disabled={!canEditLesson}
                   className={inputClass}
                 >
                   <option value="immediately">Immediately</option>
@@ -517,6 +616,7 @@ function LessonEditorPage() {
                     min={0}
                     value={form.dripOffsetDays}
                     onChange={(event) => set("dripOffsetDays", numberValue(event.target.value))}
+                    disabled={!canEditLesson}
                     className={inputClass}
                   />
                 </Field>
@@ -528,6 +628,7 @@ function LessonEditorPage() {
                     type="datetime-local"
                     value={form.dripDate}
                     onChange={(event) => set("dripDate", event.target.value)}
+                    disabled={!canEditLesson}
                     className={inputClass}
                   />
                 </Field>
@@ -549,12 +650,18 @@ function LessonEditorPage() {
                       <button
                         type="button"
                         onClick={() => handleRestore(version._id)}
-                        className="inline-flex items-center gap-1 rounded-none border border-border px-2 py-1 text-xs hover:bg-muted"
+                        disabled={!canEditLesson}
+                        className="inline-flex items-center gap-1 rounded-none border border-border px-2 py-1 text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <RotateCcw className="size-3" aria-hidden="true" />
                         Restore
                       </button>
                     </div>
+                    {version.snapshotFields?.length ? (
+                      <p className="mb-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+                        Snapshot: {formatSnapshotFields(version.snapshotFields)}
+                      </p>
+                    ) : null}
                     <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
                       {version.bodyText || "Empty body"}
                     </p>
@@ -563,6 +670,44 @@ function LessonEditorPage() {
               </div>
             )}
           </Panel>
+
+          {canGenerateAi ? (
+            <Panel title="AI Drafts" icon={<Sparkles className="size-4" aria-hidden="true" />}>
+              {generations === undefined ? (
+                <p className="text-sm text-muted-foreground">Loading AI drafts...</p>
+              ) : generations.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No AI drafts yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {generations.slice(0, 6).map((generation) => (
+                    <div key={generation._id} className="border border-border p-3">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <span className="text-xs font-medium">
+                          {new Date(generation.createdAt).toLocaleString()}
+                        </span>
+                        {generation.reviewStatus === "unreviewed" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleApplyGeneration(generation._id)}
+                            disabled={isDirty || !canEditLesson}
+                            className="inline-flex items-center gap-1 rounded-none border border-border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+                          >
+                            <Sparkles className="size-3" aria-hidden="true" />
+                            Apply
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Applied</span>
+                        )}
+                      </div>
+                      <p className="line-clamp-3 text-xs leading-5 text-muted-foreground">
+                        {generation.generatedBodyText || "No generated body stored."}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Panel>
+          ) : null}
         </aside>
       </div>
     </div>
@@ -606,6 +751,28 @@ function cleanForm(form: LessonForm): LessonForm {
 
 function snapshotForm(form: LessonForm): string {
   return JSON.stringify(cleanForm(form));
+}
+
+function formatSnapshotFields(fields: string[]): string {
+  const labels: Record<string, string> = {
+    title: "title",
+    bodyDoc: "body",
+    materialsDoc: "materials",
+    videoUrl: "video",
+    videoProvider: "video",
+    videoMediaId: "video",
+    isPreview: "preview",
+    requireVideoWatch: "completion",
+    autoComplete: "completion",
+    completionDelaySec: "completion",
+    minTimeSeconds: "completion",
+    showMarkComplete: "completion",
+    lessonDripMode: "drip",
+    lessonDripOffsetDays: "drip",
+    lessonDripDate: "drip",
+  };
+  const unique = Array.from(new Set(fields.map((field) => labels[field] ?? field)));
+  return unique.slice(0, 5).join(", ");
 }
 
 function validateForm(form: LessonForm): string[] {
@@ -705,6 +872,21 @@ function DraftRecovery({
   );
 }
 
+function RemoteConflictNotice({ updatedAt }: { updatedAt: number }) {
+  return (
+    <div className="mb-5 flex items-start gap-2 border border-destructive/30 bg-destructive/10 p-3 text-sm">
+      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
+      <div className="min-w-0">
+        <p className="font-medium text-destructive">This lesson changed in another session.</p>
+        <p className="mt-1 text-muted-foreground">
+          The server version changed at {new Date(updatedAt).toLocaleString()}. Copy any local
+          edits you need, then refresh to review the latest version before saving.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ValidationSummary({ errors }: { errors: string[] }) {
   return (
     <div className="mb-5 border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -762,10 +944,12 @@ function ToggleField({
   label,
   checked,
   onChange,
+  disabled,
 }: {
   label: string;
   checked: boolean;
   onChange: (value: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <label className="flex items-center justify-between gap-3 text-sm">
@@ -774,7 +958,8 @@ function ToggleField({
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="size-4 rounded-none border-border accent-primary"
+        disabled={disabled}
+        className="size-4 rounded-none border-border accent-primary disabled:cursor-not-allowed disabled:opacity-50"
       />
     </label>
   );

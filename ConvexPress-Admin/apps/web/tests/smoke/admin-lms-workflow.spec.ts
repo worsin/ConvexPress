@@ -96,6 +96,12 @@ test("lms authoring-to-completion workflow [P1]", async ({ authedPage }) => {
   await expect(authedPage.getByRole("heading", { name: lessonTitle })).toBeVisible({
     timeout: 20_000,
   });
+  await expect(authedPage.getByRole("heading", { name: /Smoke lesson overview/i })).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(authedPage.getByText("It proves lesson text persists.")).toBeVisible({
+    timeout: 20_000,
+  });
   await authedPage.getByRole("button", { name: /Mark complete/i }).click();
   await expect(authedPage.getByText(/Course complete|certificate/i).first()).toBeVisible({
     timeout: 20_000,

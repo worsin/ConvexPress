@@ -4,7 +4,7 @@
 
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
-import { requireAuth, requireMinimumRoleLevel } from "../../helpers/permissions";
+import { requireAuth, requireCan } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
@@ -28,7 +28,7 @@ export const enroll = mutation({
     // Enrolling someone else requires Editor+.
     const targetUserId = args.userId ?? me._id;
     if (args.userId && args.userId !== me._id) {
-      await requireMinimumRoleLevel(ctx, 80);
+      await requireCan(ctx, "lms.enroll.manage");
     }
 
     const course = await ctx.db.get(args.courseId);
@@ -54,6 +54,13 @@ export const enroll = mutation({
         source: args.source ?? existing.source,
         expiresAt,
         updatedAt: now,
+      });
+      await emitEvent(ctx, LMS_EVENTS.ENROLLED, SYSTEM.LMS, {
+        courseId: args.courseId,
+        userId: targetUserId,
+        enrollmentId: existing._id,
+        source: args.source ?? existing.source,
+        reactivated: true,
       });
       return existing._id;
     }
@@ -110,6 +117,8 @@ export const enroll = mutation({
     await emitEvent(ctx, LMS_EVENTS.ENROLLED, SYSTEM.LMS, {
       courseId: args.courseId,
       userId: targetUserId,
+      enrollmentId,
+      source: args.source ?? "manual",
     });
     return enrollmentId;
   },
@@ -122,7 +131,7 @@ export const unenroll = mutation({
     const me = await requireAuth(ctx);
     const targetUserId = args.userId ?? me._id;
     if (args.userId && args.userId !== me._id) {
-      await requireMinimumRoleLevel(ctx, 80);
+      await requireCan(ctx, "lms.enroll.manage");
     }
     const existing = await ctx.db
       .query("lms_enrollments")
@@ -132,6 +141,11 @@ export const unenroll = mutation({
       .first();
     if (existing) {
       await ctx.db.patch(existing._id, { status: "revoked", updatedAt: Date.now() });
+      await emitEvent(ctx, LMS_EVENTS.UNENROLLED, SYSTEM.LMS, {
+        courseId: args.courseId,
+        userId: targetUserId,
+        enrollmentId: existing._id,
+      });
     }
     return { ok: true };
   },
@@ -142,7 +156,7 @@ export const enrollByEmail = mutation({
   args: { courseId: v.id("lms_courses"), email: v.string() },
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    await requireMinimumRoleLevel(ctx, 80);
+    await requireCan(ctx, "lms.enroll.manage");
     const user = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email.trim().toLowerCase()))
@@ -159,6 +173,13 @@ export const enrollByEmail = mutation({
       .first();
     if (existing) {
       await ctx.db.patch(existing._id, { status: "active", updatedAt: now });
+      await emitEvent(ctx, LMS_EVENTS.ENROLLED, SYSTEM.LMS, {
+        courseId: args.courseId,
+        userId: user._id,
+        enrollmentId: existing._id,
+        source: "manual",
+        reactivated: true,
+      });
       return existing._id;
     }
     const enrollmentId = await ctx.db.insert("lms_enrollments", {
@@ -173,6 +194,8 @@ export const enrollByEmail = mutation({
     await emitEvent(ctx, LMS_EVENTS.ENROLLED, SYSTEM.LMS, {
       courseId: args.courseId,
       userId: user._id,
+      enrollmentId,
+      source: "manual",
     });
     return enrollmentId;
   },

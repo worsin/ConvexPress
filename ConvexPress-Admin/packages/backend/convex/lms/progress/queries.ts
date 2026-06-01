@@ -5,7 +5,7 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
-import { getCurrentUser, requireMinimumRoleLevel } from "../../helpers/permissions";
+import { getCurrentUser, requireCan } from "../../helpers/permissions";
 
 export const getCourseProgress = query({
   args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
@@ -29,7 +29,7 @@ export const getCourseProgress = query({
     const userId = args.userId ?? me?._id;
     if (!userId) return empty;
     if (args.userId && args.userId !== me?._id) {
-      await requireMinimumRoleLevel(ctx, 80);
+      await requireCan(ctx, "lms.enroll.manage");
     }
 
     // Ordered lesson list: topics by position, then lessons by position.
@@ -90,7 +90,7 @@ export const getNodeProgress = query({
     const userId = args.userId ?? me?._id;
     if (!userId) return null;
     if (args.userId && args.userId !== me?._id) {
-      await requireMinimumRoleLevel(ctx, 80);
+      await requireCan(ctx, "lms.enroll.manage");
     }
     return await ctx.db
       .query("lms_progress")

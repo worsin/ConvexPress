@@ -5,6 +5,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, BookOpen, Lock, PlayCircle } from "lucide-react";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
+import { LessonContentRenderer } from "@/components/lms/LessonContentRenderer";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
 
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/_marketing/courses/$slug/$nodeId")({
     );
     if (course?._id) {
       await queryClient.ensureQueryData(
-        convexQuery(api.lms.lessons.queries.getLesson, {
+        convexQuery((api as any).lms.lessons.queries.getLessonPublicView, {
           nodeId: params.nodeId as any,
         }) as any,
       );
@@ -72,6 +73,8 @@ type LessonDetail = {
     isPreview?: boolean;
     videoUrl?: string;
   };
+  bodyDoc?: unknown;
+  materialsDoc?: unknown;
   bodyText?: string;
   materialsText?: string;
 };
@@ -82,7 +85,7 @@ function CoursePreviewLessonPage() {
     convexQuery(api.lms.courses.queries.getBySlug, { slug }) as any,
   ) as { data: Course | null };
   const { data: lesson } = useSuspenseQuery(
-    convexQuery(api.lms.lessons.queries.getLesson, {
+    convexQuery((api as any).lms.lessons.queries.getLessonPublicView, {
       nodeId: nodeId as any,
     }) as any,
   ) as { data: LessonDetail | null };
@@ -132,26 +135,23 @@ function CoursePreviewLessonPage() {
       {lesson.node.videoUrl ? <VideoEmbed url={lesson.node.videoUrl} /> : null}
 
       <article className="grid gap-4 border border-border bg-card p-6">
-        {lesson.bodyText ? (
-          <div className="prose prose-sm max-w-none text-foreground prose-p:text-muted-foreground">
-            {lesson.bodyText.split("\n").map((paragraph, index) => (
-              <p key={`${paragraph}-${index}`}>{paragraph}</p>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-            Preview content is being prepared.
-          </div>
-        )}
+        <LessonContentRenderer
+          doc={lesson.bodyDoc}
+          fallbackText={lesson.bodyText}
+          emptyLabel="Preview content is being prepared."
+        />
 
-        {lesson.materialsText ? (
+        {(lesson.materialsDoc || lesson.materialsText) ? (
           <section className="border border-border bg-muted/30 p-4">
             <h2 className="mb-2 text-sm font-medium text-foreground">
               Materials
             </h2>
-            <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-              {lesson.materialsText}
-            </p>
+            <LessonContentRenderer
+              doc={lesson.materialsDoc}
+              fallbackText={lesson.materialsText}
+              emptyLabel="No materials yet."
+              className="space-y-3"
+            />
           </section>
         ) : null}
       </article>

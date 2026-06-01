@@ -21,11 +21,13 @@ export function MediaSelector({
   onChange,
   mediaType,
   placeholder = "Search media",
+  disabled = false,
 }: {
   value: Id<"media"> | null;
   onChange: (value: Id<"media"> | null) => void;
   mediaType: MediaType;
   placeholder?: string;
+  disabled?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const selected = useQuery(
@@ -48,8 +50,9 @@ export function MediaSelector({
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
+          disabled={disabled}
           placeholder={placeholder}
-          className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+          className="min-w-0 flex-1 bg-transparent text-sm outline-none disabled:cursor-not-allowed"
         />
       </div>
 
@@ -62,8 +65,9 @@ export function MediaSelector({
           </div>
           <button
             type="button"
+            disabled={disabled}
             onClick={() => onChange(null)}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Clear selected media"
           >
             <X className="h-4 w-4" />
@@ -78,12 +82,14 @@ export function MediaSelector({
             <button
               key={item._id}
               type="button"
+              disabled={disabled}
               onClick={() => onChange(active ? null : item._id)}
               className={cn(
                 "flex min-w-0 items-center gap-3 rounded-md border p-2 text-left text-sm transition-colors",
                 active
                   ? "border-primary bg-primary/5"
                   : "border-border hover:bg-muted",
+                disabled && "cursor-not-allowed opacity-50",
               )}
             >
               <MediaThumb media={item} fallbackIcon={Icon} />

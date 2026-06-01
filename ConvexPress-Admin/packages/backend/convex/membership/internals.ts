@@ -28,6 +28,7 @@ import {
   filterGrantsBySubscription,
   selectBridgeablePlans,
 } from "./bridgeLogic";
+import { syncMembershipPlanCourseEnrollmentsHandler } from "../lms/enrollment/internals";
 
 // ─── Settings-reader helper (local to internals) ──────────────────────────
 // Returns the membership.general settings object with Wave-2 defaults.
@@ -49,7 +50,7 @@ async function getMembershipSettings(ctx: any): Promise<{
       .unique();
     return {
       ...defaults,
-      ...(row?.values ?? {}),
+      ...row?.values,
     };
   } catch {
     return defaults;
@@ -129,10 +130,23 @@ export const expireGrants = internalMutation({
         if (grant.graceEndsAt && grant.graceEndsAt > now) {
           // Already has a future grace window — step down to grace.
           await ctx.db.patch(grant._id, { status: "grace", updatedAt: now });
+          await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
+            userId: grant.userId,
+            planId: grant.planId,
+            status: "grace",
+            expiresAt: grant.graceEndsAt,
+            sourceRef: grant.sourceRef,
+          });
           movedToGraceCount++;
         } else if (grant.graceEndsAt && grant.graceEndsAt <= now) {
           // Existing grace window already passed — expire.
           await ctx.db.patch(grant._id, { status: "expired", updatedAt: now });
+          await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
+            userId: grant.userId,
+            planId: grant.planId,
+            status: "expired",
+            sourceRef: grant.sourceRef,
+          });
           expiredCount++;
         } else {
           // No graceEndsAt set yet — consult the plan's per-plan grace window.
@@ -150,12 +164,25 @@ export const expireGrants = internalMutation({
               graceEndsAt,
               updatedAt: now,
             });
+            await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
+              userId: grant.userId,
+              planId: grant.planId,
+              status: "grace",
+              expiresAt: graceEndsAt,
+              sourceRef: grant.sourceRef,
+            });
             movedToGraceCount++;
           } else {
             // No grace window configured — expire directly.
             await ctx.db.patch(grant._id, {
               status: "expired",
               updatedAt: now,
+            });
+            await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
+              userId: grant.userId,
+              planId: grant.planId,
+              status: "expired",
+              sourceRef: grant.sourceRef,
             });
             expiredCount++;
           }
@@ -167,6 +194,12 @@ export const expireGrants = internalMutation({
       ) {
         // Grace window closed — expire.
         await ctx.db.patch(grant._id, { status: "expired", updatedAt: now });
+        await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
+          userId: grant.userId,
+          planId: grant.planId,
+          status: "expired",
+          sourceRef: grant.sourceRef,
+        });
         expiredCount++;
       }
     }
@@ -275,6 +308,13 @@ export async function _grantFromSubscriptionHandler(
 
     if (decision.kind === "create") {
       const grantId = await ctx.db.insert("membership_grants", decision.doc);
+      await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
+        userId: args.userId,
+        planId: plan._id,
+        status: "active",
+        expiresAt: args.endsAt,
+        sourceRef: args.subscriptionId,
+      });
       await writeBridgeAccessLog(ctx, {
         userId: args.userId,
         planId: plan._id,
@@ -284,6 +324,13 @@ export async function _grantFromSubscriptionHandler(
       grantedPlanIds.push(plan._id);
     } else {
       await ctx.db.patch(decision.grantId, decision.patch);
+      await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
+        userId: args.userId,
+        planId: plan._id,
+        status: "active",
+        expiresAt: args.endsAt,
+        sourceRef: args.subscriptionId,
+      });
       await writeBridgeAccessLog(ctx, {
         userId: args.userId,
         planId: plan._id,
@@ -389,6 +436,13 @@ export async function _revokeFromSubscriptionHandler(
   for (const grant of allTargetGrants) {
     const decision = decideRevoke({ grant, gracePeriodDays, now });
     await ctx.db.patch(decision.grantId, decision.patch);
+    await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
+      userId: args.userId,
+      planId: grant.planId,
+      status: decision.kind === "grace" ? "grace" : "revoked",
+      expiresAt: decision.patch.graceEndsAt,
+      sourceRef: grant.sourceRef,
+    });
     await writeBridgeAccessLog(ctx, {
       userId: args.userId,
       planId: grant.planId,
@@ -479,6 +533,13 @@ export async function _moveGrantToGraceHandler(
     const decision = decideMoveToGrace({ grant, gracePeriodDays, now });
     if (decision.kind === "skip") continue;
     await ctx.db.patch(decision.grantId, decision.patch);
+    await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
+      userId: args.userId,
+      planId: grant.planId,
+      status: "grace",
+      expiresAt: decision.patch.graceEndsAt,
+      sourceRef: grant.sourceRef,
+    });
     await writeBridgeAccessLog(ctx, {
       userId: args.userId,
       planId: grant.planId,

@@ -10,6 +10,7 @@ import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { ArrowLeft, Save, Layers } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/lms/courses/$courseId/topics/$nodeId",
@@ -20,6 +21,8 @@ export const Route = createFileRoute(
 type DripMode = "immediately" | "enrollment_based" | "specific_date";
 
 function TopicEditorPage() {
+  const { can } = useAuth();
+  const canManageBuilder = can("lms.builder.manage");
   const { courseId, nodeId } = Route.useParams();
   const id = nodeId as Id<"lms_nodes">;
   const topic = useQuery(api.lms.topics.queries.getTopic, { nodeId: id }) as
@@ -42,6 +45,10 @@ function TopicEditorPage() {
   }, [topic]);
 
   async function handleSave() {
+    if (!canManageBuilder) {
+      toast.error("You do not have permission to edit topics.");
+      return;
+    }
     setSaving(true);
     try {
       await update({ nodeId: id, description, dripMode, dripOffsetDays });
@@ -70,7 +77,7 @@ function TopicEditorPage() {
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !canManageBuilder}
           className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           <Save className="h-4 w-4" /> {saving ? "Saving…" : "Save"}
@@ -83,9 +90,10 @@ function TopicEditorPage() {
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            disabled={!canManageBuilder}
             rows={4}
             placeholder="Optional description shown to learners."
-            className="w-full rounded-md border border-border px-3 py-2 text-sm"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70"
           />
         </label>
         <div className="grid grid-cols-2 gap-4">
@@ -94,7 +102,8 @@ function TopicEditorPage() {
             <select
               value={dripMode}
               onChange={(e) => setDripMode(e.target.value as DripMode)}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm"
+              disabled={!canManageBuilder}
+              className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70"
             >
               <option value="immediately">Immediately</option>
               <option value="enrollment_based">Days after enrollment</option>
@@ -109,7 +118,8 @@ function TopicEditorPage() {
                 min={0}
                 value={dripOffsetDays}
                 onChange={(e) => setDripOffsetDays(Number(e.target.value))}
-                className="w-full rounded-md border border-border px-3 py-2 text-sm"
+                disabled={!canManageBuilder}
+                className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
           )}

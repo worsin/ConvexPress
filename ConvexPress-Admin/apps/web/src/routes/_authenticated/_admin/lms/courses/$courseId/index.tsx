@@ -11,6 +11,7 @@ import type { Id } from "@backend/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { MediaSelector } from "@/components/lms/MediaSelector";
 import { PlanPicker } from "@/components/membership/PlanPicker";
+import { useAuth } from "@/lib/auth-context";
 import {
   ArrowLeft,
   Save,
@@ -96,8 +97,15 @@ const EMPTY: FormState = {
 type PlanId = Id<"membership_plans">;
 
 function CourseSettingsPage() {
+  const { can } = useAuth();
   const { courseId } = Route.useParams();
   const id = courseId as Id<"lms_courses">;
+  const canEdit = can("lms.course.edit");
+  const canPublish = can("lms.course.publish");
+  const canManageBuilder = can("lms.builder.manage");
+  const canGenerateAi = can("lms.ai.generate");
+  const canManageEnrollments = can("lms.enroll.manage");
+  const canManageCertificates = can("lms.certificate.manage");
   const course = useQuery(api.lms.courses.queries.getById, { courseId: id });
   const templates = useQuery(api.lms.certificates.queries.listTemplates, {}) as
     | Array<{ _id: string; title: string }>
@@ -180,6 +188,10 @@ function CourseSettingsPage() {
   }
 
   async function handleSave() {
+    if (!canEdit) {
+      toast.error("You do not have permission to edit courses.");
+      return;
+    }
     setSaving(true);
     try {
       await update({
@@ -272,7 +284,7 @@ function CourseSettingsPage() {
           <span className="text-xs uppercase text-muted-foreground">{course.status}</span>
         </div>
         <div className="flex items-center gap-2">
-          {course.status === "published" ? (
+          {canPublish && course.status === "published" ? (
             <button
               type="button"
               onClick={() => run("Unpublished", () => unpublish({ courseId: id }))}
@@ -280,7 +292,7 @@ function CourseSettingsPage() {
             >
               <EyeOff className="h-4 w-4" /> Unpublish
             </button>
-          ) : (
+          ) : canPublish ? (
             <button
               type="button"
               onClick={() => run("Published", () => publish({ courseId: id }))}
@@ -288,18 +300,20 @@ function CourseSettingsPage() {
             >
               <Eye className="h-4 w-4" /> Publish
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => run("Archived", () => archive({ courseId: id }))}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted"
-          >
-            <Archive className="h-4 w-4" /> Archive
-          </button>
+          ) : null}
+          {canEdit ? (
+            <button
+              type="button"
+              onClick={() => run("Archived", () => archive({ courseId: id }))}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted"
+            >
+              <Archive className="h-4 w-4" /> Archive
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !canEdit}
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             <Save className="h-4 w-4" /> {saving ? "Saving…" : "Save"}
@@ -308,9 +322,15 @@ function CourseSettingsPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <QuickLink to="/lms/courses/$courseId/builder" courseId={courseId} icon={Layers} title="Builder" desc="Topics & lessons" />
-        <QuickLink to="/lms/courses/$courseId/generate" courseId={courseId} icon={Sparkles} title="Generate (AI)" desc="From a brief" />
-        <QuickLink to="/lms/courses/$courseId/enrollees" courseId={courseId} icon={Users} title="Enrollees" desc="Manage access" />
+        {canManageBuilder ? (
+          <QuickLink to="/lms/courses/$courseId/builder" courseId={courseId} icon={Layers} title="Builder" desc="Topics & lessons" />
+        ) : null}
+        {canGenerateAi ? (
+          <QuickLink to="/lms/courses/$courseId/generate" courseId={courseId} icon={Sparkles} title="Generate (AI)" desc="From a brief" />
+        ) : null}
+        {canManageEnrollments ? (
+          <QuickLink to="/lms/courses/$courseId/enrollees" courseId={courseId} icon={Users} title="Enrollees" desc="Manage access" />
+        ) : null}
         <Link
           to="/lms/learn/$courseId"
           params={{ courseId }}
@@ -326,21 +346,22 @@ function CourseSettingsPage() {
 
       <div className="space-y-6 rounded-lg border border-border p-6">
         <Field label="Title">
-          <input value={form.title} onChange={(e) => set("title", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+          <input disabled={!canEdit} value={form.title} onChange={(e) => set("title", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
         </Field>
         <Field label="Slug">
-          <input value={form.slug} onChange={(e) => set("slug", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+          <input disabled={!canEdit} value={form.slug} onChange={(e) => set("slug", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
         </Field>
         <Field label="Course description">
           <textarea
+            disabled={!canEdit}
             value={form.descriptionText}
             onChange={(e) => set("descriptionText", e.target.value)}
             rows={6}
-            className="w-full rounded-md border border-border px-3 py-2 text-sm"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70"
           />
         </Field>
         <Field label="Excerpt">
-          <textarea value={form.excerpt} onChange={(e) => set("excerpt", e.target.value)} rows={3} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+          <textarea disabled={!canEdit} value={form.excerpt} onChange={(e) => set("excerpt", e.target.value)} rows={3} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
         </Field>
         <Field label="Featured image">
           <MediaSelector
@@ -348,15 +369,16 @@ function CourseSettingsPage() {
             value={form.featuredImageId}
             onChange={(value) => set("featuredImageId", value)}
             placeholder="Search images"
+            disabled={!canEdit}
           />
         </Field>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Promo video URL">
-            <input value={form.promoVideoUrl} onChange={(e) => set("promoVideoUrl", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+            <input disabled={!canEdit} value={form.promoVideoUrl} onChange={(e) => set("promoVideoUrl", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
           </Field>
           <Field label="Access mode">
-            <select value={form.accessMode} onChange={(e) => set("accessMode", e.target.value as AccessMode)} className="w-full rounded-md border border-border px-3 py-2 text-sm">
+            <select disabled={!canEdit} value={form.accessMode} onChange={(e) => set("accessMode", e.target.value as AccessMode)} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70">
               <option value="open">Open (public)</option>
               <option value="free">Free (login required)</option>
               <option value="members">Members (plan-gated)</option>
@@ -366,19 +388,19 @@ function CourseSettingsPage() {
             </select>
           </Field>
           <Field label="Progression">
-            <select value={form.progressionMode} onChange={(e) => set("progressionMode", e.target.value as ProgressionMode)} className="w-full rounded-md border border-border px-3 py-2 text-sm">
+            <select disabled={!canEdit} value={form.progressionMode} onChange={(e) => set("progressionMode", e.target.value as ProgressionMode)} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70">
               <option value="linear">Linear (in order)</option>
               <option value="free_form">Free-form (any order)</option>
             </select>
           </Field>
           <Field label="Content visibility">
-            <select value={form.contentVisibility} onChange={(e) => set("contentVisibility", e.target.value as ContentVisibility)} className="w-full rounded-md border border-border px-3 py-2 text-sm">
+            <select disabled={!canEdit} value={form.contentVisibility} onChange={(e) => set("contentVisibility", e.target.value as ContentVisibility)} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70">
               <option value="enrollees_only">Enrollees only</option>
               <option value="always">Always visible</option>
             </select>
           </Field>
           <Field label="Certificate on completion">
-            <select value={form.certificateId} onChange={(e) => set("certificateId", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm">
+            <select disabled={!canEdit || !canManageCertificates} value={form.certificateId} onChange={(e) => set("certificateId", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70">
               <option value="">None</option>
               {(templates ?? []).map((t) => (
                 <option key={t._id} value={t._id}>{t.title}</option>
@@ -386,47 +408,47 @@ function CourseSettingsPage() {
             </select>
           </Field>
           <Field label="Seat limit (0 = unlimited)">
-            <input type="number" min={0} value={form.seatLimit} onChange={(e) => set("seatLimit", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+            <input disabled={!canEdit} type="number" min={0} value={form.seatLimit} onChange={(e) => set("seatLimit", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
           </Field>
           <Field label="Points awarded on completion">
-            <input type="number" min={0} value={form.pointsAwarded} onChange={(e) => set("pointsAwarded", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+            <input disabled={!canEdit} type="number" min={0} value={form.pointsAwarded} onChange={(e) => set("pointsAwarded", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
           </Field>
           <Field label="Points required to access">
-            <input type="number" min={0} value={form.pointsRequired} onChange={(e) => set("pointsRequired", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+            <input disabled={!canEdit} type="number" min={0} value={form.pointsRequired} onChange={(e) => set("pointsRequired", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
           </Field>
           <Field label="Access duration (days, 0 = lifetime)">
-            <input type="number" min={0} value={form.accessDurationDays} onChange={(e) => set("accessDurationDays", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+            <input disabled={!canEdit} type="number" min={0} value={form.accessDurationDays} onChange={(e) => set("accessDurationDays", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
           </Field>
           <Field label="Start date">
-            <input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+            <input disabled={!canEdit} type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
           </Field>
           <Field label="End date">
-            <input type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+            <input disabled={!canEdit} type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
           </Field>
           <Field label="Completion redirect URL">
-            <input value={form.completionRedirectUrl} onChange={(e) => set("completionRedirectUrl", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+            <input disabled={!canEdit} value={form.completionRedirectUrl} onChange={(e) => set("completionRedirectUrl", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
           </Field>
           <Field label="Categories">
-            <input value={form.categoryText} onChange={(e) => set("categoryText", e.target.value)} placeholder="onboarding, compliance" className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+            <input disabled={!canEdit} value={form.categoryText} onChange={(e) => set("categoryText", e.target.value)} placeholder="onboarding, compliance" className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
           </Field>
           <Field label="Tags">
-            <input value={form.tagText} onChange={(e) => set("tagText", e.target.value)} placeholder="beginner, team training" className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+            <input disabled={!canEdit} value={form.tagText} onChange={(e) => set("tagText", e.target.value)} placeholder="beginner, team training" className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
           </Field>
         </div>
 
         {(form.accessMode === "buy" || form.accessMode === "recurring") && (
           <div className="grid grid-cols-1 gap-4 rounded-md border border-border bg-muted/20 p-4 sm:grid-cols-2">
             <Field label="One-time price">
-              <input type="number" min={0} value={form.price} onChange={(e) => set("price", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+              <input disabled={!canEdit} type="number" min={0} value={form.price} onChange={(e) => set("price", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
             </Field>
             <Field label="Recurring price">
-              <input type="number" min={0} value={form.recurringPrice} onChange={(e) => set("recurringPrice", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+              <input disabled={!canEdit} type="number" min={0} value={form.recurringPrice} onChange={(e) => set("recurringPrice", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
             </Field>
             <Field label="Billing interval">
-              <input type="number" min={1} value={form.billingInterval} onChange={(e) => set("billingInterval", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+              <input disabled={!canEdit} type="number" min={1} value={form.billingInterval} onChange={(e) => set("billingInterval", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
             </Field>
             <Field label="Billing unit">
-              <select value={form.billingUnit} onChange={(e) => set("billingUnit", e.target.value as BillingUnit)} className="w-full rounded-md border border-border px-3 py-2 text-sm">
+              <select disabled={!canEdit} value={form.billingUnit} onChange={(e) => set("billingUnit", e.target.value as BillingUnit)} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70">
                 <option value="day">Day</option>
                 <option value="week">Week</option>
                 <option value="month">Month</option>
@@ -434,13 +456,13 @@ function CourseSettingsPage() {
               </select>
             </Field>
             <Field label="Trial price">
-              <input type="number" min={0} value={form.trialPrice} onChange={(e) => set("trialPrice", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+              <input disabled={!canEdit} type="number" min={0} value={form.trialPrice} onChange={(e) => set("trialPrice", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
             </Field>
             <Field label="Trial days">
-              <input type="number" min={0} value={form.trialDays} onChange={(e) => set("trialDays", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+              <input disabled={!canEdit} type="number" min={0} value={form.trialDays} onChange={(e) => set("trialDays", Number(e.target.value))} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
             </Field>
             <Field label="External checkout URL">
-              <input value={form.externalButtonUrl} onChange={(e) => set("externalButtonUrl", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+              <input disabled={!canEdit} value={form.externalButtonUrl} onChange={(e) => set("externalButtonUrl", e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70" />
             </Field>
           </div>
         )}
@@ -459,13 +481,15 @@ function CourseSettingsPage() {
               onChange={setMembershipPlanIds}
               plans={Array.isArray(membershipPlans) ? membershipPlans : []}
               emptyLabel="No active membership plans are available."
+              disabled={!canEdit}
             />
             <Field label="Locked message">
               <textarea
+                disabled={!canEdit}
                 value={accessMessage}
                 onChange={(e) => setAccessMessage(e.target.value)}
                 rows={2}
-                className="w-full rounded-md border border-border px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70"
               />
             </Field>
           </div>
@@ -479,7 +503,7 @@ function CourseSettingsPage() {
             </p>
           </div>
           <Field label="Requirement mode">
-            <select value={form.prereqMode} onChange={(e) => set("prereqMode", e.target.value as PrereqMode)} className="w-full rounded-md border border-border px-3 py-2 text-sm">
+            <select disabled={!canEdit} value={form.prereqMode} onChange={(e) => set("prereqMode", e.target.value as PrereqMode)} className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70">
               <option value="all">Complete all prerequisites</option>
               <option value="any">Complete any prerequisite</option>
             </select>
@@ -493,6 +517,7 @@ function CourseSettingsPage() {
                   <button
                     key={candidate._id}
                     type="button"
+                    disabled={!canEdit}
                     onClick={() => {
                       setPrereqCourseIds((current) =>
                         checked
@@ -504,6 +529,8 @@ function CourseSettingsPage() {
                       checked
                         ? "border-primary bg-primary/5"
                         : "border-border hover:bg-muted"
+                    } disabled:cursor-not-allowed disabled:opacity-60 ${
+                      !canEdit ? "hover:bg-transparent" : ""
                     }`}
                   >
                     <span className="block font-medium">{candidate.title}</span>

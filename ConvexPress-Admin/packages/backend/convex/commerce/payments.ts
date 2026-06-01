@@ -42,6 +42,7 @@ import {
 	resolveRecipients,
 } from "../helpers/email";
 import { fulfillOrderDigitalEntitlementsHandler } from "../commerceDigital/fulfillment";
+import { syncPurchasedCourseEnrollmentsHandler } from "../lms/enrollment/internals";
 
 async function getOrCreatePaymentCollectionForOrder(ctx: any, order: any) {
 	const existing = await ctx.db
@@ -1036,6 +1037,10 @@ export const completeRefund = internalMutation({
 					paymentStatus: "refunded",
 					status: "refunded",
 					updatedAt: now,
+				});
+				await syncPurchasedCourseEnrollmentsHandler(ctx, {
+					orderId: transaction.orderId,
+					action: "revoke",
 				});
 			}
 

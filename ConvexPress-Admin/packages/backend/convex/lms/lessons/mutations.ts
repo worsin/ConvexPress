@@ -22,6 +22,7 @@ import { requireNodeCourseAuthorOrEditor } from "../access";
 export const updateLessonContent = mutation({
   args: {
     nodeId: v.id("lms_nodes"),
+    expectedUpdatedAt: v.optional(v.number()),
     title: v.optional(v.string()),
     bodyText: v.optional(v.string()),
     materialsText: v.optional(v.string()),
@@ -39,12 +40,20 @@ export const updateLessonContent = mutation({
   },
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    const { user, node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId);
+    const { user, node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.lesson.edit");
     if (node.kind !== "lesson") {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Node is not a lesson" });
     }
+    if (args.expectedUpdatedAt !== undefined && node.updatedAt !== args.expectedUpdatedAt) {
+      throw new ConvexError({
+        code: "EDIT_CONFLICT",
+        message: "This lesson changed since you opened it. Refresh before saving.",
+        serverUpdatedAt: node.updatedAt,
+      });
+    }
 
-    const patch: Record<string, unknown> = { updatedAt: Date.now() };
+    const now = Date.now();
+    const patch: Record<string, unknown> = { updatedAt: now };
     const nextBodyDoc =
       args.bodyText !== undefined ? textToDoc(normalizeLessonText(args.bodyText)) : undefined;
     const videoUrlProvided = Object.prototype.hasOwnProperty.call(args, "videoUrl");
@@ -55,7 +64,8 @@ export const updateLessonContent = mutation({
     const nextVideoMediaId = videoMediaProvided ? args.videoMediaId : node.videoMediaId;
     const hasVideoSource = !!nextVideoUrl || !!nextVideoMediaId;
 
-    if (args.requireVideoWatch && !hasVideoSource) {
+    const nextRequireVideoWatch = args.requireVideoWatch ?? node.requireVideoWatch ?? false;
+    if (nextRequireVideoWatch && !hasVideoSource) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message: "A lesson must have a video before requiring video watch completion.",
@@ -92,21 +102,30 @@ export const updateLessonContent = mutation({
     }
     if (args.dripDate !== undefined) patch.lessonDripDate = args.dripDate;
 
-    if (nextBodyDoc !== undefined && node.bodyDoc !== undefined && !docsEqual(node.bodyDoc, nextBodyDoc)) {
-      await ctx.db.insert("lms_lessonVersions", {
-        nodeId: args.nodeId,
-        bodyDoc: node.bodyDoc,
-        editedBy: user._id,
-        createdAt: Date.now(),
-      });
+    const changedFields = Object.entries(patch)
+      .filter(([field]) => field !== "updatedAt")
+      .filter(([field, value]) => !docsEqual((node as any)[field], value))
+      .map(([field]) => field);
+
+    if (changedFields.length === 0) {
+      return { nodeId: args.nodeId, updatedAt: node.updatedAt, changedFields: [] };
     }
+
+    await ctx.db.insert("lms_lessonVersions", {
+      nodeId: args.nodeId,
+      bodyDoc: node.bodyDoc ?? textToDoc(""),
+      snapshotJson: lessonSnapshot(node),
+      editedBy: user._id,
+      createdAt: now,
+    });
 
     await ctx.db.patch(args.nodeId, patch as never);
     await emitEvent(ctx, LMS_EVENTS.LESSON_UPDATED, SYSTEM.LMS, {
       nodeId: args.nodeId,
       courseId: node.courseId,
+      changedFields,
     });
-    return args.nodeId;
+    return { nodeId: args.nodeId, updatedAt: now, changedFields };
   },
 });
 
@@ -117,7 +136,7 @@ export const restoreLessonVersion = mutation({
   },
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    const { user, node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId);
+    const { user, node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.lesson.edit");
     if (node.kind !== "lesson") {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Node is not a lesson" });
     }
@@ -125,23 +144,95 @@ export const restoreLessonVersion = mutation({
     if (!version || version.nodeId !== args.nodeId) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Lesson version not found" });
     }
-    if (node.bodyDoc !== undefined) {
-      await ctx.db.insert("lms_lessonVersions", {
-        nodeId: args.nodeId,
-        bodyDoc: node.bodyDoc,
-        editedBy: user._id,
-        createdAt: Date.now(),
-      });
-    }
+    await ctx.db.insert("lms_lessonVersions", {
+      nodeId: args.nodeId,
+      bodyDoc: node.bodyDoc ?? textToDoc(""),
+      snapshotJson: lessonSnapshot(node),
+      editedBy: user._id,
+      createdAt: Date.now(),
+    });
+    const snapshot = (version.snapshotJson ?? {}) as Record<string, unknown>;
+    const patch = restorePatchFromSnapshot(snapshot, version.bodyDoc);
+    const now = Date.now();
     await ctx.db.patch(args.nodeId, {
-      bodyDoc: version.bodyDoc,
-      updatedAt: Date.now(),
+      ...patch,
+      updatedAt: now,
     });
     await emitEvent(ctx, LMS_EVENTS.LESSON_VERSION_RESTORED, SYSTEM.LMS, {
       nodeId: args.nodeId,
       versionId: args.versionId,
       courseId: node.courseId,
+      restoredFields: Object.keys(patch),
     });
-    return args.nodeId;
+    return { nodeId: args.nodeId, updatedAt: now, restoredFields: Object.keys(patch) };
   },
 });
+
+function lessonSnapshot(node: any) {
+  const snapshot = {
+    title: node.title,
+    bodyDoc: node.bodyDoc,
+    materialsDoc: node.materialsDoc,
+    videoUrl: node.videoUrl,
+    videoProvider: node.videoProvider,
+    videoMediaId: node.videoMediaId,
+    isPreview: node.isPreview,
+    requireVideoWatch: node.requireVideoWatch,
+    autoComplete: node.autoComplete,
+    completionDelaySec: node.completionDelaySec,
+    minTimeSeconds: node.minTimeSeconds,
+    showMarkComplete: node.showMarkComplete,
+    lessonDripMode: node.lessonDripMode,
+    lessonDripOffsetDays: node.lessonDripOffsetDays,
+    lessonDripDate: node.lessonDripDate,
+  };
+  const values = Object.fromEntries(
+    Object.entries(snapshot).filter(([, value]) => value !== undefined),
+  );
+  const unsetFields = Object.entries(snapshot)
+    .filter(([, value]) => value === undefined)
+    .map(([field]) => field);
+  return { values, unsetFields };
+}
+
+function restorePatchFromSnapshot(snapshot: Record<string, unknown>, fallbackBodyDoc: unknown) {
+  const allowed = [
+    "title",
+    "bodyDoc",
+    "materialsDoc",
+    "videoUrl",
+    "videoProvider",
+    "videoMediaId",
+    "isPreview",
+    "requireVideoWatch",
+    "autoComplete",
+    "completionDelaySec",
+    "minTimeSeconds",
+    "showMarkComplete",
+    "lessonDripMode",
+    "lessonDripOffsetDays",
+    "lessonDripDate",
+  ];
+  if (snapshot.values || snapshot.unsetFields) {
+    const values = (snapshot.values ?? {}) as Record<string, unknown>;
+    const unsetFields = Array.isArray(snapshot.unsetFields) ? snapshot.unsetFields : [];
+    const patch: Record<string, unknown> = Object.fromEntries(
+      allowed
+        .filter((field) => Object.prototype.hasOwnProperty.call(values, field))
+        .map((field) => [field, values[field]]),
+    );
+    for (const field of unsetFields) {
+      if (allowed.includes(String(field))) patch[String(field)] = undefined;
+    }
+    if (!Object.prototype.hasOwnProperty.call(patch, "bodyDoc")) {
+      patch.bodyDoc = fallbackBodyDoc;
+    }
+    return patch;
+  }
+  const restored = Object.keys(snapshot).length > 0 ? snapshot : { bodyDoc: fallbackBodyDoc };
+  return Object.fromEntries(
+    allowed
+      .filter((field) => Object.prototype.hasOwnProperty.call(restored, field))
+      .map((field) => [field, restored[field]]),
+  );
+}

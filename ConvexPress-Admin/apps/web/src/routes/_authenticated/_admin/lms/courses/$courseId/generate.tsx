@@ -12,6 +12,7 @@ import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { ArrowLeft, CheckCircle2, Clock, Info, Sparkles } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/lms/courses/$courseId/generate",
@@ -20,13 +21,15 @@ export const Route = createFileRoute(
 });
 
 function GeneratePage() {
+  const { can } = useAuth();
+  const canGenerateAi = can("lms.ai.generate");
   const { courseId } = Route.useParams();
   const generate = useAction(api.lms.ai.actions.generateCourse);
   const approveOutline = useMutation((api as any).lms.ai.mutations.approveOutline);
   const [showGenerations, setShowGenerations] = useState(false);
   const generations = useQuery(
     (api as any).lms.ai.queries.listCourseGenerations,
-    showGenerations ? { courseId: courseId as Id<"lms_courses"> } : "skip",
+    showGenerations && canGenerateAi ? { courseId: courseId as Id<"lms_courses"> } : "skip",
   ) as GenerationSummary[] | undefined;
 
   const [topic, setTopic] = useState("");
@@ -36,6 +39,10 @@ function GeneratePage() {
   const [busy, setBusy] = useState(false);
 
   async function handleGenerate() {
+    if (!canGenerateAi) {
+      toast.error("You do not have permission to generate LMS content.");
+      return;
+    }
     if (!topic.trim()) {
       toast.error("Enter a course topic");
       return;
@@ -69,6 +76,10 @@ function GeneratePage() {
   }
 
   async function handleApprove(generationId: Id<"lms_ai_generations">) {
+    if (!canGenerateAi) {
+      toast.error("You do not have permission to approve generated content.");
+      return;
+    }
     const tid = toast.loading("Approving outline and queueing lesson bodies…");
     try {
       const result = await approveOutline({ generationId });
@@ -109,13 +120,19 @@ function GeneratePage() {
       </div>
 
       <div className="space-y-4 rounded-lg border border-border p-6">
+        {!canGenerateAi ? (
+          <div className="rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+            AI generation is not available for your role.
+          </div>
+        ) : null}
         <label className="block">
           <span className="mb-1 block text-sm font-medium">Course topic</span>
           <input
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
+            disabled={!canGenerateAi}
             placeholder="e.g. Real-time apps with Convex"
-            className="w-full rounded-md border border-border px-3 py-2 text-sm"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70"
           />
         </label>
         <label className="block">
@@ -123,8 +140,9 @@ function GeneratePage() {
           <input
             value={audience}
             onChange={(e) => setAudience(e.target.value)}
+            disabled={!canGenerateAi}
             placeholder="e.g. Intermediate React developers"
-            className="w-full rounded-md border border-border px-3 py-2 text-sm"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70"
           />
         </label>
         <div className="grid grid-cols-2 gap-4">
@@ -136,7 +154,8 @@ function GeneratePage() {
               max={12}
               value={topicsCount}
               onChange={(e) => setTopicsCount(Number(e.target.value))}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm"
+              disabled={!canGenerateAi}
+              className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70"
             />
           </label>
           <label className="block">
@@ -144,7 +163,8 @@ function GeneratePage() {
             <select
               value={tone}
               onChange={(e) => setTone(e.target.value)}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm"
+              disabled={!canGenerateAi}
+              className="w-full rounded-md border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70"
             >
               <option value="professional">Professional</option>
               <option value="casual">Casual</option>
@@ -155,7 +175,7 @@ function GeneratePage() {
         <button
           type="button"
           onClick={handleGenerate}
-          disabled={busy}
+          disabled={busy || !canGenerateAi}
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           <Sparkles className="h-4 w-4" /> {busy ? "Generating…" : "Generate course"}
@@ -167,7 +187,7 @@ function GeneratePage() {
           Generated outlines
         </h2>
         <div className="mb-3 flex justify-end">
-          {!showGenerations && (
+          {!showGenerations && canGenerateAi ? (
             <button
               type="button"
               onClick={() => setShowGenerations(true)}
@@ -175,9 +195,11 @@ function GeneratePage() {
             >
               Load generated outlines
             </button>
-          )}
+          ) : null}
         </div>
-        {!showGenerations ? (
+        {!canGenerateAi ? (
+          <p className="text-sm text-muted-foreground">Generated outlines are hidden for your role.</p>
+        ) : !showGenerations ? (
           <p className="text-sm text-muted-foreground">Generated outlines are not loaded.</p>
         ) : (generations ?? []).length === 0 ? (
           <p className="text-sm text-muted-foreground">No generated outlines yet.</p>
@@ -210,7 +232,8 @@ function GeneratePage() {
                     <button
                       type="button"
                       onClick={() => handleApprove(generation._id)}
-                      className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                      disabled={!canGenerateAi}
+                      className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
                     >
                       <CheckCircle2 className="h-4 w-4" /> Approve outline
                     </button>

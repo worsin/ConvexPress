@@ -8,7 +8,8 @@ export type EmailTemplateCategory =
   | "knowledge_base"
   | "commerce"
   | "shipping"
-  | "subscription";
+  | "subscription"
+  | "lms";
 
 export type EmailTemplateTriggerKind =
   | "event"
@@ -35,6 +36,7 @@ export const EMAIL_TEMPLATE_CATEGORIES: EmailTemplateCategory[] = [
   "commerce",
   "shipping",
   "subscription",
+  "lms",
 ];
 
 export const EMAIL_TEMPLATE_REGISTRY: EmailTemplateRegistryEntry[] = [
@@ -385,6 +387,41 @@ export const EMAIL_TEMPLATE_REGISTRY: EmailTemplateRegistryEntry[] = [
     triggerKind: "event",
     canonicalEventCode: "commerce.subscription_paused",
     description: "Subscription pause confirmation.",
+  },
+  {
+    slug: "lms-course-enrolled",
+    category: "lms",
+    triggerKind: "event",
+    canonicalEventCode: "lms.enrolled",
+    description: "Course enrollment confirmation for learners.",
+  },
+  {
+    slug: "lms-course-unenrolled",
+    category: "lms",
+    triggerKind: "event",
+    canonicalEventCode: "lms.unenrolled",
+    description: "Course access removal notice for learners.",
+  },
+  {
+    slug: "lms-course-completed",
+    category: "lms",
+    triggerKind: "event",
+    canonicalEventCode: "lms.course_completed",
+    description: "Course completion confirmation for learners.",
+  },
+  {
+    slug: "lms-certificate-issued",
+    category: "lms",
+    triggerKind: "event",
+    canonicalEventCode: "lms.certificate_issued",
+    description: "Certificate-ready email for learners.",
+  },
+  {
+    slug: "lms-certificate-revoked",
+    category: "lms",
+    triggerKind: "event",
+    canonicalEventCode: "lms.certificate_revoked",
+    description: "Certificate revocation notice for learners.",
   },
 ];
 

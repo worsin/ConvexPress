@@ -25,6 +25,7 @@ import {
   updateOrderStatusArgs,
 } from "./validators";
 import { fulfillOrderDigitalEntitlementsHandler } from "../commerceDigital/fulfillment";
+import { syncPurchasedCourseEnrollmentsHandler } from "../lms/enrollment/internals";
 
 async function enrichOrder(ctx: any, order: any) {
   const items = await ctx.db
@@ -1099,6 +1100,12 @@ export const createRefund = mutation({
           : order.inventoryReleasedAt,
       updatedAt: now,
     });
+    if (isFullyRefunded) {
+      await syncPurchasedCourseEnrollmentsHandler(ctx, {
+        orderId: order._id,
+        action: "revoke",
+      });
+    }
 
     await appendOrderHistory(ctx, {
       orderId: order._id,

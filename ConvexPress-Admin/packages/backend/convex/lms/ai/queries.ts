@@ -4,15 +4,16 @@
 
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
-import { requireMinimumRoleLevel } from "../../helpers/permissions";
 import { isPluginEnabled } from "../../helpers/plugins";
 import { normalizeOutline, outlineStats } from "./helpers";
+import { docToText } from "../lessons/helpers";
+import { requireCourseAuthorOrEditor, requireNodeCourseAuthorOrEditor } from "../access";
 
 export const listCourseGenerations = query({
   args: { courseId: v.id("lms_courses") },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
-    await requireMinimumRoleLevel(ctx, 60);
+    await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.ai.generate");
     const rows = await ctx.db
       .query("lms_ai_generations")
       .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
@@ -44,5 +45,26 @@ export const listCourseGenerations = query({
           },
         };
       });
+  },
+});
+
+export const listNodeGenerations = query({
+  args: { nodeId: v.id("lms_nodes") },
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "lms"))) return [];
+    const { node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.ai.generate");
+    if (node.kind !== "lesson") return [];
+    const rows = await ctx.db
+      .query("lms_ai_generations")
+      .withIndex("by_target", (q) => q.eq("targetType", "node").eq("targetId", String(args.nodeId)))
+      .collect();
+    return rows
+      .filter((row) => row.stage === "lesson_body")
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((row) => ({
+        ...row,
+        generatedBodyText: String((row.briefJson as any)?.generatedBody ?? ""),
+        currentBodyText: docToText(node.bodyDoc),
+      }));
   },
 });

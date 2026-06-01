@@ -6,22 +6,26 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { GraduationCap, BookOpen, Award, Settings, Compass } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/_admin/lms/")({
   component: LMSOverview,
 });
 
 const CARDS = [
-  { to: "/lms/courses" as const, icon: BookOpen, title: "Courses", desc: "Create and manage courses, topics, and lessons." },
+  { to: "/lms/courses" as const, icon: BookOpen, title: "Courses", desc: "Create and manage courses, topics, and lessons.", capability: "lms.course.view" },
   { to: "/lms/catalog" as const, icon: Compass, title: "Catalog", desc: "Browse published courses as a learner." },
-  { to: "/lms/certificates" as const, icon: Award, title: "Certificates", desc: "Design completion certificate templates." },
-  { to: "/lms/settings" as const, icon: Settings, title: "Settings", desc: "Configure LMS defaults and AI generation." },
+  { to: "/lms/certificates" as const, icon: Award, title: "Certificates", desc: "Design completion certificate templates.", capability: "lms.certificate.manage" },
+  { to: "/lms/settings" as const, icon: Settings, title: "Settings", desc: "Configure LMS defaults and AI generation.", capability: "lms.settings.manage" },
 ];
 
 function LMSOverview() {
+  const { can } = useAuth();
+  const canViewCourses = can("lms.course.view");
   const stats = useQuery(api.lms.courses.queries.stats, {}) as
     | { total: number; published: number; draft: number; archived: number }
     | undefined;
+  const visibleCards = CARDS.filter((card) => !card.capability || can(card.capability));
 
   return (
     <div className="mx-auto max-w-5xl p-6">
@@ -34,15 +38,17 @@ function LMSOverview() {
         them to learners.
       </p>
 
-      <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Total courses" value={stats?.total} />
-        <Stat label="Published" value={stats?.published} accent="text-green-500" />
-        <Stat label="Drafts" value={stats?.draft} accent="text-amber-500" />
-        <Stat label="Archived" value={stats?.archived} />
-      </div>
+      {canViewCourses ? (
+        <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label="Total courses" value={stats?.total} />
+          <Stat label="Published" value={stats?.published} accent="text-green-500" />
+          <Stat label="Drafts" value={stats?.draft} accent="text-amber-500" />
+          <Stat label="Archived" value={stats?.archived} />
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {CARDS.map((card) => (
+        {visibleCards.map((card) => (
           <Link
             key={card.title}
             to={card.to}

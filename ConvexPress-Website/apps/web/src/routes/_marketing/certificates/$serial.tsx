@@ -22,6 +22,9 @@ type VerificationResult =
       courseTitle: string;
       issuedAt: number;
       serial: string;
+      certificateTitle: string;
+      orientation: "landscape" | "portrait";
+      certificateText: string;
     }
   | { valid: false };
 
@@ -88,7 +91,13 @@ function CertificatePreviewPage() {
         </div>
       </div>
 
-      <article className="border border-border bg-card p-8 shadow-sm print:border-0 print:shadow-none sm:p-12">
+      <article
+        className={
+          result.orientation === "portrait"
+            ? "mx-auto max-w-3xl border border-border bg-card p-8 shadow-sm print:border-0 print:shadow-none sm:p-12"
+            : "border border-border bg-card p-8 shadow-sm print:border-0 print:shadow-none sm:p-12"
+        }
+      >
         <div className="flex justify-center">
           <div className="rounded-full border border-primary/30 bg-primary/10 p-5 text-primary">
             <Award className="size-12" aria-hidden="true" />
@@ -97,17 +106,16 @@ function CertificatePreviewPage() {
 
         <div className="mx-auto mt-8 max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
-            Certificate of Completion
+            {result.certificateTitle}
           </p>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
             {result.learnerName}
           </h1>
-          <p className="mt-5 text-sm leading-6 text-muted-foreground">
-            has successfully completed
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold text-foreground">
-            {result.courseTitle}
-          </h2>
+          <div className="mt-6 space-y-3 text-sm leading-6 text-muted-foreground">
+            {result.certificateText.split(/\n{2,}/).map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </div>
         </div>
 
         <dl className="mx-auto mt-10 grid max-w-2xl gap-4 border-t border-border pt-6 text-sm sm:grid-cols-3">

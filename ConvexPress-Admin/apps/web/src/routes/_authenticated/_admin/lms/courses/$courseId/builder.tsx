@@ -10,6 +10,7 @@ import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
 import {
   DndContext,
   closestCenter,
@@ -59,8 +60,12 @@ async function run(label: string, fn: () => Promise<unknown>) {
 }
 
 function BuilderPage() {
+  const { can } = useAuth();
   const { courseId } = Route.useParams();
   const id = courseId as Id<"lms_courses">;
+  const canManageBuilder = can("lms.builder.manage");
+  const canEditLessons = can("lms.lesson.edit");
+  const canGenerateAi = can("lms.ai.generate");
   const course = useQuery(api.lms.courses.queries.getById, { courseId: id });
   const tree = useQuery(api.lms.nodes.queries.getCourseTree, { courseId: id }) as
     | { topics: Topic[] }
@@ -78,6 +83,10 @@ function BuilderPage() {
   const topics = tree?.topics ?? [];
 
   async function addTopic() {
+    if (!canManageBuilder) {
+      toast.error("You do not have permission to manage the curriculum.");
+      return;
+    }
     if (!newTopic.trim()) return;
     await run("Topic added", () =>
       createNode({ courseId: id, kind: "topic", title: newTopic.trim() }),
@@ -86,6 +95,7 @@ function BuilderPage() {
   }
 
   function handleDragEnd(event: DragEndEvent) {
+    if (!canManageBuilder) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const activeId = String(active.id);
@@ -133,15 +143,17 @@ function BuilderPage() {
             {topics.length === 0 && (
               <div className="rounded-lg border border-dashed border-border p-8 text-center">
                 <p className="mb-4 text-sm text-muted-foreground">
-                  No topics yet. Add one below, or generate the whole course with AI.
+                  No topics yet.
                 </p>
-                <Link
-                  to="/lms/courses/$courseId/generate"
-                  params={{ courseId }}
-                  className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-                >
-                  <Sparkles className="h-4 w-4" /> Generate with AI
-                </Link>
+                {canGenerateAi ? (
+                  <Link
+                    to="/lms/courses/$courseId/generate"
+                    params={{ courseId }}
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                  >
+                    <Sparkles className="h-4 w-4" /> Generate with AI
+                  </Link>
+                ) : null}
               </div>
             )}
 
@@ -153,29 +165,33 @@ function BuilderPage() {
                   topic={topic}
                   isFirst={i === 0}
                   isLast={i === topics.length - 1}
+                  canManageBuilder={canManageBuilder}
+                  canEditLessons={canEditLessons}
                 />
               ))}
             </SortableContext>
 
-            <div className="flex items-center gap-2 rounded-lg border border-border p-3">
-              <Plus className="h-4 w-4 text-muted-foreground" />
-              <input
-                value={newTopic}
-                onChange={(e) => setNewTopic(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void addTopic();
-                }}
-                placeholder="New topic title…"
-                className="flex-1 bg-transparent text-sm outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => void addTopic()}
-                className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
-              >
-                Add Topic
-              </button>
-            </div>
+            {canManageBuilder ? (
+              <div className="flex items-center gap-2 rounded-lg border border-border p-3">
+                <Plus className="h-4 w-4 text-muted-foreground" />
+                <input
+                  value={newTopic}
+                  onChange={(e) => setNewTopic(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void addTopic();
+                  }}
+                  placeholder="New topic title…"
+                  className="flex-1 bg-transparent text-sm outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => void addTopic()}
+                  className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+                >
+                  Add Topic
+                </button>
+              </div>
+            ) : null}
           </div>
         </DndContext>
       )}
@@ -188,11 +204,15 @@ function TopicBlock({
   topic,
   isFirst,
   isLast,
+  canManageBuilder,
+  canEditLessons,
 }: {
   courseId: string;
   topic: Topic;
   isFirst: boolean;
   isLast: boolean;
+  canManageBuilder: boolean;
+  canEditLessons: boolean;
 }) {
   const createNode = useMutation(api.lms.nodes.mutations.createNode);
   const renameNode = useMutation(api.lms.nodes.mutations.renameNode);
@@ -205,6 +225,7 @@ function TopicBlock({
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
 
   function rename(nodeId: string, current: string) {
+    if (!canManageBuilder) return;
     const title = window.prompt("Rename", current);
     if (title && title.trim() && title !== current) {
       void run("Renamed", () => renameNode({ nodeId: nodeId as Id<"lms_nodes">, title: title.trim() }));
@@ -212,6 +233,10 @@ function TopicBlock({
   }
 
   async function addLesson(kind: "lesson" | "section_heading") {
+    if (!canManageBuilder) {
+      toast.error("You do not have permission to manage the curriculum.");
+      return;
+    }
     const title = kind === "lesson" ? newLesson.trim() : window.prompt("Section heading") ?? "";
     if (!title.trim()) return;
     await run(kind === "lesson" ? "Lesson added" : "Heading added", () =>
@@ -228,32 +253,42 @@ function TopicBlock({
   return (
     <div ref={setNodeRef} style={style} className="rounded-lg border border-border">
       <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2">
-        <button type="button" className="cursor-grab text-muted-foreground" {...attributes} {...listeners} title="Drag to reorder">
-          <GripVertical className="h-4 w-4" />
-        </button>
+        {canManageBuilder ? (
+          <button type="button" className="cursor-grab text-muted-foreground" {...attributes} {...listeners} title="Drag to reorder">
+            <GripVertical className="h-4 w-4" />
+          </button>
+        ) : null}
         <Layers className="h-4 w-4 text-muted-foreground" />
-        <Link
-          to="/lms/courses/$courseId/topics/$nodeId"
-          params={{ courseId, nodeId: topic._id }}
-          className="flex-1 font-medium hover:underline"
-        >
-          {topic.title}
-        </Link>
-        <IconBtn title="Move up" disabled={isFirst} onClick={() => void run("", () => moveNode({ nodeId: topic._id as Id<"lms_nodes">, direction: "up" }))}>
-          <ChevronUp className="h-4 w-4" />
-        </IconBtn>
-        <IconBtn title="Move down" disabled={isLast} onClick={() => void run("", () => moveNode({ nodeId: topic._id as Id<"lms_nodes">, direction: "down" }))}>
-          <ChevronDown className="h-4 w-4" />
-        </IconBtn>
-        <IconBtn title="Rename" onClick={() => rename(topic._id, topic.title)}>
-          <Pencil className="h-4 w-4" />
-        </IconBtn>
-        <IconBtn title="Delete topic" danger onClick={() => {
-          if (window.confirm(`Delete topic "${topic.title}" and its lessons?`))
-            void run("Deleted", () => deleteNode({ nodeId: topic._id as Id<"lms_nodes"> }));
-        }}>
-          <Trash2 className="h-4 w-4" />
-        </IconBtn>
+        {canManageBuilder ? (
+          <Link
+            to="/lms/courses/$courseId/topics/$nodeId"
+            params={{ courseId, nodeId: topic._id }}
+            className="flex-1 font-medium hover:underline"
+          >
+            {topic.title}
+          </Link>
+        ) : (
+          <span className="flex-1 font-medium">{topic.title}</span>
+        )}
+        {canManageBuilder ? (
+          <>
+            <IconBtn title="Move up" disabled={isFirst} onClick={() => void run("", () => moveNode({ nodeId: topic._id as Id<"lms_nodes">, direction: "up" }))}>
+              <ChevronUp className="h-4 w-4" />
+            </IconBtn>
+            <IconBtn title="Move down" disabled={isLast} onClick={() => void run("", () => moveNode({ nodeId: topic._id as Id<"lms_nodes">, direction: "down" }))}>
+              <ChevronDown className="h-4 w-4" />
+            </IconBtn>
+            <IconBtn title="Rename" onClick={() => rename(topic._id, topic.title)}>
+              <Pencil className="h-4 w-4" />
+            </IconBtn>
+            <IconBtn title="Delete topic" danger onClick={() => {
+              if (window.confirm(`Delete topic "${topic.title}" and its lessons?`))
+                void run("Deleted", () => deleteNode({ nodeId: topic._id as Id<"lms_nodes"> }));
+            }}>
+              <Trash2 className="h-4 w-4" />
+            </IconBtn>
+          </>
+        ) : null}
       </div>
 
       <div className="divide-y divide-border">
@@ -272,29 +307,33 @@ function TopicBlock({
               deleteNode={deleteNode}
               moveNode={moveNode}
               rename={rename}
+              canManageBuilder={canManageBuilder}
+              canEditLessons={canEditLessons}
             />
           ))}
         </SortableContext>
       </div>
 
-      <div className="flex items-center gap-2 px-4 py-2">
-        <Plus className="h-4 w-4 text-muted-foreground" />
-        <input
-          value={newLesson}
-          onChange={(e) => setNewLesson(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void addLesson("lesson");
-          }}
-          placeholder="New lesson title…"
-          className="flex-1 bg-transparent text-sm outline-none"
-        />
-        <button type="button" onClick={() => void addLesson("lesson")} className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">
-          Add Lesson
-        </button>
-        <button type="button" onClick={() => void addLesson("section_heading")} className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">
-          Add Heading
-        </button>
-      </div>
+      {canManageBuilder ? (
+        <div className="flex items-center gap-2 px-4 py-2">
+          <Plus className="h-4 w-4 text-muted-foreground" />
+          <input
+            value={newLesson}
+            onChange={(e) => setNewLesson(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void addLesson("lesson");
+            }}
+            placeholder="New lesson title…"
+            className="flex-1 bg-transparent text-sm outline-none"
+          />
+          <button type="button" onClick={() => void addLesson("lesson")} className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">
+            Add Lesson
+          </button>
+          <button type="button" onClick={() => void addLesson("section_heading")} className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">
+            Add Heading
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -307,6 +346,8 @@ function ChildRow({
   moveNode,
   deleteNode,
   rename,
+  canManageBuilder,
+  canEditLessons,
 }: {
   courseId: string;
   child: Child;
@@ -316,6 +357,8 @@ function ChildRow({
   deleteNode: (a: { nodeId: Id<"lms_nodes"> }) => Promise<unknown>;
   moveNode: (a: { nodeId: Id<"lms_nodes">; direction: "up" | "down" }) => Promise<unknown>;
   rename: (nodeId: string, current: string) => void;
+  canManageBuilder: boolean;
+  canEditLessons: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: child._id });
@@ -323,36 +366,42 @@ function ChildRow({
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2 px-4 py-2">
-      <button type="button" className="cursor-grab text-muted-foreground" {...attributes} {...listeners} title="Drag to reorder">
-        <GripVertical className="h-4 w-4" />
-      </button>
+      {canManageBuilder ? (
+        <button type="button" className="cursor-grab text-muted-foreground" {...attributes} {...listeners} title="Drag to reorder">
+          <GripVertical className="h-4 w-4" />
+        </button>
+      ) : null}
       {child.kind === "section_heading" ? (
         <Type className="h-4 w-4 text-muted-foreground" />
       ) : (
         <PlayCircle className="h-4 w-4 text-muted-foreground" />
       )}
-      {child.kind === "lesson" ? (
+      {child.kind === "lesson" && canEditLessons ? (
         <Link to="/lms/courses/$courseId/lessons/$nodeId" params={{ courseId, nodeId: child._id }} className="flex-1 text-sm hover:underline">
           {child.title}
         </Link>
       ) : (
         <span className="flex-1 text-sm font-medium uppercase text-muted-foreground">{child.title}</span>
       )}
-      <IconBtn title="Move up" disabled={isFirst} onClick={() => void run("", () => moveNode({ nodeId: child._id as Id<"lms_nodes">, direction: "up" }))}>
-        <ChevronUp className="h-4 w-4" />
-      </IconBtn>
-      <IconBtn title="Move down" disabled={isLast} onClick={() => void run("", () => moveNode({ nodeId: child._id as Id<"lms_nodes">, direction: "down" }))}>
-        <ChevronDown className="h-4 w-4" />
-      </IconBtn>
-      <IconBtn title="Rename" onClick={() => rename(child._id, child.title)}>
-        <Pencil className="h-4 w-4" />
-      </IconBtn>
-      <IconBtn title="Delete" danger onClick={() => {
-        if (window.confirm(`Delete "${child.title}"?`))
-          void run("Deleted", () => deleteNode({ nodeId: child._id as Id<"lms_nodes"> }));
-      }}>
-        <Trash2 className="h-4 w-4" />
-      </IconBtn>
+      {canManageBuilder ? (
+        <>
+          <IconBtn title="Move up" disabled={isFirst} onClick={() => void run("", () => moveNode({ nodeId: child._id as Id<"lms_nodes">, direction: "up" }))}>
+            <ChevronUp className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn title="Move down" disabled={isLast} onClick={() => void run("", () => moveNode({ nodeId: child._id as Id<"lms_nodes">, direction: "down" }))}>
+            <ChevronDown className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn title="Rename" onClick={() => rename(child._id, child.title)}>
+            <Pencil className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn title="Delete" danger onClick={() => {
+            if (window.confirm(`Delete "${child.title}"?`))
+              void run("Deleted", () => deleteNode({ nodeId: child._id as Id<"lms_nodes"> }));
+          }}>
+            <Trash2 className="h-4 w-4" />
+          </IconBtn>
+        </>
+      ) : null}
     </div>
   );
 }

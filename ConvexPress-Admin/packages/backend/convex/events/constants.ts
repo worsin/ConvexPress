@@ -328,7 +328,7 @@ export const WISHLIST_EVENTS = {
   MOVED_TO_CART: "wishlist.moved_to_cart",
 } as const;
 
-/** LMS System events (23) */
+/** LMS System events (27) */
 export const LMS_EVENTS = {
   COURSE_CREATED: "lms.course_created",
   COURSE_UPDATED: "lms.course_updated",
@@ -346,8 +346,11 @@ export const LMS_EVENTS = {
   NODE_REORDERED: "lms.node_reordered",
   TOPIC_UPDATED: "lms.topic_updated",
   LESSON_UPDATED: "lms.lesson_updated",
+  LESSON_COMPLETED: "lms.lesson_completed",
+  LESSON_INCOMPLETE: "lms.lesson_incomplete",
   LESSON_VERSION_RESTORED: "lms.lesson_version_restored",
   ENROLLED: "lms.enrolled",
+  UNENROLLED: "lms.unenrolled",
   COURSE_COMPLETED: "lms.course_completed",
   CERTIFICATE_ISSUED: "lms.certificate_issued",
   CERTIFICATE_REVOKED: "lms.certificate_revoked",
@@ -558,6 +561,7 @@ const CRITICAL_RETENTION_CODES: Set<string> = new Set([
   API_EVENTS.KEY_REVOKED,
   LMS_EVENTS.COURSE_DELETED,
   LMS_EVENTS.NODE_DELETED,
+  LMS_EVENTS.UNENROLLED,
   LMS_EVENTS.CERTIFICATE_REVOKED,
   // Audit events (compliance)
   AUDIT_EVENTS.CLEARED,

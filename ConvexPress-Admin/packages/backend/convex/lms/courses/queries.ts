@@ -5,9 +5,9 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
-import { hasMinimumRoleLevel, requireMinimumRoleLevel } from "../../helpers/permissions";
+import { currentUserCan } from "../../helpers/permissions";
 import { lmsCourseStatusValidator } from "../../schema/lms";
-import { canUserAccessCourse } from "../access";
+import { canUserAccessCourse, requireCourseAuthorOrEditor } from "../access";
 
 export const list = query({
   args: {
@@ -16,6 +16,7 @@ export const list = query({
   },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
+    if (!(await currentUserCan(ctx, "lms.course.view"))) return [];
 
     let courses;
     if (args.status) {
@@ -40,7 +41,11 @@ export const getById = query({
   args: { courseId: v.id("lms_courses") },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
-    return await ctx.db.get(args.courseId);
+    const course = await ctx.db.get(args.courseId);
+    if (!course) return null;
+    if (course.status === "published") return course;
+    if (await currentUserCan(ctx, "lms.course.view")) return course;
+    return null;
   },
 });
 
@@ -53,7 +58,7 @@ export const getBySlug = query({
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
     if (!course) return null;
-    if (course.status !== "published" && !(await hasMinimumRoleLevel(ctx, 60))) {
+    if (course.status !== "published" && !(await currentUserCan(ctx, "lms.course.view"))) {
       return null;
     }
     return course;
@@ -196,6 +201,9 @@ export const stats = query({
     if (!(await isPluginEnabled(ctx, "lms"))) {
       return { total: 0, published: 0, draft: 0, archived: 0 };
     }
+    if (!(await currentUserCan(ctx, "lms.course.view"))) {
+      return { total: 0, published: 0, draft: 0, archived: 0 };
+    }
     const all = await ctx.db.query("lms_courses").take(2000);
     return {
       total: all.length,
@@ -210,6 +218,7 @@ export const getPrerequisites = query({
   args: { courseId: v.id("lms_courses") },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
+    if (!(await currentUserCan(ctx, "lms.course.view"))) return [];
     const rows = await ctx.db
       .query("lms_course_prerequisites")
       .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
@@ -235,7 +244,7 @@ export const getAccessRule = query({
   args: { courseId: v.id("lms_courses") },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
-    await requireMinimumRoleLevel(ctx, 60);
+    await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");
     const rules = await ctx.db
       .query("membership_restriction_rules")
       .withIndex("by_resource", (q: any) =>

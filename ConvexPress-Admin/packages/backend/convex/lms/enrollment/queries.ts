@@ -5,7 +5,7 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
-import { getCurrentUser, requireMinimumRoleLevel } from "../../helpers/permissions";
+import { getCurrentUser, requireCan } from "../../helpers/permissions";
 import { canUserAccessCourse, canUserAccessNode } from "../access";
 
 export const canAccessCourse = query({
@@ -46,7 +46,7 @@ export const listEnrolleesForCourse = query({
   args: { courseId: v.id("lms_courses") },
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
-    await requireMinimumRoleLevel(ctx, 80);
+    await requireCan(ctx, "lms.enroll.manage");
     const enrollments = await ctx.db
       .query("lms_enrollments")
       .withIndex("by_course", (q) => q.eq("courseId", args.courseId).eq("status", "active"))

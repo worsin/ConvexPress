@@ -843,6 +843,18 @@ describe("LMS learner runtime mutations", () => {
           completedAt: now,
         },
       ],
+      lms_certificates: [
+        {
+          _id: "certificate_1",
+          title: "Completion",
+          templateDoc: {},
+          orientation: "landscape",
+          isActive: true,
+          createdBy: "user_admin",
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
       lms_certificate_issues: [
         {
           _id: "issue_existing",
@@ -862,5 +874,61 @@ describe("LMS learner runtime mutations", () => {
       }),
     ).resolves.toBe("issue_existing");
     expect(tables.lms_certificate_issues).toHaveLength(1);
+  });
+
+  test("manual certificate issuance reissues revoked certificates", async () => {
+    const tables = baseTables({
+      lms_courses: [
+        course("course_reissue", {
+          accessMode: "free",
+          certificateId: "certificate_1",
+        }),
+      ],
+      lms_course_completions: [
+        {
+          _id: "completion_reissue",
+          userId: "user_learner",
+          courseId: "course_reissue",
+          percent: 100,
+          completedAt: now,
+        },
+      ],
+      lms_certificates: [
+        {
+          _id: "certificate_1",
+          title: "Completion",
+          templateDoc: {},
+          orientation: "landscape",
+          isActive: true,
+          createdBy: "user_admin",
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      lms_certificate_issues: [
+        {
+          _id: "issue_revoked",
+          userId: "user_learner",
+          courseId: "course_reissue",
+          certificateId: "certificate_1",
+          serial: "CERT-OLD",
+          issuedAt: now,
+          revokedAt: now,
+          revocationReason: "Rollback",
+          status: "revoked",
+        },
+      ],
+    });
+
+    await expect(
+      (issueCertificate as any)._handler(createCtx(tables), {
+        courseId: id("course_reissue"),
+      }),
+    ).resolves.toBe("issue_revoked");
+    expect(tables.lms_certificate_issues[0]).toMatchObject({
+      certificateId: "certificate_1",
+      status: "issued",
+    });
+    expect(tables.lms_certificate_issues[0].serial).not.toBe("CERT-OLD");
   });
 });

@@ -46,13 +46,34 @@ async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_course
     }
     // Auto-issue a certificate when the course has one assigned.
     if (course?.certificateId) {
+      const certificate = await ctx.db.get(course.certificateId);
+      if (!certificate?.isActive) return { percent, completed, total };
       const existingIssue = await ctx.db
         .query("lms_certificate_issues")
         .withIndex("by_user_course", (q: any) => q.eq("userId", userId).eq("courseId", courseId))
         .first();
-      if (!existingIssue) {
+      if (existingIssue?.status === "revoked") {
         const serial = `CERT-${Date.now().toString(36).toUpperCase()}-${String(userId).slice(-6).toUpperCase()}`;
-        await ctx.db.insert("lms_certificate_issues", {
+        await ctx.db.patch(existingIssue._id, {
+          certificateId: course.certificateId,
+          serial,
+          issuedAt: Date.now(),
+          revokedAt: undefined,
+          revokedBy: undefined,
+          revocationReason: undefined,
+          status: "issued",
+        });
+        await emitEvent(ctx, LMS_EVENTS.CERTIFICATE_ISSUED, SYSTEM.LMS, {
+          userId,
+          courseId,
+          certificateId: course.certificateId,
+          certificateIssueId: existingIssue._id,
+          serial,
+          reissued: true,
+        });
+      } else if (!existingIssue) {
+        const serial = `CERT-${Date.now().toString(36).toUpperCase()}-${String(userId).slice(-6).toUpperCase()}`;
+        const certificateIssueId = await ctx.db.insert("lms_certificate_issues", {
           userId,
           courseId,
           certificateId: course.certificateId,
@@ -64,6 +85,7 @@ async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_course
           userId,
           courseId,
           certificateId: course.certificateId,
+          certificateIssueId,
           serial,
         });
       }
@@ -75,7 +97,11 @@ async function recompute(ctx: any, userId: Id<"users">, courseId: Id<"lms_course
       .withIndex("by_user_course", (q: any) => q.eq("userId", userId).eq("courseId", courseId))
       .collect();
     for (const issue of issues.filter((i: any) => i.status === "issued")) {
-      await ctx.db.patch(issue._id, { status: "revoked" });
+      await ctx.db.patch(issue._id, {
+        status: "revoked",
+        revokedAt: Date.now(),
+        revocationReason: "Course completion was rolled back.",
+      });
       await emitEvent(ctx, LMS_EVENTS.CERTIFICATE_REVOKED, SYSTEM.LMS, {
         userId,
         courseId,
@@ -124,10 +150,13 @@ export const markComplete = mutation({
     }
 
     const now = Date.now();
+    const wasCompleted = existing?.completed === true;
+    let progressId: Id<"lms_progress">;
     if (existing) {
       await ctx.db.patch(existing._id, { completed: true, completedAt: now, lastSeenAt: now });
+      progressId = existing._id;
     } else {
-      await ctx.db.insert("lms_progress", {
+      progressId = await ctx.db.insert("lms_progress", {
         userId: user._id,
         courseId: node.courseId,
         nodeId: args.nodeId,
@@ -135,6 +164,15 @@ export const markComplete = mutation({
         completedAt: now,
         firstSeenAt: now,
         lastSeenAt: now,
+      });
+    }
+    if (!wasCompleted) {
+      await emitEvent(ctx, LMS_EVENTS.LESSON_COMPLETED, SYSTEM.LMS, {
+        userId: user._id,
+        courseId: node.courseId,
+        nodeId: args.nodeId,
+        progressId,
+        completionMode: "manual",
       });
     }
     return await recompute(ctx, user._id, node.courseId);
@@ -175,6 +213,8 @@ export const recordHeartbeat = mutation({
     const videoMet = !node.requireVideoWatch || nextWatched >= 0.9;
     const timeMet = !node.minTimeSeconds || nextTime >= node.minTimeSeconds;
     const shouldAutoComplete = !!node.autoComplete && completionDelayMet && videoMet && timeMet;
+    const completedNow = shouldAutoComplete && existing?.completed !== true;
+    let progressId: Id<"lms_progress">;
 
     if (existing) {
       await ctx.db.patch(existing._id, {
@@ -186,8 +226,9 @@ export const recordHeartbeat = mutation({
           ? { completed: true, completedAt: now }
           : {}),
       });
+      progressId = existing._id;
     } else {
-      await ctx.db.insert("lms_progress", {
+      progressId = await ctx.db.insert("lms_progress", {
         userId: user._id,
         courseId: node.courseId,
         nodeId: args.nodeId,
@@ -197,6 +238,16 @@ export const recordHeartbeat = mutation({
         timeSpentSec: nextTime,
         firstSeenAt,
         lastSeenAt: now,
+      });
+    }
+
+    if (completedNow) {
+      await emitEvent(ctx, LMS_EVENTS.LESSON_COMPLETED, SYSTEM.LMS, {
+        userId: user._id,
+        courseId: node.courseId,
+        nodeId: args.nodeId,
+        progressId,
+        completionMode: "automatic",
       });
     }
 
@@ -215,8 +266,17 @@ export const markIncomplete = mutation({
       .query("lms_progress")
       .withIndex("by_user_node", (q) => q.eq("userId", user._id).eq("nodeId", args.nodeId))
       .first();
+    const wasCompleted = existing?.completed === true;
     if (existing) {
       await ctx.db.patch(existing._id, { completed: false, completedAt: undefined });
+    }
+    if (wasCompleted) {
+      await emitEvent(ctx, LMS_EVENTS.LESSON_INCOMPLETE, SYSTEM.LMS, {
+        userId: user._id,
+        courseId: node.courseId,
+        nodeId: args.nodeId,
+        progressId: existing._id,
+      });
     }
     return await recompute(ctx, user._id, node.courseId);
   },

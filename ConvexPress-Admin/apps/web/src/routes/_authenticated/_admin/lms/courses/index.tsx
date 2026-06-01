@@ -8,6 +8,7 @@ import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
 import {
   Plus,
   BookOpen,
@@ -40,8 +41,14 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 function CourseListPage() {
+  const { can } = useAuth();
   const [status, setStatus] = useState<StatusFilter>("all");
   const [search, setSearch] = useState("");
+  const canCreate = can("lms.course.create");
+  const canEdit = can("lms.course.edit");
+  const canPublish = can("lms.course.publish");
+  const canDelete = can("lms.course.delete");
+  const hasRowActions = canEdit || canCreate || canPublish || canDelete;
 
   const courses = useQuery(api.lms.courses.queries.list, {
     status: status === "all" ? undefined : status,
@@ -79,12 +86,14 @@ function CourseListPage() {
           <BookOpen className="h-6 w-6" />
           <h1 className="text-2xl font-semibold">Courses</h1>
         </div>
-        <Link
-          to="/lms/courses/new"
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" /> Add New Course
-        </Link>
+        {canCreate ? (
+          <Link
+            to="/lms/courses/new"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" /> Add New Course
+          </Link>
+        ) : null}
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -123,14 +132,16 @@ function CourseListPage() {
         <div className="rounded-lg border border-dashed border-border py-16 text-center">
           <BookOpen className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
           <p className="mb-4 text-sm text-muted-foreground">
-            No courses yet. Create your first course to get started.
+            No courses yet.
           </p>
-          <Link
-            to="/lms/courses/new"
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-          >
-            <Plus className="h-4 w-4" /> Add New Course
-          </Link>
+          {canCreate ? (
+            <Link
+              to="/lms/courses/new"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+            >
+              <Plus className="h-4 w-4" /> Add New Course
+            </Link>
+          ) : null}
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-border">
@@ -174,25 +185,29 @@ function CourseListPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <Link
-                        to="/lms/courses/$courseId"
-                        params={{ courseId: course._id }}
-                        className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                        title="Edit"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Link>
-                      <button
-                        type="button"
-                        title="Duplicate"
-                        onClick={() =>
-                          run("Duplicated", () => duplicate({ courseId: course._id }))
-                        }
-                        className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                      {course.status === "published" ? (
+                      {canEdit ? (
+                        <Link
+                          to="/lms/courses/$courseId"
+                          params={{ courseId: course._id }}
+                          className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          title="Edit"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                      ) : null}
+                      {canCreate ? (
+                        <button
+                          type="button"
+                          title="Duplicate"
+                          onClick={() =>
+                            run("Duplicated", () => duplicate({ courseId: course._id }))
+                          }
+                          className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                      {canPublish && course.status === "published" ? (
                         <button
                           type="button"
                           title="Unpublish"
@@ -203,7 +218,7 @@ function CourseListPage() {
                         >
                           <EyeOff className="h-4 w-4" />
                         </button>
-                      ) : (
+                      ) : canPublish ? (
                         <button
                           type="button"
                           title="Publish"
@@ -214,33 +229,40 @@ function CourseListPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        title="Archive"
-                        onClick={() =>
-                          run("Archived", () => archive({ courseId: course._id }))
-                        }
-                        className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                      >
-                        <Archive className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        title="Delete"
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              `Delete "${course.title}"? This removes its curriculum and cannot be undone.`,
-                            )
-                          ) {
-                            void run("Deleted", () => remove({ courseId: course._id }));
+                      ) : null}
+                      {canEdit ? (
+                        <button
+                          type="button"
+                          title="Archive"
+                          onClick={() =>
+                            run("Archived", () => archive({ courseId: course._id }))
                           }
-                        }}
-                        className="rounded p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                          className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          <Archive className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                      {canDelete ? (
+                        <button
+                          type="button"
+                          title="Delete"
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Delete "${course.title}"? This removes its curriculum and cannot be undone.`,
+                              )
+                            ) {
+                              void run("Deleted", () => remove({ courseId: course._id }));
+                            }
+                          }}
+                          className="rounded p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                      {!hasRowActions ? (
+                        <span className="px-2 text-xs text-muted-foreground">—</span>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

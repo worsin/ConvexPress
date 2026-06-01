@@ -62,6 +62,7 @@ export const NOTIFICATION_CATEGORIES = [
   "Support",
   "Knowledge Base",
   "Commerce",
+  "LMS",
   "System",
   "Discovery",
   "Developer",

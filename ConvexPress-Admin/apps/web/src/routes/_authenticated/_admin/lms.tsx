@@ -9,6 +9,7 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { ErrorTemplate } from "@/templates/ErrorTemplate";
 import { PluginGuard } from "@/components/plugins/PluginGuard";
+import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 
 export const Route = createFileRoute("/_authenticated/_admin/lms")({
   component: LMSLayout,
@@ -17,8 +18,10 @@ export const Route = createFileRoute("/_authenticated/_admin/lms")({
 
 function LMSLayout() {
   return (
-    <PluginGuard pluginId="lms">
-      <Outlet />
-    </PluginGuard>
+    <RoutePermissionGuard requiredAccess="/admin/lms">
+      <PluginGuard pluginId="lms">
+        <Outlet />
+      </PluginGuard>
+    </RoutePermissionGuard>
   );
 }

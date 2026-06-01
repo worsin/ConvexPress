@@ -1338,4 +1338,142 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     category: "subscription",
     eventCode: "commerce.subscription_paused",
   },
+
+  // ═══ LMS ════════════════════════════════════════════════════════════════════
+
+  {
+    slug: "lms-course-enrolled",
+    name: "LMS Course Enrollment",
+    description: "Sent when a learner is enrolled in a course",
+    subjectTemplate: "You're enrolled in {course_title}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">You're in, {recipient_name}</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Your enrollment in <strong>{course_title}</strong> is active.
+      </p>
+      <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
+        Start with the first lesson whenever you're ready.
+      </p>
+      <a href="{course_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Start course</a>
+    `),
+    preheaderText: "Your course enrollment is active",
+    availableVariables: [
+      { name: "recipient_name", description: "Learner display name", required: false, defaultValue: "there" },
+      { name: "course_title", description: "Course title", required: true },
+      { name: "course_url", description: "Learner course URL", required: true },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "lms",
+    eventCode: "lms.enrolled",
+  },
+
+  {
+    slug: "lms-course-unenrolled",
+    name: "LMS Course Access Removed",
+    description: "Sent when a learner's course access is revoked",
+    subjectTemplate: "Access removed: {course_title}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Course access changed</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Your access to <strong>{course_title}</strong> has been removed.
+      </p>
+      <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
+        If this seems incorrect, contact the site administrator.
+      </p>
+      <a href="{course_public_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View course</a>
+    `),
+    preheaderText: "Your course access changed",
+    availableVariables: [
+      { name: "recipient_name", description: "Learner display name", required: false, defaultValue: "there" },
+      { name: "course_title", description: "Course title", required: true },
+      { name: "course_public_url", description: "Public course URL", required: true },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "lms",
+    eventCode: "lms.unenrolled",
+  },
+
+  {
+    slug: "lms-course-completed",
+    name: "LMS Course Completed",
+    description: "Sent when a learner completes a course",
+    subjectTemplate: "Course complete: {course_title}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Nice work, {recipient_name}</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        You've completed <strong>{course_title}</strong>.
+      </p>
+      <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
+        Review the course any time from your learning dashboard.
+      </p>
+      <a href="{course_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View course</a>
+    `),
+    preheaderText: "You completed a course",
+    availableVariables: [
+      { name: "recipient_name", description: "Learner display name", required: false, defaultValue: "there" },
+      { name: "course_title", description: "Course title", required: true },
+      { name: "course_url", description: "Learner course URL", required: true },
+      { name: "completed_at", description: "Completion timestamp", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "lms",
+    eventCode: "lms.course_completed",
+  },
+
+  {
+    slug: "lms-certificate-issued",
+    name: "LMS Certificate Issued",
+    description: "Sent when a course certificate is issued",
+    subjectTemplate: "Your certificate for {course_title} is ready",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Your certificate is ready</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Congratulations, {recipient_name}. Your certificate for <strong>{course_title}</strong> has been issued.
+      </p>
+      <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">Serial: {serial}</p>
+      <a href="{certificate_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View certificate</a>
+    `),
+    preheaderText: "Your course certificate has been issued",
+    availableVariables: [
+      { name: "recipient_name", description: "Learner display name", required: false, defaultValue: "there" },
+      { name: "course_title", description: "Course title", required: true },
+      { name: "serial", description: "Certificate serial number", required: true },
+      { name: "certificate_url", description: "Public certificate URL", required: true },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "lms",
+    eventCode: "lms.certificate_issued",
+  },
+
+  {
+    slug: "lms-certificate-revoked",
+    name: "LMS Certificate Revoked",
+    description: "Sent when an issued certificate is revoked",
+    subjectTemplate: "Certificate revoked for {course_title}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#b45309;">Certificate status changed</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Your certificate for <strong>{course_title}</strong> has been revoked.
+      </p>
+      <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
+        Visit the course to review your current completion status.
+      </p>
+      <a href="{course_url}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View course</a>
+    `),
+    preheaderText: "A certificate status changed",
+    availableVariables: [
+      { name: "recipient_name", description: "Learner display name", required: false, defaultValue: "there" },
+      { name: "course_title", description: "Course title", required: true },
+      { name: "serial", description: "Certificate serial number", required: false },
+      { name: "course_url", description: "Learner course URL", required: true },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "lms",
+    eventCode: "lms.certificate_revoked",
+  },
 ];

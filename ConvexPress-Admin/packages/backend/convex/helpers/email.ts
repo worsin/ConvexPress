@@ -113,6 +113,13 @@ export const EMAIL_TEMPLATES = {
   SUBSCRIPTION_TRIAL_ENDING: "subscription-trial-ending",
   SUBSCRIPTION_CANCELLED: "subscription-cancelled",
   SUBSCRIPTION_PAUSED: "subscription-paused",
+
+  // LMS
+  LMS_COURSE_ENROLLED: "lms-course-enrolled",
+  LMS_COURSE_UNENROLLED: "lms-course-unenrolled",
+  LMS_COURSE_COMPLETED: "lms-course-completed",
+  LMS_CERTIFICATE_ISSUED: "lms-certificate-issued",
+  LMS_CERTIFICATE_REVOKED: "lms-certificate-revoked",
 } as const;
 
 /**
@@ -141,6 +148,7 @@ const CATEGORY_TO_UNSUBSCRIBE: Record<string, string> = {
   commerce: "system",
   shipping: "system",
   subscription: "system",
+  lms: "content",
 };
 
 /**

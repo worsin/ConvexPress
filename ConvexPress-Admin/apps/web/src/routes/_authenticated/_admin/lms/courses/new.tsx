@@ -8,12 +8,15 @@ import { useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
 import { toast } from "sonner";
 import { GraduationCap, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/_admin/lms/courses/new")({
   component: NewCoursePage,
 });
 
 function NewCoursePage() {
+  const { can } = useAuth();
+  const canCreate = can("lms.course.create");
   const navigate = useNavigate();
   const createCourse = useMutation(api.lms.courses.mutations.create);
   const [title, setTitle] = useState("");
@@ -21,6 +24,10 @@ function NewCoursePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canCreate) {
+      toast.error("You do not have permission to create courses.");
+      return;
+    }
     if (!title.trim()) {
       toast.error("Title is required");
       return;
@@ -49,6 +56,11 @@ function NewCoursePage() {
         <h1 className="text-2xl font-semibold">Add New Course</h1>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {!canCreate ? (
+          <div className="rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+            Course creation is not available for your role.
+          </div>
+        ) : null}
         <div>
           <label className="mb-1 block text-sm font-medium" htmlFor="course-title">
             Course title
@@ -58,6 +70,7 @@ function NewCoursePage() {
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            disabled={!canCreate}
             placeholder="e.g. Introduction to TypeScript"
             className="w-full rounded-md border border-border px-3 py-2 text-sm"
           />
@@ -67,7 +80,7 @@ function NewCoursePage() {
         </div>
         <button
           type="submit"
-          disabled={creating}
+          disabled={creating || !canCreate}
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           {creating ? "Creating…" : "Create course"}

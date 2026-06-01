@@ -10,7 +10,7 @@
 "use node";
 
 import { action } from "../../_generated/server";
-import { internal, api } from "../../_generated/api";
+import { internal } from "../../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { normalizeOutline, outlineStats, parseJsonObject } from "./helpers";
 
@@ -31,6 +31,9 @@ export const generateCourse = action({
     topicCount: number;
     lessonCount: number;
   }> => {
+    await ctx.runQuery((internal as any).lms.ai.internals.assertCourseGenerationAccess, {
+      courseId: args.courseId,
+    });
     const topic = args.topic.trim();
     if (topic.length < 3 || topic.length > 200) {
       throw new ConvexError({
@@ -150,15 +153,12 @@ export const generateCourse = action({
 
 export const regenerateLesson = action({
   args: { nodeId: v.id("lms_nodes"), instructions: v.optional(v.string()) },
-  handler: async (ctx, args): Promise<{ ok: boolean }> => {
-    const lesson: any = await ctx.runQuery(
-      (api as any).lms.lessons.queries.getLesson,
+  handler: async (ctx, args): Promise<{ ok: boolean; generationId: string }> => {
+    const lesson = await ctx.runQuery(
+      (internal as any).lms.ai.internals.assertNodeGenerationAccess,
       { nodeId: args.nodeId },
     );
-    if (!lesson?.node) {
-      throw new ConvexError({ code: "NOT_FOUND", message: "Lesson not found" });
-    }
-    const title: string = lesson.node.title;
+    const title: string = lesson.title;
     const instructions = args.instructions?.trim().slice(0, 1000);
     const systemPrompt =
       "You are an expert instructor. Write clear teaching content as plain-text paragraphs. No markdown headings, no JSON.";
@@ -168,14 +168,14 @@ export const regenerateLesson = action({
     const generationId = await ctx.runMutation(
       (internal as any).lms.ai.internals.recordLessonRegeneration,
       {
-        courseId: lesson.node.courseId,
+        courseId: lesson.courseId,
         nodeId: args.nodeId,
         prompt: userPrompt,
         instructions,
       },
     );
     const jobId = await ctx.runMutation((internal as any).lms.ai.internals.createJob, {
-      courseId: lesson.node.courseId,
+      courseId: lesson.courseId,
       generationId,
       kind: "lesson_body",
       targetId: String(args.nodeId),
@@ -208,13 +208,13 @@ export const regenerateLesson = action({
           : "AI generation failed. Please try again.",
       });
     }
-    await ctx.runMutation((internal as any).lms.ai.internals.writeLessonBody, {
+    await ctx.runMutation((internal as any).lms.ai.internals.storeLessonBodyDraft, {
       jobId,
       generationId,
       nodeId: args.nodeId,
       bodyText: String(raw).trim(),
       prompt: userPrompt,
     });
-    return { ok: true };
+    return { ok: true, generationId: String(generationId) };
   },
 });

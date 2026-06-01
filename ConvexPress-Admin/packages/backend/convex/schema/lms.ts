@@ -227,6 +227,7 @@ export const lmsTables = {
   lms_lessonVersions: defineTable({
     nodeId: v.id("lms_nodes"),
     bodyDoc: v.any(),
+    snapshotJson: v.optional(v.any()),
     editedBy: v.id("users"),
     createdAt: v.number(),
   }).index("by_node", ["nodeId"]),
@@ -237,6 +238,7 @@ export const lmsTables = {
     courseId: v.id("lms_courses"),
     source: lmsEnrollmentSourceValidator,
     membershipPlanId: v.optional(v.id("membership_plans")),
+    sourceRef: v.optional(v.string()),
     enrolledAt: v.number(),
     expiresAt: v.optional(v.number()),
     status: lmsEnrollmentStatusValidator,
@@ -291,6 +293,9 @@ export const lmsTables = {
     serial: v.string(),
     pdfMediaId: v.optional(v.id("media")),
     issuedAt: v.number(),
+    revokedAt: v.optional(v.number()),
+    revokedBy: v.optional(v.id("users")),
+    revocationReason: v.optional(v.string()),
     status: v.union(v.literal("issued"), v.literal("revoked")),
   })
     .index("by_user", ["userId"])

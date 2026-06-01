@@ -186,6 +186,48 @@ async function getKbArticleContext(ctx: any, articleId: any, siteUrl: string) {
   };
 }
 
+async function getLmsContext(ctx: any, payload: Record<string, any>, siteUrl: string) {
+  const course = payload.courseId ? await ctx.db.get(payload.courseId) : null;
+  const learner = await getUserByAnyId(ctx, payload.userId);
+  const firstLesson = course
+    ? await ctx.db
+        .query("lms_nodes")
+        .withIndex("by_course_kind", (q: any) =>
+          q.eq("courseId", course._id).eq("kind", "lesson"),
+        )
+        .first()
+    : null;
+  const issue = payload.certificateIssueId
+    ? await ctx.db.get(payload.certificateIssueId)
+    : null;
+  const serial = payload.serial ?? issue?.serial ?? "";
+  const courseSlug = course?.slug ?? "";
+  const courseUrl =
+    courseSlug && firstLesson
+      ? buildWebsiteUrl(siteUrl, `/dashboard/courses/${courseSlug}/${firstLesson._id}`)
+      : courseSlug
+        ? buildWebsiteUrl(siteUrl, `/courses/${courseSlug}`)
+        : buildWebsiteUrl(siteUrl, "/dashboard/courses");
+  const coursePublicUrl = courseSlug
+    ? buildWebsiteUrl(siteUrl, `/courses/${courseSlug}`)
+    : buildWebsiteUrl(siteUrl, "/courses");
+  const certificateUrl = serial
+    ? buildWebsiteUrl(siteUrl, `/certificates/${serial}`)
+    : courseUrl;
+
+  return {
+    course,
+    learner,
+    firstLesson,
+    issue,
+    courseTitle: course?.title ?? payload.courseTitle ?? "your course",
+    courseUrl,
+    coursePublicUrl,
+    certificateUrl,
+    serial,
+  };
+}
+
 async function getCustomerRecipients(ctx: any) {
   const recipientMap = new Map<
     string,
@@ -2249,3 +2291,146 @@ const onKbCommentCreatedConfig: any = {
 
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onKbCommentCreated = internalMutation(onKbCommentCreatedConfig);
+
+const onLmsCourseEnrolledConfig: any = {
+  args: { eventId: v.id("events") },
+  handler: async (ctx: any, args: any) => {
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
+
+    const { event, payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const lms = await getLmsContext(ctx, payload, settings.siteUrl);
+    if (!lms.learner?.email) return;
+
+    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.LMS_COURSE_ENROLLED, {
+      recipientEmail: lms.learner.email,
+      recipientName: toDisplayName(lms.learner),
+      recipientUserId: getUserIdentifier(lms.learner),
+      variables: {
+        course_title: lms.courseTitle,
+        course_url: lms.courseUrl,
+      },
+      eventId: args.eventId,
+      correlationId: event.correlationId,
+    });
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onLmsCourseEnrolled = internalMutation(onLmsCourseEnrolledConfig);
+
+const onLmsCourseUnenrolledConfig: any = {
+  args: { eventId: v.id("events") },
+  handler: async (ctx: any, args: any) => {
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
+
+    const { event, payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const lms = await getLmsContext(ctx, payload, settings.siteUrl);
+    if (!lms.learner?.email) return;
+
+    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.LMS_COURSE_UNENROLLED, {
+      recipientEmail: lms.learner.email,
+      recipientName: toDisplayName(lms.learner),
+      recipientUserId: getUserIdentifier(lms.learner),
+      variables: {
+        course_title: lms.courseTitle,
+        course_public_url: lms.coursePublicUrl,
+      },
+      eventId: args.eventId,
+      correlationId: event.correlationId,
+    });
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onLmsCourseUnenrolled = internalMutation(onLmsCourseUnenrolledConfig);
+
+const onLmsCourseCompletedConfig: any = {
+  args: { eventId: v.id("events") },
+  handler: async (ctx: any, args: any) => {
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
+
+    const { event, payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const lms = await getLmsContext(ctx, payload, settings.siteUrl);
+    if (!lms.learner?.email) return;
+
+    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.LMS_COURSE_COMPLETED, {
+      recipientEmail: lms.learner.email,
+      recipientName: toDisplayName(lms.learner),
+      recipientUserId: getUserIdentifier(lms.learner),
+      variables: {
+        course_title: lms.courseTitle,
+        course_url: lms.courseUrl,
+        completed_at: new Date(event.emittedAt).toISOString(),
+      },
+      eventId: args.eventId,
+      correlationId: event.correlationId,
+    });
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onLmsCourseCompleted = internalMutation(onLmsCourseCompletedConfig);
+
+const onLmsCertificateIssuedConfig: any = {
+  args: { eventId: v.id("events") },
+  handler: async (ctx: any, args: any) => {
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
+
+    const { event, payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const lms = await getLmsContext(ctx, payload, settings.siteUrl);
+    if (!lms.learner?.email) return;
+
+    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.LMS_CERTIFICATE_ISSUED, {
+      recipientEmail: lms.learner.email,
+      recipientName: toDisplayName(lms.learner),
+      recipientUserId: getUserIdentifier(lms.learner),
+      variables: {
+        course_title: lms.courseTitle,
+        serial: lms.serial,
+        certificate_url: lms.certificateUrl,
+      },
+      eventId: args.eventId,
+      correlationId: event.correlationId,
+    });
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onLmsCertificateIssued = internalMutation(onLmsCertificateIssuedConfig);
+
+const onLmsCertificateRevokedConfig: any = {
+  args: { eventId: v.id("events") },
+  handler: async (ctx: any, args: any) => {
+    const eventRecord = await getEventRecord(ctx, args.eventId);
+    if (!eventRecord) return;
+
+    const { event, payload } = eventRecord;
+    const settings = await getEmailSettings(ctx);
+    const lms = await getLmsContext(ctx, payload, settings.siteUrl);
+    if (!lms.learner?.email) return;
+
+    await queueEmailForEvent(ctx, EMAIL_TEMPLATES.LMS_CERTIFICATE_REVOKED, {
+      recipientEmail: lms.learner.email,
+      recipientName: toDisplayName(lms.learner),
+      recipientUserId: getUserIdentifier(lms.learner),
+      variables: {
+        course_title: lms.courseTitle,
+        serial: lms.serial,
+        course_url: lms.courseUrl,
+      },
+      eventId: args.eventId,
+      correlationId: event.correlationId,
+    });
+  },
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const onLmsCertificateRevoked = internalMutation(onLmsCertificateRevokedConfig);

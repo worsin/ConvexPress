@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
+import { LessonContentRenderer } from "@/components/lms/LessonContentRenderer";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -69,6 +70,8 @@ type LessonDetail = {
     minTimeSeconds?: number;
     showMarkComplete?: boolean;
   };
+  bodyDoc?: unknown;
+  materialsDoc?: unknown;
   bodyText?: string;
   materialsText?: string;
 };
@@ -122,7 +125,7 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
   const progress = useQuery((api as any).lms.progress.queries.getCourseProgress, {
     courseId: course._id as any,
   }) as CourseProgress | undefined;
-  const lesson = useQuery((api as any).lms.lessons.queries.getLesson, {
+  const lesson = useQuery((api as any).lms.lessons.queries.getLessonForPlayer, {
     nodeId: nodeId as any,
   }) as LessonDetail | null | undefined;
   const nodeProgress = useQuery((api as any).lms.progress.queries.getNodeProgress, {
@@ -304,26 +307,23 @@ function CoursePlayer({ course, nodeId }: { course: Course; nodeId: string }) {
 
               {videoUrl ? <VideoEmbed url={videoUrl} /> : null}
 
-              {lesson.bodyText ? (
-                <div className="prose prose-sm max-w-none text-foreground prose-p:text-muted-foreground">
-                  {lesson.bodyText.split("\n").map((paragraph, index) => (
-                    <p key={`${paragraph}-${index}`}>{paragraph}</p>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                  Lesson content is being prepared.
-                </div>
-              )}
+              <LessonContentRenderer
+                doc={lesson.bodyDoc}
+                fallbackText={lesson.bodyText}
+                emptyLabel="Lesson content is being prepared."
+              />
 
-              {lesson.materialsText ? (
+              {(lesson.materialsDoc || lesson.materialsText) ? (
                 <section className="border border-border bg-muted/30 p-4">
                   <h3 className="mb-2 text-sm font-medium text-foreground">
                     Materials
                   </h3>
-                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                    {lesson.materialsText}
-                  </p>
+                  <LessonContentRenderer
+                    doc={lesson.materialsDoc}
+                    fallbackText={lesson.materialsText}
+                    emptyLabel="No materials yet."
+                    className="space-y-3"
+                  />
                 </section>
               ) : null}
 

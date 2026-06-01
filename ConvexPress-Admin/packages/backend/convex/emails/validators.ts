@@ -83,6 +83,8 @@ export const emailCategoryValidator = v.union(
   v.literal("shipping"),
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("subscription"),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  v.literal("lms"),
 );
 
 /**

@@ -25,6 +25,7 @@ interface LessonRichTextEditorProps {
   placeholder?: string;
   minRows?: number;
   description?: string;
+  disabled?: boolean;
 }
 
 export function LessonRichTextEditor({
@@ -34,6 +35,7 @@ export function LessonRichTextEditor({
   placeholder,
   minRows = 14,
   description,
+  disabled = false,
 }: LessonRichTextEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [mode, setMode] = useState<Mode>("write");
@@ -41,6 +43,7 @@ export function LessonRichTextEditor({
   const stats = useMemo(() => getStats(value), [value]);
 
   function replaceSelection(nextValue: string, nextStart: number, nextEnd = nextStart) {
+    if (disabled) return;
     onChange(nextValue);
     window.requestAnimationFrame(() => {
       const textarea = textareaRef.current;
@@ -92,6 +95,7 @@ export function LessonRichTextEditor({
   }
 
   function handleShortcut(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (disabled) return;
     if (!(event.metaKey || event.ctrlKey)) return;
     const key = event.key.toLowerCase();
     if (key === "b") {
@@ -138,34 +142,34 @@ export function LessonRichTextEditor({
       {mode === "write" ? (
         <>
           <div className="flex flex-wrap items-center gap-1 border border-border bg-background p-1">
-            <ToolbarButton title="Heading" onClick={() => prefixLines("## ")}>
+            <ToolbarButton title="Heading" disabled={disabled} onClick={() => prefixLines("## ")}>
               <Heading2 className="size-4" aria-hidden="true" />
             </ToolbarButton>
-            <ToolbarButton title="Bold" onClick={() => wrapSelection("**", "**", "bold text")}>
+            <ToolbarButton title="Bold" disabled={disabled} onClick={() => wrapSelection("**", "**", "bold text")}>
               <Bold className="size-4" aria-hidden="true" />
             </ToolbarButton>
-            <ToolbarButton title="Italic" onClick={() => wrapSelection("_", "_", "italic text")}>
+            <ToolbarButton title="Italic" disabled={disabled} onClick={() => wrapSelection("_", "_", "italic text")}>
               <Italic className="size-4" aria-hidden="true" />
             </ToolbarButton>
-            <ToolbarButton title="Link" onClick={() => wrapSelection("[", "](https://example.com)", "link text")}>
+            <ToolbarButton title="Link" disabled={disabled} onClick={() => wrapSelection("[", "](https://example.com)", "link text")}>
               <LinkIcon className="size-4" aria-hidden="true" />
             </ToolbarButton>
-            <ToolbarButton title="Quote" onClick={() => prefixLines("> ")}>
+            <ToolbarButton title="Quote" disabled={disabled} onClick={() => prefixLines("> ")}>
               <Quote className="size-4" aria-hidden="true" />
             </ToolbarButton>
-            <ToolbarButton title="Bulleted list" onClick={() => prefixLines("- ")}>
+            <ToolbarButton title="Bulleted list" disabled={disabled} onClick={() => prefixLines("- ")}>
               <List className="size-4" aria-hidden="true" />
             </ToolbarButton>
-            <ToolbarButton title="Numbered list" onClick={() => prefixLines("1. ", true)}>
+            <ToolbarButton title="Numbered list" disabled={disabled} onClick={() => prefixLines("1. ", true)}>
               <ListOrdered className="size-4" aria-hidden="true" />
             </ToolbarButton>
-            <ToolbarButton title="Inline code" onClick={() => wrapSelection("`", "`", "code")}>
+            <ToolbarButton title="Inline code" disabled={disabled} onClick={() => wrapSelection("`", "`", "code")}>
               <Code2 className="size-4" aria-hidden="true" />
             </ToolbarButton>
-            <ToolbarButton title="Callout" onClick={() => insertText("> [!NOTE]\n> Important note", 12)}>
+            <ToolbarButton title="Callout" disabled={disabled} onClick={() => insertText("> [!NOTE]\n> Important note", 12)}>
               <MessageSquareQuote className="size-4" aria-hidden="true" />
             </ToolbarButton>
-            <ToolbarButton title="Divider" onClick={() => insertText("\n\n---\n\n", 5)}>
+            <ToolbarButton title="Divider" disabled={disabled} onClick={() => insertText("\n\n---\n\n", 5)}>
               <SeparatorHorizontal className="size-4" aria-hidden="true" />
             </ToolbarButton>
           </div>
@@ -175,9 +179,10 @@ export function LessonRichTextEditor({
             value={value}
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={handleShortcut}
+            disabled={disabled}
             placeholder={placeholder}
             rows={minRows}
-            className="w-full resize-y rounded-none border border-border bg-background px-4 py-3 font-mono text-sm leading-6 outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+            className="w-full resize-y rounded-none border border-border bg-background px-4 py-3 font-mono text-sm leading-6 outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-70"
           />
         </>
       ) : (
@@ -225,10 +230,12 @@ function ToolbarButton({
   title,
   children,
   onClick,
+  disabled,
 }: {
   title: string;
   children: ReactNode;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -236,7 +243,8 @@ function ToolbarButton({
       title={title}
       aria-label={title}
       onClick={onClick}
-      className="inline-flex size-8 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+      disabled={disabled}
+      className="inline-flex size-8 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40"
     >
       {children}
     </button>

@@ -9,7 +9,7 @@
 
 import { ConvexError } from "convex/values";
 import { mutation } from "../../_generated/server";
-import { requireMinimumRoleLevel } from "../../helpers/permissions";
+import { requireCan } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
@@ -33,7 +33,7 @@ export const create = mutation({
   args: createCourseArgs,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    const user = await requireMinimumRoleLevel(ctx, 60);
+    const user = await requireCan(ctx, "lms.course.create");
 
     const title = (args.title ?? "").trim();
     if (!title) {
@@ -73,7 +73,7 @@ export const update = mutation({
     await requirePluginEnabled(ctx, "lms");
 
     const { courseId, ...rest } = args;
-    const { course } = await requireCourseAuthorOrEditor(ctx, courseId);
+    const { course } = await requireCourseAuthorOrEditor(ctx, courseId, "lms.course.edit");
 
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(rest)) {
@@ -115,7 +115,7 @@ export const publish = mutation({
   args: courseIdArg,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    await requireMinimumRoleLevel(ctx, 80);
+    await requireCan(ctx, "lms.course.publish");
     const course = await ctx.db.get(args.courseId);
     if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
     await ctx.db.patch(args.courseId, {
@@ -133,7 +133,7 @@ export const unpublish = mutation({
   args: courseIdArg,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    await requireMinimumRoleLevel(ctx, 80);
+    await requireCan(ctx, "lms.course.publish");
     const course = await ctx.db.get(args.courseId);
     if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
     await ctx.db.patch(args.courseId, { status: "draft", updatedAt: Date.now() });
@@ -147,9 +147,7 @@ export const archive = mutation({
   args: courseIdArg,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    await requireMinimumRoleLevel(ctx, 80);
-    const course = await ctx.db.get(args.courseId);
-    if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
+    await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");
     await ctx.db.patch(args.courseId, { status: "archived", updatedAt: Date.now() });
     await deleteCourseSearchIndex(ctx, args.courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_ARCHIVED, SYSTEM.LMS, { courseId: args.courseId });
@@ -161,9 +159,7 @@ export const restore = mutation({
   args: courseIdArg,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    await requireMinimumRoleLevel(ctx, 80);
-    const course = await ctx.db.get(args.courseId);
-    if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
+    await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");
     await ctx.db.patch(args.courseId, { status: "draft", updatedAt: Date.now() });
     await upsertCourseSearchIndex(ctx, args.courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_RESTORED, SYSTEM.LMS, { courseId: args.courseId });
@@ -175,7 +171,7 @@ export const remove = mutation({
   args: courseIdArg,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    await requireMinimumRoleLevel(ctx, 80);
+    await requireCan(ctx, "lms.course.delete");
     const course = await ctx.db.get(args.courseId);
     if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
 
@@ -232,7 +228,7 @@ export const duplicate = mutation({
   args: courseIdArg,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    const { user } = await requireCourseAuthorOrEditor(ctx, args.courseId);
+    const { user } = await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.create");
     const db = ctx.db as any;
     const src = await db.get(args.courseId);
     if (!src) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
@@ -339,7 +335,7 @@ export const updatePrerequisites = mutation({
   args: updatePrerequisitesArgs,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    const { course } = await requireCourseAuthorOrEditor(ctx, args.courseId);
+    const { course } = await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");
     const unique = Array.from(new Set(args.prereqCourseIds.map(String)));
     if (unique.includes(String(args.courseId))) {
       throw new ConvexError({
@@ -385,9 +381,7 @@ export const updateAccessRule = mutation({
   args: updateAccessRuleArgs,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    await requireMinimumRoleLevel(ctx, 80);
-    const course = await ctx.db.get(args.courseId);
-    if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
+    await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");
 
     for (const planId of args.planIds) {
       const plan = await ctx.db.get(planId);

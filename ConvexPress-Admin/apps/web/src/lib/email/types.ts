@@ -30,7 +30,8 @@ export type EmailCategory =
   | "knowledge_base"
   | "commerce"
   | "shipping"
-  | "subscription";
+  | "subscription"
+  | "lms";
 
 export type EmailTemplateTriggerKind = "event" | "direct" | "digest" | "manual";
 

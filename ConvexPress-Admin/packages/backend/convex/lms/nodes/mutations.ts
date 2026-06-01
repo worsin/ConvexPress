@@ -29,7 +29,7 @@ export const createNode = mutation({
   args: createNodeArgs,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    await requireCourseAuthorOrEditor(ctx, args.courseId);
+    await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.builder.manage");
 
     // Nesting rules.
     if (args.kind === "topic" && args.parentId) {
@@ -89,7 +89,7 @@ export const renameNode = mutation({
   args: renameNodeArgs,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    await requireNodeCourseAuthorOrEditor(ctx, args.nodeId);
+    await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.builder.manage");
     await ctx.db.patch(args.nodeId, {
       title: args.title.trim() || "Untitled",
       updatedAt: Date.now(),
@@ -103,7 +103,7 @@ export const deleteNode = mutation({
   args: nodeIdArg,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    const { node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId);
+    const { node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.builder.manage");
 
     // Cascade: delete descendants (children of this node).
     const all = await ctx.db
@@ -138,7 +138,7 @@ export const moveNode = mutation({
   args: moveNodeArgs,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
-    const { node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId);
+    const { node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.builder.manage");
 
     const siblings = (
       await ctx.db
@@ -183,7 +183,7 @@ export const reorderNodes = mutation({
       nodes.push(node);
     }
     const courseId = nodes[0].courseId;
-    await requireCourseAuthorOrEditor(ctx, courseId);
+    await requireCourseAuthorOrEditor(ctx, courseId, "lms.builder.manage");
     const parentId = nodes[0].parentId ?? null;
     const kind = nodes[0].kind;
     for (const node of nodes) {

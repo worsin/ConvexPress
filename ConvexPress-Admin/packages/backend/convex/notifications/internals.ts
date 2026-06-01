@@ -123,6 +123,54 @@ async function hydrateNotificationPayload(
     }
   }
 
+  if (eventCode.startsWith("lms.")) {
+    const course = payload.courseId ? await ctx.db.get(payload.courseId as any) : null;
+    if (course) {
+      hydrated.courseTitle ??= course.title;
+      hydrated.courseSlug ??= course.slug;
+      hydrated.authorId ??= course.authorId;
+      hydrated.accessMode ??= course.accessMode;
+    }
+
+    const node = payload.nodeId ? await ctx.db.get(payload.nodeId as any) : null;
+    if (node) {
+      hydrated.nodeId ??= node._id;
+      hydrated.lessonTitle ??= node.title;
+      hydrated.courseId ??= node.courseId;
+    } else if (course && !hydrated.nodeId) {
+      const firstLesson = await ctx.db
+        .query("lms_nodes")
+        .withIndex("by_course_kind", (q: ConvexQueryBuilder) =>
+          q.eq("courseId", course._id).eq("kind", "lesson"),
+        )
+        .first();
+      hydrated.nodeId ??= firstLesson?._id ?? "";
+      hydrated.lessonTitle ??= firstLesson?.title ?? "";
+    }
+
+    const issue = payload.certificateIssueId
+      ? await ctx.db.get(payload.certificateIssueId as any)
+      : null;
+    if (issue) {
+      hydrated.serial ??= issue.serial;
+      hydrated.certificateIssueId ??= issue._id;
+      hydrated.certificateId ??= issue.certificateId;
+      hydrated.userId ??= issue.userId;
+      hydrated.courseId ??= issue.courseId;
+    }
+
+    if (payload.userId) {
+      const user = await ctx.db.get(payload.userId as any);
+      if (user) {
+        hydrated.learnerName ??=
+          user.displayName ??
+          [user.firstName, user.lastName].filter(Boolean).join(" ") ??
+          user.email;
+        hydrated.userEmail ??= user.email;
+      }
+    }
+  }
+
   return hydrated;
 }
 

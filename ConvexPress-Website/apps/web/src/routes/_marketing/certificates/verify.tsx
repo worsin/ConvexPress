@@ -28,6 +28,9 @@ type VerificationResult =
       courseTitle: string;
       issuedAt: number;
       serial: string;
+      certificateTitle: string;
+      orientation: "landscape" | "portrait";
+      certificateText: string;
     }
   | { valid: false };
 
@@ -102,6 +105,10 @@ function VerifyCertificatePage() {
                   Certificate verified
                 </h2>
                 <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-muted-foreground">Certificate</dt>
+                    <dd className="font-medium text-foreground">{result.certificateTitle}</dd>
+                  </div>
                   <div>
                     <dt className="text-muted-foreground">Learner</dt>
                     <dd className="font-medium text-foreground">{result.learnerName}</dd>

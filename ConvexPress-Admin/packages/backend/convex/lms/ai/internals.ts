@@ -8,6 +8,31 @@ import { requireMinimumRoleLevel } from "../../helpers/permissions";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
 import { normalizeOutline, outlineStats, textToDoc } from "./helpers";
+import { requireCourseAuthorOrEditor, requireNodeCourseAuthorOrEditor } from "../access";
+
+export const assertCourseGenerationAccess = internalQuery({
+  args: { courseId: v.id("lms_courses") },
+  handler: async (ctx, args) => {
+    const { course } = await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.ai.generate");
+    return { courseId: args.courseId, title: course.title, authorId: course.authorId };
+  },
+});
+
+export const assertNodeGenerationAccess = internalQuery({
+  args: { nodeId: v.id("lms_nodes") },
+  handler: async (ctx, args) => {
+    const { course, node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.ai.generate");
+    if (node.kind !== "lesson") {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Node is not a lesson" });
+    }
+    return {
+      nodeId: args.nodeId,
+      courseId: node.courseId,
+      title: node.title,
+      courseTitle: course.title,
+    };
+  },
+});
 
 export const createJob = internalMutation({
   args: {
@@ -184,6 +209,53 @@ export const writeLessonBody = internalMutation({
       courseId: node.courseId,
       nodeId: args.nodeId,
       generationId: args.generationId,
+    });
+    return { ok: true };
+  },
+});
+
+export const storeLessonBodyDraft = internalMutation({
+  args: {
+    jobId: v.id("lms_jobs"),
+    generationId: v.id("lms_ai_generations"),
+    nodeId: v.id("lms_nodes"),
+    bodyText: v.string(),
+    prompt: v.string(),
+    sourcesJson: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.jobId);
+    const generation = await ctx.db.get(args.generationId);
+    const node = await ctx.db.get(args.nodeId);
+    if (!job || !generation || !node || node.kind !== "lesson") {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Lesson generation job not found" });
+    }
+    if (generation.targetType !== "node" || generation.targetId !== String(args.nodeId)) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Generation does not belong to this lesson.",
+      });
+    }
+    const now = Date.now();
+    await ctx.db.patch(args.generationId, {
+      prompt: args.prompt,
+      briefJson: {
+        ...(generation.briefJson as Record<string, unknown> | undefined),
+        generatedBody: args.bodyText,
+      },
+      sourcesJson: args.sourcesJson ?? generation.sourcesJson,
+      reviewStatus: "unreviewed",
+    });
+    await ctx.db.patch(args.jobId, {
+      status: "done",
+      progress: 100,
+      finishedAt: now,
+    });
+    await emitEvent(ctx, LMS_EVENTS.AI_LESSON_GENERATED, SYSTEM.LMS, {
+      courseId: node.courseId,
+      nodeId: args.nodeId,
+      generationId: args.generationId,
+      applied: false,
     });
     return { ok: true };
   },

@@ -9,13 +9,14 @@ import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import {
+  currentUserCan,
   getCurrentRoleLevel,
   getCurrentUser,
-  hasMinimumRoleLevel,
-  requireMinimumRoleLevel,
+  requireCan,
 } from "../helpers/permissions";
 import { isPluginEnabled } from "../helpers/plugins";
 import { evaluateMembershipAccess } from "../membership/access";
+import type { Capability } from "../types/capabilities";
 
 type LmsCtx = QueryCtx | MutationCtx;
 
@@ -61,8 +62,9 @@ export async function getCourseRestrictionRules(
 export async function requireCourseAuthorOrEditor(
   ctx: LmsCtx,
   courseId: Id<"lms_courses">,
+  capability: Capability = "lms.course.edit",
 ) {
-  const user = await requireMinimumRoleLevel(ctx as any, 60);
+  const user = await requireCan(ctx as any, capability);
   const course = await ctx.db.get(courseId);
   if (!course) {
     throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
@@ -82,12 +84,13 @@ export async function requireCourseAuthorOrEditor(
 export async function requireNodeCourseAuthorOrEditor(
   ctx: LmsCtx,
   nodeId: Id<"lms_nodes">,
+  capability: Capability = "lms.lesson.edit",
 ) {
   const node = await ctx.db.get(nodeId);
   if (!node) {
     throw new ConvexError({ code: "NOT_FOUND", message: "Node not found" });
   }
-  const auth = await requireCourseAuthorOrEditor(ctx, node.courseId);
+  const auth = await requireCourseAuthorOrEditor(ctx, node.courseId, capability);
   return { ...auth, node };
 }
 
@@ -105,7 +108,9 @@ export async function canUserAccessCourse(
 
   const me = await getCurrentUser(ctx as any);
   const userId = args.userId ?? me?._id;
-  const staffPreview = await hasMinimumRoleLevel(ctx as any, 60);
+  const staffPreview =
+    (await currentUserCan(ctx as any, "lms.course.view")) ||
+    (await currentUserCan(ctx as any, "lms.course.edit"));
   if (course.status !== "published" && !staffPreview) {
     return { allowed: false, reason: "not_published", requiresLogin: false };
   }

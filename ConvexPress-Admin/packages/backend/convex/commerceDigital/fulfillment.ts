@@ -3,6 +3,7 @@ import { v } from "convex/values";
 
 import { internalMutation } from "../_generated/server";
 import { isPluginEnabled } from "../helpers/plugins";
+import { syncPurchasedCourseEnrollmentsHandler } from "../lms/enrollment/internals";
 
 function generateRandomHex(bytes: number): string {
   const array = new Uint8Array(bytes);
@@ -180,10 +181,6 @@ async function assignMissingLicenseKeys(ctx: any, args: any) {
 }
 
 export async function fulfillOrderDigitalEntitlementsHandler(ctx: any, args: any) {
-    if (!(await isPluginEnabled(ctx, "commerceDigital"))) {
-      return { status: "skipped", reason: "commerceDigital disabled" };
-    }
-
     const order = await ctx.db.get(args.orderId);
     if (!order) return { status: "failed", reason: "Order not found" };
 
@@ -193,6 +190,16 @@ export async function fulfillOrderDigitalEntitlementsHandler(ctx: any, args: any
         updatedAt: Date.now(),
       });
       return { status: "pending", reason: "Order is not paid yet" };
+    }
+
+    const lmsEnrollments = await syncPurchasedCourseEnrollmentsHandler(ctx, {
+      orderId: order._id,
+      userId: order.userId,
+      action: "grant",
+    });
+
+    if (!(await isPluginEnabled(ctx, "commerceDigital"))) {
+      return { status: "skipped", reason: "commerceDigital disabled", lmsEnrollments };
     }
 
     const orderItems = await ctx.db
@@ -312,6 +319,7 @@ export async function fulfillOrderDigitalEntitlementsHandler(ctx: any, args: any
           existingTokens,
           assignedKeys,
           existingAssignedKeys,
+          lmsEnrollments,
           reviewMessages,
         },
       });
@@ -323,6 +331,7 @@ export async function fulfillOrderDigitalEntitlementsHandler(ctx: any, args: any
       existingTokens,
       assignedKeys,
       existingAssignedKeys,
+      lmsEnrollments,
       reviewMessages,
     };
 }
