@@ -30,6 +30,10 @@ jobs:
         working-directory: ConvexPress-Admin
         run: bun install --frozen-lockfile
 
+      - name: Generate extension schema index
+        working-directory: ConvexPress-Admin/packages/backend
+        run: bun run codegen:extensions
+
       - name: Type check
         run: bun run check-types
 
