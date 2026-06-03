@@ -544,6 +544,14 @@ export const bulkUpdateStatus = mutation({
         eventType: "bulk_status_update",
         message: `Status changed to ${args.status} via bulk action`,
       });
+      await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+        orderId: id,
+        eventType: "status_changed",
+        metadata: {
+          source: "bulk_status_update",
+          nextStatus: args.status,
+        },
+      });
       count++;
     }
     return { count };
@@ -568,6 +576,14 @@ export const bulkCancel = mutation({
         orderId: id,
         eventType: "bulk_cancelled",
         message: "Cancelled via bulk action",
+      });
+      await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+        orderId: id,
+        eventType: "status_changed",
+        metadata: {
+          source: "bulk_cancel",
+          nextStatus: "cancelled",
+        },
       });
       count++;
     }
@@ -853,6 +869,21 @@ export const updateStatus = mutation({
       });
     }
 
+    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+      orderId: order._id,
+      eventType:
+        args.status === "paid"
+          ? "payment_received"
+          : args.status === "refunded"
+            ? "refund_processed"
+            : "status_changed",
+      metadata: {
+        previousStatus: order.status,
+        nextStatus: args.status,
+        note: args.note?.trim() || undefined,
+      },
+    });
+
     return order._id;
   },
 });
@@ -889,6 +920,15 @@ export const updateFulfillment = mutation({
         ? `Fulfillment updated to ${args.fulfillmentStatus}: ${args.note.trim()}`
         : `Fulfillment updated to ${args.fulfillmentStatus}.`,
       actorUserId: actor._id,
+      metadata: {
+        previousFulfillmentStatus: order.fulfillmentStatus,
+        nextFulfillmentStatus: args.fulfillmentStatus,
+      },
+    });
+
+    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+      orderId: order._id,
+      eventType: "status_changed",
       metadata: {
         previousFulfillmentStatus: order.fulfillmentStatus,
         nextFulfillmentStatus: args.fulfillmentStatus,
@@ -1022,6 +1062,16 @@ export const capturePayment = mutation({
       },
     });
 
+    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+      orderId: order._id,
+      eventType: "payment_captured",
+      metadata: {
+        provider: args.provider,
+        providerTransactionId: args.providerTransactionId,
+        amount: capturedAmount,
+      },
+    });
+
     return order._id;
   },
 });
@@ -1148,6 +1198,16 @@ export const createRefund = mutation({
       applied: true,
       createdAt: now,
       updatedAt: now,
+    });
+
+    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+      orderId: order._id,
+      eventType: "refund_created",
+      metadata: {
+        amount: args.amount,
+        refundedTotal: nextRefundedTotal,
+        fullyRefunded: isFullyRefunded,
+      },
     });
 
     return order._id;
@@ -1294,6 +1354,15 @@ export const createShipment = mutation({
       },
     });
 
+    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+      orderId: order._id,
+      eventType: "status_changed",
+      metadata: {
+        shipmentId,
+        shipmentStatus: status,
+      },
+    });
+
     return shipmentId;
   },
 });
@@ -1337,6 +1406,16 @@ export const updateShipmentStatus = mutation({
         ? `Shipment updated to ${args.status}: ${args.note.trim()}`
         : `Shipment updated to ${args.status}.`,
       actorUserId: actor._id,
+      metadata: {
+        shipmentId: shipment._id,
+        previousStatus: shipment.status,
+        nextStatus: args.status,
+      },
+    });
+
+    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+      orderId: shipment.orderId,
+      eventType: "status_changed",
       metadata: {
         shipmentId: shipment._id,
         previousStatus: shipment.status,

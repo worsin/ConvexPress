@@ -61,4 +61,15 @@ describe("email template registry integrity", () => {
       }
     }
   });
+
+  test("purchase core templates are registered with defaults", () => {
+    for (const slug of [
+      "purchase-receipt",
+      "purchase-admin-alert",
+      "purchase-payment-failed",
+    ]) {
+      expect(EMAIL_TEMPLATE_REGISTRY_BY_SLUG[slug]?.category).toBe("commerce");
+      expect(DEFAULT_TEMPLATES.some((template) => template.slug === slug)).toBe(true);
+    }
+  });
 });

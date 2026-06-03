@@ -868,6 +868,91 @@ export const DEFAULT_TEMPLATES: TemplateDefinition[] = [
     eventCode: "kb.comment_created",
   },
 
+  // ═══ Purchase Core ══════════════════════════════════════════════════════════
+
+  {
+    slug: "purchase-receipt",
+    name: "Purchase Receipt",
+    description: "Sent to customers when payment is received for any purchase source",
+    subjectTemplate: "Receipt for {orderNumber}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Payment received</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        Hi {recipient_name}, we received payment for <strong>{orderNumber}</strong>.
+      </p>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Source:</td><td style="padding:8px 0;color:#18181b;font-size:14px;">{sourceLabel}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Total:</td><td style="padding:8px 0;color:#18181b;font-size:14px;">{total}</td></tr>
+      </table>
+      <a href="{orderUrl}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">View purchase</a>
+    `),
+    preheaderText: "Your payment has been received",
+    availableVariables: [
+      { name: "orderNumber", description: "Purchase/order number", required: true },
+      { name: "sourceLabel", description: "Purchase source label", required: false },
+      { name: "total", description: "Formatted total amount", required: true },
+      { name: "orderUrl", description: "Customer purchase URL", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "commerce",
+    eventCode: "purchase.payment_succeeded",
+  },
+
+  {
+    slug: "purchase-admin-alert",
+    name: "Purchase Admin Alert",
+    description: "Sent to administrators when a paid purchase is recorded",
+    subjectTemplate: "New paid purchase {orderNumber}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">New paid purchase</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        A paid purchase was recorded from <strong>{sourceLabel}</strong>.
+      </p>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Order:</td><td style="padding:8px 0;color:#18181b;font-size:14px;">{orderNumber}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Customer:</td><td style="padding:8px 0;color:#18181b;font-size:14px;">{customerEmail}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Total:</td><td style="padding:8px 0;color:#18181b;font-size:14px;">{total}</td></tr>
+      </table>
+      <a href="{adminUrl}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Open ledger</a>
+    `),
+    preheaderText: "A paid purchase needs admin visibility",
+    availableVariables: [
+      { name: "orderNumber", description: "Purchase/order number", required: true },
+      { name: "sourceLabel", description: "Purchase source label", required: false },
+      { name: "customerEmail", description: "Customer email address", required: false },
+      { name: "total", description: "Formatted total amount", required: true },
+      { name: "adminUrl", description: "Admin ledger URL", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "admin",
+    category: "commerce",
+    eventCode: "purchase.payment_succeeded",
+  },
+
+  {
+    slug: "purchase-payment-failed",
+    name: "Purchase Payment Failed",
+    description: "Sent to customers when a purchase payment fails",
+    subjectTemplate: "Payment issue for {orderNumber}",
+    bodyHtml: wrapHtml(`
+      <h2 style="margin:0 0 16px;font-size:20px;color:#18181b;">Payment could not be completed</h2>
+      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+        We could not complete payment for <strong>{orderNumber}</strong>. You can review the purchase and try again if payment is still required.
+      </p>
+      <a href="{orderUrl}" style="display:inline-block;padding:12px 24px;background-color:#18181b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Review purchase</a>
+    `),
+    preheaderText: "There was a payment issue",
+    availableVariables: [
+      { name: "orderNumber", description: "Purchase/order number", required: true },
+      { name: "orderUrl", description: "Customer purchase URL", required: false },
+    ],
+    priority: "immediate",
+    recipientType: "customer",
+    category: "commerce",
+    eventCode: "purchase.payment_failed",
+  },
+
   // ═══ Commerce Returns ═══════════════════════════════════════════════════════
 
   {

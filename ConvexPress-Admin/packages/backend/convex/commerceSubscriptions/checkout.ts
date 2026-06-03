@@ -398,6 +398,9 @@ export const activateFromIntent = mutation({
 
 		if (intent.status === "activated" && intent.subscriptionId) {
 			const existingSubscription = await ctx.db.get(intent.subscriptionId);
+			await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionCheckoutIntent, {
+				intentId: args.intentId,
+			});
 			return {
 				ok: true,
 				contractId: intent.subscriptionId,
@@ -426,6 +429,14 @@ export const activateFromIntent = mutation({
 				paymentProvider: args.paymentResult.provider,
 				paymentTransactionId: args.paymentResult.providerTransactionId,
 				updatedAt: now,
+			});
+			await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionCheckoutIntent, {
+				intentId: args.intentId,
+				eventType: "subscription_signup_payment_failed",
+				metadata: {
+					paymentProvider: args.paymentResult.provider,
+					paymentTransactionId: args.paymentResult.providerTransactionId,
+				},
 			});
 			return {
 				ok: false,
@@ -749,6 +760,16 @@ export const activateFromIntent = mutation({
 			stripeCustomerId:
 				args.paymentResult.stripeCustomerId ?? intent.stripeCustomerId,
 			updatedAt: now,
+		});
+
+		await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionCheckoutIntent, {
+			intentId: args.intentId,
+			eventType: "subscription_signup_paid",
+			metadata: {
+				subscriptionId,
+				paymentProvider: args.paymentResult.provider,
+				paymentTransactionId: args.paymentResult.providerTransactionId,
+			},
 		});
 
 		// Emit event (best-effort).

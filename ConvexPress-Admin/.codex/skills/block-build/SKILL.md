@@ -15,8 +15,14 @@ and renders on the public site.
 - Use `apps/web/src/blocks.local/<id>/` only for private user-installed blocks
   that should stay local and untracked.
 - Name tracked site or platform blocks with a stable namespace such as
-  `asw/story-timeline`, `commerce/product-grid`, or `core/foo` only when the
+  `blocks/story-timeline`, `commerce/product-grid`, or `core/foo` only when the
   block is truly a core platform block.
+- When the source inspiration is a specific client/site audit, distill the
+  structure into a generic reusable block. Do not put the client/site name,
+  acronym, domain, product line, location, or brand-specific vocabulary in the
+  tracked folder name, block `name`, exported symbols, title, defaults,
+  description, keywords, or AI hints unless the user explicitly asks for a
+  private site-specific block in `blocks.local/`.
 - Do not register portable blocks by editing the monolithic core registry unless
   you are fixing the registry/discovery system itself. The Vite scanners in both
   apps load `apps/web/src/blocks/*/manifest.tsx` automatically.
@@ -50,12 +56,16 @@ Website block folder:
 1. Read the current sample or closest existing block module before coding.
 2. Create the Admin and Website folders under tracked `apps/web/src/blocks/`.
 3. Add schemas first, then Admin editor, then Website renderer, then manifests.
-4. Run `bun run check:blocks` from `ConvexPress-Admin`; this checks core catalog
+4. Before verification, scan touched block files for leaked client/site terms,
+   for example `rg -i "clientname|client acronym|domain|brand product"`.
+   Remove those terms from reusable tracked blocks; move the block to
+   `blocks.local/` only when it is intentionally site-private.
+5. Run `bun run check:blocks` from `ConvexPress-Admin`; this checks core catalog
    drift and verifies tracked discovered blocks have matching Website renderers.
-5. Run focused typechecks for both apps when the change touches TS/TSX:
+6. Run focused typechecks for both apps when the change touches TS/TSX:
    `bun run --cwd ConvexPress-Admin/apps/web check-types` and
    `bun run --cwd ConvexPress-Website/apps/web check-types`.
-6. If copying to another ConvexPress checkout, copy the whole block folder set
+7. If copying to another ConvexPress checkout, copy the whole block folder set
    plus any `_shared` helpers and any discovery/checker fixes.
 
 ## Update Safety

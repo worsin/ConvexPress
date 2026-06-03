@@ -264,6 +264,27 @@ export const EMAIL_TEMPLATE_REGISTRY: EmailTemplateRegistryEntry[] = [
     description: "Sent for new KB comments.",
   },
   {
+    slug: "purchase-receipt",
+    category: "commerce",
+    triggerKind: "direct",
+    canonicalEventCode: "purchase.payment_succeeded",
+    description: "Customer receipt for any paid purchase source.",
+  },
+  {
+    slug: "purchase-admin-alert",
+    category: "commerce",
+    triggerKind: "direct",
+    canonicalEventCode: "purchase.payment_succeeded",
+    description: "Admin alert for a paid purchase from any source.",
+  },
+  {
+    slug: "purchase-payment-failed",
+    category: "commerce",
+    triggerKind: "direct",
+    canonicalEventCode: "purchase.payment_failed",
+    description: "Customer alert when a purchase payment fails.",
+  },
+  {
     slug: "commerce-return-requested-admin",
     category: "commerce",
     triggerKind: "direct",

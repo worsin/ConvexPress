@@ -46,6 +46,7 @@ export const SYSTEM = {
   PRODUCT: "product",
   CART: "cart",
   CHECKOUT: "checkout",
+  PURCHASE: "purchase",
   WISHLIST: "wishlist",
   LMS: "lms",
   FORMS: "forms",
@@ -322,6 +323,17 @@ export const CHECKOUT_EVENTS = {
   FAILED: "checkout.failed",
 } as const;
 
+/** Purchase Core events (7) */
+export const PURCHASE_EVENTS = {
+  CREATED: "purchase.created",
+  PAYMENT_PENDING: "purchase.payment_pending",
+  PAYMENT_SUCCEEDED: "purchase.payment_succeeded",
+  PAYMENT_FAILED: "purchase.payment_failed",
+  REFUND_CREATED: "purchase.refund_created",
+  REFUND_FAILED: "purchase.refund_failed",
+  UPDATED: "purchase.updated",
+} as const;
+
 /** Wishlist System events (3) */
 export const WISHLIST_EVENTS = {
   ITEM_ADDED: "wishlist.item_added",
@@ -429,6 +441,7 @@ export const ALL_EVENT_CODES: string[] = [
   ...Object.values(PRODUCT_EVENTS),
   ...Object.values(CART_EVENTS),
   ...Object.values(CHECKOUT_EVENTS),
+  ...Object.values(PURCHASE_EVENTS),
   ...Object.values(WISHLIST_EVENTS),
   ...Object.values(LMS_EVENTS),
   ...Object.values(FORM_EVENTS),
@@ -480,6 +493,7 @@ export const EVENT_CODES_BY_SYSTEM: Record<string, readonly string[]> = {
   [SYSTEM.PRODUCT]: Object.values(PRODUCT_EVENTS),
   [SYSTEM.CART]: Object.values(CART_EVENTS),
   [SYSTEM.CHECKOUT]: Object.values(CHECKOUT_EVENTS),
+  [SYSTEM.PURCHASE]: Object.values(PURCHASE_EVENTS),
   [SYSTEM.WISHLIST]: Object.values(WISHLIST_EVENTS),
   [SYSTEM.LMS]: Object.values(LMS_EVENTS),
   [SYSTEM.FORMS]: Object.values(FORM_EVENTS),

@@ -878,6 +878,15 @@ export const confirmPaymentSuccess = internalMutation({
 					},
 					createdAt: now,
 				});
+				await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+					orderId: order._id,
+					eventType: "payment_received",
+					metadata: {
+						transactionId: transaction._id,
+						providerTransactionId: args.providerTransactionId,
+						provider: args.provider,
+					},
+				});
 			}
 		}
 	},
@@ -975,6 +984,16 @@ export const confirmPaymentFailure = internalMutation({
 					},
 					createdAt: now,
 				});
+				await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+					orderId: order._id,
+					eventType: "payment_failed",
+					metadata: {
+						transactionId: transaction._id,
+						providerTransactionId: args.providerTransactionId,
+						provider: args.provider,
+						error: args.error,
+					},
+				});
 			}
 		}
 	},
@@ -1057,6 +1076,15 @@ export const completeRefund = internalMutation({
 					},
 					createdAt: now,
 				});
+				await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+					orderId: transaction.orderId,
+					eventType: "refund_processed",
+					metadata: {
+						refundId: args.refundId,
+						providerRefundId: args.providerRefundId,
+						amount: args.amount,
+					},
+				});
 			}
 
 			if (refund?.returnId) {
@@ -1101,6 +1129,15 @@ export const completeRefund = internalMutation({
 						error: args.error,
 					},
 					createdAt: now,
+				});
+				await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+					orderId: transaction.orderId,
+					eventType: "refund_failed",
+					metadata: {
+						refundId: args.refundId,
+						amount: args.amount,
+						error: args.error,
+					},
 				});
 			}
 

@@ -60,12 +60,19 @@ describe("parseMetaPricing", () => {
     expect(parseMetaPricing(meta)).toEqual({
       oneTime: 1999,
       recurring: [{ interval: "month", amount: 500, label: "Plan" }],
+      lineItems: [],
+      currency: "USD",
     });
   });
 
   test("oneTime-only (empty recurring array) is valid", () => {
     const meta = JSON.stringify({ pricing: { oneTime: 0, recurring: [] } });
-    expect(parseMetaPricing(meta)).toEqual({ oneTime: 0, recurring: [] });
+    expect(parseMetaPricing(meta)).toEqual({
+      oneTime: 0,
+      recurring: [],
+      lineItems: [],
+      currency: "USD",
+    });
   });
 
   test("oneTime not a number → null (shape guard)", () => {

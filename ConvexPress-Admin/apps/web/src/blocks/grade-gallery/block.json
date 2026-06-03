@@ -1,0 +1,17 @@
+{
+  "name": "blocks/grade-gallery",
+  "title": "Grade Gallery",
+  "description": "A grade-by-grade gallery for product sets, visual examples, descriptions, and notes.",
+  "category": "media",
+  "keywords": ["site", "grade", "gallery", "product", "figure", "sets"],
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": true
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "explaining product grades, visual quality examples, or product grading standards",
+    "avoid": "customer project photos or press mentions"
+  }
+}

@@ -49,6 +49,7 @@ import { themesTables } from "./schema/themes";
 import { layoutTables } from "./schema/layouts";
 import { recipeTables } from "./schema/recipes";
 import { galleryTables } from "./schema/gallery";
+import { purchaseTables } from "./schema/purchases";
 import { commerceTables } from "./schema/commerce";
 import { shippingTables } from "./schema/shipping";
 import { commerceSubscriptionTables } from "./schema/commerceSubscriptions";
@@ -101,6 +102,7 @@ export default defineSchema({
   ...layoutTables,
   ...recipeTables,
   ...galleryTables,
+  ...purchaseTables,
   ...commerceTables,
   ...shippingTables,
   ...commerceSubscriptionTables,

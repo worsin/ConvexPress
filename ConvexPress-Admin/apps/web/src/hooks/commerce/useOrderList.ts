@@ -1,7 +1,7 @@
 /**
  * Commerce — Order List Query Hook
  *
- * Wraps useQuery(api.commerce.orders.list) with filter/sort/pagination
+ * Wraps useQuery(api.purchases.queries.list) with filter/sort/pagination
  * state derived from route URL search params, returning the
  * PaginatedResult shape expected by useListTable.
  */
@@ -28,6 +28,7 @@ export interface UseOrderListParams {
   dateTo?: number;
   paymentStatus?: string;
   fulfillmentStatus?: string;
+  sourceType?: string;
 }
 
 export function useOrderList(params: UseOrderListParams) {
@@ -49,9 +50,9 @@ export function useOrderList(params: UseOrderListParams) {
   if (params.dateFrom) queryArgs.dateFrom = params.dateFrom;
   if (params.dateTo) queryArgs.dateTo = params.dateTo;
   if (params.paymentStatus) queryArgs.paymentStatus = params.paymentStatus;
-  if (params.fulfillmentStatus) queryArgs.fulfillmentStatus = params.fulfillmentStatus;
+  if (params.sourceType) queryArgs.sourceType = params.sourceType;
 
-  const result = useQuery((api as any).commerce.orders.list, queryArgs) as
+  const result = useQuery((api as any).purchases.queries.list, queryArgs) as
     | OrderListResult
     | undefined;
 

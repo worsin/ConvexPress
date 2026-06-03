@@ -1,0 +1,17 @@
+{
+  "name": "blocks/tabbed-content",
+  "title": "Tabbed Content",
+  "description": "A real tabbed section for grouped story, process, grade, or product information.",
+  "category": "layout",
+  "keywords": ["site", "tabs", "tabbed", "comparison", "grouped"],
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": true
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "content where each item needs a label and its own visible panel",
+    "avoid": "linear history sections that should use blocks/story-timeline"
+  }
+}

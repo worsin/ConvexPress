@@ -6,14 +6,25 @@ import { OrderListTable } from "@/components/commerce/OrderListTable";
 const orderSearchSchema = z.object({
   status: z
     .enum([
+      "draft",
       "pending",
-      "processing",
+      "payment_pending",
       "paid",
+      "payment_failed",
+      "partially_refunded",
       "fulfilled",
-      "completed",
       "cancelled",
       "refunded",
-      "failed",
+    ])
+    .optional(),
+  sourceType: z
+    .enum([
+      "storefront_order",
+      "form_order",
+      "subscription_signup",
+      "subscription_invoice",
+      "manual",
+      "api",
     ])
     .optional(),
   search: z.string().optional(),

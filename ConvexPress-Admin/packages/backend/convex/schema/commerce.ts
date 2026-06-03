@@ -513,6 +513,7 @@ export const commerceTables = {
     customerId: v.optional(v.id("commerce_customer_profiles")),
     userId: v.optional(v.id("users")),
     checkoutSessionId: v.optional(v.id("commerce_checkout_sessions")),
+    purchaseOrderId: v.optional(v.id("purchase_orders")),
     paymentCollectionId: v.optional(v.id("commerce_payment_collections")),
     regionId: v.optional(v.id("commerce_regions")),
     salesChannelId: v.optional(v.id("commerce_sales_channels")),
@@ -604,6 +605,7 @@ export const commerceTables = {
     .index("by_orderNumber", ["orderNumber"])
     .index("by_trackingToken", ["trackingToken"])
     .index("by_checkout", ["checkoutSessionId"])
+    .index("by_purchase_order", ["purchaseOrderId"])
     .index("by_customer", ["customerId"])
     .index("by_user", ["userId"])
     .index("by_status", ["status"])

@@ -1,0 +1,17 @@
+{
+  "name": "blocks/page-banner",
+  "title": "Page Banner",
+  "description": "A marketing page header with optional breadcrumb label, supporting copy, media, and CTA.",
+  "category": "marketing",
+  "keywords": ["site", "banner", "hero", "page", "header"],
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": true
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "top sections on story, history, policies, media, and informational pages",
+    "avoid": "small inline headings inside long-form content"
+  }
+}

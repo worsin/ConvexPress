@@ -103,6 +103,48 @@ export const tables = {
     createdAt: v.number(),
   }).index("by_submission", ["submissionId"]),
 
+  // -- Order records (Form Order Form Commerce System) ---------------------
+  // The form owns its respondent/order workflow, while Purchase Core owns the
+  // cross-channel payment ledger. This table links the two without reusing
+  // storefront commerce_orders for non-cart purchases.
+  form_orders: defineTable({
+    formId: v.id("forms"),
+    submissionId: v.id("form_submissions"),
+    purchaseOrderId: v.optional(v.id("purchase_orders")),
+    status: v.union(
+      v.literal("pending_payment"),
+      v.literal("paid"),
+      v.literal("payment_failed"),
+      v.literal("cancelled"),
+      v.literal("partially_refunded"),
+      v.literal("refunded"),
+    ),
+    currencyCode: v.string(),
+    subtotalAmount: v.number(),
+    discountAmount: v.optional(v.number()),
+    taxAmount: v.optional(v.number()),
+    totalAmount: v.number(),
+    amountPaid: v.number(),
+    amountRefunded: v.number(),
+    paymentProvider: v.optional(v.string()),
+    paymentIntentId: v.optional(v.string()),
+    customerEmail: v.optional(v.string()),
+    // Server-derived pricing line snapshot; shape can evolve with field types.
+    lineItems: v.optional(v.any()),
+    // Provider/source details that must not force schema churn for add-ons.
+    metadata: v.optional(v.any()),
+    paidAt: v.optional(v.number()),
+    failedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_form", ["formId"])
+    .index("by_submission", ["submissionId"])
+    .index("by_purchase_order", ["purchaseOrderId"])
+    .index("by_status", ["status"])
+    .index("by_payment_intent", ["paymentIntentId"])
+    .index("by_createdAt", ["createdAt"]),
+
   // ── Notifications config (Form Notification System) ─────────────────────
   form_notifications: defineTable({
     formId: v.id("forms"),

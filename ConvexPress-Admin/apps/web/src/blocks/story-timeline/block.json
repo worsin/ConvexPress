@@ -1,0 +1,17 @@
+{
+  "name": "blocks/story-timeline",
+  "title": "Story Timeline",
+  "description": "A chronological story/history timeline with dated milestones, copy, optional images, and links.",
+  "category": "marketing",
+  "keywords": ["site", "story", "history", "timeline", "milestones"],
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": true
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "company history, origin stories, founder timeline, or multi-year milestones",
+    "avoid": "unordered feature lists or grade comparisons"
+  }
+}

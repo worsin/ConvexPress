@@ -1,0 +1,17 @@
+{
+  "name": "blocks/promo-band",
+  "title": "Promo Band",
+  "description": "A reusable promotional band with supporting copy, media, CTAs, and small detail facts.",
+  "category": "marketing",
+  "keywords": ["promotion", "campaign", "promo", "cta"] ,
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": true
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "campaign cross-promotions and reusable marketing callouts",
+    "avoid": "generic page banners or detailed product collections"
+  }
+}

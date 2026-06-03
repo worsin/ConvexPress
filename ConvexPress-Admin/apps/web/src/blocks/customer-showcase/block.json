@@ -1,0 +1,17 @@
+{
+  "name": "blocks/customer-showcase",
+  "title": "Customer Showcase",
+  "description": "Customer quotes and project showcases with images, roles, companies, and links.",
+  "category": "marketing",
+  "keywords": ["customer", "testimonial", "showcase", "project", "portfolio"] ,
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": true
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "customer stories, customer examples, testimonial grids, and project galleries",
+    "avoid": "press mentions or product cards"
+  }
+}

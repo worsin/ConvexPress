@@ -89,6 +89,9 @@ export const EMAIL_TEMPLATES = {
   KB_COMMENT_NOTIFICATION: "kb_comment_notification",
 
   // Commerce Returns
+  PURCHASE_RECEIPT: "purchase-receipt",
+  PURCHASE_ADMIN_ALERT: "purchase-admin-alert",
+  PURCHASE_PAYMENT_FAILED: "purchase-payment-failed",
   RETURN_REQUESTED_ADMIN: "commerce-return-requested-admin",
   RETURN_APPROVED: "commerce-return-approved",
   RETURN_REJECTED: "commerce-return-rejected",

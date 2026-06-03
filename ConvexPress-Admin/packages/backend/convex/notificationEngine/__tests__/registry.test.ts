@@ -42,6 +42,10 @@ describe("notification engine registry", () => {
       "site",
       "email",
     ]);
+    expect(getNotificationChannelsForEvent("purchase.created")).toEqual(["site"]);
+    expect(getNotificationChannelsForEvent("purchase.payment_succeeded")).toEqual(["site"]);
+    expect(getNotificationChannelsForEvent("purchase.payment_failed")).toEqual(["site"]);
+    expect(getNotificationChannelsForEvent("purchase.refund_created")).toEqual(["site"]);
     for (const eventCode of [
       "lms.enrolled",
       "lms.unenrolled",

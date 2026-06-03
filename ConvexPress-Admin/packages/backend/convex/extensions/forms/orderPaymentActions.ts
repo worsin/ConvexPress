@@ -137,6 +137,7 @@ export const beginOrderPayment = action({
         currency: source.currency,
         status: paymentIntent.status,
         returnUrl,
+        customerEmail: source.customerEmail ?? undefined,
       },
     );
 

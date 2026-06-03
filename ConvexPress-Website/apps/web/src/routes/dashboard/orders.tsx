@@ -9,10 +9,12 @@ export const Route = createFileRoute("/dashboard/orders")({
 });
 
 function DashboardOrdersPage() {
-  const orders = useQuery((api as any).commerce.orders.listMine, {}) as
+  const orders = useQuery((api as any).purchases.queries.listMine, {}) as
     | Array<{
         _id: string;
         orderNumber?: string;
+        sourceType?: string;
+        sourceLabel?: string;
         status: string;
         totalAmount: number;
         currencyCode?: string;
@@ -32,8 +34,9 @@ function DashboardOrdersPage() {
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-          <div className="grid grid-cols-[160px_120px_140px_160px] gap-4 border-b border-border px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <div className="grid grid-cols-[160px_160px_120px_140px_160px] gap-4 border-b border-border px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             <div>Order</div>
+            <div>Source</div>
             <div>Status</div>
             <div>Total</div>
             <div>Created</div>
@@ -56,10 +59,16 @@ function DashboardOrdersPage() {
                   key={order._id}
                   to="/dashboard/orders/$orderId"
                   params={{ orderId: order._id }}
-                  className="grid grid-cols-[160px_120px_140px_160px] gap-4 px-5 py-4 transition-colors hover:bg-muted/30"
+                  className="grid grid-cols-[160px_160px_120px_140px_160px] gap-4 px-5 py-4 transition-colors hover:bg-muted/30"
                 >
                   <div className="font-medium text-foreground">
                     {order.orderNumber || order._id}
+                  </div>
+                  <div className="text-muted-foreground">
+                    {formatSource(order.sourceType)}
+                    {order.sourceLabel ? (
+                      <span className="block text-xs">{order.sourceLabel}</span>
+                    ) : null}
                   </div>
                   <div className="text-muted-foreground">{order.status}</div>
                   <div className="text-foreground">
@@ -79,4 +88,14 @@ function DashboardOrdersPage() {
       </div>
     </PublicPluginGate>
   );
+}
+
+function formatSource(sourceType?: string) {
+  const labels: Record<string, string> = {
+    storefront_order: "Storefront",
+    form_order: "Form order",
+    subscription_signup: "Subscription",
+    subscription_invoice: "Invoice",
+  };
+  return sourceType ? (labels[sourceType] ?? sourceType.replace(/_/g, " ")) : "Order";
 }

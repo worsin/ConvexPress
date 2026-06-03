@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "../../_generated/api";
 import { internalMutation, internalQuery } from "../../_generated/server";
 
 interface StoredPricing {
@@ -117,6 +118,7 @@ export const attachOrderPaymentIntent = internalMutation({
     currency: v.string(),
     status: v.string(),
     returnUrl: v.optional(v.string()),
+    customerEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const submission = await ctx.db.get(args.submissionId);
@@ -130,11 +132,19 @@ export const attachOrderPaymentIntent = internalMutation({
       currency: normalizeCurrency(args.currency),
       status: args.status,
       returnUrl: args.returnUrl,
+      customerEmail: args.customerEmail,
       updatedAt: Date.now(),
     };
     await ctx.db.patch(args.submissionId, {
       meta: JSON.stringify(meta),
       updatedAt: Date.now(),
+    });
+    await ctx.runMutation((internal as any).purchases.internals.syncFormOrder, {
+      submissionId: args.submissionId,
+      paymentIntentId: args.paymentIntentId,
+      provider: "stripe",
+      status: args.status,
+      eventType: "form_order_created",
     });
   },
 });
@@ -160,6 +170,13 @@ export const markOrderPaymentSucceeded = internalMutation({
       meta: JSON.stringify(meta),
       updatedAt: Date.now(),
     });
+    await ctx.runMutation((internal as any).purchases.internals.syncFormOrder, {
+      submissionId: args.submissionId,
+      paymentIntentId: args.paymentIntentId,
+      provider: "stripe",
+      status: "succeeded",
+      eventType: "form_order_paid",
+    });
   },
 });
 
@@ -184,6 +201,14 @@ export const markOrderPaymentFailed = internalMutation({
     await ctx.db.patch(args.submissionId, {
       meta: JSON.stringify(meta),
       updatedAt: Date.now(),
+    });
+    await ctx.runMutation((internal as any).purchases.internals.syncFormOrder, {
+      submissionId: args.submissionId,
+      paymentIntentId: args.paymentIntentId,
+      provider: "stripe",
+      status: "failed",
+      error: args.error,
+      eventType: "form_order_payment_failed",
     });
   },
 });

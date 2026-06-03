@@ -1,0 +1,17 @@
+{
+  "name": "blocks/media-mentions",
+  "title": "Media Mentions",
+  "description": "A curated list of articles, PDFs, videos, or audio features about the site.",
+  "category": "marketing",
+  "keywords": ["site", "media", "press", "articles", "mentions"],
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": true
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "press pages, external articles, PDF downloads, interviews, and feature videos",
+    "avoid": "testimonials or customer project showcases"
+  }
+}

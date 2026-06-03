@@ -257,6 +257,7 @@ export const commerceSubscriptionTables = {
     customerId: v.optional(v.id("commerce_customer_profiles")),
     email: v.optional(v.string()),
     orderId: v.optional(v.id("commerce_orders")),
+    purchaseOrderId: v.optional(v.id("purchase_orders")),
     orderItemIds: v.optional(v.array(v.id("commerce_order_items"))),
     formId: v.optional(v.id("commerce_subscription_order_forms")),
     formSubmissionId: v.optional(
@@ -284,6 +285,7 @@ export const commerceSubscriptionTables = {
     .index("by_user", ["userId"])
     .index("by_customer", ["customerId"])
     .index("by_order", ["orderId"])
+    .index("by_purchase_order", ["purchaseOrderId"])
     .index("by_form", ["formId"])
     .index("by_form_submission", ["formSubmissionId"])
     .index("by_subscription", ["subscriptionId"])
@@ -416,6 +418,7 @@ export const commerceSubscriptionTables = {
   commerce_subscription_invoices: defineTable({
     subscriptionId: v.id("commerce_subscriptions"),
     checkoutIntentId: v.optional(v.id("commerce_subscription_checkout_intents")),
+    purchaseOrderId: v.optional(v.id("purchase_orders")),
     sourceChannel: v.optional(commerceSubscriptionSourceChannelValidator),
     status: commerceSubscriptionInvoiceStatusValidator,
     invoiceNumber: v.optional(v.string()),
@@ -437,6 +440,7 @@ export const commerceSubscriptionTables = {
   })
     .index("by_subscription", ["subscriptionId"])
     .index("by_checkout_intent", ["checkoutIntentId"])
+    .index("by_purchase_order", ["purchaseOrderId"])
     .index("by_source_channel", ["sourceChannel"])
     .index("by_status", ["status"])
     .index("by_invoice_number", ["invoiceNumber"]),

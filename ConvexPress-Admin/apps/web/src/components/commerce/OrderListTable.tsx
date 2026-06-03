@@ -1,9 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useSearch } from "@tanstack/react-router";
-import type { Id } from "@backend/convex/_generated/dataModel";
 
-import { BulkActions } from "@/components/shared/BulkActions";
-import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ListTable } from "@/components/shared/ListTable";
 import { ListTableToolbar } from "@/components/shared/ListTableToolbar";
@@ -14,10 +11,8 @@ import { StatusTabs } from "@/components/shared/StatusTabs";
 import { useListTable } from "@/hooks/useListTable";
 import { useOrderList } from "@/hooks/commerce/useOrderList";
 import { useOrderCounts } from "@/hooks/commerce/useOrderCounts";
-import { useOrderMutations } from "@/hooks/commerce/useOrderMutations";
 import type { OrderListItem, OrderStatus } from "@/lib/commerce/orderTypes";
 import type {
-  BulkAction,
   ColumnDef,
   ListTableConfig,
   PaginatedResult,
@@ -32,9 +27,9 @@ function formatMoney(amount: number, currency: string) {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency: currency || "USD",
-    }).format(amount);
+    }).format((amount ?? 0) / 100);
   } catch {
-    return `${(amount ?? 0).toFixed(2)} ${currency}`;
+    return `${((amount ?? 0) / 100).toFixed(2)} ${currency}`;
   }
 }
 
@@ -51,6 +46,7 @@ function formatDateTime(ts: number) {
 }
 
 function customerLabel(o: OrderListItem) {
+  if (o.customerName) return o.customerName;
   if (o.customer) {
     const name = [o.customer.firstName, o.customer.lastName].filter(Boolean).join(" ").trim();
     if (name) return name;
@@ -60,15 +56,32 @@ function customerLabel(o: OrderListItem) {
 }
 
 const STATUS_TONE: Record<OrderStatus, string> = {
+  draft: "bg-muted text-muted-foreground",
   pending: "bg-muted text-muted-foreground",
-  processing: "bg-primary/10 text-primary",
+  payment_pending: "bg-warning/10 text-warning",
+  processing: "bg-warning/10 text-warning",
   paid: "bg-primary/10 text-primary",
+  payment_failed: "bg-destructive/15 text-destructive",
+  partially_refunded: "bg-warning/10 text-warning",
   fulfilled: "bg-primary/10 text-primary",
   completed: "bg-primary/15 text-primary",
   cancelled: "bg-destructive/10 text-destructive",
   refunded: "bg-warning/10 text-warning",
   failed: "bg-destructive/15 text-destructive",
 };
+
+const SOURCE_LABEL: Record<string, string> = {
+  storefront_order: "Storefront",
+  form_order: "Form order",
+  subscription_signup: "Subscription signup",
+  subscription_invoice: "Subscription invoice",
+  manual: "Manual",
+  api: "API",
+};
+
+function sourceLabel(row: OrderListItem) {
+  return SOURCE_LABEL[row.sourceType] ?? row.sourceType.replace(/_/g, " ");
+}
 
 // ─── Column Definitions ─────────────────────────────────────────────────────
 
@@ -89,8 +102,22 @@ const orderColumns: ColumnDef<OrderListItem>[] = [
           {row.orderNumber || row._id}
         </Link>
         <div className="mt-0.5 text-xs text-muted-foreground">
-          {row.itemTotalQuantity} {row.itemTotalQuantity === 1 ? "item" : "items"}
+          {sourceLabel(row)} · {row.itemTotalQuantity || row.lineCount}{" "}
+          {(row.itemTotalQuantity || row.lineCount) === 1 ? "line" : "lines"}
         </div>
+      </div>
+    ),
+  },
+  {
+    key: "source",
+    label: "Source",
+    width: "w-[14%]",
+    render: (row) => (
+      <div>
+        <div className="text-sm text-foreground">{sourceLabel(row)}</div>
+        {row.sourceLabel ? (
+          <div className="text-xs text-muted-foreground">{row.sourceLabel}</div>
+        ) : null}
       </div>
     ),
   },
@@ -98,7 +125,7 @@ const orderColumns: ColumnDef<OrderListItem>[] = [
     key: "customer",
     label: "Customer",
     sortable: true,
-    width: "w-[24%]",
+    width: "w-[22%]",
     render: (row) => (
       <div>
         <div className="text-sm text-foreground">{customerLabel(row)}</div>
@@ -110,7 +137,7 @@ const orderColumns: ColumnDef<OrderListItem>[] = [
     key: "status",
     label: "Status",
     sortable: true,
-    width: "w-[12%]",
+    width: "w-[14%]",
     render: (row) => (
       <span
         className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -124,7 +151,7 @@ const orderColumns: ColumnDef<OrderListItem>[] = [
   {
     key: "payment",
     label: "Payment",
-    width: "w-[10%]",
+    width: "w-[12%]",
     render: (row) => (
       <span className="text-xs text-muted-foreground">{row.paymentStatus || "—"}</span>
     ),
@@ -170,31 +197,13 @@ const orderColumns: ColumnDef<OrderListItem>[] = [
 
 const orderStatusTabs: StatusTab[] = [
   { key: "all", label: "All" },
-  { key: "pending", label: "Pending" },
-  { key: "processing", label: "Processing" },
+  { key: "payment_pending", label: "Payment Pending" },
   { key: "paid", label: "Paid" },
-  { key: "fulfilled", label: "Fulfilled" },
-  { key: "completed", label: "Completed" },
-  { key: "cancelled", label: "Cancelled" },
+  { key: "payment_failed", label: "Payment Failed" },
+  { key: "partially_refunded", label: "Partial Refund" },
   { key: "refunded", label: "Refunded" },
-  { key: "failed", label: "Failed" },
-];
-
-// ─── Bulk Actions ───────────────────────────────────────────────────────────
-
-const orderBulkActions: BulkAction[] = [
-  { key: "mark-processing", label: "Mark as Processing" },
-  { key: "mark-paid", label: "Mark as Paid" },
-  { key: "mark-fulfilled", label: "Mark as Fulfilled" },
-  { key: "mark-completed", label: "Mark as Completed" },
-  {
-    key: "cancel",
-    label: "Cancel Orders",
-    requiresConfirmation: true,
-    confirmMessage:
-      "Cancel the selected orders? Inventory will not be auto-restored — handle that separately if needed.",
-    destructive: true,
-  },
+  { key: "fulfilled", label: "Fulfilled" },
+  { key: "cancelled", label: "Cancelled" },
 ];
 
 // ─── Row Actions ────────────────────────────────────────────────────────────
@@ -216,27 +225,19 @@ const orderListConfig: ListTableConfig<OrderListItem> = {
   storageKey: "convexpress-commerce-orders-screen-options",
   columns: orderColumns,
   statusTabs: orderStatusTabs,
-  bulkActions: orderBulkActions,
+  bulkActions: [],
   rowActions: orderRowActions,
   defaultSort: { orderBy: "date", orderDir: "desc" },
   defaultPerPage: 20,
   perPageOptions: [10, 20, 50, 100],
   getRowId: (row) => row._id,
   primaryColumn: "orderNumber",
-  showCheckboxes: true,
+  showCheckboxes: false,
 };
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function OrderListTable() {
-  const [confirmDialog, setConfirmDialog] = useState<{
-    open: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    destructive: boolean;
-  }>({ open: false, title: "", message: "", onConfirm: () => {}, destructive: false });
-
   // Read URL search params directly so the data query and useListTable
   // see the exact same source of truth.
   const params = useSearch({ strict: false }) as Record<string, any>;
@@ -248,8 +249,16 @@ export function OrderListTable() {
     orderDir: params.orderDir,
     page: params.page,
     perPage: params.perPage,
+    sourceType: params.sourceType,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
   });
-  const { counts: countsData } = useOrderCounts({ search: params.search });
+  const { counts: countsData } = useOrderCounts({
+    search: params.search,
+    sourceType: params.sourceType,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+  });
 
   const emptyData: PaginatedResult<OrderListItem> = {
     items: [],
@@ -264,48 +273,6 @@ export function OrderListTable() {
     data: ordersData ?? emptyData,
     counts: countsData ?? {},
   });
-
-  const { bulkUpdateOrderStatus, bulkCancelOrders } = useOrderMutations();
-
-  // ─── Bulk Action Handler ───────────────────────────────────────────────
-  const handleBulkAction = useCallback(
-    (actionKey: string) => {
-      const selectedIds = Array.from(tableWithData.selection.selectedIds) as Id<"commerce_orders">[];
-      if (selectedIds.length === 0) return;
-
-      const statusMap: Record<string, string> = {
-        "mark-processing": "processing",
-        "mark-paid": "paid",
-        "mark-fulfilled": "fulfilled",
-        "mark-completed": "completed",
-      };
-
-      if (actionKey in statusMap) {
-        const newStatus = statusMap[actionKey];
-        void bulkUpdateOrderStatus(selectedIds, newStatus).then(() =>
-          tableWithData.clearSelection(),
-        );
-        return;
-      }
-
-      if (actionKey === "cancel") {
-        setConfirmDialog({
-          open: true,
-          title: "Cancel orders?",
-          message: `You are about to cancel ${selectedIds.length} ${
-            selectedIds.length === 1 ? "order" : "orders"
-          }. This action cannot be undone via this dialog.`,
-          onConfirm: async () => {
-            await bulkCancelOrders(selectedIds);
-            tableWithData.clearSelection();
-            setConfirmDialog((prev) => ({ ...prev, open: false }));
-          },
-          destructive: true,
-        });
-      }
-    },
-    [tableWithData, bulkUpdateOrderStatus, bulkCancelOrders],
-  );
 
   const rowActionsMemo = useMemo<RowAction<OrderListItem>[]>(() => orderRowActions, []);
 
@@ -341,13 +308,6 @@ export function OrderListTable() {
 
       {/* Toolbar */}
       <ListTableToolbar
-        bulkActionsSlot={
-          <BulkActions
-            actions={orderBulkActions}
-            selectedCount={tableWithData.selection.count}
-            onApply={handleBulkAction}
-          />
-        }
         searchSlot={
           <SearchBox
             value={tableWithData.search}
@@ -369,7 +329,7 @@ export function OrderListTable() {
         onToggleAll={tableWithData.toggleAll}
         rowActions={rowActionsMemo}
         primaryColumn="orderNumber"
-        showCheckboxes
+        showCheckboxes={false}
         isLoading={ordersLoading}
         getRowLabel={(row) => row.orderNumber || row._id}
         emptyState={
@@ -378,7 +338,7 @@ export function OrderListTable() {
             description={
               tableWithData.search
                 ? "Try adjusting your search or filters."
-                : "Orders will appear here once customers check out."
+                : "Purchases will appear here once customers check out, pay a form, or subscribe."
             }
             isFiltered={!!tableWithData.search || !!tableWithData.activeStatus}
           />
@@ -398,17 +358,6 @@ export function OrderListTable() {
           entityNamePlural="orders"
         />
       </div>
-
-      {/* Confirm Dialog */}
-      <ConfirmDialog
-        open={confirmDialog.open}
-        onClose={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
-        onConfirm={confirmDialog.onConfirm}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        confirmLabel={confirmDialog.destructive ? "Cancel orders" : "Confirm"}
-        destructive={confirmDialog.destructive}
-      />
     </div>
   );
 }

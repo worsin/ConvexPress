@@ -19,16 +19,231 @@ function formatMoney(amount: number, currencyCode: string) {
   }).format(amount / 100);
 }
 
+const PURCHASE_SOURCE_LABEL: Record<string, string> = {
+  storefront_order: "Storefront order",
+  form_order: "Form order",
+  subscription_signup: "Subscription signup",
+  subscription_invoice: "Subscription invoice",
+  manual: "Manual purchase",
+  api: "API purchase",
+};
+
+function formatDateTime(ts?: number) {
+  if (!ts) return "—";
+  return new Date(ts).toLocaleString();
+}
+
+function PurchaseLedgerDetail({ purchase }: { purchase: any }) {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Link to="/commerce/orders" className="text-sm text-primary hover:underline">
+          Back to orders
+        </Link>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {purchase.orderNumber}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {PURCHASE_SOURCE_LABEL[purchase.sourceType] ?? purchase.sourceType}
+          {purchase.sourceLabel ? ` · ${purchase.sourceLabel}` : ""}
+        </p>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="text-xl font-semibold">Line items</h2>
+          <div className="mt-6 space-y-4">
+            {(purchase.lines ?? []).length ? (
+              purchase.lines.map((line: any) => (
+                <div
+                  key={line._id}
+                  className="flex items-center justify-between gap-4 border-b border-border pb-4"
+                >
+                  <div>
+                    <p className="font-medium text-foreground">{line.title}</p>
+                    {line.subtitle || line.sku ? (
+                      <p className="text-sm text-muted-foreground">
+                        {[line.subtitle, line.sku ? `SKU ${line.sku}` : null]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    ) : null}
+                    <p className="text-sm text-muted-foreground">
+                      Qty {line.quantity} · {line.lineType.replace(/_/g, " ")}
+                    </p>
+                  </div>
+                  <p className="font-medium text-foreground">
+                    {formatMoney(line.lineTotalAmount, line.currencyCode)}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No line items were captured for this purchase.
+              </p>
+            )}
+          </div>
+        </section>
+
+        <aside className="space-y-6">
+          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="text-lg font-semibold">Summary</h2>
+            <dl className="mt-4 space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <dt className="text-muted-foreground">Status</dt>
+                <dd className="font-medium text-foreground">{purchase.status}</dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-muted-foreground">Payment</dt>
+                <dd className="font-medium text-foreground">
+                  {purchase.paymentStatus}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-muted-foreground">Fulfillment</dt>
+                <dd className="font-medium text-foreground">
+                  {purchase.fulfillmentStatus || "not_required"}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-muted-foreground">Placed</dt>
+                <dd className="font-medium text-foreground">
+                  {formatDateTime(purchase.placedAt ?? purchase.createdAt)}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between border-t border-border pt-3">
+                <dt className="text-muted-foreground">Total</dt>
+                <dd className="text-lg font-semibold text-foreground">
+                  {formatMoney(purchase.totalAmount, purchase.currencyCode)}
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="text-lg font-semibold">Customer</h2>
+            <div className="mt-4 space-y-3 text-sm">
+              <div>
+                <p className="text-muted-foreground">Name</p>
+                <p className="font-medium text-foreground">
+                  {purchase.customerName || "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Email</p>
+                <p className="font-medium text-foreground">
+                  {purchase.email || "—"}
+                </p>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-semibold">Payments</h2>
+          <div className="mt-4 space-y-3">
+            {(purchase.payments ?? []).length ? (
+              purchase.payments.map((payment: any) => (
+                <div key={payment._id} className="rounded-xl border border-border px-4 py-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium text-foreground">
+                      {payment.provider}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {formatMoney(payment.amount, payment.currencyCode)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-muted-foreground">
+                    {payment.status}
+                    {payment.providerTransactionId
+                      ? ` · ${payment.providerTransactionId}`
+                      : ""}
+                  </p>
+                  {payment.failureMessage ? (
+                    <p className="mt-1 text-destructive">{payment.failureMessage}</p>
+                  ) : null}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No payment records yet.
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-semibold">Refunds</h2>
+          <div className="mt-4 space-y-3">
+            {(purchase.refunds ?? []).length ? (
+              purchase.refunds.map((refund: any) => (
+                <div key={refund._id} className="rounded-xl border border-border px-4 py-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium text-foreground">
+                      {formatMoney(refund.amount, refund.currencyCode)}
+                    </span>
+                    <span className="text-muted-foreground">{refund.status}</span>
+                  </div>
+                  <p className="mt-1 text-muted-foreground">
+                    {refund.reason || "No reason provided"}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No refunds recorded.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-semibold">History</h2>
+          <div className="mt-4 space-y-3">
+            {(purchase.events ?? []).length ? (
+              purchase.events.map((entry: any) => (
+                <div key={entry._id} className="rounded-xl border border-border px-4 py-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium text-foreground">
+                      {entry.eventType}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {formatDateTime(entry.createdAt)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-muted-foreground">{entry.message}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No ledger events yet.</p>
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
 function CommerceOrderDetailPage() {
   const { orderId } = Route.useParams();
   const { isEnabled } = usePluginSettings();
   const returnsEnabled = isEnabled("commerceReturns");
-  const order = useQuery((api as any).commerce.orders.get, {
-    orderId: orderId as any,
+  const purchase = useQuery((api as any).purchases.queries.getByAnyId, {
+    id: orderId,
   }) as any;
+  const effectiveOrderId =
+    purchase?.commerceOrderId ??
+    (purchase?.sourceType === "storefront_order" ? purchase.sourceId : null) ??
+    (purchase === null ? orderId : null);
+  const order = useQuery(
+    (api as any).commerce.orders.get,
+    effectiveOrderId ? { orderId: effectiveOrderId as any } : "skip",
+  ) as any;
   const returnsForOrder = useQuery(
     (api as any).commerceReturns.queries.getByOrder,
-    returnsEnabled ? { orderId: orderId as any } : "skip",
+    returnsEnabled && effectiveOrderId
+      ? { orderId: effectiveOrderId as any }
+      : "skip",
   ) as any;
   const updateStatus = useMutation((api as any).commerce.orders.updateStatus);
   const updateFulfillment = useMutation(
@@ -74,9 +289,10 @@ function CommerceOrderDetailPage() {
   const [syncingShipmentId, setSyncingShipmentId] = useState<string | null>(null);
 
   async function handleStatusUpdate() {
+    if (!effectiveOrderId) return;
     try {
       await updateStatus({
-        orderId: orderId as any,
+        orderId: effectiveOrderId as any,
         status,
         ...(statusNote.trim() ? { note: statusNote.trim() } : {}),
       });
@@ -91,9 +307,10 @@ function CommerceOrderDetailPage() {
   }
 
   async function handleFulfillmentUpdate() {
+    if (!effectiveOrderId) return;
     try {
       await updateFulfillment({
-        orderId: orderId as any,
+        orderId: effectiveOrderId as any,
         fulfillmentStatus,
         ...(fulfillmentNote.trim() ? { note: fulfillmentNote.trim() } : {}),
       });
@@ -108,9 +325,10 @@ function CommerceOrderDetailPage() {
   }
 
   async function handleCapturePayment() {
+    if (!effectiveOrderId) return;
     try {
       await capturePayment({
-        orderId: orderId as any,
+        orderId: effectiveOrderId as any,
         provider: paymentProvider,
         ...(paymentTxnId.trim()
           ? { providerTransactionId: paymentTxnId.trim() }
@@ -133,9 +351,10 @@ function CommerceOrderDetailPage() {
   }
 
   async function handleCreateRefund() {
+    if (!effectiveOrderId) return;
     try {
       await createRefund({
-        orderId: orderId as any,
+        orderId: effectiveOrderId as any,
         amount: Math.round(Number(refundAmount) * 100),
         ...(refundReason.trim() ? { reason: refundReason.trim() } : {}),
       });
@@ -151,9 +370,10 @@ function CommerceOrderDetailPage() {
   }
 
   async function handleCreateShipment() {
+    if (!effectiveOrderId) return;
     try {
       await createShipment({
-        orderId: orderId as any,
+        orderId: effectiveOrderId as any,
         status: shipmentStatus as any,
         ...(shipmentProvider.trim() ? { provider: shipmentProvider.trim() } : {}),
         ...(shipmentCarrier.trim() ? { carrier: shipmentCarrier.trim() } : {}),
@@ -205,10 +425,11 @@ function CommerceOrderDetailPage() {
   }
 
   async function handleCreateProviderLabel() {
+    if (!effectiveOrderId) return;
     try {
       setIsCreatingLabel(true);
       const result = await createShippingLabel({
-        orderId: orderId as any,
+        orderId: effectiveOrderId as any,
       });
       toast.success(
         result?.trackingNumber
@@ -253,6 +474,24 @@ function CommerceOrderDetailPage() {
       setShipmentProvider((current) => current || String(order.shippingProvider));
     }
   }, [order?.fulfillmentStatus, order?.shippingProvider, order?.status]);
+
+  if (purchase === undefined) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Link to="/commerce/orders" className="text-sm text-primary hover:underline">
+            Back to orders
+          </Link>
+          <h1 className="text-3xl font-bold tracking-tight">Order Detail</h1>
+        </div>
+        <div className="h-48 animate-pulse rounded-2xl bg-muted" />
+      </div>
+    );
+  }
+
+  if (purchase && purchase.sourceType !== "storefront_order") {
+    return <PurchaseLedgerDetail purchase={purchase} />;
+  }
 
   return (
     <div className="space-y-6">

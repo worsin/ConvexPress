@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { emitEvent } from "../helpers/events";
 import { getCurrentUser, requireCan } from "../helpers/permissions";
 import { CHECKOUT_EVENTS, SYSTEM } from "../events/constants";
@@ -880,8 +881,18 @@ export const complete = mutation({
       });
     }
 
-    if (session.orderId) return session.orderId;
-    if (cart.orderId) return cart.orderId;
+    if (session.orderId) {
+      await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+        orderId: session.orderId,
+      });
+      return session.orderId;
+    }
+    if (cart.orderId) {
+      await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+        orderId: cart.orderId,
+      });
+      return cart.orderId;
+    }
 
     const existingOrder = await ctx.db
       .query("commerce_orders")
@@ -895,6 +906,9 @@ export const complete = mutation({
       await ctx.db.patch("commerce_carts", cart._id, {
         orderId: existingOrder._id,
         updatedAt: Date.now(),
+      });
+      await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+        orderId: existingOrder._id,
       });
       return existingOrder._id;
     }
@@ -1402,6 +1416,11 @@ export const complete = mutation({
         totalAmount: finalTotalAmount,
       });
     }
+
+    await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+      orderId,
+      eventType: "order_created",
+    });
 
     return orderId;
   },

@@ -589,6 +589,11 @@ export const createDueInvoices = internalMutation({
 				});
 			}
 
+			await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionInvoice, {
+				invoiceId,
+				eventType: "subscription_invoice_created",
+			});
+
 			createdInvoiceIds.push(invoiceId);
 		}
 
@@ -809,6 +814,14 @@ export const handleInvoicePaymentResult = internalMutation({
 					args.paymentTransactionId,
 					correlationId,
 				);
+				await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionInvoice, {
+					invoiceId: invoice._id,
+					eventType: "subscription_invoice_paid",
+					metadata: {
+						paymentTransactionId: args.paymentTransactionId,
+						prorationEventId: invoice.prorationEventId,
+					},
+				});
 			} else {
 				await ctx.db.patch(invoice._id, {
 					status: "failed",
@@ -825,6 +838,16 @@ export const handleInvoicePaymentResult = internalMutation({
 						failureReason: args.failureReason,
 					},
 					correlationId,
+				});
+				await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionInvoice, {
+					invoiceId: invoice._id,
+					eventType: "subscription_invoice_payment_failed",
+					metadata: {
+						paymentTransactionId: args.paymentTransactionId,
+						prorationEventId: invoice.prorationEventId,
+						failureCode: args.failureCode,
+						failureReason: args.failureReason,
+					},
 				});
 			}
 			return;
@@ -859,6 +882,14 @@ export const handleInvoicePaymentResult = internalMutation({
 				status: "paid",
 				paidAt: now,
 				updatedAt: now,
+			});
+
+			await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionInvoice, {
+				invoiceId: invoice._id,
+				eventType: "subscription_invoice_paid",
+				metadata: {
+					paymentTransactionId: args.paymentTransactionId,
+				},
 			});
 
 			// Advance subscription billing period
@@ -938,6 +969,15 @@ export const handleInvoicePaymentResult = internalMutation({
 				status: "failed",
 				dueAt: nextRetryAt,
 				updatedAt: now,
+			});
+			await ctx.runMutation((internal as any).purchases.internals.syncSubscriptionInvoice, {
+				invoiceId: invoice._id,
+				eventType: "subscription_invoice_payment_failed",
+				metadata: {
+					paymentTransactionId: args.paymentTransactionId,
+					failureCode: args.failureCode,
+					failureReason: args.failureReason,
+				},
 			});
 
 			// Move subscription to past_due
