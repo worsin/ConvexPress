@@ -26,6 +26,10 @@ import { CalcError } from "./grammar";
 export interface CalcFieldDef {
   /** Stable `key` (what formulas reference + what values are keyed by). */
   key: string;
+  /** Human label used in order summaries; optional for pure test fixtures. */
+  label?: string | null;
+  /** Admin/internal name fallback used when a label is absent. */
+  name?: string | null;
   /** Field type slug (e.g. "text", "calculation", "product"). */
   type: string;
   /** Serialized settings JSON; may carry `formula`, `unitPriceFormula`, `computed`. */

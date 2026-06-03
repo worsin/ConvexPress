@@ -46,6 +46,12 @@ interface FieldSettingsPanelProps {
   groupId: string;
 }
 
+type ChoiceSetting = {
+  label: string;
+  value: string;
+  price?: number;
+};
+
 /** All supported field types for the type selector */
 const SUPPORTED_TYPES = [
   "text", "textarea", "number", "range", "email", "url", "password",
@@ -57,6 +63,30 @@ const SUPPORTED_TYPES = [
   "group", "repeater", "flexible_content",
   "calculation", "product",
 ];
+
+function formatChoiceLine(choice: ChoiceSetting): string {
+  const base =
+    choice.label !== choice.value
+      ? `${choice.value} : ${choice.label}`
+      : choice.value;
+  return typeof choice.price === "number" && Number.isFinite(choice.price)
+    ? `${base} : ${choice.price}`
+    : base;
+}
+
+function parseChoiceLine(line: string): ChoiceSetting {
+  const parts = line.split(":").map((p) => p.trim());
+  const value = parts[0] ?? "";
+  const label = parts[1] ?? value;
+  const priceRaw = parts[2];
+  const price =
+    priceRaw !== undefined && priceRaw !== "" ? Number(priceRaw) : undefined;
+  return {
+    value,
+    label,
+    ...(price !== undefined && Number.isFinite(price) ? { price } : {}),
+  };
+}
 
 export function FieldSettingsPanel({
   field,
@@ -568,31 +598,23 @@ function TypeSpecificSettings({
         <div className="space-y-3">
           <div>
             <label className="block text-xs text-muted-foreground mb-1">
-              Choices (one per line, format: value : label)
+              Choices (one per line, format: value : label : optional price)
             </label>
             <textarea
               value={
                 (settings.choices ?? [])
-                  .map((c: { label: string; value: string }) =>
-                    c.label !== c.value ? `${c.value} : ${c.label}` : c.value,
-                  )
+                  .map((c: ChoiceSetting) => formatChoiceLine(c))
                   .join("\n") ?? ""
               }
               onChange={(e) => {
                 const choices = e.target.value
                   .split("\n")
                   .filter((l) => l.trim())
-                  .map((line) => {
-                    const parts = line.split(":").map((p) => p.trim());
-                    return {
-                      value: parts[0] ?? "",
-                      label: parts[1] ?? parts[0] ?? "",
-                    };
-                  });
+                  .map(parseChoiceLine);
                 onUpdate("choices", choices);
               }}
               rows={5}
-              placeholder="option1 : Option 1&#10;option2 : Option 2"
+              placeholder="basic : Basic : 99&#10;pro : Pro : 299"
               className="w-full rounded-none border border-border bg-background px-2 py-1.5 text-xs font-mono focus:outline-hidden focus:ring-1 focus:ring-ring resize-y"
             />
           </div>

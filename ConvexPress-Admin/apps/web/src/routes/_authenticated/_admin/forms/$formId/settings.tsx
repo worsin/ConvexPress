@@ -40,10 +40,23 @@ interface FormSettings {
 interface SettingsDraft {
   disabled: boolean;
   requireLogin: boolean;
+  orderFormEnabled: boolean;
+  showOrderSummary: boolean;
+  orderSummaryTitle: string;
+  orderPaymentTitle: string;
+  orderPaymentDescription: string;
   scheduleStart: string;
   scheduleEnd: string;
   entryLimit: string;
   status: FormStatus;
+}
+
+interface NormalizedOrderFormSettings {
+  enabled: boolean;
+  showSummary: boolean;
+  summaryTitle: string;
+  paymentTitle: string;
+  paymentDescription: string;
 }
 
 export const Route = createFileRoute(
@@ -69,6 +82,12 @@ function FormSettingsContent({ formId }: { formId: Id<"forms"> }) {
   const [draft, setDraft] = useState<SettingsDraft>({
     disabled: false,
     requireLogin: false,
+    orderFormEnabled: false,
+    showOrderSummary: true,
+    orderSummaryTitle: "Order summary",
+    orderPaymentTitle: "Complete payment",
+    orderPaymentDescription:
+      "Your order has been saved. Complete payment to finish.",
     scheduleStart: "",
     scheduleEnd: "",
     entryLimit: "",
@@ -79,10 +98,16 @@ function FormSettingsContent({ formId }: { formId: Id<"forms"> }) {
   useEffect(() => {
     if (!form) return;
     const parsed = parseSettings(form.settings);
+    const orderForm = readOrderFormSettings(parsed);
     setBaseSettings(parsed);
     setDraft({
       disabled: parsed.disabled === true,
       requireLogin: parsed.requireLogin === true || parsed.loginRequired === true,
+      orderFormEnabled: orderForm.enabled,
+      showOrderSummary: orderForm.showSummary,
+      orderSummaryTitle: orderForm.summaryTitle,
+      orderPaymentTitle: orderForm.paymentTitle,
+      orderPaymentDescription: orderForm.paymentDescription,
       scheduleStart: toDateTimeLocal(
         parsed.scheduleStart ?? readNestedSchedule(parsed, "startsAt"),
       ),
@@ -301,6 +326,110 @@ function FormSettingsContent({ formId }: { formId: Id<"forms"> }) {
           </div>
         </div>
       </section>
+
+      <section className="rounded-lg border border-border bg-card p-5">
+        <div className="grid gap-5">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">
+              Order form
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Add a live order summary and Stripe payment step for priced fields.
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="flex items-start gap-3 rounded-lg border border-border p-4">
+              <Checkbox
+                checked={draft.orderFormEnabled}
+                onCheckedChange={(checked) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    orderFormEnabled: checked === true,
+                  }))
+                }
+                disabled={!canUpdate || isSaving}
+              />
+              <span className="grid gap-1">
+                <span className="text-sm font-medium text-foreground">
+                  Enable order form mode
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Positive totals route the submitter into payment instead of a
+                  thank-you state.
+                </span>
+              </span>
+            </label>
+
+            <label className="flex items-start gap-3 rounded-lg border border-border p-4">
+              <Checkbox
+                checked={draft.showOrderSummary}
+                onCheckedChange={(checked) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    showOrderSummary: checked === true,
+                  }))
+                }
+                disabled={!canUpdate || isSaving || !draft.orderFormEnabled}
+              />
+              <span className="grid gap-1">
+                <span className="text-sm font-medium text-foreground">
+                  Show order summary
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Display selected priced options and the amount due today.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="order-summary-title">Summary title</Label>
+              <Input
+                id="order-summary-title"
+                value={draft.orderSummaryTitle}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    orderSummaryTitle: event.target.value,
+                  }))
+                }
+                disabled={!canUpdate || isSaving || !draft.orderFormEnabled}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="order-payment-title">Payment title</Label>
+              <Input
+                id="order-payment-title"
+                value={draft.orderPaymentTitle}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    orderPaymentTitle: event.target.value,
+                  }))
+                }
+                disabled={!canUpdate || isSaving || !draft.orderFormEnabled}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="order-payment-description">Payment description</Label>
+            <Input
+              id="order-payment-description"
+              value={draft.orderPaymentDescription}
+              onChange={(event) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  orderPaymentDescription: event.target.value,
+                }))
+              }
+              disabled={!canUpdate || isSaving || !draft.orderFormEnabled}
+            />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -336,6 +465,20 @@ function buildSettings(base: FormSettings, draft: SettingsDraft): FormSettings {
     : undefined;
   if (limit === undefined) delete next.entryLimit;
   else next.entryLimit = limit;
+
+  if (draft.orderFormEnabled) {
+    next.orderForm = {
+      enabled: true,
+      showSummary: draft.showOrderSummary,
+      summaryTitle: draft.orderSummaryTitle.trim() || "Order summary",
+      paymentTitle: draft.orderPaymentTitle.trim() || "Complete payment",
+      paymentDescription:
+        draft.orderPaymentDescription.trim() ||
+        "Your order has been saved. Complete payment to finish.",
+    };
+  } else {
+    delete next.orderForm;
+  }
 
   return next;
 }
@@ -373,6 +516,33 @@ function readNestedSchedule(
     return undefined;
   }
   return (schedule as { startsAt?: unknown; endsAt?: unknown })[key];
+}
+
+function readOrderFormSettings(
+  settings: FormSettings,
+): NormalizedOrderFormSettings {
+  const raw = settings.orderForm;
+  const orderForm =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {};
+  return {
+    enabled: orderForm.enabled === true,
+    showSummary: orderForm.showSummary !== false,
+    summaryTitle:
+      typeof orderForm.summaryTitle === "string" && orderForm.summaryTitle.trim()
+        ? orderForm.summaryTitle.trim()
+        : "Order summary",
+    paymentTitle:
+      typeof orderForm.paymentTitle === "string" && orderForm.paymentTitle.trim()
+        ? orderForm.paymentTitle.trim()
+        : "Complete payment",
+    paymentDescription:
+      typeof orderForm.paymentDescription === "string" &&
+      orderForm.paymentDescription.trim()
+        ? orderForm.paymentDescription.trim()
+        : "Your order has been saved. Complete payment to finish.",
+  };
 }
 
 function fromDateTimeLocal(value: string): number | undefined {

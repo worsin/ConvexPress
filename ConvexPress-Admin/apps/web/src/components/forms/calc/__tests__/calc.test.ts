@@ -425,6 +425,56 @@ describe("recomputeForm — pricing (two-channel)", () => {
     expect(typeof line === "object" && (line as { lineTotal: number }).lineTotal).toBe(99);
   });
 
+  test("selected choice prices contribute trusted order line items", () => {
+    const fields: CalcFieldDef[] = [
+      {
+        key: "package",
+        label: "Formation package",
+        type: "radio",
+        settings: JSON.stringify({
+          choices: [
+            { value: "basic", label: "Basic", price: 99 },
+            { value: "pro", label: "Pro", price: "299" },
+          ],
+        }),
+      },
+      {
+        key: "addons",
+        label: "Add-ons",
+        type: "checkbox",
+        settings: JSON.stringify({
+          choices: [
+            { value: "ein", label: "EIN filing", price: 49 },
+            { value: "agent", label: "Registered agent", price: 150 },
+          ],
+        }),
+      },
+    ];
+
+    const r = recomputeForm(fields, {
+      package: "pro",
+      addons: JSON.stringify(["ein", "agent"]),
+    });
+
+    expect(r.pricing.oneTime).toBe(498);
+    expect(r.pricing.lineItems.map((line) => [line.fieldKey, line.label, line.amount])).toEqual([
+      ["package", "Pro", 299],
+      ["addons", "EIN filing", 49],
+      ["addons", "Registered agent", 150],
+    ]);
+
+    const authoritative = recomputeAuthoritative(fields, {
+      package: "pro",
+      addons: JSON.stringify(["ein", "agent"]),
+    });
+    expect(authoritative.pricing.oneTime).toBe(49800);
+    expect(authoritative.pricing.lineItems.map((line) => line.amount)).toEqual([
+      29900,
+      4900,
+      15000,
+    ]);
+  });
+
   test("recurring product: first-period amount → oneTime, lineTotal → recurring", () => {
     // The EZ "Registered Agent: $99 first year, then $199/yr" model as a product.
     const fields: CalcFieldDef[] = [

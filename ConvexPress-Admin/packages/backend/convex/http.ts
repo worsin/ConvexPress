@@ -543,6 +543,20 @@ http.route({
             }
             break;
           }
+          if (kind === "form_order_payment") {
+            const submissionId = paymentIntent.metadata?.submissionId;
+            if (submissionId) {
+              await ctx.runMutation(
+                (internal as any).extensions.forms.orderPayments
+                  .markOrderPaymentSucceeded,
+                {
+                  submissionId: submissionId as any,
+                  paymentIntentId: paymentIntent.id,
+                },
+              );
+            }
+            break;
+          }
           await ctx.runMutation(
             internal.commerce.payments.confirmPaymentSuccess,
             {
@@ -570,6 +584,23 @@ http.route({
                     paymentIntent.last_payment_error?.code ??
                     paymentIntent.last_payment_error?.message ??
                     "payment_failed",
+                },
+              );
+            }
+            break;
+          }
+          if (kind === "form_order_payment") {
+            const submissionId = paymentIntent.metadata?.submissionId;
+            if (submissionId) {
+              await ctx.runMutation(
+                (internal as any).extensions.forms.orderPayments
+                  .markOrderPaymentFailed,
+                {
+                  submissionId: submissionId as any,
+                  paymentIntentId: paymentIntent.id,
+                  error:
+                    paymentIntent.last_payment_error?.message ??
+                    "Payment failed",
                 },
               );
             }
@@ -629,6 +660,21 @@ http.route({
 
         case "payment_intent.canceled": {
           const paymentIntent = event.data.object;
+          if (paymentIntent.metadata?.kind === "form_order_payment") {
+            const submissionId = paymentIntent.metadata?.submissionId;
+            if (submissionId) {
+              await ctx.runMutation(
+                (internal as any).extensions.forms.orderPayments
+                  .markOrderPaymentFailed,
+                {
+                  submissionId: submissionId as any,
+                  paymentIntentId: paymentIntent.id,
+                  error: "Payment cancelled",
+                },
+              );
+            }
+            break;
+          }
           await ctx.runMutation(
             internal.commerce.payments.confirmPaymentFailure,
             {

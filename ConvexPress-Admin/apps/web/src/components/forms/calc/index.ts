@@ -56,6 +56,7 @@ export {
   recomputeAuthoritative,
   type PricingResult,
   type RecurringLine,
+  type PricingLineItem,
   type ProductLine,
   type RecomputeResult,
   type AuthoritativeResult,

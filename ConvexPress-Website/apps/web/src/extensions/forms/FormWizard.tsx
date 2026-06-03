@@ -41,7 +41,18 @@ import {
   deriveSteps,
   type WizardStep,
 } from "./wizardSteps";
-import { LAYOUT_VALUELESS_TYPES } from "@/lib/forms/render/fieldRender";
+import {
+  LAYOUT_VALUELESS_TYPES,
+  selectVisibleFields,
+  sortByMenuOrder,
+} from "@/lib/forms/render/fieldRender";
+import {
+  recomputeForm,
+  type CalcFieldDef,
+  type PricingLineItem,
+  type PricingResult,
+  type RepeaterRow,
+} from "@/lib/forms/calc";
 import { StepProgress } from "./StepProgress";
 import { StepNav } from "./StepNav";
 import { AutosaveIndicator, type SaveState } from "./AutosaveIndicator";
@@ -59,6 +70,7 @@ import {
   captchaConfigProblem,
   captchaIsRequired,
 } from "./security";
+import { FormStripePaymentForm } from "./payment/FormStripePaymentForm";
 
 const DEFAULT_AUTOSAVE_DELAY_MS = 1000;
 
@@ -95,6 +107,31 @@ interface FormWizardProps {
   options?: FormWizardOptions;
 }
 
+export interface OrderFormSettings {
+  enabled: boolean;
+  showSummary: boolean;
+  summaryTitle: string;
+  paymentTitle: string;
+  paymentDescription: string;
+}
+
+interface OrderPaymentDescriptor {
+  clientSecret: string;
+  publishableKey: string;
+  mode: "payment" | "setup";
+  returnUrl: string;
+  paymentIntentId: string;
+  amount: number;
+  currency: string;
+}
+
+interface OrderPaymentState {
+  submissionId: string;
+  isLoading: boolean;
+  descriptor: OrderPaymentDescriptor | null;
+  error: string | null;
+}
+
 /** Parse a field's settings JSON tolerantly (for page_break label overrides). */
 function parseSettings(settings: string): Record<string, unknown> {
   try {
@@ -103,6 +140,61 @@ function parseSettings(settings: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+export function parseOrderFormSettings(settings: string): OrderFormSettings {
+  const parsed = parseSettings(settings);
+  const raw = parsed.orderForm;
+  const orderForm =
+    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const enabled = orderForm.enabled === true;
+  return {
+    enabled,
+    showSummary: enabled && orderForm.showSummary !== false,
+    summaryTitle:
+      typeof orderForm.summaryTitle === "string" && orderForm.summaryTitle.trim()
+        ? orderForm.summaryTitle.trim()
+        : "Order summary",
+    paymentTitle:
+      typeof orderForm.paymentTitle === "string" && orderForm.paymentTitle.trim()
+        ? orderForm.paymentTitle.trim()
+        : "Complete payment",
+    paymentDescription:
+      typeof orderForm.paymentDescription === "string" &&
+      orderForm.paymentDescription.trim()
+        ? orderForm.paymentDescription.trim()
+        : "Your order has been saved. Complete payment to finish.",
+  };
+}
+
+function formatMoney(amount: number, currency = "USD"): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  }).format(Number.isFinite(amount) ? amount : 0);
+}
+
+function buildRepeaters(
+  fields: ReadonlyArray<PublicForm["fields"][number]>,
+  values: Record<string, string>,
+): Record<string, RepeaterRow[]> {
+  const repeaters: Record<string, RepeaterRow[]> = {};
+  for (const field of fields) {
+    if (field.type !== "repeater") continue;
+    const raw = values[field.key];
+    if (typeof raw !== "string" || raw.trim() === "") continue;
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        repeaters[field.key] = parsed.filter(
+          (r): r is RepeaterRow => typeof r === "object" && r !== null,
+        );
+      }
+    } catch {
+      // Leave malformed repeater values out of the price preview.
+    }
+  }
+  return repeaters;
 }
 
 /**
@@ -148,6 +240,9 @@ export function FormWizard({
   const submit = useMutation((api as any).extensions.forms.mutations.submit);
   const submitWithCaptcha = useAction(
     (api as any).extensions.forms.mutations.submitWithCaptcha,
+  );
+  const beginOrderPayment = useAction(
+    (api as any).extensions.forms.orderPaymentActions.beginOrderPayment,
   );
   const recordFunnel = useMutation(
     (api as any).extensions.forms.analytics.recordFunnelPublic,
@@ -205,6 +300,9 @@ export function FormWizard({
     isComplete: boolean;
   } | null>(null);
   const [renderedMessage, setRenderedMessage] = useState("");
+  const [orderPayment, setOrderPayment] = useState<OrderPaymentState | null>(
+    null,
+  );
   const [honeypotValue, setHoneypotValue] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaError, setCaptchaError] = useState<string | null>(null);
@@ -255,6 +353,26 @@ export function FormWizard({
     () => parsePublicFormSettings(form.settings),
     [form.settings],
   );
+  const orderFormSettings = useMemo(
+    () => parseOrderFormSettings(form.settings),
+    [form.settings],
+  );
+  const orderedFields = useMemo(
+    () => sortByMenuOrder(form.fields),
+    [form.fields],
+  );
+  const visiblePricingFields = useMemo(
+    () => selectVisibleFields(orderedFields, values, null),
+    [orderedFields, values],
+  );
+  const orderPricing = useMemo<PricingResult>(() => {
+    const calcDefs = visiblePricingFields as unknown as CalcFieldDef[];
+    return recomputeForm(
+      calcDefs,
+      values,
+      buildRepeaters(visiblePricingFields, values),
+    ).pricing;
+  }, [visiblePricingFields, values]);
   const closedState = useMemo(
     () => getFormClosedState(formSettings, form.availability),
     [formSettings, form.availability],
@@ -425,6 +543,43 @@ export function FormWizard({
         }),
       });
 
+      if (orderFormSettings.enabled && orderPricing.oneTime > 0) {
+        const returnUrl =
+          typeof window !== "undefined"
+            ? `${window.location.origin}/forms/${form.slug}?payment=complete&submissionId=${encodeURIComponent(res.submissionId)}`
+            : `/forms/${form.slug}?payment=complete`;
+        setOrderPayment({
+          submissionId: res.submissionId,
+          isLoading: true,
+          descriptor: null,
+          error: null,
+        });
+        onSubmitted?.(res);
+        try {
+          const descriptor = (await beginOrderPayment({
+            submissionId: res.submissionId as any,
+            returnUrl,
+          })) as OrderPaymentDescriptor;
+          setOrderPayment({
+            submissionId: res.submissionId,
+            isLoading: false,
+            descriptor,
+            error: null,
+          });
+        } catch (paymentErr) {
+          setOrderPayment({
+            submissionId: res.submissionId,
+            isLoading: false,
+            descriptor: null,
+            error:
+              paymentErr instanceof Error
+                ? paymentErr.message
+                : "Could not start payment.",
+          });
+        }
+        return;
+      }
+
       try {
         const ref = await convex.query(
           (api as any).extensions.forms.confirmations.resolveConfirmation,
@@ -477,8 +632,12 @@ export function FormWizard({
     submitWithCaptcha,
     convex,
     form._id,
+    form.slug,
     form.security,
     buildPayload,
+    beginOrderPayment,
+    orderFormSettings.enabled,
+    orderPricing.oneTime,
     onSubmitted,
     activeSteps,
     honeypotValue,
@@ -489,6 +648,20 @@ export function FormWizard({
   // ── Post-submit confirmation handoff ────────────────────────────────────────
   // Reuse the renderer's confirmation view. The wizard owns the submit lifecycle,
   // so it also resolves the Confirmation System's redirect/page/message result.
+  if (orderPayment) {
+    return (
+      <OrderPaymentView
+        formTitle={form.title}
+        pricing={orderPricing}
+        settings={orderFormSettings}
+        state={orderPayment}
+        onError={(message) =>
+          setOrderPayment((prev) => (prev ? { ...prev, error: message } : prev))
+        }
+      />
+    );
+  }
+
   if (submittedResult) {
     return (
       <SubmittedConfirmation
@@ -506,7 +679,7 @@ export function FormWizard({
 
   const labels = breakLabels[clampedIndex] ?? {};
 
-  return (
+  const wizardCard = (
     <div
       data-slot="form-wizard"
       className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6"
@@ -579,6 +752,172 @@ export function FormWizard({
           <AutosaveIndicator saveState={saveState} savedAt={savedAt} />
         </>
       )}
+    </div>
+  );
+
+  if (orderFormSettings.showSummary) {
+    return (
+      <div
+        data-slot="form-order-layout"
+        className="grid w-full gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start"
+      >
+        {wizardCard}
+        <OrderSummaryPanel pricing={orderPricing} settings={orderFormSettings} />
+      </div>
+    );
+  }
+
+  return wizardCard;
+}
+
+function OrderPaymentView({
+  formTitle,
+  pricing,
+  settings,
+  state,
+  onError,
+}: {
+  formTitle: string;
+  pricing: PricingResult;
+  settings: OrderFormSettings;
+  state: OrderPaymentState;
+  onError: (message: string) => void;
+}) {
+  const paymentPanel = (
+    <section
+      data-slot="form-order-payment"
+      className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6"
+    >
+      <div className="flex flex-col gap-1.5 border-b border-border pb-4">
+        <p className="text-xs font-medium uppercase text-muted-foreground">
+          {formTitle}
+        </p>
+        <h1 className="text-xl font-semibold text-foreground">
+          {settings.paymentTitle}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {settings.paymentDescription}
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between border-b border-border pb-4 text-sm">
+        <span className="text-muted-foreground">Due today</span>
+        <span className="text-lg font-semibold tabular-nums text-foreground">
+          {formatMoney(pricing.oneTime, pricing.currency)}
+        </span>
+      </div>
+
+      {state.error ? <AuthError message={state.error} /> : null}
+
+      {state.isLoading ? (
+        <p className="text-sm text-muted-foreground">Preparing payment...</p>
+      ) : state.descriptor ? (
+        <FormStripePaymentForm
+          publishableKey={state.descriptor.publishableKey}
+          clientSecret={state.descriptor.clientSecret}
+          mode={state.descriptor.mode}
+          returnUrl={state.descriptor.returnUrl}
+          onError={onError}
+        />
+      ) : null}
+    </section>
+  );
+
+  if (!settings.showSummary) return paymentPanel;
+
+  return (
+    <div
+      data-slot="form-order-payment-layout"
+      className="grid w-full gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start"
+    >
+      {paymentPanel}
+      <OrderSummaryPanel pricing={pricing} settings={settings} />
+    </div>
+  );
+}
+
+function OrderSummaryPanel({
+  pricing,
+  settings,
+}: {
+  pricing: PricingResult;
+  settings: OrderFormSettings;
+}) {
+  return (
+    <aside
+      data-slot="form-order-summary"
+      className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 lg:sticky lg:top-6"
+    >
+      <div className="flex flex-col gap-1">
+        <h2 className="text-sm font-semibold text-foreground">
+          {settings.summaryTitle}
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          {pricing.lineItems.length} selected item
+          {pricing.lineItems.length === 1 ? "" : "s"}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {pricing.lineItems.length > 0 ? (
+          pricing.lineItems.map((line, index) => (
+            <OrderSummaryLine
+              key={`${line.source}-${line.fieldKey}-${line.choiceValue ?? index}`}
+              line={line}
+              currency={pricing.currency}
+            />
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground">No priced selections yet.</p>
+        )}
+      </div>
+
+      {pricing.recurring.length > 0 ? (
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          {pricing.recurring.map((line) => (
+            <div
+              key={line.interval}
+              className="flex items-center justify-between gap-3 text-xs text-muted-foreground"
+            >
+              <span>Recurring / {line.interval}</span>
+              <span className="font-medium tabular-nums text-foreground">
+                {formatMoney(line.amount, pricing.currency)}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="flex items-center justify-between border-t border-border pt-4">
+        <span className="text-sm font-medium text-foreground">Due today</span>
+        <span className="text-lg font-semibold tabular-nums text-foreground">
+          {formatMoney(pricing.oneTime, pricing.currency)}
+        </span>
+      </div>
+    </aside>
+  );
+}
+
+function OrderSummaryLine({
+  line,
+  currency,
+}: {
+  line: PricingLineItem;
+  currency: string;
+}) {
+  const amount =
+    line.priceKind === "recurring"
+      ? `${formatMoney(line.amount, currency)}/${line.interval ?? "month"}`
+      : formatMoney(line.amount, currency);
+  return (
+    <div className="flex items-start justify-between gap-3 text-sm">
+      <div className="min-w-0">
+        <p className="truncate font-medium text-foreground">{line.label}</p>
+        <p className="text-xs text-muted-foreground">{line.fieldLabel}</p>
+      </div>
+      <span className="shrink-0 font-medium tabular-nums text-foreground">
+        {amount}
+      </span>
     </div>
   );
 }

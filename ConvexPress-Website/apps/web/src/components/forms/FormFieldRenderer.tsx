@@ -57,6 +57,9 @@ export interface PublicFormField {
 interface Choice {
   value: string;
   label: string;
+  price?: number | string;
+  amount?: number | string;
+  unitPrice?: number | string;
 }
 
 interface FieldSettings {
@@ -102,6 +105,27 @@ function useFieldSettings(settings: string): FieldSettings {
 
 const baseControlClass =
   "w-full rounded-4xl border border-input bg-input/30 px-3 py-2 text-sm text-foreground outline-hidden transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50";
+
+function choicePrice(choice: Choice): number | null {
+  const raw = choice.price ?? choice.amount ?? choice.unitPrice;
+  const amount = typeof raw === "number" ? raw : raw ? Number(raw) : NaN;
+  return Number.isFinite(amount) && amount !== 0 ? amount : null;
+}
+
+function formatChoicePrice(amount: number): string {
+  const formatted = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(amount);
+  return amount > 0 ? `+${formatted}` : formatted;
+}
+
+function choiceOptionText(choice: Choice): string {
+  const price = choicePrice(choice);
+  return price === null
+    ? choice.label
+    : `${choice.label} (${formatChoicePrice(price)})`;
+}
 
 /**
  * Field types that carry no submittable value (layout-only / security). Sourced
@@ -266,6 +290,7 @@ export function FormFieldRenderer({
         );
 
       case "radio":
+      case "button_group":
         return (
           <RadioControl
             name={inputId}
@@ -432,7 +457,7 @@ function SelectControl({
       <option value="">Select…</option>
       {choices.map((choice) => (
         <option key={choice.value} value={choice.value}>
-          {choice.label}
+          {choiceOptionText(choice)}
         </option>
       ))}
     </select>
@@ -474,7 +499,7 @@ function RadioControl({
             onChange={() => onChange(choice.value)}
             className="size-4 accent-primary"
           />
-          <span>{choice.label}</span>
+          <ChoiceLabel choice={choice} />
         </label>
       ))}
     </div>
@@ -522,10 +547,24 @@ function CheckboxGroupControl({
             checked={selected.includes(choice.value)}
             onCheckedChange={() => toggle(choice.value)}
           />
-          <span>{choice.label}</span>
+          <ChoiceLabel choice={choice} />
         </label>
       ))}
     </div>
+  );
+}
+
+function ChoiceLabel({ choice }: { choice: Choice }) {
+  const price = choicePrice(choice);
+  return (
+    <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
+      <span className="min-w-0 truncate">{choice.label}</span>
+      {price !== null ? (
+        <span className="shrink-0 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
+          {formatChoicePrice(price)}
+        </span>
+      ) : null}
+    </span>
   );
 }
 

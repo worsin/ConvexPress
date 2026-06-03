@@ -4,8 +4,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
-import { type PublicForm } from "@/components/forms/FormRenderer";
-import { FormWizard } from "@/extensions/forms/FormWizard";
+import {
+  SubmittedConfirmation,
+  type PublicForm,
+} from "@/components/forms/FormRenderer";
+import {
+  FormWizard,
+  parseOrderFormSettings,
+} from "@/extensions/forms/FormWizard";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { parsePrefill } from "@/lib/forms/prefill/parsePrefill";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
@@ -102,9 +108,23 @@ function FormPageInner() {
   // Only opted-in (allowDynamicPopulation) fields are populated; hidden /
   // admin-only / layout / password fields are never seeded. SSR-safe + pure.
   const prefill = parsePrefill(search, { fields: form.fields });
+  const orderForm = parseOrderFormSettings(form.settings);
+  if (search.payment === "complete") {
+    return (
+      <div className="mx-auto w-full max-w-2xl py-10">
+        <SubmittedConfirmation formTitle={form.title} renderedMessage="" />
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto w-full max-w-2xl py-10">
+    <div
+      className={
+        orderForm.enabled
+          ? "mx-auto w-full max-w-6xl py-10"
+          : "mx-auto w-full max-w-2xl py-10"
+      }
+    >
       <FormWizard form={form} initialValues={prefill.initialValues} />
     </div>
   );
