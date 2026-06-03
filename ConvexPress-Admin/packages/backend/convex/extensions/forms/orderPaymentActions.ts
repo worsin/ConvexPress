@@ -10,12 +10,39 @@ function publicKeyFromSettings(settings: Record<string, unknown> | null): string
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeReturnUrl(value: string | undefined): string {
+  if (!value) return "/";
+  const trimmed = value.trim();
+  if (trimmed.startsWith("/")) return trimmed;
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.toString()
+      : "/";
+  } catch {
+    return "/";
+  }
+}
+
+function intentMatchesSource(
+  intent: { amount?: number; currency?: string; status?: string } | null,
+  source: { amount: number; currency: string },
+): boolean {
+  if (!intent) return false;
+  if (intent.amount !== source.amount) return false;
+  if ((intent.currency ?? "").toUpperCase() !== source.currency.toUpperCase()) {
+    return false;
+  }
+  return intent.status !== "canceled" && intent.status !== "succeeded";
+}
+
 export const beginOrderPayment = action({
   args: {
     submissionId: v.id("form_submissions"),
     returnUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const returnUrl = normalizeReturnUrl(args.returnUrl);
     const source = await ctx.runQuery(
       (internal as any).extensions.forms.orderPayments.getOrderPaymentSource,
       { submissionId: args.submissionId },
@@ -50,15 +77,24 @@ export const beginOrderPayment = action({
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(stripeSecretKey);
 
-    let paymentIntent;
+    let paymentIntent = null;
+    let existingStatus: string | undefined;
     if (source.existingPaymentIntentId) {
       try {
-        paymentIntent = await stripe.paymentIntents.retrieve(
+        const existing = await stripe.paymentIntents.retrieve(
           source.existingPaymentIntentId,
         );
+        existingStatus = existing.status;
+        paymentIntent = intentMatchesSource(existing, source) ? existing : null;
       } catch {
         paymentIntent = null;
       }
+    }
+    if (existingStatus === "succeeded") {
+      throw new ConvexError({
+        code: "ORDER_ALREADY_PAID",
+        message: "This order has already been paid.",
+      });
     }
 
     if (!paymentIntent) {
@@ -77,7 +113,10 @@ export const beginOrderPayment = action({
           },
         },
         {
-          idempotencyKey: `form_order_${source.submissionId}_${source.amount}_${source.currency}`,
+          idempotencyKey:
+            source.existingPaymentIntentId === null
+              ? `form_order_${source.submissionId}_${source.amount}_${source.currency}`
+              : `form_order_${source.submissionId}_${source.amount}_${source.currency}_${Date.now()}`,
         },
       );
     }
@@ -97,7 +136,7 @@ export const beginOrderPayment = action({
         amount: source.amount,
         currency: source.currency,
         status: paymentIntent.status,
-        returnUrl: args.returnUrl,
+        returnUrl,
       },
     );
 
@@ -105,7 +144,7 @@ export const beginOrderPayment = action({
       clientSecret: paymentIntent.client_secret,
       publishableKey,
       mode: "payment" as const,
-      returnUrl: args.returnUrl ?? "/",
+      returnUrl,
       paymentIntentId: paymentIntent.id,
       amount: source.amount,
       currency: source.currency,

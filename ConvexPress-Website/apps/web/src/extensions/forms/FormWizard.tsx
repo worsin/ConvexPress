@@ -49,6 +49,7 @@ import {
 import {
   recomputeForm,
   type CalcFieldDef,
+  type Interval,
   type PricingLineItem,
   type PricingResult,
   type RepeaterRow,
@@ -127,9 +128,17 @@ interface OrderPaymentDescriptor {
 
 interface OrderPaymentState {
   submissionId: string;
+  pricing: PricingResult;
   isLoading: boolean;
   descriptor: OrderPaymentDescriptor | null;
   error: string | null;
+}
+
+interface TrustedPricingSnapshot {
+  oneTime?: unknown;
+  recurring?: unknown;
+  lineItems?: unknown;
+  currency?: unknown;
 }
 
 /** Parse a field's settings JSON tolerantly (for page_break label overrides). */
@@ -172,6 +181,93 @@ function formatMoney(amount: number, currency = "USD"): string {
     style: "currency",
     currency,
   }).format(Number.isFinite(amount) ? amount : 0);
+}
+
+function fromMinorUnits(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value / 100
+    : 0;
+}
+
+function normalizeTrustedPricing(
+  snapshot: TrustedPricingSnapshot | null | undefined,
+): PricingResult | null {
+  if (!snapshot || typeof snapshot.oneTime !== "number") return null;
+  const currency =
+    typeof snapshot.currency === "string" && snapshot.currency.trim()
+      ? snapshot.currency.trim().toUpperCase()
+      : "USD";
+  const recurring = Array.isArray(snapshot.recurring)
+    ? snapshot.recurring
+        .filter(
+          (line): line is Record<string, unknown> =>
+            line !== null && typeof line === "object",
+        )
+        .map((line) => {
+          const interval: Interval = line.interval === "year" ? "year" : "month";
+          return {
+            interval,
+            amount: fromMinorUnits(line.amount),
+            ...(typeof line.label === "string" && line.label
+              ? { label: line.label }
+              : {}),
+          };
+        })
+        .filter((line) => line.amount !== 0)
+    : [];
+  const lineItems = Array.isArray(snapshot.lineItems)
+    ? snapshot.lineItems
+        .filter(
+          (line): line is Record<string, unknown> =>
+            line !== null && typeof line === "object",
+        )
+        .map((line, index): PricingLineItem => {
+          const priceKind =
+            line.priceKind === "recurring" ? "recurring" : "oneTime";
+          return {
+            source:
+              line.source === "product" || line.source === "calculation"
+                ? line.source
+                : "choice",
+            fieldKey:
+              typeof line.fieldKey === "string"
+                ? line.fieldKey
+                : `line_${index}`,
+            fieldLabel:
+              typeof line.fieldLabel === "string" && line.fieldLabel
+                ? line.fieldLabel
+                : "Order item",
+            label:
+              typeof line.label === "string" && line.label
+                ? line.label
+                : "Order item",
+            amount: fromMinorUnits(line.amount),
+            priceKind,
+            ...(typeof line.choiceValue === "string"
+              ? { choiceValue: line.choiceValue }
+              : {}),
+            ...(typeof line.quantity === "number"
+              ? { quantity: line.quantity }
+              : {}),
+            ...(priceKind === "recurring"
+              ? { interval: line.interval === "year" ? "year" : "month" }
+              : {}),
+            ...(typeof line.recurringLabel === "string" && line.recurringLabel
+              ? { recurringLabel: line.recurringLabel }
+              : {}),
+            ...(typeof line.firstPeriodAmount === "number"
+              ? { firstPeriodAmount: fromMinorUnits(line.firstPeriodAmount) }
+              : {}),
+          };
+        })
+        .filter((line) => line.amount !== 0)
+    : [];
+  return {
+    oneTime: fromMinorUnits(snapshot.oneTime),
+    recurring,
+    lineItems,
+    currency,
+  };
 }
 
 function buildRepeaters(
@@ -543,13 +639,28 @@ export function FormWizard({
         }),
       });
 
-      if (orderFormSettings.enabled && orderPricing.oneTime > 0) {
+      let trustedPricing: PricingResult | null = null;
+      if (orderFormSettings.enabled) {
+        try {
+          const snapshot = (await convex.query(
+            (api as any).extensions.forms.queries.getSubmissionPricing,
+            { id: res.submissionId },
+          )) as TrustedPricingSnapshot | null;
+          trustedPricing = normalizeTrustedPricing(snapshot);
+        } catch {
+          trustedPricing = null;
+        }
+      }
+
+      const paymentPricing = trustedPricing ?? orderPricing;
+      if (orderFormSettings.enabled && paymentPricing.oneTime > 0) {
         const returnUrl =
           typeof window !== "undefined"
             ? `${window.location.origin}/forms/${form.slug}?payment=complete&submissionId=${encodeURIComponent(res.submissionId)}`
             : `/forms/${form.slug}?payment=complete`;
         setOrderPayment({
           submissionId: res.submissionId,
+          pricing: paymentPricing,
           isLoading: true,
           descriptor: null,
           error: null,
@@ -562,6 +673,7 @@ export function FormWizard({
           })) as OrderPaymentDescriptor;
           setOrderPayment({
             submissionId: res.submissionId,
+            pricing: paymentPricing,
             isLoading: false,
             descriptor,
             error: null,
@@ -569,6 +681,7 @@ export function FormWizard({
         } catch (paymentErr) {
           setOrderPayment({
             submissionId: res.submissionId,
+            pricing: paymentPricing,
             isLoading: false,
             descriptor: null,
             error:
@@ -637,7 +750,7 @@ export function FormWizard({
     buildPayload,
     beginOrderPayment,
     orderFormSettings.enabled,
-    orderPricing.oneTime,
+    orderPricing,
     onSubmitted,
     activeSteps,
     honeypotValue,
@@ -652,7 +765,7 @@ export function FormWizard({
     return (
       <OrderPaymentView
         formTitle={form.title}
-        pricing={orderPricing}
+        pricing={orderPayment.pricing}
         settings={orderFormSettings}
         state={orderPayment}
         onError={(message) =>

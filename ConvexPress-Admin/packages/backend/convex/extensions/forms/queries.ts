@@ -629,9 +629,16 @@ export const getSubmissionPricing = query({
  * Extract `{ oneTime, recurring }` from a submission's `meta` JSON bag. Returns
  * null when meta is absent/malformed or carries no pricing. Pure helper.
  */
+export interface SubmissionPricingSnapshot {
+  oneTime: number;
+  recurring: Array<{ interval: string; amount: number; label?: string }>;
+  lineItems: Array<Record<string, unknown>>;
+  currency: string;
+}
+
 export function parseMetaPricing(
   meta: string | undefined,
-): { oneTime: number; recurring: Array<{ interval: string; amount: number; label?: string }> } | null {
+): SubmissionPricingSnapshot | null {
   if (!meta) return null;
   try {
     const parsed = JSON.parse(meta);
@@ -642,7 +649,15 @@ export function parseMetaPricing(
       typeof pricing.oneTime === "number" &&
       Array.isArray(pricing.recurring)
     ) {
-      return pricing;
+      return {
+        oneTime: pricing.oneTime,
+        recurring: pricing.recurring,
+        lineItems: Array.isArray(pricing.lineItems) ? pricing.lineItems : [],
+        currency:
+          typeof pricing.currency === "string" && pricing.currency.trim()
+            ? pricing.currency.trim().toUpperCase()
+            : "USD",
+      };
     }
     return null;
   } catch {
