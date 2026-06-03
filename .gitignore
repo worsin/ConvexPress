@@ -95,6 +95,12 @@ Thumbs.db
 .claude/settings.local.json
 .claude/worktrees/
 .codex/
+!ConvexPress-Admin/.codex/
+ConvexPress-Admin/.codex/*
+!ConvexPress-Admin/.codex/skills/
+ConvexPress-Admin/.codex/skills/*
+!ConvexPress-Admin/.codex/skills/block-build/
+!ConvexPress-Admin/.codex/skills/block-build/**
 .superpowers/
 .playwright-cli/
 .playwright-mcp/

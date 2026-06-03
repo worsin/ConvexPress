@@ -1,0 +1,17 @@
+{
+  "name": "asw/grade-gallery",
+  "title": "ASW Grade Gallery",
+  "description": "A grade-by-grade gallery for tonewood sets, visual examples, descriptions, and notes.",
+  "category": "media",
+  "keywords": ["alaska", "grade", "gallery", "tonewood", "figure", "sets"],
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": true
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "explaining Sitka spruce grades, visual quality examples, or product grading standards",
+    "avoid": "customer project photos or press mentions"
+  }
+}

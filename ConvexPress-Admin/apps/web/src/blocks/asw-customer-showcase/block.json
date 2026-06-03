@@ -1,0 +1,17 @@
+{
+  "name": "asw/customer-showcase",
+  "title": "ASW Customer Showcase",
+  "description": "Customer quotes and instrument/project showcases with images, roles, companies, and links.",
+  "category": "marketing",
+  "keywords": ["alaska", "customer", "testimonial", "showcase", "instrument", "builder"],
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": true
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "customer stories, luthier examples, testimonial grids, and instrument galleries",
+    "avoid": "press mentions or product cards"
+  }
+}

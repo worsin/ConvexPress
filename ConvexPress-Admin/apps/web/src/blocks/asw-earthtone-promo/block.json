@@ -1,0 +1,17 @@
+{
+  "name": "asw/earthtone-promo",
+  "title": "ASW EarthTone Promo",
+  "description": "A reusable EarthTone promotional band with supporting copy, media, CTAs, and small detail facts.",
+  "category": "marketing",
+  "keywords": ["alaska", "earthtone", "promo", "sound", "cta"],
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": true
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "EarthTone Sound cross-promotions and reusable marketing callouts",
+    "avoid": "generic page banners or detailed product collections"
+  }
+}
