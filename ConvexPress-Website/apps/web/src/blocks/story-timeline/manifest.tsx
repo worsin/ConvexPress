@@ -30,7 +30,7 @@ function StoryTimelineRenderer({ attrs }: BlockRendererProps<StoryTimelineAttrs>
           );
           const mediaFirst = item.side === "left" || (item.side === "auto" && index % 2 === 1);
           return (
-            <li key={index} className="grid gap-4 border-l border-border pl-5 md:grid-cols-2 md:border-l-0 md:pl-0">
+            <li key={index} className="grid gap-5 border-l border-border pl-5 md:grid-cols-2 md:border-l-0 md:pl-0">
               <div className={mediaFirst ? "md:order-1" : "md:order-2"}>{media}</div>
               <div className={mediaFirst ? "md:order-2" : "md:order-1"}>{copy}</div>
             </li>

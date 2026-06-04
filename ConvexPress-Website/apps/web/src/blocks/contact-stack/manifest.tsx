@@ -13,7 +13,7 @@ function ContactRow({
 }) {
   if (!value) return null;
   return (
-    <div className="border border-border bg-card p-4">
+    <div className="rounded-md border border-border bg-card p-4 shadow-sm">
       <dt className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
         {label}
       </dt>
@@ -44,10 +44,10 @@ function ContactStackRenderer({ attrs }: BlockRendererProps<ContactStackAttrs>) 
             title={`${attrs.heading} map`}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            className="min-h-96 w-full border border-border"
-          />
-        ) : (
-          <div className="border border-border bg-muted p-5">
+          className="min-h-96 w-full rounded-md border border-border"
+        />
+      ) : (
+          <div className="rounded-md border border-border bg-muted p-5">
             <RichText text={attrs.address} className="text-sm text-muted-foreground" />
           </div>
         )}

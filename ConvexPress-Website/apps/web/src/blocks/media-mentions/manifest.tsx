@@ -8,7 +8,7 @@ function MediaMentionsRenderer({ attrs }: BlockRendererProps<MediaMentionsAttrs>
       <SectionIntro heading={attrs.heading} body={attrs.intro} />
       <div className="grid gap-4 md:grid-cols-2">
         {attrs.items.map((item, index) => (
-          <article key={index} className="grid gap-4 border border-border bg-card p-4 sm:grid-cols-[140px_minmax(0,1fr)]">
+          <article key={index} className="grid gap-4 rounded-md border border-border bg-card p-4 shadow-sm sm:grid-cols-[140px_minmax(0,1fr)]">
             {item.mediaId && (
               <BlockMedia
                 mediaId={item.mediaId}

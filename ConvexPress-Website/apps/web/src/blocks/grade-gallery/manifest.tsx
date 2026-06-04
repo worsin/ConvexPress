@@ -8,7 +8,7 @@ function GradeGalleryRenderer({ attrs }: BlockRendererProps<GradeGalleryAttrs>) 
       <SectionIntro heading={attrs.heading} body={attrs.intro} />
       <div className="grid gap-6">
         {attrs.sections.map((section, index) => (
-          <section key={index} className="grid gap-4 border border-border bg-card p-5">
+          <section key={index} className="grid gap-4 rounded-md border border-border bg-card p-5 shadow-sm">
             <div className="space-y-3">
               <h3 className="text-xl font-semibold text-foreground">{section.grade}</h3>
               <RichText text={section.description} />

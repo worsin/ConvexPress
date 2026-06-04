@@ -23,6 +23,8 @@ and renders on the public site.
   tracked folder name, block `name`, exported symbols, title, defaults,
   description, keywords, or AI hints unless the user explicitly asks for a
   private site-specific block in `blocks.local/`.
+- Renderer fallbacks and empty-state placeholders count as defaults. Keep them
+  neutral too, for example "Product" instead of a client market term.
 - Do not register portable blocks by editing the monolithic core registry unless
   you are fixing the registry/discovery system itself. The Vite scanners in both
   apps load `apps/web/src/blocks/*/manifest.tsx` automatically.

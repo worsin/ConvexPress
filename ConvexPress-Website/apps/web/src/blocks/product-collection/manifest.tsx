@@ -24,7 +24,7 @@ function ProductCard({
   showAddToCart: boolean;
 }) {
   const content = (
-    <article className="h-full overflow-hidden border border-border bg-card">
+    <article className="h-full overflow-hidden rounded-md border border-border bg-card shadow-sm transition hover:-translate-y-0.5">
       <div className="relative bg-muted">
         {product.mediaId ? (
           <BlockMedia
@@ -34,7 +34,9 @@ function ProductCard({
             sizes="(max-width: 768px) 80vw, 25vw"
           />
         ) : (
-          <div className="aspect-[4/3] w-full bg-muted" />
+          <div className="flex aspect-[4/3] w-full items-center justify-center bg-muted text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Product
+          </div>
         )}
         {showSaleBadge && product.badge && (
           <span className="absolute left-3 top-3 border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground">
@@ -45,7 +47,7 @@ function ProductCard({
       <div className="grid gap-3 p-4">
         <div className="space-y-1">
           <h3 className="text-base font-semibold leading-snug text-foreground">
-            {product.title || "Product product"}
+            {product.title || "Product"}
           </h3>
           <RichText text={product.summary} className="text-sm text-muted-foreground" />
         </div>
@@ -56,7 +58,7 @@ function ProductCard({
           <button
             type="button"
             data-product-href={product.href || undefined}
-            className="min-h-10 border border-border px-3 text-sm font-semibold text-foreground hover:bg-muted"
+            className="min-h-10 rounded-md border border-border px-3 text-sm font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Add to cart
           </button>

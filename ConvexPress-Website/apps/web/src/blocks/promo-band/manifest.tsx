@@ -4,7 +4,7 @@ import { promoBandAttrsSchema, type PromoBandAttrs } from "./schema";
 
 function PromoBandRenderer({ attrs }: BlockRendererProps<PromoBandAttrs>) {
   return (
-    <aside className="grid gap-6 border border-border bg-card p-5 md:grid-cols-[minmax(0,1fr)_260px] md:items-center">
+    <aside className="grid gap-6 rounded-md border border-border bg-card p-5 shadow-sm md:grid-cols-[minmax(0,1fr)_260px] md:items-center">
       <div className="space-y-4">
         {attrs.eyebrow && (
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
@@ -18,7 +18,7 @@ function PromoBandRenderer({ attrs }: BlockRendererProps<PromoBandAttrs>) {
         {attrs.details.length > 0 && (
           <dl className="grid gap-3 sm:grid-cols-3">
             {attrs.details.map((detail, index) => (
-              <div key={index} className="border border-border bg-background p-3">
+              <div key={index} className="rounded-md border border-border bg-background p-3">
                 <dt className="text-xs uppercase tracking-widest text-muted-foreground">{detail.label}</dt>
                 <dd className="mt-1 text-sm font-semibold text-foreground">{detail.value}</dd>
               </div>

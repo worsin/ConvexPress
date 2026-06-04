@@ -4,7 +4,7 @@ import { pageBannerAttrsSchema, type PageBannerAttrs } from "./schema";
 
 function PageBannerRenderer({ attrs }: BlockRendererProps<PageBannerAttrs>) {
   return (
-    <header className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(280px,0.82fr)] md:items-center">
+    <header className="grid gap-8 py-4 md:grid-cols-[minmax(0,1fr)_minmax(280px,0.82fr)] md:items-center md:py-8">
       <div className="space-y-5">
         {attrs.breadcrumbLabel && (
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
@@ -17,7 +17,7 @@ function PageBannerRenderer({ attrs }: BlockRendererProps<PageBannerAttrs>) {
           </p>
         )}
         <div className="space-y-4">
-          <h1 className="text-4xl font-semibold leading-tight text-foreground md:text-6xl">
+          <h1 className="max-w-4xl text-4xl font-semibold leading-tight text-foreground md:text-6xl">
             {attrs.title}
           </h1>
           <RichText text={attrs.subtitle} className="max-w-2xl text-base text-muted-foreground md:text-lg" />
@@ -25,7 +25,7 @@ function PageBannerRenderer({ attrs }: BlockRendererProps<PageBannerAttrs>) {
         <CtaLink label={attrs.ctaLabel} href={attrs.ctaUrl} primary />
       </div>
       {attrs.mediaId && (
-        <div className="overflow-hidden border border-border bg-muted">
+        <div className="overflow-hidden rounded-md border border-border bg-muted shadow-sm">
           <BlockMedia
             mediaId={attrs.mediaId}
             alt={attrs.mediaAlt || attrs.title}

@@ -34,14 +34,14 @@ function TabbedContentRenderer({ attrs }: BlockRendererProps<TabbedContentAttrs>
                 role="tab"
                 aria-selected={index === activeIndex}
                 onClick={() => setActiveIndex(index)}
-                className="min-h-10 border border-border px-3 text-left text-sm font-semibold text-muted-foreground hover:bg-muted aria-selected:border-primary aria-selected:bg-primary aria-selected:text-primary-foreground"
+                className="min-h-10 rounded-md border border-border px-3 text-left text-sm font-semibold text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-selected:border-primary aria-selected:bg-primary aria-selected:text-primary-foreground"
               >
                 {tab.label || `Tab ${index + 1}`}
               </button>
             ))}
           </div>
           {activeTab && (
-            <article role="tabpanel" className="grid gap-5 border border-border bg-card p-5 md:grid-cols-[minmax(0,1fr)_220px]">
+            <article role="tabpanel" className="grid gap-5 rounded-md border border-border bg-card p-5 shadow-sm md:grid-cols-[minmax(0,1fr)_220px]">
               <div className="space-y-3">
                 {activeTab.title && (
                   <h3 className="text-xl font-semibold text-foreground">

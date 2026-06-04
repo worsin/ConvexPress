@@ -35,7 +35,7 @@ function SocialShareRenderer({ attrs }: BlockRendererProps<SocialShareAttrs>) {
   return (
     <aside
       data-share-url-mode={attrs.shareUrlMode}
-      className="grid gap-4 border border-border bg-card p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+      className="grid gap-4 rounded-md border border-border bg-card p-5 shadow-sm md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
     >
       <div className="space-y-2">
         {attrs.heading && <h2 className="text-xl font-semibold text-foreground">{attrs.heading}</h2>}
@@ -49,7 +49,7 @@ function SocialShareRenderer({ attrs }: BlockRendererProps<SocialShareAttrs>) {
             target={network === "email" || network === "copy" ? undefined : "_blank"}
             rel={network === "email" || network === "copy" ? undefined : "noopener noreferrer"}
             data-share-network={network}
-            className="inline-flex min-h-10 items-center border border-border px-3 text-sm font-semibold text-foreground hover:bg-muted"
+            className="inline-flex min-h-10 items-center rounded-md border border-border px-3 text-sm font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {labels[network]}
           </a>

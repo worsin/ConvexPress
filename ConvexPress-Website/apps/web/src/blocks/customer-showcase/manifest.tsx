@@ -9,7 +9,7 @@ function CustomerShowcaseRenderer({ attrs }: BlockRendererProps<CustomerShowcase
       <div className="grid gap-4 md:grid-cols-3">
         {attrs.items.map((item, index) => {
           const card = (
-            <article className="grid h-full gap-4 border border-border bg-card p-4">
+            <article className="grid h-full gap-4 rounded-md border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5">
               {item.mediaId && (
                 <BlockMedia
                   mediaId={item.mediaId}

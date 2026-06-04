@@ -12,18 +12,23 @@ export function SectionIntro({
 }) {
   if (!eyebrow && !heading && !body) return null;
   return (
-    <div className="mx-auto max-w-3xl space-y-3 text-center">
+    <div className="mx-auto max-w-3xl space-y-4 text-center">
       {eyebrow && (
         <p className="text-xs font-semibold uppercase tracking-widest text-primary">
           {eyebrow}
         </p>
       )}
       {heading && (
-        <h2 className="text-2xl font-semibold leading-tight text-foreground md:text-4xl">
+        <h2 className="text-3xl font-semibold leading-tight text-foreground md:text-4xl">
           {heading}
         </h2>
       )}
-      {body && <RichText text={body} className="text-muted-foreground" />}
+      {body && (
+        <RichText
+          text={body}
+          className="mx-auto max-w-2xl text-muted-foreground"
+        />
+      )}
     </div>
   );
 }
@@ -85,8 +90,8 @@ export function CtaLink({
       href={href}
       className={
         primary
-          ? "inline-flex min-h-11 items-center border border-primary bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90"
-          : "inline-flex min-h-11 items-center border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted"
+          ? "inline-flex min-h-11 items-center rounded-md border border-primary bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          : "inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm font-semibold text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       }
     >
       {label}
