@@ -207,6 +207,8 @@ export const getPublic = query({
       tagline: general.tagline,
       siteUrl: general.siteUrl,
       homeUrl: general.homeUrl,
+      logoUrl: general.logoUrl,
+      siteLogo: general.siteLogo,
       membershipEnabled: general.membershipEnabled,
       siteLanguage: general.siteLanguage,
       timezone: general.timezone,

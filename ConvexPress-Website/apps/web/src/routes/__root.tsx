@@ -11,6 +11,7 @@ import { WebsiteNotificationToastProvider } from "@/components/notifications/Web
 import { NotFoundTemplate } from "@/templates/NotFoundTemplate";
 import { ErrorTemplate } from "@/templates/ErrorTemplate";
 import { SupportWidget } from "@/components/support/widget/SupportWidget";
+import { SettingsProvider } from "@/contexts/SettingsContext";
 
 import appCss from "../index.css?url";
 
@@ -118,10 +119,12 @@ function RootDocument() {
               <HeadContent />
             </head>
             <body className="min-h-svh" suppressHydrationWarning>
-              <WebsiteNotificationToastProvider>
-                <Outlet />
-              </WebsiteNotificationToastProvider>
-              <SupportWidget />
+              <SettingsProvider>
+                <WebsiteNotificationToastProvider>
+                  <Outlet />
+                </WebsiteNotificationToastProvider>
+                <SupportWidget />
+              </SettingsProvider>
               <Toaster richColors />
               <Scripts />
             </body>

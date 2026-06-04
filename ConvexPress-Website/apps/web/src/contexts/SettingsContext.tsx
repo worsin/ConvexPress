@@ -41,6 +41,8 @@ export interface PublicSettings {
   tagline: string;
   siteUrl: string;
   homeUrl: string;
+  logoUrl?: string;
+  siteLogo?: string;
   membershipEnabled: boolean;
   siteLanguage: string;
   timezone: string;

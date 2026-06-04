@@ -78,7 +78,7 @@ export function MediaImage({
   onError,
 }: MediaImageProps) {
   // Fetch the full media record with all sizes
-  const media = useQuery(api.media.queries.get, { mediaId });
+  const media = useQuery(api.media.queries.getPublic, { mediaId });
 
   // Fetch the srcset string for responsive images
   const srcSet = useQuery(api.media.queries.getSrcSet, { mediaId });

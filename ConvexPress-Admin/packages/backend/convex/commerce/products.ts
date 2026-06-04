@@ -585,11 +585,20 @@ export const getBySlug = query({
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
 
-    const slug = slugifyCommerceProduct(args.slug);
-    const product = await ctx.db
+    const requestedSlug = args.slug.trim().toLowerCase();
+    const normalizedSlug = slugifyCommerceProduct(args.slug);
+    const exactProduct = await ctx.db
       .query("commerce_products")
-      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
+      .withIndex("by_slug", (q: any) => q.eq("slug", requestedSlug))
       .unique();
+    const product =
+      exactProduct ??
+      (normalizedSlug !== requestedSlug
+        ? await ctx.db
+            .query("commerce_products")
+            .withIndex("by_slug", (q: any) => q.eq("slug", normalizedSlug))
+            .unique()
+        : null);
 
     if (!product || product.status !== "publish") {
       return null;

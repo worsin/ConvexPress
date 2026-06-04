@@ -25,7 +25,7 @@ function CartPage() {
   const currencyCode = settings?.commerceConfig?.currencyCode || "USD";
   const { sessionToken, isReady } = useCommerceSessionToken();
   const cart = useQuery(
-    api.commerce.cart.getMine,
+    (api as any).commerce.cart.getMine,
     commerceEnabled && isReady && sessionToken ? { sessionToken } : "skip",
   ) as
     | {
