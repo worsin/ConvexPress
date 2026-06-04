@@ -99,8 +99,14 @@ Thumbs.db
 ConvexPress-Admin/.codex/*
 !ConvexPress-Admin/.codex/skills/
 ConvexPress-Admin/.codex/skills/*
-!ConvexPress-Admin/.codex/skills/block-build/
-!ConvexPress-Admin/.codex/skills/block-build/**
+!ConvexPress-Admin/.codex/skills/*/
+!ConvexPress-Admin/.codex/skills/*/**
+!ConvexPress-Website/.codex/
+ConvexPress-Website/.codex/*
+!ConvexPress-Website/.codex/skills/
+ConvexPress-Website/.codex/skills/*
+!ConvexPress-Website/.codex/skills/*/
+!ConvexPress-Website/.codex/skills/*/**
 .superpowers/
 .playwright-cli/
 .playwright-mcp/

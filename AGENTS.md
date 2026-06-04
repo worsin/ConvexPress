@@ -15,15 +15,22 @@ This repository contains a Codex mirror of the existing Claude expert system. Th
 - Knowledge docs: `.codex/docs/*.md`
 - Expert agent prompts: `.codex/agents/experts/**/*.md`
 - Kit roadmap: `.codex/KITS-ROADMAP.md`
-- Per-repo skill kits:
-  - `ConvexPress-Website/.codex/skills/design-*/SKILL.md` — 15 design skills
-  - `ConvexPress-Admin/.codex/skills/extension-*/SKILL.md` — 3 extension skills
+- Per-repo skill kits for Codex:
+  - `ConvexPress-Website/.codex/skills/*/SKILL.md`
+  - `ConvexPress-Admin/.codex/skills/*/SKILL.md`
+- Per-repo skill kits for Claude:
+  - `ConvexPress-Website/.claude/skills/*/SKILL.md`
+  - `ConvexPress-Admin/.claude/skills/*/SKILL.md`
 - Per-repo entry guides: `ConvexPress-Website/AGENTS.md`, `ConvexPress-Admin/AGENTS.md`
 - Canonical historical source remains `.claude/`
 
 When a task clearly belongs to a specific domain, load the matching expert prompt from `.codex/agents/experts/` and the matching knowledge doc from `.codex/docs/` before making changes.
 
 When working inside one of the two repos, also read that repo's `AGENTS.md` and consult `.codex/skills/` for the skill that matches the user's request. Skills are *description-matched* — each `SKILL.md` frontmatter `description` is the dispatch signal. Load the relevant `SKILL.md` in full before acting; the file is the contract.
+
+Claude and Codex skills are mirrored intentionally. When adding or changing a
+skill, keep the matching `.codex/skills/<name>/SKILL.md` and
+`.claude/skills/<name>/SKILL.md` copies in sync for the owning app.
 
 ## Dispatch Rules
 

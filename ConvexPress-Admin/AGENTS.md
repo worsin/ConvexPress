@@ -9,9 +9,9 @@ database; the Website app at `../ConvexPress-Website/` is a consumer.
 ## Building or auditing extensions
 
 This repo ships with an **extension-kit (v2)** at `extension-kit/` and a
-matching skill set at `.codex/skills/extension-*` (mirrored from
-`.claude/skills/extension-*`). Use them when the user asks to build,
-extend, or audit any toggleable feature module.
+matching skill set in both `.codex/skills/` and `.claude/skills/`. Use
+the Codex copy when running Codex and the Claude copy when running Claude; the
+contents are intentionally mirrored.
 
 **v2 contract** (the version of the kit currently active): extensions
 are **scanner-discovered, additive-only**. They live in one of two
@@ -35,9 +35,18 @@ entries with v2-discovered ones.
 | `block-build` | "create a custom block", "add a new block type" |
 | `block-add-feature` | "add a field to this block", "upgrade an existing block" |
 | `block-audit` | "audit the block system", "verify this block is update-safe" |
+| `lms-course-management` | "create a course", "edit the lesson builder", "fix LMS certificates", "audit enrollments" |
+| `forms-builder` | "create a form", "build an order form", "add form pricing", "debug form notifications" |
+| `commerce-order-flow` | "fix checkout", "audit orders", "sync form orders", "debug purchases/subscriptions" |
+| `membership-access` | "wire member access", "debug course restrictions", "fix grants/subscriptions" |
+| `media-library` | "fix media uploads", "add media picker support", "debug lesson video assets" |
+| `notifications-events` | "add an event", "wire email/site notifications", "audit notification listeners" |
+| `plugin-management` | "debug plugin enablement", "organize extensions", "check official vs local plugin boundaries" |
+| `system-audit-airtable` | "update Airtable Systems", "audit routes/actions/events", "create system gap report" |
 
-Each skill file is `.codex/skills/<skill-name>/SKILL.md`. Read the
-relevant `SKILL.md` in full before acting — the file is the contract.
+Each skill file is `.codex/skills/<skill-name>/SKILL.md` for Codex and
+`.claude/skills/<skill-name>/SKILL.md` for Claude. Read the relevant
+`SKILL.md` in full before acting — the file is the contract.
 
 The kit's reading order: `README.md` → `ARCHITECTURE.md` →
 `CONTRACTS.md` → `DATA-API.md` → `WORKFLOW.md` → relevant

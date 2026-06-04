@@ -14,7 +14,7 @@ generate (or regenerate) any page template per site.
 
 ### The skill kit
 
-In `.codex/skills/` (mirror of `.claude/skills/`):
+In `.codex/skills/` for Codex and `.claude/skills/` for Claude:
 
 | Skill | When to invoke (description-matched) |
 |---|---|
@@ -33,9 +33,14 @@ In `.codex/skills/` (mirror of `.claude/skills/`):
 | `design-page-feature` | "design a feature page section", "add a hero/feature block" |
 | `design-regenerate-all` | "redesign the whole site", "regenerate all templates" |
 | `design-data-audit` | "audit the templates", "check data contracts" |
+| `website-lms-experience` | "fix courses", "improve course player", "debug certificates", "audit LMS dashboard" |
+| `website-forms-experience` | "render a form", "fix hosted forms", "build a public order form", "debug form resume/payment" |
+| `website-commerce-experience` | "fix cart", "debug checkout", "improve order dashboard", "redesign product purchase UX" |
+| `website-member-dashboard` | "fix customer dashboard", "audit account pages", "debug profile/orders/subscriptions/courses" |
 
-Each skill file is `.codex/skills/<skill-name>/SKILL.md`. Read the
-relevant `SKILL.md` in full before acting — the file is the contract.
+Each skill file is `.codex/skills/<skill-name>/SKILL.md` for Codex and
+`.claude/skills/<skill-name>/SKILL.md` for Claude. Read the relevant
+`SKILL.md` in full before acting — the file is the contract.
 
 Skills are *description-matched* — the user types natural language and
 the agent picks the right one. The frontmatter `description` on each
