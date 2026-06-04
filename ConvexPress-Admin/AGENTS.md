@@ -35,13 +35,22 @@ entries with v2-discovered ones.
 | `block-build` | "create a custom block", "add a new block type" |
 | `block-add-feature` | "add a field to this block", "upgrade an existing block" |
 | `block-audit` | "audit the block system", "verify this block is update-safe" |
+| `content-editorial-workflow` | "edit posts/pages", "fix comments", "work on menus/categories/tags/custom fields/revisions" |
 | `lms-course-management` | "create a course", "edit the lesson builder", "fix LMS certificates", "audit enrollments" |
 | `forms-builder` | "create a form", "build an order form", "add form pricing", "debug form notifications" |
 | `commerce-order-flow` | "fix checkout", "audit orders", "sync form orders", "debug purchases/subscriptions" |
+| `shipping-fulfillment` | "fix shipping rates", "work on labels/manifests/tracking", "configure carrier providers" |
 | `membership-access` | "wire member access", "debug course restrictions", "fix grants/subscriptions" |
 | `media-library` | "fix media uploads", "add media picker support", "debug lesson video assets" |
 | `notifications-events` | "add an event", "wire email/site notifications", "audit notification listeners" |
 | `plugin-management` | "debug plugin enablement", "organize extensions", "check official vs local plugin boundaries" |
+| `settings-integrations` | "configure site settings", "wire Stripe/Clerk/PayPal/Google/email/AI/provider settings" |
+| `user-auth-rbac` | "fix users/roles/capabilities/API keys/login/security" |
+| `support-knowledge-workflow` | "work on KB/help center/tickets/support analytics/canned responses" |
+| `gallery-recipes-content` | "work on galleries, albums, recipes, recipe categories, media-rich content" |
+| `seo-search-analytics` | "fix SEO, search, sitemap, redirects, 404 log, GA4, analytics" |
+| `import-sync-tools` | "debug WordPress sync, website import, Airtable sync, migration/backfill jobs" |
+| `admin-operations-tools` | "work on dashboard, audit log, activity, routes registry, webhooks, updates, operational tools" |
 | `system-audit-airtable` | "update Airtable Systems", "audit routes/actions/events", "create system gap report" |
 
 Each skill file is `.codex/skills/<skill-name>/SKILL.md` for Codex and

@@ -33,9 +33,15 @@ In `.codex/skills/` for Codex and `.claude/skills/` for Claude:
 | `design-page-feature` | "design a feature page section", "add a hero/feature block" |
 | `design-regenerate-all` | "redesign the whole site", "regenerate all templates" |
 | `design-data-audit` | "audit the templates", "check data contracts" |
+| `website-content-experience` | "fix public pages/blog/archive/search/comments/content rendering" |
+| `website-block-layout-rendering` | "fix public block rendering, layouts, themes, header/footer output" |
 | `website-lms-experience` | "fix courses", "improve course player", "debug certificates", "audit LMS dashboard" |
 | `website-forms-experience` | "render a form", "fix hosted forms", "build a public order form", "debug form resume/payment" |
 | `website-commerce-experience` | "fix cart", "debug checkout", "improve order dashboard", "redesign product purchase UX" |
+| `website-help-support-experience` | "fix help center, KB articles, support forms, public/customer tickets" |
+| `website-gallery-recipes-experience` | "fix gallery album/category pages, recipes, recipe category pages" |
+| `website-auth-experience` | "fix login/register/signup/reset/verify/callback/logout redirects" |
+| `website-seo-feeds-routing` | "fix robots, sitemaps, feeds, canonical/noindex, route metadata, 404" |
 | `website-member-dashboard` | "fix customer dashboard", "audit account pages", "debug profile/orders/subscriptions/courses" |
 
 Each skill file is `.codex/skills/<skill-name>/SKILL.md` for Codex and
