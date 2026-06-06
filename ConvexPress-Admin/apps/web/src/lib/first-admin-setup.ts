@@ -3,6 +3,7 @@ export const SETUP_CREDENTIAL_HANDOFF_TTL_MS = 60 * 60 * 1000;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,64}$/;
+const SETUP_TOKEN_RE = /^[A-Za-z0-9_-]{32,256}$/;
 const MAX_EMAIL_LENGTH = 254;
 const MAX_DISPLAY_NAME_LENGTH = 128;
 const MAX_PASSWORD_LENGTH = 256;
@@ -37,7 +38,7 @@ export type PendingAdminCredentialHandoff = {
   username?: string;
   email: string;
   password: string;
-  setupToken?: string;
+  setupToken: string;
   createdAt: number;
   expiresAt: number;
 };
@@ -134,7 +135,9 @@ export function isPendingAdminCredentialHandoff(
     (handoff.username === undefined ||
       (typeof handoff.username === "string" &&
         USERNAME_RE.test(handoff.username.trim()))) &&
-    isOptionalBoundedString(handoff.setupToken, MAX_SETUP_TOKEN_LENGTH) &&
+    typeof handoff.setupToken === "string" &&
+    handoff.setupToken.length <= MAX_SETUP_TOKEN_LENGTH &&
+    SETUP_TOKEN_RE.test(handoff.setupToken) &&
     hasFreshHandoffWindow(handoff, now)
   );
 }

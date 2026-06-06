@@ -12,6 +12,8 @@ import {
 } from "./first-admin-setup";
 
 describe("first-admin setup helpers", () => {
+  const setupToken = "setup-token-with-32-safe-characters";
+
   test("uses the setup checklist route after first-admin creation", () => {
     expect(FIRST_ADMIN_SETUP_ROUTE).toBe("/setup");
   });
@@ -41,7 +43,7 @@ describe("first-admin setup helpers", () => {
           displayName: "First Admin",
           email: "admin@example.com",
           password: "CorrectHorse42",
-          setupToken: "setup-token",
+          setupToken,
           createdAt: 1_000,
           expiresAt: 2_000,
         },
@@ -55,7 +57,7 @@ describe("first-admin setup helpers", () => {
           displayName: "First Admin",
           email: "admin@example.com",
           password: "CorrectHorse42",
-          setupToken: "setup-token",
+          setupToken,
           createdAt: 1_000,
           expiresAt: 2_000,
         },
@@ -68,7 +70,7 @@ describe("first-admin setup helpers", () => {
           displayName: "First Admin",
           email: "admin@example.com",
           password: "CorrectHorse42",
-          setupToken: "setup-token",
+          setupToken,
         },
         1_500,
       ),
@@ -79,7 +81,7 @@ describe("first-admin setup helpers", () => {
           displayName: "First Admin",
           email: "admin@example.com",
           password: "CorrectHorse42",
-          setupToken: "setup-token",
+          setupToken,
           createdAt: 2_000,
           expiresAt: 3_000,
         },
@@ -92,7 +94,7 @@ describe("first-admin setup helpers", () => {
           displayName: "First Admin",
           email: "admin@example.com",
           password: "CorrectHorse42",
-          setupToken: "setup-token",
+          setupToken,
           createdAt: 1_000,
           expiresAt: 1_000 + SETUP_CREDENTIAL_HANDOFF_TTL_MS + 1,
         },
@@ -116,7 +118,7 @@ describe("first-admin setup helpers", () => {
           displayName: "A".repeat(129),
           email: "admin@example.com",
           password: "CorrectHorse42",
-          setupToken: "setup-token",
+          setupToken,
           expiresAt: 2_000,
         },
         1_500,
@@ -129,7 +131,45 @@ describe("first-admin setup helpers", () => {
           username: "invalid username",
           email: "admin@example.com",
           password: "CorrectHorse42",
-          setupToken: "setup-token",
+          setupToken,
+          expiresAt: 2_000,
+        },
+        1_500,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingAdminCredentialHandoff(
+        {
+          displayName: "First Admin",
+          email: "admin@example.com",
+          password: "CorrectHorse42",
+          createdAt: 1_000,
+          expiresAt: 2_000,
+        },
+        1_500,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingAdminCredentialHandoff(
+        {
+          displayName: "First Admin",
+          email: "admin@example.com",
+          password: "CorrectHorse42",
+          setupToken: "short",
+          createdAt: 1_000,
+          expiresAt: 2_000,
+        },
+        1_500,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingAdminCredentialHandoff(
+        {
+          displayName: "First Admin",
+          email: "admin@example.com",
+          password: "CorrectHorse42",
+          setupToken: "a".repeat(257),
+          createdAt: 1_000,
           expiresAt: 2_000,
         },
         1_500,
