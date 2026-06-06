@@ -137,6 +137,7 @@ function assertRendererConfigClear(key, value) {
 // electron/ipc/setupValidation.ts
 var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 var CONVEX_CLOUD_URL_RE = /^https:\/\/[a-z0-9-]+\.convex\.cloud$/;
+var DEPLOYMENT_NAME_RE = /^[a-z0-9-]+$/;
 function cleanUrl(value) {
   return value.trim().replace(/\/+$/, "");
 }
@@ -173,6 +174,31 @@ function normalizeConvexCloudUrl(value) {
     );
   }
   return cleaned;
+}
+function getDeploymentNameFromConvexUrl(convexUrl) {
+  const normalizedUrl = normalizeConvexCloudUrl(convexUrl);
+  const host = new URL(normalizedUrl).hostname;
+  return host.replace(/\.convex\.cloud$/, "");
+}
+function validateProductionDeployKey(value, convexUrl) {
+  const deployKey = requireTrimmed(value, "Deploy key");
+  const parts = deployKey.split("|");
+  if (parts.length !== 2 || !parts[1]?.trim()) {
+    throw new Error("Deploy key must include a deployment reference and token.");
+  }
+  const deployment = parts[0];
+  if (!deployment.startsWith("prod:")) {
+    throw new Error("Deploy key must start with a production deployment reference.");
+  }
+  const deploymentName = deployment.replace(/^prod:/, "");
+  if (!DEPLOYMENT_NAME_RE.test(deploymentName)) {
+    throw new Error("Deploy key is missing a valid deployment name.");
+  }
+  const expectedDeploymentName = getDeploymentNameFromConvexUrl(convexUrl);
+  if (deploymentName !== expectedDeploymentName) {
+    throw new Error("Deploy key deployment must match the Convex URL.");
+  }
+  return { deployKey, deployment };
 }
 function resolveConvexSiteUrl(convexUrl, explicitSiteUrl) {
   const derivedSiteUrl = deriveConvexSiteUrl(convexUrl);
@@ -213,6 +239,9 @@ function validateSetupConfig(config) {
     convexUrl,
     config.convexSiteUrl
   );
+  if (mode === "server") {
+    validateProductionDeployKey(config.adminKey, convexUrl);
+  }
   return {
     mode,
     convexUrl,
@@ -316,19 +345,7 @@ var import_node_path2 = __toESM(require("path"));
 var import_node_crypto = require("crypto");
 var { ipcMain: ipcMain4 } = require("electron");
 function deriveDeployment(config) {
-  const deployKey = config.adminKey?.trim();
-  if (!deployKey) {
-    throw new Error("Deploy key is required for server setup.");
-  }
-  const [deployment] = deployKey.split("|", 1);
-  if (!deployment || !deployment.startsWith("prod:")) {
-    throw new Error("Deploy key must start with a production deployment reference.");
-  }
-  const deploymentName = deployment.replace(/^prod:/, "");
-  if (!deploymentName) {
-    throw new Error("Deploy key is missing the deployment name.");
-  }
-  return { deployKey, deployment };
+  return validateProductionDeployKey(config.adminKey, config.convexUrl);
 }
 function resolveBackendRoot() {
   const candidates = [

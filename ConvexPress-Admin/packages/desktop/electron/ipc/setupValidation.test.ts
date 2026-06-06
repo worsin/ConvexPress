@@ -3,8 +3,11 @@ import { describe, expect, test } from "bun:test";
 import {
   deriveConvexSiteUrl,
   normalizeConvexCloudUrl,
+  validateProductionDeployKey,
   validateSetupConfig,
 } from "./setupValidation";
+
+const DEPLOY_KEY = "prod:affable-herring-441|test-deploy-token";
 
 describe("setup validation", () => {
   test("derives a Convex site URL from a cloud deployment URL", () => {
@@ -31,12 +34,44 @@ describe("setup validation", () => {
     ).toThrow("Convex URL must match https://your-app-123.convex.cloud.");
   });
 
+  test("requires the production deploy key to match the Convex URL", () => {
+    expect(
+      validateProductionDeployKey(
+        " prod:affable-herring-441|test-deploy-token ",
+        "https://affable-herring-441.convex.cloud/",
+      ),
+    ).toEqual({
+      deployKey: "prod:affable-herring-441|test-deploy-token",
+      deployment: "prod:affable-herring-441",
+    });
+
+    expect(() =>
+      validateProductionDeployKey(
+        "prod:other-herring-441|test-deploy-token",
+        "https://affable-herring-441.convex.cloud",
+      ),
+    ).toThrow("Deploy key deployment must match the Convex URL.");
+    expect(() =>
+      validateProductionDeployKey(
+        "dev:affable-herring-441|test-deploy-token",
+        "https://affable-herring-441.convex.cloud",
+      ),
+    ).toThrow("Deploy key must start with a production deployment reference.");
+    expect(() =>
+      validateProductionDeployKey(
+        "prod:affable-herring-441",
+        "https://affable-herring-441.convex.cloud",
+      ),
+    ).toThrow("Deploy key must include a deployment reference and token.");
+  });
+
   test("normalizes server setup and pending first-admin credentials", () => {
     expect(
       validateSetupConfig({
         mode: "server",
         convexUrl: " https://affable-herring-441.convex.cloud/ ",
         convexSiteUrl: "https://affable-herring-441.convex.site/",
+        adminKey: DEPLOY_KEY,
         adminName: " First Admin ",
         adminEmail: " FIRST.ADMIN@Example.COM ",
         adminPassword: "CorrectHorseBatteryStaple42!",
@@ -88,6 +123,7 @@ describe("setup validation", () => {
       validateSetupConfig({
         mode: "server",
         convexUrl: "https://affable-herring-441.convex.cloud",
+        adminKey: DEPLOY_KEY,
         convexSiteUrl: "https://other-site.convex.site",
       }),
     ).toThrow("Convex site URL must match the deployment URL.");
@@ -95,6 +131,16 @@ describe("setup validation", () => {
       validateSetupConfig({
         mode: "server",
         convexUrl: "https://affable-herring-441.convex.cloud",
+        adminName: "First Admin",
+        adminEmail: "admin@example.com",
+        adminPassword: "CorrectHorseBatteryStaple42!",
+      }),
+    ).toThrow("Deploy key is required.");
+    expect(() =>
+      validateSetupConfig({
+        mode: "server",
+        convexUrl: "https://affable-herring-441.convex.cloud",
+        adminKey: DEPLOY_KEY,
         adminEmail: "admin@example.com",
         adminPassword: "CorrectHorseBatteryStaple42!",
       }),
@@ -103,6 +149,7 @@ describe("setup validation", () => {
       validateSetupConfig({
         mode: "server",
         convexUrl: "https://affable-herring-441.convex.cloud",
+        adminKey: DEPLOY_KEY,
         adminName: "First Admin",
         adminEmail: "not-an-email",
         adminPassword: "CorrectHorseBatteryStaple42!",
@@ -112,6 +159,7 @@ describe("setup validation", () => {
       validateSetupConfig({
         mode: "server",
         convexUrl: "https://affable-herring-441.convex.cloud",
+        adminKey: DEPLOY_KEY,
         adminName: "First Admin",
         adminEmail: "admin@example.com",
         adminPassword: "short",

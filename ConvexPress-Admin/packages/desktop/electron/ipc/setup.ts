@@ -10,7 +10,10 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { generateKeyPairSync } from "node:crypto";
-import { validateSetupConfig } from "./setupValidation.js";
+import {
+  validateProductionDeployKey,
+  validateSetupConfig,
+} from "./setupValidation.js";
 import type { SetupValidationConfig } from "./setupValidation.js";
 
 const { ipcMain } = require("electron") as typeof import("electron");
@@ -34,22 +37,7 @@ function deriveDeployment(config: SetupConfig): {
   deployKey: string;
   deployment: string;
 } {
-  const deployKey = config.adminKey?.trim();
-  if (!deployKey) {
-    throw new Error("Deploy key is required for server setup.");
-  }
-
-  const [deployment] = deployKey.split("|", 1);
-  if (!deployment || !deployment.startsWith("prod:")) {
-    throw new Error("Deploy key must start with a production deployment reference.");
-  }
-
-  const deploymentName = deployment.replace(/^prod:/, "");
-  if (!deploymentName) {
-    throw new Error("Deploy key is missing the deployment name.");
-  }
-
-  return { deployKey, deployment };
+  return validateProductionDeployKey(config.adminKey, config.convexUrl);
 }
 
 function resolveBackendRoot(): string {
