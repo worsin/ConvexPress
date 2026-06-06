@@ -30,6 +30,10 @@ const username =
   explicitUsername ?? (allowFirstAdminSetup ? firstAdminEmail : undefined);
 const password =
   explicitPassword ?? (allowFirstAdminSetup ? firstAdminPassword : undefined);
+const usingFirstAdminCredentialsForLogin =
+  allowFirstAdminSetup &&
+  username === firstAdminEmail &&
+  password === firstAdminPassword;
 const routeLimit = parsePositiveInt(process.env.ADMIN_SMOKE_ROUTE_LIMIT);
 const headed = process.env.ADMIN_SMOKE_HEADED === "1";
 
@@ -213,7 +217,26 @@ async function signInExistingAdmin(page) {
     await loginInput.fill(username);
     await page.locator("#password").fill(password);
     await page.getByRole("button", { name: /sign in/i }).click();
-    await adminContent.waitFor({ state: "visible", timeout: 20_000 });
+    const invalidCredentials = page.getByText(/invalid credentials/i);
+    const outcome = await Promise.race([
+      adminContent
+        .waitFor({ state: "visible", timeout: 20_000 })
+        .then(() => "signed-in")
+        .catch(() => null),
+      invalidCredentials
+        .waitFor({ state: "visible", timeout: 20_000 })
+        .then(() => "invalid-credentials")
+        .catch(() => null),
+    ]);
+
+    if (outcome === "signed-in") return;
+    if (outcome === "invalid-credentials" && usingFirstAdminCredentialsForLogin) {
+      throw new Error(
+        "Fresh first-admin smoke credentials were rejected. This deployment likely already has a different administrator; use existing ADMIN_SMOKE_USER/ADMIN_SMOKE_PASSWORD credentials or run against a fresh deployment.",
+      );
+    }
+
+    await adminContent.waitFor({ state: "visible", timeout: 1_000 });
     return;
   }
 
