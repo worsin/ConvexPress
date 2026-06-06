@@ -8,6 +8,7 @@ import type { Id } from "@backend/convex/_generated/dataModel";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { useCan } from "@/hooks/useCan";
 
 interface ResetPasswordButtonProps {
   /** The target user's Convex document ID. */
@@ -41,13 +42,15 @@ export function ResetPasswordButton({
 }: ResetPasswordButtonProps) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
+  const canResetPassword = useCan("password.reset");
 
   const adminResetUserPassword = useAction(
     api.password.actions.adminResetUserPassword,
   );
-  const passwordStatus = useQuery(api.password.queries.getPasswordStatus, {
-    userId: targetUserId,
-  });
+  const passwordStatus = useQuery(
+    api.password.queries.getPasswordStatus,
+    canResetPassword ? { userId: targetUserId } : "skip",
+  );
 
   const handleConfirm = async () => {
     setIsExecuting(true);
@@ -65,6 +68,8 @@ export function ResetPasswordButton({
   };
 
   const displayName = targetDisplayName || targetEmail;
+
+  if (!canResetPassword) return null;
 
   return (
     <div className="space-y-3">

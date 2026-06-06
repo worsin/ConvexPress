@@ -126,7 +126,7 @@ export const requestPasswordReset = action({
  * Admin-initiated password reset for another user.
  *
  * Flow:
- *   1. Verify caller is an Administrator (role level 100)
+ *   1. Verify caller has password.reset capability
  *   2. Look up the target user
  *   3. Generate a reset token and store the hash
  *   4. Queue a password reset email via the Resend-based email system
@@ -141,39 +141,11 @@ export const requestPasswordReset = action({
 export const adminResetUserPassword = action({
   args: adminResetUserPasswordArgs,
   handler: async (ctx, args) => {
-    // 1. Verify caller is authenticated and is an Administrator
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({
-        code: "UNAUTHORIZED",
-        message: "Authentication required",
-      });
-    }
-
-    // Look up the caller using their auth identity subject
-    const caller = await ctx.runQuery(internal.password.queries.getUserBySubject, {
-      subject: identity.subject,
-    });
-
-    if (!caller) {
-      throw new ConvexError({
-        code: "UNAUTHORIZED",
-        message: "User not found",
-      });
-    }
-
-    // Check admin role level (Administrator = 100)
-    const callerRoleLevel = await ctx.runQuery(
-      internal.password.queries.getUserRoleLevel,
-      { userId: caller._id },
+    // 1. Verify caller can trigger password resets.
+    const caller = await ctx.runQuery(
+      internal.password.queries.requirePasswordResetCapability,
+      {},
     );
-
-    if (callerRoleLevel < 100) {
-      throw new ConvexError({
-        code: "FORBIDDEN",
-        message: "Administrator access required",
-      });
-    }
 
     // 2. Look up the target user
     const targetUser = await ctx.runQuery(internal.password.queries.getUserById, {

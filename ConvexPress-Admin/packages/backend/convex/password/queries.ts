@@ -15,7 +15,12 @@
 
 import { query, internalQuery } from "../_generated/server";
 import { v, ConvexError } from "convex/values";
-import { getCurrentUser, lookupUserByIdentifier } from "../helpers/permissions";
+import {
+  currentUserCan,
+  getCurrentUser,
+  lookupUserByIdentifier,
+  requireCan,
+} from "../helpers/permissions";
 import { getPasswordStatusArgs } from "./validators";
 
 // ─── getPasswordStatus (Public Query) ───────────────────────────────────────
@@ -24,7 +29,7 @@ import { getPasswordStatusArgs } from "./validators";
  * Get password status metadata for a user.
  *
  * If no userId is provided, returns the current user's own status.
- * If a userId is provided, requires Administrator role (level 100).
+ * If a userId is provided for another user, requires password.reset.
  *
  * Returns:
  *   - lastPasswordChangedAt: timestamp of last password change (or null)
@@ -40,48 +45,43 @@ import { getPasswordStatusArgs } from "./validators";
 export const getPasswordStatus = query({
   args: getPasswordStatusArgs,
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-
-    let targetUser;
+    const currentUser = await getCurrentUser(ctx);
+    if (!currentUser) return null;
 
     if (args.userId) {
-      // Viewing another user's status: require Administrator
-      const currentUser = await getCurrentUser(ctx);
-      if (!currentUser) return null;
-
-      // Check if the current user is an Administrator (role level 100)
-      if (currentUser.roleId) {
-        const role = await ctx.db.get(currentUser.roleId);
-        if (!role || role.level < 100) {
-          throw new ConvexError({
-            code: "FORBIDDEN",
-            message: "Administrator access required to view another user's password status",
-          });
-        }
-      } else {
-        // Legacy check: fall back to internalRole
-        if (currentUser.internalRole !== "admin") {
-          throw new ConvexError({
-            code: "FORBIDDEN",
-            message: "Administrator access required to view another user's password status",
-          });
-        }
+      // Viewing another user's status requires password reset authority.
+      if (
+        args.userId !== currentUser._id &&
+        !(await currentUserCan(ctx, "password.reset"))
+      ) {
+        throw new ConvexError({
+          code: "FORBIDDEN",
+          message: "Insufficient permissions",
+        });
       }
 
-      targetUser = await ctx.db.get(args.userId);
-    } else {
-      // Viewing own status: just need authentication
-      targetUser = await lookupUserByIdentifier(ctx, identity.subject);
+      const targetUser = await ctx.db.get(args.userId);
+      if (!targetUser) return null;
+      return {
+        lastPasswordChangedAt: targetUser.lastPasswordChangedAt ?? null,
+        passwordResetRequestedAt: targetUser.passwordResetRequestedAt ?? null,
+        passwordResetCount: targetUser.passwordResetCount ?? 0,
+      };
     }
 
-    if (!targetUser) return null;
-
     return {
-      lastPasswordChangedAt: targetUser.lastPasswordChangedAt ?? null,
-      passwordResetRequestedAt: targetUser.passwordResetRequestedAt ?? null,
-      passwordResetCount: targetUser.passwordResetCount ?? 0,
+      lastPasswordChangedAt: currentUser.lastPasswordChangedAt ?? null,
+      passwordResetRequestedAt: currentUser.passwordResetRequestedAt ?? null,
+      passwordResetCount: currentUser.passwordResetCount ?? 0,
     };
+  },
+});
+
+export const requirePasswordResetCapability = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireCan(ctx, "password.reset");
+    return { _id: user._id };
   },
 });
 
