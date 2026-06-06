@@ -34,6 +34,20 @@ import {
 } from "./validators";
 import { isPluginEnabled } from "../helpers/plugins";
 
+type TicketUserNameFields = {
+  displayName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  email: string;
+};
+
+function getTicketUserSnapshotName(user: TicketUserNameFields): string {
+  if (user.displayName) return user.displayName;
+  const firstName = typeof user.firstName === "string" ? user.firstName.trim() : "";
+  const lastName = typeof user.lastName === "string" ? user.lastName.trim() : "";
+  return [firstName, lastName].filter(Boolean).join(" ") || user.email;
+}
+
 // ─── getMyTickets ───────────────────────────────────────────────────────────
 
 /**
@@ -210,10 +224,7 @@ export const getTicketWithReplies = query({
     if (ticket.assignedTo) {
       const assignee = await ctx.db.get("users", ticket.assignedTo);
       if (assignee) {
-        assigneeName =
-          assignee.displayName ||
-          [assignee.firstName, assignee.lastName].filter(Boolean).join(" ") ||
-          assignee.email;
+        assigneeName = getTicketUserSnapshotName(assignee);
       }
     }
 
@@ -378,12 +389,7 @@ export const getQueue = query({
     for (const id of assigneeIds) {
       const assignee = await ctx.db.get(id);
       if (assignee) {
-        assigneeMap.set(
-          id,
-          assignee.displayName ||
-            [assignee.firstName, assignee.lastName].filter(Boolean).join(" ") ||
-            assignee.email,
-        );
+        assigneeMap.set(id, getTicketUserSnapshotName(assignee));
       }
     }
 

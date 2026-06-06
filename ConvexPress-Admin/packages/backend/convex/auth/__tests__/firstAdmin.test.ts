@@ -157,6 +157,18 @@ describe("createFirstAdmin", () => {
     expect(afterLogin).toHaveLength(1);
     expect(afterLogin[0]!.revokedAt).toBeUndefined();
 
+    const emptyRefreshResponse = await t.fetch("/auth/refresh", {
+      method: "POST",
+      headers: {
+        Origin: TEST_ORIGIN,
+      },
+    });
+
+    expect(emptyRefreshResponse.status).toBe(204);
+    expect(emptyRefreshResponse.headers.get("access-control-allow-origin")).toBe(
+      TEST_ORIGIN,
+    );
+
     const refreshResponse = await t.fetch("/auth/refresh", {
       method: "POST",
       headers: {

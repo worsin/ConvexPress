@@ -18,7 +18,11 @@ import {
   generateRefreshToken,
   hashRefreshToken,
 } from "./helpers";
-import { authJsonResponse, getAllowedAuthOrigin } from "./httpSecurity";
+import {
+  authJsonResponse,
+  authNoContentResponse,
+  getAllowedAuthOrigin,
+} from "./httpSecurity";
 
 export const refreshHandler = httpAction(async (ctx, request) => {
   const allowedOrigin = getAllowedAuthOrigin(request.headers.get("origin"));
@@ -31,7 +35,7 @@ export const refreshHandler = httpAction(async (ctx, request) => {
   const refreshToken = parseCookie(cookieHeader, "convexpress_refresh");
 
   if (!refreshToken) {
-    return authJsonResponse({ error: "No refresh token" }, 401, allowedOrigin);
+    return authNoContentResponse(allowedOrigin);
   }
 
   // ─── Validate token record ────────────────────────────────────────────────

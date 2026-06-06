@@ -8,8 +8,9 @@
  *
  *   - Mutations encrypt on write via `encryptSettingSecret`.
  *   - Public queries that return settings to the admin UI replace any
- *     `*Secret*|*Key*|*Token*|Password|*Credentials*` field with the
- *     sentinel `"__set__"` so the frontend can render a masked state
+ *     `*Secret*|*Key*|*Token*|Password|*Credentials*` field, plus known
+ *     keyfile-style values such as service-account JSON, with the sentinel
+ *     `"__set__"` so the frontend can render a masked state
  *     without ever seeing plaintext.
  *   - Internal actions that actually need plaintext (e.g. signing a
  *     Stripe webhook call) decrypt via `decryptSettingSecret`.
@@ -26,13 +27,16 @@ const SECRET_KEY = process.env.SHIPPING_PROVIDER_ENCRYPTION_KEY;
 const SENTINEL = "__set__";
 
 /**
- * Fields inside any settings `values` object whose key matches this pattern
- * are treated as secrets — encrypted on write, masked on public read.
+ * Fields inside any settings `values` object whose key matches these patterns
+ * are treated as secrets: encrypted on write, masked on public read.
  */
 const SECRET_KEY_PATTERN = /(secret|key|token|password|credentials?)/i;
+const SECRET_NAME_PARTS = ["serviceaccountjson", "keyfile", "privatekey"];
 
 export function isSecretFieldName(name: string): boolean {
-  return SECRET_KEY_PATTERN.test(name);
+  if (SECRET_KEY_PATTERN.test(name)) return true;
+  const normalized = name.replace(/[^a-z0-9]/gi, "").toLowerCase();
+  return SECRET_NAME_PARTS.some((part) => normalized.includes(part));
 }
 
 function toBase64(utf8: string): string {

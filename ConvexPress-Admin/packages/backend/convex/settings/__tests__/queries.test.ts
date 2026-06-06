@@ -77,6 +77,18 @@ async function seedAuthenticatedUser(
       updatedBy: userId,
     });
 
+    await ctx.db.insert("settings", {
+      section: "analytics.ga4",
+      values: {
+        ga4ServiceAccountJson:
+          '{"type":"service_account","client_email":"ga4@example.test","private_key":"secret"}',
+        ga4ServiceAccountEmail: "ga4@example.test",
+        ga4PropertyId: "properties/123456789",
+      },
+      updatedAt: now,
+      updatedBy: userId,
+    });
+
     return {
       userId,
       email: capabilities.includes("manage_options")
@@ -116,6 +128,12 @@ describe("settings queries", () => {
         section: "integrations.clerk",
       }),
     ).rejects.toThrow("Insufficient permissions");
+
+    await expect(
+      editor.query(api.settings.queries.getBySection, {
+        section: "analytics.ga4",
+      }),
+    ).rejects.toThrow("Insufficient permissions");
   });
 
   test("allows managers to read redacted setup sections", async () => {
@@ -129,5 +147,13 @@ describe("settings queries", () => {
     expect(clerk?.clerkSecretKey).toBe("__set__");
     expect(clerk?.clerkWebhookSecret).toBe("__set__");
     expect(clerk?.clerkJwtIssuerDomain).toBe("https://clerk.example.test");
+
+    const ga4 = await admin.query(api.settings.queries.getBySection, {
+      section: "analytics.ga4",
+    });
+
+    expect(ga4?.ga4ServiceAccountJson).toBe("__set__");
+    expect(ga4?.ga4ServiceAccountEmail).toBe("ga4@example.test");
+    expect(ga4?.ga4PropertyId).toBe("properties/123456789");
   });
 });

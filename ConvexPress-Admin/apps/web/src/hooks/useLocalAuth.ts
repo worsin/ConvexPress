@@ -105,7 +105,9 @@ export function useLocalAuth() {
         credentials: "include",
       });
 
-      if (response.ok) {
+      if (response.status === 204) {
+        clearAuthState();
+      } else if (response.ok) {
         const data = await response.json();
         setTokens(data.accessToken, data.expiresIn);
       } else {

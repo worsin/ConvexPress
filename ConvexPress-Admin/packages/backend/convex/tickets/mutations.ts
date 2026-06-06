@@ -63,6 +63,20 @@ import {
 } from "./validators";
 import { requirePluginEnabled } from "../helpers/plugins";
 
+type TicketUserNameFields = {
+  displayName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  email: string;
+};
+
+function getTicketUserSnapshotName(user: TicketUserNameFields): string {
+  if (user.displayName) return user.displayName;
+  const firstName = typeof user.firstName === "string" ? user.firstName.trim() : "";
+  const lastName = typeof user.lastName === "string" ? user.lastName.trim() : "";
+  return [firstName, lastName].filter(Boolean).join(" ") || user.email;
+}
+
 // ─── Create ─────────────────────────────────────────────────────────────────
 
 /**
@@ -150,8 +164,7 @@ export const create = mutation({
 
     // ── Snapshot user data ──────────────────────────────────────────────
     const userEmailSnapshot = user.email;
-    const userNameSnapshot = user.displayName
-      ?? (user.firstName ? [user.firstName, user.lastName].filter(Boolean).join(" ") : user.email);
+    const userNameSnapshot = getTicketUserSnapshotName(user);
 
     // ── Resolve default priority from settings ──────────────────────────
     let defaultPriority: "low" | "medium" | "high" = "medium";
@@ -289,8 +302,7 @@ export const reply = mutation({
     const sequence = (lastMessage?.sequence ?? -1) + 1;
 
     const now = Date.now();
-    const userNameSnapshot = user.displayName
-      ?? (user.firstName ? [user.firstName, user.lastName].filter(Boolean).join(" ") : user.email);
+    const userNameSnapshot = getTicketUserSnapshotName(user);
 
     // ── Insert message ──────────────────────────────────────────────────
     const messageId = await ctx.db.insert("ticket_messages", {
@@ -388,8 +400,7 @@ export const adminReply = mutation({
     const sequence = (lastMessage?.sequence ?? -1) + 1;
 
     const now = Date.now();
-    const senderName = user.displayName
-      ?? (user.firstName ? [user.firstName, user.lastName].filter(Boolean).join(" ") : user.email);
+    const senderName = getTicketUserSnapshotName(user);
 
     // ── Insert message ──────────────────────────────────────────────────
     const messageId = await ctx.db.insert("ticket_messages", {

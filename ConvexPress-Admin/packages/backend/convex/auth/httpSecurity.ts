@@ -94,6 +94,21 @@ export function authJsonResponse(
   return new Response(JSON.stringify(data), { status, headers });
 }
 
+export function authNoContentResponse(
+  allowedOrigin: string,
+  extraHeaders?: Record<string, string>,
+) {
+  const headers = createAuthHeaders(allowedOrigin);
+  headers.delete("Content-Type");
+  if (extraHeaders) {
+    for (const [key, value] of Object.entries(extraHeaders)) {
+      headers.set(key, value);
+    }
+  }
+
+  return new Response(null, { status: 204, headers });
+}
+
 export function authPreflightResponse(request: Request) {
   const allowedOrigin = getAllowedAuthOrigin(request.headers.get("origin"));
   if (allowedOrigin === null) {

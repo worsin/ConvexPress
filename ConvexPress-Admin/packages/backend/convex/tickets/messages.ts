@@ -34,6 +34,20 @@ import {
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
+type TicketUserNameFields = {
+  displayName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  email: string;
+};
+
+function getTicketUserSnapshotName(user: TicketUserNameFields): string {
+  if (user.displayName) return user.displayName;
+  const firstName = typeof user.firstName === "string" ? user.firstName.trim() : "";
+  const lastName = typeof user.lastName === "string" ? user.lastName.trim() : "";
+  return [firstName, lastName].filter(Boolean).join(" ") || user.email;
+}
+
 // ─── getByTicket ────────────────────────────────────────────────────────────
 
 /**
@@ -315,11 +329,7 @@ export const addInternalNote = mutation({
     const sequence = (lastMessage?.sequence ?? -1) + 1;
 
     const now = Date.now();
-    const senderName =
-      user.displayName ||
-      (user.firstName
-        ? [user.firstName, user.lastName].filter(Boolean).join(" ")
-        : user.email);
+    const senderName = getTicketUserSnapshotName(user);
 
     const messageId = await ctx.db.insert("ticket_messages", {
       ticketId: args.ticketId,
