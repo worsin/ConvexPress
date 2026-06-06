@@ -11,6 +11,29 @@ function getRequiredFirstAdminSetupToken(): string | null {
   return process.env.FIRST_ADMIN_SETUP_SECRET?.trim() || null;
 }
 
+function getRequiredDevInternalsToken(): string | null {
+  return process.env.CONVEXPRESS_DEV_INTERNALS_TOKEN?.trim() || null;
+}
+
+function assertDevInternalsAdminToken(devToken: string | undefined) {
+  if (process.env.CONVEXPRESS_ENABLE_DEV_INTERNALS !== "true") {
+    throw new Error(
+      "provisionSmokeAdmin is disabled. Set CONVEXPRESS_ENABLE_DEV_INTERNALS=true on the Convex deployment.",
+    );
+  }
+
+  const requiredToken = getRequiredDevInternalsToken();
+  if (!requiredToken) {
+    throw new Error(
+      "provisionSmokeAdmin requires CONVEXPRESS_DEV_INTERNALS_TOKEN before it can create an admin.",
+    );
+  }
+
+  if (!devToken || devToken !== requiredToken) {
+    throw new Error("Invalid dev internals token.");
+  }
+}
+
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -105,7 +128,8 @@ export const createFirstAdmin = action({
  * with known credentials without depending on an existing admin account.
  *
  * Gated behind CONVEXPRESS_ENABLE_DEV_INTERNALS to prevent accidental
- * use on production deployments. On a fresh-or-existing dev deployment:
+ * use on production deployments, and also requires the caller to provide
+ * CONVEXPRESS_DEV_INTERNALS_TOKEN. On a fresh-or-existing dev deployment:
  *   - If smoketest user does not exist: creates it with admin role + isInternal=true
  *   - If smoketest user exists: updates passwordHash to match the supplied password
  *     (so credential rotation works) and ensures admin flags are set
@@ -116,17 +140,17 @@ export const provisionSmokeAdmin = action({
     email: v.string(),
     username: v.string(),
     password: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    devToken: v.optional(v.string()),
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args): Promise<{ created: boolean; userId: string; email: string }> => {
-    if (process.env.CONVEXPRESS_ENABLE_DEV_INTERNALS !== "true") {
-      throw new Error(
-        "provisionSmokeAdmin is disabled. Set CONVEXPRESS_ENABLE_DEV_INTERNALS=true on the Convex deployment.",
-      );
-    }
+    assertDevInternalsAdminToken(args.devToken);
 
     const credentials = validateFirstAdminCredentials(args);
     const passwordHash = await hashPassword(args.password);
+
+    await ctx.runMutation(internal.roles.internals.seedRoles);
 
     const result: { created: boolean; userId: Id<"users">; email: string } = await ctx.runMutation(
       internal.auth.setup.upsertSmokeAdmin,

@@ -52,6 +52,10 @@ afterEach(() => {
   process.env.AUTH_ALLOW_NULL_ORIGIN = ORIGINAL_ENV.AUTH_ALLOW_NULL_ORIGIN;
   process.env.FIRST_ADMIN_SETUP_SECRET =
     ORIGINAL_ENV.FIRST_ADMIN_SETUP_SECRET;
+  process.env.CONVEXPRESS_ENABLE_DEV_INTERNALS =
+    ORIGINAL_ENV.CONVEXPRESS_ENABLE_DEV_INTERNALS;
+  process.env.CONVEXPRESS_DEV_INTERNALS_TOKEN =
+    ORIGINAL_ENV.CONVEXPRESS_DEV_INTERNALS_TOKEN;
 });
 
 describe("createFirstAdmin", () => {
@@ -416,6 +420,69 @@ describe("createFirstAdmin", () => {
         isInternal: true,
       }),
     ).rejects.toThrow("Admin access required");
+  });
+
+  test("smoke admin provisioning requires a dev internals token and assigns the administrator role", async () => {
+    const t = createHarness();
+    process.env.CONVEXPRESS_ENABLE_DEV_INTERNALS = "true";
+    process.env.CONVEXPRESS_DEV_INTERNALS_TOKEN = "dev-smoke-token";
+
+    await expect(
+      t.action(api.auth.setup.provisionSmokeAdmin, {
+        email: "smoke@example.com",
+        username: "smokeadmin",
+        password: PASSWORD,
+      }),
+    ).rejects.toThrow("Invalid dev internals token.");
+
+    await expect(
+      t.action(api.auth.setup.provisionSmokeAdmin, {
+        email: "smoke@example.com",
+        username: "smokeadmin",
+        password: PASSWORD,
+        devToken: "wrong-token",
+      }),
+    ).rejects.toThrow("Invalid dev internals token.");
+
+    const result = await t.action(api.auth.setup.provisionSmokeAdmin, {
+      email: "smoke@example.com",
+      username: "smokeadmin",
+      password: PASSWORD,
+      devToken: "dev-smoke-token",
+    });
+
+    expect(result.created).toBe(true);
+    expect(result.email).toBe("smoke@example.com");
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(true);
+
+    const snapshot = await t.run(async (ctx) => {
+      const user = (await ctx.db.query("users").collect())[0]!;
+      const role = user.roleId ? await ctx.db.get("roles", user.roleId) : null;
+      return { user, role };
+    });
+
+    expect(snapshot.user.authSource).toBe("local");
+    expect(snapshot.user.isInternal).toBe(true);
+    expect(snapshot.user.internalRole).toBe("admin");
+    expect(snapshot.role?.slug).toBe("administrator");
+    expect(snapshot.role?.type).toBe("internal");
+  });
+
+  test("smoke admin provisioning remains disabled when the dev token is not configured", async () => {
+    const t = createHarness();
+    process.env.CONVEXPRESS_ENABLE_DEV_INTERNALS = "true";
+    process.env.CONVEXPRESS_DEV_INTERNALS_TOKEN = "";
+
+    await expect(
+      t.action(api.auth.setup.provisionSmokeAdmin, {
+        email: "smoke@example.com",
+        username: "smokeadmin",
+        password: PASSWORD,
+        devToken: "dev-smoke-token",
+      }),
+    ).rejects.toThrow(
+      "provisionSmokeAdmin requires CONVEXPRESS_DEV_INTERNALS_TOKEN before it can create an admin.",
+    );
   });
 
   test("created admin can access setup route data with secrets redacted", async () => {
