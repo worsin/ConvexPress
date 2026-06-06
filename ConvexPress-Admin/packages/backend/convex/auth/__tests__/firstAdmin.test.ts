@@ -150,7 +150,27 @@ describe("createFirstAdmin", () => {
       }),
     ).rejects.toThrow("Password must be 256 characters or fewer.");
 
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "admin@example.com",
+        username: "admin",
+        password: PASSWORD,
+        displayName: "First Admin",
+        setupToken: "A".repeat(257),
+      }),
+    ).rejects.toThrow("First-admin setup token is invalid or missing.");
+
     expect(await t.query(api.auth.queries.hasAdmin)).toBe(false);
+
+    const setupSideEffects = await t.run(async (ctx) => {
+      return {
+        roles: await ctx.db.query("roles").collect(),
+        users: await ctx.db.query("users").collect(),
+      };
+    });
+
+    expect(setupSideEffects.roles).toHaveLength(0);
+    expect(setupSideEffects.users).toHaveLength(0);
   });
 
   test("created admin can log in, refresh, and log out through auth HTTP routes", async () => {
@@ -373,6 +393,18 @@ describe("createFirstAdmin", () => {
       }),
     ).rejects.toThrow("First-admin setup token is invalid or missing.");
 
+    const rejectedAttemptSnapshot = await t.run(async (ctx) => {
+      return {
+        roles: await ctx.db.query("roles").collect(),
+        users: await ctx.db.query("users").collect(),
+        authSetupState: await ctx.db.query("authSetupState").collect(),
+      };
+    });
+
+    expect(rejectedAttemptSnapshot.roles).toHaveLength(0);
+    expect(rejectedAttemptSnapshot.users).toHaveLength(0);
+    expect(rejectedAttemptSnapshot.authSetupState).toHaveLength(0);
+
     const result = await t.action(api.auth.setup.createFirstAdmin, {
       email: "admin@example.com",
       username: "admin",
@@ -390,6 +422,16 @@ describe("createFirstAdmin", () => {
         username: "secondadmin",
         password: PASSWORD,
         displayName: "Second Admin",
+      }),
+    ).rejects.toThrow("First-admin setup token is invalid or missing.");
+
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "second@example.com",
+        username: "secondadmin",
+        password: PASSWORD,
+        displayName: "Second Admin",
+        setupToken: "setup-secret",
       }),
     ).rejects.toThrow("An administrator account already exists");
   });

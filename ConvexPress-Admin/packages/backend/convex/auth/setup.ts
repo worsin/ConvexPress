@@ -105,6 +105,10 @@ function validateFirstAdminCredentials(args: {
 }
 
 function validateFirstAdminSetupToken(setupToken: string | undefined) {
+  if (setupToken && setupToken.length > MAX_SETUP_TOKEN_LENGTH) {
+    throw new Error("First-admin setup token is invalid or missing.");
+  }
+
   const requiredToken = getRequiredFirstAdminSetupToken();
   if (!requiredToken) {
     if (canCreateFirstAdminWithoutSetupToken()) return false;
@@ -114,9 +118,6 @@ function validateFirstAdminSetupToken(setupToken: string | undefined) {
     );
   }
 
-  if (setupToken && setupToken.length > MAX_SETUP_TOKEN_LENGTH) {
-    throw new Error("First-admin setup token is invalid or missing.");
-  }
   if (!setupToken || setupToken !== requiredToken) {
     throw new Error("First-admin setup token is invalid or missing.");
   }
@@ -137,6 +138,9 @@ export const createFirstAdmin = action({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    const setupTokenRequired = validateFirstAdminSetupToken(args.setupToken);
+    const credentials = validateFirstAdminCredentials(args);
+
     // Ensure the built-in WordPress roles exist before checking for or
     // assigning the first administrator role on a fresh deployment.
     await ctx.runMutation(internal.roles.internals.seedRoles);
@@ -146,8 +150,6 @@ export const createFirstAdmin = action({
       throw new Error("An administrator account already exists");
     }
 
-    const setupTokenRequired = validateFirstAdminSetupToken(args.setupToken);
-    const credentials = validateFirstAdminCredentials(args);
     const passwordHash = await hashPassword(args.password);
 
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
