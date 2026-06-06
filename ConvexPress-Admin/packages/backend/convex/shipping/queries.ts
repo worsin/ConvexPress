@@ -27,6 +27,7 @@ export const getOverview = query({
     const connections = await ctx.db
       .query("shipping_provider_connections")
       .collect();
+    const secrets = await ctx.db.query("shipping_provider_secrets").collect();
     const accounts = await ctx.db.query("shipping_provider_accounts").collect();
 
     const providers = await Promise.all(
@@ -41,6 +42,10 @@ export const getOverview = query({
           provider,
           descriptor: getShippingProviderDescriptor(provider),
           connection,
+          secretStored: Boolean(
+            connection &&
+              secrets.some((secret) => secret.connectionId === connection._id),
+          ),
           settings,
           accountCount,
         };
