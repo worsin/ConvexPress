@@ -30,6 +30,15 @@ import {
   failureReasonValidator,
 } from "./validators";
 
+const MAX_EMAIL_LENGTH = 320;
+const MAX_IP_LENGTH = 45;
+const MAX_USER_AGENT_LENGTH = 1000;
+const MAX_DESCRIPTION_LENGTH = 500;
+
+function truncateOptional(value: string | undefined, maxLength: number) {
+  return value?.slice(0, maxLength);
+}
+
 /**
  * Look up the current user for login tracking.
  *
@@ -75,6 +84,8 @@ export const recordLogin = mutation({
     const user = await getOrCreateCurrentUserForLogin(ctx);
     if (!user) return null;
 
+    const ip = truncateOptional(args.ip, MAX_IP_LENGTH);
+    const userAgent = truncateOptional(args.userAgent, MAX_USER_AGENT_LENGTH);
     const now = Date.now();
 
     // Update lastLoginAt timestamp
@@ -93,10 +104,11 @@ export const recordLogin = mutation({
         email: user.email,
         method: args.method ?? "unknown",
         app: args.app ?? "unknown",
-        ip: args.ip,
-        userAgent: args.userAgent,
+        ip,
+        userAgent,
         loginAt: now,
       },
+      { actorIp: ip },
     );
 
     return { success: true, userId: user._id, eventId };
@@ -182,10 +194,10 @@ export const recordFailedLogin = mutation({
     // ─── Input Sanitization (CRITICAL-1 fix) ──────────────────────────
     // This mutation is unauthenticated (the user failed to log in).
     // Cap string lengths to prevent data pollution / storage abuse.
-    const email = args.email.slice(0, 320); // RFC 5321 max email length
-    const ip = args.ip?.slice(0, 45); // IPv6 max length
-    const userAgent = args.userAgent?.slice(0, 1000);
-    const description = args.description?.slice(0, 500);
+    const email = args.email.slice(0, MAX_EMAIL_LENGTH); // RFC 5321 max email length
+    const ip = truncateOptional(args.ip, MAX_IP_LENGTH); // IPv6 max length
+    const userAgent = truncateOptional(args.userAgent, MAX_USER_AGENT_LENGTH);
+    const description = truncateOptional(args.description, MAX_DESCRIPTION_LENGTH);
 
     // Basic email format validation - reject obviously invalid inputs
     if (!email.includes("@") || email.length < 3) {
