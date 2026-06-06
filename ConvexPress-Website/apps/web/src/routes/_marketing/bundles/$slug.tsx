@@ -290,7 +290,7 @@ function BundleDetailPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-10 py-12">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-10 py-10 lg:py-12">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link to="/bundles" className="hover:text-foreground">
@@ -301,9 +301,9 @@ function BundleDetailPage() {
       </div>
 
       {/* Header + Pricing Card */}
-      <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1.35fr)_minmax(420px,600px)] xl:items-start">
         {/* Left: Bundle overview */}
-        <div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
+        <div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm xl:sticky xl:top-28">
           <div className="relative aspect-[4/3] bg-muted">
             <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
               <Package className="h-14 w-14 text-muted-foreground/60" />

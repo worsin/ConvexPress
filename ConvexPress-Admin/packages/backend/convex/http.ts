@@ -75,6 +75,7 @@ const authCorsPreflight = httpAction(async (_ctx, request) => {
       "Access-Control-Allow-Headers": "Authorization, Content-Type",
       "Access-Control-Allow-Credentials": "true",
       "Access-Control-Max-Age": "86400",
+      "Vary": "Origin",
     },
   });
 });

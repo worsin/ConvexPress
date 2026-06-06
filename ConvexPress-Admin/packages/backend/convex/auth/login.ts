@@ -127,7 +127,7 @@ export const loginHandler = httpAction(async (ctx, request) => {
   const cookieFlags = [
     `convexpress_refresh=${rawRefreshToken}`,
     "HttpOnly",
-    "Path=/auth/refresh",
+    "Path=/auth",
     `Max-Age=${7 * 24 * 60 * 60}`,
     ...(isProduction ? ["SameSite=None", "Secure"] : ["SameSite=Lax"]),
   ].join("; ");
@@ -149,6 +149,8 @@ export const loginHandler = httpAction(async (ctx, request) => {
         "Set-Cookie": cookieFlags,
         "Access-Control-Allow-Origin": origin,
         "Access-Control-Allow-Credentials": "true",
+        "Vary": "Origin",
+        "Cache-Control": "no-store",
       },
     },
   );
@@ -163,6 +165,8 @@ function jsonResponse(data: object, status: number, origin: string) {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Credentials": "true",
+      "Vary": "Origin",
+      "Cache-Control": "no-store",
     },
   });
 }

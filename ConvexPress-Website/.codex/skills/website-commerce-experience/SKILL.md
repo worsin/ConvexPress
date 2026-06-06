@@ -41,6 +41,25 @@ commerce data and Purchase Core; Website is the consumer.
 6. For visual redesign, also follow the matching `design-catalog` or
    `design-single-product` skill.
 
+## Desktop Width Policy
+
+Do not default commerce surfaces to narrow prose containers. Choose width by
+the job the page is doing:
+
+- Product/catalog directories, filterable grids, cart item management, and
+  dense order review surfaces should use a wide desktop work area. Full-bleed
+  breakout wrappers are appropriate when the parent marketing wrapper is too
+  narrow for the workflow.
+- Single product and bundle detail pages should be centered but generous:
+  roughly 1360-1500px on desktop, with a real two-column gallery/buy-box
+  layout. They should not stretch edge-to-edge, and they should not inherit
+  article-width rails.
+- Checkout contact/payment forms can be more constrained, but should still
+  feel like desktop workflows: use about 1100-1280px where possible, and use
+  wider grids for shipping and review steps.
+- Preserve narrow widths only for true prose, auth, support, or simple form
+  reading surfaces.
+
 ## Verification
 
 Run Website typecheck/build and focused backend tests when contracts change:

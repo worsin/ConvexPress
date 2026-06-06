@@ -126,6 +126,20 @@ export function AdminGate({
   return <>{children}</>;
 }
 
+function deriveSetupUsername(email: string, explicitUsername?: string): string {
+  if (explicitUsername?.trim()) return explicitUsername.trim();
+
+  const prefix = email.split("@")[0] || "admin";
+  const cleaned = prefix
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, "-")
+    .replace(/^[._-]+|[._-]+$/g, "")
+    .slice(0, 64);
+
+  if (cleaned.length >= 3) return cleaned;
+  return "admin";
+}
+
 // ---- AutoLogin ---------------------------------------------------------------
 
 function AutoLogin({
@@ -187,7 +201,7 @@ function AutoSignup({
 }) {
   const createFirstAdmin = useAction(api.auth.setup.createFirstAdmin);
   const { login } = useLocalAuthContext();
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const attempted = useRef(false);
 
   useEffect(() => {
@@ -197,16 +211,26 @@ function AutoSignup({
     async function doSignup() {
       try {
         // Derive username from email if the wizard didn't collect one
-        const username =
-          credentials.username || credentials.email.split("@")[0];
+        const username = deriveSetupUsername(
+          credentials.email,
+          credentials.username,
+        );
 
         // 1. Create the first admin account
-        await createFirstAdmin({
-          email: credentials.email,
-          username,
-          password: credentials.password,
-          displayName: credentials.displayName,
-        });
+        try {
+          await createFirstAdmin({
+            email: credentials.email,
+            username,
+            password: credentials.password,
+            displayName: credentials.displayName,
+          });
+        } catch (createError) {
+          const message =
+            createError instanceof Error ? createError.message : String(createError);
+          if (!message.toLowerCase().includes("administrator account already exists")) {
+            throw createError;
+          }
+        }
 
         // 2. Log in with the newly created credentials
         await login(credentials.email, credentials.password);
@@ -223,7 +247,7 @@ function AutoSignup({
         onComplete();
       } catch (err) {
         console.error("[AutoSignup] Failed:", err);
-        setError(true);
+        setError(err instanceof Error ? err.message : "Setup sign-in failed");
       }
     }
 
@@ -231,7 +255,7 @@ function AutoSignup({
   }, [credentials, createFirstAdmin, login, onComplete]);
 
   if (error) {
-    return <AdminCreationForm />;
+    return <LoginFailure message={error} />;
   }
 
   return (

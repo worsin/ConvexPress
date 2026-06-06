@@ -275,7 +275,7 @@ function CheckoutReviewPage() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6 py-12">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 py-10 lg:py-12">
       <div className="space-y-2">
         <h1 className="text-4xl font-semibold tracking-tight">
           {paymentStep === "stripe" ? "Complete Payment" : "Review Order"}
@@ -301,7 +301,7 @@ function CheckoutReviewPage() {
         />
       ) : paymentStep === "stripe" && clientSecret && stripePromise ? (
         // ─── Stripe Payment Step ──────────────────────────────────────
-        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_460px] xl:items-start">
           <section className="rounded-[2rem] border border-border bg-card p-6 shadow-sm">
             <h2 className="text-xl font-semibold">Payment details</h2>
             <div className="mt-6">
@@ -326,7 +326,7 @@ function CheckoutReviewPage() {
             </div>
           </section>
 
-          <aside className="rounded-[2rem] border border-border bg-card p-6 shadow-sm">
+          <aside className="rounded-[2rem] border border-border bg-card p-6 shadow-sm xl:sticky xl:top-28">
             <h2 className="text-xl font-semibold">Order summary</h2>
             <dl className="mt-6 space-y-4 text-sm">
               <div className="flex items-center justify-between">
@@ -387,7 +387,7 @@ function CheckoutReviewPage() {
         </div>
       ) : (
         // ─── Review Step (default) ────────────────────────────────────
-        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_460px] xl:items-start">
           <section className="rounded-[2rem] border border-border bg-card p-6 shadow-sm">
             <h2 className="text-xl font-semibold">Order items</h2>
             <div className="mt-6 space-y-4">
@@ -412,7 +412,7 @@ function CheckoutReviewPage() {
             </div>
           </section>
 
-          <aside className="rounded-[2rem] border border-border bg-card p-6 shadow-sm">
+          <aside className="rounded-[2rem] border border-border bg-card p-6 shadow-sm xl:sticky xl:top-28">
             <h2 className="text-xl font-semibold">Checkout summary</h2>
             <dl className="mt-6 space-y-4 text-sm">
               <div className="flex items-center justify-between">

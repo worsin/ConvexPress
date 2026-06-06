@@ -3,7 +3,9 @@ import { useAuth } from "@clerk/clerk-react";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { Search, ShoppingCart } from "lucide-react";
+import { useState } from "react";
 
+import { CartDrawer } from "@/components/commerce/CartDrawer";
 import { cn } from "@/lib/utils";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
@@ -26,6 +28,7 @@ interface HeaderActionsProps {
 export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
   const { isSignedIn, isLoaded } = useAuth();
   const { toggleSearch } = useLayoutShell();
+  const [cartOpen, setCartOpen] = useState(false);
   const settings = useSettings();
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
   const { sessionToken, isReady } = useCommerceSessionToken();
@@ -59,18 +62,22 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
       )}
 
       {commerceEnabled && (
-        <Link
-          to="/cart"
-          className="relative flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-          aria-label={`Cart${cart?.itemCount ? `, ${cart.itemCount} items` : ""}`}
-        >
-          <ShoppingCart className="size-4" aria-hidden="true" />
-          {cart?.itemCount ? (
-            <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground">
-              {cart.itemCount > 99 ? "99+" : cart.itemCount}
-            </span>
-          ) : null}
-        </Link>
+        <>
+          <button
+            type="button"
+            onClick={() => setCartOpen(true)}
+            className="relative flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+            aria-label={`Cart${cart?.itemCount ? `, ${cart.itemCount} items` : ""}`}
+          >
+            <ShoppingCart className="size-4" aria-hidden="true" />
+            {cart?.itemCount ? (
+              <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground">
+                {cart.itemCount > 99 ? "99+" : cart.itemCount}
+              </span>
+            ) : null}
+          </button>
+          <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
+        </>
       )}
 
       {/* CTA button */}

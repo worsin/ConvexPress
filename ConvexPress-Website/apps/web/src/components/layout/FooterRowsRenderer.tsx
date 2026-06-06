@@ -383,23 +383,23 @@ function ContactCellRenderer({ cell }: { cell: FooterContactCell }) {
         {cell.phone && (
           <a
             href={`tel:${cell.phone}`}
-            className="flex items-center gap-2 transition-colors hover:text-foreground"
+            className="flex min-w-0 items-center gap-2 transition-colors hover:text-foreground"
           >
             {cell.showIcons && (
               <Phone className="size-3 shrink-0" aria-hidden="true" />
             )}
-            <span>{cell.phone}</span>
+            <span className="break-words">{cell.phone}</span>
           </a>
         )}
         {cell.email && (
           <a
             href={`mailto:${cell.email}`}
-            className="flex items-center gap-2 transition-colors hover:text-foreground"
+            className="flex min-w-0 items-center gap-2 transition-colors hover:text-foreground"
           >
             {cell.showIcons && (
               <Mail className="size-3 shrink-0" aria-hidden="true" />
             )}
-            <span>{cell.email}</span>
+            <span className="break-all">{cell.email}</span>
           </a>
         )}
       </div>

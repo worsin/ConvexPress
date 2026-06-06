@@ -18,7 +18,7 @@ export function ContentWrapper({
   children,
   showBreadcrumbs = true,
 }: ContentWrapperProps) {
-  const maxWidth = layoutConfig?.contentMaxWidth ?? "lg";
+  const maxWidth = layoutConfig?.contentMaxWidth ?? "xl";
 
   return (
     <div

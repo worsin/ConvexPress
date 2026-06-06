@@ -198,7 +198,8 @@ function CartPage() {
 
   return (
     <PublicPluginGate pluginId="commerce">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 py-12">
+      <div className="relative left-1/2 w-[calc(100vw-1rem)] -translate-x-1/2">
+        <div className="mx-auto flex w-full max-w-[1760px] flex-col gap-8 px-4 py-10 md:px-6 lg:px-8 lg:py-12">
         <div className="space-y-2">
           <h1 className="text-4xl font-semibold tracking-tight">Cart</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
@@ -219,13 +220,13 @@ function CartPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_460px] xl:items-start">
             <div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
               <div className="divide-y divide-border">
                 {cart.items.map((item) => (
                   <div
                     key={item._id}
-                    className="grid gap-4 p-5 sm:grid-cols-[96px_minmax(0,1fr)_120px]"
+                    className="grid gap-5 p-5 sm:grid-cols-[120px_minmax(0,1fr)_160px]"
                   >
                     <div className="aspect-square overflow-hidden rounded-2xl bg-muted/40">
                       {(item.variant?.featuredMediaId ?? item.product?.featuredMediaId) ? (
@@ -234,7 +235,7 @@ function CartPage() {
                           alt={item.product?.title}
                           className="h-full w-full object-cover"
                           preferredSize="medium"
-                          sizes="96px"
+                          sizes="120px"
                         />
                       ) : null}
                     </div>
@@ -329,7 +330,7 @@ function CartPage() {
               </div>
             </div>
 
-            <aside className="rounded-[2rem] border border-border bg-card p-6 shadow-sm">
+            <aside className="rounded-[2rem] border border-border bg-card p-6 shadow-sm xl:sticky xl:top-28">
               <h2 className="text-xl font-semibold">Summary</h2>
               <div className="mt-4 space-y-3 rounded-2xl border border-border bg-muted/30 p-4">
                 {cart.appliedDiscountCode ? (
@@ -445,6 +446,7 @@ function CartPage() {
             </aside>
           </div>
         )}
+        </div>
       </div>
     </PublicPluginGate>
   );

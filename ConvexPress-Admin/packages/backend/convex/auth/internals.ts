@@ -58,7 +58,7 @@ export const getUserById = internalQuery({
   args: { userId: v.id("users") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.userId);
+    return await ctx.db.get("users", args.userId);
   },
 });
 
@@ -160,7 +160,7 @@ export const revokeRefreshToken = internalMutation({
       .withIndex("by_tokenHash", (q: ConvexQueryBuilder) => q.eq("tokenHash", args.tokenHash))
       .first();
     if (token) {
-      await ctx.db.patch(token._id, { revokedAt: Date.now() });
+      await ctx.db.patch("refreshTokens", token._id, { revokedAt: Date.now() });
     }
   },
 });
@@ -180,7 +180,7 @@ export const setPasswordHash = internalMutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.userId, {
+    await ctx.db.patch("users", args.userId, {
       passwordHash: args.passwordHash,
       lastPasswordChangedAt: Date.now(),
       updatedAt: Date.now(),
@@ -254,7 +254,7 @@ export const createAdminUser = internalMutation({
       .first();
 
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("users", existing._id, {
         authSource: "local",
         username: args.username,
         passwordHash: args.passwordHash,
@@ -265,9 +265,9 @@ export const createAdminUser = internalMutation({
         isInternal: true,
         internalRole: "admin",
         roleId: adminRole._id,
-        clerkProvisioningStatus: "pending",
+        clerkProvisioningStatus: "skipped",
         clerkProvisioningSource: "first_admin",
-        clerkProvisioningReason: "pending_clerk_provisioning",
+        clerkProvisioningReason: "local_admin_auth_only",
         registrationMethod: existing.registrationMethod ?? "self",
         registeredAt: existing.registeredAt ?? now,
         updatedAt: now,
@@ -287,9 +287,9 @@ export const createAdminUser = internalMutation({
       isInternal: true,
       internalRole: "admin",
       roleId: adminRole._id,
-      clerkProvisioningStatus: "pending",
+      clerkProvisioningStatus: "skipped",
       clerkProvisioningSource: "first_admin",
-      clerkProvisioningReason: "pending_clerk_provisioning",
+      clerkProvisioningReason: "local_admin_auth_only",
       registrationMethod: "self",
       registeredAt: now,
       createdAt: now,

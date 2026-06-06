@@ -30,33 +30,32 @@ export function useLocalAuth() {
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const accessTokenRef = useRef<string | null>(null);
 
-  // Keep ref in sync with state
-  useEffect(() => {
-    accessTokenRef.current = state.accessToken;
-  }, [state.accessToken]);
-
-  const attemptRefresh = useCallback(async () => {
-    try {
-      const response = await fetch(`${CONVEX_SITE_URL}/auth/refresh`, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setTokens(data.accessToken, data.expiresIn);
-      } else {
-        setState((s) => ({ ...s, isLoading: false, accessToken: null, user: null }));
-      }
-    } catch {
-      setState((s) => ({ ...s, isLoading: false, accessToken: null, user: null }));
+  const clearAuthState = useCallback(() => {
+    accessTokenRef.current = null;
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
     }
+    setState({
+      accessToken: null,
+      expiresAt: null,
+      isLoading: false,
+      user: null,
+    });
   }, []);
 
+  const attemptRefreshRef = useRef<() => Promise<void>>(async () => {});
+
   const setTokens = useCallback((accessToken: string, expiresIn: number) => {
-    const payload = JSON.parse(atob(accessToken.split(".")[1]));
+    const tokenParts = accessToken.split(".");
+    if (tokenParts.length < 2 || !tokenParts[1]) {
+      throw new Error("Invalid access token received from server");
+    }
+
+    const payload = JSON.parse(atob(tokenParts[1]));
     const expiresAt = Date.now() + expiresIn * 1000;
 
+    accessTokenRef.current = accessToken;
     setState({
       accessToken,
       expiresAt,
@@ -71,8 +70,37 @@ export function useLocalAuth() {
     if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
     const refreshIn = (expiresIn - 60) * 1000;
     if (refreshIn > 0) {
-      refreshTimeoutRef.current = setTimeout(attemptRefresh, refreshIn);
+      refreshTimeoutRef.current = setTimeout(() => {
+        void attemptRefreshRef.current();
+      }, refreshIn);
     }
+  }, []);
+
+  const attemptRefresh = useCallback(async () => {
+    if (!CONVEX_SITE_URL) {
+      clearAuthState();
+      return;
+    }
+
+    try {
+      const response = await fetch(`${CONVEX_SITE_URL}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTokens(data.accessToken, data.expiresIn);
+      } else {
+        clearAuthState();
+      }
+    } catch {
+      clearAuthState();
+    }
+  }, [CONVEX_SITE_URL, clearAuthState, setTokens]);
+
+  useEffect(() => {
+    attemptRefreshRef.current = attemptRefresh;
   }, [attemptRefresh]);
 
   // Attempt refresh on mount (page load)
@@ -84,10 +112,15 @@ export function useLocalAuth() {
   }, [attemptRefresh]);
 
   const login = useCallback(async (identifier: string, password: string) => {
-    const isEmail = identifier.includes("@");
+    if (!CONVEX_SITE_URL) {
+      throw new Error("Convex site URL is not configured.");
+    }
+
+    const normalizedIdentifier = identifier.trim();
+    const isEmail = normalizedIdentifier.includes("@");
     const body = isEmail
-      ? { email: identifier, password }
-      : { username: identifier, password };
+      ? { email: normalizedIdentifier.toLowerCase(), password }
+      : { username: normalizedIdentifier, password };
 
     const response = await fetch(`${CONVEX_SITE_URL}/auth/login`, {
       method: "POST",
@@ -104,16 +137,12 @@ export function useLocalAuth() {
     const data = await response.json();
     setTokens(data.accessToken, data.expiresIn);
     return data.user;
-  }, [setTokens]);
+  }, [CONVEX_SITE_URL, setTokens]);
 
   const logout = useCallback(async () => {
-    setState({
-      accessToken: null,
-      expiresAt: null,
-      isLoading: false,
-      user: null,
-    });
-    if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+    clearAuthState();
+    if (!CONVEX_SITE_URL) return;
+
     try {
       await fetch(`${CONVEX_SITE_URL}/auth/logout`, {
         method: "POST",
@@ -122,7 +151,7 @@ export function useLocalAuth() {
     } catch {
       // Best-effort
     }
-  }, []);
+  }, [CONVEX_SITE_URL, clearAuthState]);
 
   // ConvexProviderWithAuth expects fetchAccessToken
   const fetchAccessToken = useCallback(

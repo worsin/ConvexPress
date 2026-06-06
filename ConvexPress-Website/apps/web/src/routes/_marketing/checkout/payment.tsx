@@ -122,7 +122,7 @@ function CheckoutPaymentPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 py-12">
+    <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 py-10 lg:py-12">
       <div className="space-y-2">
         <h1 className="text-4xl font-semibold tracking-tight">Payment</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
@@ -144,7 +144,7 @@ function CheckoutPaymentPage() {
       ) : (
         <form
           onSubmit={(event) => void handleContinue(event)}
-          className="rounded-[2rem] border border-border bg-card p-8 shadow-sm"
+          className="rounded-[2rem] border border-border bg-card p-8 shadow-sm lg:p-10"
         >
           <CheckoutStatusNotice
             status={session.status}

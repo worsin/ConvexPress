@@ -49,7 +49,8 @@ function SharedCartPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8 py-12">
+    <div className="relative left-1/2 w-[calc(100vw-1rem)] -translate-x-1/2">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-8 px-4 py-10 md:px-6 lg:px-8 lg:py-12">
       <div className="space-y-2">
         <h1 className="text-4xl font-semibold tracking-tight">Shared cart</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
@@ -72,7 +73,7 @@ function SharedCartPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-start">
           <div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
             <div className="divide-y divide-border">
               {sharedCart.items.map((item: any) => (
@@ -117,7 +118,7 @@ function SharedCartPage() {
             </div>
           </div>
 
-          <aside className="rounded-[2rem] border border-border bg-card p-6 shadow-sm">
+          <aside className="rounded-[2rem] border border-border bg-card p-6 shadow-sm xl:sticky xl:top-28">
             <h2 className="text-xl font-semibold">Summary</h2>
             <dl className="mt-6 space-y-4 text-sm">
               <div className="flex items-center justify-between">
@@ -150,6 +151,7 @@ function SharedCartPage() {
           </aside>
         </div>
       )}
+      </div>
     </div>
   );
 }

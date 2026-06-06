@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@backend/convex/_generated/api";
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
@@ -13,11 +13,23 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AuthenticatedLayout() {
   const { isLoading: convexLoading, isAuthenticated } = useConvexAuth();
-  const { isLoading: authLoading, login, isAuthenticated: hasToken } = useLocalAuthContext();
+  const {
+    isLoading: authLoading,
+    login,
+    logout,
+    isAuthenticated: hasToken,
+  } = useLocalAuthContext();
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const adminAccess = useQuery(
     api.users.checkAdminAccess,
     isAuthenticated ? {} : "skip",
   );
+
+  useEffect(() => {
+    if (authLoading || convexLoading || !hasToken || isAuthenticated) return;
+    setSessionError("Your session could not be verified. Sign in again.");
+    void logout();
+  }, [authLoading, convexLoading, hasToken, isAuthenticated, logout]);
 
   if (authLoading || convexLoading) {
     return (
@@ -27,8 +39,16 @@ function AuthenticatedLayout() {
     );
   }
 
-  if (!hasToken) {
-    return <LoginForm onLogin={login} />;
+  if (!hasToken || sessionError) {
+    return (
+      <LoginForm
+        initialError={sessionError}
+        onLogin={async (id, pw) => {
+          setSessionError(null);
+          return await login(id, pw);
+        }}
+      />
+    );
   }
 
   if (adminAccess === undefined) {
@@ -55,11 +75,21 @@ function AuthenticatedLayout() {
   return <Outlet />;
 }
 
-function LoginForm({ onLogin }: { onLogin: (id: string, pw: string) => Promise<unknown> }) {
+function LoginForm({
+  initialError,
+  onLogin,
+}: {
+  initialError?: string | null;
+  onLogin: (id: string, pw: string) => Promise<unknown>;
+}) {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError ?? null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setError(initialError ?? null);
+  }, [initialError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -35,6 +35,12 @@ products with filters/sort. Output:
    - Empty state when zero products
    - Skeleton state
 
+   **Width rule:** catalog/directory pages are not article pages. On desktop,
+   use the available real estate for filters and product comparison. If the
+   marketing layout wrapper constrains the page too tightly, use a full-bleed
+   breakout shell with an inner max around 1600-1760px. Product grids should
+   naturally reach 4 columns on wide desktop when card content allows it.
+
 5. **Verify it compiles** and **record generation** (CONTRACTS §8).
 
 ## Output contract

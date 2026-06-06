@@ -145,7 +145,9 @@ export const bootstrapAdmin = mutation({
       return { success: true, action: "updated", userId: user._id };
     } else {
       const now = Date.now();
-      const isLocalAdminAuth = identity.tokenIdentifier?.startsWith("convexpress-admin|");
+      const isLocalAdminAuth = identity.tokenIdentifier?.startsWith(
+        "https://convexpress-admin.local|",
+      );
       const userId = await ctx.db.insert("users", {
         // Store the identity subject in the appropriate field based on auth source
         ...(isLocalAdminAuth

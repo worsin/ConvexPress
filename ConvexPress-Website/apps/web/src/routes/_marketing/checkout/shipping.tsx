@@ -318,7 +318,7 @@ function CheckoutShippingPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 py-12">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 py-10 lg:py-12">
       <div className="space-y-2">
         <h1 className="text-4xl font-semibold tracking-tight">Shipping</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
@@ -339,7 +339,7 @@ function CheckoutShippingPage() {
       ) : (
         <form
           onSubmit={(event) => void handleContinue(event)}
-          className="grid gap-4 rounded-[2rem] border border-border bg-card p-8 shadow-sm md:grid-cols-2"
+          className="grid gap-4 rounded-[2rem] border border-border bg-card p-8 shadow-sm md:grid-cols-2 lg:p-10"
         >
           <div className="md:col-span-2">
             <CheckoutStatusNotice

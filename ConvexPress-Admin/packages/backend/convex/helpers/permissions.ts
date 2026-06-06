@@ -163,7 +163,7 @@ export async function getCurrentUser(
 
   if (isAdminAuth) {
     // Admin local auth — subject is Convex user _id (direct fetch, O(1))
-    const user = await ctx.db.get(identity.subject as Id<"users">);
+    const user = await ctx.db.get("users", identity.subject as Id<"users">);
     return user as UserDoc | null;
   }
 

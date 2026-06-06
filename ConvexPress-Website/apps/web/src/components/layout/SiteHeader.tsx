@@ -111,9 +111,13 @@ interface TopBarProps {
 function TopBar({ config }: TopBarProps) {
   return (
     <div className="border-b border-border bg-muted/50 text-xs text-muted-foreground">
-      <div className="mx-auto flex items-center justify-between px-4 py-1.5 md:px-6 lg:px-8">
-        <TopBarContent type={config.leftContent} config={config} />
-        <TopBarContent type={config.rightContent} config={config} />
+      <div className="mx-auto flex min-w-0 items-center justify-between gap-3 px-4 py-1.5 md:px-6 lg:px-8">
+        <div className="min-w-0 flex-1">
+          <TopBarContent type={config.leftContent} config={config} />
+        </div>
+        <div className="flex shrink-0 justify-end">
+          <TopBarContent type={config.rightContent} config={config} />
+        </div>
       </div>
     </div>
   );
@@ -129,15 +133,15 @@ function TopBarContent({ type, config }: TopBarContentProps) {
 
   if (type === "contact") {
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 items-center justify-end gap-3 md:gap-4">
         {config.email && (
-          <a href={`mailto:${config.email}`} className="flex items-center gap-1.5 transition-colors hover:text-foreground">
+          <a href={`mailto:${config.email}`} className="flex shrink-0 items-center gap-1.5 whitespace-nowrap transition-colors hover:text-foreground">
             <Mail className="size-3" aria-hidden="true" />
             <span>{config.email}</span>
           </a>
         )}
         {config.phone && (
-          <a href={`tel:${config.phone}`} className="flex items-center gap-1.5 transition-colors hover:text-foreground">
+          <a href={`tel:${config.phone}`} className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap transition-colors hover:text-foreground md:flex">
             <Phone className="size-3" aria-hidden="true" />
             <span>{config.phone}</span>
           </a>
@@ -149,7 +153,7 @@ function TopBarContent({ type, config }: TopBarContentProps) {
 
   if (type === "announcement" && config.announcementText) {
     return (
-      <p className="truncate">{config.announcementText}</p>
+      <p className="min-w-0 truncate">{config.announcementText}</p>
     );
   }
 

@@ -37,6 +37,12 @@ You are generating the **single-product** template. Output: a complete
    - Long description rendered with `prose` typography
    - Skeleton + notFound states
 
+   **Width rule:** single product pages should be centered and generous, not
+   full-bleed and not skinny. Target roughly 1360-1500px on desktop, with a
+   two-column gallery/buy-box layout. Avoid inheriting article-width content
+   rails. Set desktop grid alignment to `items-start` so the gallery/media card
+   does not stretch to the height of the buy box and leave dead blank space.
+
 5. **Hard rule check:** if `brand.hardRules` mentions "trust badges on
    product pages" or similar, include them. Surface what was added in
    your report.

@@ -46,7 +46,7 @@ export function SiteFooter({ variant = "full" }: SiteFooterProps) {
         role="contentinfo"
         className="border-t border-border bg-background"
       >
-        <div className="mx-auto max-w-5xl px-4 py-4 md:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 lg:px-8">
           <FooterBottom siteTitle={siteTitle} footerConfig={footerConfig} />
         </div>
       </footer>
@@ -79,7 +79,7 @@ export function SiteFooter({ variant = "full" }: SiteFooterProps) {
       role="contentinfo"
       className={cn(borderClass, backgroundClass)}
     >
-      <div className={cn("mx-auto max-w-5xl px-4 md:px-6 lg:px-8", paddingClass)}>
+      <div className={cn("mx-auto max-w-7xl px-4 md:px-6 lg:px-8", paddingClass)}>
         {/* Main footer content area */}
         <FooterContent
           footerConfig={footerConfig}
@@ -256,15 +256,15 @@ function FooterContent({ footerConfig, siteIdentity, siteTitle }: FooterContentP
               </div>
             )}
             {footerConfig.contactInfo.phone && (
-              <a href={`tel:${footerConfig.contactInfo.phone}`} className="flex items-center gap-2 transition-colors hover:text-foreground">
+              <a href={`tel:${footerConfig.contactInfo.phone}`} className="flex min-w-0 items-center gap-2 transition-colors hover:text-foreground">
                 <Phone className="size-3 shrink-0" aria-hidden="true" />
-                <span>{footerConfig.contactInfo.phone}</span>
+                <span className="break-words">{footerConfig.contactInfo.phone}</span>
               </a>
             )}
             {footerConfig.contactInfo.email && (
-              <a href={`mailto:${footerConfig.contactInfo.email}`} className="flex items-center gap-2 transition-colors hover:text-foreground">
+              <a href={`mailto:${footerConfig.contactInfo.email}`} className="flex min-w-0 items-center gap-2 transition-colors hover:text-foreground">
                 <Mail className="size-3 shrink-0" aria-hidden="true" />
-                <span>{footerConfig.contactInfo.email}</span>
+                <span className="break-all">{footerConfig.contactInfo.email}</span>
               </a>
             )}
           </div>

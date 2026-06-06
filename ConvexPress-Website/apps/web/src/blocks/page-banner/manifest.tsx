@@ -4,7 +4,7 @@ import { pageBannerAttrsSchema, type PageBannerAttrs } from "./schema";
 
 function PageBannerRenderer({ attrs }: BlockRendererProps<PageBannerAttrs>) {
   return (
-    <header className="grid gap-8 py-4 md:grid-cols-[minmax(0,1fr)_minmax(280px,0.82fr)] md:items-center md:py-8">
+    <header className="grid gap-8 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.82fr)] lg:items-center lg:py-8">
       <div className="space-y-5">
         {attrs.breadcrumbLabel && (
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
@@ -17,7 +17,7 @@ function PageBannerRenderer({ attrs }: BlockRendererProps<PageBannerAttrs>) {
           </p>
         )}
         <div className="space-y-4">
-          <h1 className="max-w-4xl text-4xl font-semibold leading-tight text-foreground md:text-6xl">
+          <h1 className="max-w-4xl text-4xl font-semibold leading-tight text-foreground md:text-5xl xl:text-6xl">
             {attrs.title}
           </h1>
           <RichText text={attrs.subtitle} className="max-w-2xl text-base text-muted-foreground md:text-lg" />
@@ -30,7 +30,7 @@ function PageBannerRenderer({ attrs }: BlockRendererProps<PageBannerAttrs>) {
             mediaId={attrs.mediaId}
             alt={attrs.mediaAlt || attrs.title}
             className="aspect-[4/3] w-full object-cover"
-            sizes="(max-width: 768px) 100vw, 42vw"
+            sizes="(max-width: 1024px) 100vw, 42vw"
           />
         </div>
       )}

@@ -235,7 +235,7 @@ function ProductDetailPage() {
 	}
 
 	return (
-		<div className="mx-auto flex max-w-6xl flex-col gap-10 py-12">
+		<div className="mx-auto flex w-full max-w-[1440px] flex-col gap-10 py-10 lg:py-12">
 			<div className="flex items-center gap-2 text-sm text-muted-foreground">
 				<Link to="/products" className="hover:text-foreground">
 					Products
@@ -244,8 +244,8 @@ function ProductDetailPage() {
 				<span className="text-foreground">{product.title}</span>
 			</div>
 
-			<div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-				<div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
+			<div className="grid gap-8 xl:grid-cols-[minmax(0,1.35fr)_minmax(420px,600px)] xl:items-start">
+				<div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm xl:sticky xl:top-28">
 					<div className="aspect-[4/3] bg-muted/40">
 						{displayMediaId ? (
 							<MediaImage
@@ -253,7 +253,7 @@ function ProductDetailPage() {
 								alt={product.title}
 								className="h-full w-full object-cover"
 								preferredSize="large"
-								sizes="(max-width: 1024px) 100vw, 55vw"
+								sizes="(max-width: 1024px) 100vw, 60vw"
 								loading="eager"
 							/>
 						) : (

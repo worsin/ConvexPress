@@ -54,17 +54,17 @@ export const Z_INDEX = {
  */
 export const MAX_WIDTH_MAP: Record<LayoutConfig["contentMaxWidth"], string> = {
   sm: "max-w-3xl",
-  md: "max-w-4xl",
-  lg: "max-w-5xl",
-  xl: "max-w-6xl",
-  full: "max-w-full",
+  md: "max-w-5xl",
+  lg: "max-w-7xl",
+  xl: "max-w-[1536px]",
+  full: "max-w-none",
 };
 
 /**
  * Default layout configuration when theme data is not available.
  */
 export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
-  contentMaxWidth: "lg",
+  contentMaxWidth: "xl",
   sidebarPosition: "right",
   headerStyle: "default",
   stickyHeader: true,

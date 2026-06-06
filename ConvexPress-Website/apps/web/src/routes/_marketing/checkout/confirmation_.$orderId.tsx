@@ -28,7 +28,7 @@ function CheckoutConfirmationPage() {
 
   if (order === undefined) {
     return (
-      <div className="mx-auto flex max-w-4xl flex-col gap-6 py-12">
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 py-10 lg:py-12">
         <div className="h-64 animate-pulse rounded-[2rem] bg-muted" />
       </div>
     );
@@ -39,8 +39,8 @@ function CheckoutConfirmationPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 py-12">
-      <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 py-10 lg:py-12">
+      <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm lg:p-10">
         <h1 className="text-4xl font-semibold tracking-tight">Order confirmed</h1>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
           Your order {order.orderNumber || orderId} has been created and is now

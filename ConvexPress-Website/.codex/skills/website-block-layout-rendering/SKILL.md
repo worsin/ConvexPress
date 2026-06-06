@@ -33,6 +33,20 @@ owns editing; Website owns rendering and route composition.
 6. For new block types, use Admin `block-build` first, then implement Website
    rendering here.
 
+## Width Discipline
+
+Do not treat every public page like a narrow article. Width should follow the
+content job:
+
+- Prose and simple forms can stay narrow for readability.
+- Product directories, dense comparison grids, cart management, and operational
+  workflows should use wide desktop containers or full-bleed breakout sections.
+- Product/detail pages should be wide enough for a real media area plus a
+  buy-box or detail panel, but they do not need to run edge-to-edge.
+- Blocks may expose narrow/default/wide/full options, but renderers should make
+  those options visually meaningful on desktop instead of mapping most choices
+  back to small max widths.
+
 ## Verification
 
 Run Website checks and browser-smoke a page containing the block/layout:

@@ -72,7 +72,8 @@ function ProductsIndexPage() {
   };
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="relative left-1/2 w-[calc(100vw-1rem)] -translate-x-1/2">
+      <div className="mx-auto flex w-full max-w-[1760px] flex-col gap-10 px-4 pb-12 md:px-6 lg:px-8">
       <section className="grid gap-8 rounded-[2rem] border border-border/60 bg-card p-8 shadow-sm">
         <div className="flex flex-col gap-3">
           <span className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
@@ -101,7 +102,7 @@ function ProductsIndexPage() {
             <p>Page {data.page}</p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {data.products.map((product) => (
               <article
                 key={product._id}
@@ -202,6 +203,7 @@ function ProductsIndexPage() {
           ) : null}
         </>
       )}
+      </div>
     </div>
   );
 }

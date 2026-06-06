@@ -57,7 +57,8 @@ function BundlesIndexPage() {
   }
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="relative left-1/2 w-[calc(100vw-1rem)] -translate-x-1/2">
+      <div className="mx-auto flex w-full max-w-[1760px] flex-col gap-10 px-4 pb-12 md:px-6 lg:px-8">
       {/* Hero */}
       <section className="grid gap-8 rounded-[2rem] border border-border/60 bg-card p-8 shadow-sm">
         <div className="flex flex-col gap-3">
@@ -87,7 +88,7 @@ function BundlesIndexPage() {
             {bundles.length} bundle{bundles.length === 1 ? "" : "s"} available
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {bundles.map((bundle) => {
               const savings =
                 typeof bundle.regularPrice === "number" &&
@@ -200,6 +201,7 @@ function BundlesIndexPage() {
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }
