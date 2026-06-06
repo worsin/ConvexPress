@@ -203,6 +203,8 @@ export const privacyValuesValidator = v.object({
  */
 export const emailValuesValidator = v.object({
   enabled: v.boolean(),
+  resendApiKey: v.string(),
+  webhookSecret: v.string(),
   fromAddress: v.string(),
   fromName: v.string(),
   replyTo: v.string(),

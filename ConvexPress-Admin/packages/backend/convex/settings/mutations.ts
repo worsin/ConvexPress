@@ -41,6 +41,22 @@ import {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const SETTINGS_DOCUMENT_METADATA_KEYS = new Set([
+  "_id",
+  "_creationTime",
+  "section",
+  "updatedAt",
+  "updatedBy",
+]);
+
+function stripSettingsDocumentMetadata(values: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(values).filter(
+      ([key]) => !SETTINGS_DOCUMENT_METADATA_KEYS.has(key),
+    ),
+  );
+}
+
 /**
  * Map from settings section name to the specific capability required.
  */
@@ -119,6 +135,9 @@ export const updateSection = mutation({
   args: updateSectionArgs,
   handler: async (ctx, args) => {
     const { section, values } = args;
+    const incomingValues = stripSettingsDocumentMetadata(
+      values as Record<string, unknown>,
+    );
 
     // 1. Validate section name
     if (!isValidSection(section)) {
@@ -133,7 +152,7 @@ export const updateSection = mutation({
     const user = await requireCan(ctx, capability);
 
     // 3. Validate section-specific values
-    const validationErrors = validateSectionValues(section, values as Record<string, unknown>);
+    const validationErrors = validateSectionValues(section, incomingValues);
     if (validationErrors.length > 0) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
@@ -151,7 +170,7 @@ export const updateSection = mutation({
     // 5. Merge incoming values with defaults (incoming takes precedence)
     const newValues: Record<string, unknown> = {
       ...defaults,
-      ...(values as Record<string, unknown>),
+      ...incomingValues,
     };
 
     // 6. Get current stored values (or defaults if nothing stored yet)
@@ -311,7 +330,7 @@ export const importAll = mutation({
       const defaults = getDefaults(sectionName);
       const newValues: Record<string, unknown> = {
         ...defaults,
-        ...(sectionValues as Record<string, unknown>),
+        ...stripSettingsDocumentMetadata(sectionValues as Record<string, unknown>),
       };
 
       // Get current stored values

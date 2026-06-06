@@ -62,6 +62,8 @@ const VALID_AVATARS = [
   "retro",
 ];
 
+const SECRET_SENTINEL = "__set__";
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function isString(v: unknown): v is string {
@@ -93,6 +95,68 @@ function isValidUrl(v: string): boolean {
 
 function intInRange(v: unknown, min: number, max: number): boolean {
   return isNumber(v) && Number.isInteger(v) && v >= min && v <= max;
+}
+
+function optionalStringMax(
+  values: Record<string, unknown>,
+  field: string,
+  max: number,
+  label: string,
+  errors: ValidationError[],
+) {
+  const value = values[field];
+  if (value === undefined || value === null) return;
+  if (!isString(value)) {
+    errors.push({ field, message: `${label} must be a string.` });
+    return;
+  }
+  if (value.length > max) {
+    errors.push({ field, message: `${label} must be ${max} characters or less.` });
+  }
+}
+
+function optionalSecretString(
+  values: Record<string, unknown>,
+  field: string,
+  max: number,
+  label: string,
+  errors: ValidationError[],
+) {
+  const value = values[field];
+  if (value === SECRET_SENTINEL) return;
+  optionalStringMax(values, field, max, label, errors);
+}
+
+function optionalUrl(
+  values: Record<string, unknown>,
+  field: string,
+  label: string,
+  errors: ValidationError[],
+  max = 500,
+) {
+  const value = values[field];
+  if (value === undefined || value === null || value === "") return;
+  if (!isString(value)) {
+    errors.push({ field, message: `${label} must be a string.` });
+    return;
+  }
+  if (!isValidUrl(value)) {
+    errors.push({ field, message: `${label} must be a valid URL.` });
+  }
+  if (value.length > max) {
+    errors.push({ field, message: `${label} must be ${max} characters or less.` });
+  }
+}
+
+function optionalBoolean(
+  values: Record<string, unknown>,
+  field: string,
+  label: string,
+  errors: ValidationError[],
+) {
+  if (values[field] !== undefined && !isBoolean(values[field])) {
+    errors.push({ field, message: `${label} must be a boolean.` });
+  }
 }
 
 // ─── Per-Section Validators ───────────────────────────────────────────────────
@@ -371,6 +435,9 @@ function validateEmail(values: Record<string, unknown>): ValidationError[] {
     errors.push({ field: "enabled", message: "Enabled must be a boolean." });
   }
 
+  optionalSecretString(values, "resendApiKey", 500, "Resend API key", errors);
+  optionalSecretString(values, "webhookSecret", 500, "Webhook secret", errors);
+
   // fromAddress: valid email
   if (isString(values.fromAddress) && values.fromAddress.length > 0 && !isValidEmail(values.fromAddress)) {
     errors.push({ field: "fromAddress", message: "From address must be a valid email." });
@@ -436,6 +503,16 @@ function validateEmail(values: Record<string, unknown>): ValidationError[] {
   return errors;
 }
 
+function validateClerkIntegration(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  optionalSecretString(values, "clerkSecretKey", 500, "Clerk secret key", errors);
+  optionalSecretString(values, "clerkWebhookSecret", 500, "Clerk webhook secret", errors);
+  optionalUrl(values, "clerkJwtIssuerDomain", "Clerk JWT issuer domain", errors);
+
+  return errors;
+}
+
 function validateAI(values: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
 
@@ -490,6 +567,129 @@ function validateSearch(values: Record<string, unknown>): ValidationError[] {
   if (values.meilisearchApiKey !== undefined && isString(values.meilisearchApiKey) && values.meilisearchApiKey.length > 500) {
     errors.push({ field: "meilisearchApiKey", message: "Meilisearch API key must be 500 characters or less." });
   }
+
+  return errors;
+}
+
+function validateCommercePayments(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  optionalSecretString(values, "stripePublishableKey", 500, "Stripe publishable key", errors);
+  optionalSecretString(values, "stripeSecretKey", 500, "Stripe secret key", errors);
+  optionalSecretString(values, "stripeWebhookSecret", 500, "Stripe webhook secret", errors);
+  if (
+    values.stripeMode !== undefined &&
+    values.stripeMode !== "sandbox" &&
+    values.stripeMode !== "production"
+  ) {
+    errors.push({ field: "stripeMode", message: "Stripe mode must be sandbox or production." });
+  }
+
+  optionalSecretString(values, "paypalClientId", 500, "PayPal client ID", errors);
+  optionalSecretString(values, "paypalClientSecret", 500, "PayPal client secret", errors);
+  optionalSecretString(values, "paypalWebhookId", 500, "PayPal webhook ID", errors);
+  if (
+    values.paypalMode !== undefined &&
+    values.paypalMode !== "sandbox" &&
+    values.paypalMode !== "production"
+  ) {
+    errors.push({ field: "paypalMode", message: "PayPal mode must be sandbox or production." });
+  }
+
+  optionalBoolean(values, "subscriptionChargingEnabled", "Subscription charging", errors);
+  if (
+    values.taxProviderMode !== undefined &&
+    values.taxProviderMode !== "rules" &&
+    values.taxProviderMode !== "stripe"
+  ) {
+    errors.push({ field: "taxProviderMode", message: "Tax provider mode must be rules or stripe." });
+  }
+  optionalStringMax(values, "shippingTaxClass", 120, "Shipping tax class", errors);
+
+  return errors;
+}
+
+function validateShippingIntegration(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (
+    values.preferredProvider !== undefined &&
+    !["", "shipstation", "ups", "usps", "fedex", "dhl"].includes(String(values.preferredProvider))
+  ) {
+    errors.push({ field: "preferredProvider", message: "Preferred provider is invalid." });
+  }
+  for (const field of ["liveRatesEnabled", "fallbackToManualRates"]) {
+    optionalBoolean(values, field, field, errors);
+  }
+  for (const field of [
+    "fallbackMessage",
+    "cheapestBadgeLabel",
+    "fastestBadgeLabel",
+    "bestOptionBadgeLabel",
+    "shipFromName",
+    "shipFromCompany",
+    "shipFromLine1",
+    "shipFromLine2",
+    "shipFromCity",
+    "shipFromState",
+    "shipFromPostalCode",
+    "shipFromCountryCode",
+  ]) {
+    optionalStringMax(values, field, 500, field, errors);
+  }
+  if (
+    values.recommendationStrategy !== undefined &&
+    values.recommendationStrategy !== "best_value_weighted"
+  ) {
+    errors.push({ field: "recommendationStrategy", message: "Recommendation strategy is invalid." });
+  }
+  if (
+    values.quoteCacheTtlSeconds !== undefined &&
+    !intInRange(values.quoteCacheTtlSeconds, 0, 86400)
+  ) {
+    errors.push({ field: "quoteCacheTtlSeconds", message: "Quote cache TTL must be 0-86400 seconds." });
+  }
+  if (
+    values.defaultPackageWeightOz !== undefined &&
+    (!isNumber(values.defaultPackageWeightOz) || values.defaultPackageWeightOz < 0)
+  ) {
+    errors.push({ field: "defaultPackageWeightOz", message: "Default package weight must be zero or greater." });
+  }
+
+  return errors;
+}
+
+function validateGoogleIntegration(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  optionalSecretString(values, "placesApiKey", 500, "Google Places API key", errors);
+  optionalSecretString(values, "geocodeApiKey", 500, "Google Geocode API key", errors);
+
+  return errors;
+}
+
+function validateAnalyticsGa4(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  const serviceAccount = values.ga4ServiceAccountJson;
+  if (serviceAccount !== undefined && serviceAccount !== null && serviceAccount !== "" && serviceAccount !== SECRET_SENTINEL) {
+    if (!isString(serviceAccount)) {
+      errors.push({ field: "ga4ServiceAccountJson", message: "GA4 service account JSON must be a string." });
+    } else if (serviceAccount.length > 100000) {
+      errors.push({ field: "ga4ServiceAccountJson", message: "GA4 service account JSON must be 100,000 characters or less." });
+    } else {
+      try {
+        const parsed = JSON.parse(serviceAccount);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          errors.push({ field: "ga4ServiceAccountJson", message: "GA4 service account JSON must be an object." });
+        }
+      } catch {
+        errors.push({ field: "ga4ServiceAccountJson", message: "GA4 service account JSON must be valid JSON." });
+      }
+    }
+  }
+
+  optionalStringMax(values, "ga4PropertyId", 120, "GA4 property ID", errors);
 
   return errors;
 }
@@ -707,6 +907,16 @@ export function validateSectionValues(
       return validateSearch(values);
     case "commerce.general":
       return validateCommerceGeneral(values);
+    case "commerce.payments":
+      return validateCommercePayments(values);
+    case "integrations.shipping":
+      return validateShippingIntegration(values);
+    case "integrations.clerk":
+      return validateClerkIntegration(values);
+    case "integrations.google":
+      return validateGoogleIntegration(values);
+    case "analytics.ga4":
+      return validateAnalyticsGa4(values);
     // Knowledge Base System sections
     case "kb.general":
     case "kb.features":
