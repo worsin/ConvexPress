@@ -6,9 +6,29 @@ import type { Id } from "../_generated/dataModel";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,64}$/;
+const LOCAL_AUTH_ISSUER_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
 function getRequiredFirstAdminSetupToken(): string | null {
   return process.env.FIRST_ADMIN_SETUP_SECRET?.trim() || null;
+}
+
+function isLocalAuthIssuerUrl(): boolean {
+  const rawIssuer = process.env.AUTH_ISSUER_URL?.trim();
+  if (!rawIssuer) return true;
+
+  try {
+    return LOCAL_AUTH_ISSUER_HOSTS.has(new URL(rawIssuer).hostname);
+  } catch {
+    return false;
+  }
+}
+
+function canCreateFirstAdminWithoutSetupToken(): boolean {
+  if (process.env.CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP === "true") {
+    return true;
+  }
+
+  return isLocalAuthIssuerUrl();
 }
 
 function getRequiredDevInternalsToken(): string | null {
@@ -73,7 +93,13 @@ function validateFirstAdminCredentials(args: {
 
 function validateFirstAdminSetupToken(setupToken: string | undefined) {
   const requiredToken = getRequiredFirstAdminSetupToken();
-  if (!requiredToken) return false;
+  if (!requiredToken) {
+    if (canCreateFirstAdminWithoutSetupToken()) return false;
+
+    throw new Error(
+      "FIRST_ADMIN_SETUP_SECRET is required before first-admin setup on non-local deployments. Run the desktop setup wizard again or explicitly set CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP=true.",
+    );
+  }
 
   if (!setupToken || setupToken !== requiredToken) {
     throw new Error("First-admin setup token is invalid or missing.");

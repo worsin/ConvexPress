@@ -43,19 +43,26 @@ function configureAuthHttpEnv() {
   process.env.AUTH_ALLOW_NULL_ORIGIN = "true";
 }
 
+function restoreEnvVar(name: string) {
+  const value = ORIGINAL_ENV[name];
+  if (value === undefined) {
+    delete process.env[name];
+    return;
+  }
+
+  process.env[name] = value;
+}
+
 afterEach(() => {
-  process.env.AUTH_PRIVATE_KEY = ORIGINAL_ENV.AUTH_PRIVATE_KEY;
-  process.env.AUTH_ISSUER_URL = ORIGINAL_ENV.AUTH_ISSUER_URL;
-  process.env.AUTH_ALLOWED_ORIGINS = ORIGINAL_ENV.AUTH_ALLOWED_ORIGINS;
-  process.env.AUTH_ALLOW_LOCALHOST_ORIGINS =
-    ORIGINAL_ENV.AUTH_ALLOW_LOCALHOST_ORIGINS;
-  process.env.AUTH_ALLOW_NULL_ORIGIN = ORIGINAL_ENV.AUTH_ALLOW_NULL_ORIGIN;
-  process.env.FIRST_ADMIN_SETUP_SECRET =
-    ORIGINAL_ENV.FIRST_ADMIN_SETUP_SECRET;
-  process.env.CONVEXPRESS_ENABLE_DEV_INTERNALS =
-    ORIGINAL_ENV.CONVEXPRESS_ENABLE_DEV_INTERNALS;
-  process.env.CONVEXPRESS_DEV_INTERNALS_TOKEN =
-    ORIGINAL_ENV.CONVEXPRESS_DEV_INTERNALS_TOKEN;
+  restoreEnvVar("AUTH_PRIVATE_KEY");
+  restoreEnvVar("AUTH_ISSUER_URL");
+  restoreEnvVar("AUTH_ALLOWED_ORIGINS");
+  restoreEnvVar("AUTH_ALLOW_LOCALHOST_ORIGINS");
+  restoreEnvVar("AUTH_ALLOW_NULL_ORIGIN");
+  restoreEnvVar("FIRST_ADMIN_SETUP_SECRET");
+  restoreEnvVar("CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP");
+  restoreEnvVar("CONVEXPRESS_ENABLE_DEV_INTERNALS");
+  restoreEnvVar("CONVEXPRESS_DEV_INTERNALS_TOKEN");
 });
 
 describe("createFirstAdmin", () => {
@@ -287,6 +294,47 @@ describe("createFirstAdmin", () => {
         displayName: "Second Admin",
       }),
     ).rejects.toThrow("An administrator account already exists");
+  });
+
+  test("requires a setup token on non-local deployments unless public setup is explicitly allowed", async () => {
+    process.env.AUTH_ISSUER_URL = "https://admin.example.com";
+    process.env.FIRST_ADMIN_SETUP_SECRET = "";
+    process.env.CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP = "";
+    const t = createHarness();
+
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "admin@example.com",
+        username: "admin",
+        password: PASSWORD,
+        displayName: "First Admin",
+      }),
+    ).rejects.toThrow("FIRST_ADMIN_SETUP_SECRET is required");
+
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(false);
+
+    process.env.AUTH_ISSUER_URL = "not a url";
+
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "admin@example.com",
+        username: "admin",
+        password: PASSWORD,
+        displayName: "First Admin",
+      }),
+    ).rejects.toThrow("FIRST_ADMIN_SETUP_SECRET is required");
+
+    process.env.CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP = "true";
+
+    const result = await t.action(api.auth.setup.createFirstAdmin, {
+      email: "admin@example.com",
+      username: "admin",
+      password: PASSWORD,
+      displayName: "First Admin",
+    });
+
+    expect(result.message).toBe("Administrator account created");
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(true);
   });
 
   test("consumes the configured first-admin setup token after first use", async () => {
