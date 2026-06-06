@@ -97,6 +97,7 @@ import type * as commerce_orderChanges from "../commerce/orderChanges.js";
 import type * as commerce_orders from "../commerce/orders.js";
 import type * as commerce_paymentActions from "../commerce/paymentActions.js";
 import type * as commerce_payments from "../commerce/payments.js";
+import type * as commerce_paypalMode from "../commerce/paypalMode.js";
 import type * as commerce_pricing from "../commerce/pricing.js";
 import type * as commerce_products from "../commerce/products.js";
 import type * as commerce_regions from "../commerce/regions.js";
@@ -738,6 +739,7 @@ declare const fullApi: ApiFromModules<{
   "commerce/orders": typeof commerce_orders;
   "commerce/paymentActions": typeof commerce_paymentActions;
   "commerce/payments": typeof commerce_payments;
+  "commerce/paypalMode": typeof commerce_paypalMode;
   "commerce/pricing": typeof commerce_pricing;
   "commerce/products": typeof commerce_products;
   "commerce/regions": typeof commerce_regions;

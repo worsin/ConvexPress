@@ -1534,7 +1534,13 @@ export const updateSettings = mutation({
 		stripePublishableKey: v.optional(v.string()),
 		paypalEnabled: v.optional(v.boolean()),
 		paypalClientId: v.optional(v.string()),
-		paypalMode: v.optional(v.union(v.literal("sandbox"), v.literal("live"))),
+		paypalMode: v.optional(
+			v.union(
+				v.literal("sandbox"),
+				v.literal("production"),
+				v.literal("live"),
+			),
+		),
 		defaultCurrency: v.optional(v.string()),
 		allowGuestCheckout: v.optional(v.boolean()),
 		methodOrder: v.optional(v.array(v.string())),
@@ -1560,7 +1566,10 @@ export const updateSettings = mutation({
 			newValues.paypalEnabled = args.paypalEnabled;
 		if (args.paypalClientId !== undefined)
 			newValues.paypalClientId = args.paypalClientId;
-		if (args.paypalMode !== undefined) newValues.paypalMode = args.paypalMode;
+		if (args.paypalMode !== undefined) {
+			newValues.paypalMode =
+				args.paypalMode === "live" ? "production" : args.paypalMode;
+		}
 		if (args.defaultCurrency !== undefined)
 			newValues.defaultCurrency = args.defaultCurrency;
 		if (args.allowGuestCheckout !== undefined)

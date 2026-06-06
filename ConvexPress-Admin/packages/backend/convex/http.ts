@@ -54,6 +54,7 @@ import { inboundEmailWebhookHandler } from "./http/inboundEmailWebhook";
 import { analyticsTrackHandler } from "./http/analytics";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { getPayPalBaseUrl } from "./commerce/paypalMode";
 
 const http = httpRouter();
 
@@ -822,10 +823,7 @@ http.route({
     const paypalMode =
       (await getPPKey(ctx, "commerce.payments", "paypalMode", "PAYPAL_MODE")) ||
       "sandbox";
-    const paypalBaseUrl =
-      paypalMode === "live"
-        ? "https://api-m.paypal.com"
-        : "https://api-m.sandbox.paypal.com";
+    const paypalBaseUrl = getPayPalBaseUrl(paypalMode);
 
     if (!paypalClientId || !paypalClientSecret) {
       console.error("[PayPal Webhook] PayPal credentials not configured");

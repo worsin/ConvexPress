@@ -18,6 +18,7 @@ import { ConvexError, v } from "convex/values";
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { resolveServiceKey } from "../helpers/serviceKeys";
+import { getPayPalBaseUrl } from "./paypalMode";
 
 // ─── Stripe Key Resolution ──────────────────────────────────────────────────
 
@@ -358,12 +359,6 @@ async function getPayPalCredentials(ctx: any): Promise<{
   }
 
   return { clientId, clientSecret, mode };
-}
-
-function getPayPalBaseUrl(mode: string): string {
-  return mode === "live"
-    ? "https://api-m.paypal.com"
-    : "https://api-m.sandbox.paypal.com";
 }
 
 async function getPayPalAccessToken(
