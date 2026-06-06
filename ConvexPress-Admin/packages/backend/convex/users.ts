@@ -1,5 +1,4 @@
 import { ConvexError, v } from "convex/values";
-import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import {
   getCurrentUser as getUser,
@@ -9,6 +8,7 @@ import {
 import { emitEvent } from "./helpers/events";
 import { ROLE_EVENTS, SYSTEM } from "./events/constants";
 import { BUILT_IN_ROLES } from "./seed/roles";
+import { hasActiveAdmin } from "./auth/adminPresence";
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -25,12 +25,7 @@ export const hasAnyAdmin = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
 
-    // Single pass: collect all users with internalRole="admin" and check isInternal
-    const adminRoleUsers = await ctx.db
-      .query("users")
-      .withIndex("by_internal_role", (q) => q.eq("internalRole", "admin"))
-      .collect();
-    return adminRoleUsers.some((u) => u.isInternal === true);
+    return await hasActiveAdmin(ctx);
   },
 });
 
@@ -91,105 +86,9 @@ export const checkAdminAccess = query({
 export const bootstrapAdmin = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    // Use by_internal_role index instead of unindexed full table scan
-    const adminRoleUsers = await ctx.db
-      .query("users")
-      .withIndex("by_internal_role", (q) => q.eq("internalRole", "admin"))
-      .collect();
-    const existingAdmin = adminRoleUsers.find((u) => u.isInternal === true);
-
-    if (existingAdmin) {
-      throw new Error(
-        "Admin already exists. Contact an existing admin for access.",
-      );
-    }
-
-    const user = await getUser(ctx);
-
-    // Look up the Administrator role to assign roleId
-    const adminRole = await ctx.db
-      .query("roles")
-      .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
-      .unique();
-
-    // Generate username from email (e.g., "john@example.com" -> "john")
-    const emailPrefix = (identity.email || "admin").split("@")[0] || "admin";
-    const username = emailPrefix.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
-    const displayName =
-      [identity.givenName, identity.familyName].filter(Boolean).join(" ") ||
-      username;
-
-    if (user) {
-      await ctx.db.patch("users", user._id, {
-        isInternal: true,
-        internalRole: "admin",
-        ...(adminRole ? { roleId: adminRole._id } : {}),
-        ...(!user.username ? { username } : {}),
-        ...(!user.displayName ? { displayName } : {}),
-        ...(!user.slug ? { slug: username } : {}),
-        updatedAt: Date.now(),
-      });
-      if (!user.clerkUserId && identity.email) {
-        await ctx.scheduler.runAfter(0, internal.auth.clerkManagement.ensureUserInClerk, {
-          userId: user._id,
-          source: "bootstrap_admin",
-          email: identity.email,
-          firstName: identity.givenName ?? undefined,
-          lastName: identity.familyName ?? undefined,
-          displayName,
-          setAuthSourceToClerk: false,
-          skipPasswordRequirement: true,
-        });
-      }
-      return { success: true, action: "updated", userId: user._id };
-    } else {
-      const now = Date.now();
-      const isLocalAdminAuth = identity.tokenIdentifier?.startsWith(
-        "https://convexpress-admin.local|",
-      );
-      const userId = await ctx.db.insert("users", {
-        // Store the identity subject in the appropriate field based on auth source
-        ...(isLocalAdminAuth
-          ? { authSource: "local" as const }
-          : { authSource: "clerk" as const, clerkUserId: identity.subject }),
-        email: identity.email || "",
-        emailVerified: true,
-        firstName: identity.givenName,
-        lastName: identity.familyName,
-        profilePictureUrl: identity.pictureUrl,
-        isInternal: true,
-        internalRole: "admin",
-        ...(adminRole ? { roleId: adminRole._id } : {}),
-        username,
-        displayName,
-        slug: username,
-        status: "active",
-        clerkProvisioningStatus: isLocalAdminAuth ? "pending" : "linked_existing",
-        clerkProvisioningSource: "bootstrap_admin",
-        clerkProvisioningReason: isLocalAdminAuth
-          ? "scheduled_after_bootstrap_admin"
-          : "created_from_clerk_identity",
-        ...(!isLocalAdminAuth ? { clerkProvisionedAt: now } : {}),
-        createdAt: now,
-        updatedAt: now,
-      });
-      if (isLocalAdminAuth && identity.email) {
-        await ctx.scheduler.runAfter(0, internal.auth.clerkManagement.ensureUserInClerk, {
-          userId,
-          source: "bootstrap_admin",
-          email: identity.email,
-          firstName: identity.givenName ?? undefined,
-          lastName: identity.familyName ?? undefined,
-          displayName,
-          setAuthSourceToClerk: false,
-          skipPasswordRequirement: true,
-        });
-      }
-      return { success: true, action: "created", userId };
-    }
+    throw new ConvexError(
+      "Legacy bootstrapAdmin is disabled. Use auth.setup.createFirstAdmin.",
+    );
   },
 });
 

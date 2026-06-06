@@ -48,6 +48,8 @@ afterEach(() => {
   process.env.AUTH_ALLOW_LOCALHOST_ORIGINS =
     ORIGINAL_ENV.AUTH_ALLOW_LOCALHOST_ORIGINS;
   process.env.AUTH_ALLOW_NULL_ORIGIN = ORIGINAL_ENV.AUTH_ALLOW_NULL_ORIGIN;
+  process.env.FIRST_ADMIN_SETUP_SECRET =
+    ORIGINAL_ENV.FIRST_ADMIN_SETUP_SECRET;
 });
 
 describe("createFirstAdmin", () => {
@@ -225,6 +227,41 @@ describe("createFirstAdmin", () => {
     expect(downgradedLoginBody.error).toBe("Invalid credentials");
   });
 
+  test("requires the configured first-admin setup token", async () => {
+    process.env.FIRST_ADMIN_SETUP_SECRET = "setup-secret";
+    const t = createHarness();
+
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "admin@example.com",
+        username: "admin",
+        password: PASSWORD,
+        displayName: "First Admin",
+      }),
+    ).rejects.toThrow("First-admin setup token is invalid or missing.");
+
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "admin@example.com",
+        username: "admin",
+        password: PASSWORD,
+        displayName: "First Admin",
+        setupToken: "wrong-token",
+      }),
+    ).rejects.toThrow("First-admin setup token is invalid or missing.");
+
+    const result = await t.action(api.auth.setup.createFirstAdmin, {
+      email: "admin@example.com",
+      username: "admin",
+      password: PASSWORD,
+      displayName: "First Admin",
+      setupToken: "setup-secret",
+    });
+
+    expect(result.message).toBe("Administrator account created");
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(true);
+  });
+
   test("local admin JWT resolves the user and admin gate rejects stale access", async () => {
     const t = createHarness();
 
@@ -274,11 +311,54 @@ describe("createFirstAdmin", () => {
         status: "active",
         roleId: snapshot.subscriberRole!._id,
         isInternal: true,
+        internalRole: "admin",
         updatedAt: Date.now(),
       });
     });
 
     expect(await authenticated.query(api.users.checkAdminAccess)).toBeNull();
+
+    const targetUserId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", {
+        authSource: "local",
+        email: "target@example.com",
+        username: "target",
+        passwordHash: "not-a-real-hash",
+        displayName: "Target User",
+        slug: "target",
+        emailVerified: true,
+        status: "active",
+        isInternal: false,
+        internalRole: "customer",
+        roleId: snapshot.subscriberRole!._id,
+        registrationMethod: "self",
+        registeredAt: Date.now(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    });
+
+    await expect(
+      authenticated.mutation(api.users.updateUserRole, {
+        userId: targetUserId,
+        internalRole: "admin",
+        isInternal: true,
+      }),
+    ).rejects.toThrow("Admin access required");
+  });
+
+  test("legacy bootstrapAdmin is disabled", async () => {
+    const t = createHarness().withIdentity({
+      issuer: "https://clerk.example",
+      subject: "user_clerk_attacker",
+      tokenIdentifier: "https://clerk.example|user_clerk_attacker",
+      email: "attacker@example.com",
+      name: "Attacker",
+    });
+
+    await expect(t.mutation(api.users.bootstrapAdmin)).rejects.toThrow(
+      "Legacy bootstrapAdmin is disabled.",
+    );
   });
 
   test("inactive stale admins do not block first-admin recovery", async () => {

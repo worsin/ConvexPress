@@ -371,6 +371,9 @@ function generateAuthPrivateKey() {
     format: "pem"
   });
 }
+function generateFirstAdminSetupSecret() {
+  return (0, import_node_crypto.randomBytes)(32).toString("base64url");
+}
 function parseEnvFile(filePath) {
   if (!(0, import_node_fs2.existsSync)(filePath)) return {};
   const env = {};
@@ -432,7 +435,7 @@ function inferClerkIssuerDomain(localEnv) {
     return void 0;
   }
 }
-function createBackendEnvFile(convexSiteUrl, backendRoot) {
+function createBackendEnvFile(convexSiteUrl, backendRoot, firstAdminSetupSecret) {
   const localEnv = loadLocalEnv(backendRoot);
   const tempDir = (0, import_node_fs2.mkdtempSync)(import_node_path2.default.join((0, import_node_os.tmpdir)(), "convexpress-setup-"));
   const filePath = import_node_path2.default.join(tempDir, "convex-env.local");
@@ -442,6 +445,9 @@ function createBackendEnvFile(convexSiteUrl, backendRoot) {
     AUTH_ALLOWED_ORIGINS: readSetupEnvValue("AUTH_ALLOWED_ORIGINS", localEnv) ?? "http://localhost:4105,http://127.0.0.1:4105",
     AUTH_ALLOW_NULL_ORIGIN: readSetupEnvValue("AUTH_ALLOW_NULL_ORIGIN", localEnv) ?? "true"
   };
+  if (firstAdminSetupSecret) {
+    envVars.FIRST_ADMIN_SETUP_SECRET = firstAdminSetupSecret;
+  }
   const clerkSecret = readSetupEnvValue("CLERK_SECRET_KEY", localEnv);
   if (clerkSecret) envVars.CLERK_SECRET_KEY = clerkSecret;
   const clerkIssuerDomain = inferClerkIssuerDomain(localEnv);
@@ -490,7 +496,7 @@ function runCommand(command, args, options) {
     });
   });
 }
-async function deployServerBackend(config, convexSiteUrl, sendProgress) {
+async function deployServerBackend(config, convexSiteUrl, firstAdminSetupSecret, sendProgress) {
   const { deployKey, deployment } = deriveDeployment(config);
   const backendRoot = resolveBackendRoot();
   const env = {
@@ -499,7 +505,11 @@ async function deployServerBackend(config, convexSiteUrl, sendProgress) {
     CONVEX_DEPLOY_KEY: deployKey
   };
   sendProgress("environment", "Preparing backend environment.");
-  const envFile = createBackendEnvFile(convexSiteUrl, backendRoot);
+  const envFile = createBackendEnvFile(
+    convexSiteUrl,
+    backendRoot,
+    firstAdminSetupSecret
+  );
   try {
     sendProgress("environment", "Syncing required backend environment variables.");
     await runCommand(
@@ -548,10 +558,12 @@ function registerSetupHandlers() {
       try {
         sendProgress("validating", "Validating setup configuration.");
         const validated = validateSetupConfig(config);
+        const firstAdminSetupSecret = validated.mode === "server" ? generateFirstAdminSetupSecret() : void 0;
         if (validated.mode === "server") {
           await deployServerBackend(
             config,
             validated.convexSiteUrl,
+            firstAdminSetupSecret,
             sendProgress
           );
         }
@@ -566,7 +578,10 @@ function registerSetupHandlers() {
         if (validated.pendingAdminCredentials) {
           store.set(
             "pendingAdminCredentials",
-            validated.pendingAdminCredentials
+            {
+              ...validated.pendingAdminCredentials,
+              setupToken: firstAdminSetupSecret
+            }
           );
         } else {
           store.delete("pendingAdminCredentials");

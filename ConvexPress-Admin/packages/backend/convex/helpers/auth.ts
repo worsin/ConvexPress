@@ -4,6 +4,11 @@ import { getCurrentUser, requireAuth } from "./permissions";
 
 type AuthCtx = Pick<QueryCtx, "auth" | "db">;
 type ReadCtx = Pick<QueryCtx, "db">;
+type UserAccessFields = {
+  roleId?: Id<"roles">;
+  isInternal?: boolean;
+  internalRole?: string;
+};
 
 // ─── Consolidated Re-exports (MEDIUM-6 fix) ────────────────────────────────
 // getCurrentUser and requireAuth are re-exported from permissions.ts
@@ -31,6 +36,35 @@ export async function getIdentity(ctx: AuthCtx) {
   return await ctx.auth.getUserIdentity();
 }
 
+async function hasInternalRoleAccess(
+  ctx: ReadCtx,
+  user: UserAccessFields,
+): Promise<boolean> {
+  if (user.roleId) {
+    const role = await ctx.db.get("roles", user.roleId);
+    return !!role && role.status === "active" && role.type === "internal";
+  }
+
+  return user.isInternal === true;
+}
+
+async function hasAdministratorRoleAccess(
+  ctx: ReadCtx,
+  user: UserAccessFields,
+): Promise<boolean> {
+  if (user.roleId) {
+    const role = await ctx.db.get("roles", user.roleId);
+    return (
+      !!role &&
+      role.status === "active" &&
+      role.type === "internal" &&
+      role.slug === "administrator"
+    );
+  }
+
+  return user.isInternal === true && user.internalRole === "admin";
+}
+
 // ─── Internal User Classification ────────────────────────────────────────────
 
 /**
@@ -41,7 +75,8 @@ export async function isInternal(
   ctx: AuthCtx,
 ): Promise<boolean> {
   const user = await getCurrentUser(ctx);
-  return user?.isInternal === true;
+  if (!user) return false;
+  return await hasInternalRoleAccess(ctx, user);
 }
 
 /**
@@ -50,7 +85,7 @@ export async function isInternal(
  */
 export async function requireInternal(ctx: AuthCtx) {
   const user = await requireAuth(ctx);
-  if (user.isInternal !== true) {
+  if (!(await hasInternalRoleAccess(ctx, user))) {
     throw new Error("Internal team access required");
   }
   return user;
@@ -66,7 +101,7 @@ export async function requireInternal(ctx: AuthCtx) {
 export async function isAdmin(ctx: AuthCtx): Promise<boolean> {
   const user = await getCurrentUser(ctx);
   if (!user) return false;
-  return user.isInternal === true && user.internalRole === "admin";
+  return await hasAdministratorRoleAccess(ctx, user);
 }
 
 /**
@@ -75,9 +110,7 @@ export async function isAdmin(ctx: AuthCtx): Promise<boolean> {
  */
 export async function requireAdmin(ctx: AuthCtx) {
   const user = await requireAuth(ctx);
-  const adminStatus =
-    user.isInternal === true && user.internalRole === "admin";
-  if (!adminStatus) {
+  if (!(await hasAdministratorRoleAccess(ctx, user))) {
     throw new Error("Admin access required");
   }
   return user;
@@ -212,8 +245,7 @@ export async function requireAdminOrOwner(
   resourceUserId: Id<"users">,
 ) {
   const user = await requireAuth(ctx);
-  const adminStatus =
-    user.isInternal === true && user.internalRole === "admin";
+  const adminStatus = await hasAdministratorRoleAccess(ctx, user);
 
   if (!adminStatus && user._id !== resourceUserId) {
     throw new Error("Access denied");
@@ -233,7 +265,6 @@ export async function canAccessResource(
   const user = await getCurrentUser(ctx);
   if (!user) return false;
 
-  const adminStatus =
-    user.isInternal === true && user.internalRole === "admin";
+  const adminStatus = await hasAdministratorRoleAccess(ctx, user);
   return adminStatus || user._id === resourceUserId;
 }

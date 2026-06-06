@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { generateKeyPairSync } from "node:crypto";
+import { generateKeyPairSync, randomBytes } from "node:crypto";
 import {
   validateProductionDeployKey,
   validateSetupConfig,
@@ -70,6 +70,10 @@ function generateAuthPrivateKey(): string {
     type: "pkcs8",
     format: "pem",
   }) as string;
+}
+
+function generateFirstAdminSetupSecret(): string {
+  return randomBytes(32).toString("base64url");
 }
 
 function parseEnvFile(filePath: string): Record<string, string> {
@@ -156,6 +160,7 @@ function inferClerkIssuerDomain(
 function createBackendEnvFile(
   convexSiteUrl: string,
   backendRoot: string,
+  firstAdminSetupSecret?: string,
 ): {
   filePath: string;
   cleanup: () => void;
@@ -173,6 +178,10 @@ function createBackendEnvFile(
     AUTH_ALLOW_NULL_ORIGIN:
       readSetupEnvValue("AUTH_ALLOW_NULL_ORIGIN", localEnv) ?? "true",
   };
+
+  if (firstAdminSetupSecret) {
+    envVars.FIRST_ADMIN_SETUP_SECRET = firstAdminSetupSecret;
+  }
 
   const clerkSecret = readSetupEnvValue("CLERK_SECRET_KEY", localEnv);
   if (clerkSecret) envVars.CLERK_SECRET_KEY = clerkSecret;
@@ -246,6 +255,7 @@ function runCommand(
 async function deployServerBackend(
   config: SetupConfig,
   convexSiteUrl: string,
+  firstAdminSetupSecret: string,
   sendProgress: (phase: ProgressPhase, message: string) => void,
 ): Promise<void> {
   const { deployKey, deployment } = deriveDeployment(config);
@@ -257,7 +267,11 @@ async function deployServerBackend(
   };
 
   sendProgress("environment", "Preparing backend environment.");
-  const envFile = createBackendEnvFile(convexSiteUrl, backendRoot);
+  const envFile = createBackendEnvFile(
+    convexSiteUrl,
+    backendRoot,
+    firstAdminSetupSecret,
+  );
 
   try {
     sendProgress("environment", "Syncing required backend environment variables.");
@@ -315,11 +329,16 @@ export function registerSetupHandlers(): void {
       try {
         sendProgress("validating", "Validating setup configuration.");
         const validated = validateSetupConfig(config);
+        const firstAdminSetupSecret =
+          validated.mode === "server"
+            ? generateFirstAdminSetupSecret()
+            : undefined;
 
         if (validated.mode === "server") {
           await deployServerBackend(
             config,
             validated.convexSiteUrl,
+            firstAdminSetupSecret!,
             sendProgress,
           );
         }
@@ -339,7 +358,10 @@ export function registerSetupHandlers(): void {
         if (validated.pendingAdminCredentials) {
           configStore.set(
             "pendingAdminCredentials",
-            validated.pendingAdminCredentials,
+            {
+              ...validated.pendingAdminCredentials,
+              setupToken: firstAdminSetupSecret,
+            },
           );
         } else {
           configStore.delete("pendingAdminCredentials");

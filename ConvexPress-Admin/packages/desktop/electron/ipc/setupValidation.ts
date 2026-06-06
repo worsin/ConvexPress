@@ -14,6 +14,7 @@ export interface PendingAdminCredentials {
   displayName: string;
   email: string;
   password: string;
+  setupToken?: string;
 }
 
 export interface PendingLoginCredentials {

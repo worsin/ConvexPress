@@ -44,6 +44,15 @@ function validateFirstAdminCredentials(args: {
   };
 }
 
+function validateFirstAdminSetupToken(setupToken: string | undefined) {
+  const requiredToken = process.env.FIRST_ADMIN_SETUP_SECRET?.trim();
+  if (!requiredToken) return;
+
+  if (!setupToken || setupToken !== requiredToken) {
+    throw new Error("First-admin setup token is invalid or missing.");
+  }
+}
+
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createFirstAdmin = action({
   args: {
@@ -52,9 +61,12 @@ export const createFirstAdmin = action({
     password: v.string(),
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     displayName: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    setupToken: v.optional(v.string()),
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    validateFirstAdminSetupToken(args.setupToken);
     const credentials = validateFirstAdminCredentials(args);
 
     // Ensure the built-in WordPress roles exist before checking for or

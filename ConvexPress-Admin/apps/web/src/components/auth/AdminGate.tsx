@@ -37,6 +37,7 @@ export interface AdminGateProps {
     password: string;
     displayName?: string;
     username?: string;
+    setupToken?: string;
   };
   pendingLoginCredentials?: {
     identifier: string;
@@ -232,6 +233,7 @@ function AutoSignup({
             username,
             password: credentials.password,
             displayName: credentials.displayName,
+            setupToken: credentials.setupToken,
           });
         } catch (createError) {
           const message =
