@@ -56,6 +56,7 @@ export function AdminGate({
   const { isAuthenticated, isLoading: authLoading } = useLocalAuthContext();
   const [signupComplete, setSignupComplete] = useState(false);
   const [loginComplete, setLoginComplete] = useState(false);
+  const [autoSignupError, setAutoSignupError] = useState<string | null>(null);
 
   // Only query hasAdmin when unauthenticated (skip otherwise).
   const hasAdmin = useQuery(
@@ -63,8 +64,15 @@ export function AdminGate({
     isAuthenticated ? "skip" : undefined,
   );
 
-  const shouldAutoSignup = !!pendingCredentials && mode === "server";
+  const shouldAutoSignup =
+    !!pendingCredentials && mode === "server" && !autoSignupError;
   const shouldAutoLogin = !!pendingLoginCredentials && mode === "client";
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (pendingCredentials) void clearPendingAdminCredentials();
+    if (pendingLoginCredentials) void clearPendingLoginCredentials();
+  }, [isAuthenticated, pendingCredentials, pendingLoginCredentials]);
 
   // Web mode -- passthrough
   if (!isElectron() && !mode) {
@@ -96,6 +104,7 @@ export function AdminGate({
       <AutoSignup
         credentials={pendingCredentials}
         onComplete={() => setSignupComplete(true)}
+        onFailure={(message) => setAutoSignupError(message)}
       />
     );
   }
@@ -110,7 +119,12 @@ export function AdminGate({
     if (mode === "client") {
       return <WaitingForServer />;
     }
-    return <AdminCreationForm />;
+    return (
+      <AdminCreationForm
+        setupToken={pendingCredentials?.setupToken}
+        initialError={autoSignupError}
+      />
+    );
   }
 
   if (shouldAutoLogin) {
@@ -141,6 +155,18 @@ function deriveSetupUsername(email: string, explicitUsername?: string): string {
   return "admin";
 }
 
+async function clearPendingAdminCredentials() {
+  if (isElectron() && window.convexpress) {
+    await window.convexpress.config.set("pendingAdminCredentials", null);
+  }
+}
+
+async function clearPendingLoginCredentials() {
+  if (isElectron() && window.convexpress) {
+    await window.convexpress.config.set("pendingLoginCredentials", null);
+  }
+}
+
 // ---- AutoLogin ---------------------------------------------------------------
 
 function AutoLogin({
@@ -161,9 +187,7 @@ function AutoLogin({
     async function doLogin() {
       try {
         await login(credentials.identifier, credentials.password);
-        if (isElectron() && window.convexpress) {
-          await window.convexpress.config.set("pendingLoginCredentials", null);
-        }
+        await clearPendingLoginCredentials();
         toast.success("Signed in to ConvexPress.");
         onComplete();
       } catch (err) {
@@ -196,9 +220,11 @@ function AutoLogin({
 function AutoSignup({
   credentials,
   onComplete,
+  onFailure,
 }: {
   credentials: NonNullable<AdminGateProps["pendingCredentials"]>;
   onComplete: () => void;
+  onFailure: (message: string) => void;
 }) {
   const createFirstAdmin = useAction(api.auth.setup.createFirstAdmin);
   const { login } = useLocalAuthContext();
@@ -208,15 +234,6 @@ function AutoSignup({
   useEffect(() => {
     if (attempted.current) return;
     attempted.current = true;
-
-    async function clearPendingCredentials() {
-      if (isElectron() && window.convexpress) {
-        await window.convexpress.config.set(
-          "pendingAdminCredentials",
-          null,
-        );
-      }
-    }
 
     async function doSignup() {
       try {
@@ -247,19 +264,21 @@ function AutoSignup({
         await login(credentials.email, credentials.password);
 
         // 3. Clear pending credentials from electron-store
-        await clearPendingCredentials();
+        await clearPendingAdminCredentials();
 
         toast.success("Welcome to ConvexPress!");
         onComplete();
       } catch (err) {
         console.error("[AutoSignup] Failed:", err);
-        await clearPendingCredentials().catch(() => undefined);
-        setError(err instanceof Error ? err.message : "Setup sign-in failed");
+        const message =
+          err instanceof Error ? err.message : "Setup sign-in failed";
+        setError(message);
+        onFailure(message);
       }
     }
 
     doSignup();
-  }, [credentials, createFirstAdmin, login, onComplete]);
+  }, [credentials, createFirstAdmin, login, onComplete, onFailure]);
 
   if (error) {
     return <LoginFailure message={error} />;
@@ -279,7 +298,13 @@ function AutoSignup({
 
 // ---- AdminCreationForm ------------------------------------------------------
 
-function AdminCreationForm() {
+function AdminCreationForm({
+  setupToken,
+  initialError,
+}: {
+  setupToken?: string;
+  initialError?: string | null;
+}) {
   const createFirstAdmin = useAction(api.auth.setup.createFirstAdmin);
   const { login } = useLocalAuthContext();
 
@@ -288,10 +313,16 @@ function AdminCreationForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string | null>(initialError ?? null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setError(initialError ?? null);
+  }, [initialError]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
 
     if (!displayName || !username || !email || !password) {
       toast.error("Please fill in all fields");
@@ -313,12 +344,15 @@ function AdminCreationForm() {
         username,
         password,
         displayName,
+        setupToken,
       });
       await login(email, password);
+      await clearPendingAdminCredentials();
       toast.success("Admin account created! Welcome to ConvexPress.");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to create admin account";
+      setError(message);
       toast.error(message);
     } finally {
       setLoading(false);
@@ -338,6 +372,11 @@ function AdminCreationForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {error && (
+            <div className="border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+              {error}
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="admin-display-name"
