@@ -26,9 +26,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { isElectron } from "../../lib/electron";
+import {
+  FIRST_ADMIN_SETUP_ROUTE,
+  deriveSetupUsername,
+} from "../../lib/first-admin-setup";
 import { useLocalAuthContext } from "../../lib/local-auth-context";
-
-const FIRST_ADMIN_SETUP_ROUTE = "/setup";
 
 // ---- Props ------------------------------------------------------------------
 
@@ -146,20 +148,6 @@ export function AdminGate({
   // Admin exists, user is not authenticated -- the normal auth flow
   // (login page) will handle this via the router's auth guard.
   return <>{children}</>;
-}
-
-function deriveSetupUsername(email: string, explicitUsername?: string): string {
-  if (explicitUsername?.trim()) return explicitUsername.trim();
-
-  const prefix = email.split("@")[0] || "admin";
-  const cleaned = prefix
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]/g, "-")
-    .replace(/^[._-]+|[._-]+$/g, "")
-    .slice(0, 64);
-
-  if (cleaned.length >= 3) return cleaned;
-  return "admin";
 }
 
 async function clearPendingAdminCredentials() {
