@@ -50,6 +50,11 @@ const steps = {
 
 const dots = Array.from(document.querySelectorAll(".step-indicators .dot"));
 let removeProgressListener = null;
+let connectionTestSerial = 0;
+const latestConnectionTestByPath = {
+  server: 0,
+  client: 0,
+};
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 
@@ -308,6 +313,9 @@ async function startConnectionTest(path) {
   const prefix = path; // 'server' or 'client'
   const statusEl = $(`${prefix}-test-status`);
   const actionsEl = $(`${prefix}-test-actions`);
+  const requestedUrl = state.convexUrl;
+  const testId = ++connectionTestSerial;
+  latestConnectionTestByPath[prefix] = testId;
 
   // Reset to spinner state
   statusEl.className = "test-status";
@@ -315,9 +323,12 @@ async function startConnectionTest(path) {
   actionsEl.classList.add("hidden");
 
   try {
-    const result = await window.convexpressSetup.testConnection(state.convexUrl);
+    const result = await window.convexpressSetup.testConnection(requestedUrl);
+    if (!isCurrentConnectionTest(prefix, testId, requestedUrl)) return;
 
     if (result && result.ok) {
+      const nextBtn = $(`btn-${prefix}-test-next`);
+      if (nextBtn) nextBtn.classList.remove("hidden");
       statusEl.classList.add("success");
       statusEl.innerHTML = `<div class="status-icon">&#10003;</div><p id="${prefix}-test-message">Connection successful!</p>`;
       actionsEl.classList.remove("hidden");
@@ -328,12 +339,20 @@ async function startConnectionTest(path) {
       showTestError(statusEl, actionsEl, prefix, errorText);
     }
   } catch (err) {
+    if (!isCurrentConnectionTest(prefix, testId, requestedUrl)) return;
     const errorText =
       err && err.message
         ? err.message
         : "Connection failed. Check the URL and try again.";
     showTestError(statusEl, actionsEl, prefix, errorText);
   }
+}
+
+function isCurrentConnectionTest(prefix, testId, requestedUrl) {
+  return (
+    latestConnectionTestByPath[prefix] === testId &&
+    state.convexUrl === requestedUrl
+  );
 }
 
 function showTestError(statusEl, actionsEl, prefix, message) {
