@@ -34,6 +34,7 @@ import {
   validateFirstAdminForm,
 } from "../../lib/first-admin-setup";
 import { useLocalAuthContext } from "../../lib/local-auth-context";
+import { getAdminGateDecision } from "./admin-gate-decision";
 
 // ---- Props ------------------------------------------------------------------
 
@@ -76,76 +77,54 @@ export function AdminGate({
     isAuthenticated ? {} : "skip",
   );
 
-  const shouldAutoSignup =
-    !!pendingCredentials && mode === "server" && !autoSignupError;
-  const shouldAutoLogin = !!pendingLoginCredentials && mode === "client";
-
   useEffect(() => {
     if (!verifiedAdminAccess) return;
     if (pendingCredentials) void clearPendingAdminCredentials();
     if (pendingLoginCredentials) void clearPendingLoginCredentials();
   }, [verifiedAdminAccess, pendingCredentials, pendingLoginCredentials]);
 
-  // Auto-signup just completed -- render children while auth state catches up
-  if (signupComplete) {
-    return <>{children}</>;
-  }
+  const decision = getAdminGateDecision({
+    authLoading,
+    isAuthenticated,
+    signupComplete,
+    loginComplete,
+    hasAdmin,
+    mode,
+    hasPendingCredentials: !!pendingCredentials,
+    hasPendingLoginCredentials: !!pendingLoginCredentials,
+    hasAutoSignupError: !!autoSignupError,
+  });
 
-  if (loginComplete) {
-    return <>{children}</>;
-  }
-
-  // Auth still loading
-  if (authLoading) {
-    return <CenteredSpinner />;
-  }
-
-  // Already authenticated
-  if (isAuthenticated) {
-    return <>{children}</>;
-  }
-
-  // Server mode with pending credentials -- auto-signup
-  if (shouldAutoSignup) {
-    return (
-      <AutoSignup
-        credentials={pendingCredentials}
-        onComplete={() => setSignupComplete(true)}
-        onFailure={(message) => setAutoSignupError(message)}
-      />
-    );
-  }
-
-  // Still loading hasAdmin query
-  if (hasAdmin === undefined) {
-    return <CenteredSpinner />;
-  }
-
-  // No admin exists yet
-  if (!hasAdmin) {
-    if (mode === "client") {
+  switch (decision) {
+    case "spinner":
+      return <CenteredSpinner />;
+    case "auto-signup":
+      return (
+        <AutoSignup
+          credentials={pendingCredentials!}
+          onComplete={() => setSignupComplete(true)}
+          onFailure={(message) => setAutoSignupError(message)}
+        />
+      );
+    case "manual-signup":
+      return (
+        <AdminCreationForm
+          setupToken={pendingCredentials?.setupToken}
+          initialError={autoSignupError}
+        />
+      );
+    case "waiting-for-server":
       return <WaitingForServer />;
-    }
-    return (
-      <AdminCreationForm
-        setupToken={pendingCredentials?.setupToken}
-        initialError={autoSignupError}
-      />
-    );
+    case "auto-login":
+      return (
+        <AutoLogin
+          credentials={pendingLoginCredentials!}
+          onComplete={() => setLoginComplete(true)}
+        />
+      );
+    case "children":
+      return <>{children}</>;
   }
-
-  if (shouldAutoLogin) {
-    return (
-      <AutoLogin
-        credentials={pendingLoginCredentials}
-        onComplete={() => setLoginComplete(true)}
-      />
-    );
-  }
-
-  // Admin exists, user is not authenticated -- the normal auth flow
-  // (login page) will handle this via the router's auth guard.
-  return <>{children}</>;
 }
 
 async function clearPendingAdminCredentials() {
