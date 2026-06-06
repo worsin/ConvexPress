@@ -16,6 +16,7 @@ const modules = {
   "./convex/_generated/server.js": () => import("../../_generated/server.js"),
   "./convex/http.ts": () => import("../../http"),
   "./convex/auth/setup.ts": () => import("../setup"),
+  "./convex/auth/adminPresence.ts": () => import("../adminPresence"),
   "./convex/auth/internals.ts": () => import("../internals"),
   "./convex/auth/queries.ts": () => import("../queries"),
   "./convex/authTracking/internals.ts": () =>
@@ -192,6 +193,36 @@ describe("createFirstAdmin", () => {
       return await ctx.db.query("refreshTokens").collect();
     });
     expect(afterLogout.filter((token) => token.revokedAt)).toHaveLength(2);
+
+    const downgraded = await t.run(async (ctx) => {
+      const user = (await ctx.db.query("users").collect())[0]!;
+      const subscriberRole = await ctx.db
+        .query("roles")
+        .withIndex("by_slug", (q) => q.eq("slug", "subscriber"))
+        .unique();
+      await ctx.db.patch(user._id, {
+        roleId: subscriberRole!._id,
+        isInternal: true,
+        updatedAt: Date.now(),
+      });
+      return user;
+    });
+
+    const downgradedLoginResponse = await t.fetch("/auth/login", {
+      method: "POST",
+      headers: {
+        Origin: TEST_ORIGIN,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: downgraded.email,
+        password: PASSWORD,
+      }),
+    });
+    const downgradedLoginBody = await downgradedLoginResponse.json();
+
+    expect(downgradedLoginResponse.status).toBe(401);
+    expect(downgradedLoginBody.error).toBe("Invalid credentials");
   });
 
   test("local admin JWT resolves the user and admin gate rejects stale access", async () => {
@@ -248,5 +279,78 @@ describe("createFirstAdmin", () => {
     });
 
     expect(await authenticated.query(api.users.checkAdminAccess)).toBeNull();
+  });
+
+  test("inactive stale admins do not block first-admin recovery", async () => {
+    const t = createHarness();
+
+    await t.action(api.auth.setup.createFirstAdmin, {
+      email: "stale-admin@example.com",
+      username: "staleadmin",
+      password: PASSWORD,
+      displayName: "Stale Admin",
+    });
+
+    const staleAdminId = await t.run(async (ctx) => {
+      const user = (await ctx.db.query("users").collect())[0]!;
+      await ctx.db.patch(user._id, {
+        status: "inactive",
+        updatedAt: Date.now(),
+      });
+      return user._id;
+    });
+
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(false);
+
+    const recovered = await t.action(api.auth.setup.createFirstAdmin, {
+      email: "new-admin@example.com",
+      username: "newadmin",
+      password: PASSWORD,
+      displayName: "New Admin",
+    });
+
+    expect(recovered.message).toBe("Administrator account created");
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(true);
+
+    const users = await t.run(async (ctx) => {
+      return await ctx.db.query("users").collect();
+    });
+    const staleAdmin = users.find((user) => user._id === staleAdminId)!;
+    const newAdmin = users.find((user) => user.email === "new-admin@example.com")!;
+
+    expect(staleAdmin.status).toBe("inactive");
+    expect(newAdmin.status).toBe("active");
+    expect(newAdmin.internalRole).toBe("admin");
+  });
+
+  test("non-local administrator records do not block local first-admin setup", async () => {
+    const t = createHarness();
+
+    await t.action(api.auth.setup.createFirstAdmin, {
+      email: "clerk-admin@example.com",
+      username: "clerkadmin",
+      password: PASSWORD,
+      displayName: "Clerk Admin",
+    });
+
+    await t.run(async (ctx) => {
+      const user = (await ctx.db.query("users").collect())[0]!;
+      await ctx.db.patch(user._id, {
+        authSource: "clerk",
+        clerkUserId: "user_clerk_admin",
+        updatedAt: Date.now(),
+      });
+    });
+
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(false);
+
+    await t.action(api.auth.setup.createFirstAdmin, {
+      email: "local-admin@example.com",
+      username: "localadmin",
+      password: PASSWORD,
+      displayName: "Local Admin",
+    });
+
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(true);
   });
 });

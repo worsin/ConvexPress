@@ -39,6 +39,7 @@ import type * as auditLogs_internals from "../auditLogs/internals.js";
 import type * as auditLogs_mutations from "../auditLogs/mutations.js";
 import type * as auditLogs_queries from "../auditLogs/queries.js";
 import type * as auditLogs_validators from "../auditLogs/validators.js";
+import type * as auth_adminPresence from "../auth/adminPresence.js";
 import type * as auth_clerkManagement from "../auth/clerkManagement.js";
 import type * as auth_clerkManagementHelpers from "../auth/clerkManagementHelpers.js";
 import type * as auth_clerkProvisioning from "../auth/clerkProvisioning.js";
@@ -679,6 +680,7 @@ declare const fullApi: ApiFromModules<{
   "auditLogs/mutations": typeof auditLogs_mutations;
   "auditLogs/queries": typeof auditLogs_queries;
   "auditLogs/validators": typeof auditLogs_validators;
+  "auth/adminPresence": typeof auth_adminPresence;
   "auth/clerkManagement": typeof auth_clerkManagement;
   "auth/clerkManagementHelpers": typeof auth_clerkManagementHelpers;
   "auth/clerkProvisioning": typeof auth_clerkProvisioning;

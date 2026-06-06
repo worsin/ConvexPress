@@ -9,42 +9,18 @@
 
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
-
-async function hasExistingAdmin(ctx: { db: any }): Promise<boolean> {
-  const adminRole = await ctx.db
-    .query("roles")
-    .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
-    .unique();
-
-  if (adminRole) {
-    const admin = await ctx.db
-      .query("users")
-      .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", adminRole._id))
-      .first();
-
-    if (admin) return true;
-  }
-
-  const legacyAdmins = await ctx.db
-    .query("users")
-    .withIndex("by_internal_role", (q: ConvexQueryBuilder) => q.eq("internalRole", "admin"))
-    .collect();
-
-  return legacyAdmins.some(
-    (user: { isInternal?: boolean }) => user.isInternal === true,
-  );
-}
+import { hasActiveAdmin } from "./adminPresence";
 
 async function canUseAdminLocalAuth(
   ctx: { db: any },
   user: { isInternal?: boolean; roleId?: unknown },
 ): Promise<boolean> {
-  if (user.isInternal === true) return true;
+  if (user.roleId) {
+    const role = await ctx.db.get("roles", user.roleId);
+    return !!role && role.status === "active" && role.type === "internal";
+  }
 
-  if (!user.roleId) return false;
-
-  const role = await ctx.db.get("roles", user.roleId);
-  return !!role && role.status === "active" && role.type === "internal";
+  return user.isInternal === true;
 }
 
 // ─── User Lookups ─────────────────────────────────────────────────────────────
@@ -244,7 +220,7 @@ export const checkExistingAdmins = internalQuery({
   args: {},
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
-    return await hasExistingAdmin(ctx);
+    return await hasActiveAdmin(ctx);
   },
 });
 
@@ -262,7 +238,7 @@ export const createAdminUser = internalMutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    if (await hasExistingAdmin(ctx)) {
+    if (await hasActiveAdmin(ctx)) {
       throw new Error("An administrator account already exists");
     }
 

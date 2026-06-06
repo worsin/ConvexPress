@@ -10,6 +10,7 @@
  */
 
 import { query } from "../_generated/server";
+import { hasActiveAdmin } from "./adminPresence";
 
 // ---- Has Admin ---------------------------------------------------------------
 
@@ -27,34 +28,6 @@ export const hasAdmin = query({
   args: {},
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
-    const adminRole = await ctx.db
-      .query("roles")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
-      .unique();
-
-    if (!adminRole) {
-      const legacyAdmins = await ctx.db
-        .query("users")
-        .withIndex("by_internal_role", (q: ConvexQueryBuilder) => q.eq("internalRole", "admin"))
-        .collect();
-      return legacyAdmins.some(
-        (user: { isInternal?: boolean }) => user.isInternal === true,
-      );
-    }
-
-    const admin = await ctx.db
-      .query("users")
-      .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", adminRole._id))
-      .first();
-
-    if (admin) return true;
-
-    const legacyAdmins = await ctx.db
-      .query("users")
-      .withIndex("by_internal_role", (q: ConvexQueryBuilder) => q.eq("internalRole", "admin"))
-      .collect();
-    return legacyAdmins.some(
-      (user: { isInternal?: boolean }) => user.isInternal === true,
-    );
+    return await hasActiveAdmin(ctx);
   },
 });
