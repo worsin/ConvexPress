@@ -63,16 +63,20 @@ export function AdminGate({
     api.auth.queries.hasAdmin,
     isAuthenticated ? "skip" : undefined,
   );
+  const verifiedAdminAccess = useQuery(
+    api.users.checkAdminAccess,
+    isAuthenticated ? {} : "skip",
+  );
 
   const shouldAutoSignup =
     !!pendingCredentials && mode === "server" && !autoSignupError;
   const shouldAutoLogin = !!pendingLoginCredentials && mode === "client";
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!verifiedAdminAccess) return;
     if (pendingCredentials) void clearPendingAdminCredentials();
     if (pendingLoginCredentials) void clearPendingLoginCredentials();
-  }, [isAuthenticated, pendingCredentials, pendingLoginCredentials]);
+  }, [verifiedAdminAccess, pendingCredentials, pendingLoginCredentials]);
 
   // Web mode -- passthrough
   if (!isElectron() && !mode) {
