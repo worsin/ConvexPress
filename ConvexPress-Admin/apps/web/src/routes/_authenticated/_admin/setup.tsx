@@ -352,37 +352,49 @@ function buildSetupCards({
 }
 
 function FirstRunSetupPage() {
-  const { isLoading } = useAuth();
+  const { isLoading, canAccessRoute } = useAuth();
   const canManageOptions = useCan("manage_options");
+  const hasSetupAccess = canManageOptions && canAccessRoute("/setup");
+  const canLoadSetupData = !isLoading && hasSetupAccess;
 
-  const email = useQuery(api.settings.queries.getBySection, {
-    section: "email" as any,
-  }) as SettingsData;
-  const clerk = useQuery(api.settings.queries.getBySection, {
-    section: "integrations.clerk" as any,
-  }) as SettingsData;
-  const searchSettings = useQuery(api.settings.queries.getBySection, {
-    section: "search" as any,
-  }) as SettingsData;
-  const ai = useQuery(api.settings.queries.getBySection, {
-    section: "ai" as any,
-  }) as SettingsData;
-  const payments = useQuery(api.settings.queries.getBySection, {
-    section: "commerce.payments" as any,
-  }) as SettingsData;
-  const google = useQuery(api.settings.queries.getBySection, {
-    section: "integrations.google" as any,
-  }) as SettingsData;
-  const ga4 = useQuery(api.settings.queries.getBySection, {
-    section: "analytics.ga4" as any,
-  }) as SettingsData;
-  const shipping = useQuery((api as any).shipping.queries.getOverview, {}) as
+  const email = useQuery(
+    api.settings.queries.getBySection,
+    canLoadSetupData ? { section: "email" as any } : "skip",
+  ) as SettingsData;
+  const clerk = useQuery(
+    api.settings.queries.getBySection,
+    canLoadSetupData ? { section: "integrations.clerk" as any } : "skip",
+  ) as SettingsData;
+  const searchSettings = useQuery(
+    api.settings.queries.getBySection,
+    canLoadSetupData ? { section: "search" as any } : "skip",
+  ) as SettingsData;
+  const ai = useQuery(
+    api.settings.queries.getBySection,
+    canLoadSetupData ? { section: "ai" as any } : "skip",
+  ) as SettingsData;
+  const payments = useQuery(
+    api.settings.queries.getBySection,
+    canLoadSetupData ? { section: "commerce.payments" as any } : "skip",
+  ) as SettingsData;
+  const google = useQuery(
+    api.settings.queries.getBySection,
+    canLoadSetupData ? { section: "integrations.google" as any } : "skip",
+  ) as SettingsData;
+  const ga4 = useQuery(
+    api.settings.queries.getBySection,
+    canLoadSetupData ? { section: "analytics.ga4" as any } : "skip",
+  ) as SettingsData;
+  const shipping = useQuery(
+    (api as any).shipping.queries.getOverview,
+    canLoadSetupData ? {} : "skip",
+  ) as
     | ShippingOverview
     | undefined;
 
   if (isLoading) return <Loader />;
 
-  if (!canManageOptions) {
+  if (!hasSetupAccess) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <ShieldAlert className="mb-4 h-12 w-12 text-muted-foreground" />

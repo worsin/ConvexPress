@@ -14,6 +14,8 @@ import { ConvexError } from "convex/values";
 import { internalMutation } from "../_generated/server";
 import { BUILT_IN_ROLES, LEGACY_ROLE_MAP } from "../seed/roles";
 
+const ADMIN_SETUP_PAGE_ACCESS = "/admin/setup";
+
 // ─── Seed Roles ─────────────────────────────────────────────────────────────
 
 /**
@@ -135,6 +137,47 @@ export const reseedRoles = internalMutation({
       message: `Reseed complete. Updated: ${updated.length}, Created: ${created.length}`,
       updated,
       created,
+    };
+  },
+});
+
+// ─── Targeted Page Access Repair ────────────────────────────────────────────
+
+/**
+ * Add the setup page to the protected Administrator role without overwriting
+ * any existing built-in role customizations. Use this when a live deployment
+ * predates the `/setup` first-run checklist route.
+ */
+export const ensureAdminSetupPageAccess = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const administrator = await ctx.db
+      .query("roles")
+      .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
+      .unique();
+
+    if (!administrator) {
+      return {
+        updated: false,
+        reason: "Administrator role is not seeded",
+      };
+    }
+
+    if (administrator.pageAccess.includes(ADMIN_SETUP_PAGE_ACCESS)) {
+      return {
+        updated: false,
+        reason: "Administrator role already has setup page access",
+      };
+    }
+
+    await ctx.db.patch("roles", administrator._id, {
+      pageAccess: [...administrator.pageAccess, ADMIN_SETUP_PAGE_ACCESS],
+      updatedAt: Date.now(),
+    });
+
+    return {
+      updated: true,
+      added: ADMIN_SETUP_PAGE_ACCESS,
     };
   },
 });

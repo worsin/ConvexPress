@@ -50,6 +50,10 @@ function matchesPageAccess(path: string, allowed: string): boolean {
     ? allowed.slice(0, -1)
     : allowed;
 
+  if (normalizedAllowed === "/" || normalizedAllowed === "/admin") {
+    return path === normalizedAllowed;
+  }
+
   if (normalizedAllowed.endsWith("/*")) {
     const prefix = normalizedAllowed.slice(0, -2);
     return path === prefix || path.startsWith(`${prefix}/`);
