@@ -37,6 +37,82 @@ async function seedSubscriberRole(t: ReturnType<typeof createHarness>) {
   });
 }
 
+async function seedOpenRegistration(t: ReturnType<typeof createHarness>) {
+  await t.run(async (ctx) => {
+    const now = Date.now();
+    const updaterId = await ctx.db.insert("users", {
+      authSource: "local",
+      email: "settings-updater@example.com",
+      emailVerified: true,
+      displayName: "Settings Updater",
+      slug: "settings-updater",
+      status: "active",
+      registrationMethod: "self",
+      registeredAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await ctx.db.insert("settings", {
+      section: "general",
+      values: {
+        membershipEnabled: true,
+        registrationMode: "invite_only",
+      },
+      updatedAt: now,
+      updatedBy: updaterId,
+    });
+  });
+}
+
+async function seedInvitationFixture(t: ReturnType<typeof createHarness>) {
+  const now = Date.now();
+
+  return await t.run(async (ctx) => {
+    const inviterId = await ctx.db.insert("users", {
+      authSource: "local",
+      email: "inviter@example.com",
+      emailVerified: true,
+      displayName: "Inviter",
+      slug: "inviter",
+      status: "active",
+      registrationMethod: "self",
+      registeredAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const editorRoleId = await ctx.db.insert("roles", {
+      name: "Editor",
+      slug: "editor",
+      description: "Content editor",
+      level: 80,
+      type: "internal",
+      isDefault: false,
+      isProtected: true,
+      capabilities: ["post.update"],
+      pageAccess: ["/admin/posts"],
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const invitationId = await ctx.db.insert("invitations", {
+      email: "invited@example.com",
+      role: "editor",
+      invitedBy: inviterId,
+      status: "pending",
+      token:
+        "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      expiresAt: now + 7 * 24 * 60 * 60 * 1000,
+      createdAt: now,
+      resentCount: 0,
+    });
+
+    return { editorRoleId, invitationId };
+  });
+}
+
 describe("Clerk session provisioning", () => {
   test("does not create a user from a Clerk session without a valid email", async () => {
     const t = createHarness().withIdentity({
@@ -62,6 +138,7 @@ describe("Clerk session provisioning", () => {
   test("bounds Clerk profile fields before creating website users", async () => {
     const t = createHarness();
     const subscriberRoleId = await seedSubscriberRole(t);
+    await seedOpenRegistration(t);
     const authenticated = t.withIdentity({
       issuer: CLERK_ISSUER,
       subject: " user_clerk_profile ",
@@ -82,9 +159,9 @@ describe("Clerk session provisioning", () => {
     const users = await t.run(async (ctx) => {
       return await ctx.db.query("users").collect();
     });
-    expect(users).toHaveLength(1);
 
-    const user = users[0]!;
+    const user = users.find((candidate) => candidate.email === "new.customer@example.com");
+    expect(user).toBeDefined();
     expect(user.authSource).toBe("clerk");
     expect(user.clerkUserId).toBe("user_clerk_profile");
     expect(user.email).toBe("new.customer@example.com");
@@ -95,6 +172,66 @@ describe("Clerk session provisioning", () => {
     expect(user.displayName).toHaveLength(128);
     expect(user.profilePictureUrl).toHaveLength(2048);
     expect(user.slug).toBe("new.customer");
+  });
+
+  test("does not create new Clerk users while public registration is closed", async () => {
+    const t = createHarness();
+    await seedSubscriberRole(t);
+
+    const authenticated = t.withIdentity({
+      issuer: CLERK_ISSUER,
+      subject: "user_closed_registration",
+      tokenIdentifier: `${CLERK_ISSUER}|user_closed_registration`,
+      name: "Closed Registration",
+      email: "closed@example.com",
+      emailVerified: true,
+    });
+
+    expect(
+      await authenticated.mutation(api.auth.clerkProvisioning.provisionClerkUser),
+    ).toBeNull();
+
+    const users = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", "closed@example.com"))
+        .collect();
+    });
+    expect(users).toHaveLength(0);
+  });
+
+  test("allows a Clerk user with a live invitation while registration is closed", async () => {
+    const t = createHarness();
+    await seedSubscriberRole(t);
+    const fixture = await seedInvitationFixture(t);
+
+    const authenticated = t.withIdentity({
+      issuer: CLERK_ISSUER,
+      subject: "user_invited_registration",
+      tokenIdentifier: `${CLERK_ISSUER}|user_invited_registration`,
+      name: "Invited User",
+      email: "invited@example.com",
+      emailVerified: true,
+    });
+
+    const result = await authenticated.mutation(
+      api.auth.clerkProvisioning.provisionClerkUser,
+    );
+    expect(result).toBeTruthy();
+
+    const snapshot = await t.run(async (ctx) => {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", "invited@example.com"))
+        .unique();
+      const invitation = await ctx.db.get(fixture.invitationId);
+      return { user, invitation };
+    });
+
+    expect(snapshot.user?.roleId).toBe(fixture.editorRoleId);
+    expect(snapshot.user?.registrationMethod).toBe("invite");
+    expect(snapshot.invitation?.status).toBe("accepted");
+    expect(snapshot.invitation?.acceptedBy).toBe(snapshot.user?._id);
   });
 
   test("requires verified email before linking an imported user by email", async () => {

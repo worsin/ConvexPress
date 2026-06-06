@@ -17,7 +17,10 @@
 
 import { query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
-import { getRegistrationSettings } from "../helpers/registration";
+import {
+  getRegistrationSettings,
+  normalizeInvitationToken,
+} from "../helpers/registration";
 import {
   listInvitationsArgs,
   getInvitationArgs,
@@ -151,14 +154,15 @@ export const getByToken = query({
   args: getByTokenArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    if (!args.token || args.token.trim() === "") return null;
+    const token = normalizeInvitationToken(args.token);
+    if (!token) return null;
 
     const now = Date.now();
 
     // First, try matching the current token via index
     let invitation = await ctx.db
       .query("invitations")
-      .withIndex("by_token", (q: ConvexQueryBuilder) => q.eq("token", args.token))
+      .withIndex("by_token", (q: ConvexQueryBuilder) => q.eq("token", token))
       .unique();
 
     // If not found by current token, check if the token matches a
@@ -176,7 +180,7 @@ export const getByToken = query({
         pendingInvitations.find(
           // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           (inv) =>
-            inv.previousToken === args.token &&
+            inv.previousToken === token &&
             inv.previousTokenExpiresAt !== undefined &&
             inv.previousTokenExpiresAt >= now,
         ) ?? null;

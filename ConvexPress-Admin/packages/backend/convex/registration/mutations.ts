@@ -22,11 +22,16 @@ import { ConvexError } from "convex/values";
 import { requireCan, requireAuth } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import {
+  MAX_BULK_INVITATIONS,
+  MAX_INVITATION_MESSAGE_LENGTH,
   generateInvitationToken,
-  isValidEmail,
   findUserByEmail,
   findPendingInvitation,
   getRegistrationSettings,
+  normalizeInvitationMessage,
+  normalizeInvitationToken,
+  normalizeRegistrationEmail,
+  normalizeRegistrationName,
 } from "../helpers/registration";
 import {
   inviteUserArgs,
@@ -67,13 +72,14 @@ export const inviteUser = mutation({
     const admin = await requireCan(ctx, "registration.invite");
 
     // 2. Email validation
-    const email = args.email.toLowerCase().trim();
-    if (!isValidEmail(email)) {
+    const email = normalizeRegistrationEmail(args.email);
+    if (!email) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message: "Invalid email address format.",
       });
     }
+    const role = args.role.toLowerCase().trim();
 
     // 3. Check email not already registered
     const existingUser = await findUserByEmail(ctx, email);
@@ -94,10 +100,19 @@ export const inviteUser = mutation({
     }
 
     // 5. Validate role
-    if (!isValidRole(args.role)) {
+    if (!isValidRole(role)) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message: `Invalid role: ${args.role}`,
+      });
+    }
+    if (
+      typeof args.message === "string" &&
+      args.message.length > MAX_INVITATION_MESSAGE_LENGTH
+    ) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `Invitation message must be ${MAX_INVITATION_MESSAGE_LENGTH} characters or fewer.`,
       });
     }
 
@@ -113,8 +128,8 @@ export const inviteUser = mutation({
     // 8. Insert invitation record
     const invitationId = await ctx.db.insert("invitations", {
       email,
-      role: args.role,
-      message: args.message,
+      role,
+      message: normalizeInvitationMessage(args.message),
       invitedBy: admin._id,
       status: "pending",
       token,
@@ -127,11 +142,11 @@ export const inviteUser = mutation({
     await emitEvent(ctx, REGISTRATION_EVENTS.USER_INVITED, SYSTEM.REGISTRATION, {
       invitationId,
       email,
-      role: args.role,
+      role,
       invitedBy: admin._id,
       sendNotification: args.sendNotification,
-      firstName: args.firstName ?? null,
-      lastName: args.lastName ?? null,
+      firstName: normalizeRegistrationName(args.firstName) ?? null,
+      lastName: normalizeRegistrationName(args.lastName) ?? null,
       isResend: false,
     });
 
@@ -280,6 +295,12 @@ export const bulkInvite = mutation({
   handler: async (ctx, args) => {
     // 1. Auth check
     const admin = await requireCan(ctx, "registration.invite");
+    if (args.invitations.length > MAX_BULK_INVITATIONS) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `Bulk invitations are limited to ${MAX_BULK_INVITATIONS} recipients at a time.`,
+      });
+    }
 
     const settings = await getRegistrationSettings(ctx);
     const expiryMs = settings.invitationExpiryDays * 24 * 60 * 60 * 1000;
@@ -293,24 +314,36 @@ export const bulkInvite = mutation({
     }> = [];
 
     for (const invite of args.invitations) {
-      const email = invite.email.toLowerCase().trim();
+      const email = normalizeRegistrationEmail(invite.email);
 
       // Validate email
-      if (!isValidEmail(email)) {
+      if (!email) {
         results.push({
-          email,
+          email: String(invite.email).slice(0, 254),
           success: false,
           error: "Invalid email address format.",
         });
         continue;
       }
+      const role = invite.role.toLowerCase().trim();
 
       // Validate role
-      if (!isValidRole(invite.role)) {
+      if (!isValidRole(role)) {
         results.push({
           email,
           success: false,
           error: `Invalid role: ${invite.role}`,
+        });
+        continue;
+      }
+      if (
+        typeof invite.message === "string" &&
+        invite.message.length > MAX_INVITATION_MESSAGE_LENGTH
+      ) {
+        results.push({
+          email,
+          success: false,
+          error: `Invitation message must be ${MAX_INVITATION_MESSAGE_LENGTH} characters or fewer.`,
         });
         continue;
       }
@@ -341,8 +374,8 @@ export const bulkInvite = mutation({
       const token = generateInvitationToken();
       const invitationId = await ctx.db.insert("invitations", {
         email,
-        role: invite.role,
-        message: invite.message,
+        role,
+        message: normalizeInvitationMessage(invite.message),
         invitedBy: admin._id,
         status: "pending",
         token,
@@ -355,11 +388,11 @@ export const bulkInvite = mutation({
       await emitEvent(ctx, REGISTRATION_EVENTS.USER_INVITED, SYSTEM.REGISTRATION, {
         invitationId,
         email,
-        role: invite.role,
+        role,
         invitedBy: admin._id,
         sendNotification: args.sendNotification,
-        firstName: invite.firstName ?? null,
-        lastName: invite.lastName ?? null,
+        firstName: normalizeRegistrationName(invite.firstName) ?? null,
+        lastName: normalizeRegistrationName(invite.lastName) ?? null,
         isResend: false,
       });
 
@@ -396,6 +429,13 @@ export const acceptInvitation = mutation({
   handler: async (ctx, args) => {
     // 1. Auth check - require authenticated user
     const authenticatedUser = await requireAuth(ctx);
+    const token = normalizeInvitationToken(args.token);
+    if (!token) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Invitation not found.",
+      });
+    }
 
     // 2. Verify the userId matches the authenticated user
     if (args.userId !== authenticatedUser._id) {
@@ -410,7 +450,7 @@ export const acceptInvitation = mutation({
     const now = Date.now();
     let invitation = await ctx.db
       .query("invitations")
-      .withIndex("by_token", (q: ConvexQueryBuilder) => q.eq("token", args.token))
+      .withIndex("by_token", (q: ConvexQueryBuilder) => q.eq("token", token))
       .unique();
 
     // If not found by current token, check previousToken within grace period
@@ -424,7 +464,7 @@ export const acceptInvitation = mutation({
         pendingInvitations.find(
           // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           (inv) =>
-            inv.previousToken === args.token &&
+            inv.previousToken === token &&
             inv.previousTokenExpiresAt !== undefined &&
             inv.previousTokenExpiresAt >= now,
         ) ?? null;
@@ -441,6 +481,14 @@ export const acceptInvitation = mutation({
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message: `Cannot accept: invitation is ${invitation.status}.`,
+      });
+    }
+    const authenticatedEmail = normalizeRegistrationEmail(authenticatedUser.email);
+    if (!authenticatedEmail || authenticatedEmail !== invitation.email) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message:
+          "Invitation email does not match the authenticated user.",
       });
     }
 

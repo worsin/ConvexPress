@@ -11,8 +11,20 @@
  */
 
 import type { QueryCtx } from "../_generated/server";
+import {
+  MAX_CLERK_NAME_LENGTH,
+  MAX_USERNAME_LENGTH,
+  normalizeEmail,
+  normalizeOptionalString,
+} from "../auth/inputLimits";
 
 type ReadCtx = Pick<QueryCtx, "db">;
+
+export const INVITATION_TOKEN_LENGTH = 64;
+export const MAX_INVITATION_MESSAGE_LENGTH = 1000;
+export const MAX_BULK_INVITATIONS = 100;
+
+const INVITATION_TOKEN_RE = /^[a-f0-9]{64}$/i;
 
 // ─── Token Generation ────────────────────────────────────────────────────────
 
@@ -38,9 +50,30 @@ export function generateInvitationToken(): string {
  * Returns true if the string looks like a valid email address.
  */
 export function isValidEmail(email: string): boolean {
-  // Simple regex for basic email format validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  return normalizeRegistrationEmail(email) !== null;
+}
+
+export function normalizeRegistrationEmail(value: unknown): string | null {
+  return normalizeEmail(value) ?? null;
+}
+
+export function normalizeInvitationToken(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const token = value.trim().toLowerCase();
+  if (token.length !== INVITATION_TOKEN_LENGTH) return null;
+  return INVITATION_TOKEN_RE.test(token) ? token : null;
+}
+
+export function normalizeInvitationMessage(value: unknown): string | undefined {
+  return normalizeOptionalString(value, MAX_INVITATION_MESSAGE_LENGTH);
+}
+
+export function normalizeRegistrationName(value: unknown): string | undefined {
+  return normalizeOptionalString(value, MAX_CLERK_NAME_LENGTH);
+}
+
+export function normalizeRegistrationUsername(value: unknown): string | undefined {
+  return normalizeOptionalString(value, MAX_USERNAME_LENGTH);
 }
 
 /**
@@ -54,9 +87,12 @@ export async function findUserByEmail(
   ctx: ReadCtx,
   email: string,
 ) {
+  const normalizedEmail = normalizeRegistrationEmail(email);
+  if (!normalizedEmail) return null;
+
   return await ctx.db
     .query("users")
-    .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email.toLowerCase().trim()))
+    .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", normalizedEmail))
     .unique();
 }
 
@@ -71,14 +107,19 @@ export async function findPendingInvitation(
   ctx: ReadCtx,
   email: string,
 ) {
+  const normalizedEmail = normalizeRegistrationEmail(email);
+  if (!normalizedEmail) return null;
+
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   const invitations = await ctx.db
     .query("invitations")
-    .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email.toLowerCase().trim()))
+    .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", normalizedEmail))
     .collect();
 
-  // Return the first pending invitation (there should only be one)
+  const now = Date.now();
+  // Return the first live pending invitation (there should only be one).
   // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-  return invitations.find((inv) => inv.status === "pending") ?? null;
+  return invitations.find((inv) => inv.status === "pending" && inv.expiresAt >= now) ?? null;
 }
 
 // ─── Username Generation ─────────────────────────────────────────────────────
@@ -295,7 +336,6 @@ export async function getRegistrationSettings(ctx: ReadCtx) {
  */
 export async function getDefaultRoleDoc(ctx: ReadCtx) {
   // First try: role marked as default
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   const defaultRole = await ctx.db
     .query("roles")
     .withIndex("by_isDefault", (q: ConvexQueryBuilder) => q.eq("isDefault", true))

@@ -1,4 +1,5 @@
 import { mutation } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import {
   MAX_CLERK_NAME_LENGTH,
   MAX_CLERK_URL_LENGTH,
@@ -7,6 +8,11 @@ import {
   normalizeEmail,
   normalizeOptionalString,
 } from "./inputLimits";
+import {
+  findPendingInvitation,
+  getDefaultRoleDoc,
+  getRegistrationSettings,
+} from "../helpers/registration";
 
 /**
  * Ensure a ConvexPress user record exists for the current Clerk identity.
@@ -105,11 +111,21 @@ export const provisionClerkUser = mutation({
 
     if (!normalizedEmail) return null;
 
-    // 3. No match — create a new user
-    const subscriberRole = await ctx.db
-      .query("roles")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "subscriber"))
-      .unique();
+    const invitation = await findPendingInvitation(ctx, normalizedEmail);
+    const settings = await getRegistrationSettings(ctx);
+    if (!invitation && !settings.anyoneCanRegister) return null;
+
+    const defaultRole = await getDefaultRoleDoc(ctx);
+    let roleId: Id<"roles"> | undefined = defaultRole?._id;
+    if (invitation) {
+      const invitedRole = await ctx.db
+        .query("roles")
+        .withIndex("by_slug", (q: ConvexQueryBuilder) =>
+          q.eq("slug", invitation.role),
+        )
+        .unique();
+      if (invitedRole?.status === "active") roleId = invitedRole._id;
+    }
 
     const userId = await ctx.db.insert("users", {
       authSource: "clerk",
@@ -122,17 +138,28 @@ export const provisionClerkUser = mutation({
       displayName: displayName || normalizedEmail,
       slug: deriveClerkSlug({ email: normalizedEmail }),
       status: "active",
-      roleId: subscriberRole?._id,
-      registrationMethod: "self",
+      roleId,
+      registrationMethod: invitation ? "invite" : "self",
+      invitedBy: invitation?.invitedBy,
       clerkProvisioningStatus: "provisioned",
       clerkProvisioningSource: "clerk_session",
-      clerkProvisioningReason: "session_user_created",
+      clerkProvisioningReason: invitation
+        ? "session_invitation_user_created"
+        : "session_user_created",
       clerkProvisionedAt: now,
       clerkProvisioningAttemptedAt: now,
       registeredAt: now,
       createdAt: now,
       updatedAt: now,
     });
+
+    if (invitation) {
+      await ctx.db.patch("invitations", invitation._id, {
+        status: "accepted",
+        acceptedBy: userId,
+        acceptedAt: now,
+      });
+    }
 
     return userId;
   },

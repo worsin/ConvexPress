@@ -27,7 +27,15 @@ import {
   ensureUniqueUsername,
   getRegistrationSettings,
   getDefaultRoleDoc,
+  normalizeRegistrationEmail,
+  normalizeRegistrationName,
+  normalizeRegistrationUsername,
 } from "../helpers/registration";
+import {
+  MAX_CLERK_URL_LENGTH,
+  normalizeClerkUserId,
+  normalizeOptionalString,
+} from "../auth/inputLimits";
 import {
   generateSlug,
   ensureUniqueSlug,
@@ -68,6 +76,16 @@ export const handleExternalAuthUserCreated = internalMutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
+    const externalAuthId = normalizeClerkUserId(args.externalAuthId);
+    const email = normalizeRegistrationEmail(args.email);
+    if (!externalAuthId || !email) {
+      throw new Error("Invalid external auth user payload.");
+    }
+    const firstName = normalizeRegistrationName(args.firstName);
+    const lastName = normalizeRegistrationName(args.lastName);
+    const avatarUrl = normalizeOptionalString(args.avatarUrl, MAX_CLERK_URL_LENGTH);
+    const usernameArg = normalizeRegistrationUsername(args.username);
+    const oauthProvider = normalizeOptionalString(args.oauthProvider, 64);
 
     // ─── 1. Idempotency Guard ──────────────────────────────────────────
     // Webhooks may retry. Never create duplicate user records.
@@ -75,7 +93,7 @@ export const handleExternalAuthUserCreated = internalMutation({
     const existingByClerk = await ctx.db
       .query("users")
       .withIndex("by_clerkUserId", (q: ConvexQueryBuilder) =>
-        q.eq("clerkUserId", args.externalAuthId),
+        q.eq("clerkUserId", externalAuthId),
       )
       .unique();
 
@@ -86,7 +104,7 @@ export const handleExternalAuthUserCreated = internalMutation({
     // Also check by email to prevent duplicate accounts
     const existingByEmail = await ctx.db
       .query("users")
-      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", args.email.toLowerCase().trim()))
+      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email))
       .first();
 
     if (existingByEmail) {
@@ -94,7 +112,6 @@ export const handleExternalAuthUserCreated = internalMutation({
     }
 
     // ─── 2. Invitation Matching ────────────────────────────────────────
-    const email = args.email.toLowerCase().trim();
     const pendingInvitations = await ctx.db
       .query("invitations")
       .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email))
@@ -126,17 +143,13 @@ export const handleExternalAuthUserCreated = internalMutation({
       if (invitedRole) {
         roleId = invitedRole._id;
       }
-    } else if (args.oauthProvider) {
-      // OAuth registration
-      registrationMethod = "oauth";
     } else {
-      // Self-registration
-      registrationMethod = "self";
-
-      // Check if self-registration is allowed
+      // OAuth and email/password signups are both public self-registration
+      // unless a live invitation matched the email.
       if (!settings.anyoneCanRegister) {
         throw new Error("User registration is currently not allowed.");
       }
+      registrationMethod = oauthProvider ? "oauth" : "self";
     }
 
     // If no role from invitation, use the default role
@@ -148,15 +161,15 @@ export const handleExternalAuthUserCreated = internalMutation({
     }
 
     // ─── 4. Username Generation ────────────────────────────────────────
-    const baseUsername = args.username
-      ? args.username.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 60) || generateUsernameFromEmail(email)
+    const baseUsername = usernameArg
+      ? usernameArg.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 60) || generateUsernameFromEmail(email)
       : generateUsernameFromEmail(email);
     const username = await ensureUniqueUsername(ctx, baseUsername);
 
     // ─── 5. Display Name & Slug ────────────────────────────────────────
     const displayName = generateDisplayName(
-      args.firstName,
-      args.lastName,
+      firstName,
+      lastName,
       email,
       username,
     );
@@ -167,12 +180,12 @@ export const handleExternalAuthUserCreated = internalMutation({
     const userId = await ctx.db.insert("users", {
       // External auth fields
       authSource: "clerk",
-      clerkUserId: args.externalAuthId,
+      clerkUserId: externalAuthId,
       email,
       emailVerified: args.emailVerified,
-      firstName: args.firstName,
-      lastName: args.lastName,
-      profilePictureUrl: args.avatarUrl,
+      firstName,
+      lastName,
+      profilePictureUrl: avatarUrl,
 
       // ConvexPress-managed fields
       username,
@@ -217,7 +230,7 @@ export const handleExternalAuthUserCreated = internalMutation({
       role: matchedInvitation?.role ?? settings.defaultRole,
       registrationMethod,
       invitedBy: invitedBy ?? null,
-      oauthProvider: args.oauthProvider ?? null,
+      oauthProvider: oauthProvider ?? null,
     });
 
     return userId;
