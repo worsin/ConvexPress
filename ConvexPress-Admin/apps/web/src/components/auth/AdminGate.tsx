@@ -180,6 +180,7 @@ function AutoLogin({
     async function doLogin() {
       try {
         await login(credentials.identifier, credentials.password);
+        await clearPendingLoginCredentials();
         toast.success("Signed in to ConvexPress.");
         onComplete();
       } catch (err) {
@@ -250,6 +251,7 @@ function AutoSignup({
             navigate({ to: FIRST_ADMIN_SETUP_ROUTE, replace: true }),
           allowExistingAdmin: true,
         });
+        await clearPendingAdminCredentials();
 
         toast.success("Welcome to ConvexPress!");
         onComplete();
@@ -335,6 +337,7 @@ function AdminCreationForm({
         navigateToSetup: () =>
           navigate({ to: FIRST_ADMIN_SETUP_ROUTE, replace: true }),
       });
+      await clearPendingAdminCredentials();
       toast.success("Admin account created! Welcome to ConvexPress.");
     } catch (err) {
       const message =
