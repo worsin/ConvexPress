@@ -14,6 +14,11 @@ afterEach(() => {
 });
 
 describe("getAllowedAuthOrigin", () => {
+  test("allows same-site requests without an Origin header", () => {
+    expect(getAllowedAuthOrigin(null)).toBe("");
+    expect(getAllowedAuthOrigin("")).toBe("");
+  });
+
   test("allows localhost development origins", () => {
     expect(getAllowedAuthOrigin("http://localhost:4105")).toBe(
       "http://localhost:4105",
@@ -21,6 +26,13 @@ describe("getAllowedAuthOrigin", () => {
     expect(getAllowedAuthOrigin("http://127.0.0.1:4105")).toBe(
       "http://127.0.0.1:4105",
     );
+  });
+
+  test("can explicitly disable localhost development fallback", () => {
+    process.env.AUTH_ALLOW_LOCALHOST_ORIGINS = "false";
+
+    expect(getAllowedAuthOrigin("http://localhost:4105")).toBeNull();
+    expect(getAllowedAuthOrigin("http://127.0.0.1:4105")).toBeNull();
   });
 
   test("allows configured origins", () => {
@@ -32,6 +44,14 @@ describe("getAllowedAuthOrigin", () => {
     );
     expect(getAllowedAuthOrigin("https://other.example.com")).toBe(
       "https://other.example.com",
+    );
+  });
+
+  test("allows the configured auth issuer origin", () => {
+    process.env.AUTH_ISSUER_URL = "https://issuer.example.com/some/path";
+
+    expect(getAllowedAuthOrigin("https://issuer.example.com")).toBe(
+      "https://issuer.example.com",
     );
   });
 
