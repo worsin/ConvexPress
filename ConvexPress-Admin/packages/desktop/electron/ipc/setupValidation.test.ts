@@ -1,12 +1,34 @@
 import { describe, expect, test } from "bun:test";
 
-import { deriveConvexSiteUrl, validateSetupConfig } from "./setupValidation";
+import {
+  deriveConvexSiteUrl,
+  normalizeConvexCloudUrl,
+  validateSetupConfig,
+} from "./setupValidation";
 
 describe("setup validation", () => {
   test("derives a Convex site URL from a cloud deployment URL", () => {
     expect(
       deriveConvexSiteUrl("https://affable-herring-441.convex.cloud/"),
     ).toBe("https://affable-herring-441.convex.site");
+  });
+
+  test("normalizes only Convex cloud deployment URLs for connection tests", () => {
+    expect(
+      normalizeConvexCloudUrl(" https://affable-herring-441.convex.cloud/ "),
+    ).toBe("https://affable-herring-441.convex.cloud");
+
+    expect(() =>
+      normalizeConvexCloudUrl("http://127.0.0.1:4105"),
+    ).toThrow("Convex URL must match https://your-app-123.convex.cloud.");
+    expect(() =>
+      normalizeConvexCloudUrl("https://169.254.169.254/latest/meta-data"),
+    ).toThrow("Convex URL must match https://your-app-123.convex.cloud.");
+    expect(() =>
+      normalizeConvexCloudUrl(
+        "https://affable-herring-441.convex.cloud.evil.example.com",
+      ),
+    ).toThrow("Convex URL must match https://your-app-123.convex.cloud.");
   });
 
   test("normalizes server setup and pending first-admin credentials", () => {

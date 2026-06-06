@@ -64,7 +64,7 @@ function validateSetupMode(mode: string | undefined): "server" | "client" {
   return mode;
 }
 
-function validateConvexCloudUrl(value: string | undefined): string {
+export function normalizeConvexCloudUrl(value: string | undefined): string {
   const cleaned = requireTrimmed(value, "Convex URL").replace(/\/+$/, "");
   if (!CONVEX_CLOUD_URL_RE.test(cleaned)) {
     throw new Error(
@@ -125,7 +125,7 @@ export function validateSetupConfig(
   config: SetupValidationConfig,
 ): ValidatedSetupConfig {
   const mode = validateSetupMode(config.mode);
-  const convexUrl = validateConvexCloudUrl(config.convexUrl);
+  const convexUrl = normalizeConvexCloudUrl(config.convexUrl);
   const convexSiteUrl = resolveConvexSiteUrl(
     convexUrl,
     config.convexSiteUrl,

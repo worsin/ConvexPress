@@ -106,10 +106,98 @@ var JsonStore = class {
   }
 };
 
+// electron/ipc/setupValidation.ts
+var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+var CONVEX_CLOUD_URL_RE = /^https:\/\/[a-z0-9-]+\.convex\.cloud$/;
+function cleanUrl(value) {
+  return value.trim().replace(/\/+$/, "");
+}
+function requireTrimmed(value, label) {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    throw new Error(`${label} is required.`);
+  }
+  return trimmed;
+}
+function deriveConvexSiteUrl(convexUrl) {
+  const cleaned = cleanUrl(convexUrl);
+  try {
+    const url = new URL(cleaned);
+    if (url.hostname.endsWith(".convex.cloud")) {
+      url.hostname = url.hostname.replace(/\.convex\.cloud$/, ".convex.site");
+      return cleanUrl(url.toString());
+    }
+  } catch {
+  }
+  return cleaned;
+}
+function validateSetupMode(mode) {
+  if (mode !== "server" && mode !== "client") {
+    throw new Error("Setup mode must be either server or client.");
+  }
+  return mode;
+}
+function normalizeConvexCloudUrl(value) {
+  const cleaned = requireTrimmed(value, "Convex URL").replace(/\/+$/, "");
+  if (!CONVEX_CLOUD_URL_RE.test(cleaned)) {
+    throw new Error(
+      "Convex URL must match https://your-app-123.convex.cloud."
+    );
+  }
+  return cleaned;
+}
+function resolveConvexSiteUrl(convexUrl, explicitSiteUrl) {
+  const derivedSiteUrl = deriveConvexSiteUrl(convexUrl);
+  if (!explicitSiteUrl) return derivedSiteUrl;
+  const cleanedSiteUrl = cleanUrl(explicitSiteUrl);
+  if (cleanedSiteUrl !== derivedSiteUrl) {
+    throw new Error("Convex site URL must match the deployment URL.");
+  }
+  return cleanedSiteUrl;
+}
+function validateServerAdminCredentials(config) {
+  const displayName = requireTrimmed(config.adminName, "Admin name");
+  const email = requireTrimmed(config.adminEmail, "Admin email").toLowerCase();
+  const password = config.adminPassword;
+  if (!EMAIL_RE.test(email)) {
+    throw new Error("Admin email must be a valid email address.");
+  }
+  if (!password || password.length < 8) {
+    throw new Error("Admin password must be at least 8 characters.");
+  }
+  return { displayName, email, password };
+}
+function validateClientLoginCredentials(config) {
+  const identifier = requireTrimmed(
+    config.clientIdentifier,
+    "Client username or email"
+  );
+  const password = config.clientPassword;
+  if (!password) {
+    throw new Error("Client password is required.");
+  }
+  return { identifier, password };
+}
+function validateSetupConfig(config) {
+  const mode = validateSetupMode(config.mode);
+  const convexUrl = normalizeConvexCloudUrl(config.convexUrl);
+  const convexSiteUrl = resolveConvexSiteUrl(
+    convexUrl,
+    config.convexSiteUrl
+  );
+  return {
+    mode,
+    convexUrl,
+    convexSiteUrl,
+    pendingAdminCredentials: mode === "server" ? validateServerAdminCredentials(config) : null,
+    pendingLoginCredentials: mode === "client" ? validateClientLoginCredentials(config) : null
+  };
+}
+
 // electron/ipc/config.ts
 var { ipcMain: ipcMain2, net } = require("electron");
 var store = new JsonStore({ name: "convexpress-config" });
-var ALLOWED_CONFIG_KEYS = /* @__PURE__ */ new Set([
+var READABLE_CONFIG_KEYS = /* @__PURE__ */ new Set([
   "mode",
   "convexUrl",
   "convexSiteUrl",
@@ -118,22 +206,40 @@ var ALLOWED_CONFIG_KEYS = /* @__PURE__ */ new Set([
   "pendingAdminCredentials",
   "pendingLoginCredentials"
 ]);
-function assertAllowedConfigKey(key) {
-  if (!ALLOWED_CONFIG_KEYS.has(key)) {
+var WRITABLE_CONFIG_KEYS = /* @__PURE__ */ new Set([
+  "pendingAdminCredentials",
+  "pendingLoginCredentials"
+]);
+function assertReadableConfigKey(key) {
+  if (!READABLE_CONFIG_KEYS.has(key)) {
     throw new Error(`Config key not allowed: ${key}`);
+  }
+}
+function assertWritableConfigKey(key) {
+  if (!WRITABLE_CONFIG_KEYS.has(key)) {
+    throw new Error(`Config key is read-only: ${key}`);
   }
 }
 function registerConfigHandlers() {
   ipcMain2.handle("config:get", (_event, key) => {
-    assertAllowedConfigKey(key);
+    assertReadableConfigKey(key);
     return store.get(key);
   });
   ipcMain2.handle("config:set", (_event, key, value) => {
-    assertAllowedConfigKey(key);
+    assertWritableConfigKey(key);
     store.set(key, value);
   });
   ipcMain2.handle("config:test-connection", async (_event, url) => {
-    const cleanUrl2 = url.replace(/\/$/, "");
+    let cleanUrl2;
+    try {
+      cleanUrl2 = normalizeConvexCloudUrl(url);
+    } catch (error) {
+      return {
+        ok: false,
+        status: 400,
+        error: error instanceof Error ? error.message : "Invalid Convex URL."
+      };
+    }
     const endpoints = [
       `${cleanUrl2}/.well-known/openid-configuration`,
       `${cleanUrl2}/version`
@@ -203,96 +309,6 @@ var import_node_fs2 = require("fs");
 var import_node_os = require("os");
 var import_node_path2 = __toESM(require("path"));
 var import_node_crypto = require("crypto");
-
-// electron/ipc/setupValidation.ts
-var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-var CONVEX_CLOUD_URL_RE = /^https:\/\/[a-z0-9-]+\.convex\.cloud$/;
-function cleanUrl(value) {
-  return value.trim().replace(/\/+$/, "");
-}
-function requireTrimmed(value, label) {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    throw new Error(`${label} is required.`);
-  }
-  return trimmed;
-}
-function deriveConvexSiteUrl(convexUrl) {
-  const cleaned = cleanUrl(convexUrl);
-  try {
-    const url = new URL(cleaned);
-    if (url.hostname.endsWith(".convex.cloud")) {
-      url.hostname = url.hostname.replace(/\.convex\.cloud$/, ".convex.site");
-      return cleanUrl(url.toString());
-    }
-  } catch {
-  }
-  return cleaned;
-}
-function validateSetupMode(mode) {
-  if (mode !== "server" && mode !== "client") {
-    throw new Error("Setup mode must be either server or client.");
-  }
-  return mode;
-}
-function validateConvexCloudUrl(value) {
-  const cleaned = requireTrimmed(value, "Convex URL").replace(/\/+$/, "");
-  if (!CONVEX_CLOUD_URL_RE.test(cleaned)) {
-    throw new Error(
-      "Convex URL must match https://your-app-123.convex.cloud."
-    );
-  }
-  return cleaned;
-}
-function resolveConvexSiteUrl(convexUrl, explicitSiteUrl) {
-  const derivedSiteUrl = deriveConvexSiteUrl(convexUrl);
-  if (!explicitSiteUrl) return derivedSiteUrl;
-  const cleanedSiteUrl = cleanUrl(explicitSiteUrl);
-  if (cleanedSiteUrl !== derivedSiteUrl) {
-    throw new Error("Convex site URL must match the deployment URL.");
-  }
-  return cleanedSiteUrl;
-}
-function validateServerAdminCredentials(config) {
-  const displayName = requireTrimmed(config.adminName, "Admin name");
-  const email = requireTrimmed(config.adminEmail, "Admin email").toLowerCase();
-  const password = config.adminPassword;
-  if (!EMAIL_RE.test(email)) {
-    throw new Error("Admin email must be a valid email address.");
-  }
-  if (!password || password.length < 8) {
-    throw new Error("Admin password must be at least 8 characters.");
-  }
-  return { displayName, email, password };
-}
-function validateClientLoginCredentials(config) {
-  const identifier = requireTrimmed(
-    config.clientIdentifier,
-    "Client username or email"
-  );
-  const password = config.clientPassword;
-  if (!password) {
-    throw new Error("Client password is required.");
-  }
-  return { identifier, password };
-}
-function validateSetupConfig(config) {
-  const mode = validateSetupMode(config.mode);
-  const convexUrl = validateConvexCloudUrl(config.convexUrl);
-  const convexSiteUrl = resolveConvexSiteUrl(
-    convexUrl,
-    config.convexSiteUrl
-  );
-  return {
-    mode,
-    convexUrl,
-    convexSiteUrl,
-    pendingAdminCredentials: mode === "server" ? validateServerAdminCredentials(config) : null,
-    pendingLoginCredentials: mode === "client" ? validateClientLoginCredentials(config) : null
-  };
-}
-
-// electron/ipc/setup.ts
 var { ipcMain: ipcMain4 } = require("electron");
 function deriveDeployment(config) {
   const deployKey = config.adminKey?.trim();
