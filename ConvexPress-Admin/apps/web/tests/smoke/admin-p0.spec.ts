@@ -1,4 +1,4 @@
-import { test } from "./_fixtures";
+import { expect, test } from "./_fixtures";
 import { smokeRoute } from "./_helpers";
 
 test.describe.configure({ mode: "parallel" });
@@ -30,4 +30,21 @@ test("commerce-products [P0]", async ({ authedPage }) => {
 
 test("dashboard [P0]", async ({ authedPage }) => {
 	await smokeRoute(authedPage, "/dashboard", { expectSelector: "#admin-content" });
+});
+
+test("first-run setup checklist [P0]", async ({ authedPage }) => {
+	await smokeRoute(authedPage, "/setup", {
+		expectHeading: /Finish ConvexPress setup/i,
+		expectSelector: "#admin-content",
+	});
+
+	await expect(authedPage.getByText("Resend email delivery")).toBeVisible();
+	await expect(authedPage.getByText("Clerk website auth")).toBeVisible();
+	await expect(authedPage.getByText("Meilisearch")).toBeVisible();
+	await expect(authedPage.getByText("AI providers")).toBeVisible();
+	await expect(authedPage.getByText("Stripe payments")).toBeVisible();
+	await expect(authedPage.getByText("PayPal checkout")).toBeVisible();
+	await expect(authedPage.getByText("Google Analytics 4")).toBeVisible();
+	await expect(authedPage.getByText("Shipping carriers")).toBeVisible();
+	await expect(authedPage.getByText("ConvexPress access keys")).toBeVisible();
 });
