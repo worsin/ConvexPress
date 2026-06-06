@@ -30,6 +30,7 @@ import { isElectron } from "../../lib/electron";
 import {
   FIRST_ADMIN_SETUP_ROUTE,
   deriveSetupUsername,
+  validateFirstAdminForm,
 } from "../../lib/first-admin-setup";
 import { useLocalAuthContext } from "../../lib/local-auth-context";
 
@@ -314,29 +315,29 @@ function AdminCreationForm({
     e.preventDefault();
     setError(null);
 
-    if (!displayName || !username || !email || !password) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    if (password !== confirmPassword) {
-      toast.error("Passwords don't match");
-      return;
-    }
-    if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
+    const validation = validateFirstAdminForm({
+      displayName,
+      username,
+      email,
+      password,
+      confirmPassword,
+    });
+    if (!validation.ok) {
+      setError(validation.error);
+      toast.error(validation.error);
       return;
     }
 
     setLoading(true);
     try {
       await createFirstAdmin({
-        email,
-        username,
-        password,
-        displayName,
+        email: validation.credentials.email,
+        username: validation.credentials.username,
+        password: validation.credentials.password,
+        displayName: validation.credentials.displayName,
         setupToken,
       });
-      await login(email, password);
+      await login(validation.credentials.email, validation.credentials.password);
       toast.success("Admin account created! Welcome to ConvexPress.");
       await navigate({ to: FIRST_ADMIN_SETUP_ROUTE, replace: true });
     } catch (err) {
@@ -402,7 +403,6 @@ function AdminCreationForm({
               placeholder="admin"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              required
               autoComplete="username"
               className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
