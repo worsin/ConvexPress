@@ -22,6 +22,8 @@ const modules = {
   "./convex/authTracking/internals.ts": () =>
     import("../../authTracking/internals"),
   "./convex/roles/internals.ts": () => import("../../roles/internals"),
+  "./convex/roles/queries.ts": () => import("../../roles/queries"),
+  "./convex/settings/queries.ts": () => import("../../settings/queries"),
   "./convex/users.ts": () => import("../../users"),
 };
 
@@ -410,6 +412,154 @@ describe("createFirstAdmin", () => {
         isInternal: true,
       }),
     ).rejects.toThrow("Admin access required");
+  });
+
+  test("created admin can access setup route data with secrets redacted", async () => {
+    const t = createHarness();
+
+    await t.action(api.auth.setup.createFirstAdmin, {
+      email: "admin@example.com",
+      username: "admin",
+      password: PASSWORD,
+      displayName: "First Admin",
+    });
+
+    const snapshot = await t.run(async (ctx) => {
+      const user = (await ctx.db.query("users").collect())[0]!;
+      const role = await ctx.db.get(user.roleId!);
+      const now = Date.now();
+      const settingsSections = [
+        {
+          section: "email",
+          values: {
+            resendApiKey: "re_test_secret",
+            webhookSecret: "whsec_resend_secret",
+            fromAddress: "noreply@example.com",
+          },
+        },
+        {
+          section: "integrations.clerk",
+          values: {
+            clerkSecretKey: "sk_test_secret",
+            clerkWebhookSecret: "whsec_clerk_secret",
+            clerkJwtIssuerDomain: "https://clerk.example.test",
+          },
+        },
+        {
+          section: "search",
+          values: {
+            meilisearchHost: "https://search.example.test",
+            meilisearchApiKey: "meili_secret",
+          },
+        },
+        {
+          section: "ai",
+          values: {
+            provider: "openrouter",
+            apiKey: "openrouter_secret",
+            tavilyApiKey: "tavily_secret",
+            imageApiKey: "image_secret",
+          },
+        },
+        {
+          section: "commerce.payments",
+          values: {
+            stripePublishableKey: "pk_test_public",
+            stripeSecretKey: "sk_test_secret",
+            stripeWebhookSecret: "whsec_stripe_secret",
+            paypalClientId: "paypal-client-id",
+            paypalClientSecret: "paypal-secret",
+            paypalWebhookId: "paypal-webhook-id",
+          },
+        },
+        {
+          section: "integrations.google",
+          values: {
+            placesApiKey: "places_secret",
+            geocodeApiKey: "geocode_secret",
+          },
+        },
+        {
+          section: "analytics.ga4",
+          values: {
+            ga4ServiceAccountJson:
+              '{"type":"service_account","client_email":"ga4@example.test","private_key":"secret"}',
+            ga4PropertyId: "properties/123456789",
+          },
+        },
+      ];
+
+      for (const settings of settingsSections) {
+        await ctx.db.insert("settings", {
+          section: settings.section as any,
+          values: settings.values,
+          updatedAt: now,
+          updatedBy: user._id,
+        });
+      }
+
+      return { user, role };
+    });
+
+    const authenticated = t.withIdentity({
+      issuer: ADMIN_ISSUER,
+      subject: snapshot.user._id,
+      tokenIdentifier: `${ADMIN_ISSUER}|${snapshot.user._id}`,
+      email: snapshot.user.email,
+      name: snapshot.user.displayName,
+    });
+
+    const adminAccess = await authenticated.query(api.users.checkAdminAccess);
+    expect(adminAccess?.id).toBe(snapshot.user._id);
+
+    const role = await authenticated.query(api.roles.queries.getRole, {
+      roleId: snapshot.role!._id,
+    });
+    expect(role?.capabilities).toContain("manage_options");
+    expect(role?.capabilities).toContain("settings.update_email");
+    expect(role?.pageAccess).toContain("/admin/setup");
+
+    const email = await authenticated.query(api.settings.queries.getBySection, {
+      section: "email",
+    });
+    const clerk = await authenticated.query(api.settings.queries.getBySection, {
+      section: "integrations.clerk",
+    });
+    const search = await authenticated.query(api.settings.queries.getBySection, {
+      section: "search",
+    });
+    const ai = await authenticated.query(api.settings.queries.getBySection, {
+      section: "ai",
+    });
+    const payments = await authenticated.query(api.settings.queries.getBySection, {
+      section: "commerce.payments",
+    });
+    const google = await authenticated.query(api.settings.queries.getBySection, {
+      section: "integrations.google",
+    });
+    const ga4 = await authenticated.query(api.settings.queries.getBySection, {
+      section: "analytics.ga4",
+    });
+
+    expect(email?.resendApiKey).toBe("__set__");
+    expect(email?.webhookSecret).toBe("__set__");
+    expect(email?.fromAddress).toBe("noreply@example.com");
+    expect(clerk?.clerkSecretKey).toBe("__set__");
+    expect(clerk?.clerkWebhookSecret).toBe("__set__");
+    expect(clerk?.clerkJwtIssuerDomain).toBe("https://clerk.example.test");
+    expect(search?.meilisearchApiKey).toBe("__set__");
+    expect(search?.meilisearchHost).toBe("https://search.example.test");
+    expect(ai?.apiKey).toBe("__set__");
+    expect(ai?.tavilyApiKey).toBe("__set__");
+    expect(ai?.imageApiKey).toBe("__set__");
+    expect(payments?.stripePublishableKey).toBe("__set__");
+    expect(payments?.stripeSecretKey).toBe("__set__");
+    expect(payments?.stripeWebhookSecret).toBe("__set__");
+    expect(payments?.paypalClientSecret).toBe("__set__");
+    expect(google?.placesApiKey).toBe("__set__");
+    expect(google?.geocodeApiKey).toBe("__set__");
+    expect(ga4?.ga4ServiceAccountJson).toBe("__set__");
+    expect(ga4?.ga4PropertyId).toBe("properties/123456789");
   });
 
   test("legacy bootstrapAdmin is disabled", async () => {
