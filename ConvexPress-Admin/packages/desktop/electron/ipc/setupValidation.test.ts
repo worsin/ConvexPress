@@ -176,6 +176,26 @@ describe("setup validation", () => {
     ).toThrow("Admin password must be at least 8 characters.");
     expect(() =>
       validateSetupConfig({
+        mode: "server",
+        convexUrl: "https://affable-herring-441.convex.cloud",
+        adminKey: DEPLOY_KEY,
+        adminName: "A".repeat(129),
+        adminEmail: "admin@example.com",
+        adminPassword: "CorrectHorseBatteryStaple42!",
+      }),
+    ).toThrow("Admin name must be 128 characters or fewer.");
+    expect(() =>
+      validateSetupConfig({
+        mode: "server",
+        convexUrl: "https://affable-herring-441.convex.cloud",
+        adminKey: DEPLOY_KEY,
+        adminName: "First Admin",
+        adminEmail: "admin@example.com",
+        adminPassword: "A".repeat(257),
+      }),
+    ).toThrow("Admin password must be 256 characters or fewer.");
+    expect(() =>
+      validateSetupConfig({
         mode: "client",
         convexUrl: "https://affable-herring-441.convex.cloud",
         clientPassword: "CorrectHorseBatteryStaple42!",
@@ -188,6 +208,14 @@ describe("setup validation", () => {
         clientIdentifier: "admin@example.com",
       }),
     ).toThrow("Client password is required.");
+    expect(() =>
+      validateSetupConfig({
+        mode: "client",
+        convexUrl: "https://affable-herring-441.convex.cloud",
+        clientIdentifier: "admin@example.com",
+        clientPassword: "A".repeat(257),
+      }),
+    ).toThrow("Client password must be 256 characters or fewer.");
     expect(() =>
       validateSetupConfig({
         mode: "demo",

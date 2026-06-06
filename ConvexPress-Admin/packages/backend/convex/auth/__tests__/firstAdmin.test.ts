@@ -128,6 +128,30 @@ describe("createFirstAdmin", () => {
     ).rejects.toThrow("An administrator account already exists");
   });
 
+  test("rejects oversized first-admin fields before creating an account", async () => {
+    const t = createHarness();
+
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "admin@example.com",
+        username: "admin",
+        password: PASSWORD,
+        displayName: "A".repeat(129),
+      }),
+    ).rejects.toThrow("Display name must be 128 characters or fewer.");
+
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "admin@example.com",
+        username: "admin",
+        password: "A".repeat(257),
+        displayName: "First Admin",
+      }),
+    ).rejects.toThrow("Password must be 256 characters or fewer.");
+
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(false);
+  });
+
   test("created admin can log in, refresh, and log out through auth HTTP routes", async () => {
     configureAuthHttpEnv();
     const t = createHarness();

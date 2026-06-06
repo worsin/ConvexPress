@@ -82,6 +82,31 @@ describe("first-admin setup helpers", () => {
         1_500,
       ),
     ).toBe(false);
+    expect(
+      isPendingAdminCredentialHandoff(
+        {
+          displayName: "A".repeat(129),
+          email: "admin@example.com",
+          password: "CorrectHorse42",
+          setupToken: "setup-token",
+          expiresAt: 2_000,
+        },
+        1_500,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingAdminCredentialHandoff(
+        {
+          displayName: "First Admin",
+          username: "invalid username",
+          email: "admin@example.com",
+          password: "CorrectHorse42",
+          setupToken: "setup-token",
+          expiresAt: 2_000,
+        },
+        1_500,
+      ),
+    ).toBe(false);
   });
 
   test("accepts only fresh pending login credential handoffs", () => {
@@ -208,6 +233,32 @@ describe("first-admin setup helpers", () => {
     ).toEqual({
       ok: false,
       error: "Password must be at least 8 characters.",
+    });
+
+    expect(
+      validateFirstAdminForm({
+        displayName: "A".repeat(129),
+        username: "admin",
+        email: "admin@example.com",
+        password: "CorrectHorse42",
+        confirmPassword: "CorrectHorse42",
+      }),
+    ).toEqual({
+      ok: false,
+      error: "Display name must be 128 characters or fewer.",
+    });
+
+    expect(
+      validateFirstAdminForm({
+        displayName: "First Admin",
+        username: "admin",
+        email: "admin@example.com",
+        password: "A".repeat(257),
+        confirmPassword: "A".repeat(257),
+      }),
+    ).toEqual({
+      ok: false,
+      error: "Password must be 256 characters or fewer.",
     });
   });
 

@@ -17,6 +17,7 @@ describe("desktop launch route", () => {
           email: "admin@example.com",
           password: "password123",
           displayName: "Admin",
+          setupToken: "setup-token-with-32-safe-characters",
           expiresAt: now + 60_000,
         },
       }),
@@ -35,6 +36,7 @@ describe("desktop launch route", () => {
           email: "admin@example.com",
           password: "password123",
           displayName: "Admin",
+          setupToken: "setup-token-with-32-safe-characters",
         },
       }),
     ).toBe(undefined);
@@ -44,6 +46,7 @@ describe("desktop launch route", () => {
           email: "admin@example.com",
           password: "password123",
           displayName: "Admin",
+          setupToken: "setup-token-with-32-safe-characters",
           expiresAt: now - 1,
         },
       }),
@@ -55,6 +58,7 @@ describe("desktop launch route", () => {
       isPendingAdminHandoffUsable({
         email: "admin@example.com",
         password: "password123",
+        setupToken: "setup-token-with-32-safe-characters",
         expiresAt: 2000,
       }, 1000),
     ).toBe(true);
@@ -62,6 +66,7 @@ describe("desktop launch route", () => {
       isPendingAdminHandoffUsable({
         email: "not-an-email",
         password: "password123",
+        setupToken: "setup-token-with-32-safe-characters",
         expiresAt: 2000,
       }, 1000),
     ).toBe(false);
@@ -69,6 +74,7 @@ describe("desktop launch route", () => {
       isPendingAdminHandoffUsable({
         email: "admin@example.com",
         password: "",
+        setupToken: "setup-token-with-32-safe-characters",
         expiresAt: 2000,
       }, 1000),
     ).toBe(false);
@@ -76,7 +82,23 @@ describe("desktop launch route", () => {
       isPendingAdminHandoffUsable({
         email: "admin@example.com",
         password: "password123",
+        setupToken: "setup-token-with-32-safe-characters",
         expiresAt: 1000,
+      }, 1000),
+    ).toBe(false);
+    expect(
+      isPendingAdminHandoffUsable({
+        email: "admin@example.com",
+        password: "password123",
+        expiresAt: 2000,
+      }, 1000),
+    ).toBe(false);
+    expect(
+      isPendingAdminHandoffUsable({
+        email: "admin@example.com",
+        password: "password123",
+        setupToken: "short",
+        expiresAt: 2000,
       }, 1000),
     ).toBe(false);
   });

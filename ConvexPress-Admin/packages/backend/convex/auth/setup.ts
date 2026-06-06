@@ -7,6 +7,10 @@ import type { Id } from "../_generated/dataModel";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,64}$/;
 const LOCAL_AUTH_ISSUER_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+const MAX_EMAIL_LENGTH = 254;
+const MAX_DISPLAY_NAME_LENGTH = 128;
+const MAX_PASSWORD_LENGTH = 256;
+const MAX_SETUP_TOKEN_LENGTH = 256;
 
 function getRequiredFirstAdminSetupToken(): string | null {
   return process.env.FIRST_ADMIN_SETUP_SECRET?.trim() || null;
@@ -75,13 +79,22 @@ function validateFirstAdminCredentials(args: {
   if (!EMAIL_RE.test(email)) {
     throw new Error("Enter a valid email address.");
   }
+  if (email.length > MAX_EMAIL_LENGTH) {
+    throw new Error("Email must be 254 characters or fewer.");
+  }
   if (!USERNAME_RE.test(username)) {
     throw new Error(
       "Username must be 3-64 characters and may contain letters, numbers, dots, underscores, or hyphens.",
     );
   }
+  if (displayName && displayName.length > MAX_DISPLAY_NAME_LENGTH) {
+    throw new Error("Display name must be 128 characters or fewer.");
+  }
   if (args.password.length < 8) {
     throw new Error("Password must be at least 8 characters.");
+  }
+  if (args.password.length > MAX_PASSWORD_LENGTH) {
+    throw new Error("Password must be 256 characters or fewer.");
   }
 
   return {
@@ -101,6 +114,9 @@ function validateFirstAdminSetupToken(setupToken: string | undefined) {
     );
   }
 
+  if (setupToken && setupToken.length > MAX_SETUP_TOKEN_LENGTH) {
+    throw new Error("First-admin setup token is invalid or missing.");
+  }
   if (!setupToken || setupToken !== requiredToken) {
     throw new Error("First-admin setup token is invalid or missing.");
   }

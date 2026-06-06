@@ -202,15 +202,29 @@ function isTrustedDesktopSender(senderUrl, options = {}) {
 var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 var CONVEX_CLOUD_URL_RE = /^https:\/\/[a-z0-9-]+\.convex\.cloud$/;
 var DEPLOYMENT_NAME_RE = /^[a-z0-9-]+$/;
+var MAX_CONVEX_URL_LENGTH = 128;
+var MAX_DEPLOY_KEY_LENGTH = 4096;
+var MAX_EMAIL_LENGTH = 254;
+var MAX_DISPLAY_NAME_LENGTH = 128;
+var MAX_PASSWORD_LENGTH = 256;
+var MAX_IDENTIFIER_LENGTH = 254;
 function cleanUrl(value) {
   return value.trim().replace(/\/+$/, "");
 }
-function requireTrimmed(value, label) {
+function requireTrimmed(value, label, options = {}) {
   const trimmed = value?.trim();
   if (!trimmed) {
     throw new Error(`${label} is required.`);
   }
+  if (options.maxLength && trimmed.length > options.maxLength) {
+    throw new Error(`${label} must be ${options.maxLength} characters or fewer.`);
+  }
   return trimmed;
+}
+function validateStringLength(value, label, maxLength) {
+  if (value.length > maxLength) {
+    throw new Error(`${label} must be ${maxLength} characters or fewer.`);
+  }
 }
 function deriveConvexSiteUrl(convexUrl) {
   const cleaned = cleanUrl(convexUrl);
@@ -231,7 +245,9 @@ function validateSetupMode(mode) {
   return mode;
 }
 function normalizeConvexCloudUrl(value) {
-  const cleaned = requireTrimmed(value, "Convex URL").replace(/\/+$/, "");
+  const cleaned = requireTrimmed(value, "Convex URL", {
+    maxLength: MAX_CONVEX_URL_LENGTH
+  }).replace(/\/+$/, "");
   if (!CONVEX_CLOUD_URL_RE.test(cleaned)) {
     throw new Error(
       "Convex URL must match https://your-app-123.convex.cloud."
@@ -245,7 +261,9 @@ function getDeploymentNameFromConvexUrl(convexUrl) {
   return host.replace(/\.convex\.cloud$/, "");
 }
 function validateProductionDeployKey(value, convexUrl) {
-  const deployKey = requireTrimmed(value, "Deploy key");
+  const deployKey = requireTrimmed(value, "Deploy key", {
+    maxLength: MAX_DEPLOY_KEY_LENGTH
+  });
   const parts = deployKey.split("|");
   if (parts.length !== 2 || !parts[1]?.trim()) {
     throw new Error("Deploy key must include a deployment reference and token.");
@@ -274,8 +292,12 @@ function resolveConvexSiteUrl(convexUrl, explicitSiteUrl) {
   return cleanedSiteUrl;
 }
 function validateServerAdminCredentials(config) {
-  const displayName = requireTrimmed(config.adminName, "Admin name");
-  const email = requireTrimmed(config.adminEmail, "Admin email").toLowerCase();
+  const displayName = requireTrimmed(config.adminName, "Admin name", {
+    maxLength: MAX_DISPLAY_NAME_LENGTH
+  });
+  const email = requireTrimmed(config.adminEmail, "Admin email", {
+    maxLength: MAX_EMAIL_LENGTH
+  }).toLowerCase();
   const password = config.adminPassword;
   if (!EMAIL_RE.test(email)) {
     throw new Error("Admin email must be a valid email address.");
@@ -283,17 +305,20 @@ function validateServerAdminCredentials(config) {
   if (!password || password.length < 8) {
     throw new Error("Admin password must be at least 8 characters.");
   }
+  validateStringLength(password, "Admin password", MAX_PASSWORD_LENGTH);
   return { displayName, email, password };
 }
 function validateClientLoginCredentials(config) {
   const identifier = requireTrimmed(
     config.clientIdentifier,
-    "Client username or email"
+    "Client username or email",
+    { maxLength: MAX_IDENTIFIER_LENGTH }
   );
   const password = config.clientPassword;
   if (!password) {
     throw new Error("Client password is required.");
   }
+  validateStringLength(password, "Client password", MAX_PASSWORD_LENGTH);
   return { identifier, password };
 }
 function validateSetupConfig(config) {
@@ -462,6 +487,9 @@ var import_node_crypto = require("crypto");
 var FIRST_ADMIN_SETUP_ROUTE = "/setup";
 var SETUP_CREDENTIAL_HANDOFF_TTL_MS = 60 * 60 * 1e3;
 var EMAIL_RE2 = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+var SETUP_TOKEN_RE = /^[A-Za-z0-9_-]{32,256}$/;
+var MAX_EMAIL_LENGTH2 = 254;
+var MAX_PASSWORD_LENGTH2 = 256;
 function normalizeInitialRoute(route) {
   const trimmed = route?.trim();
   if (!trimmed) return void 0;
@@ -481,7 +509,7 @@ function addHashRouteToUrl(url, route) {
 function isPendingAdminHandoffUsable(value, now = Date.now()) {
   if (!value || typeof value !== "object") return false;
   const credentials = value;
-  return typeof credentials.email === "string" && EMAIL_RE2.test(credentials.email.trim().toLowerCase()) && typeof credentials.password === "string" && credentials.password.length >= 8 && typeof credentials.expiresAt === "number" && Number.isFinite(credentials.expiresAt) && credentials.expiresAt > now;
+  return typeof credentials.email === "string" && credentials.email.trim().length <= MAX_EMAIL_LENGTH2 && EMAIL_RE2.test(credentials.email.trim().toLowerCase()) && typeof credentials.password === "string" && credentials.password.length >= 8 && credentials.password.length <= MAX_PASSWORD_LENGTH2 && typeof credentials.setupToken === "string" && SETUP_TOKEN_RE.test(credentials.setupToken) && typeof credentials.expiresAt === "number" && Number.isFinite(credentials.expiresAt) && credentials.expiresAt > now;
 }
 
 // electron/ipc/setup.ts

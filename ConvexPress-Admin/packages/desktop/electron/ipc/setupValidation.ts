@@ -33,17 +33,36 @@ export interface ValidatedSetupConfig {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CONVEX_CLOUD_URL_RE = /^https:\/\/[a-z0-9-]+\.convex\.cloud$/;
 const DEPLOYMENT_NAME_RE = /^[a-z0-9-]+$/;
+const MAX_CONVEX_URL_LENGTH = 128;
+const MAX_DEPLOY_KEY_LENGTH = 4096;
+const MAX_EMAIL_LENGTH = 254;
+const MAX_DISPLAY_NAME_LENGTH = 128;
+const MAX_PASSWORD_LENGTH = 256;
+const MAX_IDENTIFIER_LENGTH = 254;
 
 function cleanUrl(value: string): string {
   return value.trim().replace(/\/+$/, "");
 }
 
-function requireTrimmed(value: string | undefined, label: string): string {
+function requireTrimmed(
+  value: string | undefined,
+  label: string,
+  options: { maxLength?: number } = {},
+): string {
   const trimmed = value?.trim();
   if (!trimmed) {
     throw new Error(`${label} is required.`);
   }
+  if (options.maxLength && trimmed.length > options.maxLength) {
+    throw new Error(`${label} must be ${options.maxLength} characters or fewer.`);
+  }
   return trimmed;
+}
+
+function validateStringLength(value: string, label: string, maxLength: number) {
+  if (value.length > maxLength) {
+    throw new Error(`${label} must be ${maxLength} characters or fewer.`);
+  }
 }
 
 export function deriveConvexSiteUrl(convexUrl: string): string {
@@ -68,7 +87,9 @@ function validateSetupMode(mode: string | undefined): "server" | "client" {
 }
 
 export function normalizeConvexCloudUrl(value: string | undefined): string {
-  const cleaned = requireTrimmed(value, "Convex URL").replace(/\/+$/, "");
+  const cleaned = requireTrimmed(value, "Convex URL", {
+    maxLength: MAX_CONVEX_URL_LENGTH,
+  }).replace(/\/+$/, "");
   if (!CONVEX_CLOUD_URL_RE.test(cleaned)) {
     throw new Error(
       "Convex URL must match https://your-app-123.convex.cloud.",
@@ -87,7 +108,9 @@ export function validateProductionDeployKey(
   value: string | undefined,
   convexUrl: string,
 ): { deployKey: string; deployment: string } {
-  const deployKey = requireTrimmed(value, "Deploy key");
+  const deployKey = requireTrimmed(value, "Deploy key", {
+    maxLength: MAX_DEPLOY_KEY_LENGTH,
+  });
   const parts = deployKey.split("|");
   if (parts.length !== 2 || !parts[1]?.trim()) {
     throw new Error("Deploy key must include a deployment reference and token.");
@@ -128,8 +151,12 @@ function resolveConvexSiteUrl(
 function validateServerAdminCredentials(
   config: SetupValidationConfig,
 ): PendingAdminCredentials {
-  const displayName = requireTrimmed(config.adminName, "Admin name");
-  const email = requireTrimmed(config.adminEmail, "Admin email").toLowerCase();
+  const displayName = requireTrimmed(config.adminName, "Admin name", {
+    maxLength: MAX_DISPLAY_NAME_LENGTH,
+  });
+  const email = requireTrimmed(config.adminEmail, "Admin email", {
+    maxLength: MAX_EMAIL_LENGTH,
+  }).toLowerCase();
   const password = config.adminPassword;
 
   if (!EMAIL_RE.test(email)) {
@@ -138,6 +165,7 @@ function validateServerAdminCredentials(
   if (!password || password.length < 8) {
     throw new Error("Admin password must be at least 8 characters.");
   }
+  validateStringLength(password, "Admin password", MAX_PASSWORD_LENGTH);
 
   return { displayName, email, password };
 }
@@ -148,12 +176,14 @@ function validateClientLoginCredentials(
   const identifier = requireTrimmed(
     config.clientIdentifier,
     "Client username or email",
+    { maxLength: MAX_IDENTIFIER_LENGTH },
   );
   const password = config.clientPassword;
 
   if (!password) {
     throw new Error("Client password is required.");
   }
+  validateStringLength(password, "Client password", MAX_PASSWORD_LENGTH);
 
   return { identifier, password };
 }
