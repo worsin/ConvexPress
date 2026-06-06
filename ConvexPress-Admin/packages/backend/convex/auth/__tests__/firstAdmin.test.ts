@@ -580,6 +580,7 @@ describe("createFirstAdmin", () => {
     });
 
     expect(await authenticated.query(api.users.checkAdminAccess)).toBeNull();
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(false);
 
     const targetUserId = await t.run(async (ctx) => {
       return await ctx.db.insert("users", {
@@ -608,6 +609,95 @@ describe("createFirstAdmin", () => {
         isInternal: true,
       }),
     ).rejects.toThrow("Insufficient permissions");
+  });
+
+  test("legacy role updates cannot demote the only roleId administrator", async () => {
+    const t = createHarness();
+
+    await t.action(api.auth.setup.createFirstAdmin, {
+      email: "admin@example.com",
+      username: "admin",
+      password: PASSWORD,
+      displayName: "First Admin",
+    });
+
+    const snapshot = await t.run(async (ctx) => {
+      const now = Date.now();
+      const adminUser = (await ctx.db.query("users").collect())[0]!;
+
+      const managerRoleId = await ctx.db.insert("roles", {
+        name: "Role Manager",
+        slug: "role-manager",
+        description: "Can manage role assignments but is not an administrator.",
+        level: 90,
+        type: "internal",
+        isDefault: false,
+        isProtected: false,
+        capabilities: ["role.assign"],
+        pageAccess: ["/admin", "/admin/users"],
+        status: "active",
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const managerUserId = await ctx.db.insert("users", {
+        authSource: "local",
+        email: "role-manager@example.com",
+        username: "rolemanager",
+        passwordHash: "not-a-real-hash",
+        displayName: "Role Manager",
+        slug: "role-manager",
+        emailVerified: true,
+        status: "active",
+        isInternal: true,
+        internalRole: "editor",
+        roleId: managerRoleId,
+        registrationMethod: "self",
+        registeredAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Simulate a migrated role-backed administrator whose legacy fields have
+      // drifted. Admin access and first-admin blocking are roleId-first now.
+      await ctx.db.patch(adminUser._id, {
+        internalRole: "editor",
+        isInternal: true,
+        updatedAt: now,
+      });
+
+      return {
+        adminUserId: adminUser._id,
+        managerUserId,
+      };
+    });
+
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(true);
+
+    const manager = t.withIdentity({
+      issuer: ADMIN_ISSUER,
+      subject: snapshot.managerUserId,
+      tokenIdentifier: `${ADMIN_ISSUER}|${snapshot.managerUserId}`,
+      email: "role-manager@example.com",
+      name: "Role Manager",
+    });
+
+    await expect(
+      manager.mutation(api.users.updateUserRole, {
+        userId: snapshot.adminUserId,
+        internalRole: "editor",
+        isInternal: true,
+      }),
+    ).rejects.toThrow("Cannot demote the last admin");
+
+    const after = await t.run(async (ctx) => {
+      const user = await ctx.db.get(snapshot.adminUserId);
+      const role = user?.roleId ? await ctx.db.get(user.roleId) : null;
+      return { user, role };
+    });
+
+    expect(after.role?.slug).toBe("administrator");
+    expect(after.user?.internalRole).toBe("editor");
   });
 
   test("smoke admin provisioning requires a dev internals token and assigns the administrator role", async () => {

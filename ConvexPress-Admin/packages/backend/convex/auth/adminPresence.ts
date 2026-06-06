@@ -1,6 +1,8 @@
 type DbCtx = { db: any };
 
 type AdminCandidate = {
+  _id?: unknown;
+  roleId?: unknown;
   status?: string;
   authSource?: string;
   passwordHash?: string;
@@ -20,8 +22,17 @@ function canUseLocalAdminLogin(user: AdminCandidate): boolean {
 function isActiveLegacyAdmin(user: AdminCandidate): boolean {
   return (
     canUseLocalAdminLogin(user) &&
+    !user.roleId &&
     user.isInternal === true &&
     user.internalRole === "admin"
+  );
+}
+
+function isExcluded(user: AdminCandidate, excludedUserId?: unknown): boolean {
+  return (
+    excludedUserId !== undefined &&
+    user._id !== undefined &&
+    String(user._id) === String(excludedUserId)
   );
 }
 
@@ -29,7 +40,10 @@ function isActiveLegacyAdmin(user: AdminCandidate): boolean {
  * Return true only when there is an active administrator account that can keep
  * the admin surface out of first-run setup mode.
  */
-export async function hasActiveAdmin(ctx: DbCtx): Promise<boolean> {
+async function hasActiveAdminExcept(
+  ctx: DbCtx,
+  excludedUserId?: unknown,
+): Promise<boolean> {
   const adminRole = await ctx.db
     .query("roles")
     .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
@@ -43,7 +57,8 @@ export async function hasActiveAdmin(ctx: DbCtx): Promise<boolean> {
 
     if (
       roleAdmins.some(
-        (user: AdminCandidate) => canUseLocalAdminLogin(user),
+        (user: AdminCandidate) =>
+          !isExcluded(user, excludedUserId) && canUseLocalAdminLogin(user),
       )
     ) {
       return true;
@@ -55,5 +70,19 @@ export async function hasActiveAdmin(ctx: DbCtx): Promise<boolean> {
     .withIndex("by_internal_role", (q: ConvexQueryBuilder) => q.eq("internalRole", "admin"))
     .collect();
 
-  return legacyAdmins.some(isActiveLegacyAdmin);
+  return legacyAdmins.some(
+    (user: AdminCandidate) =>
+      !isExcluded(user, excludedUserId) && isActiveLegacyAdmin(user),
+  );
+}
+
+export async function hasActiveAdmin(ctx: DbCtx): Promise<boolean> {
+  return await hasActiveAdminExcept(ctx);
+}
+
+export async function hasOtherActiveAdmin(
+  ctx: DbCtx,
+  excludedUserId: unknown,
+): Promise<boolean> {
+  return await hasActiveAdminExcept(ctx, excludedUserId);
 }

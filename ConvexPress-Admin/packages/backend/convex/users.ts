@@ -7,8 +7,8 @@ import {
 import { requireCan } from "./helpers/permissions";
 import { emitEvent } from "./helpers/events";
 import { ROLE_EVENTS, SYSTEM } from "./events/constants";
-import { BUILT_IN_ROLES } from "./seed/roles";
-import { hasActiveAdmin } from "./auth/adminPresence";
+import { BUILT_IN_ROLES, LEGACY_ROLE_MAP } from "./seed/roles";
+import { hasActiveAdmin, hasOtherActiveAdmin } from "./auth/adminPresence";
 
 type CurrentUserPublic = {
   _id: string;
@@ -40,6 +40,12 @@ type CurrentUserPublic = {
   isInternal?: boolean;
   createdAt: number;
   updatedAt: number;
+};
+
+const ADMINISTRATOR_ROLE_SLUG = "administrator";
+const LEGACY_UPDATE_ROLE_MAP: Record<string, string> = {
+  ...LEGACY_ROLE_MAP,
+  subscriber: "subscriber",
 };
 
 function toPublicCurrentUser(user: Awaited<ReturnType<typeof getUser>>): CurrentUserPublic | null {
@@ -174,52 +180,47 @@ export const updateUserRole = mutation({
       throw new ConvexError("You cannot change your own role. Ask another admin to make this change.");
     }
 
-    // Check last-admin protection: if demoting from admin, ensure at least one other admin remains
+    const targetRoleSlug =
+      LEGACY_UPDATE_ROLE_MAP[args.internalRole] ?? args.internalRole;
+    const targetRole = await ctx.db
+      .query("roles")
+      .withIndex("by_slug", (q) => q.eq("slug", targetRoleSlug))
+      .unique();
+
+    if (!targetRole) {
+      throw new ConvexError("Target role not found.");
+    }
+
+    // Check last-admin protection using roleId first, then legacy fields for
+    // unmigrated users. This keeps the legacy mutation aligned with the
+    // role-backed admin access model.
     const targetUser = await ctx.db.get("users", args.userId);
     if (!targetUser) {
       throw new ConvexError("Target user not found.");
     }
 
+    const targetCurrentRole = targetUser.roleId
+      ? await ctx.db.get("roles", targetUser.roleId)
+      : null;
     const isDemotingFromAdmin =
-      targetUser.isInternal === true &&
-      targetUser.internalRole === "admin" &&
-      (args.internalRole !== "admin" || args.isInternal !== true);
+      (targetCurrentRole?.slug === ADMINISTRATOR_ROLE_SLUG ||
+        (!targetUser.roleId &&
+          targetUser.isInternal === true &&
+          targetUser.internalRole === "admin")) &&
+      targetRole.slug !== ADMINISTRATOR_ROLE_SLUG;
 
     if (isDemotingFromAdmin) {
-      // Count how many other admins exist (excluding the target user)
-      const allAdmins = await ctx.db
-        .query("users")
-        .withIndex("by_internal_role", (q) => q.eq("internalRole", "admin"))
-        .collect();
-      const otherAdmins = allAdmins.filter(
-        (u) => u._id !== args.userId && u.isInternal === true,
-      );
-
-      if (otherAdmins.length === 0) {
+      if (!(await hasOtherActiveAdmin(ctx, args.userId))) {
         throw new ConvexError(
           "Cannot demote the last admin. Promote another user to admin first.",
         );
       }
     }
 
-    const roleSlugMap: Record<string, string> = {
-      admin: "administrator",
-      editor: "editor",
-      author: "author",
-      contributor: "contributor",
-      customer: "subscriber",
-      subscriber: "subscriber",
-    };
-    const targetRoleSlug = roleSlugMap[args.internalRole] ?? args.internalRole;
-    const targetRole = await ctx.db
-      .query("roles")
-      .withIndex("by_slug", (q) => q.eq("slug", targetRoleSlug))
-      .unique();
-
     await ctx.db.patch("users", args.userId, {
       internalRole: args.internalRole,
       isInternal: args.isInternal,
-      ...(targetRole ? { roleId: targetRole._id } : {}),
+      roleId: targetRole._id,
       updatedAt: Date.now(),
     });
 
