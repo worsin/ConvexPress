@@ -1,26 +1,72 @@
+import path from "node:path";
 import { JsonStore } from "../utils/json-store.js";
+import { isDev } from "../utils/platform.js";
 import {
   assertReadableConfigKey,
   assertRendererConfigClear,
 } from "./configValidation.js";
+import {
+  isDevAppRendererSender,
+  isAppRendererSender,
+  isExactWizardSender,
+  isTrustedDesktopSender,
+} from "./setupSender.js";
 import { normalizeConvexCloudUrl } from "./setupValidation.js";
 
 const { ipcMain, net } = require("electron") as typeof import("electron");
 
 const store = new JsonStore({ name: "convexpress-config" });
 
+function getRendererIndexPath(): string {
+  return path.join(__dirname, "..", "dist", "index.html");
+}
+
+function getWizardIndexPath(): string {
+  return path.join(__dirname, "wizard", "index.html");
+}
+
+function isConfigAppSender(senderUrl: string): boolean {
+  return isDev()
+    ? isDevAppRendererSender(senderUrl)
+    : isAppRendererSender(senderUrl, {
+        rendererIndexPath: getRendererIndexPath(),
+      });
+}
+
+function isConfigDesktopSender(senderUrl: string): boolean {
+  return isDev()
+    ? isDevAppRendererSender(senderUrl) ||
+        isExactWizardSender(senderUrl, getWizardIndexPath())
+    : isTrustedDesktopSender(senderUrl, {
+        rendererIndexPath: getRendererIndexPath(),
+        wizardIndexPath: getWizardIndexPath(),
+      });
+}
+
 export function registerConfigHandlers(): void {
-  ipcMain.handle("config:get", (_event, key: string) => {
+  ipcMain.handle("config:get", (event, key: string) => {
+    if (!isConfigAppSender(event.sender.getURL())) {
+      throw new Error("Config can only be read from the ConvexPress app.");
+    }
     assertReadableConfigKey(key);
     return store.get(key);
   });
 
-  ipcMain.handle("config:set", (_event, key: string, value: unknown) => {
+  ipcMain.handle("config:set", (event, key: string, value: unknown) => {
+    if (!isConfigAppSender(event.sender.getURL())) {
+      throw new Error("Config can only be changed from the ConvexPress app.");
+    }
     assertRendererConfigClear(key, value);
     store.delete(key);
   });
 
-  ipcMain.handle("config:test-connection", async (_event, url: string) => {
+  ipcMain.handle("config:test-connection", async (event, url: string) => {
+    if (!isConfigDesktopSender(event.sender.getURL())) {
+      throw new Error(
+        "Connection tests can only run from ConvexPress desktop windows.",
+      );
+    }
+
     let cleanUrl: string;
     try {
       cleanUrl = normalizeConvexCloudUrl(url);

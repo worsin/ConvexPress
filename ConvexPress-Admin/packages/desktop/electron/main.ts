@@ -3,7 +3,7 @@ import { appendFileSync, writeFileSync } from "node:fs";
 import { registerAllIpcHandlers } from "./ipc/index.js";
 import { initAppUpdater } from "./ipc/app-updater.js";
 import { initUpdaterEvents } from "./ipc/updater.js";
-import { isWizardSender } from "./ipc/setupSender.js";
+import { isExactWizardSender } from "./ipc/setupSender.js";
 import { getInitialRouteForLaunch } from "./launchRoute.js";
 import { createTray } from "./tray.js";
 import { JsonStore } from "./utils/json-store.js";
@@ -114,6 +114,10 @@ function getInitialRouteForCurrentLaunch(): string | undefined {
   });
 }
 
+function getWizardIndexPath(): string {
+  return path.join(__dirname, "wizard", "index.html");
+}
+
 // ---------- Launch Helpers ----------
 
 function launchApp(): void {
@@ -214,7 +218,7 @@ app.whenReady().then(async () => {
   let appLaunched = false;
 
   ipcMain.handle("app:reload-from-setup", (event) => {
-    if (!isWizardSender(event.sender.getURL())) {
+    if (!isExactWizardSender(event.sender.getURL(), getWizardIndexPath())) {
       throw new Error("Setup launch can only be requested from the setup wizard.");
     }
     if (appLaunched) return;

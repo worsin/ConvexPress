@@ -14,7 +14,7 @@ import {
   validateProductionDeployKey,
   validateSetupConfig,
 } from "./setupValidation.js";
-import { isWizardSender } from "./setupSender.js";
+import { isExactWizardSender } from "./setupSender.js";
 import type { SetupValidationConfig } from "./setupValidation.js";
 
 const { ipcMain } = require("electron") as typeof import("electron");
@@ -33,6 +33,10 @@ type ProgressPhase =
   | "deploy"
   | "saving"
   | "complete";
+
+function getWizardIndexPath(): string {
+  return path.join(__dirname, "wizard", "index.html");
+}
 
 function deriveDeployment(config: SetupConfig): {
   deployKey: string;
@@ -328,7 +332,7 @@ export function registerSetupHandlers(): void {
       };
 
       try {
-        if (!isWizardSender(event.sender.getURL())) {
+        if (!isExactWizardSender(event.sender.getURL(), getWizardIndexPath())) {
           throw new Error("Setup configuration can only be saved from the setup wizard.");
         }
 

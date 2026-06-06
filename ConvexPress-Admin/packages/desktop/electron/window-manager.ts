@@ -1,5 +1,10 @@
 import path from "node:path";
 import type { BrowserWindow as ElectronBrowserWindow } from "electron";
+import {
+  isDevAppRendererSender,
+  isAppRendererSender,
+  isExactWizardSender,
+} from "./ipc/setupSender.js";
 import { addHashRouteToUrl, normalizeInitialRoute } from "./launchRoute.js";
 import { isQuitting } from "./utils/app-state.js";
 import { isDev } from "./utils/platform.js";
@@ -23,6 +28,10 @@ function getRendererIndexPath(): string {
   // In production, the web app is bundled at ../../apps/web/dist/index.html
   // relative to dist-electron/
   return path.join(__dirname, "..", "dist", "index.html");
+}
+
+function openExternal(url: string): void {
+  void shell.openExternal(url);
 }
 
 class WindowManager {
@@ -58,6 +67,8 @@ class WindowManager {
       },
     });
 
+    const rendererIndexPath = getRendererIndexPath();
+
     if (isDev()) {
       win.loadURL(
         addHashRouteToUrl(
@@ -66,13 +77,12 @@ class WindowManager {
         ),
       );
     } else {
-      const indexPath = getRendererIndexPath();
-      console.log(`[WindowManager] Renderer path: ${indexPath}`);
+      console.log(`[WindowManager] Renderer path: ${rendererIndexPath}`);
       const initialRoute = normalizeInitialRoute(options.initialRoute);
       if (initialRoute) {
-        win.loadFile(indexPath, { hash: initialRoute });
+        win.loadFile(rendererIndexPath, { hash: initialRoute });
       } else {
-        win.loadFile(indexPath);
+        win.loadFile(rendererIndexPath);
       }
     }
 
@@ -100,19 +110,20 @@ class WindowManager {
     // instead of letting them hijack the admin window. Without this, clicking
     // a link or image URL navigates the entire app away with no way back.
     win.webContents.setWindowOpenHandler(({ url }) => {
-      void shell.openExternal(url);
+      openExternal(url);
       return { action: "deny" };
     });
 
-    // Block any in-window navigation away from localhost (dev) or the
-    // bundled file:// URL (prod). External URLs go to the system browser.
+    // Block in-window navigation away from the exact app renderer.
+    // External URLs go to the system browser so the preload bridge never
+    // becomes available to provider dashboards or arbitrary local pages.
     win.webContents.on("will-navigate", (event, url) => {
       const isInternal = isDev()
-        ? url.startsWith("http://localhost:")
-        : url.startsWith("file://");
+        ? isDevAppRendererSender(url)
+        : isAppRendererSender(url, { rendererIndexPath });
       if (!isInternal) {
         event.preventDefault();
-        void shell.openExternal(url);
+        openExternal(url);
       }
     });
 
@@ -167,7 +178,9 @@ class WindowManager {
       },
     });
 
-    win.loadFile(path.join(__dirname, "wizard", "index.html"));
+    const wizardIndexPath = path.join(__dirname, "wizard", "index.html");
+
+    win.loadFile(wizardIndexPath);
 
     win.once("ready-to-show", () => {
       win.show();
@@ -175,6 +188,17 @@ class WindowManager {
 
     win.on("closed", () => {
       this.wizardWindow = null;
+    });
+
+    win.webContents.setWindowOpenHandler(({ url }) => {
+      openExternal(url);
+      return { action: "deny" };
+    });
+
+    win.webContents.on("will-navigate", (event, url) => {
+      if (isExactWizardSender(url, wizardIndexPath)) return;
+      event.preventDefault();
+      openExternal(url);
     });
 
     this.wizardWindow = win;

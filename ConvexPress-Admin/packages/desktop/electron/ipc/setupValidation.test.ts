@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import {
   deriveConvexSiteUrl,
@@ -6,7 +8,13 @@ import {
   validateProductionDeployKey,
   validateSetupConfig,
 } from "./setupValidation";
-import { isWizardSender } from "./setupSender";
+import {
+  getTrustedDevRendererOrigin,
+  isAppRendererSender,
+  isExactWizardSender,
+  isTrustedDesktopSender,
+  isWizardSender,
+} from "./setupSender";
 
 const DEPLOY_KEY = "prod:affable-herring-441|test-deploy-token";
 
@@ -200,5 +208,59 @@ describe("setup validation", () => {
       ),
     ).toBe(false);
     expect(isWizardSender("http://127.0.0.1:4105/dashboard")).toBe(false);
+    expect(isWizardSender("https://evil.example/wizard/index.html")).toBe(
+      false,
+    );
+  });
+
+  test("trusts only the configured app renderer for main app IPC", () => {
+    expect(getTrustedDevRendererOrigin()).toBe("http://localhost:4105");
+    expect(isAppRendererSender("http://localhost:4105/dashboard")).toBe(true);
+    expect(isAppRendererSender("http://localhost:4106/dashboard")).toBe(false);
+    expect(isAppRendererSender("http://127.0.0.1:4105/dashboard")).toBe(false);
+    expect(
+      isAppRendererSender("http://127.0.0.1:4105/dashboard", {
+        devRendererUrl: "http://127.0.0.1:4105",
+      }),
+    ).toBe(true);
+
+    const rendererIndexPath = path.join(
+      "/Applications/ConvexPress.app/Contents/Resources/app.asar",
+      "packages/desktop/dist/index.html",
+    );
+    const rendererUrl = pathToFileURL(rendererIndexPath).href;
+
+    expect(
+      isAppRendererSender(`${rendererUrl}#/setup`, { rendererIndexPath }),
+    ).toBe(true);
+    expect(
+      isAppRendererSender(
+        "file:///Applications/ConvexPress.app/Contents/Resources/app.asar/packages/desktop/dist/other.html",
+        { rendererIndexPath },
+      ),
+    ).toBe(false);
+  });
+
+  test("trusts setup helper IPC only from app or wizard documents", () => {
+    const wizardIndexPath = path.join(
+      "/Applications/ConvexPress.app/Contents/Resources/app.asar",
+      "packages/desktop/dist-electron/wizard/index.html",
+    );
+    const wizardUrl = pathToFileURL(wizardIndexPath).href;
+
+    expect(isExactWizardSender(wizardUrl, wizardIndexPath)).toBe(true);
+    expect(
+      isTrustedDesktopSender(wizardUrl, { wizardIndexPath }),
+    ).toBe(true);
+    expect(
+      isTrustedDesktopSender("http://localhost:4105/setup", {
+        wizardIndexPath,
+      }),
+    ).toBe(true);
+    expect(
+      isTrustedDesktopSender("https://evil.example/wizard/index.html", {
+        wizardIndexPath,
+      }),
+    ).toBe(false);
   });
 });

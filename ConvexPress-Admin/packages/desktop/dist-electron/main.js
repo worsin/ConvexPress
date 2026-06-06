@@ -23,7 +23,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // electron/main.ts
-var import_node_path7 = __toESM(require("path"));
+var import_node_path9 = __toESM(require("path"));
 var import_node_fs5 = require("fs");
 
 // electron/ipc/window.ts
@@ -48,6 +48,9 @@ function registerWindowHandlers() {
     return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false;
   });
 }
+
+// electron/ipc/config.ts
+var import_node_path2 = __toESM(require("path"));
 
 // electron/utils/json-store.ts
 var import_node_fs = require("fs");
@@ -106,6 +109,12 @@ var JsonStore = class {
   }
 };
 
+// electron/utils/platform.ts
+var { app: app2 } = require("electron");
+function isDev() {
+  return !app2.isPackaged || process.env.CONVEXPRESS_DESKTOP_DEV === "1";
+}
+
 // electron/ipc/configValidation.ts
 var READABLE_CONFIG_KEYS = /* @__PURE__ */ new Set([
   "mode",
@@ -132,6 +141,61 @@ function assertRendererConfigClear(key, value) {
   if (value !== null) {
     throw new Error(`Config key can only be cleared from the renderer: ${key}`);
   }
+}
+
+// electron/ipc/setupSender.ts
+var import_node_url = require("url");
+var DEFAULT_DEV_RENDERER_URL = "http://localhost:4105";
+function parseSenderUrl(senderUrl) {
+  if (!senderUrl) return null;
+  try {
+    return new URL(senderUrl);
+  } catch {
+    return null;
+  }
+}
+function hrefWithoutHash(url) {
+  const copy = new URL(url.href);
+  copy.hash = "";
+  return copy.href;
+}
+function fileHrefWithoutHash(filePath) {
+  const url = (0, import_node_url.pathToFileURL)(filePath);
+  url.hash = "";
+  return url.href;
+}
+function getTrustedDevRendererOrigin(devRendererUrl = process.env.CONVEXPRESS_DESKTOP_DEV_URL ?? DEFAULT_DEV_RENDERER_URL) {
+  const parsed = parseSenderUrl(devRendererUrl) ?? new URL(DEFAULT_DEV_RENDERER_URL);
+  return parsed.origin;
+}
+function isDevAppRendererSender(senderUrl, devRendererUrl) {
+  const url = parseSenderUrl(senderUrl);
+  if (!url) return false;
+  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  return url.origin === getTrustedDevRendererOrigin(devRendererUrl);
+}
+function isPackagedAppRendererSender(senderUrl, rendererIndexPath) {
+  const url = parseSenderUrl(senderUrl);
+  if (!url || url.protocol !== "file:") return false;
+  if (rendererIndexPath) {
+    return hrefWithoutHash(url) === fileHrefWithoutHash(rendererIndexPath);
+  }
+  return url.pathname.endsWith("/index.html") && !url.pathname.endsWith("/wizard/index.html");
+}
+function isAppRendererSender(senderUrl, options = {}) {
+  return isDevAppRendererSender(senderUrl, options.devRendererUrl) || isPackagedAppRendererSender(senderUrl, options.rendererIndexPath);
+}
+function isWizardSender(senderUrl) {
+  const url = parseSenderUrl(senderUrl);
+  return !!(url && url.protocol === "file:" && url.pathname.endsWith("/wizard/index.html"));
+}
+function isExactWizardSender(senderUrl, wizardIndexPath) {
+  const url = parseSenderUrl(senderUrl);
+  if (!url || url.protocol !== "file:") return false;
+  return hrefWithoutHash(url) === fileHrefWithoutHash(wizardIndexPath);
+}
+function isTrustedDesktopSender(senderUrl, options = {}) {
+  return isAppRendererSender(senderUrl, options) || (options.wizardIndexPath ? isExactWizardSender(senderUrl, options.wizardIndexPath) : isWizardSender(senderUrl));
 }
 
 // electron/ipc/setupValidation.ts
@@ -254,16 +318,44 @@ function validateSetupConfig(config) {
 // electron/ipc/config.ts
 var { ipcMain: ipcMain2, net } = require("electron");
 var store = new JsonStore({ name: "convexpress-config" });
+function getRendererIndexPath() {
+  return import_node_path2.default.join(__dirname, "..", "dist", "index.html");
+}
+function getWizardIndexPath() {
+  return import_node_path2.default.join(__dirname, "wizard", "index.html");
+}
+function isConfigAppSender(senderUrl) {
+  return isDev() ? isDevAppRendererSender(senderUrl) : isAppRendererSender(senderUrl, {
+    rendererIndexPath: getRendererIndexPath()
+  });
+}
+function isConfigDesktopSender(senderUrl) {
+  return isDev() ? isDevAppRendererSender(senderUrl) || isExactWizardSender(senderUrl, getWizardIndexPath()) : isTrustedDesktopSender(senderUrl, {
+    rendererIndexPath: getRendererIndexPath(),
+    wizardIndexPath: getWizardIndexPath()
+  });
+}
 function registerConfigHandlers() {
-  ipcMain2.handle("config:get", (_event, key) => {
+  ipcMain2.handle("config:get", (event, key) => {
+    if (!isConfigAppSender(event.sender.getURL())) {
+      throw new Error("Config can only be read from the ConvexPress app.");
+    }
     assertReadableConfigKey(key);
     return store.get(key);
   });
-  ipcMain2.handle("config:set", (_event, key, value) => {
+  ipcMain2.handle("config:set", (event, key, value) => {
+    if (!isConfigAppSender(event.sender.getURL())) {
+      throw new Error("Config can only be changed from the ConvexPress app.");
+    }
     assertRendererConfigClear(key, value);
     store.delete(key);
   });
-  ipcMain2.handle("config:test-connection", async (_event, url) => {
+  ipcMain2.handle("config:test-connection", async (event, url) => {
+    if (!isConfigDesktopSender(event.sender.getURL())) {
+      throw new Error(
+        "Connection tests can only run from ConvexPress desktop windows."
+      );
+    }
     let cleanUrl2;
     try {
       cleanUrl2 = normalizeConvexCloudUrl(url);
@@ -297,6 +389,7 @@ function registerConfigHandlers() {
 }
 
 // electron/ipc/auth.ts
+var import_node_path3 = __toESM(require("path"));
 var { ipcMain: ipcMain3 } = require("electron");
 var authStore = new JsonStore({
   name: "convexpress-auth"
@@ -305,8 +398,19 @@ var ALLOWED_PREFIXES = ["__convexAuth", "convexAuth"];
 function isAllowedKey(key) {
   return ALLOWED_PREFIXES.some((prefix) => key.startsWith(prefix));
 }
+function getRendererIndexPath2() {
+  return import_node_path3.default.join(__dirname, "..", "dist", "index.html");
+}
+function isAuthAppSender(senderUrl) {
+  return isDev() ? isDevAppRendererSender(senderUrl) : isAppRendererSender(senderUrl, {
+    rendererIndexPath: getRendererIndexPath2()
+  });
+}
 function registerAuthHandlers() {
-  ipcMain3.handle("auth:get", (_event, key) => {
+  ipcMain3.handle("auth:get", (event, key) => {
+    if (!isAuthAppSender(event.sender.getURL())) {
+      throw new Error("Auth storage can only be read from the ConvexPress app.");
+    }
     if (!isAllowedKey(key)) {
       console.log(`[Auth IPC] get BLOCKED key: ${key}`);
       return null;
@@ -317,9 +421,16 @@ function registerAuthHandlers() {
     );
     return val;
   });
-  ipcMain3.handle("auth:set", (_event, key, value) => {
+  ipcMain3.handle("auth:set", (event, key, value) => {
+    if (!isAuthAppSender(event.sender.getURL())) {
+      throw new Error("Auth storage can only be changed from the ConvexPress app.");
+    }
     if (!isAllowedKey(key)) {
       console.log(`[Auth IPC] set BLOCKED key: ${key}`);
+      return;
+    }
+    if (typeof value !== "string") {
+      console.log(`[Auth IPC] set BLOCKED non-string value for key: ${key}`);
       return;
     }
     console.log(
@@ -327,7 +438,10 @@ function registerAuthHandlers() {
     );
     authStore.set(key, value);
   });
-  ipcMain3.handle("auth:remove", (_event, key) => {
+  ipcMain3.handle("auth:remove", (event, key) => {
+    if (!isAuthAppSender(event.sender.getURL())) {
+      throw new Error("Auth storage can only be changed from the ConvexPress app.");
+    }
     if (!isAllowedKey(key)) {
       console.log(`[Auth IPC] remove BLOCKED key: ${key}`);
       return;
@@ -341,33 +455,23 @@ function registerAuthHandlers() {
 var import_node_child_process = require("child_process");
 var import_node_fs2 = require("fs");
 var import_node_os = require("os");
-var import_node_path2 = __toESM(require("path"));
+var import_node_path4 = __toESM(require("path"));
 var import_node_crypto = require("crypto");
-
-// electron/ipc/setupSender.ts
-function isWizardSender(senderUrl) {
-  if (!senderUrl) return false;
-  try {
-    const url = new URL(senderUrl);
-    return url.pathname.endsWith("/wizard/index.html");
-  } catch {
-    return senderUrl.includes("/wizard/index.html");
-  }
-}
-
-// electron/ipc/setup.ts
 var { ipcMain: ipcMain4 } = require("electron");
+function getWizardIndexPath2() {
+  return import_node_path4.default.join(__dirname, "wizard", "index.html");
+}
 function deriveDeployment(config) {
   return validateProductionDeployKey(config.adminKey, config.convexUrl);
 }
 function resolveBackendRoot() {
   const candidates = [
-    import_node_path2.default.resolve(__dirname, "../../backend"),
-    import_node_path2.default.resolve(process.cwd(), "../backend"),
-    import_node_path2.default.resolve(process.cwd(), "../../packages/backend")
+    import_node_path4.default.resolve(__dirname, "../../backend"),
+    import_node_path4.default.resolve(process.cwd(), "../backend"),
+    import_node_path4.default.resolve(process.cwd(), "../../packages/backend")
   ];
   for (const candidate of candidates) {
-    if ((0, import_node_fs2.existsSync)(import_node_path2.default.join(candidate, "package.json")) && (0, import_node_fs2.existsSync)(import_node_path2.default.join(candidate, "convex"))) {
+    if ((0, import_node_fs2.existsSync)(import_node_path4.default.join(candidate, "package.json")) && (0, import_node_fs2.existsSync)(import_node_path4.default.join(candidate, "convex"))) {
       return candidate;
     }
   }
@@ -407,10 +511,10 @@ function parseEnvFile(filePath) {
 }
 function loadLocalEnv(backendRoot) {
   const candidates = [
-    import_node_path2.default.resolve(backendRoot, ".env.local"),
-    import_node_path2.default.resolve(backendRoot, "../../.env.local"),
-    import_node_path2.default.resolve(backendRoot, "../../apps/web/.env.local"),
-    import_node_path2.default.resolve(backendRoot, "../../apps/web/.env")
+    import_node_path4.default.resolve(backendRoot, ".env.local"),
+    import_node_path4.default.resolve(backendRoot, "../../.env.local"),
+    import_node_path4.default.resolve(backendRoot, "../../apps/web/.env.local"),
+    import_node_path4.default.resolve(backendRoot, "../../apps/web/.env")
   ];
   return candidates.reduce(
     (merged, filePath) => ({ ...merged, ...parseEnvFile(filePath) }),
@@ -450,8 +554,8 @@ function inferClerkIssuerDomain(localEnv) {
 }
 function createBackendEnvFile(convexSiteUrl, backendRoot, firstAdminSetupSecret) {
   const localEnv = loadLocalEnv(backendRoot);
-  const tempDir = (0, import_node_fs2.mkdtempSync)(import_node_path2.default.join((0, import_node_os.tmpdir)(), "convexpress-setup-"));
-  const filePath = import_node_path2.default.join(tempDir, "convex-env.local");
+  const tempDir = (0, import_node_fs2.mkdtempSync)(import_node_path4.default.join((0, import_node_os.tmpdir)(), "convexpress-setup-"));
+  const filePath = import_node_path4.default.join(tempDir, "convex-env.local");
   const envVars = {
     AUTH_PRIVATE_KEY: readSetupEnvValue("AUTH_PRIVATE_KEY", localEnv) ?? generateAuthPrivateKey(),
     AUTH_ISSUER_URL: convexSiteUrl,
@@ -569,7 +673,7 @@ function registerSetupHandlers() {
         event.sender.send("setup:progress", { phase, message });
       };
       try {
-        if (!isWizardSender(event.sender.getURL())) {
+        if (!isExactWizardSender(event.sender.getURL(), getWizardIndexPath2())) {
           throw new Error("Setup configuration can only be saved from the setup wizard.");
         }
         sendProgress("validating", "Validating setup configuration.");
@@ -627,17 +731,17 @@ function registerSetupHandlers() {
 // electron/app-updater.ts
 var import_node_child_process2 = require("child_process");
 var import_node_fs4 = require("fs");
-var import_node_path4 = require("path");
+var import_node_path6 = require("path");
 var import_node_util = require("util");
 var import_node_events = require("events");
 
 // electron/version.ts
 var import_node_fs3 = require("fs");
-var import_node_path3 = require("path");
+var import_node_path5 = require("path");
 var import_node_os2 = require("os");
 var MANIFEST_FILENAME = ".convexpress-version.json";
 function getManifestPath(installPath) {
-  return (0, import_node_path3.join)(installPath, MANIFEST_FILENAME);
+  return (0, import_node_path5.join)(installPath, MANIFEST_FILENAME);
 }
 function readManifest(installPath) {
   const manifestPath = getManifestPath(installPath);
@@ -650,7 +754,7 @@ function readManifest(installPath) {
 }
 function writeManifest(installPath, manifest) {
   const targetPath = getManifestPath(installPath);
-  const tempPath = (0, import_node_path3.join)(
+  const tempPath = (0, import_node_path5.join)(
     (0, import_node_os2.tmpdir)(),
     `convexpress-manifest-${Date.now()}-${Math.random().toString(36).slice(2)}.json`
   );
@@ -938,7 +1042,7 @@ var AppUpdater = class extends import_node_events.EventEmitter {
     });
   }
   async detectPackageManager() {
-    if ((0, import_node_fs4.existsSync)((0, import_node_path4.join)(this.installPath, "bun.lock")) || (0, import_node_fs4.existsSync)((0, import_node_path4.join)(this.installPath, ".bun-version"))) {
+    if ((0, import_node_fs4.existsSync)((0, import_node_path6.join)(this.installPath, "bun.lock")) || (0, import_node_fs4.existsSync)((0, import_node_path6.join)(this.installPath, ".bun-version"))) {
       try {
         await execFileAsync("bun", ["--version"], { shell: true });
         return "bun";
@@ -950,7 +1054,7 @@ var AppUpdater = class extends import_node_events.EventEmitter {
 };
 
 // electron/window-manager.ts
-var import_node_path5 = __toESM(require("path"));
+var import_node_path7 = __toESM(require("path"));
 
 // electron/launchRoute.ts
 var FIRST_ADMIN_SETUP_ROUTE = "/setup";
@@ -980,22 +1084,19 @@ function isQuitting() {
   return quitting;
 }
 
-// electron/utils/platform.ts
-var { app: app2 } = require("electron");
-function isDev() {
-  return !app2.isPackaged || process.env.CONVEXPRESS_DESKTOP_DEV === "1";
-}
-
 // electron/window-manager.ts
 var { app: app3, BrowserWindow: BrowserWindow2, shell } = require("electron");
 function getPreloadPath() {
-  return import_node_path5.default.join(__dirname, "preload.js");
+  return import_node_path7.default.join(__dirname, "preload.js");
 }
 function getIconPath() {
-  return import_node_path5.default.join(__dirname, "../resources/icon.png");
+  return import_node_path7.default.join(__dirname, "../resources/icon.png");
 }
-function getRendererIndexPath() {
-  return import_node_path5.default.join(__dirname, "..", "dist", "index.html");
+function getRendererIndexPath3() {
+  return import_node_path7.default.join(__dirname, "..", "dist", "index.html");
+}
+function openExternal(url) {
+  void shell.openExternal(url);
 }
 var WindowManager = class {
   mainWindow = null;
@@ -1027,6 +1128,7 @@ var WindowManager = class {
         sandbox: true
       }
     });
+    const rendererIndexPath = getRendererIndexPath3();
     if (isDev()) {
       win.loadURL(
         addHashRouteToUrl(
@@ -1035,13 +1137,12 @@ var WindowManager = class {
         )
       );
     } else {
-      const indexPath = getRendererIndexPath();
-      console.log(`[WindowManager] Renderer path: ${indexPath}`);
+      console.log(`[WindowManager] Renderer path: ${rendererIndexPath}`);
       const initialRoute = normalizeInitialRoute(options.initialRoute);
       if (initialRoute) {
-        win.loadFile(indexPath, { hash: initialRoute });
+        win.loadFile(rendererIndexPath, { hash: initialRoute });
       } else {
-        win.loadFile(indexPath);
+        win.loadFile(rendererIndexPath);
       }
     }
     win.once("ready-to-show", () => {
@@ -1060,14 +1161,14 @@ var WindowManager = class {
       console.error("[Renderer CRASHED]", details);
     });
     win.webContents.setWindowOpenHandler(({ url }) => {
-      void shell.openExternal(url);
+      openExternal(url);
       return { action: "deny" };
     });
     win.webContents.on("will-navigate", (event, url) => {
-      const isInternal = isDev() ? url.startsWith("http://localhost:") : url.startsWith("file://");
+      const isInternal = isDev() ? isDevAppRendererSender(url) : isAppRendererSender(url, { rendererIndexPath });
       if (!isInternal) {
         event.preventDefault();
-        void shell.openExternal(url);
+        openExternal(url);
       }
     });
     win.on("maximize", () => {
@@ -1113,12 +1214,22 @@ var WindowManager = class {
         sandbox: true
       }
     });
-    win.loadFile(import_node_path5.default.join(__dirname, "wizard", "index.html"));
+    const wizardIndexPath = import_node_path7.default.join(__dirname, "wizard", "index.html");
+    win.loadFile(wizardIndexPath);
     win.once("ready-to-show", () => {
       win.show();
     });
     win.on("closed", () => {
       this.wizardWindow = null;
+    });
+    win.webContents.setWindowOpenHandler(({ url }) => {
+      openExternal(url);
+      return { action: "deny" };
+    });
+    win.webContents.on("will-navigate", (event, url) => {
+      if (isExactWizardSender(url, wizardIndexPath)) return;
+      event.preventDefault();
+      openExternal(url);
     });
     this.wizardWindow = win;
     return win;
@@ -1273,11 +1384,11 @@ function registerAllIpcHandlers() {
 }
 
 // electron/tray.ts
-var import_node_path6 = __toESM(require("path"));
+var import_node_path8 = __toESM(require("path"));
 var { app: app5, Menu, nativeImage, Tray } = require("electron");
 var tray = null;
 function loadTrayIcon() {
-  const iconPath = isDev() ? import_node_path6.default.join(__dirname, "../resources/iconTemplate.png") : import_node_path6.default.join(process.resourcesPath, "iconTemplate.png");
+  const iconPath = isDev() ? import_node_path8.default.join(__dirname, "../resources/iconTemplate.png") : import_node_path8.default.join(process.resourcesPath, "iconTemplate.png");
   const image = nativeImage.createFromPath(iconPath);
   image.setTemplateImage(false);
   return image;
@@ -1335,9 +1446,9 @@ var {
 } = require("electron");
 app6.setName("ConvexPress");
 if (isDev()) {
-  app6.setPath("userData", import_node_path7.default.join(app6.getPath("userData"), "-dev"));
+  app6.setPath("userData", import_node_path9.default.join(app6.getPath("userData"), "-dev"));
 }
-var LOG_FILE = import_node_path7.default.join(app6.getPath("userData"), "convexpress-debug.log");
+var LOG_FILE = import_node_path9.default.join(app6.getPath("userData"), "convexpress-debug.log");
 function fileLog(msg) {
   const line = `[${(/* @__PURE__ */ new Date()).toISOString()}] ${msg}
 `;
@@ -1397,6 +1508,9 @@ function getInitialRouteForCurrentLaunch() {
     pendingAdminCredentials: store2.get("pendingAdminCredentials")
   });
 }
+function getWizardIndexPath3() {
+  return import_node_path9.default.join(__dirname, "wizard", "index.html");
+}
 function launchApp() {
   createTray(windowManager);
   const mainWindow = windowManager.createMainWindow({
@@ -1410,7 +1524,7 @@ function launchApp() {
     }
   });
   if (app6.isPackaged && !isDev()) {
-    const installPath = import_node_path7.default.dirname(app6.getAppPath());
+    const installPath = import_node_path9.default.dirname(app6.getAppPath());
     const manifest = readManifest(installPath);
     if (manifest) {
       fileLog(`[Main] App-content updater initialized at ${installPath}`);
@@ -1469,7 +1583,7 @@ app6.whenReady().then(async () => {
   registerAllIpcHandlers();
   let appLaunched = false;
   ipcMain8.handle("app:reload-from-setup", (event) => {
-    if (!isWizardSender(event.sender.getURL())) {
+    if (!isExactWizardSender(event.sender.getURL(), getWizardIndexPath3())) {
       throw new Error("Setup launch can only be requested from the setup wizard.");
     }
     if (appLaunched) return;
