@@ -431,18 +431,22 @@ function registerSetupHandlers() {
         if (config.siteName) {
           store.set("siteName", config.siteName);
         }
-        if (config.adminName || config.adminEmail || config.adminPassword) {
+        if (config.mode === "server" && (config.adminName || config.adminEmail || config.adminPassword)) {
           store.set("pendingAdminCredentials", {
             displayName: config.adminName,
             email: config.adminEmail,
             password: config.adminPassword
           });
+        } else {
+          store.delete("pendingAdminCredentials");
         }
-        if (config.clientIdentifier || config.clientPassword) {
+        if (config.mode === "client" && (config.clientIdentifier || config.clientPassword)) {
           store.set("pendingLoginCredentials", {
             identifier: config.clientIdentifier,
             password: config.clientPassword
           });
+        } else {
+          store.delete("pendingLoginCredentials");
         }
         store.set("setupComplete", true);
         sendProgress("complete", "Setup configuration saved.");

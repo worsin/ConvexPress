@@ -16,23 +16,29 @@ import {
   generateRefreshToken,
   hashRefreshToken,
 } from "./helpers";
+import { authJsonResponse, getAllowedAuthOrigin } from "./httpSecurity";
 
 export const loginHandler = httpAction(async (ctx, request) => {
-  const origin = request.headers.get("origin") ?? "";
+  const allowedOrigin = getAllowedAuthOrigin(request.headers.get("origin"));
+  if (allowedOrigin === null) {
+    return authJsonResponse({ error: "Origin not allowed" }, 403, "");
+  }
 
   let body: { email?: string; username?: string; password?: string };
   try {
     body = await request.json();
   } catch {
-    return jsonResponse({ error: "Invalid JSON body" }, 400, origin);
+    return authJsonResponse({ error: "Invalid JSON body" }, 400, allowedOrigin);
   }
 
-  const { email, username, password } = body;
+  const password = body.password;
+  const email = body.email?.trim().toLowerCase();
+  const username = body.username?.trim();
   if (!password || (!email && !username)) {
-    return jsonResponse(
+    return authJsonResponse(
       { error: "Email/username and password are required" },
       400,
-      origin,
+      allowedOrigin,
     );
   }
 
@@ -46,10 +52,10 @@ export const loginHandler = httpAction(async (ctx, request) => {
     ip,
   });
   if (isLocked) {
-    return jsonResponse(
+    return authJsonResponse(
       { error: "Too many failed attempts. Try again later." },
       429,
-      origin,
+      allowedOrigin,
     );
   }
 
@@ -69,7 +75,7 @@ export const loginHandler = httpAction(async (ctx, request) => {
         app: "admin",
       },
     );
-    return jsonResponse({ error: "Invalid credentials" }, 401, origin);
+    return authJsonResponse({ error: "Invalid credentials" }, 401, allowedOrigin);
   }
 
   // ─── Password verification ────────────────────────────────────────────────
@@ -84,12 +90,25 @@ export const loginHandler = httpAction(async (ctx, request) => {
         app: "admin",
       },
     );
-    return jsonResponse({ error: "Invalid credentials" }, 401, origin);
+    return authJsonResponse({ error: "Invalid credentials" }, 401, allowedOrigin);
   }
 
   // ─── Account status check ─────────────────────────────────────────────────
   if (user.status !== "active") {
-    return jsonResponse({ error: "Account is not active" }, 403, origin);
+    return authJsonResponse({ error: "Account is not active" }, 403, allowedOrigin);
+  }
+
+  if (!user.adminLoginAllowed) {
+    await ctx.runMutation(
+      internal.authTracking.internals.recordFailedAttempt,
+      {
+        identifier,
+        ip,
+        reason: "invalid_credentials",
+        app: "admin",
+      },
+    );
+    return authJsonResponse({ error: "Invalid credentials" }, 401, allowedOrigin);
   }
 
   // ─── Issue tokens ─────────────────────────────────────────────────────────
@@ -132,8 +151,8 @@ export const loginHandler = httpAction(async (ctx, request) => {
     ...(isProduction ? ["SameSite=None", "Secure"] : ["SameSite=Lax"]),
   ].join("; ");
 
-  return new Response(
-    JSON.stringify({
+  return authJsonResponse(
+    {
       accessToken,
       expiresIn: 900, // 15 minutes in seconds
       user: {
@@ -141,32 +160,9 @@ export const loginHandler = httpAction(async (ctx, request) => {
         email: user.email,
         displayName: user.displayName ?? user.username ?? user.email,
       },
-    }),
-    {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Set-Cookie": cookieFlags,
-        "Access-Control-Allow-Origin": origin,
-        "Access-Control-Allow-Credentials": "true",
-        "Vary": "Origin",
-        "Cache-Control": "no-store",
-      },
     },
+    200,
+    allowedOrigin,
+    { "Set-Cookie": cookieFlags },
   );
 });
-
-// ─── Helper ───────────────────────────────────────────────────────────────────
-
-function jsonResponse(data: object, status: number, origin: string) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": origin,
-      "Access-Control-Allow-Credentials": "true",
-      "Vary": "Origin",
-      "Cache-Control": "no-store",
-    },
-  });
-}

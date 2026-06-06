@@ -10,6 +10,43 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 
+async function hasExistingAdmin(ctx: { db: any }): Promise<boolean> {
+  const adminRole = await ctx.db
+    .query("roles")
+    .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
+    .unique();
+
+  if (adminRole) {
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", adminRole._id))
+      .first();
+
+    if (admin) return true;
+  }
+
+  const legacyAdmins = await ctx.db
+    .query("users")
+    .withIndex("by_internal_role", (q: ConvexQueryBuilder) => q.eq("internalRole", "admin"))
+    .collect();
+
+  return legacyAdmins.some(
+    (user: { isInternal?: boolean }) => user.isInternal === true,
+  );
+}
+
+async function canUseAdminLocalAuth(
+  ctx: { db: any },
+  user: { isInternal?: boolean; roleId?: unknown },
+): Promise<boolean> {
+  if (user.isInternal === true) return true;
+
+  if (!user.roleId) return false;
+
+  const role = await ctx.db.get("roles", user.roleId);
+  return !!role && role.status === "active" && role.type === "internal";
+}
+
 // ─── User Lookups ─────────────────────────────────────────────────────────────
 
 /**
@@ -45,20 +82,28 @@ export const findLocalUser = internalQuery({
     // Only return users with local auth source
     if (user && user.authSource !== "local") return null;
 
-    return user;
+    if (!user) return null;
+
+    const adminLoginAllowed = await canUseAdminLocalAuth(ctx, user);
+    return { ...user, adminLoginAllowed };
   },
 });
 
 /**
- * Get a user by their Convex document ID.
+ * Get a local-auth user by their Convex document ID and annotate whether
+ * they can continue using the admin local-auth session.
  */
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getUserById = internalQuery({
+export const getLocalSessionUserById = internalQuery({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { userId: v.id("users") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    return await ctx.db.get("users", args.userId);
+    const user = await ctx.db.get("users", args.userId);
+    if (!user || user.authSource !== "local") return null;
+
+    const adminLoginAllowed = await canUseAdminLocalAuth(ctx, user);
+    return { ...user, adminLoginAllowed };
   },
 });
 
@@ -199,28 +244,7 @@ export const checkExistingAdmins = internalQuery({
   args: {},
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
-    const adminRole = await ctx.db
-      .query("roles")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
-      .unique();
-
-    if (adminRole) {
-      const admin = await ctx.db
-        .query("users")
-        .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", adminRole._id))
-        .first();
-
-      if (admin) return true;
-    }
-
-    const legacyAdmins = await ctx.db
-      .query("users")
-      .withIndex("by_internal_role", (q: ConvexQueryBuilder) => q.eq("internalRole", "admin"))
-      .collect();
-
-    return legacyAdmins.some(
-      (user: { isInternal?: boolean }) => user.isInternal === true,
-    );
+    return await hasExistingAdmin(ctx);
   },
 });
 
@@ -238,6 +262,10 @@ export const createAdminUser = internalMutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    if (await hasExistingAdmin(ctx)) {
+      throw new Error("An administrator account already exists");
+    }
+
     const adminRole = await ctx.db
       .query("roles")
       .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
@@ -252,6 +280,17 @@ export const createAdminUser = internalMutation({
       .query("users")
       .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", args.email))
       .first();
+    const existingUsername = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q: ConvexQueryBuilder) => q.eq("username", args.username))
+      .first();
+
+    if (
+      existingUsername &&
+      (!existing || existingUsername._id !== existing._id)
+    ) {
+      throw new Error("Username is already in use");
+    }
 
     if (existing) {
       await ctx.db.patch("users", existing._id, {

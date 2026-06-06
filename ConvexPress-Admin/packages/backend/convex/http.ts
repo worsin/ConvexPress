@@ -3,6 +3,7 @@ import { loginHandler } from "./auth/login";
 import { refreshHandler } from "./auth/refresh";
 import { logoutHandler } from "./auth/logout";
 import { jwksHandler } from "./auth/jwks";
+import { authPreflightResponse } from "./auth/httpSecurity";
 
 // ─── API v1 HTTP Endpoint Handlers ────────────────────────────────────────
 import { corsPreflightResponse } from "./http/helpers";
@@ -66,18 +67,7 @@ const corsPreflight = httpAction(async () => {
 // request Origin instead of returning "*". Browsers reject wildcard when
 // credentials mode is "include".
 const authCorsPreflight = httpAction(async (_ctx, request) => {
-  const origin = request.headers.get("origin") ?? "";
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": origin,
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Authorization, Content-Type",
-      "Access-Control-Allow-Credentials": "true",
-      "Access-Control-Max-Age": "86400",
-      "Vary": "Origin",
-    },
-  });
+  return authPreflightResponse(request);
 });
 
 // ─── Auth Routes ────────────────────────────────────────────────────────────

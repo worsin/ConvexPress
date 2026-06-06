@@ -12,9 +12,18 @@
 import { httpAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { hashRefreshToken } from "./helpers";
+import {
+  authJsonResponse,
+  createAuthHeaders,
+  getAllowedAuthOrigin,
+} from "./httpSecurity";
 
 export const logoutHandler = httpAction(async (ctx, request) => {
-  const origin = request.headers.get("origin") ?? "";
+  const allowedOrigin = getAllowedAuthOrigin(request.headers.get("origin"));
+  if (allowedOrigin === null) {
+    return authJsonResponse({ error: "Origin not allowed" }, 403, "");
+  }
+
   const isProduction =
     process.env.AUTH_ISSUER_URL?.startsWith("https://") ?? false;
 
@@ -35,13 +44,7 @@ export const logoutHandler = httpAction(async (ctx, request) => {
     ...(isProduction ? ["SameSite=None", "Secure"] : ["SameSite=Lax"]),
   ].join("; ");
 
-  const headers = new Headers({
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Credentials": "true",
-    "Vary": "Origin",
-    "Cache-Control": "no-store",
-  });
+  const headers = createAuthHeaders(allowedOrigin);
   headers.append("Set-Cookie", clearCookie("/auth"));
   headers.append("Set-Cookie", clearCookie("/auth/refresh"));
 

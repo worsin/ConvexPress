@@ -18,16 +18,20 @@ import {
   generateRefreshToken,
   hashRefreshToken,
 } from "./helpers";
+import { authJsonResponse, getAllowedAuthOrigin } from "./httpSecurity";
 
 export const refreshHandler = httpAction(async (ctx, request) => {
-  const origin = request.headers.get("origin") ?? "";
+  const allowedOrigin = getAllowedAuthOrigin(request.headers.get("origin"));
+  if (allowedOrigin === null) {
+    return authJsonResponse({ error: "Origin not allowed" }, 403, "");
+  }
 
   // ─── Extract refresh token from cookie ───────────────────────────────────
   const cookieHeader = request.headers.get("cookie") ?? "";
   const refreshToken = parseCookie(cookieHeader, "convexpress_refresh");
 
   if (!refreshToken) {
-    return jsonResponse({ error: "No refresh token" }, 401, origin);
+    return authJsonResponse({ error: "No refresh token" }, 401, allowedOrigin);
   }
 
   // ─── Validate token record ────────────────────────────────────────────────
@@ -42,16 +46,27 @@ export const refreshHandler = httpAction(async (ctx, request) => {
     tokenRecord.revokedAt ||
     tokenRecord.expiresAt < Date.now()
   ) {
-    return jsonResponse({ error: "Invalid or expired refresh token" }, 401, origin);
+    return authJsonResponse(
+      { error: "Invalid or expired refresh token" },
+      401,
+      allowedOrigin,
+    );
   }
 
   // ─── Fetch user ───────────────────────────────────────────────────────────
-  const user = await ctx.runQuery(internal.auth.internals.getUserById, {
+  const user = await ctx.runQuery(internal.auth.internals.getLocalSessionUserById, {
     userId: tokenRecord.userId,
   });
 
-  if (!user || user.status !== "active") {
-    return jsonResponse({ error: "User not found or inactive" }, 401, origin);
+  if (!user || user.status !== "active" || !user.adminLoginAllowed) {
+    await ctx.runMutation(internal.auth.internals.revokeRefreshToken, {
+      tokenHash,
+    });
+    return authJsonResponse(
+      { error: "Invalid or expired refresh token" },
+      401,
+      allowedOrigin,
+    );
   }
 
   // ─── Rotate token (revoke old, issue new) ─────────────────────────────────
@@ -86,17 +101,12 @@ export const refreshHandler = httpAction(async (ctx, request) => {
     ...(isProduction ? ["SameSite=None", "Secure"] : ["SameSite=Lax"]),
   ].join("; ");
 
-  return new Response(JSON.stringify({ accessToken, expiresIn: 900 }), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-      "Set-Cookie": cookieFlags,
-      "Access-Control-Allow-Origin": origin,
-      "Access-Control-Allow-Credentials": "true",
-      "Vary": "Origin",
-      "Cache-Control": "no-store",
-    },
-  });
+  return authJsonResponse(
+    { accessToken, expiresIn: 900 },
+    200,
+    allowedOrigin,
+    { "Set-Cookie": cookieFlags },
+  );
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -104,17 +114,4 @@ export const refreshHandler = httpAction(async (ctx, request) => {
 function parseCookie(header: string, name: string): string | null {
   const match = header.match(new RegExp(`(?:^|;)\\s*${name}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : null;
-}
-
-function jsonResponse(data: object, status: number, origin: string) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": origin,
-      "Access-Control-Allow-Credentials": "true",
-      "Vary": "Origin",
-      "Cache-Control": "no-store",
-    },
-  });
 }

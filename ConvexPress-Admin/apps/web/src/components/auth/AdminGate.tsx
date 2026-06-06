@@ -208,6 +208,15 @@ function AutoSignup({
     if (attempted.current) return;
     attempted.current = true;
 
+    async function clearPendingCredentials() {
+      if (isElectron() && window.convexpress) {
+        await window.convexpress.config.set(
+          "pendingAdminCredentials",
+          null,
+        );
+      }
+    }
+
     async function doSignup() {
       try {
         // Derive username from email if the wizard didn't collect one
@@ -236,17 +245,13 @@ function AutoSignup({
         await login(credentials.email, credentials.password);
 
         // 3. Clear pending credentials from electron-store
-        if (isElectron() && window.convexpress) {
-          await window.convexpress.config.set(
-            "pendingAdminCredentials",
-            null,
-          );
-        }
+        await clearPendingCredentials();
 
         toast.success("Welcome to ConvexPress!");
         onComplete();
       } catch (err) {
         console.error("[AutoSignup] Failed:", err);
+        await clearPendingCredentials().catch(() => undefined);
         setError(err instanceof Error ? err.message : "Setup sign-in failed");
       }
     }

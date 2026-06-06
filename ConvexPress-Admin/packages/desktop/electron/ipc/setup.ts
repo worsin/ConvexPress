@@ -364,19 +364,29 @@ export function registerSetupHandlers(): void {
           configStore.set("siteName", config.siteName);
         }
 
-        if (config.adminName || config.adminEmail || config.adminPassword) {
+        if (
+          config.mode === "server" &&
+          (config.adminName || config.adminEmail || config.adminPassword)
+        ) {
           configStore.set("pendingAdminCredentials", {
             displayName: config.adminName,
             email: config.adminEmail,
             password: config.adminPassword,
           });
+        } else {
+          configStore.delete("pendingAdminCredentials");
         }
 
-        if (config.clientIdentifier || config.clientPassword) {
+        if (
+          config.mode === "client" &&
+          (config.clientIdentifier || config.clientPassword)
+        ) {
           configStore.set("pendingLoginCredentials", {
             identifier: config.clientIdentifier,
             password: config.clientPassword,
           });
+        } else {
+          configStore.delete("pendingLoginCredentials");
         }
 
         configStore.set("setupComplete", true);

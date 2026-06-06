@@ -45,6 +45,7 @@ import type * as auth_clerkProvisioning from "../auth/clerkProvisioning.js";
 import type * as auth_clerkSync from "../auth/clerkSync.js";
 import type * as auth_clerkWebhook from "../auth/clerkWebhook.js";
 import type * as auth_helpers from "../auth/helpers.js";
+import type * as auth_httpSecurity from "../auth/httpSecurity.js";
 import type * as auth_internals from "../auth/internals.js";
 import type * as auth_jwks from "../auth/jwks.js";
 import type * as auth_login from "../auth/login.js";
@@ -684,6 +685,7 @@ declare const fullApi: ApiFromModules<{
   "auth/clerkSync": typeof auth_clerkSync;
   "auth/clerkWebhook": typeof auth_clerkWebhook;
   "auth/helpers": typeof auth_helpers;
+  "auth/httpSecurity": typeof auth_httpSecurity;
   "auth/internals": typeof auth_internals;
   "auth/jwks": typeof auth_jwks;
   "auth/login": typeof auth_login;

@@ -33,6 +33,31 @@ const LEGACY_ROLE_SLUG_MAP: Record<string, string> = {
   customer: "subscriber",
 };
 
+function pageAccessCandidates(path: string): string[] {
+  const cleanPath = path.split("?")[0]?.split("#")[0] || "/";
+  const withLeadingSlash = cleanPath.startsWith("/")
+    ? cleanPath
+    : `/${cleanPath}`;
+
+  if (withLeadingSlash === "/") return ["/", "/admin"];
+  if (withLeadingSlash.startsWith("/admin")) return [withLeadingSlash];
+
+  return [withLeadingSlash, `/admin${withLeadingSlash}`];
+}
+
+function matchesPageAccess(path: string, allowed: string): boolean {
+  const normalizedAllowed = allowed.endsWith("/")
+    ? allowed.slice(0, -1)
+    : allowed;
+
+  if (normalizedAllowed.endsWith("/*")) {
+    const prefix = normalizedAllowed.slice(0, -2);
+    return path === prefix || path.startsWith(`${prefix}/`);
+  }
+
+  return path === normalizedAllowed || path.startsWith(`${normalizedAllowed}/`);
+}
+
 // --- Types ---
 
 interface AuthContextValue {
@@ -184,12 +209,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const canAccessRoute = (path: string): boolean => {
       if (!roleData) return false;
-      // Check if the path matches any entry in pageAccess
-      // Uses prefix matching: "/admin/posts" grants access to "/admin/posts/new"
-      return roleData.pageAccess.some(
-        (allowed) =>
-          path === allowed ||
-          path.startsWith(allowed + "/"),
+      const candidates = pageAccessCandidates(path);
+      return roleData.pageAccess.some((allowed) =>
+        candidates.some((candidate) => matchesPageAccess(candidate, allowed)),
       );
     };
 
