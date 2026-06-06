@@ -423,7 +423,17 @@ describe("createFirstAdmin", () => {
         password: PASSWORD,
         displayName: "Second Admin",
       }),
-    ).rejects.toThrow("First-admin setup token is invalid or missing.");
+    ).rejects.toThrow("An administrator account already exists");
+
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "second@example.com",
+        username: "secondadmin",
+        password: PASSWORD,
+        displayName: "Second Admin",
+        setupToken: "wrong-token",
+      }),
+    ).rejects.toThrow("An administrator account already exists");
 
     await expect(
       t.action(api.auth.setup.createFirstAdmin, {
