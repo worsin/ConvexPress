@@ -29,6 +29,7 @@ import { Loader2 } from "lucide-react";
 import { isElectron } from "../../lib/electron";
 import {
   FIRST_ADMIN_SETUP_ROUTE,
+  completeFirstAdminSetup,
   deriveSetupUsername,
   validateFirstAdminForm,
 } from "../../lib/first-admin-setup";
@@ -235,28 +236,22 @@ function AutoSignup({
           credentials.username,
         );
 
-        // 1. Create the first admin account
-        try {
-          await createFirstAdmin({
+        await completeFirstAdminSetup({
+          credentials: {
             email: credentials.email,
             username,
             password: credentials.password,
             displayName: credentials.displayName,
             setupToken: credentials.setupToken,
-          });
-        } catch (createError) {
-          const message =
-            createError instanceof Error ? createError.message : String(createError);
-          if (!message.toLowerCase().includes("administrator account already exists")) {
-            throw createError;
-          }
-        }
-
-        // 2. Log in with the newly created credentials
-        await login(credentials.email, credentials.password);
+          },
+          createFirstAdmin,
+          login,
+          navigateToSetup: () =>
+            navigate({ to: FIRST_ADMIN_SETUP_ROUTE, replace: true }),
+          allowExistingAdmin: true,
+        });
 
         toast.success("Welcome to ConvexPress!");
-        await navigate({ to: FIRST_ADMIN_SETUP_ROUTE, replace: true });
         onComplete();
       } catch (err) {
         console.error("[AutoSignup] Failed:", err);
@@ -330,16 +325,17 @@ function AdminCreationForm({
 
     setLoading(true);
     try {
-      await createFirstAdmin({
-        email: validation.credentials.email,
-        username: validation.credentials.username,
-        password: validation.credentials.password,
-        displayName: validation.credentials.displayName,
-        setupToken,
+      await completeFirstAdminSetup({
+        credentials: {
+          ...validation.credentials,
+          setupToken,
+        },
+        createFirstAdmin,
+        login,
+        navigateToSetup: () =>
+          navigate({ to: FIRST_ADMIN_SETUP_ROUTE, replace: true }),
       });
-      await login(validation.credentials.email, validation.credentials.password);
       toast.success("Admin account created! Welcome to ConvexPress.");
-      await navigate({ to: FIRST_ADMIN_SETUP_ROUTE, replace: true });
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to create admin account";

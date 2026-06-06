@@ -18,9 +18,27 @@ export type FirstAdminCredentials = {
   password: string;
 };
 
+export type FirstAdminSetupCredentials = {
+  displayName?: string;
+  username: string;
+  email: string;
+  password: string;
+  setupToken?: string;
+};
+
 export type FirstAdminFormValidation =
   | { ok: true; credentials: FirstAdminCredentials }
   | { ok: false; error: string };
+
+export type CompleteFirstAdminSetupOptions = {
+  credentials: FirstAdminSetupCredentials;
+  createFirstAdmin: (
+    credentials: FirstAdminSetupCredentials,
+  ) => Promise<unknown>;
+  login: (identifier: string, password: string) => Promise<unknown>;
+  navigateToSetup: () => Promise<unknown> | unknown;
+  allowExistingAdmin?: boolean;
+};
 
 export function deriveSetupUsername(
   email: string,
@@ -79,4 +97,29 @@ export function validateFirstAdminForm(
       password,
     },
   };
+}
+
+function isExistingAdminSetupError(error: unknown): boolean {
+  const message =
+    error instanceof Error ? error.message : String(error ?? "");
+  return message.toLowerCase().includes("administrator account already exists");
+}
+
+export async function completeFirstAdminSetup({
+  credentials,
+  createFirstAdmin,
+  login,
+  navigateToSetup,
+  allowExistingAdmin = false,
+}: CompleteFirstAdminSetupOptions) {
+  try {
+    await createFirstAdmin(credentials);
+  } catch (error) {
+    if (!allowExistingAdmin || !isExistingAdminSetupError(error)) {
+      throw error;
+    }
+  }
+
+  await login(credentials.email, credentials.password);
+  await navigateToSetup();
 }

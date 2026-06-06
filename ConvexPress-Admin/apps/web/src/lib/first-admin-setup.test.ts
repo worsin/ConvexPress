@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   FIRST_ADMIN_SETUP_ROUTE,
+  completeFirstAdminSetup,
   deriveSetupUsername,
   validateFirstAdminForm,
 } from "./first-admin-setup";
@@ -119,5 +120,107 @@ describe("first-admin setup helpers", () => {
       ok: false,
       error: "Password must be at least 8 characters.",
     });
+  });
+
+  test("creates, logs in, and navigates to the setup checklist in order", async () => {
+    const calls: string[] = [];
+    const createdCredentials: unknown[] = [];
+    const loginCredentials: unknown[] = [];
+
+    await completeFirstAdminSetup({
+      credentials: {
+        displayName: "First Admin",
+        username: "admin",
+        email: "admin@example.com",
+        password: "CorrectHorse42",
+        setupToken: "setup-token",
+      },
+      createFirstAdmin: async (credentials) => {
+        calls.push("create");
+        createdCredentials.push(credentials);
+      },
+      login: async (identifier, password) => {
+        calls.push("login");
+        loginCredentials.push({ identifier, password });
+      },
+      navigateToSetup: () => {
+        calls.push("navigate");
+      },
+    });
+
+    expect(calls).toEqual(["create", "login", "navigate"]);
+    expect(createdCredentials).toEqual([
+      {
+        displayName: "First Admin",
+        username: "admin",
+        email: "admin@example.com",
+        password: "CorrectHorse42",
+        setupToken: "setup-token",
+      },
+    ]);
+    expect(loginCredentials).toEqual([
+      {
+        identifier: "admin@example.com",
+        password: "CorrectHorse42",
+      },
+    ]);
+  });
+
+  test("auto setup can recover from an already-created admin and still log in", async () => {
+    const calls: string[] = [];
+
+    await completeFirstAdminSetup({
+      credentials: {
+        username: "admin",
+        email: "admin@example.com",
+        password: "CorrectHorse42",
+      },
+      createFirstAdmin: async () => {
+        calls.push("create");
+        throw new Error("An administrator account already exists");
+      },
+      login: async () => {
+        calls.push("login");
+      },
+      navigateToSetup: () => {
+        calls.push("navigate");
+      },
+      allowExistingAdmin: true,
+    });
+
+    expect(calls).toEqual(["create", "login", "navigate"]);
+  });
+
+  test("manual setup does not log in or navigate when admin creation fails", async () => {
+    const calls: string[] = [];
+    let error: unknown;
+
+    try {
+      await completeFirstAdminSetup({
+        credentials: {
+          username: "admin",
+          email: "admin@example.com",
+          password: "CorrectHorse42",
+        },
+        createFirstAdmin: async () => {
+          calls.push("create");
+          throw new Error("An administrator account already exists");
+        },
+        login: async () => {
+          calls.push("login");
+        },
+        navigateToSetup: () => {
+          calls.push("navigate");
+        },
+      });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error instanceof Error).toBe(true);
+    expect((error as Error).message).toBe(
+      "An administrator account already exists",
+    );
+    expect(calls).toEqual(["create"]);
   });
 });
