@@ -309,7 +309,9 @@ function createBackendEnvFile(convexSiteUrl, backendRoot) {
   const filePath = import_node_path2.default.join(tempDir, "convex-env.local");
   const envVars = {
     AUTH_PRIVATE_KEY: readSetupEnvValue("AUTH_PRIVATE_KEY", localEnv) ?? generateAuthPrivateKey(),
-    AUTH_ISSUER_URL: convexSiteUrl
+    AUTH_ISSUER_URL: convexSiteUrl,
+    AUTH_ALLOWED_ORIGINS: readSetupEnvValue("AUTH_ALLOWED_ORIGINS", localEnv) ?? "http://localhost:4105,http://127.0.0.1:4105",
+    AUTH_ALLOW_NULL_ORIGIN: readSetupEnvValue("AUTH_ALLOW_NULL_ORIGIN", localEnv) ?? "true"
   };
   const clerkSecret = readSetupEnvValue("CLERK_SECRET_KEY", localEnv);
   if (clerkSecret) envVars.CLERK_SECRET_KEY = clerkSecret;

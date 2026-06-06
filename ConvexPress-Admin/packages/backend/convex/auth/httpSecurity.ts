@@ -25,6 +25,15 @@ function configuredAllowedOrigins(): Set<string> {
   return new Set(values);
 }
 
+function allowLocalDevOrigins(configuredOrigins: Set<string>): boolean {
+  if (process.env.AUTH_ALLOW_LOCALHOST_ORIGINS === "true") return true;
+  if (process.env.AUTH_ALLOW_LOCALHOST_ORIGINS === "false") return false;
+
+  // Development fallback for fresh checkouts. Once an explicit allowlist is
+  // configured, localhost must be listed there too.
+  return configuredOrigins.size === 0;
+}
+
 export function getAllowedAuthOrigin(originHeader: string | null): string | null {
   const origin = normalizeOrigin(originHeader ?? undefined);
   if (!origin) return "";
@@ -36,12 +45,17 @@ export function getAllowedAuthOrigin(originHeader: string | null): string | null
   if (issuerOrigin && origin === issuerOrigin) return origin;
 
   if (origin === "null") {
-    return process.env.AUTH_ALLOW_NULL_ORIGIN === "false" ? null : "null";
+    return process.env.AUTH_ALLOW_NULL_ORIGIN === "true" ? "null" : null;
   }
 
   try {
     const url = new URL(origin);
-    if (LOCAL_DEV_HOSTS.has(url.hostname)) return origin;
+    if (
+      allowLocalDevOrigins(configured) &&
+      LOCAL_DEV_HOSTS.has(url.hostname)
+    ) {
+      return origin;
+    }
   } catch {
     return null;
   }
