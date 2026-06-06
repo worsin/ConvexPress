@@ -1,4 +1,5 @@
 import { test as base, expect } from "@playwright/test";
+import { authenticateAdminForSmoke } from "./_auth";
 
 /**
  * Custom fixture: gives every test a freshly-authenticated browser context.
@@ -9,21 +10,13 @@ import { test as base, expect } from "@playwright/test";
  * login screen. We bypass that by hitting /auth/login directly per test, then
  * letting the page's normal refresh-on-mount flow do its thing.
  *
- * Use:
- *   import { test } from "./_fixtures";
- *   test("…", async ({ authedPage }) => { … });
+ * The shared auth helper signs in through the same auth gate users see. For an
+ * explicit fresh-setup smoke, it can create the first admin once and let
+ * parallel workers sign in with those same credentials.
  */
 export const test = base.extend<{ authedPage: import("@playwright/test").Page }>({
 	authedPage: async ({ browser }, use) => {
-		const username = process.env.ADMIN_SMOKE_USER ?? process.env.ADMIN_SMOKE_EMAIL;
-		const password = process.env.ADMIN_SMOKE_PASSWORD;
 		const convexSiteUrl = process.env.VITE_CONVEX_SITE_URL;
-
-		if (!username || !password) {
-			throw new Error(
-				"Admin smoke tests require ADMIN_SMOKE_USER and ADMIN_SMOKE_PASSWORD env vars.",
-			);
-		}
 		if (!convexSiteUrl) {
 			throw new Error(
 				"Admin smoke tests require VITE_CONVEX_SITE_URL env var (loaded from apps/web/.env).",
@@ -33,25 +26,7 @@ export const test = base.extend<{ authedPage: import("@playwright/test").Page }>
 		const context = await browser.newContext();
 		const page = await context.newPage();
 
-		await page.goto("/", { waitUntil: "domcontentloaded" });
-		const loginHeading = page.getByRole("heading", {
-			name: /convexpress admin/i,
-		});
-		const adminContent = page.locator("#admin-content");
-
-		const alreadyAuthed = await adminContent
-			.waitFor({ state: "visible", timeout: 5_000 })
-			.then(() => true)
-			.catch(() => false);
-
-		if (!alreadyAuthed) {
-			await expect(loginHeading).toBeVisible({ timeout: 45_000 });
-			await page.getByLabel("Email or Username").fill(username);
-			await page.getByLabel("Password").fill(password);
-			await page.getByRole("button", { name: /^sign in$/i }).click();
-		}
-
-		await expect(adminContent).toBeVisible({ timeout: 45_000 });
+		await authenticateAdminForSmoke(page);
 		await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
 
 		await use(page);

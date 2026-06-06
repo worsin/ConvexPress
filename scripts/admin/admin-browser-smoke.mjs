@@ -11,8 +11,25 @@ loadEnv({ path: join(root, "apps/web/.env") });
 const baseUrl = normalizeBaseUrl(
   process.env.ADMIN_SMOKE_BASE_URL ?? "http://localhost:4105",
 );
-const username = process.env.ADMIN_SMOKE_USER ?? process.env.ADMIN_SMOKE_EMAIL;
-const password = process.env.ADMIN_SMOKE_PASSWORD;
+const allowFirstAdminSetup = parseBooleanFlag(
+  process.env.ADMIN_SMOKE_ALLOW_FIRST_ADMIN_SETUP,
+);
+const explicitUsername =
+  process.env.ADMIN_SMOKE_USER ?? process.env.ADMIN_SMOKE_EMAIL;
+const explicitPassword = process.env.ADMIN_SMOKE_PASSWORD;
+const firstAdminEmail =
+  process.env.ADMIN_SMOKE_FIRST_ADMIN_EMAIL ??
+  process.env.ADMIN_SMOKE_EMAIL ??
+  (explicitUsername?.includes("@") ? explicitUsername : undefined);
+const firstAdminPassword =
+  process.env.ADMIN_SMOKE_FIRST_ADMIN_PASSWORD ?? explicitPassword;
+const firstAdminDisplayName =
+  process.env.ADMIN_SMOKE_FIRST_ADMIN_NAME ?? "Smoke Admin";
+const firstAdminUsername = process.env.ADMIN_SMOKE_FIRST_ADMIN_USERNAME;
+const username =
+  explicitUsername ?? (allowFirstAdminSetup ? firstAdminEmail : undefined);
+const password =
+  explicitPassword ?? (allowFirstAdminSetup ? firstAdminPassword : undefined);
 const routeLimit = parsePositiveInt(process.env.ADMIN_SMOKE_ROUTE_LIMIT);
 const headed = process.env.ADMIN_SMOKE_HEADED === "1";
 
@@ -65,6 +82,11 @@ function parsePositiveInt(value) {
   if (!value) return null;
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function parseBooleanFlag(value) {
+  if (!value) return false;
+  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
 }
 
 function read(path) {
@@ -142,9 +164,14 @@ async function authenticate(page) {
 
   const setupForm = page.locator("#admin-display-name");
   if (await setupForm.isVisible().catch(() => false)) {
-    throw new Error(
-      "Admin setup form is visible. Create the first admin before running browser smoke.",
-    );
+    if (!allowFirstAdminSetup) {
+      throw new Error(
+        "Admin setup form is visible. Create the first admin before running browser smoke, or set ADMIN_SMOKE_ALLOW_FIRST_ADMIN_SETUP=1 with first-admin credentials for an explicit fresh-setup smoke.",
+      );
+    }
+
+    await createFirstAdminFromSetupForm(page);
+    return;
   }
 
   const loginInput = page.locator("#identifier");
@@ -157,16 +184,90 @@ async function authenticate(page) {
     return;
   }
 
+  await signInExistingAdmin(page);
+}
+
+async function signInExistingAdmin(page) {
   if (!username || !password) {
     throw new Error(
       "Admin login is required. Set ADMIN_SMOKE_USER and ADMIN_SMOKE_PASSWORD.",
     );
   }
 
-  await loginInput.fill(username);
-  await page.locator("#password").fill(password);
-  await page.getByRole("button", { name: /sign in/i }).click();
-  await page.locator("#admin-content").waitFor({ state: "visible", timeout: 20_000 });
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await page.goto(`${baseUrl}/dashboard`, { waitUntil: "domcontentloaded" });
+    await waitForAppSettled(page, "/dashboard");
+
+    const adminContent = page.locator("#admin-content");
+    if (await adminContent.isVisible().catch(() => false)) {
+      return;
+    }
+
+    if (await page.locator("#admin-display-name").isVisible().catch(() => false)) {
+      await page.waitForTimeout(1_000);
+      continue;
+    }
+
+    const loginInput = page.locator("#identifier");
+    await loginInput.waitFor({ state: "visible", timeout: 20_000 });
+    await loginInput.fill(username);
+    await page.locator("#password").fill(password);
+    await page.getByRole("button", { name: /sign in/i }).click();
+    await adminContent.waitFor({ state: "visible", timeout: 20_000 });
+    return;
+  }
+
+  throw new Error(
+    "Admin setup form stayed visible after first-admin setup; could not reach login.",
+  );
+}
+
+async function createFirstAdminFromSetupForm(page) {
+  if (!firstAdminEmail || !firstAdminPassword) {
+    throw new Error(
+      "First-admin smoke setup requires ADMIN_SMOKE_FIRST_ADMIN_EMAIL (or ADMIN_SMOKE_EMAIL/ADMIN_SMOKE_USER as an email) and ADMIN_SMOKE_FIRST_ADMIN_PASSWORD (or ADMIN_SMOKE_PASSWORD).",
+    );
+  }
+
+  await page.locator("#admin-display-name").fill(firstAdminDisplayName);
+  if (firstAdminUsername) {
+    await page.locator("#admin-username").fill(firstAdminUsername);
+  }
+  await page.locator("#admin-email").fill(firstAdminEmail);
+  await page.locator("#admin-password").fill(firstAdminPassword);
+  await page.locator("#admin-confirm").fill(firstAdminPassword);
+  await page.getByRole("button", { name: /create admin account/i }).click();
+
+  const adminContent = page.locator("#admin-content");
+  const alreadyExistsError = page.getByText(
+    /administrator account already exists/i,
+  );
+  const outcome = await Promise.race([
+    adminContent
+      .waitFor({ state: "visible", timeout: 30_000 })
+      .then(() => "created")
+      .catch(() => null),
+    alreadyExistsError
+      .waitFor({ state: "visible", timeout: 30_000 })
+      .then(() => "already-exists")
+      .catch(() => null),
+  ]);
+
+  if (outcome === "already-exists") {
+    await signInExistingAdmin(page);
+    return;
+  }
+
+  if (outcome !== "created") {
+    const bodyText = await page.locator("body").innerText().catch(() => "");
+    throw new Error(
+      `First-admin setup did not finish. Body: ${bodyText.slice(0, 500)}`,
+    );
+  }
+
+  await page
+    .getByRole("heading", { name: /finish convexpress setup/i })
+    .waitFor({ state: "visible", timeout: 30_000 });
 }
 
 async function assertNoLoginScreen(page, path) {
