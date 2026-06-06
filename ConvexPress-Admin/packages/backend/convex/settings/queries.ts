@@ -34,6 +34,46 @@ import {
   SECTION_NAMES,
   type SettingsSection,
 } from "./defaults";
+import type { Capability } from "../types/capabilities";
+
+const SECTION_READ_CAPABILITY_MAP: Partial<Record<SettingsSection, Capability>> = {
+  email: "settings.update_email",
+  media: "manage_options",
+  analytics: "manage_options",
+  ai: "manage_options",
+  blocks: "manage_options",
+  plugins: "manage_options",
+  search: "manage_options",
+  "kb.general": "manage_options",
+  "kb.features": "manage_options",
+  "kb.search": "manage_options",
+  "ticket.general": "manage_options",
+  "ticket.sla": "manage_options",
+  "support.widget": "manage_options",
+  "support.ai": "manage_options",
+  "commerce.general": "manage_options",
+  "commerce.payments": "manage_options",
+  "commerce.subscriptions.counters": "manage_options",
+  "integrations.shipping": "manage_options",
+  "integrations.shipping.shipstation": "manage_options",
+  "integrations.shipping.ups": "manage_options",
+  "integrations.shipping.usps": "manage_options",
+  "integrations.shipping.fedex": "manage_options",
+  "integrations.shipping.dhl": "manage_options",
+  "integrations.clerk": "manage_options",
+  "integrations.google": "manage_options",
+  "analytics.ga4": "manage_options",
+};
+
+async function requireSettingsReadAccess(ctx: QueryCtx, section: SettingsSection) {
+  const capability = SECTION_READ_CAPABILITY_MAP[section];
+  if (capability) {
+    return await requireCan(ctx, capability);
+  }
+
+  const user = await getCurrentUser(ctx);
+  return user?.status === "active" ? user : null;
+}
 
 async function getMergedSettingsSection(
   ctx: QueryCtx,
@@ -55,18 +95,19 @@ async function getMergedSettingsSection(
  * Returns the stored document as-is, without merging defaults.
  * Returns null if no settings have been saved for this section.
  *
- * Auth required (any authenticated user - for admin access check at route level).
+ * Auth required. Sensitive operational sections require the same capability
+ * needed to manage that settings surface.
  */
 export const get = query({
   args: getSectionArgs,
   handler: async (ctx, args) => {
-    // Require authentication
-    const user = await getCurrentUser(ctx);
+    const section = args.section as SettingsSection;
+    const user = await requireSettingsReadAccess(ctx, section);
     if (!user) return null;
 
     const doc = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q) => q.eq("section", args.section))
+      .withIndex("by_section", (q) => q.eq("section", section))
       .unique();
 
     if (!doc) return null;
@@ -89,16 +130,15 @@ export const get = query({
  *   - updatedAt: Last update timestamp (if stored)
  *   - updatedBy: User who last updated (if stored)
  *
- * Auth required.
+ * Auth required. Sensitive operational sections require the same capability
+ * needed to manage that settings surface.
  */
 export const getBySection = query({
   args: getSectionArgs,
   handler: async (ctx, args) => {
-    // Require authentication
-    const user = await getCurrentUser(ctx);
-    if (!user) return null;
-
     const section = args.section as SettingsSection;
+    const user = await requireSettingsReadAccess(ctx, section);
+    if (!user) return null;
 
     // Get defaults
     const defaults = getDefaults(section);
