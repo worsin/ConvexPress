@@ -36,8 +36,9 @@ import {
   buildSetupChecklistCards,
   cardStatus,
   requiredProgress,
-  SERVER_ENVIRONMENT_KEYS,
+  SETUP_ENVIRONMENT_GROUPS,
   type SettingsData,
+  type SetupEnvironmentGroup,
   type SetupChecklistCard,
   type SetupStatus,
   type ShippingOverview,
@@ -198,63 +199,11 @@ function FirstRunSetupPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted">
-              <LockKeyhole className="h-5 w-5 text-foreground" />
-            </div>
-            <div>
-              <CardTitle>Server environment keys</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Confirm these in the Convex deployment environment before
-                treating the install as production-ready.
-              </p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {SERVER_ENVIRONMENT_KEYS.map((key) => (
-              <div
-                key={key.name}
-                className="rounded-md border border-border bg-muted/40 p-3"
-              >
-                <div className="font-mono text-xs font-medium text-foreground break-all">
-                  {key.name}
-                </div>
-                {key.detail ? (
-                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                    {key.detail}
-                  </p>
-                ) : null}
-                {key.optional ? (
-                  <Badge
-                    variant="outline"
-                    className="mt-3 border-border bg-background text-xs text-muted-foreground"
-                  >
-                    Optional
-                  </Badge>
-                ) : null}
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <a
-              href="https://dashboard.convex.dev/"
-              target="_blank"
-              rel="noreferrer"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              Convex dashboard
-              <ExternalLink className="h-4 w-4" />
-            </a>
-            <p className="text-xs text-muted-foreground">
-              First-admin setup secret rotation is handled by the desktop setup wizard.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {SETUP_ENVIRONMENT_GROUPS.map((group) => (
+          <SetupEnvironmentGroupCard key={group.id} group={group} />
+        ))}
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {cards.map((card) => (
@@ -297,6 +246,70 @@ function FirstRunSetupPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function SetupEnvironmentGroupCard({
+  group,
+}: {
+  group: SetupEnvironmentGroup;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted">
+            <LockKeyhole className="h-5 w-5 text-foreground" />
+          </div>
+          <div>
+            <CardTitle>{group.title}</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {group.description}
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {group.keys.map((key) => (
+            <div
+              key={`${group.id}-${key.name}`}
+              className="rounded-md border border-border bg-muted/40 p-3"
+            >
+              <div className="font-mono text-xs font-medium text-foreground break-all">
+                {key.name}
+              </div>
+              {key.detail ? (
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                  {key.detail}
+                </p>
+              ) : null}
+              {key.optional ? (
+                <Badge
+                  variant="outline"
+                  className="mt-3 border-border bg-background text-xs text-muted-foreground"
+                >
+                  Optional
+                </Badge>
+              ) : null}
+            </div>
+          ))}
+        </div>
+        {group.id === "deployment" ? (
+          <div className="mt-4">
+            <a
+              href="https://dashboard.convex.dev/"
+              target="_blank"
+              rel="noreferrer"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Convex dashboard
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 

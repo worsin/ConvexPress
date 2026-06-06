@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   SECRET_SENTINEL,
   SERVER_ENVIRONMENT_KEYS,
+  SETUP_ENVIRONMENT_GROUPS,
   buildSetupChecklistCards,
   cardStatus,
   connectedProviderCount,
@@ -176,20 +177,26 @@ describe("setup checklist", () => {
         "clerkWebhookSecret",
         "clerkJwtIssuerDomain",
       ],
-      search: ["meilisearchHost", "meilisearchApiKey"],
+      search: ["meilisearchHost", "meilisearchApiKey", "website search key"],
       ai: ["apiKey", "tavilyApiKey", "imageApiKey"],
       stripe: [
         "stripePublishableKey",
         "stripeSecretKey",
         "stripeWebhookSecret",
       ],
-      paypal: ["paypalClientId", "paypalClientSecret", "paypalWebhookId"],
+      paypal: [
+        "paypalClientId",
+        "paypalClientSecret",
+        "paypalWebhookId",
+        "paypalMode",
+      ],
       google: ["placesApiKey", "geocodeApiKey", "ga4ServiceAccountJson"],
       ga4: ["ga4ServiceAccountJson", "ga4PropertyId"],
       shipping: [
         "carrier credentials",
         "ship-from address",
         "verified provider",
+        "carrier webhook secrets",
         "ShipStation credentials",
         "UPS credentials",
         "USPS credentials",
@@ -220,6 +227,7 @@ describe("setup checklist", () => {
     ).toBe(true);
     expect(detailByKey["search.meilisearchHost"]?.includes("MEILISEARCH_HOST")).toBe(true);
     expect(detailByKey["search.meilisearchApiKey"]?.includes("MEILISEARCH_API_KEY")).toBe(true);
+    expect(detailByKey["search.website search key"]?.includes("VITE_MEILISEARCH_KEY")).toBe(true);
     expect(detailByKey["ai.apiKey"]?.includes("OPENROUTER_API_KEY")).toBe(true);
     expect(detailByKey["ai.apiKey"]?.includes("OPENAI_API_KEY")).toBe(true);
     expect(detailByKey["ai.apiKey"]?.includes("ANTHROPIC_API_KEY")).toBe(true);
@@ -234,12 +242,80 @@ describe("setup checklist", () => {
     expect(detailByKey["paypal.paypalClientId"]?.includes("PAYPAL_CLIENT_ID")).toBe(true);
     expect(detailByKey["paypal.paypalClientSecret"]?.includes("PAYPAL_CLIENT_SECRET")).toBe(true);
     expect(detailByKey["paypal.paypalWebhookId"]?.includes("PAYPAL_WEBHOOK_ID")).toBe(true);
+    expect(detailByKey["paypal.paypalMode"]?.includes("PAYPAL_MODE")).toBe(true);
     expect(detailByKey["google.placesApiKey"]?.includes("GOOGLE_PLACES_API_KEY")).toBe(true);
+    expect(detailByKey["google.geocodeApiKey"]?.includes("geocoding")).toBe(true);
     expect(detailByKey["ga4.ga4ServiceAccountJson"]?.includes("GA4_SERVICE_ACCOUNT_JSON")).toBe(true);
     expect(detailByKey["ga4.ga4PropertyId"]?.includes("GA4_PROPERTY_ID")).toBe(true);
+    expect(
+      detailByKey["shipping.carrier webhook secrets"]?.includes(
+        "SHIPSTATION_WEBHOOK_SECRET",
+      ),
+    ).toBe(true);
   });
 
-  test("lists every server environment key needed for first-login and provider setup", () => {
+  test("lists every setup environment group needed for install and full feature setup", () => {
+    expect(SETUP_ENVIRONMENT_GROUPS.map((group) => group.id)).toEqual([
+      "deployment",
+      "admin-app",
+      "backend",
+      "website-app",
+    ]);
+
+    const keysByGroup = Object.fromEntries(
+      SETUP_ENVIRONMENT_GROUPS.map((group) => [
+        group.id,
+        group.keys.map((key) => key.name),
+      ]),
+    );
+
+    expect(keysByGroup).toEqual({
+      deployment: [
+        "CONVEX_DEPLOYMENT",
+        "CONVEX_DEPLOY_KEY",
+        "CONVEX_URL",
+        "CONVEX_SITE_URL",
+      ],
+      "admin-app": [
+        "VITE_CONVEX_URL",
+        "VITE_CONVEX_SITE_URL",
+        "VITE_CONSUMER_SITE_URL",
+      ],
+      backend: [
+        "AUTH_PRIVATE_KEY",
+        "AUTH_ISSUER_URL",
+        "AUTH_ALLOWED_ORIGINS",
+        "AUTH_ADMIN_ORIGIN",
+        "AUTH_ALLOW_LOCALHOST_ORIGINS",
+        "AUTH_ALLOW_NULL_ORIGIN",
+        "FIRST_ADMIN_SETUP_SECRET",
+        "SHIPPING_PROVIDER_ENCRYPTION_KEY",
+        "WEBHOOK_SECRET_ENCRYPTION_KEY",
+        "WP_SYNC_ENCRYPTION_KEY",
+        "AIRTABLE_API_KEY",
+        "AIRTABLE_BASE_ID",
+        "SITE_URL",
+        "FORMS_TURNSTILE_SECRET_KEY",
+        "FORMS_HCAPTCHA_SECRET_KEY",
+        "FORMS_RECAPTCHA_SECRET_KEY",
+        "SHIPSTATION_WEBHOOK_SECRET",
+        "FEDEX_WEBHOOK_SECRET",
+        "UPS_WEBHOOK_SECRET",
+        "MEDIA_URL_ONLY_MODE",
+      ],
+      "website-app": [
+        "VITE_CONVEX_URL",
+        "VITE_CONVEX_SITE_URL",
+        "VITE_CLERK_PUBLISHABLE_KEY",
+        "VITE_ADMIN_APP_URL",
+        "VITE_MEILISEARCH_HOST",
+        "VITE_MEILISEARCH_KEY",
+        "VITE_APP_URL",
+        "VITE_PUBLIC_APP_URL",
+        "VITE_ALLOWED_REDIRECT_HOSTS",
+      ],
+    });
+
     expect(SERVER_ENVIRONMENT_KEYS.map((key) => key.name)).toEqual([
       "AUTH_PRIVATE_KEY",
       "AUTH_ISSUER_URL",
@@ -247,7 +323,20 @@ describe("setup checklist", () => {
       "AUTH_ADMIN_ORIGIN",
       "AUTH_ALLOW_LOCALHOST_ORIGINS",
       "AUTH_ALLOW_NULL_ORIGIN",
+      "FIRST_ADMIN_SETUP_SECRET",
       "SHIPPING_PROVIDER_ENCRYPTION_KEY",
+      "WEBHOOK_SECRET_ENCRYPTION_KEY",
+      "WP_SYNC_ENCRYPTION_KEY",
+      "AIRTABLE_API_KEY",
+      "AIRTABLE_BASE_ID",
+      "SITE_URL",
+      "FORMS_TURNSTILE_SECRET_KEY",
+      "FORMS_HCAPTCHA_SECRET_KEY",
+      "FORMS_RECAPTCHA_SECRET_KEY",
+      "SHIPSTATION_WEBHOOK_SECRET",
+      "FEDEX_WEBHOOK_SECRET",
+      "UPS_WEBHOOK_SECRET",
+      "MEDIA_URL_ONLY_MODE",
     ]);
 
     expect(
