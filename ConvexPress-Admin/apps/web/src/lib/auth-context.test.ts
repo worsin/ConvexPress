@@ -15,6 +15,16 @@ describe("page access route matching", () => {
       "/admin/profile",
       "/admin/users/profile",
     ]);
+    expect(pageAccessCandidates("/posts/categories")).toEqual([
+      "/posts/categories",
+      "/admin/posts/categories",
+      "/admin/categories",
+    ]);
+    expect(pageAccessCandidates("/admin/posts/tags")).toEqual([
+      "/posts/tags",
+      "/admin/posts/tags",
+      "/admin/tags",
+    ]);
   });
 
   test("does not let /admin grant every child admin page", () => {

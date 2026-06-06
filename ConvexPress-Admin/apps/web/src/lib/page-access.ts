@@ -8,6 +8,15 @@ export function pageAccessCandidates(path: string): string[] {
   if (withLeadingSlash === "/profile" || withLeadingSlash === "/admin/profile") {
     return ["/profile", "/admin/profile", "/admin/users/profile"];
   }
+  if (
+    withLeadingSlash === "/posts/categories" ||
+    withLeadingSlash === "/admin/posts/categories"
+  ) {
+    return ["/posts/categories", "/admin/posts/categories", "/admin/categories"];
+  }
+  if (withLeadingSlash === "/posts/tags" || withLeadingSlash === "/admin/posts/tags") {
+    return ["/posts/tags", "/admin/posts/tags", "/admin/tags"];
+  }
   if (withLeadingSlash.startsWith("/admin")) return [withLeadingSlash];
 
   return [withLeadingSlash, `/admin${withLeadingSlash}`];
