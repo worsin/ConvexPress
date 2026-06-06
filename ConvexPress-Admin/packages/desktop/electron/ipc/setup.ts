@@ -26,6 +26,17 @@ interface SetupConfig {
   clientPassword?: string;
 }
 
+interface PendingAdminCredentials {
+  displayName: string;
+  email: string;
+  password: string;
+}
+
+interface PendingLoginCredentials {
+  identifier: string;
+  password: string;
+}
+
 type ProgressPhase =
   | "validating"
   | "environment"
@@ -34,8 +45,82 @@ type ProgressPhase =
   | "saving"
   | "complete";
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CONVEX_CLOUD_URL_RE = /^https:\/\/[a-z0-9-]+\.convex\.cloud$/;
+
 function cleanUrl(value: string): string {
   return value.trim().replace(/\/+$/, "");
+}
+
+function validateConvexCloudUrl(value: string | undefined): string {
+  const cleaned = requireTrimmed(value, "Convex URL").replace(/\/+$/, "");
+  if (!CONVEX_CLOUD_URL_RE.test(cleaned)) {
+    throw new Error(
+      "Convex URL must match https://your-app-123.convex.cloud.",
+    );
+  }
+  return cleaned;
+}
+
+function resolveConvexSiteUrl(
+  convexUrl: string,
+  explicitSiteUrl?: string,
+): string {
+  const derivedSiteUrl = deriveConvexSiteUrl(convexUrl);
+  if (!explicitSiteUrl) return derivedSiteUrl;
+
+  const cleanedSiteUrl = cleanUrl(explicitSiteUrl);
+  if (cleanedSiteUrl !== derivedSiteUrl) {
+    throw new Error("Convex site URL must match the deployment URL.");
+  }
+  return cleanedSiteUrl;
+}
+
+function requireTrimmed(value: string | undefined, label: string): string {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    throw new Error(`${label} is required.`);
+  }
+  return trimmed;
+}
+
+function validateSetupMode(mode: SetupConfig["mode"]): void {
+  if (mode !== "server" && mode !== "client") {
+    throw new Error("Setup mode must be either server or client.");
+  }
+}
+
+function validateServerAdminCredentials(
+  config: SetupConfig,
+): PendingAdminCredentials {
+  const displayName = requireTrimmed(config.adminName, "Admin name");
+  const email = requireTrimmed(config.adminEmail, "Admin email").toLowerCase();
+  const password = config.adminPassword;
+
+  if (!EMAIL_RE.test(email)) {
+    throw new Error("Admin email must be a valid email address.");
+  }
+  if (!password || password.length < 8) {
+    throw new Error("Admin password must be at least 8 characters.");
+  }
+
+  return { displayName, email, password };
+}
+
+function validateClientLoginCredentials(
+  config: SetupConfig,
+): PendingLoginCredentials {
+  const identifier = requireTrimmed(
+    config.clientIdentifier,
+    "Client username or email",
+  );
+  const password = config.clientPassword;
+
+  if (!password) {
+    throw new Error("Client password is required.");
+  }
+
+  return { identifier, password };
 }
 
 function deriveConvexSiteUrl(convexUrl: string): string {
@@ -348,10 +433,20 @@ export function registerSetupHandlers(): void {
 
       try {
         sendProgress("validating", "Validating setup configuration.");
-        const convexUrl = cleanUrl(config.convexUrl);
-        const convexSiteUrl = config.convexSiteUrl
-          ? cleanUrl(config.convexSiteUrl)
-          : deriveConvexSiteUrl(convexUrl);
+        validateSetupMode(config.mode);
+        const convexUrl = validateConvexCloudUrl(config.convexUrl);
+        const convexSiteUrl = resolveConvexSiteUrl(
+          convexUrl,
+          config.convexSiteUrl,
+        );
+        const pendingAdminCredentials =
+          config.mode === "server"
+            ? validateServerAdminCredentials(config)
+            : null;
+        const pendingLoginCredentials =
+          config.mode === "client"
+            ? validateClientLoginCredentials(config)
+            : null;
 
         if (config.mode === "server") {
           await deployServerBackend(config, convexSiteUrl, sendProgress);
@@ -369,27 +464,14 @@ export function registerSetupHandlers(): void {
           configStore.set("siteName", config.siteName);
         }
 
-        if (
-          config.mode === "server" &&
-          (config.adminName || config.adminEmail || config.adminPassword)
-        ) {
-          configStore.set("pendingAdminCredentials", {
-            displayName: config.adminName,
-            email: config.adminEmail,
-            password: config.adminPassword,
-          });
+        if (pendingAdminCredentials) {
+          configStore.set("pendingAdminCredentials", pendingAdminCredentials);
         } else {
           configStore.delete("pendingAdminCredentials");
         }
 
-        if (
-          config.mode === "client" &&
-          (config.clientIdentifier || config.clientPassword)
-        ) {
-          configStore.set("pendingLoginCredentials", {
-            identifier: config.clientIdentifier,
-            password: config.clientPassword,
-          });
+        if (pendingLoginCredentials) {
+          configStore.set("pendingLoginCredentials", pendingLoginCredentials);
         } else {
           configStore.delete("pendingLoginCredentials");
         }

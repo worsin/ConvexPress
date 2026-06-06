@@ -188,8 +188,63 @@ var import_node_os = require("os");
 var import_node_path2 = __toESM(require("path"));
 var import_node_crypto = require("crypto");
 var { ipcMain: ipcMain4 } = require("electron");
+var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+var CONVEX_CLOUD_URL_RE = /^https:\/\/[a-z0-9-]+\.convex\.cloud$/;
 function cleanUrl(value) {
   return value.trim().replace(/\/+$/, "");
+}
+function validateConvexCloudUrl(value) {
+  const cleaned = requireTrimmed(value, "Convex URL").replace(/\/+$/, "");
+  if (!CONVEX_CLOUD_URL_RE.test(cleaned)) {
+    throw new Error(
+      "Convex URL must match https://your-app-123.convex.cloud."
+    );
+  }
+  return cleaned;
+}
+function resolveConvexSiteUrl(convexUrl, explicitSiteUrl) {
+  const derivedSiteUrl = deriveConvexSiteUrl(convexUrl);
+  if (!explicitSiteUrl) return derivedSiteUrl;
+  const cleanedSiteUrl = cleanUrl(explicitSiteUrl);
+  if (cleanedSiteUrl !== derivedSiteUrl) {
+    throw new Error("Convex site URL must match the deployment URL.");
+  }
+  return cleanedSiteUrl;
+}
+function requireTrimmed(value, label) {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    throw new Error(`${label} is required.`);
+  }
+  return trimmed;
+}
+function validateSetupMode(mode) {
+  if (mode !== "server" && mode !== "client") {
+    throw new Error("Setup mode must be either server or client.");
+  }
+}
+function validateServerAdminCredentials(config) {
+  const displayName = requireTrimmed(config.adminName, "Admin name");
+  const email = requireTrimmed(config.adminEmail, "Admin email").toLowerCase();
+  const password = config.adminPassword;
+  if (!EMAIL_RE.test(email)) {
+    throw new Error("Admin email must be a valid email address.");
+  }
+  if (!password || password.length < 8) {
+    throw new Error("Admin password must be at least 8 characters.");
+  }
+  return { displayName, email, password };
+}
+function validateClientLoginCredentials(config) {
+  const identifier = requireTrimmed(
+    config.clientIdentifier,
+    "Client username or email"
+  );
+  const password = config.clientPassword;
+  if (!password) {
+    throw new Error("Client password is required.");
+  }
+  return { identifier, password };
 }
 function deriveConvexSiteUrl(convexUrl) {
   const cleaned = cleanUrl(convexUrl);
@@ -418,8 +473,14 @@ function registerSetupHandlers() {
       };
       try {
         sendProgress("validating", "Validating setup configuration.");
-        const convexUrl = cleanUrl(config.convexUrl);
-        const convexSiteUrl = config.convexSiteUrl ? cleanUrl(config.convexSiteUrl) : deriveConvexSiteUrl(convexUrl);
+        validateSetupMode(config.mode);
+        const convexUrl = validateConvexCloudUrl(config.convexUrl);
+        const convexSiteUrl = resolveConvexSiteUrl(
+          convexUrl,
+          config.convexSiteUrl
+        );
+        const pendingAdminCredentials = config.mode === "server" ? validateServerAdminCredentials(config) : null;
+        const pendingLoginCredentials = config.mode === "client" ? validateClientLoginCredentials(config) : null;
         if (config.mode === "server") {
           await deployServerBackend(config, convexSiteUrl, sendProgress);
         }
@@ -433,20 +494,13 @@ function registerSetupHandlers() {
         if (config.siteName) {
           store.set("siteName", config.siteName);
         }
-        if (config.mode === "server" && (config.adminName || config.adminEmail || config.adminPassword)) {
-          store.set("pendingAdminCredentials", {
-            displayName: config.adminName,
-            email: config.adminEmail,
-            password: config.adminPassword
-          });
+        if (pendingAdminCredentials) {
+          store.set("pendingAdminCredentials", pendingAdminCredentials);
         } else {
           store.delete("pendingAdminCredentials");
         }
-        if (config.mode === "client" && (config.clientIdentifier || config.clientPassword)) {
-          store.set("pendingLoginCredentials", {
-            identifier: config.clientIdentifier,
-            password: config.clientPassword
-          });
+        if (pendingLoginCredentials) {
+          store.set("pendingLoginCredentials", pendingLoginCredentials);
         } else {
           store.delete("pendingLoginCredentials");
         }
