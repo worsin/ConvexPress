@@ -7,6 +7,12 @@ interface AuthState {
   user: { id: string; email: string; displayName: string } | null;
 }
 
+interface AccessTokenPayload {
+  sub: string;
+  email: string;
+  name: string;
+}
+
 /**
  * Module-level site URL. Defaults to the Vite env var but can be
  * overridden at bootstrap time for Electron, where env vars aren't
@@ -17,6 +23,22 @@ let _siteUrl: string = import.meta.env.VITE_CONVEX_SITE_URL ?? "";
 /** Set the Convex site URL used by useLocalAuth. Call before rendering. */
 export function setConvexSiteUrl(url: string) {
   _siteUrl = url;
+}
+
+export function decodeAccessTokenPayload(accessToken: string): AccessTokenPayload {
+  const tokenParts = accessToken.split(".");
+  if (tokenParts.length < 2 || !tokenParts[1]) {
+    throw new Error("Invalid access token received from server");
+  }
+
+  const base64 = tokenParts[1].replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(
+    base64.length + ((4 - (base64.length % 4)) % 4),
+    "=",
+  );
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes)) as AccessTokenPayload;
 }
 
 export function useLocalAuth() {
@@ -47,12 +69,7 @@ export function useLocalAuth() {
   const attemptRefreshRef = useRef<() => Promise<void>>(async () => {});
 
   const setTokens = useCallback((accessToken: string, expiresIn: number) => {
-    const tokenParts = accessToken.split(".");
-    if (tokenParts.length < 2 || !tokenParts[1]) {
-      throw new Error("Invalid access token received from server");
-    }
-
-    const payload = JSON.parse(atob(tokenParts[1]));
+    const payload = decodeAccessTokenPayload(accessToken);
     const expiresAt = Date.now() + expiresIn * 1000;
 
     accessTokenRef.current = accessToken;
