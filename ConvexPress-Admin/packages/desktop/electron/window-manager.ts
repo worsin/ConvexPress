@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { BrowserWindow as ElectronBrowserWindow } from "electron";
+import { addHashRouteToUrl, normalizeInitialRoute } from "./launchRoute.js";
 import { isQuitting } from "./utils/app-state.js";
 import { isDev } from "./utils/platform.js";
 
@@ -28,7 +29,7 @@ class WindowManager {
   private mainWindow: ElectronBrowserWindow | null = null;
   private wizardWindow: ElectronBrowserWindow | null = null;
 
-  createMainWindow(): ElectronBrowserWindow {
+  createMainWindow(options: { initialRoute?: string } = {}): ElectronBrowserWindow {
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.show();
       return this.mainWindow;
@@ -58,11 +59,21 @@ class WindowManager {
     });
 
     if (isDev()) {
-      win.loadURL(process.env.CONVEXPRESS_DESKTOP_DEV_URL ?? "http://localhost:4105");
+      win.loadURL(
+        addHashRouteToUrl(
+          process.env.CONVEXPRESS_DESKTOP_DEV_URL ?? "http://localhost:4105",
+          options.initialRoute,
+        ),
+      );
     } else {
       const indexPath = getRendererIndexPath();
       console.log(`[WindowManager] Renderer path: ${indexPath}`);
-      win.loadFile(indexPath);
+      const initialRoute = normalizeInitialRoute(options.initialRoute);
+      if (initialRoute) {
+        win.loadFile(indexPath, { hash: initialRoute });
+      } else {
+        win.loadFile(indexPath);
+      }
     }
 
     win.once("ready-to-show", () => {
@@ -189,8 +200,8 @@ class WindowManager {
 export const windowManager = new WindowManager();
 
 // Re-export individual functions for convenience
-export function createMainWindow(): ElectronBrowserWindow {
-  return windowManager.createMainWindow();
+export function createMainWindow(options: { initialRoute?: string } = {}): ElectronBrowserWindow {
+  return windowManager.createMainWindow(options);
 }
 
 export function createWizardWindow(): ElectronBrowserWindow {

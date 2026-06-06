@@ -4,6 +4,7 @@ import { registerAllIpcHandlers } from "./ipc/index.js";
 import { initAppUpdater } from "./ipc/app-updater.js";
 import { initUpdaterEvents } from "./ipc/updater.js";
 import { isWizardSender } from "./ipc/setupSender.js";
+import { getInitialRouteForLaunch } from "./launchRoute.js";
 import { createTray } from "./tray.js";
 import { JsonStore } from "./utils/json-store.js";
 import { setQuitting } from "./utils/app-state.js";
@@ -112,7 +113,11 @@ function removeDeprecatedSecretsFromConfig(): void {
 function launchApp(): void {
   createTray(windowManager);
 
-  const mainWindow = windowManager.createMainWindow();
+  const mainWindow = windowManager.createMainWindow({
+    initialRoute: getInitialRouteForLaunch({
+      pendingAdminCredentials: store.get("pendingAdminCredentials"),
+    }),
+  });
 
   // Forward OS theme changes to the main window
   nativeTheme.on("updated", () => {
