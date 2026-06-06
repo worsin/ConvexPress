@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { generateKeyPairSync, randomBytes } from "node:crypto";
+import { SETUP_CREDENTIAL_HANDOFF_TTL_MS } from "../launchRoute.js";
 import {
   validateProductionDeployKey,
   validateSetupConfig,
@@ -364,12 +365,18 @@ export function registerSetupHandlers(): void {
           configStore.set("siteName", config.siteName);
         }
 
+        const handoffCreatedAt = Date.now();
+        const handoffExpiresAt =
+          handoffCreatedAt + SETUP_CREDENTIAL_HANDOFF_TTL_MS;
+
         if (validated.pendingAdminCredentials) {
           configStore.set(
             "pendingAdminCredentials",
             {
               ...validated.pendingAdminCredentials,
               setupToken: firstAdminSetupSecret,
+              createdAt: handoffCreatedAt,
+              expiresAt: handoffExpiresAt,
             },
           );
         } else {
@@ -379,7 +386,11 @@ export function registerSetupHandlers(): void {
         if (validated.pendingLoginCredentials) {
           configStore.set(
             "pendingLoginCredentials",
-            validated.pendingLoginCredentials,
+            {
+              ...validated.pendingLoginCredentials,
+              createdAt: handoffCreatedAt,
+              expiresAt: handoffExpiresAt,
+            },
           );
         } else {
           configStore.delete("pendingLoginCredentials");

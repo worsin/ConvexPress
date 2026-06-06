@@ -457,6 +457,34 @@ var import_node_fs2 = require("fs");
 var import_node_os = require("os");
 var import_node_path4 = __toESM(require("path"));
 var import_node_crypto = require("crypto");
+
+// electron/launchRoute.ts
+var FIRST_ADMIN_SETUP_ROUTE = "/setup";
+var SETUP_CREDENTIAL_HANDOFF_TTL_MS = 60 * 60 * 1e3;
+var EMAIL_RE2 = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function normalizeInitialRoute(route) {
+  const trimmed = route?.trim();
+  if (!trimmed) return void 0;
+  const withoutHash = trimmed.startsWith("#") ? trimmed.slice(1) : trimmed;
+  return withoutHash.startsWith("/") ? withoutHash : `/${withoutHash}`;
+}
+function getInitialRouteForLaunch(config) {
+  return isPendingAdminHandoffUsable(config.pendingAdminCredentials) ? FIRST_ADMIN_SETUP_ROUTE : void 0;
+}
+function addHashRouteToUrl(url, route) {
+  const normalizedRoute = normalizeInitialRoute(route);
+  if (!normalizedRoute) return url;
+  const parsed = new URL(url);
+  parsed.hash = normalizedRoute;
+  return parsed.toString();
+}
+function isPendingAdminHandoffUsable(value, now = Date.now()) {
+  if (!value || typeof value !== "object") return false;
+  const credentials = value;
+  return typeof credentials.email === "string" && EMAIL_RE2.test(credentials.email.trim().toLowerCase()) && typeof credentials.password === "string" && credentials.password.length >= 8 && typeof credentials.expiresAt === "number" && Number.isFinite(credentials.expiresAt) && credentials.expiresAt > now;
+}
+
+// electron/ipc/setup.ts
 var { ipcMain: ipcMain4 } = require("electron");
 function getWizardIndexPath2() {
   return import_node_path4.default.join(__dirname, "wizard", "index.html");
@@ -695,12 +723,16 @@ function registerSetupHandlers() {
         if (config.siteName) {
           store.set("siteName", config.siteName);
         }
+        const handoffCreatedAt = Date.now();
+        const handoffExpiresAt = handoffCreatedAt + SETUP_CREDENTIAL_HANDOFF_TTL_MS;
         if (validated.pendingAdminCredentials) {
           store.set(
             "pendingAdminCredentials",
             {
               ...validated.pendingAdminCredentials,
-              setupToken: firstAdminSetupSecret
+              setupToken: firstAdminSetupSecret,
+              createdAt: handoffCreatedAt,
+              expiresAt: handoffExpiresAt
             }
           );
         } else {
@@ -709,7 +741,11 @@ function registerSetupHandlers() {
         if (validated.pendingLoginCredentials) {
           store.set(
             "pendingLoginCredentials",
-            validated.pendingLoginCredentials
+            {
+              ...validated.pendingLoginCredentials,
+              createdAt: handoffCreatedAt,
+              expiresAt: handoffExpiresAt
+            }
           );
         } else {
           store.delete("pendingLoginCredentials");
@@ -1055,25 +1091,6 @@ var AppUpdater = class extends import_node_events.EventEmitter {
 
 // electron/window-manager.ts
 var import_node_path7 = __toESM(require("path"));
-
-// electron/launchRoute.ts
-var FIRST_ADMIN_SETUP_ROUTE = "/setup";
-function normalizeInitialRoute(route) {
-  const trimmed = route?.trim();
-  if (!trimmed) return void 0;
-  const withoutHash = trimmed.startsWith("#") ? trimmed.slice(1) : trimmed;
-  return withoutHash.startsWith("/") ? withoutHash : `/${withoutHash}`;
-}
-function getInitialRouteForLaunch(config) {
-  return config.pendingAdminCredentials ? FIRST_ADMIN_SETUP_ROUTE : void 0;
-}
-function addHashRouteToUrl(url, route) {
-  const normalizedRoute = normalizeInitialRoute(route);
-  if (!normalizedRoute) return url;
-  const parsed = new URL(url);
-  parsed.hash = normalizedRoute;
-  return parsed.toString();
-}
 
 // electron/utils/app-state.ts
 var quitting = false;
@@ -1504,6 +1521,11 @@ function removeDeprecatedSecretsFromConfig() {
   }
 }
 function getInitialRouteForCurrentLaunch() {
+  const pendingAdminCredentials = store2.get("pendingAdminCredentials");
+  if (pendingAdminCredentials != null && !isPendingAdminHandoffUsable(pendingAdminCredentials)) {
+    store2.delete("pendingAdminCredentials");
+    fileLog("[Main] Cleared expired first-admin setup handoff");
+  }
   return getInitialRouteForLaunch({
     pendingAdminCredentials: store2.get("pendingAdminCredentials")
   });

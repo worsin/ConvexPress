@@ -7,6 +7,10 @@ import { AdminGate } from "./components/auth/AdminGate";
 import type { AdminGateProps } from "./components/auth/AdminGate";
 import Loader from "./components/loader";
 import { useLocalAuth, setConvexSiteUrl } from "./hooks/useLocalAuth";
+import {
+  isPendingAdminCredentialHandoff,
+  isPendingLoginCredentialHandoff,
+} from "./lib/first-admin-setup";
 import { isElectron, getElectronBridge } from "./lib/electron";
 import { LocalAuthProvider } from "./lib/local-auth-context";
 import { routeTree } from "./routeTree.gen";
@@ -55,12 +59,22 @@ async function resolveConfig(): Promise<BootstrapConfig> {
       | "server"
       | "client"
       | undefined;
-    const pending = (await bridge.config.get("pendingAdminCredentials")) as
-      | AdminGateProps["pendingCredentials"]
-      | null;
-    const pendingLogin = (await bridge.config.get("pendingLoginCredentials")) as
-      | AdminGateProps["pendingLoginCredentials"]
-      | null;
+    const pending = await bridge.config.get("pendingAdminCredentials");
+    const pendingLogin = await bridge.config.get("pendingLoginCredentials");
+    const pendingCredentials = isPendingAdminCredentialHandoff(pending)
+      ? pending
+      : undefined;
+    const pendingLoginCredentials =
+      isPendingLoginCredentialHandoff(pendingLogin)
+        ? pendingLogin
+        : undefined;
+
+    if (pending && !pendingCredentials) {
+      await bridge.config.set("pendingAdminCredentials", null);
+    }
+    if (pendingLogin && !pendingLoginCredentials) {
+      await bridge.config.set("pendingLoginCredentials", null);
+    }
 
     // In dev mode, the electron-store may be empty (fresh install / no setup
     // wizard completed yet). Fall back to Vite env vars so the app can still
@@ -77,8 +91,8 @@ async function resolveConfig(): Promise<BootstrapConfig> {
       convexUrl: resolvedConvexUrl,
       convexSiteUrl: resolvedSiteUrl,
       electronMode,
-      pendingCredentials: pending ?? undefined,
-      pendingLoginCredentials: pendingLogin ?? undefined,
+      pendingCredentials,
+      pendingLoginCredentials,
     };
   }
 

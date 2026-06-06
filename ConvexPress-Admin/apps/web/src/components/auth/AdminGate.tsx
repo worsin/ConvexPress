@@ -47,10 +47,14 @@ export interface AdminGateProps {
     displayName?: string;
     username?: string;
     setupToken?: string;
+    createdAt?: number;
+    expiresAt: number;
   };
   pendingLoginCredentials?: {
     identifier: string;
     password: string;
+    createdAt?: number;
+    expiresAt: number;
   };
 }
 

@@ -4,6 +4,8 @@ import {
   FIRST_ADMIN_SETUP_ROUTE,
   completeFirstAdminSetup,
   deriveSetupUsername,
+  isPendingAdminCredentialHandoff,
+  isPendingLoginCredentialHandoff,
   validateFirstAdminForm,
 } from "./first-admin-setup";
 
@@ -28,6 +30,93 @@ describe("first-admin setup helpers", () => {
   test("falls back when the email prefix is too short after cleanup", () => {
     expect(deriveSetupUsername("a@example.com")).toBe("admin");
     expect(deriveSetupUsername("!!!@example.com")).toBe("admin");
+  });
+
+  test("accepts only fresh pending admin credential handoffs", () => {
+    expect(
+      isPendingAdminCredentialHandoff(
+        {
+          displayName: "First Admin",
+          email: "admin@example.com",
+          password: "CorrectHorse42",
+          setupToken: "setup-token",
+          createdAt: 1_000,
+          expiresAt: 2_000,
+        },
+        1_500,
+      ),
+    ).toBe(true);
+
+    expect(
+      isPendingAdminCredentialHandoff(
+        {
+          displayName: "First Admin",
+          email: "admin@example.com",
+          password: "CorrectHorse42",
+          setupToken: "setup-token",
+          createdAt: 1_000,
+          expiresAt: 2_000,
+        },
+        2_000,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingAdminCredentialHandoff(
+        {
+          displayName: "First Admin",
+          email: "admin@example.com",
+          password: "CorrectHorse42",
+          setupToken: "setup-token",
+        },
+        1_500,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingAdminCredentialHandoff(
+        {
+          displayName: "First Admin",
+          email: "not-an-email",
+          password: "CorrectHorse42",
+          expiresAt: 2_000,
+        },
+        1_500,
+      ),
+    ).toBe(false);
+  });
+
+  test("accepts only fresh pending login credential handoffs", () => {
+    expect(
+      isPendingLoginCredentialHandoff(
+        {
+          identifier: "admin@example.com",
+          password: "CorrectHorse42",
+          createdAt: 1_000,
+          expiresAt: 2_000,
+        },
+        1_500,
+      ),
+    ).toBe(true);
+    expect(
+      isPendingLoginCredentialHandoff(
+        {
+          identifier: "admin@example.com",
+          password: "CorrectHorse42",
+          createdAt: 1_000,
+          expiresAt: 2_000,
+        },
+        2_000,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingLoginCredentialHandoff(
+        {
+          identifier: "",
+          password: "CorrectHorse42",
+          expiresAt: 2_000,
+        },
+        1_500,
+      ),
+    ).toBe(false);
   });
 
   test("normalizes manual first-admin form credentials", () => {

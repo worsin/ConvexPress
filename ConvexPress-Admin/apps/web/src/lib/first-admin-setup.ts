@@ -1,4 +1,5 @@
 export const FIRST_ADMIN_SETUP_ROUTE = "/setup";
+export const SETUP_CREDENTIAL_HANDOFF_TTL_MS = 60 * 60 * 1000;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,64}$/;
@@ -24,6 +25,23 @@ export type FirstAdminSetupCredentials = {
   email: string;
   password: string;
   setupToken?: string;
+};
+
+export type PendingAdminCredentialHandoff = {
+  displayName?: string;
+  username?: string;
+  email: string;
+  password: string;
+  setupToken?: string;
+  createdAt?: number;
+  expiresAt: number;
+};
+
+export type PendingLoginCredentialHandoff = {
+  identifier: string;
+  password: string;
+  createdAt?: number;
+  expiresAt: number;
 };
 
 export type FirstAdminFormValidation =
@@ -55,6 +73,49 @@ export function deriveSetupUsername(
 
   if (cleaned.length >= 3) return cleaned;
   return "admin";
+}
+
+function hasFreshExpiry(value: { expiresAt?: unknown }, now: number): boolean {
+  return (
+    typeof value.expiresAt === "number" &&
+    Number.isFinite(value.expiresAt) &&
+    value.expiresAt > now
+  );
+}
+
+export function isPendingAdminCredentialHandoff(
+  value: unknown,
+  now = Date.now(),
+): value is PendingAdminCredentialHandoff {
+  if (!value || typeof value !== "object") return false;
+  const handoff = value as Record<string, unknown>;
+  return (
+    typeof handoff.email === "string" &&
+    EMAIL_RE.test(handoff.email.trim().toLowerCase()) &&
+    typeof handoff.password === "string" &&
+    handoff.password.length >= 8 &&
+    (handoff.displayName === undefined ||
+      typeof handoff.displayName === "string") &&
+    (handoff.username === undefined || typeof handoff.username === "string") &&
+    (handoff.setupToken === undefined ||
+      typeof handoff.setupToken === "string") &&
+    hasFreshExpiry(handoff, now)
+  );
+}
+
+export function isPendingLoginCredentialHandoff(
+  value: unknown,
+  now = Date.now(),
+): value is PendingLoginCredentialHandoff {
+  if (!value || typeof value !== "object") return false;
+  const handoff = value as Record<string, unknown>;
+  return (
+    typeof handoff.identifier === "string" &&
+    handoff.identifier.trim().length > 0 &&
+    typeof handoff.password === "string" &&
+    handoff.password.length > 0 &&
+    hasFreshExpiry(handoff, now)
+  );
 }
 
 export function validateFirstAdminForm(

@@ -4,7 +4,10 @@ import { registerAllIpcHandlers } from "./ipc/index.js";
 import { initAppUpdater } from "./ipc/app-updater.js";
 import { initUpdaterEvents } from "./ipc/updater.js";
 import { isExactWizardSender } from "./ipc/setupSender.js";
-import { getInitialRouteForLaunch } from "./launchRoute.js";
+import {
+  getInitialRouteForLaunch,
+  isPendingAdminHandoffUsable,
+} from "./launchRoute.js";
 import { createTray } from "./tray.js";
 import { JsonStore } from "./utils/json-store.js";
 import { setQuitting } from "./utils/app-state.js";
@@ -109,6 +112,15 @@ function removeDeprecatedSecretsFromConfig(): void {
 }
 
 function getInitialRouteForCurrentLaunch(): string | undefined {
+  const pendingAdminCredentials = store.get("pendingAdminCredentials");
+  if (
+    pendingAdminCredentials != null &&
+    !isPendingAdminHandoffUsable(pendingAdminCredentials)
+  ) {
+    store.delete("pendingAdminCredentials");
+    fileLog("[Main] Cleared expired first-admin setup handoff");
+  }
+
   return getInitialRouteForLaunch({
     pendingAdminCredentials: store.get("pendingAdminCredentials"),
   });
