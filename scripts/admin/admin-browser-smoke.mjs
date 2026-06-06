@@ -30,10 +30,15 @@ const username =
   explicitUsername ?? (allowFirstAdminSetup ? firstAdminEmail : undefined);
 const password =
   explicitPassword ?? (allowFirstAdminSetup ? firstAdminPassword : undefined);
+const hasExplicitExistingAdminCredentials = Boolean(
+  explicitUsername && explicitPassword,
+);
 const usingFirstAdminCredentialsForLogin =
   allowFirstAdminSetup &&
   username === firstAdminEmail &&
   password === firstAdminPassword;
+const usingFreshSetupOnlyCredentialsForLogin =
+  usingFirstAdminCredentialsForLogin && !hasExplicitExistingAdminCredentials;
 const routeLimit = parsePositiveInt(process.env.ADMIN_SMOKE_ROUTE_LIMIT);
 const headed = process.env.ADMIN_SMOKE_HEADED === "1";
 
@@ -214,6 +219,11 @@ async function signInExistingAdmin(page) {
 
     const loginInput = page.locator("#identifier");
     await loginInput.waitFor({ state: "visible", timeout: 20_000 });
+    if (usingFreshSetupOnlyCredentialsForLogin) {
+      throw new Error(
+        "Fresh first-admin smoke credentials cannot sign in because this deployment already has an administrator. Use existing ADMIN_SMOKE_USER/ADMIN_SMOKE_PASSWORD credentials or run against a fresh deployment.",
+      );
+    }
     await loginInput.fill(username);
     await page.locator("#password").fill(password);
     await page.getByRole("button", { name: /sign in/i }).click();

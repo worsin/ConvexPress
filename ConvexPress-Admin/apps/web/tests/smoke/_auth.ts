@@ -31,10 +31,16 @@ const loginUsername =
 const loginPassword =
 	process.env.ADMIN_SMOKE_PASSWORD ??
 	(allowFirstAdminSetup ? firstAdminPassword : undefined);
+const hasExplicitExistingAdminCredentials = Boolean(
+	(process.env.ADMIN_SMOKE_USER || process.env.ADMIN_SMOKE_EMAIL) &&
+		process.env.ADMIN_SMOKE_PASSWORD,
+);
 const usingFirstAdminCredentialsForLogin =
 	allowFirstAdminSetup &&
 	loginUsername === firstAdminEmail &&
 	loginPassword === firstAdminPassword;
+const usingFreshSetupOnlyCredentialsForLogin =
+	usingFirstAdminCredentialsForLogin && !hasExplicitExistingAdminCredentials;
 
 export async function authenticateAdminForSmoke(page: Page) {
 	await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
@@ -137,6 +143,11 @@ async function signInExistingAdmin(page: Page) {
 
 		const loginInput = page.locator("#identifier");
 		await expect(loginInput).toBeVisible({ timeout: 20_000 });
+		if (usingFreshSetupOnlyCredentialsForLogin) {
+			throw new Error(
+				"Fresh first-admin smoke credentials cannot sign in because this deployment already has an administrator. Use existing ADMIN_SMOKE_USER/ADMIN_SMOKE_PASSWORD credentials or run against a fresh deployment.",
+			);
+		}
 		await loginInput.fill(loginUsername);
 		await page.locator("#password").fill(loginPassword);
 		await page.getByRole("button", { name: /^sign in$/i }).click();
