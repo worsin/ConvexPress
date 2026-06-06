@@ -90,6 +90,7 @@ describe("setup wizard connection tests", () => {
         return new Promise((resolve) => pending.push({ url, resolve }));
       };
 
+      showStep("server-test");
       state.convexUrl = "https://old-deploy.convex.cloud";
       const oldRun = startConnectionTest("server");
       state.convexUrl = "https://new-deploy.convex.cloud";
@@ -127,6 +128,7 @@ describe("setup wizard connection tests", () => {
   test("shows the next action for the current successful connection test", async () => {
     const result = await runWizardScenario(`
       window.convexpressSetup.testConnection = async (url) => ({ ok: true, url });
+      showStep("client-test");
       state.convexUrl = "https://current-deploy.convex.cloud";
       await startConnectionTest("client");
       return {
@@ -139,5 +141,33 @@ describe("setup wizard connection tests", () => {
     expect(result.status).toContain("Connection successful");
     expect(result.actionsHidden).toBe(false);
     expect(result.nextHidden).toBe(false);
+  });
+
+  test("ignores a pending connection success after backing out of the test step", async () => {
+    const result = await runWizardScenario(`
+      const pending = [];
+      window.convexpressSetup.testConnection = (url) =>
+        new Promise((resolve) => pending.push({ url, resolve }));
+
+      state.convexUrl = "https://current-deploy.convex.cloud";
+      showStep("server-test");
+      const run = startConnectionTest("server");
+
+      $("btn-server-test-back").listeners.click();
+      pending[0].resolve({ ok: true });
+      await run;
+
+      return {
+        currentStep: state.currentStep,
+        actionsHidden: $("server-test-actions").classList.contains("hidden"),
+        nextHidden: $("btn-server-test-next").classList.contains("hidden"),
+        status: $("server-test-status").innerHTML,
+      };
+    `);
+
+    expect(result.currentStep).toBe("server-config");
+    expect(result.actionsHidden).toBe(true);
+    expect(result.nextHidden).toBe(false);
+    expect(result.status).toContain("Connecting to your Convex deployment");
   });
 });

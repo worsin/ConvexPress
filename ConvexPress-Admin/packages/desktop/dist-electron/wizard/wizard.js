@@ -56,6 +56,14 @@ const latestConnectionTestByPath = {
   client: 0,
 };
 
+function getConnectionTestStep(path) {
+  return `${path}-test`;
+}
+
+function invalidateConnectionTest(path) {
+  latestConnectionTestByPath[path] = ++connectionTestSerial;
+}
+
 // ── Navigation ─────────────────────────────────────────────────────────────
 
 function showStep(stepId) {
@@ -169,6 +177,7 @@ $("btn-toggle-key").addEventListener("click", () => {
 // ── Step: Server — Connection Test ────────────────────────────────────────
 
 $("btn-server-test-back").addEventListener("click", () => {
+  invalidateConnectionTest("server");
   const nextBtn = $("btn-server-test-next");
   if (nextBtn) nextBtn.classList.remove("hidden");
   showStep("server-config");
@@ -262,6 +271,7 @@ $("btn-client-url-back").addEventListener("click", () => showStep("mode"));
 // ── Step: Client — Connection Test ────────────────────────────────────────
 
 $("btn-client-test-back").addEventListener("click", () => {
+  invalidateConnectionTest("client");
   const nextBtn = $("btn-client-test-next");
   if (nextBtn) nextBtn.classList.remove("hidden");
   showStep("client-url");
@@ -351,7 +361,8 @@ async function startConnectionTest(path) {
 function isCurrentConnectionTest(prefix, testId, requestedUrl) {
   return (
     latestConnectionTestByPath[prefix] === testId &&
-    state.convexUrl === requestedUrl
+    state.convexUrl === requestedUrl &&
+    state.currentStep === getConnectionTestStep(prefix)
   );
 }
 
