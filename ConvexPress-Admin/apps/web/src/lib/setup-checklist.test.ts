@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   SECRET_SENTINEL,
+  SERVER_ENVIRONMENT_KEYS,
   buildSetupChecklistCards,
   cardStatus,
   connectedProviderCount,
@@ -128,6 +129,23 @@ describe("setup checklist", () => {
       ga4: ["ga4ServiceAccountJson", "ga4PropertyId"],
       shipping: ["carrier credentials", "ship-from address", "verified provider"],
     });
+  });
+
+  test("lists every server environment key needed for first-login and provider setup", () => {
+    expect(SERVER_ENVIRONMENT_KEYS.map((key) => key.name)).toEqual([
+      "AUTH_PRIVATE_KEY",
+      "AUTH_ISSUER_URL",
+      "AUTH_ALLOWED_ORIGINS",
+      "AUTH_ADMIN_ORIGIN",
+      "AUTH_ALLOW_LOCALHOST_ORIGINS",
+      "AUTH_ALLOW_NULL_ORIGIN",
+      "SHIPPING_PROVIDER_ENCRYPTION_KEY",
+    ]);
+
+    expect(
+      SERVER_ENVIRONMENT_KEYS.find((key) => key.name === "AUTH_ALLOW_NULL_ORIGIN")
+        ?.detail?.includes("file://"),
+    ).toBe(true);
   });
 
   test("treats redacted secret sentinels as configured values", () => {

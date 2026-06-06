@@ -36,6 +36,7 @@ import {
   buildSetupChecklistCards,
   cardStatus,
   requiredProgress,
+  SERVER_ENVIRONMENT_KEYS,
   type SettingsData,
   type SetupChecklistCard,
   type SetupStatus,
@@ -213,20 +214,28 @@ function FirstRunSetupPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {[
-              "AUTH_PRIVATE_KEY",
-              "AUTH_ISSUER_URL",
-              "AUTH_ALLOWED_ORIGINS",
-              "SHIPPING_PROVIDER_ENCRYPTION_KEY",
-            ].map((name) => (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {SERVER_ENVIRONMENT_KEYS.map((key) => (
               <div
-                key={name}
+                key={key.name}
                 className="rounded-md border border-border bg-muted/40 p-3"
               >
-                <div className="font-mono text-xs font-medium text-foreground">
-                  {name}
+                <div className="font-mono text-xs font-medium text-foreground break-all">
+                  {key.name}
                 </div>
+                {key.detail ? (
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                    {key.detail}
+                  </p>
+                ) : null}
+                {key.optional ? (
+                  <Badge
+                    variant="outline"
+                    className="mt-3 border-border bg-background text-xs text-muted-foreground"
+                  >
+                    Optional
+                  </Badge>
+                ) : null}
               </div>
             ))}
           </div>

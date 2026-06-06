@@ -47,4 +47,7 @@ test("first-run setup checklist [P0]", async ({ authedPage }) => {
 	await expect(authedPage.getByText("Google Analytics 4")).toBeVisible();
 	await expect(authedPage.getByText("Shipping carriers")).toBeVisible();
 	await expect(authedPage.getByText("ConvexPress access keys")).toBeVisible();
+	await expect(authedPage.getByText("AUTH_ALLOWED_ORIGINS")).toBeVisible();
+	await expect(authedPage.getByText("AUTH_ADMIN_ORIGIN")).toBeVisible();
+	await expect(authedPage.getByText("AUTH_ALLOW_NULL_ORIGIN")).toBeVisible();
 });

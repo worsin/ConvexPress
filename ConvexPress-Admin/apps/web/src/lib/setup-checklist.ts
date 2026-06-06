@@ -18,6 +18,12 @@ export type SetupChecklistCard = {
   requirements: Requirement[];
 };
 
+export type ServerEnvironmentKey = {
+  name: string;
+  detail?: string;
+  optional?: boolean;
+};
+
 export type ShippingOverview =
   | {
       integrationSettings?: Record<string, unknown>;
@@ -31,6 +37,39 @@ export type ShippingOverview =
   | undefined;
 
 export const SECRET_SENTINEL = "__set__";
+
+export const SERVER_ENVIRONMENT_KEYS: ServerEnvironmentKey[] = [
+  {
+    name: "AUTH_PRIVATE_KEY",
+    detail: "Signs local admin login tokens.",
+  },
+  {
+    name: "AUTH_ISSUER_URL",
+    detail: "Convex site URL used by the JWT issuer and JWKS endpoint.",
+  },
+  {
+    name: "AUTH_ALLOWED_ORIGINS",
+    detail: "Comma-separated admin web origins that can call /auth endpoints.",
+  },
+  {
+    name: "AUTH_ADMIN_ORIGIN",
+    detail: "Optional single-origin alias for hosted admin installs.",
+    optional: true,
+  },
+  {
+    name: "AUTH_ALLOW_LOCALHOST_ORIGINS",
+    detail: "Set intentionally when local browser origins should be allowed.",
+    optional: true,
+  },
+  {
+    name: "AUTH_ALLOW_NULL_ORIGIN",
+    detail: "Required for packaged desktop apps that load from file://.",
+  },
+  {
+    name: "SHIPPING_PROVIDER_ENCRYPTION_KEY",
+    detail: "Encrypts stored shipping carrier credentials.",
+  },
+];
 
 export function hasSettingValue(section: SettingsData, key: string): boolean {
   const value = section?.[key];
