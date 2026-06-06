@@ -112,8 +112,9 @@ async function bootstrap() {
       const useSharedAuth = () => auth;
 
       // AdminGate needs LocalAuthProvider context, so it must be INSIDE the
-      // provider tree, not wrapping it.
-      const gatedChildren = isElectron() ? (
+      // provider tree. It handles Electron pending credentials and also lets a
+      // fresh web install create the first admin account before the login gate.
+      const gatedChildren = (
         <AdminGate
           mode={config.electronMode}
           pendingCredentials={config.pendingCredentials}
@@ -121,8 +122,6 @@ async function bootstrap() {
         >
           {children}
         </AdminGate>
-      ) : (
-        children
       );
 
       return (

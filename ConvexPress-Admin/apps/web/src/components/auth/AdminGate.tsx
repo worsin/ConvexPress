@@ -14,8 +14,9 @@
  *     a "Waiting for server setup" message. If client credentials were
  *     collected during setup, logs in once and then renders children.
  *
- *   - **Web mode (no Electron)**: Passthrough -- renders children immediately.
- *     The normal login page handles unauthenticated users.
+ *   - **Web mode (no Electron)**: If no admin exists yet, shows the same
+ *     manual admin creation form. Otherwise renders children and lets the
+ *     normal login page handle unauthenticated users.
  */
 
 import { useAction } from "convex/react";
@@ -82,11 +83,6 @@ export function AdminGate({
     if (pendingCredentials) void clearPendingAdminCredentials();
     if (pendingLoginCredentials) void clearPendingLoginCredentials();
   }, [verifiedAdminAccess, pendingCredentials, pendingLoginCredentials]);
-
-  // Web mode -- passthrough
-  if (!isElectron() && !mode) {
-    return <>{children}</>;
-  }
 
   // Auto-signup just completed -- render children while auth state catches up
   if (signupComplete) {
