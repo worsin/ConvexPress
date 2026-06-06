@@ -10,12 +10,80 @@ import { ROLE_EVENTS, SYSTEM } from "./events/constants";
 import { BUILT_IN_ROLES } from "./seed/roles";
 import { hasActiveAdmin } from "./auth/adminPresence";
 
+type CurrentUserPublic = {
+  _id: string;
+  _creationTime: number;
+  email: string;
+  emailVerified: boolean;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  profilePictureUrl?: string;
+  username?: string;
+  nickname?: string;
+  displayName?: string;
+  slug?: string;
+  bio?: string;
+  url?: string;
+  avatarUrl?: string;
+  avatarMediaId?: string;
+  avatarStorageId?: string;
+  socialLinks?: Record<string, string | undefined>;
+  roleId?: string;
+  status: "active" | "inactive" | "banned";
+  preferences?: Record<string, unknown>;
+  locale?: string;
+  timezone?: string;
+  postCount?: number;
+  commentCount?: number;
+  internalRole?: string;
+  isInternal?: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+
+function toPublicCurrentUser(user: Awaited<ReturnType<typeof getUser>>): CurrentUserPublic | null {
+  if (!user || user.status !== "active") return null;
+
+  return {
+    _id: user._id,
+    _creationTime: user._creationTime,
+    email: user.email,
+    emailVerified: user.emailVerified,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    phone: user.phone,
+    profilePictureUrl: user.profilePictureUrl,
+    username: user.username,
+    nickname: user.nickname,
+    displayName: user.displayName,
+    slug: user.slug,
+    bio: user.bio,
+    url: user.url,
+    avatarUrl: user.avatarUrl,
+    avatarMediaId: user.avatarMediaId,
+    avatarStorageId: user.avatarStorageId,
+    socialLinks: user.socialLinks,
+    roleId: user.roleId,
+    status: user.status,
+    preferences: user.preferences,
+    locale: user.locale,
+    timezone: user.timezone,
+    postCount: user.postCount,
+    commentCount: user.commentCount,
+    internalRole: user.internalRole,
+    isInternal: user.isInternal,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
 // ─── Queries ────────────────────────────────────────────────────────────────
 
 export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
-    return await getUser(ctx);
+    return toPublicCurrentUser(await getUser(ctx));
   },
 });
 

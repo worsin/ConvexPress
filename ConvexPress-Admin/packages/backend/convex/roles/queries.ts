@@ -15,7 +15,49 @@
 
 import { v } from "convex/values";
 import { query } from "../_generated/server";
-import { getCurrentUser, currentUserCan } from "../helpers/permissions";
+import {
+  getCurrentUser,
+  currentUserCan,
+  resolveUserRole,
+} from "../helpers/permissions";
+
+type RolePolicyRecord = {
+  _id: unknown;
+  capabilities: string[];
+  pageAccess: string[];
+};
+
+function stripRolePolicy<T extends RolePolicyRecord>(role: T): T {
+  return {
+    ...role,
+    capabilities: [],
+    pageAccess: [],
+  };
+}
+
+async function canViewRolePolicy(
+  ctx: Parameters<typeof currentUserCan>[0],
+  user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>,
+  role: RolePolicyRecord,
+): Promise<boolean> {
+  if (user.status !== "active") return false;
+  if (await currentUserCan(ctx, "role.update")) return true;
+
+  if (user.roleId && user.roleId === role._id) return true;
+
+  const ownRole = await resolveUserRole(ctx, user);
+  return ownRole?._id === role._id;
+}
+
+async function roleForCaller<T extends RolePolicyRecord>(
+  ctx: Parameters<typeof currentUserCan>[0],
+  user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>,
+  role: T | null,
+): Promise<T | null> {
+  if (!role || user.status !== "active") return null;
+  if (await canViewRolePolicy(ctx, user, role)) return role;
+  return stripRolePolicy(role);
+}
 
 // ─── List Roles ─────────────────────────────────────────────────────────────
 
@@ -30,6 +72,7 @@ export const listRoles = query({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
+    if (user.status !== "active") return [];
 
     // Check if the caller has role management capabilities.
     // Non-admin users (e.g., Subscribers) get a stripped-down view
@@ -123,8 +166,10 @@ export const getRole = query({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
+    if (user.status !== "active") return null;
 
-    return await ctx.db.get("roles", args.roleId);
+    const role = await ctx.db.get("roles", args.roleId);
+    return await roleForCaller(ctx, user, role);
   },
 });
 
@@ -141,11 +186,13 @@ export const getRoleBySlug = query({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
+    if (user.status !== "active") return null;
 
-    return await ctx.db
+    const role = await ctx.db
       .query("roles")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .unique();
+    return await roleForCaller(ctx, user, role);
   },
 });
 
@@ -162,13 +209,14 @@ export const getDefaultRole = query({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
+    if (user.status !== "active") return null;
 
     const defaultRole = await ctx.db
       .query("roles")
       .withIndex("by_isDefault", (q) => q.eq("isDefault", true))
       .first();
 
-    return defaultRole;
+    return await roleForCaller(ctx, user, defaultRole);
   },
 });
 
@@ -191,6 +239,7 @@ export const getRoleChanges = query({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
+    if (user.status !== "active") return [];
 
     // Role change audit trail is sensitive -- require role.assign capability
     const canView = await currentUserCan(ctx, "role.assign");

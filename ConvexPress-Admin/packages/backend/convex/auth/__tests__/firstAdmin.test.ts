@@ -359,6 +359,10 @@ describe("createFirstAdmin", () => {
     const currentUser = await authenticated.query(api.users.getCurrentUser);
     expect(currentUser?._id).toBe(snapshot.user._id);
     expect(currentUser?.email).toBe("admin@example.com");
+    expect((currentUser as Record<string, unknown> | null)?.passwordHash).toBeUndefined();
+    expect(
+      (currentUser as Record<string, unknown> | null)?.passwordResetToken,
+    ).toBeUndefined();
 
     const adminAccess = await authenticated.query(api.users.checkAdminAccess);
     expect(adminAccess?.id).toBe(snapshot.user._id);

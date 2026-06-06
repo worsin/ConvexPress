@@ -952,6 +952,25 @@ var AppUpdater = class extends import_node_events.EventEmitter {
 // electron/window-manager.ts
 var import_node_path5 = __toESM(require("path"));
 
+// electron/launchRoute.ts
+var FIRST_ADMIN_SETUP_ROUTE = "/setup";
+function normalizeInitialRoute(route) {
+  const trimmed = route?.trim();
+  if (!trimmed) return void 0;
+  const withoutHash = trimmed.startsWith("#") ? trimmed.slice(1) : trimmed;
+  return withoutHash.startsWith("/") ? withoutHash : `/${withoutHash}`;
+}
+function getInitialRouteForLaunch(config) {
+  return config.pendingAdminCredentials ? FIRST_ADMIN_SETUP_ROUTE : void 0;
+}
+function addHashRouteToUrl(url, route) {
+  const normalizedRoute = normalizeInitialRoute(route);
+  if (!normalizedRoute) return url;
+  const parsed = new URL(url);
+  parsed.hash = normalizedRoute;
+  return parsed.toString();
+}
+
 // electron/utils/app-state.ts
 var quitting = false;
 function setQuitting(value) {
@@ -981,7 +1000,7 @@ function getRendererIndexPath() {
 var WindowManager = class {
   mainWindow = null;
   wizardWindow = null;
-  createMainWindow() {
+  createMainWindow(options = {}) {
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.show();
       return this.mainWindow;
@@ -1009,11 +1028,21 @@ var WindowManager = class {
       }
     });
     if (isDev()) {
-      win.loadURL(process.env.CONVEXPRESS_DESKTOP_DEV_URL ?? "http://localhost:4105");
+      win.loadURL(
+        addHashRouteToUrl(
+          process.env.CONVEXPRESS_DESKTOP_DEV_URL ?? "http://localhost:4105",
+          options.initialRoute
+        )
+      );
     } else {
       const indexPath = getRendererIndexPath();
       console.log(`[WindowManager] Renderer path: ${indexPath}`);
-      win.loadFile(indexPath);
+      const initialRoute = normalizeInitialRoute(options.initialRoute);
+      if (initialRoute) {
+        win.loadFile(indexPath, { hash: initialRoute });
+      } else {
+        win.loadFile(indexPath);
+      }
     }
     win.once("ready-to-show", () => {
       win.show();
@@ -1363,9 +1392,16 @@ function removeDeprecatedSecretsFromConfig() {
     fileLog("[Main] Removed deprecated deploy key from desktop config");
   }
 }
+function getInitialRouteForCurrentLaunch() {
+  return getInitialRouteForLaunch({
+    pendingAdminCredentials: store2.get("pendingAdminCredentials")
+  });
+}
 function launchApp() {
   createTray(windowManager);
-  const mainWindow = windowManager.createMainWindow();
+  const mainWindow = windowManager.createMainWindow({
+    initialRoute: getInitialRouteForCurrentLaunch()
+  });
   nativeTheme.on("updated", () => {
     const theme = nativeTheme.shouldUseDarkColors ? "dark" : "light";
     const win = windowManager.getMainWindow();
@@ -1456,7 +1492,9 @@ app6.on("window-all-closed", () => {
 });
 app6.on("activate", () => {
   if (isSetupComplete()) {
-    windowManager.createMainWindow();
+    windowManager.createMainWindow({
+      initialRoute: getInitialRouteForCurrentLaunch()
+    });
   } else {
     windowManager.createWizardWindow();
   }
