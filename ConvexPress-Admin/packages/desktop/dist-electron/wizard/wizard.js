@@ -384,6 +384,7 @@ async function completeSetup() {
       removeProgressListener();
       removeProgressListener = null;
     }
+    clearCredentialState();
 
     // Set completion message based on mode
     const completeMsg = $("complete-message");
@@ -411,6 +412,28 @@ async function completeSetup() {
         : "Setup failed. Check the details and try again.",
     );
   }
+}
+
+function clearCredentialState() {
+  state.deployKey = "";
+  state.adminName = "";
+  state.adminEmail = "";
+  state.adminPassword = "";
+  state.clientIdentifier = "";
+  state.clientPassword = "";
+
+  [
+    "input-deploy-key",
+    "input-admin-name",
+    "input-admin-email",
+    "input-admin-password",
+    "input-admin-confirm",
+    "input-client-identifier",
+    "input-client-password",
+  ].forEach((id) => {
+    const input = $(id);
+    if (input) input.value = "";
+  });
 }
 
 function showProvisionInProgress(message) {
