@@ -1,34 +1,13 @@
 import { JsonStore } from "../utils/json-store.js";
+import {
+  assertReadableConfigKey,
+  assertRendererConfigClear,
+} from "./configValidation.js";
 import { normalizeConvexCloudUrl } from "./setupValidation.js";
 
 const { ipcMain, net } = require("electron") as typeof import("electron");
 
 const store = new JsonStore({ name: "convexpress-config" });
-const READABLE_CONFIG_KEYS = new Set([
-  "mode",
-  "convexUrl",
-  "convexSiteUrl",
-  "siteName",
-  "setupComplete",
-  "pendingAdminCredentials",
-  "pendingLoginCredentials",
-]);
-const WRITABLE_CONFIG_KEYS = new Set([
-  "pendingAdminCredentials",
-  "pendingLoginCredentials",
-]);
-
-function assertReadableConfigKey(key: string): void {
-  if (!READABLE_CONFIG_KEYS.has(key)) {
-    throw new Error(`Config key not allowed: ${key}`);
-  }
-}
-
-function assertWritableConfigKey(key: string): void {
-  if (!WRITABLE_CONFIG_KEYS.has(key)) {
-    throw new Error(`Config key is read-only: ${key}`);
-  }
-}
 
 export function registerConfigHandlers(): void {
   ipcMain.handle("config:get", (_event, key: string) => {
@@ -37,8 +16,8 @@ export function registerConfigHandlers(): void {
   });
 
   ipcMain.handle("config:set", (_event, key: string, value: unknown) => {
-    assertWritableConfigKey(key);
-    store.set(key, value);
+    assertRendererConfigClear(key, value);
+    store.delete(key);
   });
 
   ipcMain.handle("config:test-connection", async (_event, url: string) => {

@@ -8,9 +8,13 @@
 
 // ---- Type definitions for the preload bridge ----
 
+type RendererClearableConfigKey =
+  | "pendingAdminCredentials"
+  | "pendingLoginCredentials";
+
 export interface ConvexpressConfig {
   get: (key: string) => Promise<unknown>;
-  set: (key: string, value: unknown) => Promise<void>;
+  set: (key: RendererClearableConfigKey, value: null) => Promise<void>;
   testConnection: (url: string) => Promise<{
     ok: boolean;
     status?: number;

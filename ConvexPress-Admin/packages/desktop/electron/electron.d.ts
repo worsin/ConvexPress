@@ -5,6 +5,10 @@
  * via `contextBridge.exposeInMainWorld`.
  */
 
+type RendererClearableConfigKey =
+  | "pendingAdminCredentials"
+  | "pendingLoginCredentials";
+
 export interface ConvexPressAPI {
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
@@ -31,7 +35,7 @@ export interface ConvexPressAPI {
 
   config: {
     get: (key: string) => Promise<unknown>;
-    set: (key: string, value: unknown) => Promise<void>;
+    set: (key: RendererClearableConfigKey, value: null) => Promise<void>;
     testConnection: (url: string) => Promise<{
       ok: boolean;
       status?: number;

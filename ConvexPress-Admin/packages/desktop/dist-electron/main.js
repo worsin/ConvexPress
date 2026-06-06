@@ -106,6 +106,34 @@ var JsonStore = class {
   }
 };
 
+// electron/ipc/configValidation.ts
+var READABLE_CONFIG_KEYS = /* @__PURE__ */ new Set([
+  "mode",
+  "convexUrl",
+  "convexSiteUrl",
+  "siteName",
+  "setupComplete",
+  "pendingAdminCredentials",
+  "pendingLoginCredentials"
+]);
+var CLEARABLE_CONFIG_KEYS = /* @__PURE__ */ new Set([
+  "pendingAdminCredentials",
+  "pendingLoginCredentials"
+]);
+function assertReadableConfigKey(key) {
+  if (!READABLE_CONFIG_KEYS.has(key)) {
+    throw new Error(`Config key not allowed: ${key}`);
+  }
+}
+function assertRendererConfigClear(key, value) {
+  if (!CLEARABLE_CONFIG_KEYS.has(key)) {
+    throw new Error(`Config key is read-only: ${key}`);
+  }
+  if (value !== null) {
+    throw new Error(`Config key can only be cleared from the renderer: ${key}`);
+  }
+}
+
 // electron/ipc/setupValidation.ts
 var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 var CONVEX_CLOUD_URL_RE = /^https:\/\/[a-z0-9-]+\.convex\.cloud$/;
@@ -197,37 +225,14 @@ function validateSetupConfig(config) {
 // electron/ipc/config.ts
 var { ipcMain: ipcMain2, net } = require("electron");
 var store = new JsonStore({ name: "convexpress-config" });
-var READABLE_CONFIG_KEYS = /* @__PURE__ */ new Set([
-  "mode",
-  "convexUrl",
-  "convexSiteUrl",
-  "siteName",
-  "setupComplete",
-  "pendingAdminCredentials",
-  "pendingLoginCredentials"
-]);
-var WRITABLE_CONFIG_KEYS = /* @__PURE__ */ new Set([
-  "pendingAdminCredentials",
-  "pendingLoginCredentials"
-]);
-function assertReadableConfigKey(key) {
-  if (!READABLE_CONFIG_KEYS.has(key)) {
-    throw new Error(`Config key not allowed: ${key}`);
-  }
-}
-function assertWritableConfigKey(key) {
-  if (!WRITABLE_CONFIG_KEYS.has(key)) {
-    throw new Error(`Config key is read-only: ${key}`);
-  }
-}
 function registerConfigHandlers() {
   ipcMain2.handle("config:get", (_event, key) => {
     assertReadableConfigKey(key);
     return store.get(key);
   });
   ipcMain2.handle("config:set", (_event, key, value) => {
-    assertWritableConfigKey(key);
-    store.set(key, value);
+    assertRendererConfigClear(key, value);
+    store.delete(key);
   });
   ipcMain2.handle("config:test-connection", async (_event, url) => {
     let cleanUrl2;
