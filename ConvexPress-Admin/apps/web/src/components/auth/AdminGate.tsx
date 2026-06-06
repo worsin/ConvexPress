@@ -25,7 +25,8 @@ import { api } from "@backend/convex/_generated/api";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { isElectron } from "../../lib/electron";
 import {
   FIRST_ADMIN_SETUP_ROUTE,
@@ -144,6 +145,12 @@ async function clearPendingLoginCredentials() {
   }
 }
 
+function reloadAfterClearingCredentials() {
+  if (typeof window !== "undefined") {
+    window.location.reload();
+  }
+}
+
 // ---- AutoLogin ---------------------------------------------------------------
 
 function AutoLogin({
@@ -184,7 +191,16 @@ function AutoLogin({
   }, [credentials, login, navigate, onComplete]);
 
   if (error) {
-    return <LoginFailure message={error} />;
+    return (
+      <LoginFailure
+        message={error}
+        clearLabel="Clear saved login"
+        onClear={async () => {
+          await clearPendingLoginCredentials();
+          reloadAfterClearingCredentials();
+        }}
+      />
+    );
   }
 
   return (
@@ -259,7 +275,16 @@ function AutoSignup({
   }, [credentials, createFirstAdmin, login, navigate, onComplete, onFailure]);
 
   if (error) {
-    return <LoginFailure message={error} />;
+    return (
+      <LoginFailure
+        message={error}
+        clearLabel="Clear saved setup"
+        onClear={async () => {
+          await clearPendingAdminCredentials();
+          reloadAfterClearingCredentials();
+        }}
+      />
+    );
   }
 
   return (
@@ -496,7 +521,39 @@ function WaitingForServer() {
 
 // ---- LoginFailure -----------------------------------------------------------
 
-function LoginFailure({ message }: { message: string }) {
+function LoginFailure({
+  message,
+  clearLabel,
+  onClear,
+}: {
+  message: string;
+  clearLabel?: string;
+  onClear?: () => Promise<void>;
+}) {
+  const [clearing, setClearing] = useState(false);
+  const [clearError, setClearError] = useState<string | null>(null);
+  const clearButtonLabel =
+    clearLabel ?? "Clear saved credentials";
+
+  async function handleClear() {
+    if (!onClear) return;
+
+    setClearing(true);
+    setClearError(null);
+    try {
+      await onClear();
+    } catch (err) {
+      const nextError =
+        err instanceof Error
+          ? err.message
+          : "Failed to clear saved credentials.";
+      setClearError(nextError);
+      toast.error(nextError);
+    } finally {
+      setClearing(false);
+    }
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center shadow-sm">
@@ -507,6 +564,25 @@ function LoginFailure({ message }: { message: string }) {
         <p className="mt-3 text-sm text-muted-foreground">
           Restart setup or clear the saved credentials, then try again.
         </p>
+        {clearError && (
+          <p className="mt-3 text-sm text-destructive">{clearError}</p>
+        )}
+        {onClear && (
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-5 w-full"
+            onClick={handleClear}
+            disabled={clearing}
+          >
+            {clearing ? (
+              <Loader2 data-icon="inline-start" className="animate-spin" />
+            ) : (
+              <RotateCcw data-icon="inline-start" />
+            )}
+            {clearing ? "Clearing..." : clearButtonLabel}
+          </Button>
+        )}
       </div>
     </div>
   );
