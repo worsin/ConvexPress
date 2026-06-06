@@ -6,6 +6,7 @@ import {
   addHashRouteToUrl,
   getInitialRouteForLaunch,
   isPendingAdminHandoffUsable,
+  isPendingLoginHandoffUsable,
   normalizeInitialRoute,
 } from "./launchRoute";
 
@@ -19,6 +20,20 @@ describe("desktop launch route", () => {
           password: "password123",
           displayName: "Admin",
           setupToken: "setup-token-with-32-safe-characters",
+          createdAt: now - 1_000,
+          expiresAt: now + 60_000,
+        },
+      }),
+    ).toBe(FIRST_ADMIN_SETUP_ROUTE);
+  });
+
+  test("launches pending setup login directly to the setup checklist", () => {
+    const now = Date.now();
+    expect(
+      getInitialRouteForLaunch({
+        pendingLoginCredentials: {
+          identifier: "admin@example.com",
+          password: "password123",
           createdAt: now - 1_000,
           expiresAt: now + 60_000,
         },
@@ -49,6 +64,24 @@ describe("desktop launch route", () => {
           password: "password123",
           displayName: "Admin",
           setupToken: "setup-token-with-32-safe-characters",
+          createdAt: now - 1_000,
+          expiresAt: now - 1,
+        },
+      }),
+    ).toBe(undefined);
+    expect(
+      getInitialRouteForLaunch({
+        pendingLoginCredentials: {
+          identifier: "admin@example.com",
+          password: "password123",
+        },
+      }),
+    ).toBe(undefined);
+    expect(
+      getInitialRouteForLaunch({
+        pendingLoginCredentials: {
+          identifier: "admin@example.com",
+          password: "password123",
           createdAt: now - 1_000,
           expiresAt: now - 1,
         },
@@ -132,6 +165,56 @@ describe("desktop launch route", () => {
         email: "admin@example.com",
         password: "password123",
         setupToken: "short",
+        createdAt: 1000,
+        expiresAt: 2000,
+      }, 1000),
+    ).toBe(false);
+  });
+
+  test("validates setup login handoff shape and expiry", () => {
+    expect(
+      isPendingLoginHandoffUsable({
+        identifier: "admin@example.com",
+        password: "password123",
+        createdAt: 1000,
+        expiresAt: 2000,
+      }, 1000),
+    ).toBe(true);
+    expect(
+      isPendingLoginHandoffUsable({
+        identifier: "admin@example.com",
+        password: "password123",
+        expiresAt: 2000,
+      }, 1000),
+    ).toBe(false);
+    expect(
+      isPendingLoginHandoffUsable({
+        identifier: "admin@example.com",
+        password: "password123",
+        createdAt: 2000,
+        expiresAt: 3000,
+      }, 1000),
+    ).toBe(false);
+    expect(
+      isPendingLoginHandoffUsable({
+        identifier: "admin@example.com",
+        password: "password123",
+        createdAt: 1000,
+        expiresAt: 1000 + SETUP_CREDENTIAL_HANDOFF_TTL_MS + 1,
+      }, 1500),
+    ).toBe(false);
+    expect(
+      isPendingLoginHandoffUsable({
+        identifier: "",
+        password: "password123",
+        createdAt: 1000,
+        expiresAt: 2000,
+      }, 1000),
+    ).toBe(false);
+    expect(
+      isPendingLoginHandoffUsable({
+        identifier: "admin@example.com",
+        password: "",
         createdAt: 1000,
         expiresAt: 2000,
       }, 1000),

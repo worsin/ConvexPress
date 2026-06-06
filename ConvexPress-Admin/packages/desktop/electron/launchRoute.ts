@@ -8,6 +8,7 @@ const MAX_PASSWORD_LENGTH = 256;
 
 type PendingCredentialHandoff = {
   email?: unknown;
+  identifier?: unknown;
   password?: unknown;
   setupToken?: unknown;
   createdAt?: unknown;
@@ -24,8 +25,10 @@ export function normalizeInitialRoute(route?: string | null): string | undefined
 
 export function getInitialRouteForLaunch(config: {
   pendingAdminCredentials?: unknown | null;
+  pendingLoginCredentials?: unknown | null;
 }): string | undefined {
-  return isPendingAdminHandoffUsable(config.pendingAdminCredentials)
+  return isPendingAdminHandoffUsable(config.pendingAdminCredentials) ||
+    isPendingLoginHandoffUsable(config.pendingLoginCredentials)
     ? FIRST_ADMIN_SETUP_ROUTE
     : undefined;
 }
@@ -45,6 +48,42 @@ export function isPendingAdminHandoffUsable(
 ): boolean {
   if (!value || typeof value !== "object") return false;
   const credentials = value as PendingCredentialHandoff;
+  if (!hasFreshHandoffWindow(credentials, now)) return false;
+
+  return (
+    typeof credentials.email === "string" &&
+    credentials.email.trim().length <= MAX_EMAIL_LENGTH &&
+    EMAIL_RE.test(credentials.email.trim().toLowerCase()) &&
+    typeof credentials.password === "string" &&
+    credentials.password.length >= 8 &&
+    credentials.password.length <= MAX_PASSWORD_LENGTH &&
+    typeof credentials.setupToken === "string" &&
+    SETUP_TOKEN_RE.test(credentials.setupToken)
+  );
+}
+
+export function isPendingLoginHandoffUsable(
+  value: unknown,
+  now = Date.now(),
+): boolean {
+  if (!value || typeof value !== "object") return false;
+  const credentials = value as PendingCredentialHandoff;
+  if (!hasFreshHandoffWindow(credentials, now)) return false;
+
+  return (
+    typeof credentials.identifier === "string" &&
+    credentials.identifier.trim().length > 0 &&
+    credentials.identifier.trim().length <= MAX_EMAIL_LENGTH &&
+    typeof credentials.password === "string" &&
+    credentials.password.length > 0 &&
+    credentials.password.length <= MAX_PASSWORD_LENGTH
+  );
+}
+
+function hasFreshHandoffWindow(
+  credentials: PendingCredentialHandoff,
+  now: number,
+): boolean {
   if (
     typeof credentials.createdAt !== "number" ||
     !Number.isFinite(credentials.createdAt) ||
@@ -55,14 +94,6 @@ export function isPendingAdminHandoffUsable(
   }
 
   return (
-    typeof credentials.email === "string" &&
-    credentials.email.trim().length <= MAX_EMAIL_LENGTH &&
-    EMAIL_RE.test(credentials.email.trim().toLowerCase()) &&
-    typeof credentials.password === "string" &&
-    credentials.password.length >= 8 &&
-    credentials.password.length <= MAX_PASSWORD_LENGTH &&
-    typeof credentials.setupToken === "string" &&
-    SETUP_TOKEN_RE.test(credentials.setupToken) &&
     credentials.createdAt > 0 &&
     credentials.createdAt <= now &&
     credentials.expiresAt > now &&

@@ -7,6 +7,7 @@ import { isExactWizardSender } from "./ipc/setupSender.js";
 import {
   getInitialRouteForLaunch,
   isPendingAdminHandoffUsable,
+  isPendingLoginHandoffUsable,
 } from "./launchRoute.js";
 import { createTray } from "./tray.js";
 import { JsonStore } from "./utils/json-store.js";
@@ -113,6 +114,7 @@ function removeDeprecatedSecretsFromConfig(): void {
 
 function getInitialRouteForCurrentLaunch(): string | undefined {
   const pendingAdminCredentials = store.get("pendingAdminCredentials");
+  const pendingLoginCredentials = store.get("pendingLoginCredentials");
   if (
     pendingAdminCredentials != null &&
     !isPendingAdminHandoffUsable(pendingAdminCredentials)
@@ -120,9 +122,17 @@ function getInitialRouteForCurrentLaunch(): string | undefined {
     store.delete("pendingAdminCredentials");
     fileLog("[Main] Cleared expired first-admin setup handoff");
   }
+  if (
+    pendingLoginCredentials != null &&
+    !isPendingLoginHandoffUsable(pendingLoginCredentials)
+  ) {
+    store.delete("pendingLoginCredentials");
+    fileLog("[Main] Cleared expired setup login handoff");
+  }
 
   return getInitialRouteForLaunch({
     pendingAdminCredentials: store.get("pendingAdminCredentials"),
+    pendingLoginCredentials: store.get("pendingLoginCredentials"),
   });
 }
 

@@ -497,7 +497,7 @@ function normalizeInitialRoute(route) {
   return withoutHash.startsWith("/") ? withoutHash : `/${withoutHash}`;
 }
 function getInitialRouteForLaunch(config) {
-  return isPendingAdminHandoffUsable(config.pendingAdminCredentials) ? FIRST_ADMIN_SETUP_ROUTE : void 0;
+  return isPendingAdminHandoffUsable(config.pendingAdminCredentials) || isPendingLoginHandoffUsable(config.pendingLoginCredentials) ? FIRST_ADMIN_SETUP_ROUTE : void 0;
 }
 function addHashRouteToUrl(url, route) {
   const normalizedRoute = normalizeInitialRoute(route);
@@ -509,10 +509,20 @@ function addHashRouteToUrl(url, route) {
 function isPendingAdminHandoffUsable(value, now = Date.now()) {
   if (!value || typeof value !== "object") return false;
   const credentials = value;
+  if (!hasFreshHandoffWindow(credentials, now)) return false;
+  return typeof credentials.email === "string" && credentials.email.trim().length <= MAX_EMAIL_LENGTH2 && EMAIL_RE2.test(credentials.email.trim().toLowerCase()) && typeof credentials.password === "string" && credentials.password.length >= 8 && credentials.password.length <= MAX_PASSWORD_LENGTH2 && typeof credentials.setupToken === "string" && SETUP_TOKEN_RE.test(credentials.setupToken);
+}
+function isPendingLoginHandoffUsable(value, now = Date.now()) {
+  if (!value || typeof value !== "object") return false;
+  const credentials = value;
+  if (!hasFreshHandoffWindow(credentials, now)) return false;
+  return typeof credentials.identifier === "string" && credentials.identifier.trim().length > 0 && credentials.identifier.trim().length <= MAX_EMAIL_LENGTH2 && typeof credentials.password === "string" && credentials.password.length > 0 && credentials.password.length <= MAX_PASSWORD_LENGTH2;
+}
+function hasFreshHandoffWindow(credentials, now) {
   if (typeof credentials.createdAt !== "number" || !Number.isFinite(credentials.createdAt) || typeof credentials.expiresAt !== "number" || !Number.isFinite(credentials.expiresAt)) {
     return false;
   }
-  return typeof credentials.email === "string" && credentials.email.trim().length <= MAX_EMAIL_LENGTH2 && EMAIL_RE2.test(credentials.email.trim().toLowerCase()) && typeof credentials.password === "string" && credentials.password.length >= 8 && credentials.password.length <= MAX_PASSWORD_LENGTH2 && typeof credentials.setupToken === "string" && SETUP_TOKEN_RE.test(credentials.setupToken) && credentials.createdAt > 0 && credentials.createdAt <= now && credentials.expiresAt > now && credentials.expiresAt > credentials.createdAt && credentials.expiresAt <= credentials.createdAt + SETUP_CREDENTIAL_HANDOFF_TTL_MS;
+  return credentials.createdAt > 0 && credentials.createdAt <= now && credentials.expiresAt > now && credentials.expiresAt > credentials.createdAt && credentials.expiresAt <= credentials.createdAt + SETUP_CREDENTIAL_HANDOFF_TTL_MS;
 }
 
 // electron/ipc/setup.ts
@@ -1553,12 +1563,18 @@ function removeDeprecatedSecretsFromConfig() {
 }
 function getInitialRouteForCurrentLaunch() {
   const pendingAdminCredentials = store2.get("pendingAdminCredentials");
+  const pendingLoginCredentials = store2.get("pendingLoginCredentials");
   if (pendingAdminCredentials != null && !isPendingAdminHandoffUsable(pendingAdminCredentials)) {
     store2.delete("pendingAdminCredentials");
     fileLog("[Main] Cleared expired first-admin setup handoff");
   }
+  if (pendingLoginCredentials != null && !isPendingLoginHandoffUsable(pendingLoginCredentials)) {
+    store2.delete("pendingLoginCredentials");
+    fileLog("[Main] Cleared expired setup login handoff");
+  }
   return getInitialRouteForLaunch({
-    pendingAdminCredentials: store2.get("pendingAdminCredentials")
+    pendingAdminCredentials: store2.get("pendingAdminCredentials"),
+    pendingLoginCredentials: store2.get("pendingLoginCredentials")
   });
 }
 function getWizardIndexPath3() {
