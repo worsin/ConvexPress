@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  PROVIDER_ENVIRONMENT_KEYS,
   SECRET_SENTINEL,
   SERVER_ENVIRONMENT_KEYS,
   SETUP_ENVIRONMENT_GROUPS,
@@ -295,6 +296,7 @@ describe("setup checklist", () => {
       "deployment",
       "admin-app",
       "backend",
+      "providers",
       "website-app",
     ]);
 
@@ -340,6 +342,29 @@ describe("setup checklist", () => {
         "UPS_WEBHOOK_SECRET",
         "MEDIA_URL_ONLY_MODE",
       ],
+      providers: [
+        "RESEND_API_KEY",
+        "RESEND_WEBHOOK_SECRET",
+        "CLERK_SECRET_KEY",
+        "CLERK_WEBHOOK_SECRET",
+        "CLERK_JWT_ISSUER_DOMAIN",
+        "MEILISEARCH_HOST",
+        "MEILISEARCH_API_KEY",
+        "OPENROUTER_API_KEY",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "OPENAI_IMAGE_API_KEY",
+        "TAVILY_API_KEY",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "PAYPAL_CLIENT_ID",
+        "PAYPAL_CLIENT_SECRET",
+        "PAYPAL_WEBHOOK_ID",
+        "PAYPAL_MODE",
+        "GOOGLE_PLACES_API_KEY",
+        "GA4_SERVICE_ACCOUNT_JSON",
+        "GA4_PROPERTY_ID",
+      ],
       "website-app": [
         "VITE_CONVEX_URL",
         "VITE_CONVEX_SITE_URL",
@@ -375,6 +400,30 @@ describe("setup checklist", () => {
       "FEDEX_WEBHOOK_SECRET",
       "UPS_WEBHOOK_SECRET",
       "MEDIA_URL_ONLY_MODE",
+    ]);
+
+    expect(PROVIDER_ENVIRONMENT_KEYS.map((key) => key.name)).toEqual([
+      "RESEND_API_KEY",
+      "RESEND_WEBHOOK_SECRET",
+      "CLERK_SECRET_KEY",
+      "CLERK_WEBHOOK_SECRET",
+      "CLERK_JWT_ISSUER_DOMAIN",
+      "MEILISEARCH_HOST",
+      "MEILISEARCH_API_KEY",
+      "OPENROUTER_API_KEY",
+      "OPENAI_API_KEY",
+      "ANTHROPIC_API_KEY",
+      "OPENAI_IMAGE_API_KEY",
+      "TAVILY_API_KEY",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "PAYPAL_CLIENT_ID",
+      "PAYPAL_CLIENT_SECRET",
+      "PAYPAL_WEBHOOK_ID",
+      "PAYPAL_MODE",
+      "GOOGLE_PLACES_API_KEY",
+      "GA4_SERVICE_ACCOUNT_JSON",
+      "GA4_PROPERTY_ID",
     ]);
 
     expect(

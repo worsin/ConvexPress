@@ -189,6 +189,114 @@ export const SERVER_ENVIRONMENT_KEYS: ServerEnvironmentKey[] = [
   },
 ];
 
+export const PROVIDER_ENVIRONMENT_KEYS: ServerEnvironmentKey[] = [
+  {
+    name: "RESEND_API_KEY",
+    detail: "Email transport fallback for transactional mail and notifications.",
+    optional: true,
+  },
+  {
+    name: "RESEND_WEBHOOK_SECRET",
+    detail: "Resend webhook signature verification fallback.",
+    optional: true,
+  },
+  {
+    name: "CLERK_SECRET_KEY",
+    detail: "Clerk server API fallback for website user management and password sync.",
+    optional: true,
+  },
+  {
+    name: "CLERK_WEBHOOK_SECRET",
+    detail: "Clerk webhook signature verification fallback.",
+    optional: true,
+  },
+  {
+    name: "CLERK_JWT_ISSUER_DOMAIN",
+    detail: "Clerk issuer domain used by backend JWT validation for website users.",
+    optional: true,
+  },
+  {
+    name: "MEILISEARCH_HOST",
+    detail: "Global Meilisearch host fallback for content search.",
+    optional: true,
+  },
+  {
+    name: "MEILISEARCH_API_KEY",
+    detail: "Global Meilisearch admin/API key fallback for indexing and server-side search.",
+    optional: true,
+  },
+  {
+    name: "OPENROUTER_API_KEY",
+    detail: "OpenRouter fallback for AI generation when Settings > AI uses OpenRouter.",
+    optional: true,
+  },
+  {
+    name: "OPENAI_API_KEY",
+    detail: "OpenAI fallback for AI generation and image generation.",
+    optional: true,
+  },
+  {
+    name: "ANTHROPIC_API_KEY",
+    detail: "Anthropic fallback for AI generation.",
+    optional: true,
+  },
+  {
+    name: "OPENAI_IMAGE_API_KEY",
+    detail: "Optional OpenAI image-generation key override.",
+    optional: true,
+  },
+  {
+    name: "TAVILY_API_KEY",
+    detail: "Research/search fallback used by AI-assisted content generation.",
+    optional: true,
+  },
+  {
+    name: "STRIPE_SECRET_KEY",
+    detail: "Stripe server key fallback for payments, subscriptions, tax, and form payments.",
+    optional: true,
+  },
+  {
+    name: "STRIPE_WEBHOOK_SECRET",
+    detail: "Stripe webhook signature verification fallback.",
+    optional: true,
+  },
+  {
+    name: "PAYPAL_CLIENT_ID",
+    detail: "PayPal REST app client ID fallback.",
+    optional: true,
+  },
+  {
+    name: "PAYPAL_CLIENT_SECRET",
+    detail: "PayPal REST app client secret fallback.",
+    optional: true,
+  },
+  {
+    name: "PAYPAL_WEBHOOK_ID",
+    detail: "PayPal webhook ID fallback for webhook verification.",
+    optional: true,
+  },
+  {
+    name: "PAYPAL_MODE",
+    detail: "PayPal environment fallback: sandbox or production.",
+    optional: true,
+  },
+  {
+    name: "GOOGLE_PLACES_API_KEY",
+    detail: "Google Places fallback for checkout address autocomplete.",
+    optional: true,
+  },
+  {
+    name: "GA4_SERVICE_ACCOUNT_JSON",
+    detail: "GA4 service-account JSON fallback for analytics dashboards.",
+    optional: true,
+  },
+  {
+    name: "GA4_PROPERTY_ID",
+    detail: "GA4 property ID fallback used by integration tests and dashboard fetches.",
+    optional: true,
+  },
+];
+
 export const WEBSITE_ENVIRONMENT_KEYS: ServerEnvironmentKey[] = [
   {
     name: "VITE_CONVEX_URL",
@@ -253,6 +361,12 @@ export const SETUP_ENVIRONMENT_GROUPS: SetupEnvironmentGroup[] = [
     title: "Backend server environment",
     description: "Convex environment variables for auth, encryption, sync, forms, and webhooks.",
     keys: SERVER_ENVIRONMENT_KEYS,
+  },
+  {
+    id: "providers",
+    title: "Provider fallback environment",
+    description: "Optional Convex environment fallbacks for provider keys when they are not saved through Admin settings.",
+    keys: PROVIDER_ENVIRONMENT_KEYS,
   },
   {
     id: "website-app",
