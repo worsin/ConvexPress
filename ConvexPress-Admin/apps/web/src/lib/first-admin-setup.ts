@@ -63,6 +63,13 @@ export type CompleteFirstAdminSetupOptions = {
   allowExistingAdmin?: boolean;
 };
 
+export type CompleteFirstAdminLoginOptions = {
+  identifier: string;
+  password: string;
+  login: (identifier: string, password: string) => Promise<unknown>;
+  navigateToSetup: () => Promise<unknown> | unknown;
+};
+
 export function deriveSetupUsername(
   email: string,
   explicitUsername?: string,
@@ -214,5 +221,15 @@ export async function completeFirstAdminSetup({
   }
 
   await login(credentials.email, credentials.password);
+  await navigateToSetup();
+}
+
+export async function completeFirstAdminLogin({
+  identifier,
+  password,
+  login,
+  navigateToSetup,
+}: CompleteFirstAdminLoginOptions) {
+  await login(identifier, password);
   await navigateToSetup();
 }

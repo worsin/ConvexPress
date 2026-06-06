@@ -29,6 +29,7 @@ import { Loader2 } from "lucide-react";
 import { isElectron } from "../../lib/electron";
 import {
   FIRST_ADMIN_SETUP_ROUTE,
+  completeFirstAdminLogin,
   completeFirstAdminSetup,
   deriveSetupUsername,
   validateFirstAdminForm,
@@ -153,6 +154,7 @@ function AutoLogin({
   onComplete: () => void;
 }) {
   const { login } = useLocalAuthContext();
+  const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const attempted = useRef(false);
 
@@ -162,7 +164,13 @@ function AutoLogin({
 
     async function doLogin() {
       try {
-        await login(credentials.identifier, credentials.password);
+        await completeFirstAdminLogin({
+          identifier: credentials.identifier,
+          password: credentials.password,
+          login,
+          navigateToSetup: () =>
+            navigate({ to: FIRST_ADMIN_SETUP_ROUTE, replace: true }),
+        });
         await clearPendingLoginCredentials();
         toast.success("Signed in to ConvexPress.");
         onComplete();
@@ -173,7 +181,7 @@ function AutoLogin({
     }
 
     doLogin();
-  }, [credentials, login, onComplete]);
+  }, [credentials, login, navigate, onComplete]);
 
   if (error) {
     return <LoginFailure message={error} />;

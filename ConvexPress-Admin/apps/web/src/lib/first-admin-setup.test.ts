@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   FIRST_ADMIN_SETUP_ROUTE,
+  completeFirstAdminLogin,
   completeFirstAdminSetup,
   deriveSetupUsername,
   isPendingAdminCredentialHandoff,
@@ -298,6 +299,31 @@ describe("first-admin setup helpers", () => {
         setupToken: "setup-token",
       },
     ]);
+    expect(loginCredentials).toEqual([
+      {
+        identifier: "admin@example.com",
+        password: "CorrectHorse42",
+      },
+    ]);
+  });
+
+  test("client pending login lands on the setup checklist after sign-in", async () => {
+    const calls: string[] = [];
+    const loginCredentials: unknown[] = [];
+
+    await completeFirstAdminLogin({
+      identifier: "admin@example.com",
+      password: "CorrectHorse42",
+      login: async (identifier, password) => {
+        calls.push("login");
+        loginCredentials.push({ identifier, password });
+      },
+      navigateToSetup: () => {
+        calls.push("navigate");
+      },
+    });
+
+    expect(calls).toEqual(["login", "navigate"]);
     expect(loginCredentials).toEqual([
       {
         identifier: "admin@example.com",
