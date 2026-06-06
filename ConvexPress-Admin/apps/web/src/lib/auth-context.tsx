@@ -23,6 +23,7 @@ import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { hasCapability } from "./admin-shell/capabilities";
+import { matchesPageAccess, pageAccessCandidates } from "./page-access";
 
 const LEGACY_ROLE_SLUG_MAP: Record<string, string> = {
   admin: "administrator",
@@ -32,35 +33,6 @@ const LEGACY_ROLE_SLUG_MAP: Record<string, string> = {
   support: "editor",
   customer: "subscriber",
 };
-
-function pageAccessCandidates(path: string): string[] {
-  const cleanPath = path.split("?")[0]?.split("#")[0] || "/";
-  const withLeadingSlash = cleanPath.startsWith("/")
-    ? cleanPath
-    : `/${cleanPath}`;
-
-  if (withLeadingSlash === "/") return ["/", "/admin"];
-  if (withLeadingSlash.startsWith("/admin")) return [withLeadingSlash];
-
-  return [withLeadingSlash, `/admin${withLeadingSlash}`];
-}
-
-function matchesPageAccess(path: string, allowed: string): boolean {
-  const normalizedAllowed = allowed.endsWith("/")
-    ? allowed.slice(0, -1)
-    : allowed;
-
-  if (normalizedAllowed === "/" || normalizedAllowed === "/admin") {
-    return path === normalizedAllowed;
-  }
-
-  if (normalizedAllowed.endsWith("/*")) {
-    const prefix = normalizedAllowed.slice(0, -2);
-    return path === prefix || path.startsWith(`${prefix}/`);
-  }
-
-  return path === normalizedAllowed || path.startsWith(`${normalizedAllowed}/`);
-}
 
 // --- Types ---
 
