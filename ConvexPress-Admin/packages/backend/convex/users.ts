@@ -53,6 +53,7 @@ export const checkAdminAccess = query({
   handler: async (ctx) => {
     const user = await getUser(ctx);
     if (!user) return null;
+    if (user.status !== "active") return null;
 
     // Check via capability system first (new system)
     let hasAccess = false;
@@ -61,10 +62,11 @@ export const checkAdminAccess = query({
       if (role && role.status === "active" && role.type === "internal") {
         hasAccess = true;
       }
+      if (!hasAccess) return null;
     }
 
     // Fallback to legacy `isInternal` field for unmigrated users
-    if (!hasAccess && user.isInternal === true) {
+    if (!user.roleId && user.isInternal === true) {
       hasAccess = true;
     }
 

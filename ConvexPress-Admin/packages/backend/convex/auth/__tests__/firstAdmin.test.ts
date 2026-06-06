@@ -8,6 +8,7 @@ import { verifyPassword } from "../helpers";
 
 const PASSWORD = "CorrectHorseBatteryStaple42!";
 const TEST_ORIGIN = "http://127.0.0.1:4105";
+const ADMIN_ISSUER = "https://convexpress-admin.local";
 const ORIGINAL_ENV = { ...process.env };
 
 const modules = {
@@ -20,6 +21,7 @@ const modules = {
   "./convex/authTracking/internals.ts": () =>
     import("../../authTracking/internals"),
   "./convex/roles/internals.ts": () => import("../../roles/internals"),
+  "./convex/users.ts": () => import("../../users"),
 };
 
 function createHarness() {
@@ -190,5 +192,61 @@ describe("createFirstAdmin", () => {
       return await ctx.db.query("refreshTokens").collect();
     });
     expect(afterLogout.filter((token) => token.revokedAt)).toHaveLength(2);
+  });
+
+  test("local admin JWT resolves the user and admin gate rejects stale access", async () => {
+    const t = createHarness();
+
+    await t.action(api.auth.setup.createFirstAdmin, {
+      email: "admin@example.com",
+      username: "admin",
+      password: PASSWORD,
+      displayName: "First Admin",
+    });
+
+    const snapshot = await t.run(async (ctx) => {
+      const user = (await ctx.db.query("users").collect())[0]!;
+      const subscriberRole = await ctx.db
+        .query("roles")
+        .withIndex("by_slug", (q) => q.eq("slug", "subscriber"))
+        .unique();
+      return { user, subscriberRole };
+    });
+
+    const authenticated = t.withIdentity({
+      issuer: ADMIN_ISSUER,
+      subject: snapshot.user._id,
+      tokenIdentifier: `${ADMIN_ISSUER}|${snapshot.user._id}`,
+      email: snapshot.user.email,
+      name: snapshot.user.displayName,
+    });
+
+    const currentUser = await authenticated.query(api.users.getCurrentUser);
+    expect(currentUser?._id).toBe(snapshot.user._id);
+    expect(currentUser?.email).toBe("admin@example.com");
+
+    const adminAccess = await authenticated.query(api.users.checkAdminAccess);
+    expect(adminAccess?.id).toBe(snapshot.user._id);
+    expect(adminAccess?.email).toBe("admin@example.com");
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(snapshot.user._id, {
+        status: "inactive",
+        updatedAt: Date.now(),
+      });
+    });
+
+    expect(await authenticated.query(api.users.checkAdminAccess)).toBeNull();
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(snapshot.user._id, {
+        status: "active",
+        roleId: snapshot.subscriberRole!._id,
+        isInternal: true,
+        updatedAt: Date.now(),
+      });
+    });
+
+    expect(await authenticated.query(api.users.checkAdminAccess)).toBeNull();
   });
 });

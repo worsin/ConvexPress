@@ -62,12 +62,12 @@
       <p>Enter your Convex deployment details:</p>
       <div class="form-group">
         <label for="input-server-url">Deployment URL</label>
-        <input type="url" id="input-server-url" placeholder="https://your-app-123.convex.cloud" />
+        <input type="url" id="input-server-url" name="serverUrl" autocomplete="url" placeholder="https://your-app-123.convex.cloud" />
       </div>
       <div class="form-group">
         <label for="input-deploy-key">Deploy Key</label>
         <div class="password-input-wrapper">
-          <input type="password" id="input-deploy-key" placeholder="prod:your-deploy-key-here" />
+          <input type="password" id="input-deploy-key" name="deployKey" autocomplete="off" placeholder="prod:your-deploy-key-here" />
           <button class="btn-toggle-visibility" id="btn-toggle-key" title="Show/hide key">&#128065;</button>
         </div>
       </div>
@@ -106,19 +106,19 @@
       <p>Set up the first administrator for your ConvexPress site:</p>
       <div class="form-group">
         <label for="input-admin-name">Name</label>
-        <input type="text" id="input-admin-name" placeholder="Your name" />
+        <input type="text" id="input-admin-name" name="adminName" autocomplete="name" placeholder="Your name" />
       </div>
       <div class="form-group">
         <label for="input-admin-email">Email</label>
-        <input type="email" id="input-admin-email" placeholder="admin@example.com" />
+        <input type="email" id="input-admin-email" name="adminEmail" autocomplete="email" placeholder="admin@example.com" />
       </div>
       <div class="form-group">
         <label for="input-admin-password">Password</label>
-        <input type="password" id="input-admin-password" placeholder="At least 8 characters" />
+        <input type="password" id="input-admin-password" name="adminPassword" autocomplete="new-password" placeholder="At least 8 characters" />
       </div>
       <div class="form-group">
         <label for="input-admin-confirm">Confirm Password</label>
-        <input type="password" id="input-admin-confirm" placeholder="Confirm your password" />
+        <input type="password" id="input-admin-confirm" name="adminConfirmPassword" autocomplete="new-password" placeholder="Confirm your password" />
       </div>
       <div class="validation-error hidden" id="admin-create-error"></div>
       <div class="step-actions">
@@ -161,11 +161,11 @@
       <p>Enter the admin credentials for this ConvexPress site:</p>
       <div class="form-group">
         <label for="input-client-identifier">Email or Username</label>
-        <input type="text" id="input-client-identifier" placeholder="admin@example.com" />
+        <input type="text" id="input-client-identifier" name="clientIdentifier" autocomplete="username" placeholder="admin@example.com" />
       </div>
       <div class="form-group">
         <label for="input-client-password">Password</label>
-        <input type="password" id="input-client-password" placeholder="Your password" />
+        <input type="password" id="input-client-password" name="clientPassword" autocomplete="current-password" placeholder="Your password" />
       </div>
       <div class="validation-error hidden" id="client-credentials-error"></div>
       <div class="step-actions">

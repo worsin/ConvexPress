@@ -345,12 +345,14 @@ function AdminCreationForm() {
             </label>
             <input
               id="admin-display-name"
+              name="displayName"
               type="text"
               placeholder="Your name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               required
               autoFocus
+              autoComplete="name"
               className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -364,11 +366,13 @@ function AdminCreationForm() {
             </label>
             <input
               id="admin-username"
+              name="username"
               type="text"
               placeholder="admin"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
+              autoComplete="username"
               className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -382,11 +386,13 @@ function AdminCreationForm() {
             </label>
             <input
               id="admin-email"
+              name="email"
               type="email"
               placeholder="admin@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
               className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -400,12 +406,14 @@ function AdminCreationForm() {
             </label>
             <input
               id="admin-password"
+              name="password"
               type="password"
               placeholder="At least 8 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
+              autoComplete="new-password"
               className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -419,11 +427,13 @@ function AdminCreationForm() {
             </label>
             <input
               id="admin-confirm"
+              name="confirmPassword"
               type="password"
               placeholder="Confirm your password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              autoComplete="new-password"
               className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
