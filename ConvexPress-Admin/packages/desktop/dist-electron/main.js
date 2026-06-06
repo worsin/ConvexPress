@@ -109,11 +109,27 @@ var JsonStore = class {
 // electron/ipc/config.ts
 var { ipcMain: ipcMain2, net } = require("electron");
 var store = new JsonStore({ name: "convexpress-config" });
+var ALLOWED_CONFIG_KEYS = /* @__PURE__ */ new Set([
+  "mode",
+  "convexUrl",
+  "convexSiteUrl",
+  "siteName",
+  "setupComplete",
+  "pendingAdminCredentials",
+  "pendingLoginCredentials"
+]);
+function assertAllowedConfigKey(key) {
+  if (!ALLOWED_CONFIG_KEYS.has(key)) {
+    throw new Error(`Config key not allowed: ${key}`);
+  }
+}
 function registerConfigHandlers() {
   ipcMain2.handle("config:get", (_event, key) => {
+    assertAllowedConfigKey(key);
     return store.get(key);
   });
   ipcMain2.handle("config:set", (_event, key, value) => {
+    assertAllowedConfigKey(key);
     store.set(key, value);
   });
   ipcMain2.handle("config:test-connection", async (_event, url) => {
@@ -505,9 +521,7 @@ function registerSetupHandlers() {
         store.set("mode", validated.mode);
         store.set("convexUrl", validated.convexUrl);
         store.set("convexSiteUrl", validated.convexSiteUrl);
-        if (config.adminKey) {
-          store.set("adminKey", config.adminKey);
-        }
+        store.delete("adminKey");
         if (config.siteName) {
           store.set("siteName", config.siteName);
         }
@@ -1274,6 +1288,12 @@ function isSetupComplete() {
   const convexUrl = store2.get("convexUrl");
   return !!(setupComplete && convexUrl);
 }
+function removeDeprecatedSecretsFromConfig() {
+  if (store2.get("adminKey") !== void 0) {
+    store2.delete("adminKey");
+    fileLog("[Main] Removed deprecated deploy key from desktop config");
+  }
+}
 function launchApp() {
   createTray(windowManager);
   const mainWindow = windowManager.createMainWindow();
@@ -1312,6 +1332,7 @@ if (!gotTheLock) {
 }
 app6.whenReady().then(async () => {
   fileLog("[Main] App ready");
+  removeDeprecatedSecretsFromConfig();
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     const csp = isDev() ? [
       "default-src 'self'",

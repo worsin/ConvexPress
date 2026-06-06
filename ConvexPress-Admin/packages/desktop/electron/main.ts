@@ -99,6 +99,13 @@ function isSetupComplete(): boolean {
   return !!(setupComplete && convexUrl);
 }
 
+function removeDeprecatedSecretsFromConfig(): void {
+  if (store.get("adminKey") !== undefined) {
+    store.delete("adminKey");
+    fileLog("[Main] Removed deprecated deploy key from desktop config");
+  }
+}
+
 // ---------- Launch Helpers ----------
 
 function launchApp(): void {
@@ -155,6 +162,7 @@ if (!gotTheLock) {
 
 app.whenReady().then(async () => {
   fileLog("[Main] App ready");
+  removeDeprecatedSecretsFromConfig();
 
   // ---------- Content-Security-Policy Headers ----------
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {

@@ -341,9 +341,9 @@ export function registerSetupHandlers(): void {
         configStore.set("convexUrl", validated.convexUrl);
         configStore.set("convexSiteUrl", validated.convexSiteUrl);
 
-        if (config.adminKey) {
-          configStore.set("adminKey", config.adminKey);
-        }
+        // The production deploy key is needed only for the setup-time deploy.
+        // Do not persist it into the renderer-readable desktop config store.
+        configStore.delete("adminKey");
         if (config.siteName) {
           configStore.set("siteName", config.siteName);
         }
