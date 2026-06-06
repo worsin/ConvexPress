@@ -2,7 +2,7 @@
 import { v } from "convex/values";
 
 import { query } from "../_generated/server";
-import { getCurrentUser } from "../helpers/auth";
+import { requireCan } from "../helpers/permissions";
 import { requireCommerceEnabled } from "../commerce/helpers";
 import { computeAddressKey, computeCartKey } from "../commerce/checkoutShippingGuards";
 import {
@@ -173,8 +173,7 @@ export const getRecentQuoteDiagnostics = query({
 export const listZonesWithMethods = query({
   args: {},
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) return [];
+    await requireCan(ctx, "shipping.zones.read");
 
     const zones = await ctx.db.query("commerce_shipping_zones").collect();
     const methods = await ctx.db.query("commerce_shipping_zone_methods").collect();
@@ -197,8 +196,7 @@ export const listZonesWithMethods = query({
 export const listPackages = query({
   args: {},
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) return [];
+    await requireCan(ctx, "shipping.packages.read");
     const packages = await ctx.db.query("commerce_shipping_packages").collect();
     return packages.sort(
       (a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0),
@@ -209,8 +207,7 @@ export const listPackages = query({
 export const getPackage = query({
   args: { packageId: v.id("commerce_shipping_packages") },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) return null;
+    await requireCan(ctx, "shipping.packages.read");
     return ctx.db.get(args.packageId);
   },
 });
