@@ -108,15 +108,19 @@ function removeDeprecatedSecretsFromConfig(): void {
   }
 }
 
+function getInitialRouteForCurrentLaunch(): string | undefined {
+  return getInitialRouteForLaunch({
+    pendingAdminCredentials: store.get("pendingAdminCredentials"),
+  });
+}
+
 // ---------- Launch Helpers ----------
 
 function launchApp(): void {
   createTray(windowManager);
 
   const mainWindow = windowManager.createMainWindow({
-    initialRoute: getInitialRouteForLaunch({
-      pendingAdminCredentials: store.get("pendingAdminCredentials"),
-    }),
+    initialRoute: getInitialRouteForCurrentLaunch(),
   });
 
   // Forward OS theme changes to the main window
@@ -243,7 +247,9 @@ app.on("window-all-closed", () => {
 // macOS: recreate main window when dock icon is clicked
 app.on("activate", () => {
   if (isSetupComplete()) {
-    windowManager.createMainWindow();
+    windowManager.createMainWindow({
+      initialRoute: getInitialRouteForCurrentLaunch(),
+    });
   } else {
     windowManager.createWizardWindow();
   }
