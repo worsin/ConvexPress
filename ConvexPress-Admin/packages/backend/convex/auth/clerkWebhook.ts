@@ -1,6 +1,17 @@
 import { httpAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { Webhook } from "svix";
+import {
+  CLERK_WEBHOOK_BODY_LIMIT,
+  MAX_CLERK_NAME_LENGTH,
+  MAX_CLERK_URL_LENGTH,
+  MAX_USERNAME_LENGTH,
+  RequestBodyTooLargeError,
+  normalizeClerkUserId,
+  normalizeEmail,
+  normalizeOptionalString,
+  readLimitedRequestText,
+} from "./inputLimits";
 
 export const clerkWebhookHandler = httpAction(async (ctx, request) => {
   const { getServiceKeyFromAction } = await import("../helpers/serviceKeys");
@@ -22,7 +33,15 @@ export const clerkWebhookHandler = httpAction(async (ctx, request) => {
     return new Response("Missing svix headers", { status: 400 });
   }
 
-  const body = await request.text();
+  let body: string;
+  try {
+    body = await readLimitedRequestText(request, CLERK_WEBHOOK_BODY_LIMIT);
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return new Response("Webhook body too large", { status: 413 });
+    }
+    throw error;
+  }
   const wh = new Webhook(webhookSecret);
   let event: { type: string; data: Record<string, unknown> };
 
@@ -38,22 +57,47 @@ export const clerkWebhookHandler = httpAction(async (ctx, request) => {
 
   switch (event.type) {
     case "user.created":
-    case "user.updated":
-      await ctx.runMutation(internal.auth.clerkSync.upsertClerkUser, {
-        clerkUserId: event.data.id as string,
-        email: (event.data.email_addresses as Array<{ email_address: string }>)?.[0]?.email_address ?? "",
-        firstName: (event.data.first_name as string) ?? undefined,
-        lastName: (event.data.last_name as string) ?? undefined,
-        profilePictureUrl: (event.data.image_url as string) ?? undefined,
-        username: (event.data.username as string) ?? undefined,
-      });
-      break;
+    case "user.updated": {
+      const clerkUserId = normalizeClerkUserId(event.data.id);
+      const email = normalizeEmail(
+        (event.data.email_addresses as Array<{ email_address?: unknown }>)?.[0]
+          ?.email_address,
+      );
+      if (!clerkUserId || !email) {
+        return new Response("Invalid Clerk user payload", { status: 400 });
+      }
 
-    case "user.deleted":
-      await ctx.runMutation(internal.auth.clerkSync.deleteClerkUser, {
-        clerkUserId: event.data.id as string,
+      await ctx.runMutation(internal.auth.clerkSync.upsertClerkUser, {
+        clerkUserId,
+        email,
+        firstName: normalizeOptionalString(
+          event.data.first_name,
+          MAX_CLERK_NAME_LENGTH,
+        ),
+        lastName: normalizeOptionalString(
+          event.data.last_name,
+          MAX_CLERK_NAME_LENGTH,
+        ),
+        profilePictureUrl: normalizeOptionalString(
+          event.data.image_url,
+          MAX_CLERK_URL_LENGTH,
+        ),
+        username: normalizeOptionalString(event.data.username, MAX_USERNAME_LENGTH),
       });
       break;
+    }
+
+    case "user.deleted": {
+      const clerkUserId = normalizeClerkUserId(event.data.id);
+      if (!clerkUserId) {
+        return new Response("Invalid Clerk user payload", { status: 400 });
+      }
+
+      await ctx.runMutation(internal.auth.clerkSync.deleteClerkUser, {
+        clerkUserId,
+      });
+      break;
+    }
   }
 
   return new Response("OK", { status: 200 });

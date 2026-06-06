@@ -17,6 +17,13 @@ import {
   hashRefreshToken,
 } from "./helpers";
 import { authJsonResponse, getAllowedAuthOrigin } from "./httpSecurity";
+import {
+  AUTH_JSON_BODY_LIMIT,
+  RequestBodyTooLargeError,
+  normalizeLoginCredentials,
+  normalizeRequestIp,
+  readLimitedRequestText,
+} from "./inputLimits";
 
 export const loginHandler = httpAction(async (ctx, request) => {
   const allowedOrigin = getAllowedAuthOrigin(request.headers.get("origin"));
@@ -24,27 +31,36 @@ export const loginHandler = httpAction(async (ctx, request) => {
     return authJsonResponse({ error: "Origin not allowed" }, 403, "");
   }
 
-  let body: { email?: string; username?: string; password?: string };
+  let body: unknown;
   try {
-    body = await request.json();
-  } catch {
+    body = JSON.parse(await readLimitedRequestText(request, AUTH_JSON_BODY_LIMIT));
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return authJsonResponse(
+        { error: "Request body too large" },
+        413,
+        allowedOrigin,
+      );
+    }
     return authJsonResponse({ error: "Invalid JSON body" }, 400, allowedOrigin);
   }
 
-  const password = body.password;
-  const email = body.email?.trim().toLowerCase();
-  const username = body.username?.trim();
-  if (!password || (!email && !username)) {
+  const credentials = normalizeLoginCredentials(body);
+  if (!credentials.ok) {
     return authJsonResponse(
-      { error: "Email/username and password are required" },
+      {
+        error:
+          credentials.reason === "missing"
+            ? "Email/username and password are required"
+            : "Credentials are invalid",
+      },
       400,
       allowedOrigin,
     );
   }
 
-  const identifier = email ?? username!;
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const { email, username, password, identifier } = credentials;
+  const ip = normalizeRequestIp(request.headers.get("x-forwarded-for"));
 
   // ─── Rate limit / lockout check ──────────────────────────────────────────
   const isLocked = await ctx.runQuery(internal.auth.internals.checkLockout, {

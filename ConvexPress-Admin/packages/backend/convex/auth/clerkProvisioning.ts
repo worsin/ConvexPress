@@ -1,4 +1,12 @@
 import { mutation } from "../_generated/server";
+import {
+  MAX_CLERK_NAME_LENGTH,
+  MAX_CLERK_URL_LENGTH,
+  deriveClerkSlug,
+  normalizeClerkUserId,
+  normalizeEmail,
+  normalizeOptionalString,
+} from "./inputLimits";
 
 /**
  * Ensure a ConvexPress user record exists for the current Clerk identity.
@@ -20,11 +28,29 @@ export const provisionClerkUser = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
 
-    const clerkUserId = identity.subject;
-    const rawEmail = identity.email ?? "";
-    const normalizedEmail = rawEmail.trim().toLowerCase();
-    const firstName = identity.givenName ?? undefined;
-    const lastName = identity.familyName ?? undefined;
+    const clerkUserId = normalizeClerkUserId(identity.subject);
+    if (!clerkUserId) return null;
+
+    const normalizedEmail = normalizeEmail(identity.email);
+    const firstName = normalizeOptionalString(
+      identity.givenName,
+      MAX_CLERK_NAME_LENGTH,
+    );
+    const lastName = normalizeOptionalString(
+      identity.familyName,
+      MAX_CLERK_NAME_LENGTH,
+    );
+    const profilePictureUrl = normalizeOptionalString(
+      identity.pictureUrl,
+      MAX_CLERK_URL_LENGTH,
+    );
+    const derivedDisplayName =
+      firstName && lastName ? `${firstName} ${lastName}` : firstName ?? lastName;
+    const displayName =
+      normalizeOptionalString(identity.name, MAX_CLERK_NAME_LENGTH) ??
+      derivedDisplayName ??
+      normalizedEmail;
+    const emailVerified = identity.emailVerified === true;
     const now = Date.now();
 
     // 1. Match by clerkUserId
@@ -44,11 +70,13 @@ export const provisionClerkUser = mutation({
 
       if (byEmail) {
         if (!byEmail.clerkUserId) {
+          if (!emailVerified) return null;
+
           // Link the imported user to this Clerk identity
           const patch: Record<string, unknown> = {
             clerkUserId,
             authSource: "clerk",
-            emailVerified: identity.emailVerified ?? true,
+            emailVerified: true,
             clerkProvisioningStatus: "linked_existing",
             clerkProvisioningSource: "clerk_session",
             clerkProvisioningReason: "session_email_match",
@@ -58,8 +86,8 @@ export const provisionClerkUser = mutation({
           };
           if (firstName && !byEmail.firstName) patch.firstName = firstName;
           if (lastName && !byEmail.lastName) patch.lastName = lastName;
-          if (identity.pictureUrl && !byEmail.profilePictureUrl) {
-            patch.profilePictureUrl = identity.pictureUrl;
+          if (profilePictureUrl && !byEmail.profilePictureUrl) {
+            patch.profilePictureUrl = profilePictureUrl;
           }
           await ctx.db.patch(byEmail._id, patch);
           return byEmail._id;
@@ -75,6 +103,8 @@ export const provisionClerkUser = mutation({
       }
     }
 
+    if (!normalizedEmail) return null;
+
     // 3. No match — create a new user
     const subscriberRole = await ctx.db
       .query("roles")
@@ -85,12 +115,12 @@ export const provisionClerkUser = mutation({
       authSource: "clerk",
       clerkUserId,
       email: normalizedEmail,
-      emailVerified: identity.emailVerified ?? false,
+      emailVerified,
       firstName,
       lastName,
-      profilePictureUrl: identity.pictureUrl ?? undefined,
-      displayName: identity.name ?? normalizedEmail,
-      slug: normalizedEmail.split("@")[0],
+      profilePictureUrl,
+      displayName: displayName || normalizedEmail,
+      slug: deriveClerkSlug({ email: normalizedEmail }),
       status: "active",
       roleId: subscriberRole?._id,
       registrationMethod: "self",

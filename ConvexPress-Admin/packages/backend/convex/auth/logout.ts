@@ -17,6 +17,7 @@ import {
   createAuthHeaders,
   getAllowedAuthOrigin,
 } from "./httpSecurity";
+import { isRefreshTokenShape, parseCookieValue } from "./inputLimits";
 
 export const logoutHandler = httpAction(async (ctx, request) => {
   const allowedOrigin = getAllowedAuthOrigin(request.headers.get("origin"));
@@ -28,8 +29,8 @@ export const logoutHandler = httpAction(async (ctx, request) => {
     process.env.AUTH_ISSUER_URL?.startsWith("https://") ?? false;
 
   const cookieHeader = request.headers.get("cookie") ?? "";
-  const refreshToken = parseCookie(cookieHeader, "convexpress_refresh");
-  if (refreshToken) {
+  const refreshToken = parseCookieValue(cookieHeader, "convexpress_refresh");
+  if (refreshToken && isRefreshTokenShape(refreshToken)) {
     const tokenHash = await hashRefreshToken(refreshToken);
     await ctx.runMutation(internal.auth.internals.revokeRefreshToken, {
       tokenHash,
@@ -53,8 +54,3 @@ export const logoutHandler = httpAction(async (ctx, request) => {
     headers,
   });
 });
-
-function parseCookie(header: string, name: string): string | null {
-  const match = header.match(new RegExp(`(?:^|;)\\s*${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
-}

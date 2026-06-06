@@ -17,6 +17,7 @@ const modules = {
   "./convex/http.ts": () => import("../../http"),
   "./convex/auth/setup.ts": () => import("../setup"),
   "./convex/auth/adminPresence.ts": () => import("../adminPresence"),
+  "./convex/auth/inputLimits.ts": () => import("../inputLimits"),
   "./convex/auth/internals.ts": () => import("../internals"),
   "./convex/auth/queries.ts": () => import("../queries"),
   "./convex/authTracking/internals.ts": () =>
@@ -274,6 +275,79 @@ describe("createFirstAdmin", () => {
 
     expect(downgradedLoginResponse.status).toBe(401);
     expect(downgradedLoginBody.error).toBe("Invalid credentials");
+  });
+
+  test("local auth HTTP routes reject oversized credential and token inputs", async () => {
+    configureAuthHttpEnv();
+    const t = createHarness();
+
+    await t.action(api.auth.setup.createFirstAdmin, {
+      email: "admin@example.com",
+      username: "admin",
+      password: PASSWORD,
+      displayName: "First Admin",
+    });
+
+    const oversizedPasswordResponse = await t.fetch("/auth/login", {
+      method: "POST",
+      headers: {
+        Origin: TEST_ORIGIN,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: "admin@example.com",
+        password: "A".repeat(257),
+      }),
+    });
+    const oversizedPasswordBody = await oversizedPasswordResponse.json();
+
+    expect(oversizedPasswordResponse.status).toBe(400);
+    expect(oversizedPasswordBody.error).toBe("Credentials are invalid");
+
+    const failedAttempts = await t.run(async (ctx) => {
+      return await ctx.db.query("failedLoginAttempts").collect();
+    });
+    expect(failedAttempts).toHaveLength(0);
+
+    const oversizedBodyResponse = await t.fetch("/auth/login", {
+      method: "POST",
+      headers: {
+        Origin: TEST_ORIGIN,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: "admin@example.com",
+        password: "A".repeat(5000),
+      }),
+    });
+    const oversizedBody = await oversizedBodyResponse.json();
+
+    expect(oversizedBodyResponse.status).toBe(413);
+    expect(oversizedBody.error).toBe("Request body too large");
+
+    const malformedRefreshResponse = await t.fetch("/auth/refresh", {
+      method: "POST",
+      headers: {
+        Origin: TEST_ORIGIN,
+        Cookie: `convexpress_refresh=${"z".repeat(128)}`,
+      },
+    });
+    const malformedRefreshBody = await malformedRefreshResponse.json();
+
+    expect(malformedRefreshResponse.status).toBe(401);
+    expect(malformedRefreshBody.error).toBe("Invalid or expired refresh token");
+
+    const malformedLogoutResponse = await t.fetch("/auth/logout", {
+      method: "POST",
+      headers: {
+        Origin: TEST_ORIGIN,
+        Cookie: `convexpress_refresh=${"z".repeat(128)}`,
+      },
+    });
+    const malformedLogoutBody = await malformedLogoutResponse.json();
+
+    expect(malformedLogoutResponse.status).toBe(200);
+    expect(malformedLogoutBody.ok).toBe(true);
   });
 
   test("requires the configured first-admin setup token", async () => {

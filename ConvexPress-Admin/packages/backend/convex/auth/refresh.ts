@@ -23,6 +23,7 @@ import {
   authNoContentResponse,
   getAllowedAuthOrigin,
 } from "./httpSecurity";
+import { isRefreshTokenShape, parseCookieValue } from "./inputLimits";
 
 export const refreshHandler = httpAction(async (ctx, request) => {
   const allowedOrigin = getAllowedAuthOrigin(request.headers.get("origin"));
@@ -32,10 +33,17 @@ export const refreshHandler = httpAction(async (ctx, request) => {
 
   // ─── Extract refresh token from cookie ───────────────────────────────────
   const cookieHeader = request.headers.get("cookie") ?? "";
-  const refreshToken = parseCookie(cookieHeader, "convexpress_refresh");
+  const refreshToken = parseCookieValue(cookieHeader, "convexpress_refresh");
 
   if (!refreshToken) {
     return authNoContentResponse(allowedOrigin);
+  }
+  if (!isRefreshTokenShape(refreshToken)) {
+    return authJsonResponse(
+      { error: "Invalid or expired refresh token" },
+      401,
+      allowedOrigin,
+    );
   }
 
   // ─── Validate token record ────────────────────────────────────────────────
@@ -112,10 +120,3 @@ export const refreshHandler = httpAction(async (ctx, request) => {
     { "Set-Cookie": cookieFlags },
   );
 });
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function parseCookie(header: string, name: string): string | null {
-  const match = header.match(new RegExp(`(?:^|;)\\s*${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
-}

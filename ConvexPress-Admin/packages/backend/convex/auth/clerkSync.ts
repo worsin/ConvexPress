@@ -1,5 +1,14 @@
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
+import {
+  MAX_CLERK_NAME_LENGTH,
+  MAX_CLERK_URL_LENGTH,
+  MAX_USERNAME_LENGTH,
+  deriveClerkSlug,
+  normalizeClerkUserId,
+  normalizeEmail,
+  normalizeOptionalString,
+} from "./inputLimits";
 
 /**
  * Upsert a user from a Clerk webhook event.
@@ -32,20 +41,36 @@ export const upsertClerkUser = internalMutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
-    const normalizedEmail = args.email.trim().toLowerCase();
+    const clerkUserId = normalizeClerkUserId(args.clerkUserId);
+    const normalizedEmail = normalizeEmail(args.email);
+    if (!clerkUserId || !normalizedEmail) return;
+
+    const firstName = normalizeOptionalString(
+      args.firstName,
+      MAX_CLERK_NAME_LENGTH,
+    );
+    const lastName = normalizeOptionalString(
+      args.lastName,
+      MAX_CLERK_NAME_LENGTH,
+    );
+    const profilePictureUrl = normalizeOptionalString(
+      args.profilePictureUrl,
+      MAX_CLERK_URL_LENGTH,
+    );
+    const username = normalizeOptionalString(args.username, MAX_USERNAME_LENGTH);
 
     // 1. Try to find by clerkUserId first
     const byClerkId = await ctx.db
       .query("users")
-      .withIndex("by_clerkUserId", (q: ConvexQueryBuilder) => q.eq("clerkUserId", args.clerkUserId))
+      .withIndex("by_clerkUserId", (q: ConvexQueryBuilder) => q.eq("clerkUserId", clerkUserId))
       .unique();
 
     if (byClerkId) {
       await ctx.db.patch(byClerkId._id, {
         email: normalizedEmail,
-        firstName: args.firstName,
-        lastName: args.lastName,
-        profilePictureUrl: args.profilePictureUrl,
+        firstName,
+        lastName,
+        profilePictureUrl,
         clerkProvisioningStatus: "provisioned",
         clerkProvisioningSource: "clerk_webhook",
         clerkProvisioningReason: "webhook_user_update",
@@ -66,7 +91,7 @@ export const upsertClerkUser = internalMutation({
       if (!byEmail.clerkUserId) {
         // Link the existing imported user to this Clerk identity
         const patch: Record<string, unknown> = {
-          clerkUserId: args.clerkUserId,
+          clerkUserId,
           authSource: "clerk",
           emailVerified: true,
           clerkProvisioningStatus: "linked_existing",
@@ -77,19 +102,19 @@ export const upsertClerkUser = internalMutation({
           updatedAt: now,
         };
         // Only override name/picture if Clerk provided values and the record doesn't already have them
-        if (args.firstName && !byEmail.firstName) patch.firstName = args.firstName;
-        if (args.lastName && !byEmail.lastName) patch.lastName = args.lastName;
-        if (args.profilePictureUrl && !byEmail.profilePictureUrl) {
-          patch.profilePictureUrl = args.profilePictureUrl;
+        if (firstName && !byEmail.firstName) patch.firstName = firstName;
+        if (lastName && !byEmail.lastName) patch.lastName = lastName;
+        if (profilePictureUrl && !byEmail.profilePictureUrl) {
+          patch.profilePictureUrl = profilePictureUrl;
         }
         await ctx.db.patch(byEmail._id, patch);
         return;
       }
 
-      if (byEmail.clerkUserId !== args.clerkUserId) {
+      if (byEmail.clerkUserId !== clerkUserId) {
         console.warn(
           `[ClerkSync] Email ${normalizedEmail} is already linked to a different Clerk user ` +
-            `(existing: ${byEmail.clerkUserId}, incoming: ${args.clerkUserId}). Skipping to avoid clobber.`
+            `(existing: ${byEmail.clerkUserId}, incoming: ${clerkUserId}). Skipping to avoid clobber.`
         );
         return;
       }
@@ -103,15 +128,15 @@ export const upsertClerkUser = internalMutation({
 
     await ctx.db.insert("users", {
       authSource: "clerk",
-      clerkUserId: args.clerkUserId,
+      clerkUserId,
       email: normalizedEmail,
       emailVerified: true,
-      firstName: args.firstName,
-      lastName: args.lastName,
-      profilePictureUrl: args.profilePictureUrl,
-      username: args.username,
-      displayName: [args.firstName, args.lastName].filter(Boolean).join(" ") || normalizedEmail,
-      slug: args.username ?? normalizedEmail.split("@")[0],
+      firstName,
+      lastName,
+      profilePictureUrl,
+      username,
+      displayName: [firstName, lastName].filter(Boolean).join(" ") || normalizedEmail,
+      slug: deriveClerkSlug({ email: normalizedEmail, username }),
       status: "active",
       roleId: subscriberRole?._id,
       registrationMethod: "self",
@@ -132,9 +157,12 @@ export const deleteClerkUser = internalMutation({
   args: { clerkUserId: v.string() },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    const clerkUserId = normalizeClerkUserId(args.clerkUserId);
+    if (!clerkUserId) return;
+
     const user = await ctx.db
       .query("users")
-      .withIndex("by_clerkUserId", (q: ConvexQueryBuilder) => q.eq("clerkUserId", args.clerkUserId))
+      .withIndex("by_clerkUserId", (q: ConvexQueryBuilder) => q.eq("clerkUserId", clerkUserId))
       .unique();
 
     if (user) {
