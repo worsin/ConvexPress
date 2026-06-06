@@ -247,12 +247,22 @@ async function upsertForm(
 export const seedPaidTesterFixtures = action({
   args: {
     adminEmail: v.optional(v.string()),
+    devToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (process.env.CONVEXPRESS_ENABLE_DEV_INTERNALS !== "true") {
       throw new Error(
         "seedPaidTesterFixtures is disabled. Set CONVEXPRESS_ENABLE_DEV_INTERNALS=true on the Convex deployment.",
       );
+    }
+    const requiredToken = process.env.CONVEXPRESS_DEV_INTERNALS_TOKEN?.trim();
+    if (!requiredToken) {
+      throw new Error(
+        "seedPaidTesterFixtures requires CONVEXPRESS_DEV_INTERNALS_TOKEN before it can seed fixtures.",
+      );
+    }
+    if (!args.devToken || args.devToken !== requiredToken) {
+      throw new Error("Invalid dev internals token.");
     }
 
     return await ctx.runMutation(
