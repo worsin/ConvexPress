@@ -25,6 +25,7 @@ import {
   ShoppingBag,
   Repeat,
   ShieldCheck,
+  KeyRound,
 } from "lucide-react";
 
 import type { AdminNavSection } from "./types";
@@ -51,6 +52,13 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
     to: "/dashboard",
     icon: LayoutDashboard,
     // No capability - all authenticated admin users can see Dashboard
+  },
+  {
+    id: "setup",
+    label: "Setup",
+    to: "/setup",
+    icon: KeyRound,
+    capability: "manage_options",
   },
   {
     id: "posts",

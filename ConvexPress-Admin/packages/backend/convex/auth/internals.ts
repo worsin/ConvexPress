@@ -11,6 +11,8 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { hasActiveAdmin } from "./adminPresence";
 
+const FIRST_ADMIN_SETUP_TOKEN_STATE_KEY = "first_admin_setup_token_consumed";
+
 async function canUseAdminLocalAuth(
   ctx: { db: any },
   user: { isInternal?: boolean; roleId?: unknown },
@@ -235,11 +237,27 @@ export const createAdminUser = internalMutation({
     username: v.string(),
     passwordHash: v.string(),
     displayName: v.string(),
+    setupTokenRequired: v.boolean(),
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (await hasActiveAdmin(ctx)) {
       throw new Error("An administrator account already exists");
+    }
+
+    if (args.setupTokenRequired) {
+      const consumed = await ctx.db
+        .query("authSetupState")
+        .withIndex("by_key", (q: ConvexQueryBuilder) =>
+          q.eq("key", FIRST_ADMIN_SETUP_TOKEN_STATE_KEY),
+        )
+        .first();
+
+      if (consumed) {
+        throw new Error(
+          "First-admin setup token has already been used. Re-run desktop setup to rotate the setup token.",
+        );
+      }
     }
 
     const adminRole = await ctx.db
@@ -287,10 +305,17 @@ export const createAdminUser = internalMutation({
         registeredAt: existing.registeredAt ?? now,
         updatedAt: now,
       });
+      if (args.setupTokenRequired) {
+        await ctx.db.insert("authSetupState", {
+          key: FIRST_ADMIN_SETUP_TOKEN_STATE_KEY,
+          createdAt: now,
+          consumedAt: now,
+        });
+      }
       return existing._id;
     }
 
-    return await ctx.db.insert("users", {
+    const userId = await ctx.db.insert("users", {
       authSource: "local",
       email: args.email,
       username: args.username,
@@ -310,5 +335,15 @@ export const createAdminUser = internalMutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    if (args.setupTokenRequired) {
+      await ctx.db.insert("authSetupState", {
+        key: FIRST_ADMIN_SETUP_TOKEN_STATE_KEY,
+        createdAt: now,
+        consumedAt: now,
+      });
+    }
+
+    return userId;
   },
 });

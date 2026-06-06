@@ -260,6 +260,59 @@ describe("createFirstAdmin", () => {
 
     expect(result.message).toBe("Administrator account created");
     expect(await t.query(api.auth.queries.hasAdmin)).toBe(true);
+
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "second@example.com",
+        username: "secondadmin",
+        password: PASSWORD,
+        displayName: "Second Admin",
+      }),
+    ).rejects.toThrow("An administrator account already exists");
+  });
+
+  test("consumes the configured first-admin setup token after first use", async () => {
+    process.env.FIRST_ADMIN_SETUP_SECRET = "setup-secret";
+    const t = createHarness();
+
+    await t.action(api.auth.setup.createFirstAdmin, {
+      email: "admin@example.com",
+      username: "admin",
+      password: PASSWORD,
+      displayName: "First Admin",
+      setupToken: "setup-secret",
+    });
+
+    const adminId = await t.run(async (ctx) => {
+      const user = (await ctx.db.query("users").collect())[0]!;
+      await ctx.db.patch(user._id, {
+        status: "inactive",
+        updatedAt: Date.now(),
+      });
+      return user._id;
+    });
+
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(false);
+
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "replacement@example.com",
+        username: "replacement",
+        password: PASSWORD,
+        displayName: "Replacement Admin",
+        setupToken: "setup-secret",
+      }),
+    ).rejects.toThrow(
+      "First-admin setup token has already been used. Re-run desktop setup to rotate the setup token.",
+    );
+
+    const users = await t.run(async (ctx) => {
+      return await ctx.db.query("users").collect();
+    });
+
+    expect(users).toHaveLength(1);
+    expect(users[0]!._id).toBe(adminId);
+    expect(users[0]!.status).toBe("inactive");
   });
 
   test("local admin JWT resolves the user and admin gate rejects stale access", async () => {

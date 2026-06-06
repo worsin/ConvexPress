@@ -16,6 +16,7 @@ import { Route as AuthenticatedAdminUpdatesRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminToolsRouteImport } from './routes/_authenticated/_admin/tools'
 import { Route as AuthenticatedAdminTicketsRouteImport } from './routes/_authenticated/_admin/tickets'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/_admin/support'
+import { Route as AuthenticatedAdminSetupRouteImport } from './routes/_authenticated/_admin/setup'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/_admin/settings'
 import { Route as AuthenticatedAdminSeoRouteImport } from './routes/_authenticated/_admin/seo'
 import { Route as AuthenticatedAdminRecipesRouteImport } from './routes/_authenticated/_admin/recipes'
@@ -293,6 +294,11 @@ const AuthenticatedAdminSupportRoute =
     path: '/support',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminSetupRoute = AuthenticatedAdminSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminSettingsRoute =
   AuthenticatedAdminSettingsRouteImport.update({
     id: '/settings',
@@ -1806,6 +1812,7 @@ export interface FileRoutesByFullPath {
   '/recipes': typeof AuthenticatedAdminRecipesRouteWithChildren
   '/seo': typeof AuthenticatedAdminSeoRouteWithChildren
   '/settings': typeof AuthenticatedAdminSettingsRouteWithChildren
+  '/setup': typeof AuthenticatedAdminSetupRoute
   '/support': typeof AuthenticatedAdminSupportRouteWithChildren
   '/tickets': typeof AuthenticatedAdminTicketsRouteWithChildren
   '/tools': typeof AuthenticatedAdminToolsRouteWithChildren
@@ -2043,6 +2050,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/plugins': typeof AuthenticatedAdminPluginsRoute
   '/profile': typeof AuthenticatedAdminProfileRoute
+  '/setup': typeof AuthenticatedAdminSetupRoute
   '/support': typeof AuthenticatedAdminSupportRouteWithChildren
   '/updates': typeof AuthenticatedAdminUpdatesRoute
   '/appearance/colors': typeof AuthenticatedAdminAppearanceColorsRoute
@@ -2290,6 +2298,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/recipes': typeof AuthenticatedAdminRecipesRouteWithChildren
   '/_authenticated/_admin/seo': typeof AuthenticatedAdminSeoRouteWithChildren
   '/_authenticated/_admin/settings': typeof AuthenticatedAdminSettingsRouteWithChildren
+  '/_authenticated/_admin/setup': typeof AuthenticatedAdminSetupRoute
   '/_authenticated/_admin/support': typeof AuthenticatedAdminSupportRouteWithChildren
   '/_authenticated/_admin/tickets': typeof AuthenticatedAdminTicketsRouteWithChildren
   '/_authenticated/_admin/tools': typeof AuthenticatedAdminToolsRouteWithChildren
@@ -2539,6 +2548,7 @@ export interface FileRouteTypes {
     | '/recipes'
     | '/seo'
     | '/settings'
+    | '/setup'
     | '/support'
     | '/tickets'
     | '/tools'
@@ -2776,6 +2786,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/plugins'
     | '/profile'
+    | '/setup'
     | '/support'
     | '/updates'
     | '/appearance/colors'
@@ -3022,6 +3033,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/recipes'
     | '/_authenticated/_admin/seo'
     | '/_authenticated/_admin/settings'
+    | '/_authenticated/_admin/setup'
     | '/_authenticated/_admin/support'
     | '/_authenticated/_admin/tickets'
     | '/_authenticated/_admin/tools'
@@ -3309,6 +3321,13 @@ declare module '@tanstack/react-router' {
       path: '/support'
       fullPath: '/support'
       preLoaderRoute: typeof AuthenticatedAdminSupportRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/setup': {
+      id: '/_authenticated/_admin/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof AuthenticatedAdminSetupRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/settings': {
@@ -5885,6 +5904,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminRecipesRoute: typeof AuthenticatedAdminRecipesRouteWithChildren
   AuthenticatedAdminSeoRoute: typeof AuthenticatedAdminSeoRouteWithChildren
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRouteWithChildren
+  AuthenticatedAdminSetupRoute: typeof AuthenticatedAdminSetupRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRouteWithChildren
   AuthenticatedAdminTicketsRoute: typeof AuthenticatedAdminTicketsRouteWithChildren
   AuthenticatedAdminToolsRoute: typeof AuthenticatedAdminToolsRouteWithChildren
@@ -5949,6 +5969,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminRecipesRoute: AuthenticatedAdminRecipesRouteWithChildren,
   AuthenticatedAdminSeoRoute: AuthenticatedAdminSeoRouteWithChildren,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRouteWithChildren,
+  AuthenticatedAdminSetupRoute: AuthenticatedAdminSetupRoute,
   AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRouteWithChildren,
   AuthenticatedAdminTicketsRoute: AuthenticatedAdminTicketsRouteWithChildren,
   AuthenticatedAdminToolsRoute: AuthenticatedAdminToolsRouteWithChildren,

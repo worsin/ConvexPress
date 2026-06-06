@@ -22,10 +22,13 @@ import { useAction } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { isElectron } from "../../lib/electron";
 import { useLocalAuthContext } from "../../lib/local-auth-context";
+
+const FIRST_ADMIN_SETUP_ROUTE = "/setup";
 
 // ---- Props ------------------------------------------------------------------
 
@@ -191,7 +194,6 @@ function AutoLogin({
     async function doLogin() {
       try {
         await login(credentials.identifier, credentials.password);
-        await clearPendingLoginCredentials();
         toast.success("Signed in to ConvexPress.");
         onComplete();
       } catch (err) {
@@ -232,6 +234,7 @@ function AutoSignup({
 }) {
   const createFirstAdmin = useAction(api.auth.setup.createFirstAdmin);
   const { login } = useLocalAuthContext();
+  const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const attempted = useRef(false);
 
@@ -267,10 +270,8 @@ function AutoSignup({
         // 2. Log in with the newly created credentials
         await login(credentials.email, credentials.password);
 
-        // 3. Clear pending credentials from electron-store
-        await clearPendingAdminCredentials();
-
         toast.success("Welcome to ConvexPress!");
+        await navigate({ to: FIRST_ADMIN_SETUP_ROUTE, replace: true });
         onComplete();
       } catch (err) {
         console.error("[AutoSignup] Failed:", err);
@@ -282,7 +283,7 @@ function AutoSignup({
     }
 
     doSignup();
-  }, [credentials, createFirstAdmin, login, onComplete, onFailure]);
+  }, [credentials, createFirstAdmin, login, navigate, onComplete, onFailure]);
 
   if (error) {
     return <LoginFailure message={error} />;
@@ -311,6 +312,7 @@ function AdminCreationForm({
 }) {
   const createFirstAdmin = useAction(api.auth.setup.createFirstAdmin);
   const { login } = useLocalAuthContext();
+  const navigate = useNavigate();
 
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
@@ -351,8 +353,8 @@ function AdminCreationForm({
         setupToken,
       });
       await login(email, password);
-      await clearPendingAdminCredentials();
       toast.success("Admin account created! Welcome to ConvexPress.");
+      await navigate({ to: FIRST_ADMIN_SETUP_ROUTE, replace: true });
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to create admin account";

@@ -7,6 +7,10 @@ import type { Id } from "../_generated/dataModel";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,64}$/;
 
+function getRequiredFirstAdminSetupToken(): string | null {
+  return process.env.FIRST_ADMIN_SETUP_SECRET?.trim() || null;
+}
+
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -45,12 +49,14 @@ function validateFirstAdminCredentials(args: {
 }
 
 function validateFirstAdminSetupToken(setupToken: string | undefined) {
-  const requiredToken = process.env.FIRST_ADMIN_SETUP_SECRET?.trim();
-  if (!requiredToken) return;
+  const requiredToken = getRequiredFirstAdminSetupToken();
+  if (!requiredToken) return false;
 
   if (!setupToken || setupToken !== requiredToken) {
     throw new Error("First-admin setup token is invalid or missing.");
   }
+
+  return true;
 }
 
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
@@ -66,9 +72,6 @@ export const createFirstAdmin = action({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    validateFirstAdminSetupToken(args.setupToken);
-    const credentials = validateFirstAdminCredentials(args);
-
     // Ensure the built-in WordPress roles exist before checking for or
     // assigning the first administrator role on a fresh deployment.
     await ctx.runMutation(internal.roles.internals.seedRoles);
@@ -78,6 +81,8 @@ export const createFirstAdmin = action({
       throw new Error("An administrator account already exists");
     }
 
+    const setupTokenRequired = validateFirstAdminSetupToken(args.setupToken);
+    const credentials = validateFirstAdminCredentials(args);
     const passwordHash = await hashPassword(args.password);
 
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
@@ -86,6 +91,7 @@ export const createFirstAdmin = action({
       username: credentials.username,
       passwordHash,
       displayName: credentials.displayName,
+      setupTokenRequired,
     });
 
     return { userId, message: "Administrator account created" };

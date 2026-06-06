@@ -4,6 +4,7 @@
  */
 export const BREADCRUMB_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
+  setup: "Setup",
   posts: "Posts",
   new: "Add New",
   edit: "Edit",
