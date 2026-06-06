@@ -42,6 +42,7 @@ function createElement(id) {
 
 async function runWizardScenario(scenario) {
   const elements = new Map();
+  const timers = [];
   const getElement = (id) => {
     if (!elements.has(id)) {
       elements.set(id, createElement(id));
@@ -50,7 +51,15 @@ async function runWizardScenario(scenario) {
   };
   const context = {
     console,
-    setTimeout() {},
+    setTimeout(handler) {
+      timers.push(handler);
+      return timers.length;
+    },
+    async flushTimers() {
+      while (timers.length) {
+        await timers.shift()();
+      }
+    },
     document: {
       getElementById: getElement,
       querySelectorAll: () => [
@@ -169,5 +178,144 @@ describe("setup wizard connection tests", () => {
     expect(result.actionsHidden).toBe(true);
     expect(result.nextHidden).toBe(false);
     expect(result.status).toContain("Connecting to your Convex deployment");
+  });
+
+  test("server setup saves first-admin credentials then launches app for automatic sign-in", async () => {
+    const result = await runWizardScenario(`
+      const saveCalls = [];
+      const launchCalls = [];
+      window.convexpressSetup.saveConfig = async (options) => {
+        saveCalls.push(options);
+        return { success: true };
+      };
+      window.convexpressSetup.launchApp = async () => {
+        launchCalls.push("launch");
+      };
+
+      state.mode = "server";
+      state.convexUrl = "https://fresh-site-123.convex.cloud";
+      state.deployKey = "prod:fresh-site-123|deploy-token";
+      state.adminName = "First Admin";
+      state.adminEmail = "admin@example.com";
+      state.adminPassword = "CorrectHorseBatteryStaple42!";
+      $("input-deploy-key").value = state.deployKey;
+      $("input-admin-name").value = state.adminName;
+      $("input-admin-email").value = state.adminEmail;
+      $("input-admin-password").value = state.adminPassword;
+      $("input-admin-confirm").value = state.adminPassword;
+
+      await completeSetup();
+      await flushTimers();
+
+      return {
+        saveCalls,
+        launchCalls,
+        currentStep: state.currentStep,
+        completeMessage: $("complete-message").textContent,
+        clearedState: {
+          deployKey: state.deployKey,
+          adminName: state.adminName,
+          adminEmail: state.adminEmail,
+          adminPassword: state.adminPassword,
+        },
+        clearedInputs: {
+          deployKey: $("input-deploy-key").value,
+          adminName: $("input-admin-name").value,
+          adminEmail: $("input-admin-email").value,
+          adminPassword: $("input-admin-password").value,
+          adminConfirm: $("input-admin-confirm").value,
+        },
+      };
+    `);
+
+    expect(result.saveCalls).toEqual([
+      {
+        convexUrl: "https://fresh-site-123.convex.cloud",
+        mode: "server",
+        adminKey: "prod:fresh-site-123|deploy-token",
+        adminName: "First Admin",
+        adminEmail: "admin@example.com",
+        adminPassword: "CorrectHorseBatteryStaple42!",
+      },
+    ]);
+    expect(result.launchCalls).toEqual(["launch"]);
+    expect(result.currentStep).toBe("complete");
+    expect(result.completeMessage).toContain(
+      "Your admin account is ready and ConvexPress will sign you in now.",
+    );
+    expect(result.clearedState).toEqual({
+      deployKey: "",
+      adminName: "",
+      adminEmail: "",
+      adminPassword: "",
+    });
+    expect(result.clearedInputs).toEqual({
+      deployKey: "",
+      adminName: "",
+      adminEmail: "",
+      adminPassword: "",
+      adminConfirm: "",
+    });
+  });
+
+  test("client setup saves login credentials then launches app for automatic sign-in", async () => {
+    const result = await runWizardScenario(`
+      const saveCalls = [];
+      const launchCalls = [];
+      window.convexpressSetup.saveConfig = async (options) => {
+        saveCalls.push(options);
+        return { success: true };
+      };
+      window.convexpressSetup.launchApp = async () => {
+        launchCalls.push("launch");
+      };
+
+      state.mode = "client";
+      state.convexUrl = "https://existing-site-456.convex.cloud";
+      state.clientIdentifier = "admin@example.com";
+      state.clientPassword = "CorrectHorseBatteryStaple42!";
+      $("input-client-identifier").value = state.clientIdentifier;
+      $("input-client-password").value = state.clientPassword;
+
+      await completeSetup();
+      await flushTimers();
+
+      return {
+        saveCalls,
+        launchCalls,
+        currentStep: state.currentStep,
+        completeMessage: $("complete-message").textContent,
+        clearedState: {
+          clientIdentifier: state.clientIdentifier,
+          clientPassword: state.clientPassword,
+        },
+        clearedInputs: {
+          clientIdentifier: $("input-client-identifier").value,
+          clientPassword: $("input-client-password").value,
+        },
+      };
+    `);
+
+    expect(result.saveCalls).toEqual([
+      {
+        convexUrl: "https://existing-site-456.convex.cloud",
+        mode: "client",
+        clientIdentifier: "admin@example.com",
+        clientPassword: "CorrectHorseBatteryStaple42!",
+      },
+    ]);
+    expect(result.launchCalls).toEqual(["launch"]);
+    expect(result.currentStep).toBe("complete");
+    expect(result.completeMessage).toContain(
+      "ConvexPress will sign you in with the credentials you provided.",
+    );
+    expect(result.clearedState).toEqual({
+      clientIdentifier: "",
+      clientPassword: "",
+    });
+    expect(result.clearedInputs).toEqual({
+      clientIdentifier: "",
+      clientPassword: "",
+    });
   });
 });
