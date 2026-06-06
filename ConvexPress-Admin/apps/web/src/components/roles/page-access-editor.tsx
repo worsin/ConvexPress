@@ -15,13 +15,14 @@
 import { cn } from "@/lib/utils";
 
 // ─── Admin Routes ──────────────────────────────────────────────────────────
-// Synced with ALL_ADMIN_PAGES in convex/seed/roles.ts (45 entries).
+// Synced with ALL_ADMIN_PAGES in convex/seed/roles.ts.
 // SYNC WARNING: Changes here must be mirrored in the backend seed data.
 
 const ADMIN_ROUTES = [
   // Core
   { path: "/admin", label: "Dashboard" },
   { path: "/admin/dashboard", label: "Dashboard (explicit)" },
+  { path: "/admin/setup", label: "Setup" },
 
   // Posts
   { path: "/admin/posts", label: "Posts" },
@@ -99,6 +100,16 @@ const ADMIN_ROUTES = [
   { path: "/admin/sitemap", label: "Sitemap" },
 ];
 
+function routeImpliesAccess(routePath: string, allowedPath: string): boolean {
+  if (routePath === allowedPath) return true;
+  if (allowedPath === "/" || allowedPath === "/admin") return false;
+  if (allowedPath.endsWith("/*")) {
+    const prefix = allowedPath.slice(0, -2);
+    return routePath === prefix || routePath.startsWith(`${prefix}/`);
+  }
+  return routePath.startsWith(`${allowedPath}/`);
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────
 
 interface PageAccessEditorProps {
@@ -126,10 +137,7 @@ export function PageAccessEditor({ pageAccess, onChange }: PageAccessEditorProps
         // Check if a parent path implies access
         const isImplied =
           !isEnabled &&
-          Array.from(accessSet).some(
-            (p) =>
-              route.path !== p && route.path.startsWith(p + "/"),
-          );
+          Array.from(accessSet).some((p) => routeImpliesAccess(route.path, p));
 
         return (
           <label
