@@ -35,6 +35,20 @@ function buildCards() {
       tavilyApiKey: SECRET_SENTINEL,
       imageApiKey: "",
     },
+    kbSearch: {
+      meilisearchUrl: "https://search.example.test",
+      meilisearchApiKey: SECRET_SENTINEL,
+      ragProvider: "openai",
+      ragApiKey: SECRET_SENTINEL,
+      ragModel: "text-embedding-3-small",
+    },
+    supportAi: {
+      aiProvider: "openai",
+      aiApiKey: SECRET_SENTINEL,
+      aiModel: "gpt-5.5",
+      meilisearchUrl: "https://search.example.test",
+      meilisearchApiKey: SECRET_SENTINEL,
+    },
     payments: {
       stripePublishableKey: "pk_test",
       stripeSecretKey: SECRET_SENTINEL,
@@ -142,6 +156,8 @@ describe("setup checklist", () => {
       "clerk",
       "search",
       "ai",
+      "kb-search",
+      "support-ai",
       "stripe",
       "paypal",
       "google",
@@ -154,6 +170,8 @@ describe("setup checklist", () => {
       "/settings/integrations/clerk",
       "/settings/search",
       "/settings/ai",
+      "/kb/settings",
+      "/support/settings",
       "/settings/integrations/stripe",
       "/settings/integrations/paypal",
       "/settings/integrations/google",
@@ -179,6 +197,19 @@ describe("setup checklist", () => {
       ],
       search: ["meilisearchHost", "meilisearchApiKey", "website search key"],
       ai: ["apiKey", "tavilyApiKey", "imageApiKey"],
+      "kb-search": [
+        "kb.meilisearchUrl",
+        "kb.meilisearchApiKey",
+        "kb.ragApiKey",
+        "kb.ragModel",
+      ],
+      "support-ai": [
+        "support.aiProvider",
+        "support.aiApiKey",
+        "support.aiModel",
+        "support.meilisearchUrl",
+        "support.meilisearchApiKey",
+      ],
       stripe: [
         "stripePublishableKey",
         "stripeSecretKey",
@@ -233,6 +264,11 @@ describe("setup checklist", () => {
     expect(detailByKey["ai.apiKey"]?.includes("ANTHROPIC_API_KEY")).toBe(true);
     expect(detailByKey["ai.tavilyApiKey"]?.includes("TAVILY_API_KEY")).toBe(true);
     expect(detailByKey["ai.imageApiKey"]?.includes("OPENAI_IMAGE_API_KEY")).toBe(true);
+    expect(detailByKey["kb-search.kb.meilisearchUrl"]?.includes("KB Settings")).toBe(true);
+    expect(detailByKey["kb-search.kb.meilisearchApiKey"]?.includes("KB article indexing")).toBe(true);
+    expect(detailByKey["kb-search.kb.ragApiKey"]?.includes("OpenAI or Anthropic")).toBe(true);
+    expect(detailByKey["support-ai.support.aiApiKey"]?.includes("support answer generation")).toBe(true);
+    expect(detailByKey["support-ai.support.meilisearchApiKey"]?.includes("support deflection")).toBe(true);
     expect(detailByKey["stripe.stripeSecretKey"]?.includes("STRIPE_SECRET_KEY")).toBe(true);
     expect(
       detailByKey["stripe.stripeWebhookSecret"]?.includes(
@@ -383,6 +419,8 @@ describe("setup checklist", () => {
       clerk: {},
       searchSettings: {},
       ai: {},
+      kbSearch: {},
+      supportAi: {},
       payments: {},
       google: {},
       ga4: {},

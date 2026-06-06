@@ -328,6 +328,8 @@ export function buildSetupChecklistCards({
   clerk,
   searchSettings,
   ai,
+  kbSearch,
+  supportAi,
   payments,
   google,
   ga4,
@@ -337,6 +339,8 @@ export function buildSetupChecklistCards({
   clerk: SettingsData;
   searchSettings: SettingsData;
   ai: SettingsData;
+  kbSearch: SettingsData;
+  supportAi: SettingsData;
   payments: SettingsData;
   google: SettingsData;
   ga4: SettingsData;
@@ -441,6 +445,72 @@ export function buildSetupChecklistCards({
           label: "imageApiKey",
           configured: hasSettingValue(ai, "imageApiKey"),
           detail: "Env fallback: OPENAI_IMAGE_API_KEY / OPENAI_API_KEY",
+          optional: true,
+        },
+      ],
+    },
+    {
+      id: "kb-search",
+      title: "Knowledge base search and RAG",
+      description: "Help-center search indexing, semantic retrieval, and AI-assisted KB answers.",
+      route: "/kb/settings",
+      providerHref: "https://cloud.meilisearch.com/",
+      requirements: [
+        {
+          label: "kb.meilisearchUrl",
+          configured: hasSettingValue(kbSearch, "meilisearchUrl"),
+          detail: "KB Settings > Search. Can point at the same Meilisearch deployment as global search.",
+        },
+        {
+          label: "kb.meilisearchApiKey",
+          configured: hasSettingValue(kbSearch, "meilisearchApiKey"),
+          detail: "Stored key for KB article indexing and lookup.",
+        },
+        {
+          label: "kb.ragApiKey",
+          configured: hasSettingValue(kbSearch, "ragApiKey"),
+          detail: `Provider: ${String(kbSearch?.ragProvider ?? "openai")}. OpenAI or Anthropic key for KB RAG.`,
+        },
+        {
+          label: "kb.ragModel",
+          configured: hasSettingValue(kbSearch, "ragModel"),
+          detail: "Embedding or RAG model used by KB semantic search.",
+          optional: true,
+        },
+      ],
+    },
+    {
+      id: "support-ai",
+      title: "Support AI deflection",
+      description: "Support widget answers, KB handoff, Meilisearch lookup, and RAG escalation.",
+      route: "/support/settings",
+      providerHref: "https://platform.openai.com/api-keys",
+      requirements: [
+        {
+          label: "support.aiProvider",
+          configured: hasSettingValue(supportAi, "aiProvider"),
+          detail: "OpenAI or Anthropic provider for support answers.",
+        },
+        {
+          label: "support.aiApiKey",
+          configured: hasSettingValue(supportAi, "aiApiKey"),
+          detail: "Stored provider API key for support answer generation.",
+        },
+        {
+          label: "support.aiModel",
+          configured: hasSettingValue(supportAi, "aiModel"),
+          detail: "Model used by support answer generation.",
+        },
+        {
+          label: "support.meilisearchUrl",
+          configured: hasSettingValue(supportAi, "meilisearchUrl"),
+          detail: "Support settings search URL; can reuse the global Meilisearch host.",
+          optional: true,
+        },
+        {
+          label: "support.meilisearchApiKey",
+          configured: hasSettingValue(supportAi, "meilisearchApiKey"),
+          detail: "Search key for support deflection lookup.",
           optional: true,
         },
       ],

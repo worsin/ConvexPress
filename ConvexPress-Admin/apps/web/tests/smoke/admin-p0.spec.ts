@@ -42,6 +42,8 @@ test("first-run setup checklist [P0]", async ({ authedPage }) => {
 	await expect(authedPage.getByText("Clerk website auth")).toBeVisible();
 	await expect(authedPage.getByText("Meilisearch")).toBeVisible();
 	await expect(authedPage.getByText("AI providers")).toBeVisible();
+	await expect(authedPage.getByText("Knowledge base search and RAG")).toBeVisible();
+	await expect(authedPage.getByText("Support AI deflection")).toBeVisible();
 	await expect(authedPage.getByText("Stripe payments")).toBeVisible();
 	await expect(authedPage.getByText("PayPal checkout")).toBeVisible();
 	await expect(authedPage.getByText("Google Analytics 4")).toBeVisible();

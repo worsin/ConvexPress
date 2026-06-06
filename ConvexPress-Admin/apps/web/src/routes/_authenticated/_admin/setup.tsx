@@ -4,6 +4,7 @@ import { api } from "@backend/convex/_generated/api";
 import {
   ArrowRight,
   BarChart3,
+  BookOpen,
   Brain,
   CheckCircle2,
   CreditCard,
@@ -11,6 +12,7 @@ import {
   ExternalLink,
   Globe,
   KeyRound,
+  LifeBuoy,
   LockKeyhole,
   Mail,
   Search,
@@ -58,6 +60,8 @@ const setupIcons: Record<string, LucideIcon> = {
   clerk: ShieldCheck,
   search: Search,
   ai: Brain,
+  "kb-search": BookOpen,
+  "support-ai": LifeBuoy,
   stripe: CreditCard,
   paypal: Wallet,
   google: Globe,
@@ -99,6 +103,14 @@ function FirstRunSetupPage() {
   const ai = useQuery(
     api.settings.queries.getBySection,
     canLoadSetupData ? { section: "ai" as any } : "skip",
+  ) as SettingsData;
+  const kbSearch = useQuery(
+    api.settings.queries.getBySection,
+    canLoadSetupData ? { section: "kb.search" as any } : "skip",
+  ) as SettingsData;
+  const supportAi = useQuery(
+    api.settings.queries.getBySection,
+    canLoadSetupData ? { section: "support.ai" as any } : "skip",
   ) as SettingsData;
   const payments = useQuery(
     api.settings.queries.getBySection,
@@ -146,6 +158,8 @@ function FirstRunSetupPage() {
     clerk,
     searchSettings,
     ai,
+    kbSearch,
+    supportAi,
     payments,
     google,
     ga4,
@@ -159,6 +173,8 @@ function FirstRunSetupPage() {
     clerk,
     searchSettings,
     ai,
+    kbSearch,
+    supportAi,
     payments,
     google,
     ga4,
