@@ -144,6 +144,7 @@ export const createFirstAdmin = action({
     // Ensure the built-in WordPress roles exist before checking for or
     // assigning the first administrator role on a fresh deployment.
     await ctx.runMutation(internal.roles.internals.seedRoles);
+    await ctx.runMutation(internal.roles.internals.ensureAdminSetupPageAccess);
 
     const existingAdmins = await ctx.runQuery(internal.auth.internals.checkExistingAdmins);
     if (existingAdmins) {
@@ -195,6 +196,7 @@ export const provisionSmokeAdmin = action({
     const passwordHash = await hashPassword(args.password);
 
     await ctx.runMutation(internal.roles.internals.seedRoles);
+    await ctx.runMutation(internal.roles.internals.ensureAdminSetupPageAccess);
 
     const result: { created: boolean; userId: Id<"users">; email: string } = await ctx.runMutation(
       internal.auth.setup.upsertSmokeAdmin,

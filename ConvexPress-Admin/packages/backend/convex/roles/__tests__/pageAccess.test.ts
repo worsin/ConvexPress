@@ -23,14 +23,16 @@ describe("built-in role page access", () => {
     const administrator = rolesBySlug.get("administrator");
 
     expect(administrator?.pageAccess).toContain("/admin/setup");
+    expect(administrator?.pageAccess).toContain("/admin/*");
 
     for (const role of BUILT_IN_ROLES) {
       if (role.slug === "administrator") continue;
       expect(role.pageAccess).not.toContain("/admin/setup");
+      expect(role.pageAccess).not.toContain("/admin/*");
     }
   });
 
-  test("repairs existing administrator roles without reseeding everything", async () => {
+  test("repairs existing administrator page access without reseeding everything", async () => {
     const t = createHarness();
     const now = Date.now();
 
@@ -55,14 +57,14 @@ describe("built-in role page access", () => {
       t.mutation(internal.roles.internals.ensureAdminSetupPageAccess),
     ).resolves.toEqual({
       updated: true,
-      added: "/admin/setup",
+      added: ["/admin/setup", "/admin/*"],
     });
 
     await expect(
       t.mutation(internal.roles.internals.ensureAdminSetupPageAccess),
     ).resolves.toEqual({
       updated: false,
-      reason: "Administrator role already has setup page access",
+      reason: "Administrator role already has required page access",
     });
 
     const role = await t.run(async (ctx) => await ctx.db.get(roleId));
@@ -76,6 +78,7 @@ describe("built-in role page access", () => {
       "/admin",
       "/admin/dashboard",
       "/admin/setup",
+      "/admin/*",
     ]);
   });
 });

@@ -5,6 +5,9 @@ export function pageAccessCandidates(path: string): string[] {
     : `/${cleanPath}`;
 
   if (withLeadingSlash === "/") return ["/", "/admin"];
+  if (withLeadingSlash === "/profile" || withLeadingSlash === "/admin/profile") {
+    return ["/profile", "/admin/profile", "/admin/users/profile"];
+  }
   if (withLeadingSlash.startsWith("/admin")) return [withLeadingSlash];
 
   return [withLeadingSlash, `/admin${withLeadingSlash}`];

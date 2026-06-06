@@ -31,6 +31,7 @@ export interface RoleSeedData {
 
 const ALL_ADMIN_PAGES: string[] = [
   "/admin",
+  "/admin/*",
   "/admin/dashboard",
   "/admin/setup",
   "/admin/posts",

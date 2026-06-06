@@ -10,6 +10,11 @@ describe("page access route matching", () => {
       "/admin/settings/email",
     ]);
     expect(pageAccessCandidates("/admin/setup")).toEqual(["/admin/setup"]);
+    expect(pageAccessCandidates("/profile")).toEqual([
+      "/profile",
+      "/admin/profile",
+      "/admin/users/profile",
+    ]);
   });
 
   test("does not let /admin grant every child admin page", () => {
@@ -22,5 +27,6 @@ describe("page access route matching", () => {
     expect(matchesPageAccess("/admin/setup", "/admin/setup")).toBe(true);
     expect(matchesPageAccess("/admin/kb/articles", "/admin/kb/*")).toBe(true);
     expect(matchesPageAccess("/admin/settings/email", "/admin/kb/*")).toBe(false);
+    expect(matchesPageAccess("/admin/commerce/orders", "/admin/*")).toBe(true);
   });
 });
