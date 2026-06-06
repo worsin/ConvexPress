@@ -38,14 +38,14 @@ export type PendingAdminCredentialHandoff = {
   email: string;
   password: string;
   setupToken?: string;
-  createdAt?: number;
+  createdAt: number;
   expiresAt: number;
 };
 
 export type PendingLoginCredentialHandoff = {
   identifier: string;
   password: string;
-  createdAt?: number;
+  createdAt: number;
   expiresAt: number;
 };
 
@@ -87,11 +87,25 @@ export function deriveSetupUsername(
   return "admin";
 }
 
-function hasFreshExpiry(value: { expiresAt?: unknown }, now: number): boolean {
+function hasFreshHandoffWindow(
+  value: { createdAt?: unknown; expiresAt?: unknown },
+  now: number,
+): boolean {
+  if (
+    typeof value.createdAt !== "number" ||
+    !Number.isFinite(value.createdAt) ||
+    typeof value.expiresAt !== "number" ||
+    !Number.isFinite(value.expiresAt)
+  ) {
+    return false;
+  }
+
   return (
-    typeof value.expiresAt === "number" &&
-    Number.isFinite(value.expiresAt) &&
-    value.expiresAt > now
+    value.createdAt > 0 &&
+    value.createdAt <= now &&
+    value.expiresAt > now &&
+    value.expiresAt > value.createdAt &&
+    value.expiresAt <= value.createdAt + SETUP_CREDENTIAL_HANDOFF_TTL_MS
   );
 }
 
@@ -121,7 +135,7 @@ export function isPendingAdminCredentialHandoff(
       (typeof handoff.username === "string" &&
         USERNAME_RE.test(handoff.username.trim()))) &&
     isOptionalBoundedString(handoff.setupToken, MAX_SETUP_TOKEN_LENGTH) &&
-    hasFreshExpiry(handoff, now)
+    hasFreshHandoffWindow(handoff, now)
   );
 }
 
@@ -138,7 +152,7 @@ export function isPendingLoginCredentialHandoff(
     typeof handoff.password === "string" &&
     handoff.password.length > 0 &&
     handoff.password.length <= MAX_PASSWORD_LENGTH &&
-    hasFreshExpiry(handoff, now)
+    hasFreshHandoffWindow(handoff, now)
   );
 }
 

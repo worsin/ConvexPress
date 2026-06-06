@@ -509,7 +509,10 @@ function addHashRouteToUrl(url, route) {
 function isPendingAdminHandoffUsable(value, now = Date.now()) {
   if (!value || typeof value !== "object") return false;
   const credentials = value;
-  return typeof credentials.email === "string" && credentials.email.trim().length <= MAX_EMAIL_LENGTH2 && EMAIL_RE2.test(credentials.email.trim().toLowerCase()) && typeof credentials.password === "string" && credentials.password.length >= 8 && credentials.password.length <= MAX_PASSWORD_LENGTH2 && typeof credentials.setupToken === "string" && SETUP_TOKEN_RE.test(credentials.setupToken) && typeof credentials.expiresAt === "number" && Number.isFinite(credentials.expiresAt) && credentials.expiresAt > now;
+  if (typeof credentials.createdAt !== "number" || !Number.isFinite(credentials.createdAt) || typeof credentials.expiresAt !== "number" || !Number.isFinite(credentials.expiresAt)) {
+    return false;
+  }
+  return typeof credentials.email === "string" && credentials.email.trim().length <= MAX_EMAIL_LENGTH2 && EMAIL_RE2.test(credentials.email.trim().toLowerCase()) && typeof credentials.password === "string" && credentials.password.length >= 8 && credentials.password.length <= MAX_PASSWORD_LENGTH2 && typeof credentials.setupToken === "string" && SETUP_TOKEN_RE.test(credentials.setupToken) && credentials.createdAt > 0 && credentials.createdAt <= now && credentials.expiresAt > now && credentials.expiresAt > credentials.createdAt && credentials.expiresAt <= credentials.createdAt + SETUP_CREDENTIAL_HANDOFF_TTL_MS;
 }
 
 // electron/ipc/setup.ts

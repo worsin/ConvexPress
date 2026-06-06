@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   FIRST_ADMIN_SETUP_ROUTE,
+  SETUP_CREDENTIAL_HANDOFF_TTL_MS,
   completeFirstAdminLogin,
   completeFirstAdminSetup,
   deriveSetupUsername,
@@ -76,6 +77,32 @@ describe("first-admin setup helpers", () => {
       isPendingAdminCredentialHandoff(
         {
           displayName: "First Admin",
+          email: "admin@example.com",
+          password: "CorrectHorse42",
+          setupToken: "setup-token",
+          createdAt: 2_000,
+          expiresAt: 3_000,
+        },
+        1_500,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingAdminCredentialHandoff(
+        {
+          displayName: "First Admin",
+          email: "admin@example.com",
+          password: "CorrectHorse42",
+          setupToken: "setup-token",
+          createdAt: 1_000,
+          expiresAt: 1_000 + SETUP_CREDENTIAL_HANDOFF_TTL_MS + 1,
+        },
+        1_500,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingAdminCredentialHandoff(
+        {
+          displayName: "First Admin",
           email: "not-an-email",
           password: "CorrectHorse42",
           expiresAt: 2_000,
@@ -136,8 +163,41 @@ describe("first-admin setup helpers", () => {
     expect(
       isPendingLoginCredentialHandoff(
         {
+          identifier: "admin@example.com",
+          password: "CorrectHorse42",
+          expiresAt: 2_000,
+        },
+        1_500,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingLoginCredentialHandoff(
+        {
+          identifier: "admin@example.com",
+          password: "CorrectHorse42",
+          createdAt: 2_000,
+          expiresAt: 3_000,
+        },
+        1_500,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingLoginCredentialHandoff(
+        {
+          identifier: "admin@example.com",
+          password: "CorrectHorse42",
+          createdAt: 1_000,
+          expiresAt: 1_000 + SETUP_CREDENTIAL_HANDOFF_TTL_MS + 1,
+        },
+        1_500,
+      ),
+    ).toBe(false);
+    expect(
+      isPendingLoginCredentialHandoff(
+        {
           identifier: "",
           password: "CorrectHorse42",
+          createdAt: 1_000,
           expiresAt: 2_000,
         },
         1_500,

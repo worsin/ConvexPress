@@ -10,6 +10,7 @@ type PendingCredentialHandoff = {
   email?: unknown;
   password?: unknown;
   setupToken?: unknown;
+  createdAt?: unknown;
   expiresAt?: unknown;
 };
 
@@ -44,6 +45,15 @@ export function isPendingAdminHandoffUsable(
 ): boolean {
   if (!value || typeof value !== "object") return false;
   const credentials = value as PendingCredentialHandoff;
+  if (
+    typeof credentials.createdAt !== "number" ||
+    !Number.isFinite(credentials.createdAt) ||
+    typeof credentials.expiresAt !== "number" ||
+    !Number.isFinite(credentials.expiresAt)
+  ) {
+    return false;
+  }
+
   return (
     typeof credentials.email === "string" &&
     credentials.email.trim().length <= MAX_EMAIL_LENGTH &&
@@ -53,8 +63,11 @@ export function isPendingAdminHandoffUsable(
     credentials.password.length <= MAX_PASSWORD_LENGTH &&
     typeof credentials.setupToken === "string" &&
     SETUP_TOKEN_RE.test(credentials.setupToken) &&
-    typeof credentials.expiresAt === "number" &&
-    Number.isFinite(credentials.expiresAt) &&
-    credentials.expiresAt > now
+    credentials.createdAt > 0 &&
+    credentials.createdAt <= now &&
+    credentials.expiresAt > now &&
+    credentials.expiresAt > credentials.createdAt &&
+    credentials.expiresAt <=
+      credentials.createdAt + SETUP_CREDENTIAL_HANDOFF_TTL_MS
   );
 }

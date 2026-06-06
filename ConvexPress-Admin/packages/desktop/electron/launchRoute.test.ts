@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   FIRST_ADMIN_SETUP_ROUTE,
+  SETUP_CREDENTIAL_HANDOFF_TTL_MS,
   addHashRouteToUrl,
   getInitialRouteForLaunch,
   isPendingAdminHandoffUsable,
@@ -18,6 +19,7 @@ describe("desktop launch route", () => {
           password: "password123",
           displayName: "Admin",
           setupToken: "setup-token-with-32-safe-characters",
+          createdAt: now - 1_000,
           expiresAt: now + 60_000,
         },
       }),
@@ -47,6 +49,7 @@ describe("desktop launch route", () => {
           password: "password123",
           displayName: "Admin",
           setupToken: "setup-token-with-32-safe-characters",
+          createdAt: now - 1_000,
           expiresAt: now - 1,
         },
       }),
@@ -59,14 +62,42 @@ describe("desktop launch route", () => {
         email: "admin@example.com",
         password: "password123",
         setupToken: "setup-token-with-32-safe-characters",
+        createdAt: 1000,
         expiresAt: 2000,
       }, 1000),
     ).toBe(true);
     expect(
       isPendingAdminHandoffUsable({
+        email: "admin@example.com",
+        password: "password123",
+        setupToken: "setup-token-with-32-safe-characters",
+        expiresAt: 2000,
+      }, 1000),
+    ).toBe(false);
+    expect(
+      isPendingAdminHandoffUsable({
+        email: "admin@example.com",
+        password: "password123",
+        setupToken: "setup-token-with-32-safe-characters",
+        createdAt: 2000,
+        expiresAt: 3000,
+      }, 1000),
+    ).toBe(false);
+    expect(
+      isPendingAdminHandoffUsable({
+        email: "admin@example.com",
+        password: "password123",
+        setupToken: "setup-token-with-32-safe-characters",
+        createdAt: 1000,
+        expiresAt: 1000 + SETUP_CREDENTIAL_HANDOFF_TTL_MS + 1,
+      }, 1500),
+    ).toBe(false);
+    expect(
+      isPendingAdminHandoffUsable({
         email: "not-an-email",
         password: "password123",
         setupToken: "setup-token-with-32-safe-characters",
+        createdAt: 1000,
         expiresAt: 2000,
       }, 1000),
     ).toBe(false);
@@ -75,6 +106,7 @@ describe("desktop launch route", () => {
         email: "admin@example.com",
         password: "",
         setupToken: "setup-token-with-32-safe-characters",
+        createdAt: 1000,
         expiresAt: 2000,
       }, 1000),
     ).toBe(false);
@@ -83,6 +115,7 @@ describe("desktop launch route", () => {
         email: "admin@example.com",
         password: "password123",
         setupToken: "setup-token-with-32-safe-characters",
+        createdAt: 1000,
         expiresAt: 1000,
       }, 1000),
     ).toBe(false);
@@ -90,6 +123,7 @@ describe("desktop launch route", () => {
       isPendingAdminHandoffUsable({
         email: "admin@example.com",
         password: "password123",
+        createdAt: 1000,
         expiresAt: 2000,
       }, 1000),
     ).toBe(false);
@@ -98,6 +132,7 @@ describe("desktop launch route", () => {
         email: "admin@example.com",
         password: "password123",
         setupToken: "short",
+        createdAt: 1000,
         expiresAt: 2000,
       }, 1000),
     ).toBe(false);
