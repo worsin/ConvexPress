@@ -116,7 +116,12 @@ export const SERVER_ENVIRONMENT_KEYS: ServerEnvironmentKey[] = [
   },
   {
     name: "FIRST_ADMIN_SETUP_SECRET",
-    detail: "One-time first-admin setup token gate; the desktop setup wizard generates and rotates it.",
+    detail: "One-time first-admin setup token gate; required on non-local deployments unless public setup is explicitly enabled.",
+    optional: true,
+  },
+  {
+    name: "CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP",
+    detail: "Explicit web-only escape hatch for tokenless first-admin setup. Keep false for production desktop/server installs.",
     optional: true,
   },
   {

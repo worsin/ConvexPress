@@ -325,6 +325,7 @@ describe("setup checklist", () => {
         "AUTH_ALLOW_LOCALHOST_ORIGINS",
         "AUTH_ALLOW_NULL_ORIGIN",
         "FIRST_ADMIN_SETUP_SECRET",
+        "CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP",
         "SHIPPING_PROVIDER_ENCRYPTION_KEY",
         "WEBHOOK_SECRET_ENCRYPTION_KEY",
         "WP_SYNC_ENCRYPTION_KEY",
@@ -360,6 +361,7 @@ describe("setup checklist", () => {
       "AUTH_ALLOW_LOCALHOST_ORIGINS",
       "AUTH_ALLOW_NULL_ORIGIN",
       "FIRST_ADMIN_SETUP_SECRET",
+      "CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP",
       "SHIPPING_PROVIDER_ENCRYPTION_KEY",
       "WEBHOOK_SECRET_ENCRYPTION_KEY",
       "WP_SYNC_ENCRYPTION_KEY",
@@ -378,6 +380,16 @@ describe("setup checklist", () => {
     expect(
       SERVER_ENVIRONMENT_KEYS.find((key) => key.name === "AUTH_ALLOW_NULL_ORIGIN")
         ?.detail?.includes("file://"),
+    ).toBe(true);
+    expect(
+      SERVER_ENVIRONMENT_KEYS.find(
+        (key) => key.name === "FIRST_ADMIN_SETUP_SECRET",
+      )?.detail?.includes("non-local deployments"),
+    ).toBe(true);
+    expect(
+      SERVER_ENVIRONMENT_KEYS.find(
+        (key) => key.name === "CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP",
+      )?.detail?.includes("tokenless first-admin setup"),
     ).toBe(true);
   });
 
