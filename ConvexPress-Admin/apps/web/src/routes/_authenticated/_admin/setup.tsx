@@ -32,66 +32,36 @@ import {
 } from "@/components/ui/card";
 import { useCan } from "@/hooks/useCan";
 import { useAuth } from "@/lib/auth-context";
+import {
+  buildSetupChecklistCards,
+  cardStatus,
+  requiredProgress,
+  type SettingsData,
+  type SetupChecklistCard,
+  type SetupStatus,
+  type ShippingOverview,
+} from "@/lib/setup-checklist";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/_admin/setup")({
   component: FirstRunSetupPage,
 });
 
-type SettingsData = Record<string, unknown> | null | undefined;
-type Requirement = {
-  label: string;
-  configured: boolean;
-  detail?: string;
-  optional?: boolean;
-};
-type SetupStatus = "ready" | "partial" | "needed" | "manual";
 type SetupCard = {
-  id: string;
-  title: string;
-  description: string;
   icon: LucideIcon;
-  route?: string;
-  providerHref?: string;
-  requirements: Requirement[];
+} & SetupChecklistCard;
+
+const setupIcons: Record<string, LucideIcon> = {
+  email: Mail,
+  clerk: ShieldCheck,
+  search: Search,
+  ai: Brain,
+  stripe: CreditCard,
+  paypal: Wallet,
+  google: Globe,
+  ga4: BarChart3,
+  shipping: Truck,
 };
-
-type ShippingOverview =
-  | {
-      integrationSettings?: Record<string, unknown>;
-      providers?: Array<{
-        provider: string;
-        secretStored?: boolean;
-        connection?: { status?: string } | null;
-      }>;
-    }
-  | null
-  | undefined;
-
-const SECRET_SENTINEL = "__set__";
-
-function hasSettingValue(section: SettingsData, key: string): boolean {
-  const value = section?.[key];
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed.length > 0 || trimmed === SECRET_SENTINEL;
-  }
-  return value !== null && value !== undefined && value !== false;
-}
-
-function requiredProgress(requirements: Requirement[]) {
-  const required = requirements.filter((requirement) => !requirement.optional);
-  const configured = required.filter((requirement) => requirement.configured);
-  return { total: required.length, configured: configured.length };
-}
-
-function cardStatus(card: SetupCard): SetupStatus {
-  const { total, configured } = requiredProgress(card.requirements);
-  if (total === 0) return "manual";
-  if (configured === total) return "ready";
-  if (configured > 0) return "partial";
-  return "needed";
-}
 
 function statusLabel(status: SetupStatus): string {
   if (status === "ready") return "Ready";
@@ -104,251 +74,6 @@ function statusClassName(status: SetupStatus): string {
   if (status === "ready") return "border-success/30 bg-success/10 text-success";
   if (status === "partial") return "border-warning/30 bg-warning/10 text-warning";
   return "border-border bg-muted text-muted-foreground";
-}
-
-function providerSecretCount(shipping: ShippingOverview) {
-  return (shipping?.providers ?? []).filter((provider) => provider.secretStored)
-    .length;
-}
-
-function connectedProviderCount(shipping: ShippingOverview) {
-  return (shipping?.providers ?? []).filter(
-    (provider) => provider.connection?.status === "connected",
-  ).length;
-}
-
-function hasShipFromAddress(shipping: ShippingOverview) {
-  const values = shipping?.integrationSettings ?? {};
-  return [
-    "shipFromLine1",
-    "shipFromCity",
-    "shipFromState",
-    "shipFromPostalCode",
-    "shipFromCountryCode",
-  ].every((key) => typeof values[key] === "string" && String(values[key]).trim());
-}
-
-function buildSetupCards({
-  email,
-  clerk,
-  searchSettings,
-  ai,
-  payments,
-  google,
-  ga4,
-  shipping,
-}: {
-  email: SettingsData;
-  clerk: SettingsData;
-  searchSettings: SettingsData;
-  ai: SettingsData;
-  payments: SettingsData;
-  google: SettingsData;
-  ga4: SettingsData;
-  shipping: ShippingOverview;
-}): SetupCard[] {
-  const shippingSecrets = providerSecretCount(shipping);
-  const shippingConnected = connectedProviderCount(shipping);
-
-  return [
-    {
-      id: "email",
-      title: "Resend email delivery",
-      description: "Transactional mail, invites, notifications, receipts, and digest delivery.",
-      icon: Mail,
-      route: "/settings/email",
-      providerHref: "https://resend.com/api-keys",
-      requirements: [
-        {
-          label: "resendApiKey",
-          configured: hasSettingValue(email, "resendApiKey"),
-        },
-        {
-          label: "webhookSecret",
-          configured: hasSettingValue(email, "webhookSecret"),
-        },
-        {
-          label: "fromAddress",
-          configured: hasSettingValue(email, "fromAddress"),
-        },
-      ],
-    },
-    {
-      id: "clerk",
-      title: "Clerk website auth",
-      description: "Public website sign-up, sign-in, Clerk JWT validation, and user webhooks.",
-      icon: ShieldCheck,
-      route: "/settings/integrations/clerk",
-      providerHref: "https://dashboard.clerk.com/",
-      requirements: [
-        {
-          label: "clerkSecretKey",
-          configured: hasSettingValue(clerk, "clerkSecretKey"),
-        },
-        {
-          label: "clerkWebhookSecret",
-          configured: hasSettingValue(clerk, "clerkWebhookSecret"),
-        },
-        {
-          label: "clerkJwtIssuerDomain",
-          configured: hasSettingValue(clerk, "clerkJwtIssuerDomain"),
-        },
-      ],
-    },
-    {
-      id: "search",
-      title: "Meilisearch",
-      description: "Full-text search, indexing, analytics, and support/search experiences.",
-      icon: Search,
-      route: "/settings/search",
-      providerHref: "https://cloud.meilisearch.com/",
-      requirements: [
-        {
-          label: "meilisearchHost",
-          configured: hasSettingValue(searchSettings, "meilisearchHost"),
-        },
-        {
-          label: "meilisearchApiKey",
-          configured: hasSettingValue(searchSettings, "meilisearchApiKey"),
-        },
-      ],
-    },
-    {
-      id: "ai",
-      title: "AI providers",
-      description: "Content generation, block editing, image generation, and research tools.",
-      icon: Brain,
-      route: "/settings/ai",
-      providerHref: "https://openrouter.ai/settings/keys",
-      requirements: [
-        {
-          label: "apiKey",
-          configured: hasSettingValue(ai, "apiKey"),
-          detail: String(ai?.provider ?? "openrouter"),
-        },
-        {
-          label: "tavilyApiKey",
-          configured: hasSettingValue(ai, "tavilyApiKey"),
-        },
-        {
-          label: "imageApiKey",
-          configured: hasSettingValue(ai, "imageApiKey"),
-          optional: true,
-        },
-      ],
-    },
-    {
-      id: "stripe",
-      title: "Stripe payments",
-      description: "Card payments, subscription renewals, refunds, and Stripe webhook handling.",
-      icon: CreditCard,
-      route: "/settings/integrations/stripe",
-      providerHref: "https://dashboard.stripe.com/apikeys",
-      requirements: [
-        {
-          label: "stripePublishableKey",
-          configured: hasSettingValue(payments, "stripePublishableKey"),
-        },
-        {
-          label: "stripeSecretKey",
-          configured: hasSettingValue(payments, "stripeSecretKey"),
-        },
-        {
-          label: "stripeWebhookSecret",
-          configured: hasSettingValue(payments, "stripeWebhookSecret"),
-        },
-      ],
-    },
-    {
-      id: "paypal",
-      title: "PayPal checkout",
-      description: "PayPal payments, capture events, refunds, and webhook verification.",
-      icon: Wallet,
-      route: "/settings/integrations/paypal",
-      providerHref: "https://developer.paypal.com/dashboard/applications/sandbox",
-      requirements: [
-        {
-          label: "paypalClientId",
-          configured: hasSettingValue(payments, "paypalClientId"),
-        },
-        {
-          label: "paypalClientSecret",
-          configured: hasSettingValue(payments, "paypalClientSecret"),
-        },
-        {
-          label: "paypalWebhookId",
-          configured: hasSettingValue(payments, "paypalWebhookId"),
-        },
-      ],
-    },
-    {
-      id: "google",
-      title: "Google services",
-      description: "Places autocomplete, geocoding, GA4 reporting, and traffic dashboards.",
-      icon: Globe,
-      route: "/settings/integrations/google",
-      providerHref: "https://console.cloud.google.com/apis/credentials",
-      requirements: [
-        {
-          label: "placesApiKey",
-          configured: hasSettingValue(google, "placesApiKey"),
-        },
-        {
-          label: "geocodeApiKey",
-          configured: hasSettingValue(google, "geocodeApiKey"),
-        },
-        {
-          label: "ga4ServiceAccountJson",
-          configured: hasSettingValue(ga4, "ga4ServiceAccountJson"),
-          detail: "Configure in GA4 settings.",
-          optional: true,
-        },
-      ],
-    },
-    {
-      id: "ga4",
-      title: "Google Analytics 4",
-      description: "GA4 property connection for engagement and traffic dashboards.",
-      icon: BarChart3,
-      route: "/settings/analytics/ga4",
-      providerHref: "https://analytics.google.com/",
-      requirements: [
-        {
-          label: "ga4ServiceAccountJson",
-          configured: hasSettingValue(ga4, "ga4ServiceAccountJson"),
-        },
-        {
-          label: "ga4PropertyId",
-          configured: hasSettingValue(ga4, "ga4PropertyId"),
-        },
-      ],
-    },
-    {
-      id: "shipping",
-      title: "Shipping carriers",
-      description: "ShipStation, UPS, USPS, FedEx, and DHL rates, labels, tracking, and manifests.",
-      icon: Truck,
-      route: "/settings/integrations/shipping",
-      providerHref: "https://www.shipstation.com/",
-      requirements: [
-        {
-          label: "carrier credentials",
-          configured: shippingSecrets > 0,
-          detail: `${shippingSecrets} of 5 provider secrets stored`,
-        },
-        {
-          label: "ship-from address",
-          configured: hasShipFromAddress(shipping),
-        },
-        {
-          label: "verified provider",
-          configured: shippingConnected > 0,
-          detail: `${shippingConnected} provider connection verified`,
-          optional: true,
-        },
-      ],
-    },
-  ];
 }
 
 function FirstRunSetupPage() {
@@ -427,7 +152,7 @@ function FirstRunSetupPage() {
 
   if (firstLoad) return <Loader />;
 
-  const cards = buildSetupCards({
+  const cards = buildSetupChecklistCards({
     email,
     clerk,
     searchSettings,
@@ -436,7 +161,10 @@ function FirstRunSetupPage() {
     google,
     ga4,
     shipping,
-  });
+  }).map((card) => ({
+    ...card,
+    icon: setupIcons[card.id] ?? KeyRound,
+  }));
   const readyCount = cards.filter((card) => cardStatus(card) === "ready").length;
   const totalRequired = cards.length;
 
