@@ -444,7 +444,7 @@ function FirstRunSetupPage() {
             AI, payments, analytics, shipping, and customer-facing workflows.
           </p>
         </div>
-        <div className="rounded-2xl border border-border bg-card px-5 py-4 text-sm">
+        <div className="rounded-md border border-border bg-card px-5 py-4 text-sm">
           <div className="text-xs uppercase tracking-wide text-muted-foreground">
             Launch readiness
           </div>
@@ -460,7 +460,7 @@ function FirstRunSetupPage() {
       <Card>
         <CardHeader>
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-muted">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted">
               <LockKeyhole className="h-5 w-5 text-foreground" />
             </div>
             <div>
@@ -482,7 +482,7 @@ function FirstRunSetupPage() {
             ].map((name) => (
               <div
                 key={name}
-                className="rounded-2xl border border-border bg-muted/40 p-3"
+                className="rounded-md border border-border bg-muted/40 p-3"
               >
                 <div className="font-mono text-xs font-medium text-foreground">
                   {name}
@@ -516,7 +516,7 @@ function FirstRunSetupPage() {
       <Card>
         <CardHeader>
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-muted">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted">
               <Database className="h-5 w-5 text-foreground" />
             </div>
             <div>
@@ -561,7 +561,7 @@ function SetupProviderCard({ card }: { card: SetupCard }) {
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-muted">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted">
               <Icon className="h-5 w-5 text-foreground" />
             </div>
             <div className="min-w-0">
@@ -592,7 +592,7 @@ function SetupProviderCard({ card }: { card: SetupCard }) {
           {card.requirements.map((requirement) => (
             <div
               key={requirement.label}
-              className="flex items-start justify-between gap-3 rounded-2xl border border-border bg-muted/40 p-3"
+              className="flex items-start justify-between gap-3 rounded-md border border-border bg-muted/40 p-3"
             >
               <div className="min-w-0">
                 <div className="font-mono text-xs font-medium text-foreground">
