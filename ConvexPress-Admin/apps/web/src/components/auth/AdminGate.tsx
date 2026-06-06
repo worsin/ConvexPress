@@ -394,7 +394,7 @@ function AdminCreationForm({
               htmlFor="admin-username"
               className="text-sm font-medium text-foreground"
             >
-              Username
+              Username <span className="text-muted-foreground">(optional)</span>
             </label>
             <input
               id="admin-username"
@@ -404,8 +404,12 @@ function AdminCreationForm({
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
+              aria-describedby="admin-username-hint"
               className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
+            <p id="admin-username-hint" className="text-xs text-muted-foreground">
+              Leave blank to derive it from the email address.
+            </p>
           </div>
 
           <div className="flex flex-col gap-1.5">
