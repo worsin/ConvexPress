@@ -14,11 +14,12 @@
  */
 
 import { ConvexError } from "convex/values";
-import { mutation } from "../_generated/server";
-import { requireCan } from "../helpers/permissions";
+import { mutation, type MutationCtx } from "../_generated/server";
+import type { Doc } from "../_generated/dataModel";
+import { requireCan, resolveUserRole } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { ROLE_EVENTS, SYSTEM } from "../events/constants";
-import { isValidCapability } from "../types/capabilities";
+import { isValidCapability, type Capability } from "../types/capabilities";
 import {
   assignRoleArgs,
   createRoleArgs,
@@ -33,6 +34,81 @@ import {
  * See LEGACY_ROLE_MAP in seed/roles.ts: legacy "admin" maps to new "administrator".
  */
 const ADMIN_ROLE_SLUG = "administrator";
+const SELF_ROLE_BASELINE_CAPABILITY = "role.update" satisfies Capability;
+const ADMIN_BASELINE_CAPABILITY = "manage_options" satisfies Capability;
+const ADMIN_SETUP_PAGE_ACCESS = "/admin/setup";
+const ROLE_MANAGEMENT_PAGE_ACCESS = "/admin/roles";
+
+type AuthenticatedRoleUser = Awaited<ReturnType<typeof requireCan>>;
+
+function idsMatch(left: unknown, right: unknown): boolean {
+  return String(left) === String(right);
+}
+
+async function isCallerCurrentRole(
+  ctx: MutationCtx,
+  user: AuthenticatedRoleUser,
+  role: Doc<"roles">,
+): Promise<boolean> {
+  if (user.roleId && idsMatch(user.roleId, role._id)) return true;
+
+  const currentRole = await resolveUserRole(ctx, user);
+  return !!currentRole && idsMatch(currentRole._id, role._id);
+}
+
+async function assertOwnRolePolicyRemainsUsable(
+  ctx: MutationCtx,
+  user: AuthenticatedRoleUser,
+  role: Doc<"roles">,
+  next: {
+    capabilities: string[];
+    pageAccess: string[];
+    status: "active" | "inactive";
+    type: "internal" | "customer" | "system";
+  },
+) {
+  if (!(await isCallerCurrentRole(ctx, user, role))) return;
+
+  const requiredCapabilities = new Set<Capability>([
+    SELF_ROLE_BASELINE_CAPABILITY,
+  ]);
+  if (
+    role.slug === ADMIN_ROLE_SLUG ||
+    role.capabilities.includes(ADMIN_BASELINE_CAPABILITY)
+  ) {
+    requiredCapabilities.add(ADMIN_BASELINE_CAPABILITY);
+  }
+
+  const missingCapabilities = [...requiredCapabilities].filter(
+    (capability) => !next.capabilities.includes(capability),
+  );
+  const requiredPageAccess = new Set<string>();
+  if (
+    role.slug === ADMIN_ROLE_SLUG ||
+    role.pageAccess.includes(ADMIN_SETUP_PAGE_ACCESS)
+  ) {
+    requiredPageAccess.add(ADMIN_SETUP_PAGE_ACCESS);
+  }
+  if (role.pageAccess.includes(ROLE_MANAGEMENT_PAGE_ACCESS)) {
+    requiredPageAccess.add(ROLE_MANAGEMENT_PAGE_ACCESS);
+  }
+  const missingPageAccess = [...requiredPageAccess].filter(
+    (route) => !next.pageAccess.includes(route),
+  );
+
+  if (
+    next.status !== "active" ||
+    (role.type === "internal" && next.type !== "internal") ||
+    missingCapabilities.length > 0 ||
+    missingPageAccess.length > 0
+  ) {
+    throw new ConvexError({
+      code: "FORBIDDEN",
+      message:
+        "Cannot remove administrative access from your current role. Ask another administrator.",
+    });
+  }
+}
 
 // ─── Create ─────────────────────────────────────────────────────────────────
 
@@ -216,6 +292,13 @@ export const update = mutation({
         }
       }
     }
+
+    await assertOwnRolePolicyRemainsUsable(ctx, user, role, {
+      capabilities: args.capabilities ?? role.capabilities,
+      pageAccess: args.pageAccess ?? role.pageAccess,
+      status: args.status ?? role.status,
+      type: args.type ?? role.type,
+    });
 
     await ctx.db.patch("roles", args.roleId, patch);
 
@@ -528,6 +611,13 @@ export const revokeCapability = mutation({
         alreadyRevoked: true,
       };
     }
+
+    await assertOwnRolePolicyRemainsUsable(ctx, user, role, {
+      capabilities: currentCapabilities.filter((c) => c !== args.capability),
+      pageAccess: role.pageAccess,
+      status: role.status,
+      type: role.type,
+    });
 
     const now = Date.now();
     await ctx.db.patch("roles", args.roleId, {
