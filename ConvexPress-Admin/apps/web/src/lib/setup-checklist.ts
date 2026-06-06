@@ -125,6 +125,16 @@ export const SERVER_ENVIRONMENT_KEYS: ServerEnvironmentKey[] = [
     optional: true,
   },
   {
+    name: "CONVEXPRESS_ENABLE_DEV_INTERNALS",
+    detail: "Dev-only gate for local smoke-test admin provisioning and fixture helpers. Never enable on production deployments.",
+    optional: true,
+  },
+  {
+    name: "CONVEXPRESS_DEV_INTERNALS_TOKEN",
+    detail: "Required caller token when dev internals are enabled for local smoke tests or fixture seeding.",
+    optional: true,
+  },
+  {
     name: "SHIPPING_PROVIDER_ENCRYPTION_KEY",
     detail: "Encrypts stored shipping carrier credentials.",
   },

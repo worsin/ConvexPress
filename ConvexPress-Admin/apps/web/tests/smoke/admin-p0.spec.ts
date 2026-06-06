@@ -54,4 +54,6 @@ test("first-run setup checklist [P0]", async ({ authedPage }) => {
 	await expect(authedPage.getByText("AUTH_ALLOW_NULL_ORIGIN")).toBeVisible();
 	await expect(authedPage.getByText("FIRST_ADMIN_SETUP_SECRET")).toBeVisible();
 	await expect(authedPage.getByText("CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP")).toBeVisible();
+	await expect(authedPage.getByText("CONVEXPRESS_ENABLE_DEV_INTERNALS")).toBeVisible();
+	await expect(authedPage.getByText("CONVEXPRESS_DEV_INTERNALS_TOKEN")).toBeVisible();
 });

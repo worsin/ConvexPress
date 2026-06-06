@@ -328,6 +328,8 @@ describe("setup checklist", () => {
         "AUTH_ALLOW_NULL_ORIGIN",
         "FIRST_ADMIN_SETUP_SECRET",
         "CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP",
+        "CONVEXPRESS_ENABLE_DEV_INTERNALS",
+        "CONVEXPRESS_DEV_INTERNALS_TOKEN",
         "SHIPPING_PROVIDER_ENCRYPTION_KEY",
         "WEBHOOK_SECRET_ENCRYPTION_KEY",
         "WP_SYNC_ENCRYPTION_KEY",
@@ -387,6 +389,8 @@ describe("setup checklist", () => {
       "AUTH_ALLOW_NULL_ORIGIN",
       "FIRST_ADMIN_SETUP_SECRET",
       "CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP",
+      "CONVEXPRESS_ENABLE_DEV_INTERNALS",
+      "CONVEXPRESS_DEV_INTERNALS_TOKEN",
       "SHIPPING_PROVIDER_ENCRYPTION_KEY",
       "WEBHOOK_SECRET_ENCRYPTION_KEY",
       "WP_SYNC_ENCRYPTION_KEY",
@@ -439,6 +443,16 @@ describe("setup checklist", () => {
       SERVER_ENVIRONMENT_KEYS.find(
         (key) => key.name === "CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP",
       )?.detail?.includes("tokenless first-admin setup"),
+    ).toBe(true);
+    expect(
+      SERVER_ENVIRONMENT_KEYS.find(
+        (key) => key.name === "CONVEXPRESS_ENABLE_DEV_INTERNALS",
+      )?.detail?.includes("Never enable on production"),
+    ).toBe(true);
+    expect(
+      SERVER_ENVIRONMENT_KEYS.find(
+        (key) => key.name === "CONVEXPRESS_DEV_INTERNALS_TOKEN",
+      )?.detail?.includes("fixture seeding"),
     ).toBe(true);
   });
 
