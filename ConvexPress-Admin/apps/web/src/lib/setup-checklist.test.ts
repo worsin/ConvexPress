@@ -9,6 +9,7 @@ import {
   hasSettingValue,
   hasShipFromAddress,
   providerSecretCount,
+  shippingProviderCredentialRequirements,
 } from "./setup-checklist";
 
 function buildCards() {
@@ -60,11 +61,69 @@ function buildCards() {
       providers: [
         {
           provider: "shipstation",
+          descriptor: {
+            title: "ShipStation",
+            credentialFields: [
+              { label: "API Base URL", required: true },
+              { label: "API Key", required: true },
+            ],
+          },
           secretStored: true,
           connection: { status: "connected" },
         },
         {
           provider: "ups",
+          descriptor: {
+            title: "UPS",
+            credentialFields: [
+              { label: "API Base URL", required: false },
+              { label: "Client ID", required: true },
+              { label: "Client Secret", required: true },
+              { label: "UPS Account Number", required: true },
+            ],
+          },
+          secretStored: false,
+          connection: { status: "disconnected" },
+        },
+        {
+          provider: "usps",
+          descriptor: {
+            title: "USPS",
+            credentialFields: [
+              { label: "API Base URL", required: false },
+              { label: "Client ID", required: true },
+              { label: "Client Secret", required: true },
+              { label: "USPS Account Number", required: true },
+            ],
+          },
+          secretStored: false,
+          connection: { status: "disconnected" },
+        },
+        {
+          provider: "fedex",
+          descriptor: {
+            title: "FedEx",
+            credentialFields: [
+              { label: "API Base URL", required: false },
+              { label: "Client ID", required: true },
+              { label: "Client Secret", required: true },
+              { label: "FedEx Account Number", required: true },
+            ],
+          },
+          secretStored: false,
+          connection: { status: "disconnected" },
+        },
+        {
+          provider: "dhl",
+          descriptor: {
+            title: "DHL",
+            credentialFields: [
+              { label: "API Base URL", required: true },
+              { label: "API Username", required: true },
+              { label: "API Password", required: true },
+              { label: "DHL Account Number", required: true },
+            ],
+          },
           secretStored: false,
           connection: { status: "disconnected" },
         },
@@ -127,7 +186,16 @@ describe("setup checklist", () => {
       paypal: ["paypalClientId", "paypalClientSecret", "paypalWebhookId"],
       google: ["placesApiKey", "geocodeApiKey", "ga4ServiceAccountJson"],
       ga4: ["ga4ServiceAccountJson", "ga4PropertyId"],
-      shipping: ["carrier credentials", "ship-from address", "verified provider"],
+      shipping: [
+        "carrier credentials",
+        "ship-from address",
+        "verified provider",
+        "ShipStation credentials",
+        "UPS credentials",
+        "USPS credentials",
+        "FedEx credentials",
+        "DHL credentials",
+      ],
     });
   });
 
@@ -236,5 +304,51 @@ describe("setup checklist", () => {
       "2 of 5 provider secrets stored",
     );
     expect(cardStatus(shippingCard!)).toBe("ready");
+  });
+
+  test("lists provider-specific shipping credential fields", () => {
+    const requirements = shippingProviderCredentialRequirements({
+      providers: [
+        {
+          provider: "shipstation",
+          descriptor: {
+            title: "ShipStation",
+            credentialFields: [
+              { label: "API Base URL", required: true },
+              { label: "API Key", required: true },
+            ],
+          },
+          secretStored: true,
+        },
+        {
+          provider: "ups",
+          descriptor: {
+            title: "UPS",
+            credentialFields: [
+              { label: "API Base URL", required: false },
+              { label: "Client ID", required: true },
+              { label: "Client Secret", required: true },
+              { label: "UPS Account Number", required: true },
+            ],
+          },
+          secretStored: false,
+        },
+      ],
+    });
+
+    expect(requirements).toEqual([
+      {
+        label: "ShipStation credentials",
+        configured: true,
+        detail: "API Base URL, API Key",
+        optional: true,
+      },
+      {
+        label: "UPS credentials",
+        configured: false,
+        detail: "Client ID, Client Secret, UPS Account Number",
+        optional: true,
+      },
+    ]);
   });
 });

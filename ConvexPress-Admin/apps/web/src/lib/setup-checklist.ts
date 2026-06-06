@@ -29,6 +29,13 @@ export type ShippingOverview =
       integrationSettings?: Record<string, unknown>;
       providers?: Array<{
         provider: string;
+        descriptor?: {
+          title?: string;
+          credentialFields?: Array<{
+            label: string;
+            required: boolean;
+          }>;
+        };
         secretStored?: boolean;
         connection?: { status?: string } | null;
       }>;
@@ -104,6 +111,28 @@ export function connectedProviderCount(shipping: ShippingOverview) {
   ).length;
 }
 
+export function shippingProviderCredentialRequirements(
+  shipping: ShippingOverview,
+): Requirement[] {
+  return (shipping?.providers ?? []).map((provider) => {
+    const title = provider.descriptor?.title ?? provider.provider;
+    const requiredFields =
+      provider.descriptor?.credentialFields
+        ?.filter((field) => field.required)
+        .map((field) => field.label) ?? [];
+    const detail = requiredFields.length
+      ? requiredFields.join(", ")
+      : "Provider credential fields";
+
+    return {
+      label: `${title} credentials`,
+      configured: Boolean(provider.secretStored),
+      detail,
+      optional: true,
+    };
+  });
+}
+
 export function hasShipFromAddress(shipping: ShippingOverview) {
   const values = shipping?.integrationSettings ?? {};
   return [
@@ -136,6 +165,8 @@ export function buildSetupChecklistCards({
 }): SetupChecklistCard[] {
   const shippingSecrets = providerSecretCount(shipping);
   const shippingConnected = connectedProviderCount(shipping);
+  const shippingProviderRequirements =
+    shippingProviderCredentialRequirements(shipping);
 
   return [
     {
@@ -341,6 +372,7 @@ export function buildSetupChecklistCards({
           detail: `${shippingConnected} provider connection verified`,
           optional: true,
         },
+        ...shippingProviderRequirements,
       ],
     },
   ];
