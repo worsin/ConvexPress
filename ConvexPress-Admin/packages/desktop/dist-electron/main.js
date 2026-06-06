@@ -343,6 +343,19 @@ var import_node_fs2 = require("fs");
 var import_node_os = require("os");
 var import_node_path2 = __toESM(require("path"));
 var import_node_crypto = require("crypto");
+
+// electron/ipc/setupSender.ts
+function isWizardSender(senderUrl) {
+  if (!senderUrl) return false;
+  try {
+    const url = new URL(senderUrl);
+    return url.pathname.endsWith("/wizard/index.html");
+  } catch {
+    return senderUrl.includes("/wizard/index.html");
+  }
+}
+
+// electron/ipc/setup.ts
 var { ipcMain: ipcMain4 } = require("electron");
 function deriveDeployment(config) {
   return validateProductionDeployKey(config.adminKey, config.convexUrl);
@@ -556,6 +569,9 @@ function registerSetupHandlers() {
         event.sender.send("setup:progress", { phase, message });
       };
       try {
+        if (!isWizardSender(event.sender.getURL())) {
+          throw new Error("Setup configuration can only be saved from the setup wizard.");
+        }
         sendProgress("validating", "Validating setup configuration.");
         const validated = validateSetupConfig(config);
         const firstAdminSetupSecret = validated.mode === "server" ? generateFirstAdminSetupSecret() : void 0;
@@ -1416,7 +1432,10 @@ app6.whenReady().then(async () => {
   });
   registerAllIpcHandlers();
   let appLaunched = false;
-  ipcMain8.handle("app:reload-from-setup", () => {
+  ipcMain8.handle("app:reload-from-setup", (event) => {
+    if (!isWizardSender(event.sender.getURL())) {
+      throw new Error("Setup launch can only be requested from the setup wizard.");
+    }
     if (appLaunched) return;
     appLaunched = true;
     fileLog("[Main] Setup complete \u2014 launching app");

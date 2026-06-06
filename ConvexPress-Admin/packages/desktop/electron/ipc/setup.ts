@@ -14,6 +14,7 @@ import {
   validateProductionDeployKey,
   validateSetupConfig,
 } from "./setupValidation.js";
+import { isWizardSender } from "./setupSender.js";
 import type { SetupValidationConfig } from "./setupValidation.js";
 
 const { ipcMain } = require("electron") as typeof import("electron");
@@ -327,6 +328,10 @@ export function registerSetupHandlers(): void {
       };
 
       try {
+        if (!isWizardSender(event.sender.getURL())) {
+          throw new Error("Setup configuration can only be saved from the setup wizard.");
+        }
+
         sendProgress("validating", "Validating setup configuration.");
         const validated = validateSetupConfig(config);
         const firstAdminSetupSecret =

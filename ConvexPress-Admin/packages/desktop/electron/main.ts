@@ -3,6 +3,7 @@ import { appendFileSync, writeFileSync } from "node:fs";
 import { registerAllIpcHandlers } from "./ipc/index.js";
 import { initAppUpdater } from "./ipc/app-updater.js";
 import { initUpdaterEvents } from "./ipc/updater.js";
+import { isWizardSender } from "./ipc/setupSender.js";
 import { createTray } from "./tray.js";
 import { JsonStore } from "./utils/json-store.js";
 import { setQuitting } from "./utils/app-state.js";
@@ -203,7 +204,10 @@ app.whenReady().then(async () => {
   // ---------- Handle Wizard -> App Transition ----------
   let appLaunched = false;
 
-  ipcMain.handle("app:reload-from-setup", () => {
+  ipcMain.handle("app:reload-from-setup", (event) => {
+    if (!isWizardSender(event.sender.getURL())) {
+      throw new Error("Setup launch can only be requested from the setup wizard.");
+    }
     if (appLaunched) return;
     appLaunched = true;
     fileLog("[Main] Setup complete — launching app");

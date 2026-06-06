@@ -6,6 +6,7 @@ import {
   validateProductionDeployKey,
   validateSetupConfig,
 } from "./setupValidation";
+import { isWizardSender } from "./setupSender";
 
 const DEPLOY_KEY = "prod:affable-herring-441|test-deploy-token";
 
@@ -185,5 +186,19 @@ describe("setup validation", () => {
         convexUrl: "https://affable-herring-441.convex.cloud",
       }),
     ).toThrow("Setup mode must be either server or client.");
+  });
+
+  test("allows setup completion only from the wizard document", () => {
+    expect(
+      isWizardSender(
+        "file:///Applications/ConvexPress.app/Contents/Resources/dist-electron/wizard/index.html",
+      ),
+    ).toBe(true);
+    expect(
+      isWizardSender(
+        "file:///Applications/ConvexPress.app/Contents/Resources/dist-electron/index.html",
+      ),
+    ).toBe(false);
+    expect(isWizardSender("http://127.0.0.1:4105/dashboard")).toBe(false);
   });
 });
