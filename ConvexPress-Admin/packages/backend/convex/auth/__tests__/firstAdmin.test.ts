@@ -491,7 +491,7 @@ describe("createFirstAdmin", () => {
         internalRole: "admin",
         isInternal: true,
       }),
-    ).rejects.toThrow("Admin access required");
+    ).rejects.toThrow("Insufficient permissions");
   });
 
   test("smoke admin provisioning requires a dev internals token and assigns the administrator role", async () => {

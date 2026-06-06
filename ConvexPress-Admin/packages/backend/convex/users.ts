@@ -2,9 +2,9 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import {
   getCurrentUser as getUser,
-  requireAdmin,
   requireAuth,
 } from "./helpers/auth";
+import { requireCan } from "./helpers/permissions";
 import { emitEvent } from "./helpers/events";
 import { ROLE_EVENTS, SYSTEM } from "./events/constants";
 import { BUILT_IN_ROLES } from "./seed/roles";
@@ -167,7 +167,7 @@ export const updateUserRole = mutation({
     isInternal: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const currentUser = await requireAdmin(ctx);
+    const currentUser = await requireCan(ctx, "role.assign");
 
     // Prevent admins from changing their own role (avoids accidental lockout)
     if (currentUser._id === args.userId) {

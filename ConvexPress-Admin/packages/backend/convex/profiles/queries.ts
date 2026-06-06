@@ -17,8 +17,12 @@
  *   - getUser returns full or public fields depending on auth level
  */
 
-import { query } from "../_generated/server";
-import { getCurrentUser , lookupUserByIdentifier } from "../helpers/permissions";
+import { query, type QueryCtx } from "../_generated/server";
+import {
+  currentUserCan,
+  getCurrentUser,
+  lookupUserByIdentifier,
+} from "../helpers/permissions";
 import {
   resolveAvatarUrl,
   extractPublicFields,
@@ -32,6 +36,22 @@ import {
   userCountsArgs,
   DEFAULT_PER_PAGE,
 } from "./validators";
+import type { Capability } from "../types/capabilities";
+
+const USER_DIRECTORY_CAPABILITIES: Capability[] = [
+  "profile.deactivate",
+  "profile.delete_user",
+  "profile.bulk_delete",
+  "role.assign",
+  "role.update",
+];
+
+async function currentUserCanReadUserDirectory(ctx: QueryCtx): Promise<boolean> {
+  for (const capability of USER_DIRECTORY_CAPABILITIES) {
+    if (await currentUserCan(ctx, capability)) return true;
+  }
+  return false;
+}
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -100,18 +120,16 @@ export const getUser = query({
       };
     }
 
-    // If current user is an admin (check role level), return full document
-    if (currentUser && currentUser.roleId) {
-      const role = await ctx.db.get("roles", currentUser.roleId);
-      if (role && role.level >= 100) {
-        return {
-          ...targetUser,
-          resolvedAvatarUrl: resolveAvatarUrl(targetUser),
-        };
-      }
+    // If current user can manage the user directory, return full document.
+    if (currentUser && (await currentUserCanReadUserDirectory(ctx))) {
+      return {
+        ...targetUser,
+        resolvedAvatarUrl: resolveAvatarUrl(targetUser),
+      };
     }
 
-    // Otherwise, return public fields only
+    // Otherwise, return public fields for active users only.
+    if (targetUser.status !== "active") return null;
     return extractPublicFields(targetUser);
   },
 });
@@ -168,30 +186,7 @@ export const listUsers = query({
   handler: async (ctx, args) => {
     // Auth check - must be authenticated
     const currentUser = await getCurrentUser(ctx);
-    if (!currentUser) {
-      return {
-        users: [],
-        total: 0,
-        page: 1,
-        perPage: DEFAULT_PER_PAGE,
-        totalPages: 0,
-      };
-    }
-
-    // Check if admin (role level 100)
-    let isAdmin = false;
-    if (currentUser.roleId) {
-      const role = await ctx.db.get("roles", currentUser.roleId);
-      if (role && role.level >= 100) {
-        isAdmin = true;
-      }
-    }
-    // Legacy admin check
-    if (!isAdmin && currentUser.isInternal && currentUser.internalRole === "admin") {
-      isAdmin = true;
-    }
-
-    if (!isAdmin) {
+    if (!currentUser || !(await currentUserCanReadUserDirectory(ctx))) {
       return {
         users: [],
         total: 0,
@@ -360,15 +355,7 @@ export const getDisplayNameOptions = query({
     let targetUser = currentUser;
 
     if (args.userId && args.userId !== currentUser._id) {
-      // Check if admin
-      let isAdmin = false;
-      if (currentUser.roleId) {
-        const role = await ctx.db.get("roles", currentUser.roleId);
-        if (role && role.level >= 100) {
-          isAdmin = true;
-        }
-      }
-      if (!isAdmin) return [];
+      if (!(await currentUserCanReadUserDirectory(ctx))) return [];
 
       const user = await ctx.db.get("users", args.userId);
       if (!user) return [];
@@ -402,7 +389,7 @@ export const counts = query({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
-    if (!user) {
+    if (!user || !(await currentUserCanReadUserDirectory(ctx))) {
       return { total: 0, active: 0, inactive: 0, banned: 0 };
     }
 

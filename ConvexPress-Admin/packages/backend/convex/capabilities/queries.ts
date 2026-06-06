@@ -7,7 +7,7 @@
 
 import { v } from "convex/values";
 import { query } from "../_generated/server";
-import { getCurrentUser } from "../helpers/permissions";
+import { requireCan } from "../helpers/permissions";
 
 /**
  * List all capabilities with optional filtering.
@@ -19,8 +19,7 @@ export const list = query({
     search: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) return [];
+    await requireCan(ctx, "role.update");
 
     let capabilities;
 
@@ -62,8 +61,7 @@ export const list = query({
 export const get = query({
   args: { id: v.id("capabilities") },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) return null;
+    await requireCan(ctx, "role.update");
 
     return await ctx.db.get("capabilities", args.id);
   },
@@ -75,8 +73,7 @@ export const get = query({
 export const counts = query({
   args: {},
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) return {};
+    await requireCan(ctx, "role.update");
 
     const all = await ctx.db.query("capabilities").collect();
     const counts: Record<string, number> = { all: all.length };
