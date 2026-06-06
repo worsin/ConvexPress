@@ -11,5 +11,5 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": ["electron/**/*.ts"],
-  "exclude": ["electron/preload.ts"]
+  "exclude": ["electron/preload.ts", "electron/**/*.test.ts"]
 }

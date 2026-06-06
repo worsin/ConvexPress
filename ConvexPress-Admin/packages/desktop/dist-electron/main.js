@@ -187,11 +187,37 @@ var import_node_fs2 = require("fs");
 var import_node_os = require("os");
 var import_node_path2 = __toESM(require("path"));
 var import_node_crypto = require("crypto");
-var { ipcMain: ipcMain4 } = require("electron");
+
+// electron/ipc/setupValidation.ts
 var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 var CONVEX_CLOUD_URL_RE = /^https:\/\/[a-z0-9-]+\.convex\.cloud$/;
 function cleanUrl(value) {
   return value.trim().replace(/\/+$/, "");
+}
+function requireTrimmed(value, label) {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    throw new Error(`${label} is required.`);
+  }
+  return trimmed;
+}
+function deriveConvexSiteUrl(convexUrl) {
+  const cleaned = cleanUrl(convexUrl);
+  try {
+    const url = new URL(cleaned);
+    if (url.hostname.endsWith(".convex.cloud")) {
+      url.hostname = url.hostname.replace(/\.convex\.cloud$/, ".convex.site");
+      return cleanUrl(url.toString());
+    }
+  } catch {
+  }
+  return cleaned;
+}
+function validateSetupMode(mode) {
+  if (mode !== "server" && mode !== "client") {
+    throw new Error("Setup mode must be either server or client.");
+  }
+  return mode;
 }
 function validateConvexCloudUrl(value) {
   const cleaned = requireTrimmed(value, "Convex URL").replace(/\/+$/, "");
@@ -210,18 +236,6 @@ function resolveConvexSiteUrl(convexUrl, explicitSiteUrl) {
     throw new Error("Convex site URL must match the deployment URL.");
   }
   return cleanedSiteUrl;
-}
-function requireTrimmed(value, label) {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    throw new Error(`${label} is required.`);
-  }
-  return trimmed;
-}
-function validateSetupMode(mode) {
-  if (mode !== "server" && mode !== "client") {
-    throw new Error("Setup mode must be either server or client.");
-  }
 }
 function validateServerAdminCredentials(config) {
   const displayName = requireTrimmed(config.adminName, "Admin name");
@@ -246,18 +260,24 @@ function validateClientLoginCredentials(config) {
   }
   return { identifier, password };
 }
-function deriveConvexSiteUrl(convexUrl) {
-  const cleaned = cleanUrl(convexUrl);
-  try {
-    const url = new URL(cleaned);
-    if (url.hostname.endsWith(".convex.cloud")) {
-      url.hostname = url.hostname.replace(/\.convex\.cloud$/, ".convex.site");
-      return cleanUrl(url.toString());
-    }
-  } catch {
-  }
-  return cleaned;
+function validateSetupConfig(config) {
+  const mode = validateSetupMode(config.mode);
+  const convexUrl = validateConvexCloudUrl(config.convexUrl);
+  const convexSiteUrl = resolveConvexSiteUrl(
+    convexUrl,
+    config.convexSiteUrl
+  );
+  return {
+    mode,
+    convexUrl,
+    convexSiteUrl,
+    pendingAdminCredentials: mode === "server" ? validateServerAdminCredentials(config) : null,
+    pendingLoginCredentials: mode === "client" ? validateClientLoginCredentials(config) : null
+  };
 }
+
+// electron/ipc/setup.ts
+var { ipcMain: ipcMain4 } = require("electron");
 function deriveDeployment(config) {
   const deployKey = config.adminKey?.trim();
   if (!deployKey) {
@@ -473,41 +493,44 @@ function registerSetupHandlers() {
       };
       try {
         sendProgress("validating", "Validating setup configuration.");
-        validateSetupMode(config.mode);
-        const convexUrl = validateConvexCloudUrl(config.convexUrl);
-        const convexSiteUrl = resolveConvexSiteUrl(
-          convexUrl,
-          config.convexSiteUrl
-        );
-        const pendingAdminCredentials = config.mode === "server" ? validateServerAdminCredentials(config) : null;
-        const pendingLoginCredentials = config.mode === "client" ? validateClientLoginCredentials(config) : null;
-        if (config.mode === "server") {
-          await deployServerBackend(config, convexSiteUrl, sendProgress);
+        const validated = validateSetupConfig(config);
+        if (validated.mode === "server") {
+          await deployServerBackend(
+            config,
+            validated.convexSiteUrl,
+            sendProgress
+          );
         }
         sendProgress("saving", "Saving local desktop configuration.");
-        store.set("mode", config.mode);
-        store.set("convexUrl", convexUrl);
-        store.set("convexSiteUrl", convexSiteUrl);
+        store.set("mode", validated.mode);
+        store.set("convexUrl", validated.convexUrl);
+        store.set("convexSiteUrl", validated.convexSiteUrl);
         if (config.adminKey) {
           store.set("adminKey", config.adminKey);
         }
         if (config.siteName) {
           store.set("siteName", config.siteName);
         }
-        if (pendingAdminCredentials) {
-          store.set("pendingAdminCredentials", pendingAdminCredentials);
+        if (validated.pendingAdminCredentials) {
+          store.set(
+            "pendingAdminCredentials",
+            validated.pendingAdminCredentials
+          );
         } else {
           store.delete("pendingAdminCredentials");
         }
-        if (pendingLoginCredentials) {
-          store.set("pendingLoginCredentials", pendingLoginCredentials);
+        if (validated.pendingLoginCredentials) {
+          store.set(
+            "pendingLoginCredentials",
+            validated.pendingLoginCredentials
+          );
         } else {
           store.delete("pendingLoginCredentials");
         }
         store.set("setupComplete", true);
         sendProgress("complete", "Setup configuration saved.");
         console.log(
-          `[Setup IPC] Config saved: mode=${config.mode}, url=${convexUrl}`
+          `[Setup IPC] Config saved: mode=${validated.mode}, url=${validated.convexUrl}`
         );
         return { success: true };
       } catch (error) {
