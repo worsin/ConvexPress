@@ -131,6 +131,46 @@ describe("setup checklist", () => {
     });
   });
 
+  test("shows concrete env fallback names for provider keys", () => {
+    const detailByKey = Object.fromEntries(
+      buildCards().flatMap((card) =>
+        card.requirements.map((requirement) => [
+          `${card.id}.${requirement.label}`,
+          requirement.detail ?? "",
+        ]),
+      ),
+    );
+
+    expect(detailByKey["email.resendApiKey"]?.includes("RESEND_API_KEY")).toBe(true);
+    expect(detailByKey["email.webhookSecret"]?.includes("RESEND_WEBHOOK_SECRET")).toBe(true);
+    expect(detailByKey["clerk.clerkSecretKey"]?.includes("CLERK_SECRET_KEY")).toBe(true);
+    expect(detailByKey["clerk.clerkWebhookSecret"]?.includes("CLERK_WEBHOOK_SECRET")).toBe(true);
+    expect(
+      detailByKey["clerk.clerkJwtIssuerDomain"]?.includes(
+        "CLERK_JWT_ISSUER_DOMAIN",
+      ),
+    ).toBe(true);
+    expect(detailByKey["search.meilisearchHost"]?.includes("MEILISEARCH_HOST")).toBe(true);
+    expect(detailByKey["search.meilisearchApiKey"]?.includes("MEILISEARCH_API_KEY")).toBe(true);
+    expect(detailByKey["ai.apiKey"]?.includes("OPENROUTER_API_KEY")).toBe(true);
+    expect(detailByKey["ai.apiKey"]?.includes("OPENAI_API_KEY")).toBe(true);
+    expect(detailByKey["ai.apiKey"]?.includes("ANTHROPIC_API_KEY")).toBe(true);
+    expect(detailByKey["ai.tavilyApiKey"]?.includes("TAVILY_API_KEY")).toBe(true);
+    expect(detailByKey["ai.imageApiKey"]?.includes("OPENAI_IMAGE_API_KEY")).toBe(true);
+    expect(detailByKey["stripe.stripeSecretKey"]?.includes("STRIPE_SECRET_KEY")).toBe(true);
+    expect(
+      detailByKey["stripe.stripeWebhookSecret"]?.includes(
+        "STRIPE_WEBHOOK_SECRET",
+      ),
+    ).toBe(true);
+    expect(detailByKey["paypal.paypalClientId"]?.includes("PAYPAL_CLIENT_ID")).toBe(true);
+    expect(detailByKey["paypal.paypalClientSecret"]?.includes("PAYPAL_CLIENT_SECRET")).toBe(true);
+    expect(detailByKey["paypal.paypalWebhookId"]?.includes("PAYPAL_WEBHOOK_ID")).toBe(true);
+    expect(detailByKey["google.placesApiKey"]?.includes("GOOGLE_PLACES_API_KEY")).toBe(true);
+    expect(detailByKey["ga4.ga4ServiceAccountJson"]?.includes("GA4_SERVICE_ACCOUNT_JSON")).toBe(true);
+    expect(detailByKey["ga4.ga4PropertyId"]?.includes("GA4_PROPERTY_ID")).toBe(true);
+  });
+
   test("lists every server environment key needed for first-login and provider setup", () => {
     expect(SERVER_ENVIRONMENT_KEYS.map((key) => key.name)).toEqual([
       "AUTH_PRIVATE_KEY",

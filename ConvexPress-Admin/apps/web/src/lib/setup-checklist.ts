@@ -148,10 +148,12 @@ export function buildSetupChecklistCards({
         {
           label: "resendApiKey",
           configured: hasSettingValue(email, "resendApiKey"),
+          detail: "Env fallback: RESEND_API_KEY",
         },
         {
           label: "webhookSecret",
           configured: hasSettingValue(email, "webhookSecret"),
+          detail: "Env fallback: RESEND_WEBHOOK_SECRET",
         },
         {
           label: "fromAddress",
@@ -169,14 +171,17 @@ export function buildSetupChecklistCards({
         {
           label: "clerkSecretKey",
           configured: hasSettingValue(clerk, "clerkSecretKey"),
+          detail: "Env fallback: CLERK_SECRET_KEY",
         },
         {
           label: "clerkWebhookSecret",
           configured: hasSettingValue(clerk, "clerkWebhookSecret"),
+          detail: "Env fallback: CLERK_WEBHOOK_SECRET",
         },
         {
           label: "clerkJwtIssuerDomain",
           configured: hasSettingValue(clerk, "clerkJwtIssuerDomain"),
+          detail: "Env fallback: CLERK_JWT_ISSUER_DOMAIN",
         },
       ],
     },
@@ -190,10 +195,12 @@ export function buildSetupChecklistCards({
         {
           label: "meilisearchHost",
           configured: hasSettingValue(searchSettings, "meilisearchHost"),
+          detail: "Env fallback: MEILISEARCH_HOST",
         },
         {
           label: "meilisearchApiKey",
           configured: hasSettingValue(searchSettings, "meilisearchApiKey"),
+          detail: "Env fallback: MEILISEARCH_API_KEY",
         },
       ],
     },
@@ -207,15 +214,17 @@ export function buildSetupChecklistCards({
         {
           label: "apiKey",
           configured: hasSettingValue(ai, "apiKey"),
-          detail: String(ai?.provider ?? "openrouter"),
+          detail: `Provider: ${String(ai?.provider ?? "openrouter")}. Env fallback: OPENROUTER_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY`,
         },
         {
           label: "tavilyApiKey",
           configured: hasSettingValue(ai, "tavilyApiKey"),
+          detail: "Env fallback: TAVILY_API_KEY",
         },
         {
           label: "imageApiKey",
           configured: hasSettingValue(ai, "imageApiKey"),
+          detail: "Env fallback: OPENAI_IMAGE_API_KEY / OPENAI_API_KEY",
           optional: true,
         },
       ],
@@ -234,10 +243,12 @@ export function buildSetupChecklistCards({
         {
           label: "stripeSecretKey",
           configured: hasSettingValue(payments, "stripeSecretKey"),
+          detail: "Env fallback: STRIPE_SECRET_KEY",
         },
         {
           label: "stripeWebhookSecret",
           configured: hasSettingValue(payments, "stripeWebhookSecret"),
+          detail: "Env fallback: STRIPE_WEBHOOK_SECRET",
         },
       ],
     },
@@ -251,14 +262,17 @@ export function buildSetupChecklistCards({
         {
           label: "paypalClientId",
           configured: hasSettingValue(payments, "paypalClientId"),
+          detail: "Env fallback: PAYPAL_CLIENT_ID",
         },
         {
           label: "paypalClientSecret",
           configured: hasSettingValue(payments, "paypalClientSecret"),
+          detail: "Env fallback: PAYPAL_CLIENT_SECRET",
         },
         {
           label: "paypalWebhookId",
           configured: hasSettingValue(payments, "paypalWebhookId"),
+          detail: "Env fallback: PAYPAL_WEBHOOK_ID",
         },
       ],
     },
@@ -272,6 +286,7 @@ export function buildSetupChecklistCards({
         {
           label: "placesApiKey",
           configured: hasSettingValue(google, "placesApiKey"),
+          detail: "Env fallback: GOOGLE_PLACES_API_KEY",
         },
         {
           label: "geocodeApiKey",
@@ -280,7 +295,7 @@ export function buildSetupChecklistCards({
         {
           label: "ga4ServiceAccountJson",
           configured: hasSettingValue(ga4, "ga4ServiceAccountJson"),
-          detail: "Configure in GA4 settings.",
+          detail: "Configure in GA4 settings. Env fallback: GA4_SERVICE_ACCOUNT_JSON",
           optional: true,
         },
       ],
@@ -295,10 +310,12 @@ export function buildSetupChecklistCards({
         {
           label: "ga4ServiceAccountJson",
           configured: hasSettingValue(ga4, "ga4ServiceAccountJson"),
+          detail: "Env fallback: GA4_SERVICE_ACCOUNT_JSON",
         },
         {
           label: "ga4PropertyId",
           configured: hasSettingValue(ga4, "ga4PropertyId"),
+          detail: "Env fallback: GA4_PROPERTY_ID",
         },
       ],
     },

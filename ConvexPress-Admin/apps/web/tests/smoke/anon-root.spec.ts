@@ -7,3 +7,9 @@ test.describe.configure({ mode: "parallel" });
 test("root [P0]", async ({ page }) => {
 	await smokeRoute(page, "/");
 });
+
+test("setup sign-in gate [P0]", async ({ page }) => {
+	await smokeRoute(page, "/setup", {
+		expectHeading: /convexpress admin/i,
+	});
+});

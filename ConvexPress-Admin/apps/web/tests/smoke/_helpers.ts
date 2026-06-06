@@ -5,10 +5,6 @@ const DEFAULT_IGNORE_CONSOLE = [
 	/\[HMR\]/i,
 	/Download the React DevTools/i,
 	/React Router Devtools/i,
-	// Expected 401 when an unauthenticated visitor hits the app — the refresh
-	// endpoint correctly returns 401 with no cookie. The auth context handles
-	// this and renders the login form; the console error is cosmetic.
-	/Failed to load resource: the server responded with a status of 401/i,
 ];
 
 const DEFAULT_IGNORE_NETWORK = [
