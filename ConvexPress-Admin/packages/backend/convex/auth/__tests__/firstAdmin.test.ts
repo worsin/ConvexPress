@@ -487,7 +487,7 @@ describe("createFirstAdmin", () => {
     expect(await t.query(api.auth.queries.hasAdmin)).toBe(true);
   });
 
-  test("consumes the configured first-admin setup token after first use", async () => {
+  test("consumes each configured first-admin setup token after first use", async () => {
     process.env.FIRST_ADMIN_SETUP_SECRET = "setup-secret";
     const t = createHarness();
 
@@ -498,6 +498,14 @@ describe("createFirstAdmin", () => {
       displayName: "First Admin",
       setupToken: "setup-secret",
     });
+
+    const consumedAfterFirstUse = await t.run(async (ctx) => {
+      return await ctx.db.query("authSetupState").collect();
+    });
+
+    expect(consumedAfterFirstUse).toHaveLength(1);
+    expect(consumedAfterFirstUse[0]!.setupTokenHash).toBeTruthy();
+    expect(consumedAfterFirstUse[0]!.setupTokenHash).not.toBe("setup-secret");
 
     const adminId = await t.run(async (ctx) => {
       const user = (await ctx.db.query("users").collect())[0]!;
@@ -522,13 +530,30 @@ describe("createFirstAdmin", () => {
       "First-admin setup token has already been used. Re-run desktop setup to rotate the setup token.",
     );
 
+    process.env.FIRST_ADMIN_SETUP_SECRET = "rotated-setup-secret";
+
+    const recovered = await t.action(api.auth.setup.createFirstAdmin, {
+      email: "replacement@example.com",
+      username: "replacement",
+      password: PASSWORD,
+      displayName: "Replacement Admin",
+      setupToken: "rotated-setup-secret",
+    });
+
+    expect(recovered.message).toBe("Administrator account created");
+    expect(await t.query(api.auth.queries.hasAdmin)).toBe(true);
+
     const users = await t.run(async (ctx) => {
       return await ctx.db.query("users").collect();
     });
 
-    expect(users).toHaveLength(1);
-    expect(users[0]!._id).toBe(adminId);
-    expect(users[0]!.status).toBe("inactive");
+    expect(users).toHaveLength(2);
+    expect(users.find((user) => user._id === adminId)?.status).toBe(
+      "inactive",
+    );
+    expect(
+      users.find((user) => user.email === "replacement@example.com")?.status,
+    ).toBe("active");
   });
 
   test("local admin JWT resolves the user and admin gate rejects stale access", async () => {

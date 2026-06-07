@@ -94,3 +94,7 @@ export async function hashRefreshToken(token: string): Promise<string> {
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
+
+export async function hashSetupToken(token: string): Promise<string> {
+  return await hashRefreshToken(token);
+}

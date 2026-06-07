@@ -1,7 +1,7 @@
 import { action, internalMutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
-import { hashPassword } from "./helpers";
+import { hashPassword, hashSetupToken } from "./helpers";
 import type { Id } from "../_generated/dataModel";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -104,25 +104,47 @@ function validateFirstAdminCredentials(args: {
   };
 }
 
-function validateFirstAdminSetupToken(setupToken: string | undefined) {
+function constantTimeStringEquals(left: string, right: string): boolean {
+  const encoder = new TextEncoder();
+  const leftBytes = encoder.encode(left);
+  const rightBytes = encoder.encode(right);
+  const length = Math.max(leftBytes.length, rightBytes.length);
+  let diff = leftBytes.length ^ rightBytes.length;
+
+  for (let i = 0; i < length; i++) {
+    diff |= (leftBytes[i] ?? 0) ^ (rightBytes[i] ?? 0);
+  }
+
+  return diff === 0;
+}
+
+async function validateFirstAdminSetupToken(setupToken: string | undefined) {
   if (setupToken && setupToken.length > MAX_SETUP_TOKEN_LENGTH) {
     throw new Error("First-admin setup token is invalid or missing.");
   }
 
   const requiredToken = getRequiredFirstAdminSetupToken();
   if (!requiredToken) {
-    if (canCreateFirstAdminWithoutSetupToken()) return false;
+    if (canCreateFirstAdminWithoutSetupToken()) {
+      return { required: false, setupTokenHash: undefined };
+    }
 
     throw new Error(
       "FIRST_ADMIN_SETUP_SECRET is required before first-admin setup on non-local deployments. Run the desktop setup wizard again or explicitly set CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP=true.",
     );
   }
 
-  if (!setupToken || setupToken !== requiredToken) {
+  if (
+    !setupToken ||
+    !constantTimeStringEquals(setupToken, requiredToken)
+  ) {
     throw new Error("First-admin setup token is invalid or missing.");
   }
 
-  return true;
+  return {
+    required: true,
+    setupTokenHash: await hashSetupToken(requiredToken),
+  };
 }
 
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
@@ -144,7 +166,7 @@ export const createFirstAdmin = action({
       throw new Error("An administrator account already exists");
     }
 
-    const setupTokenRequired = validateFirstAdminSetupToken(args.setupToken);
+    const setupTokenState = await validateFirstAdminSetupToken(args.setupToken);
 
     // Ensure the built-in WordPress roles exist before checking for or
     // assigning the first administrator role on a fresh deployment.
@@ -166,7 +188,8 @@ export const createFirstAdmin = action({
       username: credentials.username,
       passwordHash,
       displayName: credentials.displayName,
-      setupTokenRequired,
+      setupTokenRequired: setupTokenState.required,
+      setupTokenHash: setupTokenState.setupTokenHash,
     });
 
     return { userId, message: "Administrator account created" };

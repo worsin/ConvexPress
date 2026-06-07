@@ -14,7 +14,10 @@ export const authTables = {
 
   authSetupState: defineTable({
     key: v.union(v.literal("first_admin_setup_token_consumed")),
+    setupTokenHash: v.optional(v.string()),
     createdAt: v.number(),
     consumedAt: v.number(),
-  }).index("by_key", ["key"]),
+  })
+    .index("by_key", ["key"])
+    .index("by_setupTokenHash", ["setupTokenHash"]),
 };

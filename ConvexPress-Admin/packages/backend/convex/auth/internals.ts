@@ -238,6 +238,8 @@ export const createAdminUser = internalMutation({
     passwordHash: v.string(),
     displayName: v.string(),
     setupTokenRequired: v.boolean(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    setupTokenHash: v.optional(v.string()),
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
@@ -246,10 +248,14 @@ export const createAdminUser = internalMutation({
     }
 
     if (args.setupTokenRequired) {
+      if (!args.setupTokenHash) {
+        throw new Error("First-admin setup token is invalid or missing.");
+      }
+
       const consumed = await ctx.db
         .query("authSetupState")
-        .withIndex("by_key", (q: ConvexQueryBuilder) =>
-          q.eq("key", FIRST_ADMIN_SETUP_TOKEN_STATE_KEY),
+        .withIndex("by_setupTokenHash", (q: ConvexQueryBuilder) =>
+          q.eq("setupTokenHash", args.setupTokenHash),
         )
         .first();
 
@@ -308,6 +314,7 @@ export const createAdminUser = internalMutation({
       if (args.setupTokenRequired) {
         await ctx.db.insert("authSetupState", {
           key: FIRST_ADMIN_SETUP_TOKEN_STATE_KEY,
+          setupTokenHash: args.setupTokenHash,
           createdAt: now,
           consumedAt: now,
         });
@@ -339,6 +346,7 @@ export const createAdminUser = internalMutation({
     if (args.setupTokenRequired) {
       await ctx.db.insert("authSetupState", {
         key: FIRST_ADMIN_SETUP_TOKEN_STATE_KEY,
+        setupTokenHash: args.setupTokenHash,
         createdAt: now,
         consumedAt: now,
       });
