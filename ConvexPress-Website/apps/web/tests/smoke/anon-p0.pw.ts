@@ -9,11 +9,11 @@ test("root [P0]", async ({ page }) => {
 });
 
 test("cart [P0]", async ({ page }) => {
-	await smokeRoute(page, "/cart");
+	await smokeRoute(page, "/cart", { allowNotFound: true });
 });
 
 test("checkout [P0]", async ({ page }) => {
-	await smokeRoute(page, "/checkout");
+	await smokeRoute(page, "/checkout", { allowNotFound: true });
 });
 
 test("login [P0]", async ({ page }) => {
@@ -21,7 +21,7 @@ test("login [P0]", async ({ page }) => {
 });
 
 test("products [P0]", async ({ page }) => {
-	await smokeRoute(page, "/products");
+	await smokeRoute(page, "/products", { allowNotFound: true });
 });
 
 test("register [P0]", async ({ page }) => {
@@ -29,5 +29,5 @@ test("register [P0]", async ({ page }) => {
 });
 
 test("shop [P0]", async ({ page }) => {
-	await smokeRoute(page, "/shop");
+	await smokeRoute(page, "/shop", { allowNotFound: true });
 });

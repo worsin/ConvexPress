@@ -8,6 +8,7 @@ import { type PublicForm } from "@/components/forms/FormRenderer";
 import { FormWizard } from "@/extensions/forms/FormWizard";
 import { DraftExpiredNotice } from "@/extensions/forms/DraftExpiredNotice";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
+import { throwPublicNotFound } from "@/lib/plugins/public-route-loader";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
 
 /**
@@ -50,23 +51,32 @@ export const Route = createFileRoute("/_marketing/forms/$slug/resume/$token")({
       convexQuery(api.settings.queries.getPublic, {}),
     );
     const formsEnabled = isPublicPluginEnabled("forms", publicSettings);
+    if (!formsEnabled) {
+      throwPublicNotFound({
+        pluginId: "forms",
+        reason: "plugin_disabled",
+      });
+    }
 
     // Prefetch BOTH queries for an SSR-first paint.
-    const [form] = formsEnabled
-      ? await Promise.all([
-          queryClient.ensureQueryData(
-            convexQuery(getBySlugFn, { slug: params.slug }),
-          ) as Promise<PublicForm | null>,
-          queryClient.ensureQueryData(convexQuery(resumeFn, { token: params.token })),
-        ])
-      : [null];
+    const [form, draft] = await Promise.all([
+      queryClient.ensureQueryData(
+        convexQuery(getBySlugFn, { slug: params.slug }),
+      ) as Promise<PublicForm | null>,
+      queryClient.ensureQueryData(convexQuery(resumeFn, { token: params.token })) as Promise<ResumeDraft>,
+    ]);
+    if (!form || draft == null) {
+      throwPublicNotFound({
+        reason: "form_resume_not_found",
+        slug: params.slug,
+      });
+    }
 
     const siteUrl = normalizeSiteUrl(
       (publicSettings as { siteUrl?: string | null })?.siteUrl,
     );
 
     return {
-      formsEnabled,
       seoHead: buildSeoHead({
         title: `Resume ${form?.title ?? params.slug} - ConvexPress`,
         description: `Resume your saved ${form?.title ?? params.slug} form.`,
@@ -79,8 +89,6 @@ export const Route = createFileRoute("/_marketing/forms/$slug/resume/$token")({
 });
 
 function ResumeFormPage() {
-  const { formsEnabled } = Route.useLoaderData();
-  if (!formsEnabled) return <NotFoundPage />;
   return <ResumeFormInner />;
 }
 

@@ -5,13 +5,15 @@ test.describe.configure({ mode: "parallel" });
 
 test("lms catalog [P1]", async ({ page }) => {
   await smokeRoute(page, "/courses", {
+    allowNotFound: true,
     expectHeading: /Courses|Learning/i,
     expectSelector: "body",
   });
 });
 
 test("lms first published course landing [P1]", async ({ page }) => {
-  await page.goto("/courses", { waitUntil: "domcontentloaded" });
+  const response = await page.goto("/courses", { waitUntil: "domcontentloaded" });
+  test.skip(response?.status() === 404, "LMS plugin disabled");
   const courseLinks = page.locator('a[href^="/courses/"]');
   await Promise.race([
     courseLinks.first().waitFor({ state: "visible", timeout: 20_000 }),
@@ -34,7 +36,8 @@ test("lms first published course landing [P1]", async ({ page }) => {
 
 test("lms preview lesson deep-link [P1]", async ({ page }) => {
   test.setTimeout(60_000);
-  await page.goto("/courses", { waitUntil: "domcontentloaded" });
+  const response = await page.goto("/courses", { waitUntil: "domcontentloaded" });
+  test.skip(response?.status() === 404, "LMS plugin disabled");
   const courseLinks = page.locator('a[href^="/courses/"]');
   await Promise.race([
     courseLinks.first().waitFor({ state: "visible", timeout: 20_000 }),
@@ -84,10 +87,12 @@ test("lms preview lesson deep-link [P1]", async ({ page }) => {
 });
 
 test("lms certificate verification [P1]", async ({ page }) => {
-  await smokeRoute(page, "/certificates/verify", {
+  const result = await smokeRoute(page, "/certificates/verify", {
+    allowNotFound: true,
     expectHeading: /Verify certificate/i,
     expectSelector: "#certificate-serial",
   });
+  test.skip(result.notFound, "LMS plugin disabled");
 
   await page.locator("#certificate-serial").fill("CERT-NOT-A-REAL-SERIAL");
   await page.getByRole("button", { name: /^verify$/i }).click();
@@ -101,6 +106,7 @@ test("lms certificate verification [P1]", async ({ page }) => {
 
 test("lms certificate detail [P1]", async ({ page }) => {
   await smokeRoute(page, "/certificates/CERT-NOT-A-REAL-SERIAL", {
+    allowNotFound: true,
     expectHeading: /Certificate not found/i,
   });
 });

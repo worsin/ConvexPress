@@ -8,8 +8,12 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { ErrorTemplate } from "@/templates/ErrorTemplate";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
+import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
 
 export const Route = createFileRoute("/_marketing/help")({
+  loader: async ({ context: { queryClient } }) => {
+    await requirePublicPluginEnabled(queryClient, "kb");
+  },
   component: HelpLayout,
   errorComponent: ErrorTemplate,
 });

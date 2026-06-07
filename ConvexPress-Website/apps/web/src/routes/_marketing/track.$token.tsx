@@ -5,6 +5,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { getCartLineBundleSelections } from "@/components/commerce/cartLine";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { useSettings } from "@/contexts/SettingsContext";
+import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
 
 function formatMoney(amount: number, currencyCode: string) {
   return new Intl.NumberFormat("en-US", {
@@ -14,6 +15,9 @@ function formatMoney(amount: number, currencyCode: string) {
 }
 
 export const Route = createFileRoute("/_marketing/track/$token")({
+  loader: async ({ context: { queryClient } }) => {
+    await requirePublicPluginEnabled(queryClient, "commerce");
+  },
   component: TrackOrderPage,
 });
 

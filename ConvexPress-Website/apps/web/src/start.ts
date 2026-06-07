@@ -101,6 +101,34 @@ const redirectMiddleware = createMiddleware().server(async ({ request, next }) =
   }
 });
 
+const documentNotFoundMiddleware = createMiddleware().server(async ({ next }) => {
+  const result = await next();
+  const response = result.response;
+  if (response.status !== 404) {
+    return result;
+  }
+
+  const headers = new Headers(response.headers);
+  const contentType = headers.get("Content-Type") ?? "";
+  if (!contentType.includes("text/html")) {
+    return result;
+  }
+
+  headers.set("X-Robots-Tag", "noindex");
+  return {
+    ...result,
+    response: new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    }),
+  };
+});
+
 export const startInstance = createStart(() => ({
-  requestMiddleware: [canonicalMiddleware, redirectMiddleware],
+  requestMiddleware: [
+    canonicalMiddleware,
+    redirectMiddleware,
+    documentNotFoundMiddleware,
+  ],
 }));

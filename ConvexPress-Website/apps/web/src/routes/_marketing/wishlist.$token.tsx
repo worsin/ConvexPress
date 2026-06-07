@@ -9,8 +9,12 @@ import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { MediaImage } from "@/components/media/MediaImage";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
+import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
 
 export const Route = createFileRoute("/_marketing/wishlist/$token")({
+  loader: async ({ context: { queryClient } }) => {
+    await requirePublicPluginEnabled(queryClient, "commerceWishlists");
+  },
   component: SharedWishlistPage,
 });
 

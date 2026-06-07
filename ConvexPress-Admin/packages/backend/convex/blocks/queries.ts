@@ -1,4 +1,4 @@
-import { query } from "../_generated/server";
+import { internalQuery, query } from "../_generated/server";
 import { currentUserCan, requireCan } from "../helpers/permissions";
 import { getStoredBlocks, getBlocksRevision } from "./helpers";
 import { migrateBlocks } from "./migrations";
@@ -26,6 +26,26 @@ export const getForDocument = query({
       contentMode: doc.contentMode ?? (doc.type === "page" ? "blocks" : "article"),
       blocks: migrateBlocks(getStoredBlocks(doc)),
       blocksVersion: doc.blocksVersion ?? 1,
+      blocksRevision: getBlocksRevision(doc),
+    };
+  },
+});
+
+export const getEditableDocumentForAi = internalQuery({
+  args: postIdArgs,
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get("posts", args.postId);
+    if (!doc || (doc.type !== "page" && doc.type !== "post")) {
+      return null;
+    }
+
+    await requireCan(ctx, doc.type === "page" ? "page.update" : "post.update");
+
+    return {
+      postId: doc._id,
+      type: doc.type,
+      title: doc.title,
+      blocks: migrateBlocks(getStoredBlocks(doc)),
       blocksRevision: getBlocksRevision(doc),
     };
   },

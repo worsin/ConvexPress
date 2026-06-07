@@ -116,10 +116,13 @@ async function generateBlocksForDocument(
     pageType?: string;
   },
 ) {
-  const doc: any = await ctx.runQuery(api.posts.queries.get, {
-    postId: args.postId,
-  });
-  if (!doc || (doc.type !== "page" && doc.type !== "post")) {
+  const doc: any = await ctx.runQuery(
+    (internal as any).blocks.queries.getEditableDocumentForAi,
+    {
+      postId: args.postId,
+    },
+  );
+  if (!doc) {
     throw new ConvexError({ code: "NOT_FOUND", message: "Content not found" });
   }
 
@@ -172,6 +175,22 @@ async function generateBlocksForDocument(
   }
 
   return { doc, blocks };
+}
+
+async function getEditableDocumentForAi(
+  ctx: { runQuery: Function },
+  postId: unknown,
+) {
+  const doc: any = await ctx.runQuery(
+    (internal as any).blocks.queries.getEditableDocumentForAi,
+    {
+      postId,
+    },
+  );
+  if (!doc) {
+    throw new ConvexError({ code: "NOT_FOUND", message: "Content not found" });
+  }
+  return doc;
 }
 
 export const generatePageDraft = action({
@@ -289,10 +308,7 @@ export const regenerateBlock = action({
     ctx,
     args,
   ): Promise<{ attrs: Record<string, unknown>; revision: number }> => {
-    const doc: any = await ctx.runQuery(api.posts.queries.get, {
-      postId: args.postId,
-    });
-    if (!doc) throw new ConvexError({ code: "NOT_FOUND", message: "Content not found" });
+    const doc = await getEditableDocumentForAi(ctx, args.postId);
 
     const blocks = Array.isArray(doc.blocks) ? doc.blocks : [];
     const block = findBlockById(blocks, args.blockId);
@@ -407,10 +423,7 @@ export const generateVariants = action({
   ): Promise<{ variants: Array<Record<string, unknown>> }> => {
     const count = Math.min(5, Math.max(1, args.count ?? 3));
 
-    const doc: any = await ctx.runQuery(api.posts.queries.get, {
-      postId: args.postId,
-    });
-    if (!doc) throw new ConvexError({ code: "NOT_FOUND", message: "Content not found" });
+    const doc = await getEditableDocumentForAi(ctx, args.postId);
 
     const blocks = Array.isArray(doc.blocks) ? doc.blocks : [];
     const block = findBlockById(blocks, args.blockId);
@@ -481,10 +494,7 @@ export const swapBlockType = action({
       });
     }
 
-    const doc: any = await ctx.runQuery(api.posts.queries.get, {
-      postId: args.postId,
-    });
-    if (!doc) throw new ConvexError({ code: "NOT_FOUND", message: "Content not found" });
+    const doc = await getEditableDocumentForAi(ctx, args.postId);
 
     const blocks = Array.isArray(doc.blocks) ? doc.blocks : [];
     const block = findBlockById(blocks, args.blockId);

@@ -11,7 +11,7 @@
  */
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
-import { requireAuth } from "../helpers/auth";
+import { requireCan } from "../helpers/permissions";
 
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const create = mutation({
@@ -35,6 +35,7 @@ export const create = mutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    await requireCan(ctx, "manage_options");
     const now = Date.now();
     return await ctx.db.insert("themes", {
       ...args,
@@ -69,6 +70,7 @@ export const update = mutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    await requireCan(ctx, "manage_options");
     const { id, ...updates } = args;
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Theme not found");
@@ -82,7 +84,7 @@ export const activate = mutation({
   args: { id: v.id("themes") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx);
+    const user = await requireCan(ctx, "manage_options");
     const theme = await ctx.db.get(args.id);
     if (!theme) throw new Error("Theme not found");
 
@@ -132,6 +134,7 @@ export const duplicate = mutation({
   args: { id: v.id("themes") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    await requireCan(ctx, "manage_options");
     const source = await ctx.db.get(args.id);
     if (!source) throw new Error("Theme not found");
     const now = Date.now();
@@ -158,6 +161,7 @@ export const remove = mutation({
   args: { id: v.id("themes") },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    await requireCan(ctx, "manage_options");
     const theme = await ctx.db.get(args.id);
     if (!theme) throw new Error("Theme not found");
     if (theme.isActive) throw new Error("Cannot delete the active theme");

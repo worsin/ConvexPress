@@ -14,6 +14,7 @@ import {
   parseOrderFormSettings,
 } from "@/extensions/forms/FormWizard";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
+import { throwPublicNotFound } from "@/lib/plugins/public-route-loader";
 import { parsePrefill } from "@/lib/forms/prefill/parsePrefill";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
 
@@ -62,20 +63,29 @@ export const Route = createFileRoute("/_marketing/forms/$slug")({
       convexQuery(api.settings.queries.getPublic, {}),
     );
     const formsEnabled = isPublicPluginEnabled("forms", publicSettings);
+    if (!formsEnabled) {
+      throwPublicNotFound({
+        pluginId: "forms",
+        reason: "plugin_disabled",
+      });
+    }
 
     // Prefetch the form itself so SSR can render it on first paint.
-    const form = formsEnabled
-      ? ((await queryClient.ensureQueryData(
-          convexQuery(getBySlugFn, { slug: params.slug }),
-        )) as PublicForm | null)
-      : null;
+    const form = (await queryClient.ensureQueryData(
+      convexQuery(getBySlugFn, { slug: params.slug }),
+    )) as PublicForm | null;
+    if (!form) {
+      throwPublicNotFound({
+        reason: "form_not_found",
+        slug: params.slug,
+      });
+    }
 
     const siteUrl = normalizeSiteUrl(
       (publicSettings as { siteUrl?: string | null })?.siteUrl,
     );
 
     return {
-      formsEnabled,
       seoHead: buildSeoHead({
         title: `${form?.title ?? params.slug} - ConvexPress`,
         description:
@@ -90,8 +100,6 @@ export const Route = createFileRoute("/_marketing/forms/$slug")({
 });
 
 function FormPage() {
-  const { formsEnabled } = Route.useLoaderData();
-  if (!formsEnabled) return <NotFoundPage />;
   return <FormPageInner />;
 }
 

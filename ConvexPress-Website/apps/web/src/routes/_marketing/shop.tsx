@@ -8,6 +8,7 @@ import { Search, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
 import { MediaImage } from "@/components/media/MediaImage";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { useSettings } from "@/contexts/SettingsContext";
+import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
 
 type ShopSearch = {
   page?: number;
@@ -30,12 +31,7 @@ export const Route = createFileRoute("/_marketing/shop")({
     search: search.search,
   }),
   loader: async ({ context: { queryClient }, deps }) => {
-    const publicSettings = await queryClient.ensureQueryData(
-      convexQuery(api.settings.queries.getPublic, {}),
-    );
-    if ((publicSettings as any)?.plugins?.commerceEnabled !== true) {
-      return;
-    }
+    await requirePublicPluginEnabled(queryClient, "commerce");
 
     await queryClient.ensureQueryData(
       convexQuery(api.commerce.products.listPublished, {

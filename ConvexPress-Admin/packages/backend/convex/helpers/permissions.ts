@@ -36,14 +36,21 @@ import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import {
+  isConcreteCapability,
+  isValidCapability,
   isMetaCapability,
   META_TO_CONCRETE,
 } from "../types/capabilities";
 import type { AnyCapability, Capability } from "../types/capabilities";
-import { LEGACY_ROLE_MAP } from "../seed/roles";
+import { BUILT_IN_ROLES, LEGACY_ROLE_MAP } from "../seed/roles";
 import { isPluginEnabled } from "./plugins";
 
 const ADMIN_ISSUER = "https://convexpress-admin.local";
+const CUSTOMER_ROLE_AUTH_CAPABILITIES = new Set<string>(
+  BUILT_IN_ROLES.filter(
+    (role) => role.type === "customer" && role.status === "active",
+  ).flatMap((role) => role.capabilities),
+);
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -232,10 +239,10 @@ async function resolveUserRole(
     }
   }
 
-  // Path 3 (Wave 10.4): membership-driven role elevation.
-  // Active/grace grants on active plans with a `linkedRoleId` contribute
-  // candidate roles. We pick the highest-level active role across the base
-  // + all contributed roles via `pickHighestRole`.
+  // Path 3 (Wave 10.4): membership-driven customer role elevation.
+  // Active/grace grants on active plans may contribute linked customer roles.
+  // Internal/system roles are intentionally ignored here: membership plans are
+  // customer entitlements and must never grant admin control-plane access.
   const grantRoles: RoleDoc[] = [];
   try {
     const grants = await ctx.db
@@ -255,7 +262,9 @@ async function resolveUserRole(
       if (seen.has(key)) continue;
       seen.add(key);
       const role = await ctx.db.get(plan.linkedRoleId);
-      if (role) grantRoles.push(role as RoleDoc);
+      if (role && role.status === "active" && role.type === "customer") {
+        grantRoles.push(role as RoleDoc);
+      }
     }
   } catch {
     // Membership plugin disabled or schema not yet present — skip.
@@ -266,21 +275,67 @@ async function resolveUserRole(
 
 /**
  * Pure helper: given a base role and a list of candidate roles contributed
- * by active/grace membership grants, return the role with the highest
- * `level`. Inactive grant roles are skipped. Null base means "no role
- * assigned directly" — in which case the highest-active grant role wins.
+ * by active/grace membership grants, return the highest active customer role.
+ * Internal/system base roles are returned unchanged. Internal/system grants are
+ * skipped. Null base means "no role assigned directly" — in which case the
+ * highest-active customer grant role wins.
  *
  * Exported for unit testing (see `helpers/__tests__/linkedRole.test.ts`).
  */
 export function pickHighestRole<
-  R extends { level: number; status: "active" | "inactive" },
+  R extends {
+    level: number;
+    status: "active" | "inactive";
+    type: "internal" | "customer" | "system" | string;
+  },
 >(base: R | null, grantRoles: R[]): R | null {
-  const active = grantRoles.filter((r) => r.status === "active");
   let best = base && base.status === "active" ? base : null;
-  for (const g of active) {
+
+  if (best && best.type !== "customer") return best;
+
+  const activeCustomerGrants = grantRoles.filter(
+    (role) => role.status === "active" && role.type === "customer",
+  );
+  for (const g of activeCustomerGrants) {
     if (!best || g.level > best.level) best = g;
   }
   return best;
+}
+
+/**
+ * Membership plan `linkedCapabilities` can also carry arbitrary entitlement
+ * flags used by membership restriction rules (for example, `post.view_premium`).
+ * Only a conservative subset of known ConvexPress auth capabilities may augment
+ * backend RBAC checks. Known internal/admin capabilities are rejected by plan
+ * mutations and ignored at runtime for existing data.
+ */
+export function isMembershipAuthCapability(
+  capability: string,
+): capability is Capability {
+  return (
+    isConcreteCapability(capability) &&
+    CUSTOMER_ROLE_AUTH_CAPABILITIES.has(capability)
+  );
+}
+
+/**
+ * Return known ConvexPress capability strings that membership plans must not
+ * store as auth-capability grants. Unknown strings are treated as membership
+ * entitlement flags and are intentionally allowed.
+ */
+export function getUnsafeMembershipLinkedCapabilities(
+  capabilities: readonly string[] | undefined,
+): string[] {
+  if (!capabilities) return [];
+  return Array.from(
+    new Set(
+      capabilities.filter(
+        (capability) =>
+          isValidCapability(capability) &&
+          !isMembershipAuthCapability(capability),
+      ),
+    ),
+  );
 }
 
 /**
@@ -315,6 +370,8 @@ async function userHasMembershipCapability(
   userId: Id<"users">,
   capability: Capability,
 ): Promise<boolean> {
+  if (!isMembershipAuthCapability(capability)) return false;
+
   // Plugin off → no augmentation. Fail soft.
   // `isPluginEnabled` types its ctx as `AnyCtx` (QueryCtx|MutationCtx|ActionCtx).
   // Our narrower `AuthReadCtx` is a structural subset — cast to satisfy the compiler.

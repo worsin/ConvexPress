@@ -21,12 +21,15 @@ import { api } from "@convexpress-website/backend/generated/api";
 
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { PricingCardsRenderer } from "@/lib/pricingCardRenderer";
+import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
 import type { PricingOffer, PricingCardConfig } from "@/lib/pricingCardRenderer";
 
 // ─── Route definition ─────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/_marketing/pricing")({
   loader: async ({ context: { queryClient } }) => {
+    await requirePublicPluginEnabled(queryClient, "commerceSubscriptions");
+
     // Pre-fetch both queries in parallel for SSR
     await Promise.all([
 	      queryClient.ensureQueryData(

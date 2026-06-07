@@ -1,3 +1,4 @@
+import { convexQuery } from "@convex-dev/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -6,6 +7,10 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { SignupForm } from "@/components/subscriptions/SignupForm";
+import {
+  requirePublicPluginEnabled,
+  throwPublicNotFound,
+} from "@/lib/plugins/public-route-loader";
 
 /**
  * Direct-signup landing page for a single subscription offer (Wave 5 Task 5.2).
@@ -27,6 +32,20 @@ import { SignupForm } from "@/components/subscriptions/SignupForm";
  */
 
 export const Route = createFileRoute("/signup/$offerId")({
+  loader: async ({ context: { queryClient }, params }) => {
+    await requirePublicPluginEnabled(queryClient, "commerceSubscriptions");
+    const offer = await queryClient.ensureQueryData(
+      convexQuery((api as any).commerceSubscriptions.portal.getPublicOffer, {
+        offerId: params.offerId as any,
+      }),
+    );
+    if (!offer) {
+      throwPublicNotFound({
+        reason: "offer_not_found",
+        offerId: params.offerId,
+      });
+    }
+  },
   head: () => ({
     meta: [
       { name: "robots", content: "noindex" },

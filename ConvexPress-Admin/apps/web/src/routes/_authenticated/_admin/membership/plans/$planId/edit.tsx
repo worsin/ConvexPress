@@ -94,8 +94,17 @@ function EditMembershipPlanPage() {
         name: string;
         slug: string;
         level?: number;
+        type?: string;
+        status?: string;
       }>
     | undefined;
+  const customerRoles = useMemo(
+    () =>
+      (roles ?? []).filter(
+        (role) => role.type === "customer" && role.status === "active",
+      ),
+    [roles],
+  );
 
   const updatePlan = useMutation(
     (api as any).membership.mutations.updatePlan,
@@ -525,7 +534,7 @@ function EditMembershipPlanPage() {
               <h2 className="text-sm font-semibold">Linked Role</h2>
               <p className="text-xs text-muted-foreground">
                 When set, members on this plan are automatically granted this
-                role for the lifetime of the grant.
+                customer role for the lifetime of the grant.
               </p>
             </div>
             <div className="grid gap-2">
@@ -535,7 +544,7 @@ function EditMembershipPlanPage() {
                 description="Members keep their existing role."
                 onClick={() => setLinkedRoleId("")}
               />
-              {roles?.map((role) => (
+              {customerRoles.map((role) => (
                 <RoleOption
                   key={role._id}
                   active={linkedRoleId === role._id}

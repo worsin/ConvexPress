@@ -15,6 +15,7 @@ const DEFAULT_IGNORE_NETWORK = [
 ];
 
 export interface SmokeOptions {
+	allowNotFound?: boolean;
 	expectHeading?: RegExp;
 	expectSelector?: string;
 	ignoreConsoleErrors?: RegExp[];
@@ -63,6 +64,31 @@ export async function smokeRoute(
 	});
 
 	const response = await page.goto(path, { waitUntil: "domcontentloaded" });
+	const status = response?.status();
+	const isAllowedNotFound = opts.allowNotFound === true && status === 404;
+	if (isAllowedNotFound) {
+		expect(
+			response?.headers()["x-robots-tag"],
+			`crawler header for intentional 404 on ${path}`,
+		).toContain("noindex");
+		await expect(page.locator("[data-slot='not-found-page']")).toBeVisible({
+			timeout: 20_000,
+		});
+		await page
+			.waitForLoadState("networkidle", { timeout: opts.settleTimeoutMs ?? 10_000 })
+			.catch(() => {});
+
+		const unexpectedConsoleErrors = consoleErrors.filter(
+			(text) =>
+				text !==
+				"Failed to load resource: the server responded with a status of 404 (Not Found)",
+		);
+
+		expect(unexpectedConsoleErrors, `console errors on ${path}`).toEqual([]);
+		expect(networkFailures, `network failures on ${path}`).toEqual([]);
+		return { status, notFound: true };
+	}
+
 	expect(response?.status(), `initial response status for ${path}`).toBeLessThan(400);
 
 	if (opts.expectSelector) {
@@ -84,4 +110,5 @@ export async function smokeRoute(
 
 	expect(consoleErrors, `console errors on ${path}`).toEqual([]);
 	expect(networkFailures, `network failures on ${path}`).toEqual([]);
+	return { status, notFound: false };
 }

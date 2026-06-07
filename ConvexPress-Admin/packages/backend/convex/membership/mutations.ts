@@ -26,7 +26,10 @@
 import { ConvexError, v } from "convex/values";
 
 import { mutation } from "../_generated/server";
-import { requireCan } from "../helpers/permissions";
+import {
+  getUnsafeMembershipLinkedCapabilities,
+  requireCan,
+} from "../helpers/permissions";
 import { requireMembershipEnabled } from "./helpers";
 import {
   membershipPlanStatusValidator,
@@ -35,6 +38,32 @@ import {
 import { requirePluginEnabled } from "../helpers/plugins";
 import { membershipResourceTypeValidator } from "./validators";
 import { syncMembershipPlanCourseEnrollmentsHandler } from "../lms/enrollment/internals";
+
+async function requireCustomerLinkedRole(ctx: any, roleId: any) {
+  if (!roleId) return;
+  const role = await ctx.db.get(roleId);
+  if (!role) {
+    throw new ConvexError({
+      code: "INVALID_LINKED_ROLE",
+      message: "Linked role was not found.",
+    });
+  }
+  if (role.status !== "active" || role.type !== "customer") {
+    throw new ConvexError({
+      code: "INVALID_LINKED_ROLE",
+      message: "Membership plans can only link active customer roles.",
+    });
+  }
+}
+
+function requireSafeLinkedCapabilities(linkedCapabilities: string[] | undefined) {
+  const unsafe = getUnsafeMembershipLinkedCapabilities(linkedCapabilities);
+  if (unsafe.length === 0) return;
+  throw new ConvexError({
+    code: "UNSAFE_LINKED_CAPABILITIES",
+    message: `Membership plans cannot grant admin/internal capabilities: ${unsafe.join(", ")}.`,
+  });
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PLAN CRUD
@@ -74,6 +103,8 @@ export const createPlan = mutation({
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
+    await requireCustomerLinkedRole(ctx, args.linkedRoleId);
+    requireSafeLinkedCapabilities(args.linkedCapabilities);
 
     // Check slug uniqueness
     const existing = await ctx.db
@@ -163,6 +194,12 @@ export const updatePlan = mutation({
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
     await requireCan(ctx, "manage_options");
+    if (args.linkedRoleId !== undefined) {
+      await requireCustomerLinkedRole(ctx, args.linkedRoleId);
+    }
+    if (args.linkedCapabilities !== undefined) {
+      requireSafeLinkedCapabilities(args.linkedCapabilities);
+    }
 
     const plan = await ctx.db.get(args.planId);
     if (!plan) {

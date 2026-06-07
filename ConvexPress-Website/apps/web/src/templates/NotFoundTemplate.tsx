@@ -17,6 +17,7 @@ export interface NotFoundTemplateProps {
 export function NotFoundTemplate({ children }: NotFoundTemplateProps) {
   return (
     <div
+      data-slot="not-found-page"
       className="mx-auto flex min-h-[50vh] w-full flex-col items-center justify-center text-center"
       style={{ maxWidth: "var(--sh-layout-content, 720px)" }}
     >
