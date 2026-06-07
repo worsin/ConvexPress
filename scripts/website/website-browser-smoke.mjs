@@ -5,6 +5,8 @@ import { join } from "node:path";
 const root = resolveWebsiteAppRoot(process.cwd());
 const require = createRequire(join(root, "package.json"));
 const { chromium } = require("@playwright/test");
+const { ConvexHttpClient } = require("convex/browser");
+const { api } = require("@convexpress-website/backend/generated/api");
 const { config: loadEnv } = require("dotenv");
 loadEnv({ path: join(root, ".env.local") });
 loadEnv({ path: join(root, ".env") });
@@ -34,10 +36,27 @@ const requiredPaths = [
   "/dashboard",
 ];
 
-const staticRoutePaths = getStaticWebsiteRoutePaths();
+const pluginRouteRequirements = [
+  { pluginId: "commerce", prefixes: ["/cart", "/categories", "/checkout", "/products", "/shop"] },
+  { pluginId: "commerceBundles", prefixes: ["/bundles"] },
+  { pluginId: "commerceDigital", prefixes: ["/dashboard/downloads"] },
+  { pluginId: "commerceReturns", prefixes: ["/dashboard/returns"] },
+  { pluginId: "commerceReviews", prefixes: ["/dashboard/reviews", "/reviews"] },
+  { pluginId: "commerceSubscriptions", prefixes: ["/dashboard/subscriptions", "/pricing", "/signup"] },
+  { pluginId: "commerceWishlists", prefixes: ["/dashboard/wishlist", "/wishlist"] },
+  { pluginId: "forms", prefixes: ["/forms"] },
+  { pluginId: "gallery", prefixes: ["/gallery"] },
+  { pluginId: "kb", prefixes: ["/help"] },
+  { pluginId: "lms", prefixes: ["/certificates", "/courses", "/dashboard/courses"] },
+  { pluginId: "membership", prefixes: ["/dashboard/membership", "/membership"] },
+  { pluginId: "recipes", prefixes: ["/recipes"] },
+  { pluginId: "tickets", prefixes: ["/support"] },
+];
+
+const routeSelection = await getRoutesToCheck();
 const routesToCheck = routeLimit
-  ? staticRoutePaths.slice(0, routeLimit)
-  : staticRoutePaths;
+  ? routeSelection.routes.slice(0, routeLimit)
+  : routeSelection.routes;
 
 function resolveWebsiteAppRoot(cwd) {
   if (existsSync(join(cwd, "src/routeTree.gen.ts"))) return cwd;
@@ -96,6 +115,90 @@ function getStaticWebsiteRoutePaths() {
   return [...new Set([...requiredPaths, ...discovered])];
 }
 
+async function getRoutesToCheck() {
+  const allRoutes = getStaticWebsiteRoutePaths();
+  const settings = await getPublicSettings();
+  if (!settings) return { routes: allRoutes, skipped: [] };
+
+  const skipped = [];
+  const routes = [];
+  for (const route of allRoutes) {
+    const disabledPluginId = getDisabledPluginForRoute(route, settings);
+    if (disabledPluginId) {
+      skipped.push({ route, pluginId: disabledPluginId });
+    } else {
+      routes.push(route);
+    }
+  }
+
+  return { routes, skipped };
+}
+
+async function getPublicSettings() {
+  if (!process.env.VITE_CONVEX_URL) return null;
+  const client = new ConvexHttpClient(process.env.VITE_CONVEX_URL);
+  return await client.query(api.settings.queries.getPublic, {});
+}
+
+function getDisabledPluginForRoute(route, settings) {
+  for (const requirement of pluginRouteRequirements) {
+    if (
+      requirement.prefixes.some(
+        (prefix) => route === prefix || route.startsWith(`${prefix}/`),
+      ) &&
+      !isPublicPluginEnabled(requirement.pluginId, settings)
+    ) {
+      return requirement.pluginId;
+    }
+  }
+  return null;
+}
+
+function isPublicPluginEnabled(pluginId, settings) {
+  if (!settings) return false;
+
+  const commerceEnabled = settings.plugins?.commerceEnabled === true;
+
+  switch (pluginId) {
+    case "commerce":
+      return commerceEnabled;
+    case "commerceDigital":
+      return commerceEnabled && settings.plugins?.commerceDigitalEnabled === true;
+    case "commerceReviews":
+      return commerceEnabled && settings.plugins?.commerceReviewsEnabled === true;
+    case "commerceSubscriptions":
+      return (
+        commerceEnabled &&
+        settings.plugins?.commerceSubscriptionsEnabled === true
+      );
+    case "commerceWishlists":
+      return commerceEnabled && settings.plugins?.commerceWishlistsEnabled === true;
+    case "commerceBundles":
+      return commerceEnabled && settings.plugins?.commerceBundlesEnabled === true;
+    case "commerceReturns":
+      return commerceEnabled && settings.plugins?.commerceReturnsEnabled === true;
+    case "kb":
+      return (
+        settings.plugins?.knowledgeBaseEnabled === true ||
+        settings.plugins?.kbEnabled === true
+      );
+    case "tickets":
+      return settings.plugins?.ticketsEnabled === true;
+    case "recipes":
+      return settings.plugins?.recipesEnabled === true;
+    case "gallery":
+      return settings.plugins?.galleryEnabled === true;
+    case "membership":
+      return settings.plugins?.membershipEnabled === true;
+    case "lms":
+      return settings.plugins?.lmsEnabled !== false;
+    case "forms":
+      return settings.plugins?.formsEnabled === true;
+    default:
+      return false;
+  }
+}
+
 function isIgnoredRequest(url) {
   return (
     url.endsWith("/favicon.ico") ||
@@ -143,21 +246,22 @@ async function main() {
   const browser = await chromium.launch({ headless: !headed });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const failures = [];
+  let currentPath = "";
 
   page.on("console", (message) => {
     if (message.type() === "error" && !isIgnoredConsole(message)) {
-      failures.push(`console error: ${message.text()}`);
+      failures.push(`${currentPath || "(unknown route)"} console error: ${message.text()}`);
     }
   });
   page.on("pageerror", (error) => {
     if (!isIgnoredPageError(error)) {
-      failures.push(`page error: ${error.message}`);
+      failures.push(`${currentPath || "(unknown route)"} page error: ${error.message}`);
     }
   });
   page.on("requestfailed", (request) => {
     if (!isIgnoredRequestFailure(request)) {
       failures.push(
-        `request failed: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`,
+        `${currentPath || "(unknown route)"} request failed: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`,
       );
     }
   });
@@ -169,15 +273,16 @@ async function main() {
       response.request().resourceType() === "document" &&
       !isIgnoredRequest(url)
     ) {
-      failures.push(`document response ${status}: ${url}`);
+      failures.push(`${currentPath || "(unknown route)"} document response ${status}: ${url}`);
     }
     if (status >= 500 && !isIgnoredRequest(url)) {
-      failures.push(`server response ${status}: ${url}`);
+      failures.push(`${currentPath || "(unknown route)"} server response ${status}: ${url}`);
     }
   });
 
   try {
     for (const path of routesToCheck) {
+      currentPath = path;
       await checkRoute(page, path);
       if (failures.length > 0) break;
     }
@@ -186,7 +291,9 @@ async function main() {
       throw new Error(failures.slice(0, 10).join("\n"));
     }
 
-    console.log(`Website browser smoke passed: ${routesToCheck.length} routes checked.`);
+    console.log(
+      `Website browser smoke passed: ${routesToCheck.length} routes checked; ${routeSelection.skipped.length} disabled plugin routes skipped.`,
+    );
   } finally {
     await browser.close();
   }

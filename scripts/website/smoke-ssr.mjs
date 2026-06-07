@@ -1,4 +1,13 @@
+import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
+import { join } from "node:path";
+
+const root = resolveWebsiteAppRoot(process.cwd());
+const require = createRequire(join(root, "package.json"));
+const { config: loadEnv } = require("dotenv");
+loadEnv({ path: join(root, ".env.local") });
+loadEnv({ path: join(root, ".env") });
 
 const previewPort = Number.parseInt(process.env.SMOKE_SSR_PORT ?? "4173", 10);
 const previewHost = process.env.SMOKE_SSR_HOST ?? "127.0.0.1";
@@ -33,13 +42,26 @@ const routeChecks = [
   },
 ];
 
+function resolveWebsiteAppRoot(cwd) {
+  if (existsSync(join(cwd, "src/routeTree.gen.ts"))) return cwd;
+  const monorepoApp = join(cwd, "apps/web");
+  if (existsSync(join(monorepoApp, "src/routeTree.gen.ts"))) return monorepoApp;
+  const workspaceApp = join(cwd, "ConvexPress-Website/apps/web");
+  if (existsSync(join(workspaceApp, "src/routeTree.gen.ts"))) {
+    return workspaceApp;
+  }
+  throw new Error(
+    "Unable to locate ConvexPress-Website/apps/web/src/routeTree.gen.ts for SSR smoke.",
+  );
+}
+
 if (!process.env.VITE_CONVEX_URL) {
   console.log("Skipping SSR smoke test because VITE_CONVEX_URL is not set.");
   process.exit(0);
 }
 
 const preview = spawn("bun", previewArgs, {
-  cwd: process.cwd(),
+  cwd: root,
   env: process.env,
   stdio: ["ignore", "pipe", "pipe"],
 });
