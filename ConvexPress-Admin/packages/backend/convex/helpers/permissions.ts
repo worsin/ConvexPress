@@ -605,21 +605,23 @@ export async function requireCanOnResource(
   const userRole = await resolveUserRole(ctx, user);
   const resolvedCap = await mapMetaCap(ctx, capability, user._id, resourceId);
   if (!resolvedCap) {
+    console.warn(
+      `Resource access denied: user=${user._id} capability=${capability} role=${userRole?.slug ?? "none"}`,
+    );
     throw new ConvexError({
       code: "FORBIDDEN",
-      message: `Missing capability: ${capability} (resolved: access denied)`,
-      capability,
-      role: userRole?.slug ?? "none",
+      message: "Insufficient permissions",
     });
   }
 
   const capabilities = userRole?.capabilities ?? [];
   if (!capabilities.includes(resolvedCap)) {
+    console.warn(
+      `Resource access denied: user=${user._id} capability=${resolvedCap} role=${userRole?.slug ?? "none"}`,
+    );
     throw new ConvexError({
       code: "FORBIDDEN",
-      message: `Missing capability: ${resolvedCap}`,
-      capability: resolvedCap,
-      role: userRole?.slug ?? "none",
+      message: "Insufficient permissions",
     });
   }
 
@@ -679,9 +681,12 @@ export async function requireMinimumRoleLevel(
   const level = role?.level ?? 0;
 
   if (level < minLevel) {
+    console.warn(
+      `Role level access denied: user=${user._id} required=${minLevel} current=${level} role=${role?.slug ?? "none"}`,
+    );
     throw new ConvexError({
       code: "FORBIDDEN",
-      message: `Role level ${minLevel}+ required (current: ${level})`,
+      message: "Insufficient permissions",
     });
   }
 

@@ -1,6 +1,4 @@
-import { useQuery } from "convex/react";
-import { api } from "@convexpress-website/backend/generated/api";
-
+import { useSettings } from "@/contexts/SettingsContext";
 import type { SiteIdentity } from "@/lib/layout/types";
 
 /**
@@ -10,10 +8,10 @@ import type { SiteIdentity } from "@/lib/layout/types";
  * Data source: Settings System (api.settings.queries.getPublic)
  */
 export function useSiteIdentity(): SiteIdentity | undefined {
-  const publicSettings = useQuery(api.settings.queries.getPublic);
+  const publicSettings = useSettings();
 
   // While settings are loading, return a static fallback to avoid layout shift
-  if (publicSettings === undefined) {
+  if (!publicSettings) {
     return {
       title: "ConvexPress",
       tagline: "A modern CMS",

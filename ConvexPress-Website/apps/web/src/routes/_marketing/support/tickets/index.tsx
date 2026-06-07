@@ -48,6 +48,16 @@ type TicketListItem = {
 function MyTicketsPage() {
   const { isSignedIn, isLoaded } = useAuth();
   const search = Route.useSearch();
+  const result = useQuery(
+    api.tickets.queries.getMyTickets,
+    isLoaded && isSignedIn
+      ? {
+          status: search.status as "open" | "awaitingResponse" | "inProgress" | "resolved" | "closed" | undefined,
+          paginationOpts: { numItems: 25, cursor: null },
+        }
+      : "skip",
+  ) as { page: TicketListItem[] } | null | undefined;
+  const tickets = result?.page ?? [];
 
   if (!isLoaded) {
     return (
@@ -56,17 +66,6 @@ function MyTicketsPage() {
       </div>
     );
   }
-
-  const result = useQuery(
-    api.tickets.queries.getMyTickets,
-    isSignedIn
-      ? {
-          status: search.status as "open" | "awaitingResponse" | "inProgress" | "resolved" | "closed" | undefined,
-          paginationOpts: { numItems: 25, cursor: null },
-        }
-      : "skip",
-  ) as { page: TicketListItem[] } | null | undefined;
-  const tickets = result?.page ?? [];
 
   if (!isSignedIn) {
     return (

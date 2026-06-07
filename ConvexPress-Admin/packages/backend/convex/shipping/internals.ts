@@ -438,7 +438,10 @@ export const checkShippingAdminAction = internalQuery({
     }
 
     if (!capabilities.includes(args.capability)) {
-      throw new Error(`Missing capability: ${args.capability}`);
+      console.warn(
+        `Shipping admin action denied: user=${user._id} capability=${args.capability}`,
+      );
+      throw new Error("Insufficient permissions");
     }
 
     return { authorized: true, userId: user._id };

@@ -1,6 +1,4 @@
-import { useQuery } from "convex/react";
-import { api } from "@convexpress-website/backend/generated/api";
-
+import { useSettings } from "@/contexts/SettingsContext";
 import type { HeaderConfig } from "@/lib/layout/types";
 
 /**
@@ -26,7 +24,7 @@ const DEFAULT_HEADER_CONFIG: HeaderConfig = {
  * Returns sensible defaults while loading or if no config is stored.
  */
 export function useHeaderConfig(): HeaderConfig {
-  const publicSettings = useQuery(api.settings.queries.getPublic);
+  const publicSettings = useSettings();
 
   if (!publicSettings?.headerConfig) {
     return DEFAULT_HEADER_CONFIG;

@@ -1,6 +1,4 @@
-import { useQuery } from "convex/react";
-import { api } from "@convexpress-website/backend/generated/api";
-
+import { useSettings } from "@/contexts/SettingsContext";
 import type { FooterConfig } from "@/lib/layout/types";
 
 /**
@@ -24,7 +22,7 @@ const DEFAULT_FOOTER_CONFIG: FooterConfig = {
  * Returns sensible defaults while loading or if no config is stored.
  */
 export function useFooterConfig(): FooterConfig {
-  const publicSettings = useQuery(api.settings.queries.getPublic);
+  const publicSettings = useSettings();
 
   if (!publicSettings?.footerConfig) {
     return DEFAULT_FOOTER_CONFIG;

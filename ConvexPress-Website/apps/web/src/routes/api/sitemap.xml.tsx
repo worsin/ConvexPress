@@ -9,7 +9,8 @@
  *   - Cache-Control: public, max-age=3600, s-maxage=3600 (1 hour)
  *   - X-Robots-Tag: noindex (sitemaps themselves should not be indexed)
  *
- * Returns 404 if sitemaps are disabled or no cached index exists.
+ * Falls back to a minimal valid sitemap when Convex or the cached index is
+ * unavailable, keeping the public SEO endpoint crawlable during setup.
  *
  * Performance: O(1) - single Convex query returning pre-generated XML.
  */
@@ -23,18 +24,19 @@ const CONVEX_URL = process.env.VITE_CONVEX_URL || "";
 export const Route = createFileRoute("/api/sitemap/xml")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
+        const fallback = () => sitemapFallbackResponse(request.url);
+
+        if (!CONVEX_URL) {
+          return fallback();
+        }
+
         try {
           const client = new ConvexHttpClient(CONVEX_URL);
           const result = await client.query(api.sitemaps.queries.getIndex, {});
 
           if (!result) {
-            return new Response("Sitemap not found", {
-              status: 404,
-              headers: {
-                "Content-Type": "text/plain; charset=utf-8",
-              },
-            });
+            return fallback();
           }
 
           return new Response(result.xml, {
@@ -47,14 +49,32 @@ export const Route = createFileRoute("/api/sitemap/xml")({
           });
         } catch (error: unknown) {
           console.error("Failed to fetch sitemap index from Convex:", error);
-          return new Response("Internal Server Error", {
-            status: 500,
-            headers: {
-              "Content-Type": "text/plain; charset=utf-8",
-            },
-          });
+          return fallback();
         }
       },
     },
   },
 });
+
+function sitemapFallbackResponse(requestUrl: string): Response {
+  const origin = new URL(requestUrl).origin;
+  const xml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    "  <url>",
+    `    <loc>${origin}/</loc>`,
+    "    <changefreq>daily</changefreq>",
+    "    <priority>1.0</priority>",
+    "  </url>",
+    "</urlset>",
+  ].join("\n");
+
+  return new Response(xml, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/xml; charset=utf-8",
+      "Cache-Control": "public, max-age=300, s-maxage=300",
+      "X-Robots-Tag": "noindex",
+    },
+  });
+}

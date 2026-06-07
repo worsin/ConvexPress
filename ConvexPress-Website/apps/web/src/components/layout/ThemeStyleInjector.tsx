@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@convexpress-website/backend/generated/api";
+
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface PaletteEntry {
   slug?: unknown;
@@ -36,7 +36,7 @@ function toCssVariables(entries: PaletteEntry[] | undefined): string {
  * token list, and Tailwind variable classes consume the values immediately.
  */
 export function ThemeStyleInjector() {
-  const publicSettings = useQuery(api.settings.queries.getPublic);
+  const publicSettings = useSettings();
   const cssText = useMemo(
     () => toCssVariables((publicSettings as any)?.colorPalette as PaletteEntry[] | undefined),
     [publicSettings],

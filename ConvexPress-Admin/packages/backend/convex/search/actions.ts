@@ -148,9 +148,12 @@ export const reindex = action({
         { userId: identity.subject },
       );
       if (!canReindex) {
+        console.warn(
+          `Search reindex access denied: subject=${identity.subject}`,
+        );
         throw new ConvexError({
           code: "FORBIDDEN",
-          message: "You do not have permission to trigger a full reindex. Requires search.reindex or manage_options capability.",
+          message: "Insufficient permissions",
         });
       }
     }

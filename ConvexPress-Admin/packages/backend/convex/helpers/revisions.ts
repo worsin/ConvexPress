@@ -102,18 +102,24 @@ export async function requireRevisionAccess(
   const level = role?.level ?? 0;
 
   if (!capabilities.includes(capability)) {
+    console.warn(
+      `Revision access denied: user=${user._id} capability=${capability} role=${role?.slug ?? "none"}`,
+    );
     throw new ConvexError({
       code: "FORBIDDEN",
-      message: `Missing capability: ${capability}`,
+      message: "Insufficient permissions",
     });
   }
 
   // Check ownership: post.authorId and user._id are both Convex Id<"users">
   const isOwner = post.authorId === user._id;
   if (!isOwner && level < 80) {
+    console.warn(
+      `Revision access denied: user=${user._id} capability=${capability} role=${role?.slug ?? "none"} reason=not_owner`,
+    );
     throw new ConvexError({
       code: "FORBIDDEN",
-      message: `Cannot access revisions of another user's post (Editor+ required)`,
+      message: "Insufficient permissions",
     });
   }
 }

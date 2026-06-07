@@ -30,7 +30,7 @@ export default defineConfig({
 		},
 		{
 			name: "chromium-authed",
-			testMatch: /dashboard\.spec\.ts/,
+			testMatch: /dashboard\.pw\.ts/,
 			use: {
 				...devices["Desktop Chrome"],
 				storageState: "tests/smoke/.auth/user.json",
@@ -39,7 +39,7 @@ export default defineConfig({
 		},
 		{
 			name: "chromium-anon",
-			testMatch: /(anon-.*|api-.*)\.spec\.ts/,
+			testMatch: /(anon-.*|api-.*)\.pw\.ts/,
 			use: { ...devices["Desktop Chrome"] },
 		},
 	],

@@ -755,9 +755,12 @@ export const verifyWebhookTestPermission = internalMutation({
     }
 
     if (!capabilities.includes("api.create_webhook")) {
+      console.warn(
+        `Webhook test access denied: user=${user._id} capability=api.create_webhook`,
+      );
       return {
         authorized: false,
-        error: "Missing capability: api.create_webhook",
+        error: "Insufficient permissions",
         errorCode: "FORBIDDEN" as const,
       };
     }

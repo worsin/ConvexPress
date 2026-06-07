@@ -18,6 +18,7 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
+    "test": "bun test",
     "check:guardrails": "node ../scripts/admin/check-admin-guardrails.mjs",
     "check:blocks": "node ../scripts/admin/check-block-catalog.mjs",
     "check:smoke": "node ../scripts/admin/check-admin-smoke.mjs",

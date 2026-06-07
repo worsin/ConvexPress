@@ -25,7 +25,8 @@
  */
 
 import { createContext, useContext, type ReactNode } from "react";
-import { useQuery } from "convex/react";
+import { convexQuery } from "@convex-dev/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@convexpress-website/backend/generated/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -150,7 +151,9 @@ interface SettingsProviderProps {
  * Place this as high as possible in the component tree (root layout).
  */
 export function SettingsProvider({ children }: SettingsProviderProps) {
-  const settings = useQuery(api.settings.queries.getPublic);
+  const { data: settings } = useQuery(
+    convexQuery(api.settings.queries.getPublic, {}) as any,
+  ) as { data: PublicSettings | null | undefined };
 
   return (
     <SettingsContext value={settings ?? null}>

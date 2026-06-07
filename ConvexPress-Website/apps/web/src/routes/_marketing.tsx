@@ -1,5 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { convexQuery } from "@convex-dev/react-query";
 import { useUser } from "@clerk/clerk-react";
+import { api } from "@convexpress-website/backend/generated/api";
 
 import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
 import { BackToTop } from "@/components/layout/BackToTop";
@@ -27,7 +29,10 @@ export const Route = createFileRoute("/_marketing")({
     // SSR route restriction: check if this pathname is membership-gated.
     // Fails softly (returns allowed:true) on any error so existing pages
     // are never accidentally broken by the restriction check.
-    const routeAccess = await checkRouteAccess(queryClient, location.pathname);
+    const [routeAccess] = await Promise.all([
+      checkRouteAccess(queryClient, location.pathname),
+      queryClient.ensureQueryData(convexQuery(api.settings.queries.getPublic, {})),
+    ]);
     return { routeAccess };
   },
   component: MarketingLayout,

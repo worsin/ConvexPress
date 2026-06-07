@@ -175,8 +175,9 @@ export async function getUserRoleLevel(
 // ─── Internal Helpers ───────────────────────────────────────────────────────
 
 function forbidden(detail: string): ConvexError<{ code: string; message: string }> {
+  console.warn(`Post access denied: ${detail}`);
   return new ConvexError({
     code: "FORBIDDEN",
-    message: `Insufficient permissions: ${detail}`,
+    message: "Insufficient permissions",
   });
 }

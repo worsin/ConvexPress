@@ -67,9 +67,12 @@ export const checkCapability = internalQuery({
     }
 
     if (!capabilities.includes(args.capability)) {
+      console.warn(
+        `Sitemap access denied: user=${user._id} capability=${args.capability}`,
+      );
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: `Missing capability: ${args.capability}`,
+        message: "Insufficient permissions",
       });
     }
 

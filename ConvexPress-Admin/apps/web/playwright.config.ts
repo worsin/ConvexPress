@@ -27,12 +27,12 @@ export default defineConfig({
 	projects: [
 		{
 			name: "chromium-authed",
-			testMatch: /admin-.*\.spec\.ts/,
+			testMatch: /admin-.*\.pw\.ts/,
 			use: { ...devices["Desktop Chrome"] },
 		},
 		{
 			name: "chromium-anon",
-			testMatch: /anon-.*\.spec\.ts/,
+			testMatch: /anon-.*\.pw\.ts/,
 			use: { ...devices["Desktop Chrome"] },
 		},
 	],

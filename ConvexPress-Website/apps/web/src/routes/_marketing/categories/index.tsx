@@ -5,6 +5,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { FolderTree, PackageOpen } from "lucide-react";
 
 import { MediaImage } from "@/components/media/MediaImage";
+import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
 
 type ProductCategory = {
@@ -27,9 +28,11 @@ export const Route = createFileRoute("/_marketing/categories/")({
     const siteUrl = normalizeSiteUrl(
       (publicSettings as { siteUrl?: string | null })?.siteUrl,
     );
-    await queryClient.ensureQueryData(
-      convexQuery(api.commerce.categories.getTree, {}),
-    );
+    if (isPublicPluginEnabled("commerce", publicSettings as any)) {
+      await queryClient.ensureQueryData(
+        convexQuery(api.commerce.categories.getTree, {}),
+      );
+    }
 
     return {
       seoHead: buildSeoHead({
