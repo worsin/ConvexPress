@@ -87,9 +87,6 @@ export default defineConfig(({ mode }) => {
             if (id.includes("/@clerk/")) {
               return "vendor-clerk";
             }
-            if (id.includes("/@base-ui/")) {
-              return "vendor-base-ui";
-            }
             if (id.includes("/lucide-react/") || id.includes("/@icons-pack/")) {
               return "vendor-icons";
             }
@@ -114,6 +111,7 @@ export default defineConfig(({ mode }) => {
             if (
               id.includes("/react/") ||
               id.includes("/react-dom/") ||
+              id.includes("/@base-ui/") ||
               id.includes("/scheduler/") ||
               id.includes("/use-sync-external-store/") ||
               id.includes("react-dom") ||

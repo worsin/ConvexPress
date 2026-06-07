@@ -5,7 +5,7 @@
  * below, leaving real customer/admin-authored courses alone.
  */
 
-// @ts-nocheck
+// @ts-nocheck TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation } from "../_generated/server";

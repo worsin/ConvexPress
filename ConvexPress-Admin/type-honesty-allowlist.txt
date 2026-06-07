@@ -28,6 +28,7 @@ apps/web/src/components/admin/SynonymManager.tsx
 apps/web/src/components/analytics/**
 apps/web/src/components/custom-fields/**
 apps/web/src/components/recipes/**
+apps/web/src/components/forms/calc/__tests__/**
 apps/web/src/components/shared/AirtableSyncButton.tsx
 apps/web/src/routes/_authenticated/_admin/kb/**
 apps/web/src/routes/_authenticated/_admin/support/**
@@ -66,6 +67,7 @@ packages/backend/convex/membership/**
 packages/backend/convex/notifications/**
 packages/backend/convex/password/**
 packages/backend/convex/productAttributes/**
+packages/backend/convex/purchases/**
 packages/backend/convex/profiles/**
 packages/backend/convex/recipes/**
 packages/backend/convex/registration/**
@@ -79,3 +81,11 @@ packages/backend/convex/support/**
 packages/backend/convex/themes/**
 packages/backend/convex/tickets/**
 packages/backend/convex/wordpressSync/**
+
+# Test harness TS globals and deliberate negative type assertions
+packages/backend/convex/extensions/forms/__tests__/**
+packages/backend/convex/extensions/forms/**/__tests__/**
+packages/backend/convex/lms/__tests__/**
+
+# Seed helper hits Convex generated API type-depth limits
+packages/backend/convex/lms/seed.ts

@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 import { ConvexError, v } from "convex/values";
 
 import { query } from "../_generated/server";

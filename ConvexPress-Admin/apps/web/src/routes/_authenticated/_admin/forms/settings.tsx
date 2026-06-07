@@ -138,8 +138,7 @@ function SecuritySettingsForm() {
     const changed: Partial<SecurityForm> = {};
     (Object.keys(form) as (keyof SecurityForm)[]).forEach((key) => {
       if (form[key] !== base[key]) {
-        // @ts-expect-error narrowing across the union key is safe here.
-        changed[key] = form[key];
+        Object.assign(changed, { [key]: form[key] });
       }
     });
     if (Object.keys(changed).length === 0) {
