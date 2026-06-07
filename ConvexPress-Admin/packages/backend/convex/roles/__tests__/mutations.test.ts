@@ -9,6 +9,7 @@ const ADMIN_ISSUER = "https://convexpress-admin.local";
 const modules = {
   "./convex/_generated/api.js": () => import("../../_generated/api.js"),
   "./convex/_generated/server.js": () => import("../../_generated/server.js"),
+  "./convex/auth/adminPresence.ts": () => import("../../auth/adminPresence"),
   "./convex/roles/mutations.ts": () => import("../mutations"),
 };
 
@@ -211,5 +212,79 @@ describe("roles mutations", () => {
     });
 
     expect(editorRole?.status).toBe("inactive");
+  });
+
+  test("blocks demoting the only login-capable administrator when stale admin records exist", async () => {
+    const t = createHarness();
+    const fixture = await seedAdminRoleFixture(t);
+    const now = Date.now();
+
+    const managerUserId = await t.run(async (ctx) => {
+      const managerRoleId = await ctx.db.insert("roles", {
+        name: "Role Manager",
+        slug: "role-manager",
+        description: "Can assign roles but is not an administrator.",
+        level: 90,
+        type: "internal",
+        isDefault: false,
+        isProtected: false,
+        capabilities: ["role.assign"],
+        pageAccess: ["/admin", "/admin/users"],
+        status: "active",
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await ctx.db.insert("users", {
+        authSource: "local",
+        email: "inactive-admin@example.com",
+        username: "inactiveadmin",
+        passwordHash: "not-a-real-hash",
+        displayName: "Inactive Admin",
+        slug: "inactive-admin",
+        emailVerified: true,
+        status: "inactive",
+        isInternal: true,
+        internalRole: "admin",
+        roleId: fixture.adminRoleId,
+        registrationMethod: "self",
+        registeredAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      return await ctx.db.insert("users", {
+        authSource: "local",
+        email: "role-manager@example.com",
+        username: "rolemanager",
+        passwordHash: "not-a-real-hash",
+        displayName: "Role Manager",
+        slug: "role-manager",
+        emailVerified: true,
+        status: "active",
+        isInternal: true,
+        internalRole: "editor",
+        roleId: managerRoleId,
+        registrationMethod: "self",
+        registeredAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+    });
+
+    const manager = withLocalAdminIdentity(t, managerUserId);
+
+    await expect(
+      manager.mutation(api.roles.mutations.assign, {
+        userId: fixture.adminUserId,
+        roleId: fixture.editorRoleId,
+      }),
+    ).rejects.toThrow("Cannot remove the last Administrator");
+
+    const adminUser = await t.run(async (ctx) => {
+      return await ctx.db.get(fixture.adminUserId);
+    });
+
+    expect(adminUser?.roleId).toBe(fixture.adminRoleId);
   });
 });

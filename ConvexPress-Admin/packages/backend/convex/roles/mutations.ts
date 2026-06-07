@@ -21,6 +21,10 @@ import { emitEvent } from "../helpers/events";
 import { ROLE_EVENTS, SYSTEM } from "../events/constants";
 import { isValidCapability, type Capability } from "../types/capabilities";
 import {
+  canUseLocalAdminLogin,
+  hasOtherActiveAdmin,
+} from "../auth/adminPresence";
+import {
   assignRoleArgs,
   createRoleArgs,
   grantCapabilityArgs,
@@ -430,29 +434,28 @@ export const assign = mutation({
     const oldRoleId = targetUser.roleId ?? null;
     if (oldRoleId) {
       const oldRole = await ctx.db.get("roles", oldRoleId);
-      if (oldRole && oldRole.slug === ADMIN_ROLE_SLUG && newRole.slug !== ADMIN_ROLE_SLUG) {
-        // Count how many users have the Administrator role
-        const admins = await ctx.db
-          .query("users")
-          .withIndex("by_roleId", (q) => q.eq("roleId", oldRoleId))
-          .collect();
-
-        if (admins.length <= 1) {
+      if (
+        oldRole &&
+        oldRole.slug === ADMIN_ROLE_SLUG &&
+        newRole.slug !== ADMIN_ROLE_SLUG &&
+        canUseLocalAdminLogin(targetUser)
+      ) {
+        if (!(await hasOtherActiveAdmin(ctx, args.userId))) {
           throw new ConvexError({
             code: "FORBIDDEN",
             message: "Cannot remove the last Administrator. Promote another user first.",
           });
         }
       }
-    } else if (targetUser.internalRole === "admin") {
+    } else if (
+      targetUser.internalRole === "admin" &&
+      canUseLocalAdminLogin(targetUser)
+    ) {
       // Legacy admin check - user hasn't been migrated yet
-      // Check if there are other admins via legacy field
-      const legacyAdmins = await ctx.db
-        .query("users")
-        .withIndex("by_internal_role", (q) => q.eq("internalRole", "admin"))
-        .collect();
-
-      if (legacyAdmins.length <= 1 && newRole.slug !== ADMIN_ROLE_SLUG) {
+      if (
+        newRole.slug !== ADMIN_ROLE_SLUG &&
+        !(await hasOtherActiveAdmin(ctx, args.userId))
+      ) {
         throw new ConvexError({
           code: "FORBIDDEN",
           message: "Cannot remove the last Administrator. Promote another user first.",

@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 
@@ -15,6 +16,9 @@ const baseUrl = normalizeBaseUrl(
 );
 const routeLimit = parsePositiveInt(process.env.WEBSITE_SMOKE_ROUTE_LIMIT);
 const headed = process.env.WEBSITE_SMOKE_HEADED === "1";
+const previewUrl = new URL(baseUrl);
+const previewHost = previewUrl.hostname;
+const previewPort = previewUrl.port || (previewUrl.protocol === "https:" ? "443" : "80");
 
 const requiredPaths = [
   "/",
@@ -57,6 +61,7 @@ const routeSelection = await getRoutesToCheck();
 const routesToCheck = routeLimit
   ? routeSelection.routes.slice(0, routeLimit)
   : routeSelection.routes;
+const preview = await ensurePreviewServer();
 
 function resolveWebsiteAppRoot(cwd) {
   if (existsSync(join(cwd, "src/routeTree.gen.ts"))) return cwd;
@@ -199,6 +204,87 @@ function isPublicPluginEnabled(pluginId, settings) {
   }
 }
 
+async function ensurePreviewServer() {
+  if (await canReachBaseUrl()) return null;
+  if (!isLoopbackHost(previewHost)) {
+    throw new Error(
+      `Unable to reach ${baseUrl}. Start that server first, or use a localhost WEBSITE_SMOKE_BASE_URL so this smoke can start vite preview.`,
+    );
+  }
+
+  const previewProcess = spawn(
+    "bun",
+    [
+      "x",
+      "vite",
+      "preview",
+      "--host",
+      previewHost,
+      "--port",
+      previewPort,
+      "--strictPort",
+    ],
+    {
+      cwd: root,
+      env: process.env,
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  let previewOutput = "";
+
+  previewProcess.stdout.on("data", (chunk) => {
+    previewOutput += chunk.toString();
+  });
+  previewProcess.stderr.on("data", (chunk) => {
+    previewOutput += chunk.toString();
+  });
+
+  await waitForPreview(previewProcess, () => previewOutput);
+  return previewProcess;
+}
+
+async function canReachBaseUrl() {
+  try {
+    const response = await fetch(baseUrl, { redirect: "manual" });
+    return response.ok || response.status === 302 || response.status === 307 || response.status === 404;
+  } catch {
+    return false;
+  }
+}
+
+function isLoopbackHost(hostname) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+async function waitForPreview(previewProcess, getOutput) {
+  const start = Date.now();
+
+  while (Date.now() - start < 15_000) {
+    if (previewProcess.exitCode !== null) {
+      throw new Error(
+        `vite preview exited before it was ready. Output:\n${getOutput()}`,
+      );
+    }
+    if (await canReachBaseUrl()) return;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  throw new Error(`Timed out waiting for vite preview. Output:\n${getOutput()}`);
+}
+
+async function stopPreview(previewProcess) {
+  if (!previewProcess || previewProcess.exitCode !== null) return;
+  previewProcess.kill("SIGTERM");
+  await new Promise((resolve) => {
+    const timeout = setTimeout(resolve, 2_000);
+    timeout.unref?.();
+    previewProcess.once("exit", () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+  });
+}
+
 function isIgnoredRequest(url) {
   return (
     url.endsWith("/favicon.ico") ||
@@ -296,6 +382,7 @@ async function main() {
     );
   } finally {
     await browser.close();
+    await stopPreview(preview);
   }
 }
 

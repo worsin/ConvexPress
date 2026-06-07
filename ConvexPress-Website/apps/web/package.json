@@ -15,7 +15,7 @@
     "test:smoke": "playwright test",
     "test:smoke:ui": "playwright test --ui",
     "test:smoke:headed": "playwright test --headed",
-    "quality": "bun run lint && bun run check-types && bun run build && bun run check:seo && bun run check:bundle && bun run smoke:ssr",
+    "quality": "bun run lint && bun run check-types && bun run build && bun run check:seo && bun run check:bundle && bun run smoke:ssr && bun run check:smoke:browser",
     "auth:provision": "echo 'User provisioning is now handled via Clerk dashboard'",
     "auth:list": "echo 'User listing is now handled via Clerk dashboard'"
   },

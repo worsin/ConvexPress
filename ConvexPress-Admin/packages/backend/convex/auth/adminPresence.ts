@@ -10,7 +10,7 @@ type AdminCandidate = {
   internalRole?: string;
 };
 
-function canUseLocalAdminLogin(user: AdminCandidate): boolean {
+export function canUseLocalAdminLogin(user: AdminCandidate): boolean {
   return (
     user.status === "active" &&
     user.authSource === "local" &&
