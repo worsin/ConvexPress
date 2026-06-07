@@ -10,7 +10,7 @@ const LOCAL_AUTH_ISSUER_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 const MAX_EMAIL_LENGTH = 254;
 const MAX_DISPLAY_NAME_LENGTH = 128;
 const MAX_PASSWORD_LENGTH = 256;
-const MAX_SETUP_TOKEN_LENGTH = 256;
+const SETUP_TOKEN_RE = /^[A-Za-z0-9_-]{32,256}$/;
 
 function getRequiredFirstAdminSetupToken(): string | null {
   return process.env.FIRST_ADMIN_SETUP_SECRET?.trim() || null;
@@ -119,7 +119,7 @@ function constantTimeStringEquals(left: string, right: string): boolean {
 }
 
 async function validateFirstAdminSetupToken(setupToken: string | undefined) {
-  if (setupToken && setupToken.length > MAX_SETUP_TOKEN_LENGTH) {
+  if (setupToken && !SETUP_TOKEN_RE.test(setupToken)) {
     throw new Error("First-admin setup token is invalid or missing.");
   }
 
@@ -131,6 +131,12 @@ async function validateFirstAdminSetupToken(setupToken: string | undefined) {
 
     throw new Error(
       "FIRST_ADMIN_SETUP_SECRET is required before first-admin setup on non-local deployments. Run the desktop setup wizard again or explicitly set CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP=true.",
+    );
+  }
+
+  if (!SETUP_TOKEN_RE.test(requiredToken)) {
+    throw new Error(
+      "FIRST_ADMIN_SETUP_SECRET must be a 32-256 character URL-safe setup token. Re-run desktop setup to rotate the setup token.",
     );
   }
 

@@ -7,6 +7,8 @@ import schema from "../../schema";
 import { verifyPassword } from "../helpers";
 
 const PASSWORD = "CorrectHorseBatteryStaple42!";
+const SETUP_TOKEN = "setup-token-with-32-safe-characters";
+const ROTATED_SETUP_TOKEN = "rotated-setup-token-with-32-chars";
 const TEST_ORIGIN = "http://127.0.0.1:4105";
 const ADMIN_ISSUER = "https://convexpress-admin.local";
 const ORIGINAL_ENV = { ...process.env };
@@ -371,7 +373,7 @@ describe("createFirstAdmin", () => {
   });
 
   test("requires the configured first-admin setup token", async () => {
-    process.env.FIRST_ADMIN_SETUP_SECRET = "setup-secret";
+    process.env.FIRST_ADMIN_SETUP_SECRET = SETUP_TOKEN;
     const t = createHarness();
 
     await expect(
@@ -389,7 +391,7 @@ describe("createFirstAdmin", () => {
         username: "admin",
         password: PASSWORD,
         displayName: "First Admin",
-        setupToken: "wrong-token",
+        setupToken: "wrong-token-with-32-safe-characters",
       }),
     ).rejects.toThrow("First-admin setup token is invalid or missing.");
 
@@ -410,7 +412,7 @@ describe("createFirstAdmin", () => {
       username: "admin",
       password: PASSWORD,
       displayName: "First Admin",
-      setupToken: "setup-secret",
+      setupToken: SETUP_TOKEN,
     });
 
     expect(result.message).toBe("Administrator account created");
@@ -431,7 +433,7 @@ describe("createFirstAdmin", () => {
         username: "secondadmin",
         password: PASSWORD,
         displayName: "Second Admin",
-        setupToken: "wrong-token",
+        setupToken: "wrong-token-with-32-safe-characters",
       }),
     ).rejects.toThrow("An administrator account already exists");
 
@@ -441,9 +443,53 @@ describe("createFirstAdmin", () => {
         username: "secondadmin",
         password: PASSWORD,
         displayName: "Second Admin",
-        setupToken: "setup-secret",
+        setupToken: SETUP_TOKEN,
       }),
     ).rejects.toThrow("An administrator account already exists");
+  });
+
+  test("rejects weak configured first-admin setup secrets before side effects", async () => {
+    process.env.AUTH_ISSUER_URL = "https://admin.example.com";
+    process.env.FIRST_ADMIN_SETUP_SECRET = "setup-secret";
+    const t = createHarness();
+
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "admin@example.com",
+        username: "admin",
+        password: PASSWORD,
+        displayName: "First Admin",
+        setupToken: SETUP_TOKEN,
+      }),
+    ).rejects.toThrow(
+      "FIRST_ADMIN_SETUP_SECRET must be a 32-256 character URL-safe setup token.",
+    );
+
+    process.env.FIRST_ADMIN_SETUP_SECRET = "not/a/url-safe-token-with-32-chars";
+
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "admin@example.com",
+        username: "admin",
+        password: PASSWORD,
+        displayName: "First Admin",
+        setupToken: SETUP_TOKEN,
+      }),
+    ).rejects.toThrow(
+      "FIRST_ADMIN_SETUP_SECRET must be a 32-256 character URL-safe setup token.",
+    );
+
+    const sideEffects = await t.run(async (ctx) => {
+      return {
+        roles: await ctx.db.query("roles").collect(),
+        users: await ctx.db.query("users").collect(),
+        authSetupState: await ctx.db.query("authSetupState").collect(),
+      };
+    });
+
+    expect(sideEffects.roles).toHaveLength(0);
+    expect(sideEffects.users).toHaveLength(0);
+    expect(sideEffects.authSetupState).toHaveLength(0);
   });
 
   test("requires a setup token on non-local deployments unless public setup is explicitly allowed", async () => {
@@ -488,7 +534,7 @@ describe("createFirstAdmin", () => {
   });
 
   test("consumes each configured first-admin setup token after first use", async () => {
-    process.env.FIRST_ADMIN_SETUP_SECRET = "setup-secret";
+    process.env.FIRST_ADMIN_SETUP_SECRET = SETUP_TOKEN;
     const t = createHarness();
 
     await t.action(api.auth.setup.createFirstAdmin, {
@@ -496,7 +542,7 @@ describe("createFirstAdmin", () => {
       username: "admin",
       password: PASSWORD,
       displayName: "First Admin",
-      setupToken: "setup-secret",
+      setupToken: SETUP_TOKEN,
     });
 
     const consumedAfterFirstUse = await t.run(async (ctx) => {
@@ -505,7 +551,7 @@ describe("createFirstAdmin", () => {
 
     expect(consumedAfterFirstUse).toHaveLength(1);
     expect(consumedAfterFirstUse[0]!.setupTokenHash).toBeTruthy();
-    expect(consumedAfterFirstUse[0]!.setupTokenHash).not.toBe("setup-secret");
+    expect(consumedAfterFirstUse[0]!.setupTokenHash).not.toBe(SETUP_TOKEN);
 
     const adminId = await t.run(async (ctx) => {
       const user = (await ctx.db.query("users").collect())[0]!;
@@ -524,20 +570,20 @@ describe("createFirstAdmin", () => {
         username: "replacement",
         password: PASSWORD,
         displayName: "Replacement Admin",
-        setupToken: "setup-secret",
+        setupToken: SETUP_TOKEN,
       }),
     ).rejects.toThrow(
       "First-admin setup token has already been used. Re-run desktop setup to rotate the setup token.",
     );
 
-    process.env.FIRST_ADMIN_SETUP_SECRET = "rotated-setup-secret";
+    process.env.FIRST_ADMIN_SETUP_SECRET = ROTATED_SETUP_TOKEN;
 
     const recovered = await t.action(api.auth.setup.createFirstAdmin, {
       email: "replacement@example.com",
       username: "replacement",
       password: PASSWORD,
       displayName: "Replacement Admin",
-      setupToken: "rotated-setup-secret",
+      setupToken: ROTATED_SETUP_TOKEN,
     });
 
     expect(recovered.message).toBe("Administrator account created");
