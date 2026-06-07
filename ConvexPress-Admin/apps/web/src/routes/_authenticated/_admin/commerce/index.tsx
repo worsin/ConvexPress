@@ -23,39 +23,63 @@ function CommerceOverviewPage() {
 			label: "Products",
 			value: counts?.all ?? "…",
 			icon: Package,
-			href: "/admin/commerce/products",
+			href: "/commerce/products",
 			description: "Published and draft catalog items",
 		},
 		{
 			label: "Published",
 			value: counts?.published ?? "…",
 			icon: ShoppingCart,
-			href: "/admin/commerce/products",
+			href: "/commerce/products",
 			description: "Products currently visible in the storefront",
 		},
 		{
 			label: "Drafts",
 			value: counts?.draft ?? "…",
 			icon: Users,
-			href: "/admin/commerce/products",
+			href: "/commerce/products",
 			description: "Products still in preparation",
 		},
 		{
 			label: "Store Settings",
 			value: "Core",
 			icon: Settings,
-			href: "/admin/commerce/settings",
+			href: "/commerce/settings",
 			description: "Tax, checkout, payment, and catalog configuration",
 		},
 	];
+
+	const sections = [
+		{
+			title: "Catalog",
+			description: "Create and organize sellable catalog records.",
+			links: [
+				{ label: "Products", href: "/commerce/products" },
+				{ label: "Add product", href: "/commerce/products/new" },
+				{ label: "Categories", href: "/commerce/categories" },
+				{ label: "Attributes", href: "/commerce/attributes" },
+			],
+		},
+		{
+			title: "Operations",
+			description: "Review money-moving and fulfillment activity.",
+			links: [
+				{ label: "Orders", href: "/commerce/orders" },
+				{ label: "Customers", href: "/commerce/customers" },
+				{ label: "Payments", href: "/commerce/payments" },
+				{ label: "Shipping", href: "/commerce/settings/shipping" },
+			],
+		},
+	] as const;
 
 	return (
 		<div className="space-y-8">
 			<div className="space-y-3">
 				<h1 className="text-3xl font-bold tracking-tight">Commerce</h1>
 				<p className="max-w-3xl text-sm text-muted-foreground">
-					Manage your store — products, orders, customers, payments, shipping,
-					subscriptions, and more. All commerce features are fully operational.
+					Manage products, orders, customers, payments, shipping, and store
+					configuration from live commerce records. Optional add-ons stay behind
+					their plugin guards.
 				</p>
 			</div>
 
@@ -90,26 +114,30 @@ function CommerceOverviewPage() {
 			</div>
 
 			<div className="grid gap-4 lg:grid-cols-2">
-				<section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-					<h2 className="text-lg font-semibold">Wave 1 focus</h2>
-					<p className="mt-2 text-sm leading-6 text-muted-foreground">
-						This slice establishes the WooCommerce-style core: products,
-						storefront catalog, cart, checkout sessions, orders, and customer
-						records. The next implementation passes will add authoring forms and
-						convert the remaining route shells to live runtime views.
-					</p>
-				</section>
-
-				<section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-					<h2 className="text-lg font-semibold">Immediate next steps</h2>
-					<ul className="mt-2 space-y-2 text-sm leading-6 text-muted-foreground">
-						<li>Finalize admin product authoring and category management.</li>
-						<li>
-							Attach cart and checkout pages to the new backend session APIs.
-						</li>
-						<li>Expose order history and customer profile views.</li>
-					</ul>
-				</section>
+				{sections.map((section) => (
+					<section
+						key={section.title}
+						className="rounded-2xl border border-border bg-card p-6 shadow-sm"
+					>
+						<div>
+							<h2 className="text-lg font-semibold">{section.title}</h2>
+							<p className="mt-2 text-sm leading-6 text-muted-foreground">
+								{section.description}
+							</p>
+						</div>
+						<div className="mt-5 grid gap-2 sm:grid-cols-2">
+							{section.links.map((link) => (
+								<Link
+									key={link.href}
+									to={link.href}
+									className="rounded-xl border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-accent/20"
+								>
+									{link.label}
+								</Link>
+							))}
+						</div>
+					</section>
+				))}
 			</div>
 		</div>
 	);

@@ -196,7 +196,7 @@ export function SyncProgress({ job }: SyncProgressProps) {
             {overallProgress}% complete
             {job.status === "running" && totalKnownItems > 0 && (
               <span className="ml-2">
-                · later phases will add to this total as they start
+                · totals update as phases start
               </span>
             )}
           </p>
