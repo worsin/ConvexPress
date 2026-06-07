@@ -621,6 +621,86 @@ describe("createFirstAdmin", () => {
     ).rejects.toThrow("Insufficient permissions");
   });
 
+  test("Clerk-authenticated records cannot inherit local admin authorization", async () => {
+    const t = createHarness();
+
+    await t.action(api.auth.setup.createFirstAdmin, {
+      email: "admin@example.com",
+      username: "admin",
+      password: PASSWORD,
+      displayName: "First Admin",
+    });
+
+    const snapshot = await t.run(async (ctx) => {
+      const now = Date.now();
+      const adminRole = await ctx.db
+        .query("roles")
+        .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
+        .unique();
+      const subscriberRole = await ctx.db
+        .query("roles")
+        .withIndex("by_slug", (q) => q.eq("slug", "subscriber"))
+        .unique();
+
+      const clerkAdminId = await ctx.db.insert("users", {
+        authSource: "clerk",
+        clerkUserId: "user_clerk_admin",
+        email: "clerk-admin@example.com",
+        username: "clerkadmin",
+        passwordHash: "not-a-real-hash",
+        displayName: "Clerk Admin",
+        slug: "clerk-admin",
+        emailVerified: true,
+        status: "active",
+        isInternal: true,
+        internalRole: "admin",
+        roleId: adminRole!._id,
+        registrationMethod: "self",
+        registeredAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const targetUserId = await ctx.db.insert("users", {
+        authSource: "local",
+        email: "target@example.com",
+        username: "target",
+        passwordHash: "not-a-real-hash",
+        displayName: "Target User",
+        slug: "target",
+        emailVerified: true,
+        status: "active",
+        isInternal: false,
+        internalRole: "customer",
+        roleId: subscriberRole!._id,
+        registrationMethod: "self",
+        registeredAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      return { clerkAdminId, targetUserId };
+    });
+
+    const clerkAdmin = t.withIdentity({
+      issuer: "https://clerk.example",
+      subject: "user_clerk_admin",
+      tokenIdentifier: "https://clerk.example|user_clerk_admin",
+      email: "clerk-admin@example.com",
+      name: "Clerk Admin",
+    });
+
+    expect(await clerkAdmin.query(api.users.checkAdminAccess)).toBeNull();
+
+    await expect(
+      clerkAdmin.mutation(api.users.updateUserRole, {
+        userId: snapshot.targetUserId,
+        internalRole: "admin",
+        isInternal: true,
+      }),
+    ).rejects.toThrow("Insufficient permissions");
+  });
+
   test("legacy role updates cannot demote the only roleId administrator", async () => {
     const t = createHarness();
 

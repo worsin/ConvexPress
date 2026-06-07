@@ -169,9 +169,15 @@ export async function getCurrentUser(
   const isAdminAuth = identity.tokenIdentifier.startsWith(ADMIN_ISSUER + "|");
 
   if (isAdminAuth) {
-    // Admin local auth — subject is Convex user _id (direct fetch, O(1))
-    const user = await ctx.db.get("users", identity.subject as Id<"users">);
-    return user as UserDoc | null;
+    // Admin local auth — subject is Convex user _id (direct fetch, O(1)).
+    // A stale local JWT must not continue to authorize an account that has
+    // since been linked to Clerk or otherwise moved out of local admin auth.
+    const user = (await ctx.db.get(
+      "users",
+      identity.subject as Id<"users">,
+    )) as UserDoc | null;
+    if (!user || user.authSource !== "local") return null;
+    return user;
   }
 
   // Clerk auth — subject is Clerk user ID
@@ -182,7 +188,8 @@ export async function getCurrentUser(
     )
     .unique();
 
-  return user as UserDoc | null;
+  if (!user || user.authSource !== "clerk") return null;
+  return user as UserDoc;
 }
 
 /**
@@ -209,8 +216,13 @@ export async function getCurrentUserId(
  */
 async function resolveUserRole(
   ctx: DbReadCtx,
-  user: Pick<UserDoc, "_id" | "roleId" | "internalRole">,
+  user: Pick<UserDoc, "_id" | "authSource" | "roleId" | "internalRole">,
 ): Promise<RoleDoc | null> {
+  const canUseRoleForAuthSource = (role: RoleDoc): boolean => {
+    if (role.type === "customer") return true;
+    return user.authSource === "local";
+  };
+
   // Path 1: Direct roleId (new system)
   let base: RoleDoc | null = null;
   if (user.roleId) {
@@ -222,8 +234,10 @@ async function resolveUserRole(
       // Do NOT fall through to legacy, as that could silently UPGRADE
       // permissions if the legacy role maps to a higher-privilege active role.
       return null;
-    } else {
+    } else if (canUseRoleForAuthSource(role as RoleDoc)) {
       base = role as RoleDoc;
+    } else {
+      return null;
     }
   }
 
@@ -235,7 +249,10 @@ async function resolveUserRole(
       .withIndex("by_slug", (q) => q.eq("slug", newSlug))
       .unique();
     if (role && role.status === "active") {
-      base = role as RoleDoc;
+      const resolved = role as RoleDoc;
+      if (canUseRoleForAuthSource(resolved)) {
+        base = resolved;
+      }
     }
   }
 
@@ -343,7 +360,7 @@ export function getUnsafeMembershipLinkedCapabilities(
  */
 async function getUserCapabilities(
   ctx: DbReadCtx,
-  user: Pick<UserDoc, "_id" | "roleId" | "internalRole">,
+  user: Pick<UserDoc, "_id" | "authSource" | "roleId" | "internalRole">,
 ): Promise<string[]> {
   const role = await resolveUserRole(ctx, user);
   return role?.capabilities ?? [];

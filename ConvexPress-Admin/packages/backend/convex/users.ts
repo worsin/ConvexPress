@@ -123,6 +123,7 @@ export const checkAdminAccess = query({
     const user = await getUser(ctx);
     if (!user) return null;
     if (user.status !== "active") return null;
+    if (user.authSource !== "local") return null;
 
     // Check via capability system first (new system)
     let hasAccess = false;
