@@ -90,7 +90,7 @@ export const ADMIN_APP_ENVIRONMENT_KEYS: ServerEnvironmentKey[] = [
 export const SERVER_ENVIRONMENT_KEYS: ServerEnvironmentKey[] = [
   {
     name: "AUTH_PRIVATE_KEY",
-    detail: "Signs local admin login tokens.",
+    detail: "P-256 PKCS8 private key used to sign ES256 local admin login tokens.",
   },
   {
     name: "AUTH_ISSUER_URL",
@@ -116,7 +116,7 @@ export const SERVER_ENVIRONMENT_KEYS: ServerEnvironmentKey[] = [
   },
   {
     name: "FIRST_ADMIN_SETUP_SECRET",
-    detail: "One-time first-admin setup token gate; required on non-local deployments unless public setup is explicitly enabled.",
+    detail: "One-time first-admin setup token gate; required on non-local deployments and missing-issuer deployments unless public setup is explicitly enabled.",
     optional: true,
   },
   {

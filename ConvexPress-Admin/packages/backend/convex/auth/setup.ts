@@ -6,7 +6,7 @@ import type { Id } from "../_generated/dataModel";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,64}$/;
-const LOCAL_AUTH_ISSUER_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+const LOCAL_AUTH_ISSUER_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 const MAX_EMAIL_LENGTH = 254;
 const MAX_DISPLAY_NAME_LENGTH = 128;
 const MAX_PASSWORD_LENGTH = 256;
@@ -16,23 +16,41 @@ function getRequiredFirstAdminSetupToken(): string | null {
   return process.env.FIRST_ADMIN_SETUP_SECRET?.trim() || null;
 }
 
-function isLocalAuthIssuerUrl(): boolean {
+function parseAuthIssuerUrl(): URL | null {
   const rawIssuer = process.env.AUTH_ISSUER_URL?.trim();
-  if (!rawIssuer) return true;
+  if (!rawIssuer) return null;
 
   try {
-    return LOCAL_AUTH_ISSUER_HOSTS.has(new URL(rawIssuer).hostname);
+    const parsed = new URL(rawIssuer);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
+    return parsed;
   } catch {
-    return false;
+    return null;
   }
 }
 
-function canCreateFirstAdminWithoutSetupToken(): boolean {
+function requireValidAuthIssuerUrl() {
+  const parsed = parseAuthIssuerUrl();
+  if (!parsed) {
+    throw new Error(
+      "AUTH_ISSUER_URL is required before first-admin setup. Set it to the Convex site URL or an explicit localhost URL for local development.",
+    );
+  }
+  return parsed;
+}
+
+function isLocalAuthIssuerUrl(parsed = parseAuthIssuerUrl()): boolean {
+  return !!parsed && LOCAL_AUTH_ISSUER_HOSTS.has(parsed.hostname);
+}
+
+function canCreateFirstAdminWithoutSetupToken(parsedIssuer: URL): boolean {
   if (process.env.CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP === "true") {
     return true;
   }
 
-  return isLocalAuthIssuerUrl();
+  return isLocalAuthIssuerUrl(parsedIssuer);
 }
 
 function getRequiredDevInternalsToken(): string | null {
@@ -119,13 +137,15 @@ function constantTimeStringEquals(left: string, right: string): boolean {
 }
 
 async function validateFirstAdminSetupToken(setupToken: string | undefined) {
+  const authIssuerUrl = requireValidAuthIssuerUrl();
+
   if (setupToken && !SETUP_TOKEN_RE.test(setupToken)) {
     throw new Error("First-admin setup token is invalid or missing.");
   }
 
   const requiredToken = getRequiredFirstAdminSetupToken();
   if (!requiredToken) {
-    if (canCreateFirstAdminWithoutSetupToken()) {
+    if (canCreateFirstAdminWithoutSetupToken(authIssuerUrl)) {
       return { required: false, setupTokenHash: undefined };
     }
 

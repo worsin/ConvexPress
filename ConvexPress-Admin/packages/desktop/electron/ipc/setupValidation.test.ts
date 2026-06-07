@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test";
+import { generateKeyPairSync } from "node:crypto";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import {
   deriveConvexSiteUrl,
   normalizeConvexCloudUrl,
+  validateAuthPrivateKey,
   validateProductionDeployKey,
   validateSetupConfig,
 } from "./setupValidation";
@@ -72,6 +74,35 @@ describe("setup validation", () => {
         "https://affable-herring-441.convex.cloud",
       ),
     ).toThrow("Deploy key must include a deployment reference and token.");
+  });
+
+  test("accepts only P-256 PKCS8 private keys for local admin JWT signing", () => {
+    const { privateKey: ecPrivateKey } = generateKeyPairSync("ec", {
+      namedCurve: "P-256",
+    });
+    const p256Pkcs8 = ecPrivateKey.export({
+      type: "pkcs8",
+      format: "pem",
+    }) as string;
+
+    expect(validateAuthPrivateKey(`\n${p256Pkcs8}\n`)).toBe(
+      p256Pkcs8.trim(),
+    );
+
+    const { privateKey: rsaPrivateKey } = generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+    });
+    const rsaPkcs8 = rsaPrivateKey.export({
+      type: "pkcs8",
+      format: "pem",
+    }) as string;
+
+    expect(() => validateAuthPrivateKey(rsaPkcs8)).toThrow(
+      "AUTH_PRIVATE_KEY must be a PEM-encoded P-256 PKCS8 private key for ES256 local admin auth.",
+    );
+    expect(() => validateAuthPrivateKey("not-a-private-key")).toThrow(
+      "AUTH_PRIVATE_KEY must be a PEM-encoded P-256 PKCS8 private key for ES256 local admin auth.",
+    );
   });
 
   test("normalizes server setup and pending first-admin credentials", () => {

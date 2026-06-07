@@ -47,6 +47,14 @@ const LEGACY_UPDATE_ROLE_MAP: Record<string, string> = {
   ...LEGACY_ROLE_MAP,
   subscriber: "subscriber",
 };
+const ROLE_SLUG_TO_LEGACY_INTERNAL_ROLE: Record<string, string> = {
+  administrator: "admin",
+  subscriber: "customer",
+};
+
+function legacyInternalRoleForRoleSlug(slug: string): string {
+  return ROLE_SLUG_TO_LEGACY_INTERNAL_ROLE[slug] ?? slug;
+}
 
 function toPublicCurrentUser(user: Awaited<ReturnType<typeof getUser>>): CurrentUserPublic | null {
   if (!user || user.status !== "active") return null;
@@ -218,11 +226,25 @@ export const updateUserRole = mutation({
       }
     }
 
+    const now = Date.now();
+    const oldRoleId = targetUser.roleId ?? undefined;
+    const nextInternalRole = legacyInternalRoleForRoleSlug(targetRole.slug);
+    const nextIsInternal = targetRole.type === "internal";
+
     await ctx.db.patch("users", args.userId, {
-      internalRole: args.internalRole,
-      isInternal: args.isInternal,
+      internalRole: nextInternalRole,
+      isInternal: nextIsInternal,
       roleId: targetRole._id,
-      updatedAt: Date.now(),
+      updatedAt: now,
+    });
+
+    await ctx.db.insert("roleChanges", {
+      userId: args.userId,
+      oldRoleId,
+      newRoleId: targetRole._id,
+      changedBy: currentUser._id,
+      reason: "legacy_updateUserRole",
+      timestamp: now,
     });
 
     // Emit role.assigned event for audit trail and downstream listeners

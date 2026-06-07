@@ -1,3 +1,5 @@
+import { createPrivateKey } from "node:crypto";
+
 export interface SetupValidationConfig {
   mode?: string;
   convexUrl?: string;
@@ -39,6 +41,8 @@ const MAX_EMAIL_LENGTH = 254;
 const MAX_DISPLAY_NAME_LENGTH = 128;
 const MAX_PASSWORD_LENGTH = 256;
 const MAX_IDENTIFIER_LENGTH = 254;
+const AUTH_PRIVATE_KEY_ERROR =
+  "AUTH_PRIVATE_KEY must be a PEM-encoded P-256 PKCS8 private key for ES256 local admin auth.";
 
 function cleanUrl(value: string): string {
   return value.trim().replace(/\/+$/, "");
@@ -62,6 +66,29 @@ function requireTrimmed(
 function validateStringLength(value: string, label: string, maxLength: number) {
   if (value.length > maxLength) {
     throw new Error(`${label} must be ${maxLength} characters or fewer.`);
+  }
+}
+
+export function validateAuthPrivateKey(value: string): string {
+  const trimmed = requireTrimmed(value, "AUTH_PRIVATE_KEY");
+
+  try {
+    const key = createPrivateKey(trimmed);
+    const namedCurve = key.asymmetricKeyDetails?.namedCurve;
+    const isP256 =
+      key.asymmetricKeyType === "ec" &&
+      (namedCurve === "prime256v1" || namedCurve === "P-256");
+
+    if (!isP256) {
+      throw new Error(AUTH_PRIVATE_KEY_ERROR);
+    }
+
+    return trimmed;
+  } catch (error) {
+    if (error instanceof Error && error.message === AUTH_PRIVATE_KEY_ERROR) {
+      throw error;
+    }
+    throw new Error(AUTH_PRIVATE_KEY_ERROR);
   }
 }
 

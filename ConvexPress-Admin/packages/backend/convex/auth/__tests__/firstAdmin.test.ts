@@ -1,5 +1,5 @@
 import { generateKeyPairSync } from "node:crypto";
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { convexTest } from "convex-test";
 
 import { api } from "../../_generated/api";
@@ -45,6 +45,14 @@ function configureAuthHttpEnv() {
   process.env.AUTH_ALLOW_LOCALHOST_ORIGINS = "false";
   process.env.AUTH_ALLOW_NULL_ORIGIN = "true";
 }
+
+beforeEach(() => {
+  process.env.AUTH_ISSUER_URL = TEST_ORIGIN;
+  process.env.FIRST_ADMIN_SETUP_SECRET = "";
+  process.env.CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP = "";
+  process.env.CONVEXPRESS_ENABLE_DEV_INTERNALS = "";
+  process.env.CONVEXPRESS_DEV_INTERNALS_TOKEN = "";
+});
 
 function restoreEnvVar(name: string) {
   const value = ORIGINAL_ENV[name];
@@ -93,8 +101,9 @@ describe("createFirstAdmin", () => {
       const roleSlugs = (await ctx.db.query("roles").collect()).map(
         (role) => role.slug,
       );
+      const roleChanges = await ctx.db.query("roleChanges").collect();
 
-      return { users, adminRole, roleSlugs };
+      return { users, adminRole, roleSlugs, roleChanges };
     });
 
     expect(snapshot.roleSlugs.sort()).toEqual([
@@ -121,6 +130,11 @@ describe("createFirstAdmin", () => {
     expect(user.clerkProvisioningReason).toBe("local_admin_auth_only");
     expect(user.passwordHash).not.toBe(PASSWORD);
     expect(await verifyPassword(PASSWORD, user.passwordHash!)).toBe(true);
+    expect(snapshot.roleChanges).toHaveLength(1);
+    expect(snapshot.roleChanges[0]!.userId).toBe(user._id);
+    expect(snapshot.roleChanges[0]!.newRoleId).toBe(snapshot.adminRole?._id);
+    expect(snapshot.roleChanges[0]!.changedBy).toBe(user._id);
+    expect(snapshot.roleChanges[0]!.reason).toBe("first_admin_setup");
 
     await expect(
       t.action(api.auth.setup.createFirstAdmin, {
@@ -509,6 +523,17 @@ describe("createFirstAdmin", () => {
 
     expect(await t.query(api.auth.queries.hasAdmin)).toBe(false);
 
+    process.env.AUTH_ISSUER_URL = "";
+
+    await expect(
+      t.action(api.auth.setup.createFirstAdmin, {
+        email: "admin@example.com",
+        username: "admin",
+        password: PASSWORD,
+        displayName: "First Admin",
+      }),
+    ).rejects.toThrow("AUTH_ISSUER_URL is required before first-admin setup");
+
     process.env.AUTH_ISSUER_URL = "not a url";
 
     await expect(
@@ -518,8 +543,9 @@ describe("createFirstAdmin", () => {
         password: PASSWORD,
         displayName: "First Admin",
       }),
-    ).rejects.toThrow("FIRST_ADMIN_SETUP_SECRET is required");
+    ).rejects.toThrow("AUTH_ISSUER_URL is required before first-admin setup");
 
+    process.env.AUTH_ISSUER_URL = "https://admin.example.com";
     process.env.CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP = "true";
 
     const result = await t.action(api.auth.setup.createFirstAdmin, {
@@ -531,6 +557,59 @@ describe("createFirstAdmin", () => {
 
     expect(result.message).toBe("Administrator account created");
     expect(await t.query(api.auth.queries.hasAdmin)).toBe(true);
+  });
+
+  test("allows tokenless first-admin setup only for explicit local issuer URLs", async () => {
+    for (const issuerUrl of [
+      "http://localhost:4105",
+      "http://127.0.0.1:4105",
+      "http://[::1]:4105",
+    ]) {
+      process.env.AUTH_ISSUER_URL = issuerUrl;
+      process.env.FIRST_ADMIN_SETUP_SECRET = "";
+      process.env.CONVEXPRESS_ALLOW_PUBLIC_FIRST_ADMIN_SETUP = "";
+      const t = createHarness();
+
+      const result = await t.action(api.auth.setup.createFirstAdmin, {
+        email: "admin@example.com",
+        username: "admin",
+        password: PASSWORD,
+        displayName: "First Admin",
+      });
+
+      expect(result.message).toBe("Administrator account created");
+      expect(await t.query(api.auth.queries.hasAdmin)).toBe(true);
+    }
+  });
+
+  test("rejects missing or malformed auth issuer even when setup token is configured", async () => {
+    process.env.FIRST_ADMIN_SETUP_SECRET = SETUP_TOKEN;
+    const t = createHarness();
+
+    for (const issuerUrl of ["", "not a url", "file:///tmp/convexpress"]) {
+      process.env.AUTH_ISSUER_URL = issuerUrl;
+      await expect(
+        t.action(api.auth.setup.createFirstAdmin, {
+          email: "admin@example.com",
+          username: "admin",
+          password: PASSWORD,
+          displayName: "First Admin",
+          setupToken: SETUP_TOKEN,
+        }),
+      ).rejects.toThrow("AUTH_ISSUER_URL is required before first-admin setup");
+    }
+
+    const sideEffects = await t.run(async (ctx) => {
+      return {
+        roles: await ctx.db.query("roles").collect(),
+        users: await ctx.db.query("users").collect(),
+        authSetupState: await ctx.db.query("authSetupState").collect(),
+      };
+    });
+
+    expect(sideEffects.roles).toHaveLength(0);
+    expect(sideEffects.users).toHaveLength(0);
+    expect(sideEffects.authSetupState).toHaveLength(0);
   });
 
   test("consumes each configured first-admin setup token after first use", async () => {
@@ -690,6 +769,84 @@ describe("createFirstAdmin", () => {
         isInternal: true,
       }),
     ).rejects.toThrow("Insufficient permissions");
+  });
+
+  test("legacy user role updates normalize fields and write the role audit trail", async () => {
+    const t = createHarness();
+
+    await t.action(api.auth.setup.createFirstAdmin, {
+      email: "admin@example.com",
+      username: "admin",
+      password: PASSWORD,
+      displayName: "First Admin",
+    });
+
+    const snapshot = await t.run(async (ctx) => {
+      const now = Date.now();
+      const adminUser = (await ctx.db.query("users").collect())[0]!;
+      const subscriberRole = await ctx.db
+        .query("roles")
+        .withIndex("by_slug", (q) => q.eq("slug", "subscriber"))
+        .unique();
+      const targetUserId = await ctx.db.insert("users", {
+        authSource: "local",
+        email: "target@example.com",
+        username: "target",
+        passwordHash: "not-a-real-hash",
+        displayName: "Target User",
+        slug: "target",
+        emailVerified: true,
+        status: "active",
+        isInternal: false,
+        internalRole: "customer",
+        roleId: subscriberRole!._id,
+        registrationMethod: "self",
+        registeredAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      return {
+        adminUserId: adminUser._id,
+        targetUserId,
+        oldRoleId: subscriberRole!._id,
+      };
+    });
+
+    const authenticated = t.withIdentity({
+      issuer: ADMIN_ISSUER,
+      subject: snapshot.adminUserId,
+      tokenIdentifier: `${ADMIN_ISSUER}|${snapshot.adminUserId}`,
+      email: "admin@example.com",
+      name: "First Admin",
+    });
+
+    await authenticated.mutation(api.users.updateUserRole, {
+      userId: snapshot.targetUserId,
+      internalRole: "administrator",
+      isInternal: false,
+    });
+
+    const after = await t.run(async (ctx) => {
+      const user = await ctx.db.get(snapshot.targetUserId);
+      const adminRole = await ctx.db
+        .query("roles")
+        .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
+        .unique();
+      const roleChanges = (await ctx.db.query("roleChanges").collect()).filter(
+        (change) => change.userId === snapshot.targetUserId,
+      );
+      return { user, adminRole, roleChanges };
+    });
+
+    expect(after.user?.roleId).toBe(after.adminRole?._id);
+    expect(after.user?.internalRole).toBe("admin");
+    expect(after.user?.isInternal).toBe(true);
+    expect(after.roleChanges).toHaveLength(1);
+    expect(after.roleChanges[0]!.oldRoleId).toBe(snapshot.oldRoleId);
+    expect(after.roleChanges[0]!.newRoleId).toBe(after.adminRole?._id);
+    expect(after.roleChanges[0]!.changedBy).toBe(snapshot.adminUserId);
+    expect(after.roleChanges[0]!.reason).toBe("legacy_updateUserRole");
   });
 
   test("Clerk-authenticated records cannot inherit local admin authorization", async () => {

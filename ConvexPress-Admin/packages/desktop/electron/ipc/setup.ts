@@ -13,6 +13,7 @@ import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { SETUP_CREDENTIAL_HANDOFF_TTL_MS } from "../launchRoute.js";
 import {
   validateProductionDeployKey,
+  validateAuthPrivateKey,
   validateSetupConfig,
 } from "./setupValidation.js";
 import { isExactWizardSender } from "./setupSender.js";
@@ -174,9 +175,11 @@ function createBackendEnvFile(
   const localEnv = loadLocalEnv(backendRoot);
   const tempDir = mkdtempSync(path.join(tmpdir(), "convexpress-setup-"));
   const filePath = path.join(tempDir, "convex-env.local");
+  const configuredAuthPrivateKey = readSetupEnvValue("AUTH_PRIVATE_KEY", localEnv);
   const envVars: Record<string, string> = {
-    AUTH_PRIVATE_KEY:
-      readSetupEnvValue("AUTH_PRIVATE_KEY", localEnv) ?? generateAuthPrivateKey(),
+    AUTH_PRIVATE_KEY: configuredAuthPrivateKey
+      ? validateAuthPrivateKey(configuredAuthPrivateKey)
+      : generateAuthPrivateKey(),
     AUTH_ISSUER_URL: convexSiteUrl,
     AUTH_ALLOWED_ORIGINS:
       readSetupEnvValue("AUTH_ALLOWED_ORIGINS", localEnv) ??

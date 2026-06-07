@@ -13,6 +13,10 @@ import { hasActiveAdmin } from "./adminPresence";
 
 const FIRST_ADMIN_SETUP_TOKEN_STATE_KEY = "first_admin_setup_token_consumed";
 
+function roleIdsDiffer(left: unknown, right: unknown): boolean {
+  return left !== undefined && String(left) !== String(right);
+}
+
 async function canUseAdminLocalAuth(
   ctx: { db: any },
   user: { isInternal?: boolean; roleId?: unknown },
@@ -309,7 +313,17 @@ export const createAdminUser = internalMutation({
         clerkProvisioningReason: "local_admin_auth_only",
         registrationMethod: existing.registrationMethod ?? "self",
         registeredAt: existing.registeredAt ?? now,
-        updatedAt: now,
+          updatedAt: now,
+      });
+      await ctx.db.insert("roleChanges", {
+        userId: existing._id,
+        oldRoleId: roleIdsDiffer(existing.roleId, adminRole._id)
+          ? existing.roleId
+          : undefined,
+        newRoleId: adminRole._id,
+        changedBy: existing._id,
+        reason: "first_admin_setup",
+        timestamp: now,
       });
       if (args.setupTokenRequired) {
         await ctx.db.insert("authSetupState", {
@@ -341,6 +355,14 @@ export const createAdminUser = internalMutation({
       registeredAt: now,
       createdAt: now,
       updatedAt: now,
+    });
+
+    await ctx.db.insert("roleChanges", {
+      userId,
+      newRoleId: adminRole._id,
+      changedBy: userId,
+      reason: "first_admin_setup",
+      timestamp: now,
     });
 
     if (args.setupTokenRequired) {
