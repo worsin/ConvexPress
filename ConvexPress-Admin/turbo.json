@@ -15,6 +15,11 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".output/**", "dist/**", ".vinxi/**"]
     },
+    "@convexpress/desktop#build": {
+      "dependsOn": ["web#build", "^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "$TURBO_ROOT$/apps/web/.env*"],
+      "outputs": ["dist/**", "dist-electron/**"]
+    },
     "lint": {
       "dependsOn": [],
       "outputs": []
