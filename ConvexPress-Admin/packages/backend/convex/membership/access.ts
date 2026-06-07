@@ -1,7 +1,7 @@
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { isMembershipPluginEnabled } from "../commerce/helpers";
-import { currentUserCan, getCurrentUser } from "../helpers/permissions";
+import { getCurrentUser, resolveUserRole } from "../helpers/permissions";
 
 type MembershipCtx = QueryCtx | MutationCtx;
 
@@ -295,10 +295,10 @@ async function loadMatchingRules(
 		.sort(compareRouteRuleSpecificity);
 }
 
-async function getValidUserPlanIds(
+async function getValidMembershipGrants(
 	ctx: MembershipCtx,
 	userId: Id<"users">,
-): Promise<string[]> {
+): Promise<any[]> {
 	const now = Date.now();
 	const [activeGrants, graceGrants] = await Promise.all([
 		ctx.db
@@ -315,28 +315,42 @@ async function getValidUserPlanIds(
 			.collect(),
 	]);
 
-	return uniqueStrings(
-		[...activeGrants, ...graceGrants]
-			.filter((grant: any) => {
-				if (
-					grant.status === "grace" &&
-					grant.graceEndsAt &&
-					grant.graceEndsAt < now
-				) {
-					return false;
-				}
-				if (grant.endsAt && grant.endsAt < now && grant.status !== "grace") {
-					return false;
-				}
-				return true;
-			})
-			.map((grant: any) => String(grant.planId)),
-	);
+	return [...activeGrants, ...graceGrants].filter((grant: any) => {
+		if (
+			grant.status === "grace" &&
+			grant.graceEndsAt &&
+			grant.graceEndsAt < now
+		) {
+			return false;
+		}
+		if (grant.endsAt && grant.endsAt < now && grant.status !== "grace") {
+			return false;
+		}
+		return true;
+	});
+}
+
+async function getValidUserPlanIds(
+	ctx: MembershipCtx,
+	userId: Id<"users">,
+): Promise<string[]> {
+	const grants = await getValidMembershipGrants(ctx, userId);
+	return uniqueStrings(grants.map((grant: any) => String(grant.planId)));
+}
+
+async function getUserById(
+	ctx: MembershipCtx,
+	userId: Id<"users"> | string,
+): Promise<any | null> {
+	const user = await ctx.db.get("users", userId as Id<"users">);
+	if (!user || user.status !== "active") return null;
+	return user;
 }
 
 async function getGrantedCapabilitiesForRules(
 	ctx: MembershipCtx,
 	rules: MembershipRuleLike[],
+	user: any,
 ): Promise<string[]> {
 	const requiredCapabilities = uniqueStrings(
 		rules.flatMap((rule) => rule.requiredCapabilities ?? []),
@@ -344,14 +358,39 @@ async function getGrantedCapabilitiesForRules(
 
 	if (requiredCapabilities.length === 0) return [];
 
+	const requiredSet = new Set(requiredCapabilities);
 	const grantedCapabilities: string[] = [];
-	for (const capability of requiredCapabilities) {
-		if (await currentUserCan(ctx as any, capability as any)) {
+
+	const role = await resolveUserRole(ctx as any, user);
+	const roleCapabilities: string[] = Array.isArray(
+		(role as any)?.capabilities,
+	)
+		? (role as any).capabilities
+		: [];
+	for (const capability of roleCapabilities) {
+		if (requiredSet.has(capability)) {
 			grantedCapabilities.push(capability);
 		}
 	}
 
-	return grantedCapabilities;
+	const grants = await getValidMembershipGrants(ctx, user._id);
+	for (const grant of grants) {
+		const plan = await ctx.db.get(
+			"membership_plans",
+			grant.planId as Id<"membership_plans">,
+		);
+		if (!plan || plan.status !== "active") continue;
+		const linkedCapabilities: string[] = Array.isArray(plan.linkedCapabilities)
+			? plan.linkedCapabilities
+			: [];
+		for (const capability of linkedCapabilities) {
+			if (requiredSet.has(capability)) {
+				grantedCapabilities.push(capability);
+			}
+		}
+	}
+
+	return uniqueStrings(grantedCapabilities);
 }
 
 export async function evaluateMembershipAccess(
@@ -359,6 +398,7 @@ export async function evaluateMembershipAccess(
 	args: {
 		resourceType: MembershipResourceType;
 		resourceIdOrKey: string;
+		userId?: Id<"users"> | string;
 	},
 ): Promise<MembershipAccessDecision> {
 	if (!(await isMembershipPluginEnabled(ctx))) {
@@ -391,7 +431,9 @@ export async function evaluateMembershipAccess(
 		};
 	}
 
-	const user = await getCurrentUser(ctx as any);
+	const user = args.userId
+		? await getUserById(ctx, args.userId)
+		: await getCurrentUser(ctx as any);
 	if (!user) {
 		return evaluateRestrictionRules(rules, {
 			isAuthenticated: false,
@@ -401,7 +443,7 @@ export async function evaluateMembershipAccess(
 	}
 
 	const userPlanIds = await getValidUserPlanIds(ctx, user._id);
-	const capabilities = await getGrantedCapabilitiesForRules(ctx, rules);
+	const capabilities = await getGrantedCapabilitiesForRules(ctx, rules, user);
 
 	return evaluateRestrictionRules(rules, {
 		isAuthenticated: true,

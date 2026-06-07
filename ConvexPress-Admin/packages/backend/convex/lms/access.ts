@@ -178,6 +178,7 @@ export async function canUserAccessCourse(
   const decision = await evaluateMembershipAccess(ctx as any, {
     resourceType: "course",
     resourceIdOrKey: String(args.courseId),
+    userId,
   });
   return {
     allowed: decision.allowed,

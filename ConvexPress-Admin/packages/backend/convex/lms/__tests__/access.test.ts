@@ -125,7 +125,9 @@ function createCtx(tables: Tables, subject: string | null = "user_learner") {
         rows.push({ _id: newId, ...doc });
         return newId;
       },
-      patch: async (docId: string, patch: Record<string, unknown>) => {
+      patch: async (...args: any[]) => {
+        const docId = args.length === 2 ? args[0] : args[1];
+        const patch = args.length === 2 ? args[1] : args[2];
         for (const rows of Object.values(tables)) {
           const row = rows.find((candidate) => candidate._id === docId);
           if (row) {
@@ -135,7 +137,8 @@ function createCtx(tables: Tables, subject: string | null = "user_learner") {
         }
         throw new Error(`Unable to patch missing document ${docId}`);
       },
-      delete: async (docId: string) => {
+      delete: async (...args: any[]) => {
+        const docId = args.length === 1 ? args[0] : args[1];
         for (const rows of Object.values(tables)) {
           const index = rows.findIndex((candidate) => candidate._id === docId);
           if (index >= 0) {
@@ -205,6 +208,7 @@ function baseTables(overrides: Partial<Tables> = {}): Tables {
     users: [
       {
         _id: "user_admin",
+        authSource: "local",
         email: "admin@example.com",
         emailVerified: true,
         roleId: "role_admin",
@@ -214,6 +218,7 @@ function baseTables(overrides: Partial<Tables> = {}): Tables {
       },
       {
         _id: "user_learner",
+        authSource: "local",
         email: "learner@example.com",
         emailVerified: true,
         roleId: "role_learner",
@@ -223,6 +228,7 @@ function baseTables(overrides: Partial<Tables> = {}): Tables {
       },
       {
         _id: "user_lms_viewer",
+        authSource: "local",
         email: "viewer@example.com",
         emailVerified: true,
         roleId: "role_lms_viewer",
