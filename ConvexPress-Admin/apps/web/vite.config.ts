@@ -28,12 +28,35 @@ const fsAllow = Array.from(
   ]),
 );
 
+function manualChunks(id: string) {
+  if (!id.includes("/node_modules/")) {
+    return;
+  }
+
+  if (
+    id.includes("/react/") ||
+    id.includes("/react-dom/") ||
+    id.includes("/scheduler/")
+  ) {
+    return "react-vendor";
+  }
+
+  if (id.includes("/convex/") || id.includes("/convex-helpers/")) {
+    return "convex";
+  }
+}
+
 export default defineConfig({
   // Use relative paths for Electron (file:// protocol requires "./" base)
   base: process.env.ELECTRON_BUILD === "true" ? "./" : "/",
   plugins: [
     tailwindcss(),
-    tanstackRouter({}),
+    tanstackRouter({
+      autoCodeSplitting: true,
+      codeSplittingOptions: {
+        defaultBehavior: [["component"]],
+      },
+    }),
     react({
       babel: {
         plugins: ["babel-plugin-react-compiler"],
@@ -64,10 +87,7 @@ export default defineConfig({
     target: "esnext",
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom"],
-          convex: ["convex", "convex/react"],
-        },
+        manualChunks,
       },
     },
   },
