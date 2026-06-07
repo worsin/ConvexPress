@@ -1,34 +1,7 @@
-/**
- * Dunning queue.
- *
- * Shows failed subscription invoices that are the target of retry
- * attempts (via the internal `processScheduledDunning` action, run on
- * a cron). Since Wave 3 has not exposed a public
- * `listDunningAttempts` query, this page renders an approximation
- * using `listInvoices({status: "failed"})` and surfaces the
- * past_due contracts. The page documents the gap in an inline notice.
- *
- * Backend gap (filed in the Wave 3 report):
- *   - commerceSubscriptions.queries.listDunningAttempts (needed for
- *     per-attempt history, next retry time, attempt number).
- *   - commerceSubscriptions.mutations.retryInvoiceNow (admin-triggered
- *     manual retry; currently blocked on reusable-payment-method
- *     charging — see actions.ts).
- *
- * Until these land, we show the failed invoice queue as a practical
- * proxy for the dunning queue. Each row links to the invoice detail
- * and the owning contract.
- */
-
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
-import {
-  AlertTriangle,
-  ChevronRight,
-  ExternalLink,
-  ShieldAlert,
-} from "lucide-react";
+import { ChevronRight, ExternalLink, ShieldAlert } from "lucide-react";
 
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
@@ -42,18 +15,48 @@ export const Route = createFileRoute(
 
 type Invoice = {
   _id: Id<"commerce_subscription_invoices">;
-  subscriptionId: Id<"commerce_subscriptions">;
   status: "draft" | "open" | "paid" | "failed" | "void";
   currencyCode: string;
   totalAmount: number;
   paymentProvider?: string;
   dueAt?: number;
-  createdAt: number;
+  updatedAt: number;
+};
+
+type DunningAttemptStatus =
+  | "scheduled"
+  | "processing"
+  | "failed"
+  | "succeeded"
+  | "aborted";
+
+type DunningScope =
+  | "all"
+  | "scheduled"
+  | "processing"
+  | "failed"
+  | "resolved";
+
+type DunningAttempt = {
+  _id: Id<"commerce_subscription_dunning_attempts">;
+  subscriptionId: Id<"commerce_subscriptions">;
+  invoiceId?: Id<"commerce_subscription_invoices">;
+  attemptNumber: number;
+  status: DunningAttemptStatus;
+  scheduledAt: number;
+  processedAt?: number;
+  errorMessage?: string;
   updatedAt: number;
   subscription?: {
-    _id: string;
+    _id: Id<"commerce_subscriptions">;
     status?: string;
+    customer?: {
+      email?: string;
+      firstName?: string;
+      lastName?: string;
+    } | null;
   } | null;
+  invoice?: Invoice | null;
 };
 
 function formatMoney(amount: number, currencyCode = "USD") {
@@ -61,6 +64,13 @@ function formatMoney(amount: number, currencyCode = "USD") {
     style: "currency",
     currency: currencyCode,
   }).format(amount / 100);
+}
+
+function formatCustomer(attempt: DunningAttempt) {
+  const customer = attempt.subscription?.customer;
+  if (!customer) return "Unknown customer";
+  const name = [customer.firstName, customer.lastName].filter(Boolean).join(" ");
+  return name || customer.email || "Unknown customer";
 }
 
 function formatDateTime(ts?: number) {
@@ -74,18 +84,53 @@ function formatDateTime(ts?: number) {
   });
 }
 
+function formatStatus(status: DunningAttemptStatus) {
+  return status.replace(/_/g, " ");
+}
+
+function statusClassName(status: DunningAttemptStatus) {
+  switch (status) {
+    case "processing":
+      return "bg-accent/20 text-accent-foreground";
+    case "scheduled":
+      return "bg-primary/10 text-primary";
+    case "failed":
+      return "bg-destructive/10 text-destructive";
+    case "succeeded":
+      return "bg-success/10 text-success";
+    case "aborted":
+      return "bg-muted text-muted-foreground";
+  }
+}
+
 function DunningQueuePage() {
-  const [scope, setScope] = useState<"failed" | "open">("failed");
+  const [scope, setScope] = useState<DunningScope>("all");
+  const now = Date.now();
 
-  const failedInvoices = useQuery(
-    (api as any).commerceSubscriptions.queries.listInvoices,
-    {
-      status: scope,
-      limit: 200,
-    },
-  ) as Invoice[] | null | undefined;
+  const attempts = useQuery(
+    (api as any).commerceSubscriptions.queries.listDunningAttempts,
+    { limit: 200 },
+  ) as DunningAttempt[] | null | undefined;
 
-  const pluginDisabled = failedInvoices === null;
+  const pluginDisabled = attempts === null;
+  const rows = attempts ?? [];
+  const filteredRows = rows.filter((attempt) => {
+    if (scope === "all") return true;
+    if (scope === "resolved") {
+      return attempt.status === "succeeded" || attempt.status === "aborted";
+    }
+    return attempt.status === scope;
+  });
+  const dueNowCount = rows.filter(
+    (attempt) => attempt.status === "scheduled" && attempt.scheduledAt <= now,
+  ).length;
+  const scheduledCount = rows.filter(
+    (attempt) => attempt.status === "scheduled",
+  ).length;
+  const failedCount = rows.filter((attempt) => attempt.status === "failed").length;
+  const resolvedCount = rows.filter(
+    (attempt) => attempt.status === "succeeded" || attempt.status === "aborted",
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -96,28 +141,11 @@ function DunningQueuePage() {
             Dunning queue
           </h1>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            Failed subscription invoices the billing engine will retry
-            according to each contract's dunning policy. Customers are
-            notified at each attempt; exhausted retries move the contract
-            to past_due and then cancelled.
+            Subscription payment retry attempts recorded by the billing sweep.
+            Each attempt is tied to its contract and invoice so failed payment
+            recovery can be audited without inferring state from invoice status.
           </p>
         </div>
-      </div>
-
-      <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4 text-xs text-foreground">
-        <p className="flex items-center gap-1.5 font-medium">
-          <AlertTriangle className="h-3.5 w-3.5 text-accent-foreground" />
-          Temporary view
-        </p>
-        <p className="mt-1 text-muted-foreground">
-          A per-attempt dunning history query
-          (<code className="font-mono">listDunningAttempts</code>) and an
-          admin-triggered manual retry (<code className="font-mono">retryInvoiceNow</code>)
-          are not yet exposed in the backend. Until they ship, this page
-          displays the failed-invoice queue as an approximation — each
-          invoice row links to the owning contract where the standard
-          pause/cancel actions remain available.
-        </p>
       </div>
 
       {pluginDisabled && (
@@ -130,11 +158,35 @@ function DunningQueuePage() {
 
       {!pluginDisabled && (
         <>
+          <div className="grid gap-3 md:grid-cols-4">
+            {[
+              { label: "Due now", value: dueNowCount },
+              { label: "Scheduled", value: scheduledCount },
+              { label: "Failed", value: failedCount },
+              { label: "Resolved", value: resolvedCount },
+            ].map((metric) => (
+              <div
+                key={metric.label}
+                className="rounded-2xl border border-border bg-card p-4 shadow-sm"
+              >
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                  {metric.label}
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {metric.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
           <div className="flex flex-wrap items-center gap-1">
             {(
               [
+                { key: "all", label: "All" },
+                { key: "scheduled", label: "Scheduled" },
+                { key: "processing", label: "Processing" },
                 { key: "failed", label: "Failed" },
-                { key: "open", label: "Open (not yet paid)" },
+                { key: "resolved", label: "Resolved" },
               ] as const
             ).map(({ key, label }) => (
               <button
@@ -153,17 +205,19 @@ function DunningQueuePage() {
             ))}
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-            <div className="grid grid-cols-[1fr_140px_140px_140px_140px_32px] gap-4 border-b border-border px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              <div>Invoice</div>
+          <div className="overflow-x-auto overflow-y-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="grid min-w-[980px] grid-cols-[110px_120px_1fr_160px_130px_160px_160px_32px] gap-4 border-b border-border px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <div>Attempt</div>
+              <div>Status</div>
+              <div>Contract</div>
               <div>Amount</div>
               <div>Provider</div>
-              <div>Due</div>
+              <div>Scheduled</div>
               <div>Updated</div>
               <div />
             </div>
 
-            {failedInvoices === undefined ? (
+            {attempts === undefined ? (
               <div className="space-y-3 p-5">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div
@@ -172,60 +226,88 @@ function DunningQueuePage() {
                   />
                 ))}
               </div>
-            ) : failedInvoices.length === 0 ? (
+            ) : filteredRows.length === 0 ? (
               <div className="p-10 text-center">
                 <ShieldAlert className="mx-auto h-10 w-10 text-muted-foreground/40" />
                 <p className="mt-3 text-sm text-muted-foreground">
-                  {scope === "failed"
-                    ? "No failed invoices right now. Dunning queue is empty."
-                    : "No open invoices awaiting payment."}
+                  No dunning attempts match this view.
                 </p>
               </div>
             ) : (
               <ul className="divide-y divide-border">
-                {failedInvoices.map((inv) => (
-                  <li key={inv._id}>
-                    <Link
-                      to="/commerce/subscriptions/invoices/$invoiceId"
-                      params={{ invoiceId: inv._id }}
-                      className="grid grid-cols-[1fr_140px_140px_140px_140px_32px] items-center gap-4 px-5 py-4 text-sm transition-colors hover:bg-muted/30"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-mono text-xs text-foreground">
-                          {String(inv._id)}
-                        </p>
-                        <p className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-muted-foreground">
-                          <span className="font-mono">
-                            contract: {String(inv.subscriptionId)}
+                {filteredRows.map((attempt) => (
+                  <li
+                    key={attempt._id}
+                    className="grid min-w-[980px] grid-cols-[110px_120px_1fr_160px_130px_160px_160px_32px] items-center gap-4 px-5 py-4 text-sm"
+                  >
+                    <div className="font-mono text-xs text-foreground">
+                      #{attempt.attemptNumber}
+                    </div>
+                    <div>
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full px-2 py-1 text-[11px] font-medium capitalize",
+                          statusClassName(attempt.status),
+                        )}
+                      >
+                        {formatStatus(attempt.status)}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <Link
+                        to="/commerce/subscriptions/contracts/$contractId"
+                        params={{ contractId: attempt.subscriptionId }}
+                        className="block truncate font-medium text-foreground hover:text-primary"
+                      >
+                        {formatCustomer(attempt)}
+                      </Link>
+                      <p className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-muted-foreground">
+                        <span className="font-mono">
+                          {String(attempt.subscriptionId)}
+                        </span>
+                        {attempt.subscription?.status && (
+                          <span className="inline-flex rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+                            {attempt.subscription.status.replace(/_/g, " ")}
                           </span>
-                          {inv.subscription?.status && (
-                            <span
-                              className={cn(
-                                "inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium capitalize",
-                                inv.subscription.status === "past_due"
-                                  ? "bg-destructive/10 text-destructive"
-                                  : "bg-muted text-muted-foreground",
-                              )}
-                            >
-                              {inv.subscription.status.replace(/_/g, " ")}
-                            </span>
-                          )}
+                        )}
+                      </p>
+                      {attempt.errorMessage && (
+                        <p className="mt-1 truncate text-[11px] text-destructive">
+                          {attempt.errorMessage}
                         </p>
-                      </div>
-                      <div className="font-medium text-foreground">
-                        {formatMoney(inv.totalAmount, inv.currencyCode)}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {inv.paymentProvider ?? "—"}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {formatDateTime(inv.dueAt)}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {formatDateTime(inv.updatedAt)}
-                      </div>
-                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                    </Link>
+                      )}
+                    </div>
+                    <div className="font-medium text-foreground">
+                      {attempt.invoice
+                        ? formatMoney(
+                            attempt.invoice.totalAmount,
+                            attempt.invoice.currencyCode,
+                          )
+                        : "--"}
+                    </div>
+                    <div className="text-muted-foreground">
+                      {attempt.invoice?.paymentProvider ?? "--"}
+                    </div>
+                    <div className="text-muted-foreground">
+                      {formatDateTime(attempt.scheduledAt)}
+                    </div>
+                    <div className="text-muted-foreground">
+                      {formatDateTime(attempt.updatedAt)}
+                    </div>
+                    <div>
+                      {attempt.invoiceId ? (
+                        <Link
+                          to="/commerce/subscriptions/invoices/$invoiceId"
+                          params={{ invoiceId: attempt.invoiceId }}
+                          className="inline-flex rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          aria-label="Open invoice"
+                        >
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Link>
+                      ) : (
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40" />
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>

@@ -46,6 +46,18 @@ const DEFAULT_DUNNING_POLICY = {
   cancelAfterFinalFailure: true,
 };
 
+const DUNNING_STATUS_RANK: Record<string, number> = {
+  processing: 0,
+  scheduled: 1,
+  failed: 2,
+  aborted: 3,
+  succeeded: 4,
+};
+
+function isDunningAttemptStatus(value: unknown): value is string {
+  return typeof value === "string" && value in DUNNING_STATUS_RANK;
+}
+
 async function getProductOverride(ctx: any, productId: any) {
   return ctx.db
     .query("commerce_product_subscription_overrides")
@@ -596,6 +608,118 @@ export const getInvoice = query({
       .collect();
 
     return { ...invoice, items };
+  },
+});
+
+/**
+ * List dunning attempts with invoice and contract context.
+ *
+ * This is the admin-facing operational queue for subscription retry state.
+ * The cron action writes attempt rows; this query exposes those rows directly
+ * instead of approximating dunning from failed invoice status.
+ */
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const listDunningAttempts = query({
+  args: {
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    subscriptionId: v.optional(v.id("commerce_subscriptions")),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    invoiceId: v.optional(v.id("commerce_subscription_invoices")),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    status: v.optional(v.string()),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    limit: v.optional(v.number()),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
+    await requireCommerceSubscriptionsEnabled(ctx);
+    await requireCan(ctx, "manage_options");
+
+    const limit = args.limit ?? 200;
+    const requestedStatus = isDunningAttemptStatus(args.status)
+      ? args.status
+      : undefined;
+    if (args.status && !requestedStatus) return [];
+    let attempts: any[] = [];
+
+    if (args.subscriptionId) {
+      attempts = await ctx.db
+        .query("commerce_subscription_dunning_attempts")
+        .withIndex("by_subscription", (q: any) =>
+          q.eq("subscriptionId", args.subscriptionId),
+        )
+        .collect();
+    } else if (requestedStatus) {
+      attempts = await ctx.db
+        .query("commerce_subscription_dunning_attempts")
+        .withIndex("by_status", (q: any) => q.eq("status", requestedStatus))
+        .collect();
+    } else {
+      attempts = await ctx.db
+        .query("commerce_subscription_dunning_attempts")
+        .collect();
+    }
+
+    if (args.invoiceId) {
+      attempts = attempts.filter((attempt: any) => attempt.invoiceId === args.invoiceId);
+    }
+    if (requestedStatus && args.subscriptionId) {
+      attempts = attempts.filter((attempt: any) => attempt.status === requestedStatus);
+    }
+
+    attempts = attempts
+      .sort((a: any, b: any) => {
+        const statusDelta =
+          (DUNNING_STATUS_RANK[a.status] ?? 99) -
+          (DUNNING_STATUS_RANK[b.status] ?? 99);
+        if (statusDelta !== 0) return statusDelta;
+        return (b.scheduledAt ?? b.createdAt ?? 0) - (a.scheduledAt ?? a.createdAt ?? 0);
+      })
+      .slice(0, limit);
+
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    return Promise.all(
+      attempts.map(async (attempt: any) => {
+        const subscription = await ctx.db.get(attempt.subscriptionId);
+        const invoice = attempt.invoiceId ? await ctx.db.get(attempt.invoiceId) : null;
+
+        const customer = subscription?.customerId
+          ? await ctx.db.get(subscription.customerId)
+          : null;
+
+        return {
+          ...attempt,
+          subscription: subscription
+            ? {
+                _id: subscription._id,
+                status: subscription.status,
+                userId: subscription.userId,
+                customerId: subscription.customerId,
+                customer: customer
+                  ? {
+                      _id: customer._id,
+                      email: customer.email,
+                      firstName: customer.firstName,
+                      lastName: customer.lastName,
+                    }
+                  : null,
+              }
+            : null,
+          invoice: invoice
+            ? {
+                _id: invoice._id,
+                status: invoice.status,
+                currencyCode: invoice.currencyCode,
+                totalAmount: invoice.totalAmount,
+                paymentProvider: invoice.paymentProvider,
+                dueAt: invoice.dueAt,
+                updatedAt: invoice.updatedAt,
+              }
+            : null,
+        };
+      }),
+    );
   },
 });
 
