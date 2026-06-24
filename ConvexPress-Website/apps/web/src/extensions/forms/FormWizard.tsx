@@ -654,10 +654,7 @@ export function FormWizard({
 
       const paymentPricing = trustedPricing ?? orderPricing;
       if (orderFormSettings.enabled && paymentPricing.oneTime > 0) {
-        const returnUrl =
-          typeof window !== "undefined"
-            ? `${window.location.origin}/forms/${form.slug}?payment=complete&submissionId=${encodeURIComponent(res.submissionId)}`
-            : `/forms/${form.slug}?payment=complete`;
+        const returnUrl = `/forms/${form.slug}?payment=complete&submissionId=${encodeURIComponent(res.submissionId)}`;
         setOrderPayment({
           submissionId: res.submissionId,
           pricing: paymentPricing,

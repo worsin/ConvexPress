@@ -609,6 +609,7 @@ export const processProviderRefundAction = internalAction({
     provider: v.string(),
     providerTransactionId: v.string(),
     amount: v.number(),
+    currencyCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     try {
@@ -671,12 +672,16 @@ export const processProviderRefundAction = internalAction({
             },
             body: JSON.stringify({
               amount: {
-                currency_code: "USD",
+                currency_code: args.currencyCode ?? "USD",
                 value: amountInDollars,
               },
             }),
           },
         );
+
+        if (!refundResponse.ok) {
+          throw new Error(`PayPal refund failed with status ${refundResponse.status}`);
+        }
 
         const refund = (await refundResponse.json()) as { id?: string };
         providerRefundId = refund.id || "";

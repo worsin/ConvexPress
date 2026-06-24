@@ -15,6 +15,9 @@ import { v } from "convex/values";
 /** Reset request heuristic window: 1 hour (in milliseconds). */
 export const RESET_HEURISTIC_WINDOW_MS = 60 * 60 * 1000;
 
+/** Minimum time between public reset emails for the same account. */
+export const RESET_REQUEST_COOLDOWN_MS = 10 * 60 * 1000;
+
 // ─── Password Settings Defaults ─────────────────────────────────────────────
 // Used when the Settings System hasn't been implemented or has no overrides.
 

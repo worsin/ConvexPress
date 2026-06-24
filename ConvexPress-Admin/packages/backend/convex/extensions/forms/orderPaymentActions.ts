@@ -13,12 +13,11 @@ function publicKeyFromSettings(settings: Record<string, unknown> | null): string
 function normalizeReturnUrl(value: string | undefined): string {
   if (!value) return "/";
   const trimmed = value.trim();
-  if (trimmed.startsWith("/")) return trimmed;
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return trimmed;
   try {
     const url = new URL(trimmed);
-    return url.protocol === "http:" || url.protocol === "https:"
-      ? url.toString()
-      : "/";
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "/";
+    return `${url.pathname}${url.search}${url.hash}` || "/";
   } catch {
     return "/";
   }

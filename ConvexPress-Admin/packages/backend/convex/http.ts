@@ -51,6 +51,11 @@ import {
 import { resendWebhookHandler } from "./http/resendWebhook";
 import { clerkWebhookHandler } from "./auth/clerkWebhook";
 import { inboundEmailWebhookHandler } from "./http/inboundEmailWebhook";
+import {
+  fedexWebhookHandler,
+  shipstationWebhookHandler,
+  upsWebhookHandler,
+} from "./shipping/webhooks";
 import { analyticsTrackHandler } from "./http/analytics";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -412,6 +417,36 @@ http.route({
   path: "/webhooks/inbound-email",
   method: "POST",
   handler: inboundEmailWebhookHandler,
+});
+http.route({
+  path: "/webhooks/shipstation",
+  method: "OPTIONS",
+  handler: corsPreflight,
+});
+http.route({
+  path: "/webhooks/shipstation",
+  method: "POST",
+  handler: shipstationWebhookHandler,
+});
+http.route({
+  path: "/webhooks/fedex",
+  method: "OPTIONS",
+  handler: corsPreflight,
+});
+http.route({
+  path: "/webhooks/fedex",
+  method: "POST",
+  handler: fedexWebhookHandler,
+});
+http.route({
+  path: "/webhooks/ups",
+  method: "OPTIONS",
+  handler: corsPreflight,
+});
+http.route({
+  path: "/webhooks/ups",
+  method: "POST",
+  handler: upsWebhookHandler,
 });
 
 // ─── Stripe Webhook (with idempotency and dispute handling) ────────────────

@@ -507,6 +507,13 @@ export const processRefund = mutation({
 			});
 		}
 
+		if (!transaction.providerTransactionId) {
+			throw new ConvexError({
+				code: "VALIDATION_ERROR",
+				message: "Transaction has no provider transaction ID to refund.",
+			});
+		}
+
 		const now = Date.now();
 
 		// Create refund record
@@ -527,17 +534,31 @@ export const processRefund = mutation({
 			updatedAt: now,
 		});
 
-		// Schedule the Stripe refund action
-		await ctx.scheduler.runAfter(
-			0,
-			internal.commerce.paymentActions.processStripeRefund,
-			{
-				refundId,
-				transactionId: args.transactionId,
-				providerTransactionId: transaction.providerTransactionId!,
-				amount: args.amount,
-			},
-		);
+		if (transaction.provider === "stripe") {
+			await ctx.scheduler.runAfter(
+				0,
+				internal.commerce.paymentActions.processStripeRefund,
+				{
+					refundId,
+					transactionId: args.transactionId,
+					providerTransactionId: transaction.providerTransactionId,
+					amount: args.amount,
+				},
+			);
+		} else {
+			await ctx.scheduler.runAfter(
+				0,
+				internal.commerce.paymentActions.processProviderRefundAction,
+				{
+					refundId,
+					transactionId: args.transactionId,
+					provider: transaction.provider,
+					providerTransactionId: transaction.providerTransactionId,
+					amount: args.amount,
+					currencyCode: transaction.amount.currencyCode,
+				},
+			);
+		}
 
 		return { refundId };
 	},

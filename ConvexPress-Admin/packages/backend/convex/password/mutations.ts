@@ -25,6 +25,7 @@ import { PASSWORD_EVENTS, SYSTEM } from "../events/constants";
 import { EMAIL_TEMPLATES, queueEmailForEvent } from "../helpers/email";
 import { getUserIdentifier } from "../helpers/permissions";
 import {
+  RESET_REQUEST_COOLDOWN_MS,
   recordResetRequestArgs,
   handlePasswordChangedArgs,
   handlePasswordResetCompletedArgs,
@@ -61,6 +62,12 @@ export const recordResetRequest = internalMutation({
     }
 
     const now = Date.now();
+    if (
+      user.passwordResetRequestedAt &&
+      now - user.passwordResetRequestedAt < RESET_REQUEST_COOLDOWN_MS
+    ) {
+      return;
+    }
 
     // Store the hashed reset token and update timestamp
     await ctx.db.patch(user._id, {

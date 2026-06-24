@@ -19,6 +19,7 @@ import { internalMutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { RESET_HEURISTIC_WINDOW_MS } from "./validators";
+import { timingSafeEquals } from "../helpers/timingSafe";
 
 // ─── verifyResetToken ──────────────────────────────────────────────────────
 
@@ -32,8 +33,7 @@ import { RESET_HEURISTIC_WINDOW_MS } from "./validators";
  *   4. Returns the user ID if valid, null otherwise
  *
  * Note: The caller is responsible for hashing the raw token before calling this.
- * The token hash comparison is done in constant time via string equality
- * (both sides are SHA-256 hex digests of the same length).
+ * The token hash comparison is done with timing-safe string comparison.
  *
  * @param email - The user's email address
  * @param tokenHash - SHA-256 hash of the token from the reset URL
@@ -68,8 +68,8 @@ export const verifyResetToken = internalMutation({
       return null;
     }
 
-    // Compare token hashes (both are hex-encoded SHA-256, same length)
-    if (user.passwordResetToken !== args.tokenHash) {
+    // Compare token hashes without leaking prefix match length.
+    if (!timingSafeEquals(user.passwordResetToken, args.tokenHash)) {
       return null;
     }
 
