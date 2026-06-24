@@ -9,7 +9,7 @@ import { AuthError } from "./AuthError";
 import { cn } from "@/lib/utils";
 
 interface ForgotPasswordFormProps {
-  onSuccess: (email: string, oauthHint?: boolean) => void;
+  onSuccess: (email: string) => void;
   className?: string;
 }
 
@@ -52,15 +52,10 @@ export function ForgotPasswordForm({
         // Call Convex action to trigger password reset + record audit event.
         // The action always succeeds (email enumeration prevention) -- it silently
         // does nothing if the email doesn't exist in ConvexPress.
-        // Returns { oauthHint: boolean } if the user registered via OAuth.
-        const result = await requestPasswordReset({ email: trimmedEmail });
-        const oauthHint = result && typeof result === "object" && "oauthHint" in result
-          ? (result as { oauthHint?: boolean }).oauthHint
-          : false;
+        await requestPasswordReset({ email: trimmedEmail });
 
         // Always show success to prevent email enumeration
-        // Pass oauthHint so the parent can show an advisory message
-        onSuccess(trimmedEmail, oauthHint ?? false);
+        onSuccess(trimmedEmail);
       } catch {
         // Even on error, show success to prevent enumeration
         // Log the error internally but don't expose it to the user

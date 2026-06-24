@@ -24,6 +24,12 @@ export const Route = createFileRoute("/_marketing/checkout/review")({
   component: CheckoutReviewPage,
 });
 
+const IMPLEMENTED_CHECKOUT_PAYMENT_METHODS = new Set([
+  "card",
+  "manual_invoice",
+  "cash_on_delivery",
+]);
+
 // ─── Stripe Payment Form (rendered inside Elements provider) ────────────────
 
 function StripePaymentForm({
@@ -168,7 +174,11 @@ function CheckoutReviewPage() {
     session?.selectedPaymentMethodCode ??
     "---";
 
-  const isCardPayment = session?.selectedPaymentMethodCode === "card";
+  const selectedPaymentCode = session?.selectedPaymentMethodCode ?? "";
+  const isImplementedPaymentMethod =
+    selectedPaymentCode === "" ||
+    IMPLEMENTED_CHECKOUT_PAYMENT_METHODS.has(selectedPaymentCode);
+  const isCardPayment = selectedPaymentCode === "card";
   const stripeAvailable = Boolean(paymentSettings?.stripePublishableKey);
   const requiresShipping =
     settings?.commerceConfig?.shippingEnabled !== false &&
@@ -188,6 +198,9 @@ function CheckoutReviewPage() {
     if (!session.selectedPaymentMethodCode) {
       issues.push("Select a payment method.");
     }
+    if (!isImplementedPaymentMethod) {
+      issues.push("Choose an available payment method.");
+    }
     if (isCardPayment && !stripeAvailable) {
       issues.push("Choose an available payment method.");
     }
@@ -199,7 +212,14 @@ function CheckoutReviewPage() {
       issues.push("Complete the checkout steps before placing the order.");
     }
     return issues;
-  }, [cart, isCardPayment, requiresShipping, session, stripeAvailable]);
+  }, [
+    cart,
+    isCardPayment,
+    isImplementedPaymentMethod,
+    requiresShipping,
+    session,
+    stripeAvailable,
+  ]);
   const canPlaceOrder = paymentStep === "review" && checkoutIssues.length === 0;
 
   const handlePlaceOrder = useCallback(async () => {
@@ -210,6 +230,10 @@ function CheckoutReviewPage() {
     }
     if (isCardPayment && !stripeAvailable) {
       toast.error("Card payments are not currently available.");
+      return;
+    }
+    if (!isImplementedPaymentMethod) {
+      toast.error("Choose an available payment method before placing the order.");
       return;
     }
     try {
@@ -243,6 +267,7 @@ function CheckoutReviewPage() {
     completeCheckout,
     initiatePayment,
     isCardPayment,
+    isImplementedPaymentMethod,
     stripeAvailable,
     checkoutIssues,
     router,

@@ -4,23 +4,11 @@ import { ConvexError, v } from "convex/values";
 import { action } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { getServiceKeyFromAction } from "../../helpers/serviceKeys";
+import { normalizeFormReturnUrl } from "./redirects";
 
 function publicKeyFromSettings(settings: Record<string, unknown> | null): string {
   const value = settings?.stripePublishableKey;
   return typeof value === "string" ? value.trim() : "";
-}
-
-function normalizeReturnUrl(value: string | undefined): string {
-  if (!value) return "/";
-  const trimmed = value.trim();
-  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return trimmed;
-  try {
-    const url = new URL(trimmed);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return "/";
-    return `${url.pathname}${url.search}${url.hash}` || "/";
-  } catch {
-    return "/";
-  }
 }
 
 function intentMatchesSource(
@@ -41,7 +29,7 @@ export const beginOrderPayment = action({
     returnUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const returnUrl = normalizeReturnUrl(args.returnUrl);
+    const returnUrl = normalizeFormReturnUrl(args.returnUrl) ?? "/";
     const source = await ctx.runQuery(
       (internal as any).extensions.forms.orderPayments.getOrderPaymentSource,
       { submissionId: args.submissionId },

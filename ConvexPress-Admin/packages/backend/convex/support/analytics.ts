@@ -52,11 +52,14 @@ export const getDeflectionStats = query({
       .take(50000);
 
     if (logs.length === 0) {
+      const emptyOutcomeBreakdown = { helpful: 0, notHelpful: 0, escalated: 0, abandoned: 0 };
       return {
         totalQueries: 0,
         deflectionRate: 0,
-        outcomeBreakdown: { helpful: 0, notHelpful: 0, escalated: 0, abandoned: 0 },
+        outcomeBreakdown: emptyOutcomeBreakdown,
+        outcomes: emptyOutcomeBreakdown,
         avgResponseLatencyMs: 0,
+        totalTokensUsed: 0,
       };
     }
 
@@ -69,6 +72,7 @@ export const getDeflectionStats = query({
     };
 
     let totalLatency = 0;
+    let totalTokensUsed = 0;
 
     for (const log of logs) {
       const outcome = log.outcome as DeflectionOutcome;
@@ -76,6 +80,7 @@ export const getDeflectionStats = query({
         outcomeBreakdown[outcome]++;
       }
       totalLatency += log.responseLatencyMs;
+      totalTokensUsed += log.tokensUsed ?? 0;
     }
 
     // Deflection rate = queries resolved without escalation (helpful + abandoned)
@@ -88,7 +93,9 @@ export const getDeflectionStats = query({
       totalQueries: logs.length,
       deflectionRate: Math.round(deflectionRate * 1000) / 10, // percentage, 1 decimal
       outcomeBreakdown,
+      outcomes: outcomeBreakdown,
       avgResponseLatencyMs: Math.round(totalLatency / logs.length),
+      totalTokensUsed,
     };
   },
 });
@@ -128,7 +135,6 @@ export const getTopDeflectingArticles = query({
       .take(50000);
 
     // Count per-article helpful and total citations
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const articleCounts = new Map<string, { helpful: number; total: number }>();
 
     for (const log of logs) {
@@ -143,27 +149,49 @@ export const getTopDeflectingArticles = query({
     }
 
     // Sort by helpful count descending, take top N
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const sorted = Array.from(articleCounts.entries())
       .sort(
         (
-          // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
           [, a]: [string, { helpful: number; total: number }],
-          // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
           [, b]: [string, { helpful: number; total: number }],
         ) => b.helpful - a.helpful,
       )
       .slice(0, limit);
 
-    return sorted.map(([articleId, counts]) => ({
-      articleId,
-      helpfulCount: counts.helpful,
-      totalCitedCount: counts.total,
-      deflectionRate:
-        counts.total > 0
-          ? Math.round((counts.helpful / counts.total) * 1000) / 10
-          : 0,
-    }));
+    const results: Array<{
+      articleId: string;
+      title: string;
+      helpfulCount: number;
+      helpfulAppearances: number;
+      totalCitedCount: number;
+      deflectionRate: number;
+    }> = [];
+
+    for (const [articleId, counts] of sorted) {
+      let title = articleId;
+      try {
+        const article = await ctx.db.get(articleId as any);
+        if (article && "title" in article && typeof article.title === "string") {
+          title = article.title;
+        }
+      } catch {
+        // kbArticleIds are stored as strings for schema independence.
+      }
+
+      results.push({
+        articleId,
+        title,
+        helpfulCount: counts.helpful,
+        helpfulAppearances: counts.helpful,
+        totalCitedCount: counts.total,
+        deflectionRate:
+          counts.total > 0
+            ? Math.round((counts.helpful / counts.total) * 1000) / 10
+            : 0,
+      });
+    }
+
+    return results;
   },
 });
 

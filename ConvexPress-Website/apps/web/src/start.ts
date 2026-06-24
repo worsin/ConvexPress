@@ -2,6 +2,11 @@ import { createMiddleware, createStart } from "@tanstack/react-start";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convexpress-website/backend/generated/api";
 
+import {
+  getRobotsTxtResponse,
+  getSitemapIndexResponse,
+  getSubSitemapResponse,
+} from "@/lib/seo/crawlers";
 import { getCanonicalUrl, isExcludedPath, isStaticFile } from "@/middleware/canonical";
 import {
   buildRedirectResponse,
@@ -28,6 +33,23 @@ function shouldSkipDocumentRedirect(request: Request, pathname: string): boolean
   }
   return isStaticFile(pathname) || isExcludedPath(pathname);
 }
+
+const crawlerMiddleware = createMiddleware().server(async ({ request, next }) => {
+  const pathname = new URL(request.url).pathname;
+  if (pathname === "/robots.txt") {
+    return getRobotsTxtResponse();
+  }
+  if (pathname === "/sitemap.xml") {
+    return getSitemapIndexResponse(request.url);
+  }
+
+  const subSitemapMatch = pathname.match(/^\/sitemap-([a-z]+)-(\d+)\.xml$/);
+  if (subSitemapMatch) {
+    return getSubSitemapResponse(subSitemapMatch[1]!, subSitemapMatch[2]!);
+  }
+
+  return next();
+});
 
 /**
  * Canonical URL middleware.
@@ -127,6 +149,7 @@ const documentNotFoundMiddleware = createMiddleware().server(async ({ next }) =>
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [
+    crawlerMiddleware,
     canonicalMiddleware,
     redirectMiddleware,
     documentNotFoundMiddleware,

@@ -63,15 +63,24 @@ function SupportAnalyticsDashboard() {
     api.support.analytics.getTopDeflectingArticles,
     dateRange,
   );
+  const commonUnanswered = useQuery(api.support.analytics.getCommonUnanswered, {
+    ...dateRange,
+    limit: 10,
+  });
   type TopDeflectingArticle = {
     articleId: string;
     title: string;
-    helpfulAppearances: number;
+    helpfulAppearances?: number;
+    helpfulCount?: number;
     deflectionRate: number;
   };
   type UnansweredQuery = { query: string; count: number };
 
-  if (stats === undefined || topArticles === undefined) {
+  if (
+    stats === undefined ||
+    topArticles === undefined ||
+    commonUnanswered === undefined
+  ) {
     return (
       <div className="p-6">
         <h1 className="mb-6 text-2xl font-bold text-foreground">
@@ -101,6 +110,10 @@ function SupportAnalyticsDashboard() {
       </div>
     );
   }
+
+  const outcomes = stats.outcomeBreakdown ??
+    stats.outcomes ?? { helpful: 0, notHelpful: 0, escalated: 0, abandoned: 0 };
+  const unansweredQueries = commonUnanswered ?? [];
 
   return (
     <div className="p-6">
@@ -138,7 +151,7 @@ function SupportAnalyticsDashboard() {
         <MetricCard
           icon={TrendingUp}
           label="Deflection Rate"
-          value={`${(stats.deflectionRate * 100).toFixed(1)}%`}
+          value={`${stats.deflectionRate.toFixed(1)}%`}
           sublabel="queries resolved by AI"
         />
         <MetricCard
@@ -149,7 +162,7 @@ function SupportAnalyticsDashboard() {
         <MetricCard
           icon={Zap}
           label="Tokens Used"
-          value={stats.totalTokensUsed.toLocaleString()}
+          value={(stats.totalTokensUsed ?? 0).toLocaleString()}
         />
       </div>
 
@@ -162,28 +175,28 @@ function SupportAnalyticsDashboard() {
           <OutcomeCard
             icon={ThumbsUp}
             label="Helpful"
-            count={stats.outcomes.helpful}
+            count={outcomes.helpful}
             total={stats.totalQueries}
             className="text-success"
           />
           <OutcomeCard
             icon={ThumbsDown}
             label="Not Helpful"
-            count={stats.outcomes.notHelpful}
+            count={outcomes.notHelpful}
             total={stats.totalQueries}
             className="text-destructive"
           />
           <OutcomeCard
             icon={ArrowUpRight}
             label="Escalated"
-            count={stats.outcomes.escalated}
+            count={outcomes.escalated}
             total={stats.totalQueries}
             className="text-warning"
           />
           <OutcomeCard
             icon={Ban}
             label="Abandoned"
-            count={stats.outcomes.abandoned}
+            count={outcomes.abandoned}
             total={stats.totalQueries}
             className="text-muted-foreground"
           />
@@ -212,8 +225,8 @@ function SupportAnalyticsDashboard() {
                       {article.title}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {article.helpfulAppearances} deflections &middot;{" "}
-                      {(article.deflectionRate * 100).toFixed(0)}% success rate
+                      {article.helpfulAppearances ?? article.helpfulCount ?? 0} deflections &middot;{" "}
+                      {article.deflectionRate.toFixed(0)}% success rate
                     </p>
                   </div>
                 </div>
@@ -236,9 +249,9 @@ function SupportAnalyticsDashboard() {
             Queries that were not resolved by AI -- consider adding KB articles
             for these topics.
           </p>
-          {stats.commonUnansweredQueries.length > 0 ? (
+          {unansweredQueries.length > 0 ? (
             <div className="flex flex-col gap-1.5">
-              {(stats.commonUnansweredQueries as UnansweredQuery[]).map((item) => (
+              {(unansweredQueries as UnansweredQuery[]).map((item) => (
                 <div
                   key={item.query}
                   className="flex items-center justify-between rounded-md px-2 py-1.5"

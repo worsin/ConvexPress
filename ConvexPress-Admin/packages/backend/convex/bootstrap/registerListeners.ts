@@ -56,6 +56,27 @@ interface ListenerDef {
   filterCondition?: string;
 }
 
+function makeSearchListener(
+  eventCode: string,
+  name: string,
+  handlerFunction: string,
+  description: string,
+): ListenerDef {
+  return {
+    eventCode,
+    name,
+    handlerModule: "search/eventHandlers",
+    handlerFunction,
+    handlerType: "internal",
+    priority: 80,
+    maxRetries: 3,
+    retryDelayMs: 2000,
+    retryBackoff: "exponential",
+    system: "search",
+    description,
+  };
+}
+
 /**
  * Complete listener registry for all downstream systems.
  *
@@ -1020,6 +1041,174 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
     description:
       "Marks tags sitemap stale when a tag is deleted.",
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SEARCH SYSTEM
+  // Incrementally upserts or removes search index rows after content changes.
+  // Priority 80 = runs after routing/sitemap freshness work but before audit.
+  // ═══════════════════════════════════════════════════════════════════════════
+  makeSearchListener(
+    "post.created",
+    "Search: Post created",
+    "onPostOrPageChanged",
+    "Upserts a post search index row when a post is created.",
+  ),
+  makeSearchListener(
+    "post.updated",
+    "Search: Post updated",
+    "onPostOrPageChanged",
+    "Reindexes a post when searchable content changes.",
+  ),
+  makeSearchListener(
+    "post.published",
+    "Search: Post published",
+    "onPostOrPageChanged",
+    "Updates a post search index row when it is published.",
+  ),
+  makeSearchListener(
+    "post.unpublished",
+    "Search: Post unpublished",
+    "onPostOrPageChanged",
+    "Updates a post search index row when it leaves public status.",
+  ),
+  makeSearchListener(
+    "post.scheduled",
+    "Search: Post scheduled",
+    "onPostOrPageChanged",
+    "Updates a post search index row when it is scheduled.",
+  ),
+  makeSearchListener(
+    "post.trashed",
+    "Search: Post trashed",
+    "onPostOrPageChanged",
+    "Updates a post search index row when it is trashed.",
+  ),
+  makeSearchListener(
+    "post.restored",
+    "Search: Post restored",
+    "onPostOrPageChanged",
+    "Updates a post search index row when it is restored.",
+  ),
+  makeSearchListener(
+    "post.duplicated",
+    "Search: Post duplicated",
+    "onPostOrPageChanged",
+    "Upserts a post search index row when a post is duplicated.",
+  ),
+  makeSearchListener(
+    "post.deleted",
+    "Search: Post deleted",
+    "onPostOrPageDeleted",
+    "Removes a post from the search index when it is deleted.",
+  ),
+  makeSearchListener(
+    "page.created",
+    "Search: Page created",
+    "onPostOrPageChanged",
+    "Upserts a page search index row when a page is created.",
+  ),
+  makeSearchListener(
+    "page.updated",
+    "Search: Page updated",
+    "onPostOrPageChanged",
+    "Reindexes a page when searchable content changes.",
+  ),
+  makeSearchListener(
+    "page.published",
+    "Search: Page published",
+    "onPostOrPageChanged",
+    "Updates a page search index row when it is published.",
+  ),
+  makeSearchListener(
+    "page.trashed",
+    "Search: Page trashed",
+    "onPostOrPageChanged",
+    "Updates a page search index row when it is trashed.",
+  ),
+  makeSearchListener(
+    "page.restored",
+    "Search: Page restored",
+    "onPostOrPageChanged",
+    "Updates a page search index row when it is restored.",
+  ),
+  makeSearchListener(
+    "page.deleted",
+    "Search: Page deleted",
+    "onPostOrPageDeleted",
+    "Removes a page from the search index when it is deleted.",
+  ),
+  makeSearchListener(
+    "media.uploaded",
+    "Search: Media uploaded",
+    "onMediaChanged",
+    "Upserts a media search index row when media is uploaded.",
+  ),
+  makeSearchListener(
+    "media.updated",
+    "Search: Media updated",
+    "onMediaChanged",
+    "Reindexes media when searchable metadata changes.",
+  ),
+  makeSearchListener(
+    "media.deleted",
+    "Search: Media deleted",
+    "onMediaDeleted",
+    "Removes media from the search index when it is deleted.",
+  ),
+  makeSearchListener(
+    "comment.created",
+    "Search: Comment created",
+    "onCommentChanged",
+    "Upserts an approved comment search index row when a comment is created.",
+  ),
+  makeSearchListener(
+    "comment.updated",
+    "Search: Comment updated",
+    "onCommentChanged",
+    "Reindexes a comment when searchable content changes.",
+  ),
+  makeSearchListener(
+    "comment.approved",
+    "Search: Comment approved",
+    "onCommentChanged",
+    "Upserts a comment search index row when a comment is approved.",
+  ),
+  makeSearchListener(
+    "comment.rejected",
+    "Search: Comment rejected",
+    "onCommentChanged",
+    "Updates the search index when a comment is rejected.",
+  ),
+  makeSearchListener(
+    "comment.deleted",
+    "Search: Comment deleted",
+    "onCommentRemoved",
+    "Removes a comment from the search index when it is deleted.",
+  ),
+  makeSearchListener(
+    "comment.spammed",
+    "Search: Comment spammed",
+    "onCommentRemoved",
+    "Removes a comment from the search index when it is marked spam.",
+  ),
+  makeSearchListener(
+    "taxonomy.term_assigned",
+    "Search: Taxonomy term assigned",
+    "onTaxonomyTermPostChanged",
+    "Reindexes a post when taxonomy terms are assigned.",
+  ),
+  makeSearchListener(
+    "taxonomy.category_updated",
+    "Search: Category updated",
+    "onTaxonomyTermUpdated",
+    "Reindexes posts using a renamed category.",
+  ),
+  makeSearchListener(
+    "taxonomy.tag_updated",
+    "Search: Tag updated",
+    "onTaxonomyTermUpdated",
+    "Reindexes posts using a renamed tag.",
+  ),
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ROUTING SYSTEM

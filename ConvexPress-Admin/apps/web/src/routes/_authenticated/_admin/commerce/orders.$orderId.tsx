@@ -253,6 +253,9 @@ function CommerceOrderDetailPage() {
     (api as any).commerce.orders.capturePayment,
   );
   const createRefund = useMutation((api as any).commerce.orders.createRefund);
+  const processRefund = useMutation(
+    (api as any).commerce.payments.processRefund,
+  );
   const createShipment = useMutation((api as any).commerce.orders.createShipment);
   const updateShipmentStatus = useMutation(
     (api as any).commerce.orders.updateShipmentStatus,
@@ -352,15 +355,48 @@ function CommerceOrderDetailPage() {
 
   async function handleCreateRefund() {
     if (!effectiveOrderId) return;
+    const amount = Math.round(Number(refundAmount) * 100);
+    const reason = refundReason.trim();
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Enter a refund amount greater than zero.");
+      return;
+    }
+    const providerTransactions = (order?.transactions ?? []).filter(
+      (transaction: any) =>
+        transaction.providerTransactionId &&
+        (transaction.status === "succeeded" ||
+          transaction.status === "partially_refunded"),
+    );
+    const refundableTransaction = providerTransactions.find((transaction: any) => {
+      const remaining =
+        Number(transaction.amount?.amount ?? 0) -
+        Number(transaction.refundedAmount ?? 0);
+      return remaining >= amount;
+    });
+
     try {
-      await createRefund({
-        orderId: effectiveOrderId as any,
-        amount: Math.round(Number(refundAmount) * 100),
-        ...(refundReason.trim() ? { reason: refundReason.trim() } : {}),
-      });
+      if (refundableTransaction) {
+        await processRefund({
+          transactionId: refundableTransaction._id,
+          amount,
+          ...(reason ? { reason } : {}),
+        });
+        toast.success("Provider refund initiated");
+      } else if (providerTransactions.length > 0) {
+        toast.error(
+          "Refund amount must fit the remaining balance of one provider transaction.",
+        );
+        return;
+      } else {
+        await createRefund({
+          orderId: effectiveOrderId as any,
+          amount,
+          ...(reason ? { reason } : {}),
+        });
+        toast.success("Manual refund recorded");
+      }
       setRefundAmount("");
       setRefundReason("");
-      toast.success("Refund created");
     } catch (error) {
       toast.error(
         (error as { data?: { message?: string } })?.data?.message ??

@@ -115,6 +115,10 @@ function StatCard({
 function PaymentsDashboardPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedTx, setExpandedTx] = useState<string | null>(null);
+  const [refundingTxId, setRefundingTxId] = useState<string | null>(null);
+  const processRefund = useMutation(
+    (api as any).commerce.payments.processRefund,
+  );
 
   // Query transactions from commerce_payment_transactions table
   const transactions = useQuery(
@@ -193,8 +197,37 @@ function PaymentsDashboardPage() {
   }
 
   async function handleRefund(tx: any) {
-    if (!confirm(`Refund ${formatMoney(tx.amount?.amount ?? 0)}?`)) return;
-    toast.success("Refund initiated");
+    const refundableAmount =
+      Number(tx.amount?.amount ?? 0) - Number(tx.refundedAmount ?? 0);
+    if (refundableAmount <= 0) {
+      toast.error("This transaction has no remaining refundable balance.");
+      return;
+    }
+    if (!tx.providerTransactionId) {
+      toast.error("This transaction cannot be refunded automatically.");
+      return;
+    }
+    if (!confirm(`Refund ${formatMoney(refundableAmount, tx.amount?.currencyCode)}?`)) {
+      return;
+    }
+
+    setRefundingTxId(String(tx._id));
+    try {
+      await processRefund({
+        transactionId: tx._id,
+        amount: refundableAmount,
+        reason: "Admin refund from Payments dashboard",
+      });
+      toast.success("Refund initiated");
+    } catch (error: any) {
+      toast.error(
+        error?.data?.message ??
+          error?.message ??
+          "Failed to initiate refund.",
+      );
+    } finally {
+      setRefundingTxId(null);
+    }
   }
 
   return (
@@ -278,6 +311,13 @@ function PaymentsDashboardPage() {
         <div className="space-y-2">
           {sorted.map((tx: any) => {
             const isExpanded = expandedTx === tx._id;
+            const refundableAmount =
+              Number(tx.amount?.amount ?? 0) - Number(tx.refundedAmount ?? 0);
+            const canRefund =
+              Boolean(tx.providerTransactionId) &&
+              refundableAmount > 0 &&
+              (tx.status === "succeeded" || tx.status === "partially_refunded");
+            const isRefunding = refundingTxId === String(tx._id);
             return (
               <div
                 key={tx._id}
@@ -361,15 +401,16 @@ function PaymentsDashboardPage() {
                     </div>
 
                     {/* Actions */}
-                    {(tx.status === "succeeded" || tx.status === "paid" || tx.status === "completed") && (
+                    {canRefund && (
                       <div className="flex items-center gap-2 pt-2 border-t border-border">
                         <button
                           type="button"
                           onClick={() => handleRefund(tx)}
-                          className="inline-flex items-center gap-1.5 rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90"
+                          disabled={isRefunding}
+                          className="inline-flex items-center gap-1.5 rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60"
                         >
-                          <RefreshCw className="h-3.5 w-3.5" />
-                          Issue Refund
+                          <RefreshCw className={`h-3.5 w-3.5 ${isRefunding ? "animate-spin" : ""}`} />
+                          {isRefunding ? "Refunding..." : "Issue Refund"}
                         </button>
                       </div>
                     )}

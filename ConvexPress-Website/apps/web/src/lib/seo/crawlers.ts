@@ -42,15 +42,14 @@ export async function getRobotsTxtResponse() {
   }
 }
 
-export async function getSitemapIndexResponse() {
+export async function getSitemapIndexResponse(requestUrl?: string) {
+  const fallback = () => sitemapFallbackResponse(requestUrl);
+
   try {
     const result = await getClient().query(api.sitemaps.queries.getIndex, {});
 
     if (!result) {
-      return new Response("Sitemap not found", {
-        status: 404,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
+      return fallback();
     }
 
     return new Response(result.xml, {
@@ -64,10 +63,7 @@ export async function getSitemapIndexResponse() {
   } catch (error: unknown) {
     console.error("Failed to fetch sitemap index from Convex:", error);
 
-    return new Response("Internal Server Error", {
-      status: 500,
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
+    return fallback();
   }
 }
 
@@ -124,6 +120,29 @@ function defaultRobotsTxt(): string {
     "Disallow: /admin/",
     "Allow: /",
     "",
-    "Sitemap: /api/sitemap/xml",
+    "Sitemap: /sitemap.xml",
   ].join("\n");
+}
+
+function sitemapFallbackResponse(requestUrl?: string): Response {
+  const origin = requestUrl ? new URL(requestUrl).origin : "https://convexpress.com";
+  const xml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    "  <url>",
+    `    <loc>${origin}/</loc>`,
+    "    <changefreq>daily</changefreq>",
+    "    <priority>1.0</priority>",
+    "  </url>",
+    "</urlset>",
+  ].join("\n");
+
+  return new Response(xml, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/xml; charset=utf-8",
+      "Cache-Control": "public, max-age=300, s-maxage=300",
+      "X-Robots-Tag": "noindex",
+    },
+  });
 }

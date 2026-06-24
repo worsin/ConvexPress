@@ -956,8 +956,8 @@ function CommerceReturnDetailPage() {
                       <p className="text-sm text-amber-800">
                         The refund has been dispatched to the payment provider
                         but has not confirmed yet. If it appears stuck, retry
-                        the provider refund. Only Stripe-backed refunds can be
-                        retried automatically; for other providers, resolve
+                        the provider refund. Only supported provider refunds can
+                        be retried automatically; for other providers, resolve
                         manually.
                       </p>
                     </div>

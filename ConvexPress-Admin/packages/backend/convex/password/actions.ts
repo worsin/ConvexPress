@@ -24,10 +24,6 @@ import { adminResetUserPasswordArgs, completePasswordResetArgs } from "./validat
 /** Token expiry: 24 hours */
 const RESET_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
-type PasswordResetRequestResult = {
-  oauthHint: boolean;
-} | void;
-
 /**
  * Generate a cryptographically secure random token string.
  * Uses the Web Crypto API available in Convex runtime.
@@ -72,7 +68,7 @@ async function hashToken(token: string): Promise<string> {
  */
 export const requestPasswordReset = action({
   args: { email: v.string() },
-  handler: async (ctx, args): Promise<PasswordResetRequestResult> => {
+  handler: async (ctx, args): Promise<void> => {
     const email = args.email.trim().toLowerCase();
 
     // Input validation: basic email format and length check
@@ -82,29 +78,19 @@ export const requestPasswordReset = action({
       return;
     }
 
-    // 1. Check if this user registered via OAuth (for UX hint)
-    // This does NOT confirm/deny email existence to the client.
-    // The hint is advisory: "you might want to try OAuth login instead."
-    const registrationMethod = (await ctx.runQuery(
-      internal.password.queries.getRegistrationMethodByEmail,
-      { email },
-    )) as string | null;
-
-    const isOAuth: boolean = registrationMethod === "oauth";
-
-    // 2. Generate a secure reset token
+    // 1. Generate a secure reset token
     const token = generateResetToken();
     const tokenHash = await hashToken(token);
     const expiresAt = Date.now() + RESET_TOKEN_EXPIRY_MS;
 
-    // 3. Get site URL for building the reset link
+    // 2. Get site URL for building the reset link
     const siteUrl = await ctx.runQuery(
       internal.password.queries.getSiteUrl,
     );
 
     const resetUrl = `${siteUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
 
-    // 4. Store hashed token and queue the reset email via internal mutation.
+    // 3. Store hashed token and queue the reset email via internal mutation.
     // This mutation silently does nothing if the email doesn't exist (enum prevention).
     await ctx.runMutation(internal.password.mutations.recordResetRequest, {
       email,
@@ -112,11 +98,6 @@ export const requestPasswordReset = action({
       tokenExpiresAt: expiresAt,
       resetUrl,
     });
-
-    // Return with optional OAuth hint.
-    // The UI always shows a success message. If isOAuth is true,
-    // it additionally shows a hint about using the OAuth provider.
-    return { oauthHint: isOAuth };
   },
 });
 

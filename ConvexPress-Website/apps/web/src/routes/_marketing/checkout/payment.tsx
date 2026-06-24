@@ -29,6 +29,12 @@ type PaymentMethodOption = {
   unavailableReason?: string;
 };
 
+const IMPLEMENTED_CHECKOUT_PAYMENT_METHODS = new Set([
+  "card",
+  "manual_invoice",
+  "cash_on_delivery",
+]);
+
 function CheckoutPaymentPage() {
   const settings = useSettings();
   const router = useRouter();
@@ -53,9 +59,16 @@ function CheckoutPaymentPage() {
         (method: any) => method.enabled,
       ) ?? [
         { code: "manual_invoice", label: "Manual invoice", enabled: true },
-      ];
+    ];
 
     return configured.map((method: any) => {
+      if (!IMPLEMENTED_CHECKOUT_PAYMENT_METHODS.has(method.code)) {
+        return {
+          ...method,
+          unavailableReason:
+            "This payment method is not available in checkout yet.",
+        };
+      }
       if (method.code === "card" && !stripeAvailable) {
         return {
           ...method,

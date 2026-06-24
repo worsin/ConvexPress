@@ -1021,7 +1021,7 @@ export const confirmPaymentFailure = internalMutation({
 });
 
 /**
- * Complete refund processing (called by Stripe refund action).
+ * Complete refund processing (called by provider refund actions).
  */
 export const completeRefund = internalMutation({
 	args: {

@@ -48,6 +48,7 @@ import {
   type ActionResult,
   type ActionRunContext,
 } from "./actionRegistry";
+import { normalizeFormReturnUrl } from "./redirects";
 
 // ─── Config + Zod boundary ───────────────────────────────────────────────────
 
@@ -69,7 +70,13 @@ export const subscriptionConfigSchema = z
     couponFieldName: z.string().min(1).optional(),
     couponCode: z.string().min(1).optional(),
     accountPolicy: z.enum(["require_existing", "create_on_website"]),
-    returnUrl: z.string().url().optional(),
+    returnUrl: z
+      .string()
+      .min(1)
+      .refine((value) => normalizeFormReturnUrl(value) !== undefined, {
+        message: "Return URL must be a local path or HTTP(S) URL.",
+      })
+      .optional(),
     /** Server-amount ceiling (integer cents). A charge above this is refused. */
     maxInitialAmount: z.number().int().nonnegative().optional(),
   })
@@ -270,6 +277,7 @@ async function runSubscriptionAction(
     };
   }
   const config = parsed.data;
+  const returnUrl = normalizeFormReturnUrl(config.returnUrl);
 
   const { offerId, customerEmail, couponCode } = resolveInputs(
     config,
@@ -324,7 +332,7 @@ async function runSubscriptionAction(
           offerId: offerId as any,
           customerEmail,
           couponCode,
-          returnUrl: config.returnUrl,
+          returnUrl,
           // Stamp form linkage when present (both args are optional on
           // createCheckoutIntent). Guard against an empty id string.
           formId: ctx.formId ? (ctx.formId as any) : undefined,
@@ -508,7 +516,7 @@ async function runSubscriptionAction(
       recurringAmount,
       currency,
       accountPolicy: config.accountPolicy,
-      returnUrl: config.returnUrl,
+      returnUrl,
     },
   };
 }

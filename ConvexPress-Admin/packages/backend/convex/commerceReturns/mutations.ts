@@ -789,7 +789,7 @@ export const markReceived = mutation({
  * Important safety properties:
  *   - Refund amount is recomputed from actually *received* quantities to
  *     guarantee partial receipt is never over-refunded.
- *   - refundMethod === "original_payment" requires a real Stripe-capable
+ *   - refundMethod === "original_payment" requires a real supported provider
  *     transaction. Without one, the call fails rather than silently marking
  *     the return as refunded.
  *   - Manual (non-original_payment) refund methods (e.g. store_credit) mark
@@ -876,16 +876,16 @@ export const processRefund = mutation({
     );
 
     const isOriginalPayment = args.refundMethod === "original_payment";
-    const canAutoRefundViaStripe =
+    const canAutoRefundToOriginalPayment =
       !!succeededTxn &&
-      succeededTxn.provider === "stripe" &&
-      !!succeededTxn.providerTransactionId;
+      !!succeededTxn.providerTransactionId &&
+      ["stripe", "paypal"].includes(succeededTxn.provider);
 
-    if (isOriginalPayment && !canAutoRefundViaStripe) {
+    if (isOriginalPayment && !canAutoRefundToOriginalPayment) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message:
-          "Cannot refund to original payment: no Stripe transaction is available. " +
+          "Cannot refund to original payment: no supported provider transaction is available. " +
           "Choose a manual refund method (e.g. store credit) or record the refund outside the system.",
       });
     }
@@ -932,15 +932,17 @@ export const processRefund = mutation({
         updatedAt: now,
       });
 
-      if (isOriginalPayment && canAutoRefundViaStripe) {
+      if (isOriginalPayment && canAutoRefundToOriginalPayment) {
         await ctx.scheduler.runAfter(
           0,
-          internal.commerce.paymentActions.processStripeRefund,
+          internal.commerce.paymentActions.processProviderRefundAction,
           {
             refundId,
             transactionId: succeededTxn._id,
-            providerTransactionId: succeededTxn.providerTransactionId!,
+            provider: succeededTxn.provider,
+            providerTransactionId: succeededTxn.providerTransactionId,
             amount: effectiveRefundAmount,
+            currencyCode: succeededTxn.amount.currencyCode,
           },
         );
       } else {
@@ -1377,9 +1379,9 @@ export const updateNotes = mutation({
 // ============================================
 
 /**
- * Retry a refund stuck in refund_pending. Only Stripe-backed refunds can be
- * re-scheduled automatically. For non-Stripe cases the caller gets an error
- * so they can manually resolve the refund rather than silently stalling.
+ * Retry a refund stuck in refund_pending. Only providers supported by the
+ * automatic refund action can be re-scheduled. Other providers return an error
+ * so admins can manually resolve the refund rather than silently stalling.
  */
 export const retryStuckRefund = mutation({
   args: {
@@ -1423,7 +1425,7 @@ export const retryStuckRefund = mutation({
       });
     }
 
-    if (succeededTxn.provider !== "stripe") {
+    if (!["stripe", "paypal"].includes(succeededTxn.provider)) {
       throw new ConvexError({
         code: "UNSUPPORTED_PROVIDER",
         message: `Automatic retry is not available for provider "${succeededTxn.provider}". Resolve the refund manually.`,
@@ -1471,12 +1473,14 @@ export const retryStuckRefund = mutation({
 
     await ctx.scheduler.runAfter(
       0,
-      internal.commerce.paymentActions.processStripeRefund,
+      internal.commerce.paymentActions.processProviderRefundAction,
       {
         refundId,
         transactionId: succeededTxn._id,
+        provider: succeededTxn.provider,
         providerTransactionId: succeededTxn.providerTransactionId,
         amount: returnRequest.refundAmount,
+        currencyCode: succeededTxn.amount.currencyCode,
       },
     );
 

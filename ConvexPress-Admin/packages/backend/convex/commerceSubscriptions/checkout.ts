@@ -26,6 +26,7 @@ import { initializeRedemption, validateCoupon } from "../helpers/coupons";
 import { emitEvent } from "../helpers/events";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
+import { normalizeFormReturnUrl } from "../extensions/forms/redirects";
 
 // ─── Helpers (duplicated with intentional care; see mutations.ts) ───────────
 
@@ -153,6 +154,7 @@ export const createCheckoutIntent = mutation({
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
+		const returnUrl = normalizeFormReturnUrl(args.returnUrl);
 
 		const now = Date.now();
 
@@ -294,7 +296,7 @@ export const createCheckoutIntent = mutation({
 					currencyCode,
 					trialDays,
 					couponCode: couponCodeNormalized,
-					returnUrl: args.returnUrl,
+					returnUrl,
 				},
 				initialAmount,
 				recurringAmount,
@@ -309,7 +311,7 @@ export const createCheckoutIntent = mutation({
 				expiresAt: addDays(now, 0) + 60 * 60 * 1000,
 				metadata: {
 					couponCode: couponCodeNormalized,
-					returnUrl: args.returnUrl,
+					returnUrl,
 				},
 				createdAt: now,
 				updatedAt: now,

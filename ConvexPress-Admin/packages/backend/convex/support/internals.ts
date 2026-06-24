@@ -177,7 +177,6 @@ export const searchKbKeywordFallback = internalQuery({
       .slice(0, 10);
 
     // Deduplicate by articleId, take best score per article
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const byArticle = new Map<string, { title: string; excerpt: string; slug: string; score: number }>();
 
     for (const { chunk, score } of scored) {
@@ -193,13 +192,25 @@ export const searchKbKeywordFallback = internalQuery({
       }
     }
 
-    return Array.from(byArticle.entries()).map(([id, data]) => ({
-      id,
-      title: data.title,
-      excerpt: data.excerpt,
-      slug: data.slug,
-      score: data.score * 0.9, // Slight discount vs. Convex full-text
-    }));
+    const results: Array<{
+      id: string;
+      title: string;
+      excerpt: string;
+      slug: string;
+      score: number;
+    }> = [];
+
+    for (const [id, data] of byArticle.entries()) {
+      results.push({
+        id,
+        title: data.title,
+        excerpt: data.excerpt,
+        slug: data.slug,
+        score: data.score * 0.9, // Slight discount vs. Convex full-text
+      });
+    }
+
+    return results;
   },
 });
 

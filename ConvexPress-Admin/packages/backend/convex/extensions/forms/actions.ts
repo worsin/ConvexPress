@@ -53,6 +53,7 @@ import {
 // validator and the runner depend on these having run at module load.
 import "./actionTypes";
 import "./commerce";
+import { normalizeFormReturnUrl } from "./redirects";
 
 // ─── Local helpers ───────────────────────────────────────────────────────────
 
@@ -186,7 +187,9 @@ export const getPendingPayment = query({
             recurringAmount: (data.recurringAmount as number) ?? 0,
             currency: (data.currency as string) ?? "USD",
             accountPolicy: (data.accountPolicy as string) ?? "require_existing",
-            returnUrl: (data.returnUrl as string | undefined) ?? undefined,
+            returnUrl: normalizeFormReturnUrl(
+              data.returnUrl as string | undefined,
+            ),
           };
         }
       } catch {

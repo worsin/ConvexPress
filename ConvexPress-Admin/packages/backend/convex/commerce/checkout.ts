@@ -8,7 +8,7 @@ import { CHECKOUT_EVENTS, SYSTEM } from "../events/constants";
 import {
   getCommercePaymentsSettings,
   getCommerceSettings,
-  getEnabledPaymentMethods,
+  getEnabledCheckoutPaymentMethods,
   getEnabledShippingMethods,
   requireCommerceEnabled,
 } from "./helpers";
@@ -765,7 +765,7 @@ export const updateSession = mutation({
         : selectedShippingMethod.amount;
     }
     if (args.selectedPaymentMethodCode !== undefined) {
-      const paymentMethods = getEnabledPaymentMethods(settings);
+      const paymentMethods = getEnabledCheckoutPaymentMethods(settings);
       const selectedPaymentMethod = paymentMethods.find(
         (method) => method.code === args.selectedPaymentMethodCode,
       );
@@ -989,7 +989,7 @@ export const complete = mutation({
     const requiresShipping =
       settings.shippingEnabled &&
       items.some((item: any) => item.product && item.product.isVirtual !== true);
-    const paymentMethods = getEnabledPaymentMethods(settings);
+    const paymentMethods = getEnabledCheckoutPaymentMethods(settings);
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const selectedPaymentMethod = paymentMethods.find(
       // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.

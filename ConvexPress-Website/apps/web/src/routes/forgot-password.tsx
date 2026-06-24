@@ -21,7 +21,6 @@ function ForgotPasswordComponent() {
   const { isSignedIn, isLoaded } = useAuth();
   const navigate = useNavigate();
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
-  const [oauthHint, setOauthHint] = useState(false);
 
   // Authenticated users should manage passwords in dashboard settings
 	  useEffect(() => {
@@ -30,9 +29,8 @@ function ForgotPasswordComponent() {
 	    }
 	  }, [isLoaded, isSignedIn, navigate]);
 
-  const handleSuccess = (email: string, isOAuth?: boolean) => {
+  const handleSuccess = (email: string) => {
     setSubmittedEmail(email);
-    setOauthHint(isOAuth ?? false);
   };
 
   if (isLoaded && isSignedIn) {
@@ -49,7 +47,7 @@ function ForgotPasswordComponent() {
       }
     >
       {submittedEmail ? (
-        <ForgotPasswordSuccess email={submittedEmail} oauthHint={oauthHint} />
+        <ForgotPasswordSuccess email={submittedEmail} />
       ) : (
         <>
           <ForgotPasswordForm onSuccess={handleSuccess} />

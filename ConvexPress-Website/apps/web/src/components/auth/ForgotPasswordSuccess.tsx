@@ -1,25 +1,20 @@
 import { useEffect, useRef } from "react";
-import { MailCheck, Info } from "lucide-react";
+import { MailCheck } from "lucide-react";
 
 import { AuthLink } from "./AuthLink";
 
 interface ForgotPasswordSuccessProps {
   email: string;
-  /** If true, the user registered via OAuth and should try their provider instead. */
-  oauthHint?: boolean;
 }
 
 /**
  * Success message shown after forgot-password form submission.
  * Always shown regardless of whether the email exists (prevents enumeration).
  *
- * If the user registered via OAuth, an advisory hint is shown suggesting
- * they sign in with their OAuth provider (Google, GitHub, etc.) instead.
- *
  * Focus is automatically moved to the success heading for screen reader
  * announcement when this component mounts.
  */
-export function ForgotPasswordSuccess({ email, oauthHint }: ForgotPasswordSuccessProps) {
+export function ForgotPasswordSuccess({ email }: ForgotPasswordSuccessProps) {
   // Partially mask the email for privacy
   const maskedEmail = maskEmail(email);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -55,23 +50,6 @@ export function ForgotPasswordSuccess({ email, oauthHint }: ForgotPasswordSucces
           Check your inbox and spam folder.
         </p>
       </div>
-
-      {oauthHint && (
-        <div
-          role="note"
-          className="flex items-start gap-2 rounded-md border border-border bg-muted/50 px-3 py-2.5 text-left"
-        >
-          <Info className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-          <p className="text-xs text-muted-foreground">
-            It looks like this account was created using a social login provider
-            (Google, GitHub, etc.). You may want to{" "}
-            <AuthLink to="/login" className="inline text-xs font-medium text-foreground">
-              sign in with your provider
-            </AuthLink>{" "}
-            instead.
-          </p>
-        </div>
-      )}
 
       <AuthLink to="/login">Back to Sign In</AuthLink>
     </div>

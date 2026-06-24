@@ -21,6 +21,7 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
+import { sanitizeRedirectUrl } from "@/lib/security/redirect";
 
 interface Props {
   publishableKey: string;
@@ -64,15 +65,22 @@ function PaymentFormInner(props: {
     e.preventDefault();
     if (!stripe || !elements) return;
     setSubmitting(true);
+    const localReturnPath = sanitizeRedirectUrl(props.returnUrl, {
+      baseOrigin: window.location.origin,
+      fallbackPath: window.location.pathname,
+    });
+    const returnUrl = localReturnPath.startsWith("/")
+      ? `${window.location.origin}${localReturnPath}`
+      : `${window.location.origin}${window.location.pathname}`;
     const result =
       props.mode === "setup"
         ? await stripe.confirmSetup({
             elements,
-            confirmParams: { return_url: props.returnUrl },
+            confirmParams: { return_url: returnUrl },
           })
         : await stripe.confirmPayment({
             elements,
-            confirmParams: { return_url: props.returnUrl },
+            confirmParams: { return_url: returnUrl },
           });
     if (result.error) {
       props.onError(result.error.message ?? "Payment failed");

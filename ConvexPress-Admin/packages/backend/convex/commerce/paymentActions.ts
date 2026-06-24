@@ -612,6 +612,27 @@ export const processProviderRefundAction = internalAction({
     currencyCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const workflow = await ctx.runMutation(internal.commerce.workflows.beginInternal, {
+      workflowKey: "commerce.refund.create",
+      idempotencyKey: String(args.refundId),
+      entityType: "commerce_payment_refunds",
+      entityId: String(args.refundId),
+      input: {
+        transactionId: args.transactionId,
+        provider: args.provider,
+        providerTransactionId: args.providerTransactionId,
+        amount: args.amount,
+        currencyCode: args.currencyCode,
+      },
+      lockedUntil: Date.now() + 5 * 60 * 1000,
+    });
+    if (workflow.existing && workflow.status === "completed") {
+      return workflow.result;
+    }
+    if (workflow.existing && workflow.status === "running") {
+      return { skipped: true, reason: "refund_create_already_running" };
+    }
+
     try {
       let providerRefundId: string;
 
@@ -697,6 +718,16 @@ export const processProviderRefundAction = internalAction({
         amount: args.amount,
         success: true,
       });
+      const result = {
+        provider: args.provider,
+        providerRefundId,
+        status: "succeeded",
+      };
+      await ctx.runMutation(internal.commerce.workflows.completeInternal, {
+        runId: workflow.runId,
+        result,
+      });
+      return result;
     } catch (error: any) {
       console.error(
         `[Payments] ${args.provider} refund processing failed:`,
@@ -708,6 +739,10 @@ export const processProviderRefundAction = internalAction({
         providerRefundId: "",
         amount: args.amount,
         success: false,
+        error: error.message || "Failed to process refund",
+      });
+      await ctx.runMutation(internal.commerce.workflows.failInternal, {
+        runId: workflow.runId,
         error: error.message || "Failed to process refund",
       });
     }

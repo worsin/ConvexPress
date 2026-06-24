@@ -11,6 +11,11 @@ import {
 } from "../settings/defaults";
 
 type CommerceCtx = QueryCtx | MutationCtx;
+const IMPLEMENTED_CHECKOUT_PAYMENT_METHOD_CODES = new Set([
+  "card",
+  "manual_invoice",
+  "cash_on_delivery",
+]);
 
 async function getPluginSettings(ctx: CommerceCtx): Promise<PluginsSettings> {
   const doc = await (ctx.db as any)
@@ -72,6 +77,18 @@ export function getEnabledPaymentMethods(
       method.enabled &&
       method.code.trim().length > 0 &&
       method.label.trim().length > 0,
+  );
+}
+
+export function isCheckoutPaymentMethodImplemented(code: string): boolean {
+  return IMPLEMENTED_CHECKOUT_PAYMENT_METHOD_CODES.has(code);
+}
+
+export function getEnabledCheckoutPaymentMethods(
+  settings: CommerceGeneralSettings,
+): Array<{ code: string; label: string; enabled: boolean }> {
+  return getEnabledPaymentMethods(settings).filter((method) =>
+    isCheckoutPaymentMethodImplemented(method.code),
   );
 }
 
