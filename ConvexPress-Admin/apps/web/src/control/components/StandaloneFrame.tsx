@@ -23,7 +23,14 @@ function readCollapsed() {
   }
 }
 
-export function StandaloneFrame({ children }: { children: ReactNode }) {
+export function StandaloneFrame({
+  children,
+  layout = "centered",
+}: {
+  children: ReactNode;
+  /** "centered" for state cards, "fill" for full workspaces. */
+  layout?: "centered" | "fill";
+}) {
   const shell = useControlShell();
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const toggle = useCallback(() => {
@@ -78,7 +85,13 @@ export function StandaloneFrame({ children }: { children: ReactNode }) {
             </>
           }
         />
-        <main className="grid min-h-0 flex-1 place-items-center overflow-auto p-6">
+        <main
+          className={
+            layout === "fill"
+              ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+              : "grid min-h-0 flex-1 place-items-center overflow-auto p-6"
+          }
+        >
           {children}
         </main>
       </div>

@@ -9,7 +9,10 @@
 
 import type { ReactNode } from "react";
 
+import { LayoutGrid } from "lucide-react";
+
 import { BrandLockup } from "@/components/brand/BrandLockup";
+import { useControlShell } from "@/control/ControlShellContext";
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
@@ -50,6 +53,30 @@ export function SidebarBrandRow({ collapsed }: { collapsed: boolean }) {
   );
 }
 
+/** Standalone-only entry that opens the Sites workspace. */
+export function SitesNavEntry({ collapsed }: { collapsed: boolean }) {
+  const shell = useControlShell();
+  if (!shell) return null;
+  const active = shell.openPanel === "sites";
+  return (
+    <button
+      type="button"
+      aria-label="Sites"
+      aria-current={active ? "page" : undefined}
+      title={collapsed ? "Sites" : undefined}
+      onClick={() => (active ? shell.setOpenPanel(null) : shell.openSites())}
+      className={cn(
+        "app-no-drag flex h-8 w-full items-center gap-2.5 rounded-lg text-[13.5px] font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
+        collapsed ? "justify-center px-0" : "px-2.5",
+        active && "bg-sidebar-accent text-sidebar-accent-foreground shadow-soft [&_svg]:text-primary",
+      )}
+    >
+      <LayoutGrid aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+      {!collapsed && <span className="truncate">Sites</span>}
+    </button>
+  );
+}
+
 export function SidebarChrome({
   collapsed,
   onToggleCollapse,
@@ -76,8 +103,9 @@ export function SidebarChrome({
       }
     >
       <SidebarBrandRow collapsed={collapsed} />
-      <div className={cn("shrink-0", collapsed ? "px-2 pb-2" : "px-3 pb-2")}>
+      <div className={cn("shrink-0 space-y-1.5", collapsed ? "px-2 pb-2" : "px-3 pb-2")}>
         <SiteSwitcher collapsed={collapsed} />
+        <SitesNavEntry collapsed={collapsed} />
       </div>
       <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       <OperatorFooter

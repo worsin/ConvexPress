@@ -492,7 +492,7 @@ export function SiteSwitcher({ collapsed = false }: { collapsed?: boolean }) {
               className="inline-flex items-center gap-1.5 font-medium text-ink-2 hover:text-foreground"
               onClick={() => {
                 close();
-                shell.setOpenPanel("manager");
+                shell.openSites();
               }}
             >
               <Globe2 aria-hidden="true" className="size-3.5" />

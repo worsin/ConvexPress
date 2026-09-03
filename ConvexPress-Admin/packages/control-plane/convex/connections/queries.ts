@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { assertStoredAccess, authenticatedQuery } from "../rbac/functions";
+import { resolveStoredAccess } from "../rbac/runtime";
 import { safeConnectionSummary } from "./safe";
 
 const connectionSummary = v.object({
@@ -44,6 +45,64 @@ export const listForInstance = authenticatedQuery({
       )
       .take(20);
     return connections.map(safeConnectionSummary);
+  },
+});
+
+/**
+ * Active connections for every environment of a website, so a portfolio view
+ * can show connection state per environment without one query per row.
+ * Environments the operator cannot read are omitted.
+ */
+export const listForWebsite = authenticatedQuery({
+  args: { websiteId: v.id("overseer_websites") },
+  returns: v.array(
+    v.object({
+      instanceId: v.id("overseer_websiteInstances"),
+      connections: v.array(connectionSummary),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const website = await ctx.db.get(args.websiteId);
+    if (!website?.organization_id || !website.business_id) {
+      throw new Error("Website not found");
+    }
+    await assertStoredAccess(ctx, ctx.operator, {
+      selector: { type: "capability", code: "environment.read" },
+      target: {
+        organizationId: String(website.organization_id),
+        businessId: String(website.business_id),
+        websiteId: String(website._id),
+      },
+    });
+    const instances = await ctx.db
+      .query("overseer_websiteInstances")
+      .withIndex("by_website", (q) => q.eq("website_id", website._id))
+      .take(100);
+    const result = [];
+    for (const instance of instances) {
+      if (instance.status !== "active") continue;
+      const decision = await resolveStoredAccess(ctx, ctx.operator, {
+        selector: { type: "capability", code: "environment.read" },
+        target: {
+          organizationId: String(website.organization_id),
+          businessId: String(website.business_id),
+          websiteId: String(website._id),
+          instanceId: String(instance._id),
+        },
+      });
+      if (!decision.allowed) continue;
+      const connections = await ctx.db
+        .query("overseer_connections")
+        .withIndex("by_instance", (q) =>
+          q.eq("instance_id", instance._id).eq("isActive", true),
+        )
+        .take(20);
+      result.push({
+        instanceId: instance._id,
+        connections: connections.map(safeConnectionSummary),
+      });
+    }
+    return result;
   },
 });
 

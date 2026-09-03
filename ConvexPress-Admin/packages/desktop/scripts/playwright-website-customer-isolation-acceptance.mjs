@@ -378,9 +378,8 @@ async function main() {
     );
 
     phase = "outer-operator-separation";
-    await openSiteManager(page);
-    const manager = page.getByRole("complementary", { name: "Manage websites" });
-    await manager.getByRole("button", { name: /People/ }).click();
+    const manager = await openSiteManager(page);
+    await manager.getByRole("navigation", { name: "Portfolio" }).getByRole("button", { name: /^People$/ }).click();
     await manager
       .getByRole("region", { name: "Control-plane operators" })
       .waitFor({ state: "visible", timeout: 30_000 });

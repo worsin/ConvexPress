@@ -157,9 +157,32 @@ export async function openEnvironmentAction(page, name, timeout = DEFAULT_TIMEOU
   throw lastError ?? new Error(`Environment action "${name}" could not be opened.`);
 }
 
-/** Open the "Manage sites" panel from the environment options menu. */
+/** The Sites workspace region. */
+export function sitesWorkspace(page) {
+  return page.getByRole("region", { name: "Manage websites" });
+}
+
+/** Open the Sites workspace (sidebar entry) and return its region. */
 export async function openSiteManager(page, timeout = DEFAULT_TIMEOUT) {
-  await openEnvironmentAction(page, "Manage sites", timeout);
+  const region = sitesWorkspace(page);
+  if (!(await region.isVisible().catch(() => false))) {
+    await page.getByRole("button", { name: "Sites", exact: true }).first().click();
+  }
+  await region.waitFor({ state: "visible", timeout });
+  return region;
+}
+
+/** Select a node in the workspace's portfolio tree by its visible label. */
+export async function selectPortfolioNode(page, name, timeout = DEFAULT_TIMEOUT) {
+  const region = await openSiteManager(page, timeout);
+  const tree = region.getByRole("navigation", { name: "Portfolio" });
+  await tree.getByRole("button", { name, exact: false }).first().click();
+  return region;
+}
+
+/** Open the People page of the Sites workspace. */
+export async function openPeople(page, timeout = DEFAULT_TIMEOUT) {
+  return selectPortfolioNode(page, /^People$/, timeout);
 }
 
 /** Sign out through the sidebar account menu. */

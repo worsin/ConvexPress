@@ -12,6 +12,7 @@ import type { FunctionReturnType } from "convex/server";
 import { createContext, useContext, type ReactNode } from "react";
 
 import type { ScopeSelection } from "./components/ScopeSwitcher";
+import type { SitesNode } from "./sites/sites-model";
 
 export type ControlScopeContext = FunctionReturnType<typeof controlApi.context.get>;
 export type ControlOrganization = ControlScopeContext["organizations"][number];
@@ -19,7 +20,7 @@ export type ControlBusiness = ControlScopeContext["businesses"][number];
 export type ControlWebsite = ControlScopeContext["websites"][number];
 export type ControlEnvironment = ControlScopeContext["environments"][number];
 
-export type ControlPanel = "manager" | "operations" | "handoff";
+export type ControlPanel = "sites" | "operations" | "handoff";
 
 export interface ControlOperator {
   id: string;
@@ -49,6 +50,12 @@ export interface ControlShellValue {
   signOut: () => Promise<void>;
   openPanel: ControlPanel | null;
   setOpenPanel: (panel: ControlPanel | null) => void;
+  /** Node the Sites workspace should focus when opened. */
+  sitesNode: SitesNode | null;
+  /** Open the Sites workspace, optionally at a node. */
+  openSites: (node?: SitesNode) => void;
+  /** Short-lived operator token for the protected Electron credential window. */
+  getControlToken: () => Promise<string | null>;
   visibility: {
     operations: boolean;
     handoff: boolean;

@@ -19,8 +19,9 @@ import { SiteRuntimeProvider } from "./SiteRuntimeProvider";
 import { HandoffPanel } from "./components/HandoffPanel";
 import { LifecyclePanel } from "./components/LifecyclePanel";
 import type { ScopeSelection } from "./components/ScopeSwitcher";
-import { SiteManagerPanel } from "./components/SiteManagerPanel";
 import { StandaloneFrame } from "./components/StandaloneFrame";
+import { SitesWorkspace } from "./sites/SitesWorkspace";
+import type { SitesNode } from "./sites/sites-model";
 import { controlSurfaceVisibility } from "./components/site-manager-view";
 import { siteSessionRole } from "./site-session-role";
 
@@ -51,9 +52,10 @@ function ControlPlaneShell({
   const [pendingSelection, setPendingSelection] = useState<ScopeSelection | null>(null);
   const [scopeError, setScopeError] = useState<string | null>(null);
   const [openPanel, setOpenPanel] = useState<ControlPanel | null>(null);
+  const [sitesNode, setSitesNode] = useState<SitesNode | null>(null);
   const [siteRuntimeRevision, setSiteRuntimeRevision] = useState(0);
   const switchGeneration = useRef(0);
-  const managerOpen = openPanel === "manager";
+  const managerOpen = openPanel === "sites";
 
   const serverSelection: ScopeSelection = context?.active ?? {
     organizationId: null,
@@ -273,6 +275,14 @@ function ControlPlaneShell({
   const signOut = useCallback(async () => {
     await signOutControlOperator(authClient);
   }, [authClient]);
+  const openSites = useCallback((node?: SitesNode) => {
+    setSitesNode(node ?? null);
+    setOpenPanel("sites");
+  }, []);
+  const getControlToken = useCallback(async () => {
+    const result = await authClient.convex.token({ fetchOptions: { throw: false } });
+    return result.data?.token ?? null;
+  }, [authClient]);
   const refreshSiteRuntime = useCallback(() => {
     setSiteRuntimeRevision((revision) => revision + 1);
   }, []);
@@ -313,6 +323,9 @@ function ControlPlaneShell({
     signOut,
     openPanel,
     setOpenPanel,
+    sitesNode,
+    openSites,
+    getControlToken,
     visibility: {
       operations: controlVisibility.operations,
       handoff: controlVisibility.handoff,
@@ -386,15 +399,13 @@ function ControlPlaneShell({
             canImport={controlVisibility.handoffImport}
             onClose={() => setOpenPanel(null)}
           />
-          <SiteManagerPanel
-            open={managerOpen}
-            context={context}
-            selection={selection}
-            operatorRole={operator.role}
-            authClient={authClient}
-            onChangeScope={changeScope}
-            onClose={() => setOpenPanel(null)}
-          />
+          {managerOpen ? (
+            <div className="absolute inset-0 z-[45]">
+              <StandaloneFrame layout="fill">
+                <SitesWorkspace />
+              </StandaloneFrame>
+            </div>
+          ) : null}
         </div>
       </div>
     </ControlShellProvider>

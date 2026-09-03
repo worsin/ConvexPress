@@ -64,3 +64,16 @@ export function chooseDefaultId(input: {
       )[0]?.id ?? null
   );
 }
+
+export function expectedWebsiteArchiveConfirmation(websiteKey: string): string {
+  return `ARCHIVE WEBSITE ${websiteKey}`;
+}
+
+export function assertWebsiteArchiveConfirmation(
+  websiteKey: string,
+  confirmation: string,
+): void {
+  if (confirmation !== expectedWebsiteArchiveConfirmation(websiteKey)) {
+    throw new Error("Website archive confirmation does not match");
+  }
+}

@@ -366,19 +366,21 @@ async function main() {
     });
 
     phase = "open-manager";
-    await openSiteManager(page);
-    const manager = page.getByRole("complementary", { name: "Manage websites" });
-    await manager.waitFor({ state: "visible", timeout: 10_000 });
-    await manager.getByText("Acceptance Agency Group", { exact: true }).first().waitFor({ state: "visible", timeout: 15_000 });
-    await manager.getByText("New organization", { exact: true }).waitFor({ state: "visible", timeout: 15_000 });
+    const manager = await openSiteManager(page);
+    await manager.getByRole("navigation", { name: "Portfolio" }).getByText("Acceptance Agency Group", { exact: true }).first().waitFor({ state: "visible", timeout: 15_000 });
+    await manager.getByRole("button", { name: "New organization", exact: true }).first().waitFor({ state: "visible", timeout: 15_000 });
     await page.screenshot({ path: join(artifactRoot, "electron-site-manager-portfolio.png"), type: "png" });
 
     phase = "secure-credential-window";
-    await manager.getByRole("button", { name: /Authority/ }).click();
-    await manager.getByLabel("Connection name").fill("Electron acceptance controller");
-    await manager.getByLabel("Account label").fill(ACCEPTANCE_CONNECTION_LABEL);
+    await manager.getByRole("navigation", { name: "Portfolio" }).getByRole("button", { name: /Northstar Shop/ }).first().click();
+    const liveCard = manager.getByRole("article", { name: "Live environment" });
+    await liveCard.waitFor({ state: "visible", timeout: 20_000 });
+    await liveCard.getByRole("button", { name: "Connect", exact: true }).click();
+    const connectDialog = page.getByRole("dialog");
+    await connectDialog.getByLabel("Connection name").fill("Electron acceptance controller");
+    await connectDialog.getByLabel(/^Account label/).fill(ACCEPTANCE_CONNECTION_LABEL);
     const promptPromise = electronApp.waitForEvent("window", { timeout: 15_000 });
-    await manager.getByRole("button", { name: "Enter key in protected window" }).click();
+    await connectDialog.getByRole("button", { name: "Enter key in protected window" }).click();
     const credentialWindow = await promptPromise;
     await credentialWindow.waitForLoadState("domcontentloaded");
     if (!credentialWindow.url().startsWith("file:")) {
@@ -432,7 +434,7 @@ async function main() {
     traceStarted = true;
 
     phase = "test-and-rotate";
-    const connectionCard = manager.getByRole("article", { name: "Controller connection Electron acceptance controller" });
+    const connectionCard = liveCard.getByRole("group", { name: "Controller connection Electron acceptance controller" });
     await connectionCard.waitFor({ state: "visible", timeout: 15_000 });
     await connectionCard.getByRole("button", { name: "Test" }).click();
     await manager.getByText("Connection health verified.", { exact: true }).waitFor({ state: "visible", timeout: 30_000 });
@@ -443,15 +445,15 @@ async function main() {
 
     phase = "revoke";
     await connectionCard.getByRole("button", { name: "Revoke" }).click();
-    const revocationPhrase = (await manager.locator("code").filter({ hasText: "REVOKE CONNECTION" }).textContent())?.trim();
+    const revokeDialog = page.getByRole("dialog");
+    const revocationPhrase = (await revokeDialog.locator("code").filter({ hasText: "REVOKE CONNECTION" }).textContent())?.trim();
     if (!revocationPhrase) throw new Error("Connection revocation phrase was not rendered");
-    await manager.getByLabel("Connection revocation confirmation").fill(revocationPhrase);
-    await manager.getByRole("button", { name: "Revoke authority" }).click();
+    await revokeDialog.getByLabel("Connection revocation confirmation").fill(revocationPhrase);
+    await revokeDialog.getByRole("button", { name: "Revoke authority" }).click();
     await manager.getByText("Controller authority revoked.", { exact: true }).waitFor({ state: "visible", timeout: 30_000 });
     connectionRevoked = true;
 
     phase = "create-hierarchy";
-    await manager.getByRole("button", { name: /Portfolio/ }).click();
     const suffix = Date.now().toString(36);
     const organizationName = `Electron Portfolio ${suffix}`;
     const organizationSlug = `electron-portfolio-${suffix}`;
@@ -460,64 +462,63 @@ async function main() {
     const websiteTitle = `Acceptance Site ${suffix}`;
     const websiteKey = `${businessSlug}:acceptance-site`;
     acceptanceHierarchy = { organizationSlug, businessSlug, websiteKey };
-    const addRecords = manager.getByRole("region", { name: "Add portfolio records" });
-    await addRecords.getByText("New organization", { exact: true }).click();
-    const organizationForm = addRecords.getByRole("form", { name: "Create organization" });
+    await manager.getByRole("button", { name: "New organization", exact: true }).first().click();
+    const organizationForm = page.getByRole("form", { name: "Create organization" });
     await organizationForm.getByLabel("Organization name").fill(organizationName);
     await organizationForm.getByLabel("Slug").fill(organizationSlug);
-    await organizationForm.getByLabel("Description").fill("Created and managed entirely through Electron acceptance.");
+    await organizationForm.getByLabel(/^Description/).fill("Created and managed entirely through Electron acceptance.");
     await organizationForm.getByRole("button", { name: "Create organization" }).click();
-    await manager.getByText(organizationName, { exact: true }).first().waitFor({ state: "visible", timeout: 30_000 });
+    await manager.getByRole("heading", { name: organizationName, exact: true }).waitFor({ state: "visible", timeout: 30_000 });
 
-    const businessDetails = addRecords.locator("details").filter({
-      hasText: `New business in ${organizationName}`,
-    });
-    await businessDetails.waitFor({ state: "attached", timeout: 15_000 });
-    const businessForm = addRecords.getByRole("form", { name: "Create business" });
-    if (!(await businessDetails.evaluate((details) => details.open))) {
-      await businessDetails.locator("summary").click();
-    }
-    await businessForm.waitFor({ state: "visible", timeout: 10_000 });
+    await manager.getByRole("button", { name: "New business", exact: true }).first().click();
+    const businessForm = page.getByRole("form", { name: "Create business" });
     await businessForm.getByLabel("Business name").fill(businessName);
     await businessForm.getByLabel("Slug").fill(businessSlug);
     await businessForm.getByRole("button", { name: "Create business" }).click();
-    await manager.getByText(businessName, { exact: true }).first().waitFor({ state: "visible", timeout: 30_000 });
+    await manager.getByRole("heading", { name: businessName, exact: true }).waitFor({ state: "visible", timeout: 30_000 });
 
-    const websiteDetails = addRecords.locator("details").filter({
-      hasText: `New website in ${businessName}`,
-    });
-    await websiteDetails.waitFor({ state: "attached", timeout: 15_000 });
-    const websiteForm = addRecords.getByRole("form", { name: "Register website" });
-    if (!(await websiteDetails.evaluate((details) => details.open))) {
-      await websiteDetails.locator("summary").click();
-    }
+    await manager.getByRole("button", { name: "Add website", exact: true }).first().click();
+    const addDialog = page.getByRole("dialog");
+    await addDialog.getByRole("form", { name: "Choose where the website belongs" }).waitFor({ state: "visible", timeout: 10_000 });
+    await addDialog.getByRole("button", { name: "Continue", exact: true }).click();
+    const websiteForm = addDialog.getByRole("form", { name: "Register website" });
     await websiteForm.waitFor({ state: "visible", timeout: 10_000 });
     await websiteForm.getByLabel("Website title").fill(websiteTitle);
-    await websiteForm.getByLabel("Portable website key").fill(websiteKey);
     await websiteForm.getByLabel("Primary domain").fill(`${organizationSlug}.example.test`);
+    await websiteForm.getByLabel("Portable website key").fill(websiteKey);
     await websiteForm.getByRole("button", { name: "Register website" }).click();
-    await manager.getByText(websiteTitle, { exact: true }).first().waitFor({ state: "visible", timeout: 30_000 });
 
     phase = "attach-edit-archive-environment";
-    await manager.getByRole("button", { name: /Environment/ }).click();
-    const attach = manager.getByRole("region", { name: "Attach environment" });
+    const attach = addDialog.getByRole("form", { name: "Attach environment" });
+    await attach.waitFor({ state: "visible", timeout: 30_000 });
     await attach.getByLabel("Environment kind").selectOption("staging");
     await attach.getByLabel("Label").fill("Acceptance Staging");
     await attach.getByLabel("Convex deployment URL").fill("http://192.0.2.10:5200");
     await attach.getByLabel("Convex site / management URL").fill("http://192.0.2.10:5201");
     await attach.getByLabel("Public website URL").fill(`https://staging-${organizationSlug}.example.test`);
     await attach.getByRole("button", { name: "Attach environment" }).click();
-    const currentEnvironment = manager.getByRole("region", { name: "Current environment details" });
-    await currentEnvironment.waitFor({ state: "visible", timeout: 30_000 });
-    await currentEnvironment.getByLabel("Label").fill("Acceptance Staging Edited");
-    await currentEnvironment.getByRole("button", { name: "Save environment" }).click();
+    await addDialog.getByRole("form", { name: "Connect controller" }).waitFor({ state: "visible", timeout: 30_000 });
+    await addDialog.getByRole("button", { name: "Connect later", exact: true }).click();
+    await addDialog.getByRole("button", { name: "View website page", exact: true }).click();
+    await manager.getByRole("heading", { name: websiteTitle, exact: true }).waitFor({ state: "visible", timeout: 30_000 });
+    const stagingCard = manager.getByRole("article", { name: "Acceptance Staging environment" });
+    await stagingCard.waitFor({ state: "visible", timeout: 30_000 });
+    await stagingCard.getByRole("button", { name: /More actions for/ }).click();
+    await page.getByRole("menuitem", { name: "Edit addresses and versions" }).click();
+    const editForm = page.getByRole("form", { name: "Edit environment" });
+    await editForm.getByLabel("Label").fill("Acceptance Staging Edited");
+    await editForm.getByRole("button", { name: "Save environment" }).click();
     await manager.getByText("Environment details updated.", { exact: true }).waitFor({ state: "visible", timeout: 30_000 });
     await page.screenshot({ path: join(artifactRoot, "electron-site-manager-environment.png"), type: "png" });
-    const archivePhrase = (await currentEnvironment.locator("code").filter({ hasText: "ARCHIVE ENVIRONMENT" }).textContent())?.trim();
+    const editedCard = manager.getByRole("article", { name: "Acceptance Staging Edited environment" });
+    await editedCard.getByRole("button", { name: /More actions for/ }).click();
+    await page.getByRole("menuitem", { name: "Archive environment" }).click();
+    const archiveDialog = page.getByRole("dialog");
+    const archivePhrase = (await archiveDialog.locator("code").filter({ hasText: "ARCHIVE ENVIRONMENT" }).textContent())?.trim();
     if (!archivePhrase) throw new Error("Environment archive phrase was not rendered");
-    await currentEnvironment.getByLabel("Environment archive confirmation").fill(archivePhrase);
-    await currentEnvironment.getByRole("button", { name: "Archive" }).click();
-    await currentEnvironment.waitFor({ state: "hidden", timeout: 30_000 });
+    await archiveDialog.getByLabel("Environment archive confirmation").fill(archivePhrase);
+    await archiveDialog.getByRole("button", { name: "Archive environment", exact: true }).click();
+    await editedCard.waitFor({ state: "hidden", timeout: 30_000 });
     await page.screenshot({ path: join(artifactRoot, "electron-site-manager-complete.png"), type: "png" });
 
     phase = "secret-and-storage-audit";

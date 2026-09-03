@@ -230,10 +230,9 @@ async function selectTargetScope(page, target) {
 }
 
 async function openPeoplePanel(page) {
-  await openSiteManager(page);
-  const manager = page.getByRole("complementary", { name: "Manage websites" });
-  await manager.waitFor({ state: "visible", timeout: 10_000 });
-  await manager.getByRole("button", { name: /People/ }).click();
+  const manager = await openSiteManager(page);
+  await manager.getByRole("navigation", { name: "Portfolio" }).getByRole("button", { name: /^People$/ }).click();
+  await manager.getByRole("heading", { name: "People", exact: true }).waitFor({ state: "visible", timeout: 10_000 });
   return manager;
 }
 
@@ -396,11 +395,14 @@ async function main() {
 
     phase = "provision-through-electron";
     for (const account of accounts) {
-      await ownerManager.getByLabel("Name", { exact: true }).fill(account.name);
-      await ownerManager.getByLabel("Login email").fill(account.email);
-      await ownerManager.getByLabel("Outer access role").selectOption(account.profile);
-      await ownerManager.getByRole("button", { name: "Prepare operator invitation" }).click();
-      const receipt = ownerManager.getByRole("complementary", {
+      await ownerManager.getByRole("button", { name: "Invite operator", exact: true }).first().click();
+      const inviteDialog = ownerRun.page.getByRole("dialog");
+      await inviteDialog.getByRole("form", { name: "Invite operator" }).waitFor({ state: "visible", timeout: 10_000 });
+      await inviteDialog.getByLabel(/^Name/).fill(account.name);
+      await inviteDialog.getByLabel("Login email").fill(account.email);
+      await inviteDialog.getByLabel("Outer access role").selectOption(account.profile);
+      await inviteDialog.getByRole("button", { name: "Prepare operator invitation" }).click();
+      const receipt = inviteDialog.getByRole("complementary", {
         name: "One-time operator invitation",
       });
       await receipt.waitFor({ state: "visible", timeout: 30_000 });
@@ -412,13 +414,14 @@ async function main() {
       if (!backendOperators.some((entry) => entry.email === account.email)) {
         throw new Error(`Provisioned ${account.key} operator was not persisted`);
       }
-      await ownerManager.getByRole("article", { name: `Operator ${account.email}` }).waitFor({
-        state: "visible",
-        timeout: 30_000,
-      });
       const claimSecret = (
         await receipt.locator("output").textContent()
       )?.trim();
+      await inviteDialog.getByRole("button", { name: "Done", exact: true }).click();
+      await ownerManager.getByRole("listitem", { name: `Operator ${account.email}` }).waitFor({
+        state: "visible",
+        timeout: 30_000,
+      });
       if (!claimSecret || !/^[A-Za-z0-9_-]{43}$/u.test(claimSecret)) {
         throw new Error(`Provisioned ${account.key} invitation code is unavailable`);
       }
@@ -480,15 +483,15 @@ async function main() {
         member: "Member",
         viewer: "Viewer",
       }[account.key];
-      await manager.locator("footer").getByText(expectedLabel, { exact: true }).waitFor({
+      await manager.getByText(expectedLabel, { exact: true }).first().waitFor({
         state: "visible",
         timeout: 15_000,
       });
       if (account.key === "admin") {
         await manager.getByText("Current operators", { exact: true }).waitFor({ state: "visible" });
-        await manager.getByRole("button", { name: "Prepare operator invitation" }).waitFor({ state: "visible" });
+        await manager.getByRole("button", { name: "Invite operator", exact: true }).first().waitFor({ state: "visible" });
       } else {
-        await manager.getByText(/Only the installation owner or an administrator can add operators/).waitFor({
+        await manager.getByText(/Only the installation owner or an administrator/).waitFor({
           state: "visible",
         });
       }
@@ -652,7 +655,7 @@ async function main() {
     const deactivationManager = await openPeoplePanel(deactivationRun.page);
     const siteOperatorAccount = accounts.find((account) => account.key === "site-operator");
     if (!siteOperatorAccount) throw new Error("Site Operator account is unavailable");
-    const siteOperatorArticle = deactivationManager.getByRole("article", {
+    const siteOperatorArticle = deactivationManager.getByRole("listitem", {
       name: `Operator ${siteOperatorAccount.email}`,
     });
     await siteOperatorArticle.getByRole("button", { name: "Deactivate" }).click();

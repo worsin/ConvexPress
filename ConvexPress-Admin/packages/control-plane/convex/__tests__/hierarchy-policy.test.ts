@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  assertWebsiteArchiveConfirmation,
   chooseDefaultId,
+  expectedWebsiteArchiveConfirmation,
   normalizeDomain,
   normalizeEntityName,
   normalizeSlug,
@@ -52,5 +54,19 @@ describe("standalone hierarchy policy", () => {
         children: [{ id: "business-one", isActive: false, order: 1 }],
       }),
     ).toBeNull();
+  });
+});
+
+describe("website archive confirmation", () => {
+  test("requires the exact typed phrase for the website key", () => {
+    expect(expectedWebsiteArchiveConfirmation("northstar:shop")).toBe(
+      "ARCHIVE WEBSITE northstar:shop",
+    );
+    expect(() =>
+      assertWebsiteArchiveConfirmation("northstar:shop", "ARCHIVE WEBSITE northstar:shop"),
+    ).not.toThrow();
+    expect(() =>
+      assertWebsiteArchiveConfirmation("northstar:shop", "archive website northstar:shop"),
+    ).toThrow("Website archive confirmation does not match");
   });
 });

@@ -1,7 +1,12 @@
 import { portableKeySchema } from "@convexpress/site-contract";
 import { v } from "convex/values";
 
-import { normalizeDomain, normalizeEntityName, requireActiveParent } from "./hierarchyPolicy";
+import {
+  assertWebsiteArchiveConfirmation,
+  normalizeDomain,
+  normalizeEntityName,
+  requireActiveParent,
+} from "./hierarchyPolicy";
 import {
   assertStoredAccess,
   authenticatedMutation,
@@ -222,6 +227,60 @@ export const update = authenticatedMutation({
         status === "active" ? args.makeDefault ?? website.isDefault : false,
       updatedAt: Date.now(),
     });
+    return summarize((await ctx.db.get(website._id))!);
+  },
+});
+
+/**
+ * Archive a website. Every environment must already be archived (which in
+ * turn requires its controller connections to be revoked), so nothing that
+ * still holds authority can be hidden by accident.
+ */
+export const archive = authenticatedMutation({
+  args: {
+    websiteId: v.id("overseer_websites"),
+    confirmation: v.string(),
+  },
+  returns: websiteResult,
+  handler: async (ctx, args) => {
+    const website = await ctx.db.get(args.websiteId);
+    if (!website?.organization_id || !website.business_id || website.status === "archived") {
+      throw new Error("Website not found");
+    }
+    await assertStoredAccess(ctx, ctx.operator, {
+      selector: { type: "capability", code: "website.update" },
+      target: {
+        organizationId: String(website.organization_id),
+        businessId: String(website.business_id),
+        websiteId: String(website._id),
+      },
+    });
+    assertWebsiteArchiveConfirmation(website.websiteKey, args.confirmation);
+    const activeInstances = await ctx.db
+      .query("overseer_websiteInstances")
+      .withIndex("by_website", (q) => q.eq("website_id", website._id))
+      .take(100);
+    if (activeInstances.some((instance) => instance.status === "active")) {
+      throw new Error("Archive every environment before archiving this website");
+    }
+    const now = Date.now();
+    await ctx.db.patch(website._id, {
+      status: "archived",
+      isDefault: false,
+      updatedAt: now,
+    });
+    if (website.isDefault) {
+      const siblings = await ctx.db
+        .query("overseer_websites")
+        .withIndex("by_business", (q) => q.eq("business_id", website.business_id))
+        .take(200);
+      const replacement = siblings
+        .filter((candidate) => candidate._id !== website._id && candidate.status === "active")
+        .sort((left, right) => left.title.localeCompare(right.title))[0];
+      if (replacement) {
+        await ctx.db.patch(replacement._id, { isDefault: true, updatedAt: now });
+      }
+    }
     return summarize((await ctx.db.get(website._id))!);
   },
 });

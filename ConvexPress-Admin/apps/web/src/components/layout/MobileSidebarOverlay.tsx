@@ -11,6 +11,7 @@ import { BrandLockup } from "@/components/brand/BrandLockup";
 import { EnvironmentSwitch } from "@/components/shell/EnvironmentSwitch";
 import { OperatorFooter } from "@/components/shell/OperatorFooter";
 import { SiteSwitcher } from "@/components/shell/SiteSwitcher";
+import { SitesNavEntry } from "@/components/shell/SidebarChrome";
 import { NavSection } from "./NavSection";
 import { X } from "lucide-react";
 
@@ -178,6 +179,7 @@ export function MobileSidebarOverlay() {
         <div className="shrink-0 space-y-2 px-3 pb-2">
           <SiteSwitcher />
           <EnvironmentSwitch className="max-w-full" />
+          <SitesNavEntry collapsed={false} />
         </div>
 
         {/* Navigation */}

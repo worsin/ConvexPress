@@ -96,7 +96,13 @@ export function EnvironmentMenu({ className }: { className?: string }) {
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => shell.setOpenPanel("manager")}>
+        <DropdownMenuItem
+          onClick={() =>
+            shell.openSites(
+              website ? { type: "website", id: String(website.websiteId) } : undefined,
+            )
+          }
+        >
           <Settings2 aria-hidden="true" />
           Manage sites
         </DropdownMenuItem>
