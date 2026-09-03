@@ -18,7 +18,13 @@ import { v } from "convex/values";
 export const usersTables = {
   users: defineTable({
     // === Auth Identity Fields ===
-    authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"))),
+    authSource: v.optional(
+      v.union(
+        v.literal("local"),
+        v.literal("clerk"),
+        v.literal("management"),
+      ),
+    ),
     passwordHash: v.optional(v.string()),
     clerkUserId: v.optional(v.string()),
     clerkProvisioningStatus: v.optional(

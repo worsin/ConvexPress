@@ -1,0 +1,27 @@
+{
+  "name": "@convexpress/control-plane",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "convex dev",
+    "dev:once": "convex dev --once",
+    "codegen": "convex codegen",
+    "check-types": "tsc -p convex/tsconfig.json --noEmit",
+    "test": "bun test convex/__tests__ convex/**/__tests__"
+  },
+  "dependencies": {
+    "@convex-dev/better-auth": "0.12.5",
+    "@convexpress/site-contract": "workspace:*",
+    "better-auth": "1.6.23",
+    "convex": "catalog:",
+    "convex-helpers": "0.1.120",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
+    "@types/node": "^22.13.14",
+    "convex-test": "^0.0.54",
+    "typescript": "catalog:"
+  }
+}

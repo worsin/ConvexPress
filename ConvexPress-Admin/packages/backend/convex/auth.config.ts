@@ -2,6 +2,7 @@ import type { AuthConfig } from "convex/server";
 
 const ADMIN_APPLICATION_ID = "convexpress-admin";
 const ADMIN_ISSUER = "https://convexpress-admin.local";
+const MANAGEMENT_ISSUER = "https://convexpress-management.local";
 
 const providers: AuthConfig["providers"] = [
   {
@@ -9,6 +10,13 @@ const providers: AuthConfig["providers"] = [
     type: "customJwt" as const,
     applicationID: ADMIN_APPLICATION_ID,
     issuer: ADMIN_ISSUER,
+    algorithm: "ES256" as const,
+    jwks: `${process.env.AUTH_ISSUER_URL}/.well-known/jwks.json`,
+  },
+  {
+    type: "customJwt" as const,
+    applicationID: ADMIN_APPLICATION_ID,
+    issuer: MANAGEMENT_ISSUER,
     algorithm: "ES256" as const,
     jwks: `${process.env.AUTH_ISSUER_URL}/.well-known/jwks.json`,
   },

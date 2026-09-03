@@ -242,6 +242,13 @@ export const listUsers = query({
       }
     }
 
+    // Synthetic management principals authorize controller sessions but are
+    // not website members/customers and must never appear in the user directory.
+    allUsers = allUsers.filter(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
+      (u) => u.authSource !== "management",
+    );
+
     // Text search filter (case-insensitive substring on displayName, email, nickname)
     if (args.search) {
       const searchLower = args.search.toLowerCase();
@@ -411,9 +418,12 @@ export const counts = query({
         .take(100000),
     ]);
 
-    const active = activeUsers.length;
-    const inactive = inactiveUsers.length;
-    const banned = bannedUsers.length;
+    const customerVisibleCount = (rows: typeof activeUsers) =>
+      rows.filter((candidate: any) => candidate.authSource !== "management")
+        .length;
+    const active = customerVisibleCount(activeUsers);
+    const inactive = customerVisibleCount(inactiveUsers);
+    const banned = customerVisibleCount(bannedUsers);
 
     return {
       total: active + inactive + banned,

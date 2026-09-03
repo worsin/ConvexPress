@@ -55,9 +55,16 @@ const ALLOWED_ON_CHANNELS = new Set([
 // ---------- Allowed Auth Keys ----------
 
 const AUTH_KEY_PREFIXES = ["__convexAuth", "convexAuth"];
+const AUTH_EXACT_KEYS = new Set([
+  "better-auth_cookie",
+  "better-auth_session_data",
+]);
 
 function isAllowedAuthKey(key: string): boolean {
-  return AUTH_KEY_PREFIXES.some((prefix) => key.startsWith(prefix));
+  return (
+    AUTH_EXACT_KEYS.has(key) ||
+    AUTH_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))
+  );
 }
 
 // ---------- Main Bridge ----------
@@ -132,7 +139,7 @@ contextBridge.exposeInMainWorld("convexpress", {
 
 // ---------- Auth Bridge ----------
 // Provides localStorage-compatible API for Convex Auth token persistence.
-// Only keys starting with "__convexAuth" or "convexAuth" are permitted.
+// Only the exact Better Auth keys and legacy Convex auth prefixes are permitted.
 
 contextBridge.exposeInMainWorld("electronAuth", {
   getItem: (key: string): Promise<string | null> => {

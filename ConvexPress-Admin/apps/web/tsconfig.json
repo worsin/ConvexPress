@@ -16,7 +16,8 @@
         "./src/test-types/convex-api-shim.d.ts"
       ],
       "@/*": ["./src/*"],
-      "@backend/*": ["../../packages/backend/*"]
+      "@backend/*": ["../../packages/backend/*"],
+      "@control/*": ["../../packages/control-plane/*"]
     }
   }
 }

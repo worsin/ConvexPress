@@ -26,6 +26,8 @@ const history = isElectron() ? createHashHistory() : undefined;
 interface BootstrapConfig {
   convexUrl: string;
   convexSiteUrl: string;
+  controlPlaneUrl?: string;
+  controlPlaneSiteUrl?: string;
   electronMode?: "server" | "client";
   pendingCredentials?: AdminGateProps["pendingCredentials"];
   pendingLoginCredentials?: AdminGateProps["pendingLoginCredentials"];
@@ -90,6 +92,16 @@ async function resolveConfig(): Promise<BootstrapConfig> {
     return {
       convexUrl: resolvedConvexUrl,
       convexSiteUrl: resolvedSiteUrl,
+      controlPlaneUrl:
+        import.meta.env.VITE_CONTROL_PLANE_URL ||
+        (import.meta.env.VITE_STANDALONE_CONTROL_PLANE === "true"
+          ? resolvedConvexUrl
+          : undefined),
+      controlPlaneSiteUrl:
+        import.meta.env.VITE_CONTROL_PLANE_SITE_URL ||
+        (import.meta.env.VITE_STANDALONE_CONTROL_PLANE === "true"
+          ? resolvedSiteUrl
+          : undefined),
       electronMode,
       pendingCredentials,
       pendingLoginCredentials,
@@ -103,11 +115,30 @@ async function resolveConfig(): Promise<BootstrapConfig> {
       import.meta.env.VITE_CONVEX_SITE_URL ||
       deriveConvexSiteUrl(import.meta.env.VITE_CONVEX_URL) ||
       import.meta.env.VITE_CONVEX_URL,
+    controlPlaneUrl: import.meta.env.VITE_CONTROL_PLANE_URL,
+    controlPlaneSiteUrl:
+      import.meta.env.VITE_CONTROL_PLANE_SITE_URL ||
+      deriveConvexSiteUrl(import.meta.env.VITE_CONTROL_PLANE_URL),
   };
 }
 
 async function bootstrap() {
   const config = await resolveConfig();
+
+  const rootElement = document.getElementById("app");
+  if (!rootElement) {
+    throw new Error("Root element not found");
+  }
+
+  if (config.controlPlaneUrl && config.controlPlaneSiteUrl) {
+    const { bootstrapStandalone } = await import("./control/standalone-main");
+    await bootstrapStandalone({
+      controlPlaneUrl: config.controlPlaneUrl,
+      controlPlaneSiteUrl: config.controlPlaneSiteUrl,
+      rootElement,
+    });
+    return;
+  }
 
   // Set the site URL before any React rendering so the useLocalAuth hook
   // can use it for HTTP auth endpoints (login, refresh, logout).
@@ -147,11 +178,6 @@ async function bootstrap() {
       );
     },
   });
-
-  const rootElement = document.getElementById("app");
-  if (!rootElement) {
-    throw new Error("Root element not found");
-  }
 
   if (!rootElement.innerHTML) {
     const root = ReactDOM.createRoot(rootElement);

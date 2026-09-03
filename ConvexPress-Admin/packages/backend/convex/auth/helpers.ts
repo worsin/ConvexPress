@@ -13,6 +13,7 @@ import bcrypt from "bcryptjs";
 
 const ALG = "ES256";
 const ISSUER = "https://convexpress-admin.local";
+const MANAGEMENT_ISSUER = "https://convexpress-management.local";
 const AUDIENCE = "convexpress-admin";
 const ACCESS_TOKEN_EXPIRY = "15m";
 const REFRESH_TOKEN_BYTES = 32;
@@ -38,6 +39,30 @@ export async function signAccessToken(payload: {
     .setAudience(AUDIENCE)
     .setIssuedAt()
     .setExpirationTime(ACCESS_TOKEN_EXPIRY)
+    .sign(privateKey);
+}
+
+export async function signManagementAccessToken(payload: {
+  sessionId: string;
+  sessionToken: string;
+  siteRole: string;
+  expiresAt: number;
+}): Promise<string> {
+  const privateKeyPem = process.env.AUTH_PRIVATE_KEY;
+  if (!privateKeyPem) throw new Error("Site auth signing key is unavailable");
+  const privateKey = await importPKCS8(privateKeyPem, ALG);
+
+  return new SignJWT({
+    siteRole: payload.siteRole,
+    name: "Managed ConvexPress Operator",
+  })
+    .setProtectedHeader({ alg: ALG, kid: "convexpress-admin-1" })
+    .setSubject(payload.sessionId)
+    .setIssuer(MANAGEMENT_ISSUER)
+    .setAudience(AUDIENCE)
+    .setJti(payload.sessionToken)
+    .setIssuedAt()
+    .setExpirationTime(Math.floor(payload.expiresAt / 1_000))
     .sign(privateKey);
 }
 

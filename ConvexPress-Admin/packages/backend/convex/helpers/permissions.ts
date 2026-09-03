@@ -46,6 +46,7 @@ import { BUILT_IN_ROLES, LEGACY_ROLE_MAP } from "../seed/roles";
 import { isPluginEnabled } from "./plugins";
 
 const ADMIN_ISSUER = "https://convexpress-admin.local";
+const MANAGEMENT_ISSUER = "https://convexpress-management.local";
 const CUSTOMER_ROLE_AUTH_CAPABILITIES = new Set<string>(
   BUILT_IN_ROLES.filter(
     (role) => role.type === "customer" && role.status === "active",
@@ -62,7 +63,7 @@ type UserDoc = {
   _id: Id<"users">;
   _creationTime: number;
   // Auth fields
-  authSource?: "local" | "clerk";
+  authSource?: "local" | "clerk" | "management";
   passwordHash?: string;
   clerkUserId?: string;
   email: string;
@@ -151,11 +152,87 @@ type RoleDoc = {
   createdBy?: Id<"users">;
 };
 
+type ActiveManagementSession = {
+  user: UserDoc;
+  siteRoleSlug: string;
+  siteCapabilities: string[];
+};
+
+async function getActiveManagementSession(
+  ctx: AuthReadCtx,
+): Promise<ActiveManagementSession | null> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (
+    !identity ||
+    !identity.tokenIdentifier.startsWith(MANAGEMENT_ISSUER + "|")
+  ) {
+    return null;
+  }
+
+  try {
+    const session = await ctx.db.get(
+      "convexpress_managementSessions",
+      identity.subject as Id<"convexpress_managementSessions">,
+    );
+    if (
+      !session ||
+      session.status !== "active" ||
+      session.expiresAt <= Date.now() ||
+      !session.userId
+    ) {
+      return null;
+    }
+    const [authority, binding, user] = await Promise.all([
+      ctx.db.get("convexpress_managementAuthorities", session.authorityId),
+      ctx.db.get("convexpress_managementBindings", session.bindingId),
+      ctx.db.get("users", session.userId),
+    ]);
+    if (
+      !authority ||
+      authority.status !== "active" ||
+      authority.capabilityRevision !== session.capabilityRevision ||
+      !binding ||
+      binding.status !== "active" ||
+      binding.authorityId !== authority._id ||
+      binding.userId !== session.userId ||
+      binding.capabilityRevision !== session.capabilityRevision ||
+      !user ||
+      !session.siteRoleSlug ||
+      !session.siteCapabilities ||
+      user.authSource !== "management" ||
+      user.status !== "active"
+    ) {
+      return null;
+    }
+    return {
+      user: user as UserDoc,
+      siteRoleSlug: session.siteRoleSlug,
+      siteCapabilities: session.siteCapabilities,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function managementSessionAllows(
+  ctx: AuthReadCtx,
+  user: Pick<UserDoc, "_id" | "authSource">,
+  capability: string,
+): Promise<boolean> {
+  if (user.authSource !== "management") return true;
+  const session = await getActiveManagementSession(ctx);
+  return (
+    !!session &&
+    session.user._id === user._id &&
+    session.siteCapabilities.includes(capability)
+  );
+}
+
 // ─── User Retrieval ─────────────────────────────────────────────────────────
 
 /**
  * Get the current authenticated user from the database.
- * Supports dual-auth: local admin JWT (subject = Convex _id) and Clerk (subject = Clerk user ID).
+ * Supports local admin, site customer, and short-lived management sessions.
  *
  * @returns User document or null if not authenticated / not found.
  */
@@ -167,6 +244,14 @@ export async function getCurrentUser(
 
   // tokenIdentifier format: "issuer|subject"
   const isAdminAuth = identity.tokenIdentifier.startsWith(ADMIN_ISSUER + "|");
+  const isManagementAuth = identity.tokenIdentifier.startsWith(
+    MANAGEMENT_ISSUER + "|",
+  );
+
+  if (isManagementAuth) {
+    const session = await getActiveManagementSession(ctx);
+    return session?.user ?? null;
+  }
 
   if (isAdminAuth) {
     // Admin local auth — subject is Convex user _id (direct fetch, O(1)).
@@ -220,7 +305,7 @@ async function resolveUserRole(
 ): Promise<RoleDoc | null> {
   const canUseRoleForAuthSource = (role: RoleDoc): boolean => {
     if (role.type === "customer") return true;
-    return user.authSource === "local";
+    return user.authSource === "local" || user.authSource === "management";
   };
 
   // Path 1: Direct roleId (new system)
@@ -463,7 +548,14 @@ export async function currentUserCan(
   if (user.status !== "active") return false;
 
   const capabilities = await getUserCapabilities(ctx, user);
-  if (capabilities.includes(capability)) return true;
+  if (
+    capabilities.includes(capability) &&
+    (await managementSessionAllows(ctx, user, capability))
+  ) {
+    return true;
+  }
+
+  if (user.authSource === "management") return false;
 
   // Role-based check failed — try membership augmentation. Plugin-gated
   // inside the helper so membership-off sites return the prior behavior.
@@ -486,6 +578,7 @@ export async function userCan(
   const user = await ctx.db.get("users", userId);
   if (!user) return false;
   if (user.status !== "active") return false;
+  if (user.authSource === "management") return false;
 
   const capabilities = await getUserCapabilities(ctx, user as UserDoc);
   return capabilities.includes(capability);
@@ -525,14 +618,15 @@ export async function requireCan(
 
   const role = await resolveUserRole(ctx, user);
   const capabilities = role?.capabilities ?? [];
-  if (!capabilities.includes(capability)) {
+  if (
+    !capabilities.includes(capability) ||
+    !(await managementSessionAllows(ctx, user, capability))
+  ) {
     // Role-based check failed. If the membership plugin is enabled, see if
     // an active/grace plan grant carries the capability via linkedCapabilities.
-    const viaMembership = await userHasMembershipCapability(
-      ctx,
-      user._id,
-      capability,
-    );
+    const viaMembership =
+      user.authSource !== "management" &&
+      (await userHasMembershipCapability(ctx, user._id, capability));
     if (!viaMembership) {
       // Log details server-side for debugging; return generic message to client
       console.warn(`Access denied: user=${user._id} capability=${capability} role=${role?.slug ?? "none"}`);
@@ -689,7 +783,10 @@ export async function requireCanOnResource(
   }
 
   const capabilities = userRole?.capabilities ?? [];
-  if (!capabilities.includes(resolvedCap)) {
+  if (
+    !capabilities.includes(resolvedCap) ||
+    !(await managementSessionAllows(ctx, user, resolvedCap))
+  ) {
     console.warn(
       `Resource access denied: user=${user._id} capability=${resolvedCap} role=${userRole?.slug ?? "none"}`,
     );
@@ -714,6 +811,16 @@ export async function getCurrentRoleLevel(
 ): Promise<number> {
   const user = await getCurrentUser(ctx);
   if (!user) return 0;
+
+  if (user.authSource === "management") {
+    const session = await getActiveManagementSession(ctx);
+    if (!session || session.user._id !== user._id) return 0;
+    const role = await ctx.db
+      .query("roles")
+      .withIndex("by_slug", (q) => q.eq("slug", session.siteRoleSlug))
+      .unique();
+    return role?.status === "active" ? role.level : 0;
+  }
 
   const role = await resolveUserRole(ctx, user);
   return role?.level ?? 0;
@@ -752,7 +859,7 @@ export async function requireMinimumRoleLevel(
   }
 
   const role = await resolveUserRole(ctx, user);
-  const level = role?.level ?? 0;
+  const level = await getCurrentRoleLevel(ctx);
 
   if (level < minLevel) {
     console.warn(

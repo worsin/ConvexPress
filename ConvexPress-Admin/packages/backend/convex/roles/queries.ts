@@ -121,7 +121,9 @@ export const listRoles = query({
           legacyCount = legacyUsers.filter((u) => !u.roleId).length;
         }
 
-        const userCount = usersWithRoleId.length + legacyCount;
+        const userCount =
+          usersWithRoleId.filter((user) => user.authSource !== "management")
+            .length + legacyCount;
 
         // For non-admin users, return only basic role info (name, slug, level)
         // to avoid exposing full capability/pageAccess arrays

@@ -60,6 +60,10 @@ import { analyticsTrackHandler } from "./http/analytics";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getPayPalBaseUrl } from "./commerce/paypalMode";
+import {
+  healthHandler as managementHealthHandler,
+  sessionExchangeHandler as managementSessionExchangeHandler,
+} from "./management/http";
 
 const http = httpRouter();
 
@@ -1107,6 +1111,19 @@ http.route({
   path: "/api/analytics/track",
   method: "POST",
   handler: analyticsTrackHandler,
+});
+
+// Site-local portable management contract. Health is explicitly non-secret;
+// session exchange requires a signed, audience-bound controller envelope.
+http.route({
+  path: "/api/convexpress/management/health",
+  method: "GET",
+  handler: managementHealthHandler,
+});
+http.route({
+  path: "/api/convexpress/management/session/exchange",
+  method: "POST",
+  handler: managementSessionExchangeHandler,
 });
 
 export default http;

@@ -68,6 +68,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       "@backend": path.resolve(__dirname, "../../packages/backend"),
       "@convexpress/backend": path.resolve(__dirname, "../../packages/backend"),
+      "@control": path.resolve(__dirname, "../../packages/control-plane"),
     },
   },
   server: {
