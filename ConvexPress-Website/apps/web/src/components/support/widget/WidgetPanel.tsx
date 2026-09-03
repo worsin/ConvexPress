@@ -20,6 +20,12 @@ interface WidgetPanelProps {
   children: React.ReactNode;
 }
 
+export function getWidgetPanelA11yProps(isOpen: boolean):
+  | { "aria-modal": true }
+  | { inert: true } {
+  return isOpen ? { "aria-modal": true } : { inert: true };
+}
+
 export function WidgetPanel({
   isOpen,
   position,
@@ -52,9 +58,8 @@ export function WidgetPanel({
           : "pointer-events-none h-0 scale-95 opacity-0",
       )}
       role="dialog"
-      aria-modal="true"
       aria-label="Support widget"
-      aria-hidden={!isOpen}
+      {...getWidgetPanelA11yProps(isOpen)}
     >
       {/* Header */}
       <div className="flex shrink-0 items-center gap-2 border-b border-border bg-muted/50 px-4 py-3">

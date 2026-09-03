@@ -4,6 +4,10 @@ import { registerAuthHandlers, unregisterAuthHandlers } from "./auth.js";
 import { registerSetupHandlers, unregisterSetupHandlers } from "./setup.js";
 import { registerHandoffHandlers, unregisterHandoffHandlers } from "./handoff.js";
 import {
+  registerConnectionProvisionHandlers,
+  unregisterConnectionProvisionHandlers,
+} from "./connectionProvision.js";
+import {
   registerAppUpdaterHandlers,
   unregisterAppUpdaterHandlers,
 } from "./app-updater.js";
@@ -20,6 +24,7 @@ export function registerAllIpcHandlers(): void {
   registerAuthHandlers();
   registerSetupHandlers();
   registerHandoffHandlers();
+  registerConnectionProvisionHandlers();
   registerAppUpdaterHandlers();
   registerUpdaterHandlers();
 
@@ -46,6 +51,7 @@ export function unregisterAllIpcHandlers(): void {
   unregisterAuthHandlers();
   unregisterSetupHandlers();
   unregisterHandoffHandlers();
+  unregisterConnectionProvisionHandlers();
   unregisterAppUpdaterHandlers();
   unregisterUpdaterHandlers();
 

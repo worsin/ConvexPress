@@ -114,6 +114,7 @@ describe("site management HTTP", () => {
     const body = {
       requestedCapabilities: ["health.read"] as const,
       requestedSiteRole: "administrator" as const,
+      controllerSubjectId: "operator_http_acceptance_001",
     };
     const envelope = signManagementEnvelope(
       createUnsignedManagementEnvelope({
@@ -154,6 +155,50 @@ describe("site management HTTP", () => {
     expect(replay.status).toBe(401);
     expect(await replay.json()).toEqual({
       error: "Management session exchange failed",
+    });
+
+    const revocationBody = {
+      scope: "operator" as const,
+      controllerSubjectId: body.controllerSubjectId,
+    };
+    const revocationEnvelope = signManagementEnvelope(
+      createUnsignedManagementEnvelope({
+        contractVersion: CURRENT_SITE_CONTRACT_VERSION,
+        controllerId: "controller_standalone",
+        keyId: "key_standalone_http_2026",
+        websiteKey: "website_acceptance",
+        instanceKey: "instance_acceptance_live",
+        operationCode: OPERATION_CODES.sessionRevoke,
+        body: revocationBody,
+        nonce: "nonce_http_revoke_0001",
+        issuedAt: new Date(Date.now() - 1_000).toISOString(),
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        idempotencyKey: "revoke-http-0001",
+      }),
+      keys.privateKeyPem,
+    );
+    const revocationRequest = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        envelope: revocationEnvelope,
+        body: revocationBody,
+      }),
+    };
+    const revocation = await t.fetch(
+      "/api/convexpress/management/session/revoke",
+      revocationRequest,
+    );
+    expect(revocation.status).toBe(200);
+    expect(await revocation.json()).toEqual({ revokedCount: 1 });
+
+    const revocationReplay = await t.fetch(
+      "/api/convexpress/management/session/revoke",
+      revocationRequest,
+    );
+    expect(revocationReplay.status).toBe(401);
+    expect(await revocationReplay.json()).toEqual({
+      error: "Management session revocation failed",
     });
   });
 });

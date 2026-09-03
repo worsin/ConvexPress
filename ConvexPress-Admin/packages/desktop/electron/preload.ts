@@ -32,6 +32,8 @@ const ALLOWED_INVOKE_CHANNELS = new Set([
   "app:reload-from-setup",
   // Portable website handoff
   "handoff:save-package",
+  // Secure connection provisioning; the credential is collected elsewhere.
+  "connections:provision",
 ]);
 
 const ALLOWED_ON_CHANNELS = new Set([
@@ -147,6 +149,24 @@ contextBridge.exposeInMainWorld("convexpress", {
         saved: boolean;
         filePath: string | null;
       }>,
+  },
+
+  connections: {
+    provision: (input: {
+      instanceId: string;
+      name: string;
+      accountLabel?: string;
+      authToken: string;
+    }) =>
+      ipcRenderer.invoke("connections:provision", input) as Promise<
+        | { cancelled: true }
+        | {
+            cancelled: false;
+            connectionId: string;
+            status: string;
+            credentialVersion: number | null;
+          }
+      >,
   },
 });
 

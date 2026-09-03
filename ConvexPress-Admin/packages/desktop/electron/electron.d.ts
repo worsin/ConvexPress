@@ -49,6 +49,23 @@ export interface ConvexPressAPI {
       packageJson: string;
     }) => Promise<{ saved: boolean; filePath: string | null }>;
   };
+
+  connections: {
+    provision: (input: {
+      instanceId: string;
+      name: string;
+      accountLabel?: string;
+      authToken: string;
+    }) => Promise<
+      | { cancelled: true }
+      | {
+          cancelled: false;
+          connectionId: string;
+          status: string;
+          credentialVersion: number | null;
+        }
+    >;
+  };
 }
 
 export interface ElectronAuthAPI {

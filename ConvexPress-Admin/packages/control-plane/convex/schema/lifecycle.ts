@@ -9,6 +9,7 @@ export const operationCode = v.union(
   v.literal("site.engine.deploy"),
   v.literal("site.select"),
   v.literal("site.session.exchange"),
+  v.literal("site.session.revoke"),
   v.literal("site.backup.create"),
   v.literal("site.clone"),
   v.literal("site.promote"),

@@ -8,6 +8,7 @@ import {
   type RoleAssignment,
   type RoleDefinition,
 } from "./decision";
+import { directAccessRoleSlug } from "./directAccessRole";
 
 type ReadCtx = Pick<QueryCtx, "db"> | Pick<MutationCtx, "db">;
 
@@ -198,7 +199,7 @@ export async function resolveStoredAccess(
         assignmentRows.map((assignment) => ({ _id: assignment.roleId })),
       ).map(({ _id }) => ctx.db.get(_id)),
     ),
-    ...["business-manager", "site-operator", "viewer"].map((slug) =>
+    ...["business-manager", "site-operator", "member", "viewer"].map((slug) =>
       ctx.db
         .query("overseer_roles")
         .withIndex("by_slug", (q) => q.eq("slug", slug))
@@ -225,7 +226,11 @@ export async function resolveStoredAccess(
     ...organizationGrants.map((grant) => ({
       assignmentId: `organization-access:${String(grant._id)}`,
       userId: String(userId),
-      roleSlug: grant.level === "manage" ? "business-manager" : "viewer",
+      roleSlug: directAccessRoleSlug(
+        operator.role,
+        "organization",
+        grant.level,
+      ),
       status: "active" as const,
       target: { type: "organization" as const, id: String(grant.organizationId) },
       includeChildren: false,
@@ -233,7 +238,7 @@ export async function resolveStoredAccess(
     ...businessGrants.map((grant) => ({
       assignmentId: `business-access:${String(grant._id)}`,
       userId: String(userId),
-      roleSlug: grant.level === "manage" ? "business-manager" : "viewer",
+      roleSlug: directAccessRoleSlug(operator.role, "business", grant.level),
       status: "active" as const,
       target: { type: "business" as const, id: String(grant.businessId) },
       includeChildren: true,
@@ -241,7 +246,7 @@ export async function resolveStoredAccess(
     ...websiteGrants.map((grant) => ({
       assignmentId: `website-access:${String(grant._id)}`,
       userId: String(userId),
-      roleSlug: grant.level === "manage" ? "site-operator" : "viewer",
+      roleSlug: directAccessRoleSlug(operator.role, "website", grant.level),
       status: "active" as const,
       target: { type: "website" as const, id: String(grant.websiteId) },
       includeChildren: grant.includeEnvironments === true,

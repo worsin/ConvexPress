@@ -63,6 +63,7 @@ import { getPayPalBaseUrl } from "./commerce/paypalMode";
 import {
   healthHandler as managementHealthHandler,
   sessionExchangeHandler as managementSessionExchangeHandler,
+  sessionRevocationHandler as managementSessionRevocationHandler,
 } from "./management/http";
 
 const http = httpRouter();
@@ -1124,6 +1125,11 @@ http.route({
   path: "/api/convexpress/management/session/exchange",
   method: "POST",
   handler: managementSessionExchangeHandler,
+});
+http.route({
+  path: "/api/convexpress/management/session/revoke",
+  method: "POST",
+  handler: managementSessionRevocationHandler,
 });
 
 export default http;

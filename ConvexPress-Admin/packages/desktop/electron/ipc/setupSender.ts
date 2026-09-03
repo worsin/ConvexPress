@@ -1,4 +1,8 @@
 import { pathToFileURL } from "node:url";
+import {
+  PACKAGED_RENDERER_HOST,
+  PACKAGED_RENDERER_SCHEME,
+} from "../rendererProtocol.js";
 
 const DEFAULT_DEV_RENDERER_URL = "http://localhost:4105";
 
@@ -43,18 +47,17 @@ export function isDevAppRendererSender(
 
 export function isPackagedAppRendererSender(
   senderUrl: string,
-  rendererIndexPath?: string,
+  _rendererIndexPath?: string,
 ): boolean {
   const url = parseSenderUrl(senderUrl);
-  if (!url || url.protocol !== "file:") return false;
-
-  if (rendererIndexPath) {
-    return hrefWithoutHash(url) === fileHrefWithoutHash(rendererIndexPath);
-  }
-
-  return (
-    url.pathname.endsWith("/index.html") &&
-    !url.pathname.endsWith("/wizard/index.html")
+  return !!(
+    url &&
+    url.protocol === `${PACKAGED_RENDERER_SCHEME}:` &&
+    url.hostname === PACKAGED_RENDERER_HOST &&
+    url.username === "" &&
+    url.password === "" &&
+    url.port === "" &&
+    url.pathname === "/index.html"
   );
 }
 

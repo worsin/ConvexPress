@@ -4,6 +4,8 @@ export function EnvironmentBar({
   environment,
   operationsOpen,
   handoffOpen,
+  canOpenOperations,
+  canOpenHandoff,
   onOpenOperations,
   onOpenHandoff,
 }: {
@@ -17,6 +19,8 @@ export function EnvironmentBar({
   } | null;
   operationsOpen: boolean;
   handoffOpen: boolean;
+  canOpenOperations: boolean;
+  canOpenHandoff: boolean;
   onOpenOperations: () => void;
   onOpenHandoff: () => void;
 }) {
@@ -48,22 +52,26 @@ export function EnvironmentBar({
         Health: {environment.health}
       </span>
       <span>Contract: {compatible ? "compatible" : environment.compatibility}</span>
-      <button
-        aria-expanded={operationsOpen}
-        className="inline-flex items-center gap-1.5 border border-current px-2.5 py-1 font-bold hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-        onClick={onOpenOperations}
-        type="button"
-      >
-        <History className="size-3.5" aria-hidden="true" /> Site operations
-      </button>
-      <button
-        aria-expanded={handoffOpen}
-        className="inline-flex items-center gap-1.5 border border-current px-2.5 py-1 font-bold hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-        onClick={onOpenHandoff}
-        type="button"
-      >
-        <PackageOpen className="size-3.5" aria-hidden="true" /> Transfer site
-      </button>
+      {canOpenOperations ? (
+        <button
+          aria-expanded={operationsOpen}
+          className="inline-flex items-center gap-1.5 border border-current px-2.5 py-1 font-bold hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          onClick={onOpenOperations}
+          type="button"
+        >
+          <History className="size-3.5" aria-hidden="true" /> Site operations
+        </button>
+      ) : null}
+      {canOpenHandoff ? (
+        <button
+          aria-expanded={handoffOpen}
+          className="inline-flex items-center gap-1.5 border border-current px-2.5 py-1 font-bold hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          onClick={onOpenHandoff}
+          type="button"
+        >
+          <PackageOpen className="size-3.5" aria-hidden="true" /> Transfer site
+        </button>
+      ) : null}
       <a
         className="ml-auto inline-flex items-center gap-1 font-semibold underline underline-offset-2"
         href={environment.siteOrigin}

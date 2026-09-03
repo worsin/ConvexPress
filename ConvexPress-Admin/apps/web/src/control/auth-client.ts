@@ -22,6 +22,12 @@ export function createControlAuthClient(siteOrigin: string) {
 
 export type ControlAuthClient = ReturnType<typeof createControlAuthClient>;
 
+export function prepareControlIdentity(emailValue: string, nameValue: string) {
+  const email = emailValue.trim().toLowerCase();
+  const name = nameValue.trim() || email.split("@", 1)[0] || "ConvexPress operator";
+  return { email, name };
+}
+
 export async function signInControlOperator(
   client: ControlAuthClient,
   email: string,
@@ -32,6 +38,18 @@ export async function signInControlOperator(
     password,
   });
   if (error) throw new Error(error.message || "Sign-in failed");
+  await flushControlAuthStorage();
+}
+
+export async function claimControlInvitation(
+  client: ControlAuthClient,
+  emailValue: string,
+  password: string,
+  nameValue: string,
+) {
+  const { email, name } = prepareControlIdentity(emailValue, nameValue);
+  const { error } = await client.signUp.email({ email, password, name });
+  if (error) throw new Error(error.message || "Invitation claim failed");
   await flushControlAuthStorage();
 }
 

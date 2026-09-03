@@ -73,10 +73,13 @@ function signedExchange(input: {
   keyId: string;
   privateKeyPem: string;
   nonce: string;
+  controllerSubjectId?: string;
 }) {
   const body = {
     requestedCapabilities: ["health.read"] as const,
     requestedSiteRole: "subscriber" as const,
+    controllerSubjectId:
+      input.controllerSubjectId ?? `${input.controllerId}_operator_001`,
   };
   return {
     body,
@@ -93,6 +96,38 @@ function signedExchange(input: {
         issuedAt: new Date(Date.now() - 1_000).toISOString(),
         expiresAt: new Date(Date.now() + 60_000).toISOString(),
         idempotencyKey: `exchange-${input.nonce}`,
+      }),
+      input.privateKeyPem,
+    ),
+  };
+}
+
+function signedRevocation(input: {
+  controllerId: string;
+  keyId: string;
+  privateKeyPem: string;
+  nonce: string;
+  controllerSubjectId: string;
+}) {
+  const body = {
+    scope: "operator" as const,
+    controllerSubjectId: input.controllerSubjectId,
+  };
+  return {
+    body,
+    envelope: signManagementEnvelope(
+      createUnsignedManagementEnvelope({
+        contractVersion: CURRENT_SITE_CONTRACT_VERSION,
+        controllerId: input.controllerId,
+        keyId: input.keyId,
+        websiteKey: WEBSITE_KEY,
+        instanceKey: INSTANCE_KEY,
+        operationCode: OPERATION_CODES.sessionRevoke,
+        body,
+        nonce: input.nonce,
+        issuedAt: new Date(Date.now() - 1_000).toISOString(),
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        idempotencyKey: `revoke-${input.nonce}`,
       }),
       input.privateKeyPem,
     ),
@@ -245,5 +280,86 @@ describe("management authority transactions", () => {
         instanceKey: "instance_different_environment",
       }),
     ).rejects.toThrow("cannot be rebound");
+  });
+
+  test("revokes only the selected outer operator while preserving sibling sessions", async () => {
+    const t = createHarness();
+    const { privateKey } = await generateKeyPair("ES256", { extractable: true });
+    process.env.AUTH_PRIVATE_KEY = await exportPKCS8(privateKey);
+    await seedAdministratorRole(t);
+    await t.mutation(internal.management.bootstrap.configureIdentity, {
+      websiteKey: WEBSITE_KEY,
+      instanceKey: INSTANCE_KEY,
+      environmentKind: "live",
+      deploymentOrigin: "http://127.0.0.1:4820",
+      managementOrigin: "http://127.0.0.1:4821",
+      siteOrigin: "https://shop.acceptance.test",
+      siteContractVersion: CURRENT_SITE_CONTRACT_VERSION,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      engineVersion: CURRENT_ENGINE_VERSION,
+      managementCapabilities: ["health.read", "session.exchange"],
+    });
+    const keys = generateManagementKeyPair();
+    const authority = await t.mutation(
+      internal.management.bootstrap.enrollAuthority,
+      {
+        controllerId: "controller_standalone",
+        keyId: "key_standalone_revocation_2026",
+        publicKeyPem: keys.publicKeyPem,
+        capabilities: ["health.read", "session.exchange"],
+      },
+    );
+    await t.action(
+      internal.management.actions.exchangeSession,
+      signedExchange({
+        controllerId: "controller_standalone",
+        keyId: "key_standalone_revocation_2026",
+        privateKeyPem: keys.privateKeyPem,
+        nonce: "nonce_subject_a_exchange_0001",
+        controllerSubjectId: "operator_subject_a_001",
+      }),
+    );
+    await t.action(
+      internal.management.actions.exchangeSession,
+      signedExchange({
+        controllerId: "controller_standalone",
+        keyId: "key_standalone_revocation_2026",
+        privateKeyPem: keys.privateKeyPem,
+        nonce: "nonce_subject_b_exchange_0001",
+        controllerSubjectId: "operator_subject_b_001",
+      }),
+    );
+    const revocation = signedRevocation({
+      controllerId: "controller_standalone",
+      keyId: "key_standalone_revocation_2026",
+      privateKeyPem: keys.privateKeyPem,
+      nonce: "nonce_subject_a_revoke_0001",
+      controllerSubjectId: "operator_subject_a_001",
+    });
+    expect(
+      await t.action(internal.management.actions.revokeSessions, revocation),
+    ).toEqual({ revokedCount: 1 });
+    await expect(
+      t.action(internal.management.actions.revokeSessions, revocation),
+    ).rejects.toThrow("Management session revocation failed");
+
+    const sessions = await t.run(async (ctx) =>
+      ctx.db
+        .query("convexpress_managementSessions")
+        .withIndex("by_authority", (q) =>
+          q.eq("authorityId", authority.authorityId),
+        )
+        .collect(),
+    );
+    expect(
+      sessions.find(
+        (session) => session.controllerSubjectId === "operator_subject_a_001",
+      )?.status,
+    ).toBe("revoked");
+    expect(
+      sessions.find(
+        (session) => session.controllerSubjectId === "operator_subject_b_001",
+      )?.status,
+    ).toBe("active");
   });
 });

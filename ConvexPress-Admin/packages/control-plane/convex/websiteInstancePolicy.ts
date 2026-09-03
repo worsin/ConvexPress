@@ -56,6 +56,21 @@ const editableFields = [
   "engineVersion",
 ] as const;
 
+export function expectedWebsiteInstanceArchiveConfirmation(
+  instanceKey: string,
+): string {
+  return `ARCHIVE ENVIRONMENT ${instanceKey}`;
+}
+
+export function assertWebsiteInstanceArchiveConfirmation(
+  instanceKey: string,
+  confirmation: string,
+): void {
+  if (confirmation !== expectedWebsiteInstanceArchiveConfirmation(instanceKey)) {
+    throw new Error("Environment archive confirmation does not match");
+  }
+}
+
 function owns(value: object, key: PropertyKey) {
   return Object.prototype.hasOwnProperty.call(value, key);
 }

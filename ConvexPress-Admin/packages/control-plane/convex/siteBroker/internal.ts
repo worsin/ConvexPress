@@ -50,6 +50,7 @@ export const prepareSession = internalQuery({
     ),
     requestedCapabilities: v.array(v.string()),
     requestedSiteRole: v.string(),
+    controllerSubjectId: v.string(),
     credentials: credentialEnvelope,
   }),
   handler: async (ctx, args) => {
@@ -125,6 +126,7 @@ export const prepareSession = internalQuery({
       kind: instance.kind,
       requestedCapabilities: requested,
       requestedSiteRole,
+      controllerSubjectId: String(operator._id),
       credentials: {
         encrypted: connection.credentials.encrypted,
         iv: connection.credentials.iv,

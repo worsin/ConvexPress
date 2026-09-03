@@ -3,12 +3,13 @@ import type { Id } from "@control/convex/_generated/dataModel";
 import type { AnyRouter } from "@tanstack/react-router";
 import { RouterProvider } from "@tanstack/react-router";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Loader2, LogOut, PackageOpen, PanelTop } from "lucide-react";
+import { Loader2, LogOut, PackageOpen, PanelTop, Settings2 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { ControlAuthClient } from "./auth-client";
 import {
+  claimControlInvitation,
   signInControlOperator,
   signOutControlOperator,
 } from "./auth-client";
@@ -16,6 +17,8 @@ import { SiteRuntimeProvider } from "./SiteRuntimeProvider";
 import { EnvironmentBar } from "./components/EnvironmentBar";
 import { HandoffPanel } from "./components/HandoffPanel";
 import { LifecyclePanel } from "./components/LifecyclePanel";
+import { SiteManagerPanel } from "./components/SiteManagerPanel";
+import { controlSurfaceVisibility } from "./components/site-manager-view";
 import {
   ScopeSwitcher,
   type ScopeSelection,
@@ -49,6 +52,7 @@ function ControlPlaneShell({
   const [scopeError, setScopeError] = useState<string | null>(null);
   const [operationsOpen, setOperationsOpen] = useState(false);
   const [handoffOpen, setHandoffOpen] = useState(false);
+  const [managerOpen, setManagerOpen] = useState(false);
   const [siteRuntimeRevision, setSiteRuntimeRevision] = useState(0);
   const switchGeneration = useRef(0);
 
@@ -90,6 +94,68 @@ function ControlPlaneShell({
       connection.isActive &&
       connection.hasCredentials,
   );
+  const liveEnvironment = websiteEnvironments.find(
+    (environment) => environment.kind === "live",
+  );
+  const lifecycleAccess = useQuery(
+    controlApi.rbac.queries.checkMyAccess,
+    selectedEnvironment && selectedWebsite && selectedBusiness
+      ? {
+          selectorType: "capability",
+          code: "site.backup.create",
+          organizationId: String(selectedBusiness.organizationId),
+          businessId: String(selectedBusiness.businessId),
+          websiteId: String(selectedWebsite.websiteId),
+          instanceId: String(selectedEnvironment.instanceId),
+        }
+      : "skip",
+  );
+  const handoffExportAccess = useQuery(
+    controlApi.rbac.queries.checkMyAccess,
+    selectedEnvironment && selectedWebsite && selectedBusiness
+      ? {
+          selectorType: "capability",
+          code: "site.handoff.export",
+          organizationId: String(selectedBusiness.organizationId),
+          businessId: String(selectedBusiness.businessId),
+          websiteId: String(selectedWebsite.websiteId),
+          instanceId: String(selectedEnvironment.instanceId),
+        }
+      : "skip",
+  );
+  const handoffImportAccess = useQuery(
+    controlApi.rbac.queries.checkMyAccess,
+    selectedBusiness
+      ? {
+          selectorType: "capability",
+          code: "business.update",
+          organizationId: String(selectedBusiness.organizationId),
+          businessId: String(selectedBusiness.businessId),
+        }
+      : "skip",
+  );
+  const liveOperateAccess = useQuery(
+    controlApi.rbac.queries.checkMyAccess,
+    liveEnvironment && selectedWebsite && selectedBusiness
+      ? {
+          selectorType: "capability",
+          code: "environment.live.operate",
+          organizationId: String(selectedBusiness.organizationId),
+          businessId: String(selectedBusiness.businessId),
+          websiteId: String(selectedWebsite.websiteId),
+          instanceId: String(liveEnvironment.instanceId),
+        }
+      : "skip",
+  );
+  const controlVisibility = controlSurfaceVisibility({
+    backupAllowed: lifecycleAccess?.allowed === true,
+    selectedEnvironmentIsLive: selectedEnvironment?.kind === "live",
+    websiteHasLiveEnvironment: Boolean(liveEnvironment),
+    liveOperateAllowed:
+      !liveEnvironment || liveOperateAccess?.allowed === true,
+    handoffExportAllowed: handoffExportAccess?.allowed === true,
+    handoffImportAllowed: handoffImportAccess?.allowed === true,
+  });
 
   const siteRole = roleToSiteRole(operator?.role);
   const target = useMemo(() => {
@@ -187,16 +253,31 @@ function ControlPlaneShell({
               {operatorIdentity.displayName}
             </span>
             <Button
-              aria-expanded={handoffOpen}
+              aria-expanded={managerOpen}
               className="border border-white/20 bg-transparent text-white hover:bg-white/10"
               size="sm"
               onClick={() => {
                 setOperationsOpen(false);
-                setHandoffOpen((value) => !value);
+                setHandoffOpen(false);
+                setManagerOpen((value) => !value);
               }}
             >
-              <PackageOpen className="mr-2 size-4" /> Add or transfer site
+              <Settings2 className="mr-2 size-4" /> Manage sites
             </Button>
+            {controlVisibility.handoff ? (
+              <Button
+                aria-expanded={handoffOpen}
+                className="border border-white/20 bg-transparent text-white hover:bg-white/10"
+                size="sm"
+                onClick={() => {
+                  setOperationsOpen(false);
+                  setManagerOpen(false);
+                  setHandoffOpen((value) => !value);
+                }}
+              >
+                <PackageOpen className="mr-2 size-4" /> Add or transfer site
+              </Button>
+            ) : null}
             <Button
               aria-label="Sign out of ConvexPress control plane"
               className="border border-white/20 bg-transparent text-white hover:bg-white/10"
@@ -217,12 +298,16 @@ function ControlPlaneShell({
         environment={selectedEnvironment}
         operationsOpen={operationsOpen}
         handoffOpen={handoffOpen}
+        canOpenOperations={controlVisibility.operations}
+        canOpenHandoff={controlVisibility.handoff}
         onOpenOperations={() => {
           setHandoffOpen(false);
+          setManagerOpen(false);
           setOperationsOpen((value) => !value);
         }}
         onOpenHandoff={() => {
           setOperationsOpen(false);
+          setManagerOpen(false);
           setHandoffOpen((value) => !value);
         }}
       />
@@ -283,7 +368,18 @@ function ControlPlaneShell({
                 }
               : null
           }
+          canExport={controlVisibility.handoffExport}
+          canImport={controlVisibility.handoffImport}
           onClose={() => setHandoffOpen(false)}
+        />
+        <SiteManagerPanel
+          open={managerOpen}
+          context={context}
+          selection={selection}
+          operatorRole={operator.role}
+          authClient={authClient}
+          onChangeScope={changeScope}
+          onClose={() => setManagerOpen(false)}
         />
       </div>
     </div>
@@ -308,8 +404,10 @@ function StartupState({ label }: { label: string }) {
 }
 
 function OperatorLogin({ authClient }: { authClient: ControlAuthClient }) {
+  const [mode, setMode] = useState<"sign-in" | "claim">("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -344,15 +442,29 @@ function OperatorLogin({ authClient }: { authClient: ControlAuthClient }) {
             event.preventDefault();
             setPending(true);
             setError(null);
-            void signInControlOperator(authClient, email, password)
-              .catch(() => setError("The email or password was not accepted."))
+            const request =
+              mode === "claim"
+                ? claimControlInvitation(authClient, email, password, name)
+                : signInControlOperator(authClient, email, password);
+            void request
+              .catch(() =>
+                setError(
+                  mode === "claim"
+                    ? "That invitation could not be claimed. Use the exact provisioned email, a new password of at least eight characters, and confirm the invitation is still active."
+                    : "The email or password was not accepted.",
+                ),
+              )
               .finally(() => setPending(false));
           }}
         >
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">Operator access</p>
-          <h2 className="mt-3 font-serif text-4xl tracking-tight">Sign in to ConvexPress</h2>
+          <h2 className="mt-3 font-serif text-4xl tracking-tight">
+            {mode === "claim" ? "Claim your invitation" : "Sign in to ConvexPress"}
+          </h2>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            This account controls which businesses and websites you may open. Website customer logins remain separate.
+            {mode === "claim"
+              ? "Use the exact email your ConvexPress administrator provisioned. This creates only your outer multisite operator login."
+              : "This account controls which businesses and websites you may open. Website customer logins remain separate."}
           </p>
           {error ? (
             <p role="alert" className="mt-5 border-l-4 border-red-600 bg-red-50 p-3 text-sm text-red-900">{error}</p>
@@ -368,6 +480,18 @@ function OperatorLogin({ authClient }: { authClient: ControlAuthClient }) {
             onChange={(event) => setEmail(event.target.value)}
             required
           />
+          {mode === "claim" ? (
+            <>
+              <label className="mt-5 block text-sm font-semibold" htmlFor="control-name">Name</label>
+              <input
+                id="control-name"
+                autoComplete="name"
+                className="mt-2 w-full border border-slate-300 bg-white px-3 py-3 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-200"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </>
+          ) : null}
           <label className="mt-5 block text-sm font-semibold" htmlFor="control-password">Password</label>
           <input
             id="control-password"
@@ -380,8 +504,24 @@ function OperatorLogin({ authClient }: { authClient: ControlAuthClient }) {
           />
           <Button className="mt-7 w-full rounded-none bg-blue-700 py-6 text-white hover:bg-blue-800" disabled={pending} type="submit">
             {pending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-            {pending ? "Signing in" : "Continue"}
+            {pending
+              ? mode === "claim"
+                ? "Claiming invitation"
+                : "Signing in"
+              : mode === "claim"
+                ? "Claim invitation"
+                : "Continue"}
           </Button>
+          <button
+            className="mt-5 w-full text-sm font-semibold text-blue-800 underline-offset-4 hover:underline"
+            type="button"
+            onClick={() => {
+              setError(null);
+              setMode((value) => (value === "sign-in" ? "claim" : "sign-in"));
+            }}
+          >
+            {mode === "claim" ? "Return to sign in" : "Have an operator invitation? Claim it"}
+          </button>
         </form>
       </section>
     </main>

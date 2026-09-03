@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
-import { buildWebsiteInstancePatch } from "../websiteInstancePolicy";
+import {
+  assertWebsiteInstanceArchiveConfirmation,
+  buildWebsiteInstancePatch,
+  expectedWebsiteInstanceArchiveConfirmation,
+} from "../websiteInstancePolicy";
 
 const current = {
   label: "Production",
@@ -13,6 +17,23 @@ const current = {
 };
 
 describe("website environment update policy", () => {
+  test("requires an exact environment-specific archive confirmation", () => {
+    expect(
+      expectedWebsiteInstanceArchiveConfirmation("client:store:staging"),
+    ).toBe("ARCHIVE ENVIRONMENT client:store:staging");
+    expect(() =>
+      assertWebsiteInstanceArchiveConfirmation(
+        "client:store:staging",
+        "archive environment client:store:staging",
+      ),
+    ).toThrow("confirmation");
+    expect(() =>
+      assertWebsiteInstanceArchiveConfirmation(
+        "client:store:staging",
+        "ARCHIVE ENVIRONMENT client:store:staging",
+      ),
+    ).not.toThrow();
+  });
   test("normalizes origins and recomputes compatibility from the merged versions", () => {
     expect(
       buildWebsiteInstancePatch({

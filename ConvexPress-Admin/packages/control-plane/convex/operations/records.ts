@@ -57,6 +57,10 @@ const OPERATION_STEPS: Readonly<Record<OperationCode, readonly string[]>> = {
     "target.revalidate",
     "session.exchange",
   ],
+  [OPERATION_CODES.sessionRevoke]: [
+    "target.revalidate",
+    "session.revoke",
+  ],
   [OPERATION_CODES.backupCreate]: [
     "target.revalidate",
     "snapshot.export",

@@ -1,14 +1,23 @@
 import path from "node:path";
 import { appendFileSync, writeFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { registerAllIpcHandlers } from "./ipc/index.js";
 import { initAppUpdater } from "./ipc/app-updater.js";
 import { initUpdaterEvents } from "./ipc/updater.js";
 import { isExactWizardSender } from "./ipc/setupSender.js";
 import {
+  buildDesktopContentSecurityPolicy,
+  controllerConfigUsesLoopback,
+} from "./cspPolicy.js";
+import {
   getInitialRouteForLaunch,
   isPendingAdminHandoffUsable,
   isPendingLoginHandoffUsable,
 } from "./launchRoute.js";
+import {
+  PACKAGED_RENDERER_SCHEME,
+  resolvePackagedRendererPath,
+} from "./rendererProtocol.js";
 import { createTray } from "./tray.js";
 import { JsonStore } from "./utils/json-store.js";
 import { setQuitting } from "./utils/app-state.js";
@@ -22,8 +31,23 @@ const {
   BrowserWindow,
   ipcMain,
   nativeTheme,
+  net,
+  protocol,
   session,
 } = require("electron") as typeof import("electron");
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: PACKAGED_RENDERER_SCHEME,
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+    },
+  },
+]);
 
 // ---------- IMPORTANT: Set app name and userData BEFORE anything reads them ----------
 app.setName("ConvexPress");
@@ -200,30 +224,29 @@ app.whenReady().then(async () => {
   fileLog("[Main] App ready");
   removeDeprecatedSecretsFromConfig();
 
+  const packagedRendererRoot = path.join(__dirname, "..", "dist");
+  protocol.handle(PACKAGED_RENDERER_SCHEME, (request) => {
+    try {
+      const rendererPath = resolvePackagedRendererPath(
+        packagedRendererRoot,
+        request.url,
+      );
+      return net.fetch(pathToFileURL(rendererPath).href);
+    } catch (error) {
+      fileLog(`[Main] Rejected packaged renderer request: ${String(error)}`);
+      return new Response("Not found", { status: 404 });
+    }
+  });
+
   // ---------- Content-Security-Policy Headers ----------
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const csp = isDev()
-      ? [
-          "default-src 'self'",
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-          "style-src 'self' 'unsafe-inline'",
-          "connect-src 'self' http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:* https://*.convex.cloud https://*.convex.dev https://*.convex.site wss://*.convex.cloud wss://*.convex.dev https://convex.cloud https://convex.dev",
-          "img-src 'self' data: blob: http://localhost:* http://127.0.0.1:* https://*.convex.cloud https://*.convex.site https://convex.cloud https://secure.gravatar.com",
-          "media-src 'self' data: blob: http://localhost:* http://127.0.0.1:* https://*.convex.cloud https://*.convex.site",
-          "font-src 'self' data:",
-          "frame-ancestors 'none'",
-          "base-uri 'self'",
-        ].join("; ")
-      : [
-          "default-src 'self' file: blob:",
-          "script-src 'self' file: 'unsafe-inline'",
-          "style-src 'self' file: 'unsafe-inline'",
-          "connect-src 'self' https://*.convex.cloud https://*.convex.dev https://*.convex.site wss://*.convex.cloud wss://*.convex.dev https://convex.cloud https://convex.dev",
-          "img-src 'self' file: data: blob: https://*.convex.cloud https://*.convex.site https://convex.cloud https://secure.gravatar.com",
-          "media-src 'self' file: data: blob: https://*.convex.cloud https://*.convex.site",
-          "font-src 'self' file: data:",
-          "frame-ancestors 'none'",
-        ].join("; ");
+    const csp = buildDesktopContentSecurityPolicy({
+      development: isDev(),
+      allowLoopback: controllerConfigUsesLoopback(
+        store.get("convexUrl"),
+        store.get("convexSiteUrl"),
+      ),
+    });
 
     callback({
       responseHeaders: {

@@ -1,5 +1,6 @@
 import {
   hashRuntimeCanonicalBody,
+  parseRuntimePortableKey,
   RUNTIME_OPERATION_CODES,
 } from "@convexpress/site-contract/runtime-protocol";
 import { v } from "convex/values";
@@ -69,6 +70,7 @@ interface ConsumeSessionArgs {
   };
   requestedCapabilities: string[];
   requestedSiteRole: string;
+  controllerSubjectId: string;
   tokenHash: string;
   expiresAt: number;
 }
@@ -146,6 +148,7 @@ export const consumeAndCreateSession = defineInternalMutation({
     envelope: managementEnvelopeValidator,
     requestedCapabilities: looseV.array(looseV.string()),
     requestedSiteRole: looseV.string(),
+    controllerSubjectId: looseV.string(),
     tokenHash: looseV.string(),
     expiresAt: looseV.number(),
   },
@@ -192,6 +195,7 @@ export const consumeAndCreateSession = defineInternalMutation({
       hashRuntimeCanonicalBody({
         requestedCapabilities: args.requestedCapabilities,
         requestedSiteRole: args.requestedSiteRole,
+        controllerSubjectId: args.controllerSubjectId,
       }) !==
       args.envelope.bodyHash
     ) {
@@ -240,6 +244,9 @@ export const consumeAndCreateSession = defineInternalMutation({
     }
 
     const siteRoleSlug = parseRequestedSiteRole(args.requestedSiteRole);
+    const controllerSubjectId = parseRuntimePortableKey(
+      args.controllerSubjectId,
+    );
     const siteRole = await ctx.db
       .query("roles")
       .withIndex("by_slug", (q: any) => q.eq("slug", siteRoleSlug))
@@ -317,6 +324,7 @@ export const consumeAndCreateSession = defineInternalMutation({
       authorityId: authority._id,
       bindingId: binding._id,
       userId: user._id,
+      controllerSubjectId,
       websiteKey: identity.websiteKey,
       instanceKey: identity.instanceKey,
       capabilities: grant.capabilities,
@@ -336,5 +344,109 @@ export const consumeAndCreateSession = defineInternalMutation({
       siteCapabilities: [...siteRole.capabilities].sort(),
       expiresAt: args.expiresAt,
     };
+  },
+});
+
+interface RevokeSessionsArgs {
+  authorityId: string;
+  envelope: {
+    contractVersion: string;
+    controllerId: string;
+    keyId: string;
+    websiteKey: string;
+    instanceKey: string;
+    operationCode: string;
+    bodyHash: string;
+    nonce: string;
+    issuedAt: string;
+    expiresAt: string;
+  };
+  body:
+    | { scope: "operator"; controllerSubjectId: string }
+    | { scope: "controller" };
+}
+
+export const consumeAndRevokeSessions = defineInternalMutation({
+  args: {
+    authorityId: looseV.id("convexpress_managementAuthorities"),
+    envelope: managementEnvelopeValidator,
+    body: looseV.union(
+      looseV.object({
+        scope: looseV.literal("operator"),
+        controllerSubjectId: looseV.string(),
+      }),
+      looseV.object({ scope: looseV.literal("controller") }),
+    ),
+  },
+  returns: looseV.object({ revokedCount: looseV.number() }),
+  handler: async (ctx: ManagementMutationCtx, args: RevokeSessionsArgs) => {
+    const now = Date.now();
+    const identity = await ctx.db
+      .query("convexpress_siteIdentity")
+      .withIndex("by_identity_key", (q: any) =>
+        q.eq("identityKey", "site-identity"),
+      )
+      .unique();
+    const authority = await ctx.db.get(args.authorityId);
+    if (!identity || !authority || authority.status !== "active") {
+      throw new Error("Management authority is unavailable");
+    }
+    if (
+      authority.controllerId !== args.envelope.controllerId ||
+      authority.keyId !== args.envelope.keyId ||
+      authority.websiteKey !== identity.websiteKey ||
+      authority.instanceKey !== identity.instanceKey ||
+      args.envelope.websiteKey !== identity.websiteKey ||
+      args.envelope.instanceKey !== identity.instanceKey ||
+      args.envelope.contractVersion !== identity.siteContractVersion ||
+      args.envelope.operationCode !== RUNTIME_OPERATION_CODES.sessionRevoke ||
+      now < authority.notBefore ||
+      (authority.expiresAt !== undefined && now >= authority.expiresAt) ||
+      now < Date.parse(args.envelope.issuedAt) ||
+      now >= Date.parse(args.envelope.expiresAt) ||
+      hashRuntimeCanonicalBody(args.body) !== args.envelope.bodyHash
+    ) {
+      throw new Error("Management session revocation is invalid");
+    }
+    const subjectId =
+      args.body.scope === "operator"
+        ? parseRuntimePortableKey(args.body.controllerSubjectId)
+        : null;
+    const usedNonce = await ctx.db
+      .query("convexpress_managementNonces")
+      .withIndex("by_authority_nonce", (q: any) =>
+        q.eq("authorityId", authority._id).eq("nonce", args.envelope.nonce),
+      )
+      .unique();
+    if (usedNonce) throw new Error("Management envelope nonce was already used");
+
+    const activeSessions = await ctx.db
+      .query("convexpress_managementSessions")
+      .withIndex("by_authority", (q: any) =>
+        q.eq("authorityId", authority._id).eq("status", "active"),
+      )
+      .take(501);
+    if (activeSessions.length > 500) {
+      throw new Error("Authority has too many sessions for one revocation batch");
+    }
+    const sessions = activeSessions.filter(
+      (session: any) =>
+        subjectId === null ||
+        session.controllerSubjectId === subjectId ||
+        session.controllerSubjectId === undefined,
+    );
+    await ctx.db.insert("convexpress_managementNonces", {
+      authorityId: authority._id,
+      nonce: args.envelope.nonce,
+      expiresAt: Date.parse(args.envelope.expiresAt),
+      consumedAt: now,
+    });
+    for (const session of sessions) {
+      await ctx.db.patch(session._id, {
+        status: "revoked",
+        revokedAt: now,
+      });
+    }
+    return { revokedCount: sessions.length };
   },
 });

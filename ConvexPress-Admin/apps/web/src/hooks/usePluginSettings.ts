@@ -11,13 +11,10 @@ import {
 } from "@/lib/plugins/registry";
 
 export function usePluginSettings() {
-  const result = useQuery(api.settings.queries.getBySection, {
-    section: "plugins" as const,
-  }) as (PluginSettingsValues & {
-    _id?: string | null;
-    updatedAt?: number | null;
-    updatedBy?: string | null;
-  }) | null | undefined;
+  const result = useQuery(
+    api.settings.queries.getPluginAvailability,
+    {},
+  ) as PluginSettingsValues | null | undefined;
 
   const values = useMemo<PluginSettingsValues>(
     () => ({

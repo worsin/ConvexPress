@@ -33,6 +33,8 @@ export function HandoffPanel({
   open,
   source,
   destination,
+  canExport,
+  canImport,
   onClose,
 }: {
   open: boolean;
@@ -47,6 +49,8 @@ export function HandoffPanel({
     businessId: BusinessId;
     businessName: string;
   } | null;
+  canExport: boolean;
+  canImport: boolean;
   onClose: () => void;
 }) {
   const handoffs = useQuery(
@@ -248,7 +252,7 @@ export function HandoffPanel({
           </p>
         ) : null}
 
-        <section aria-labelledby="handoff-export-heading" className="border-b border-slate-200 bg-white p-5">
+        {canExport ? <section aria-labelledby="handoff-export-heading" className="border-b border-slate-200 bg-white p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 id="handoff-export-heading" className="font-semibold text-slate-950">
@@ -342,9 +346,9 @@ export function HandoffPanel({
               {saveStatus ? <p role="status" className="mt-2 font-semibold">{saveStatus}</p> : null}
             </div>
           ) : null}
-        </section>
+        </section> : null}
 
-        <section aria-labelledby="handoff-import-heading" className="border-b border-slate-200 bg-white p-5">
+        {canImport ? <section aria-labelledby="handoff-import-heading" className="border-b border-slate-200 bg-white p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 id="handoff-import-heading" className="font-semibold text-slate-950">
@@ -425,9 +429,9 @@ export function HandoffPanel({
               </p>
             </div>
           ) : null}
-        </section>
+        </section> : null}
 
-        <section aria-labelledby="handoff-history-heading" className="p-5">
+        {canExport ? <section aria-labelledby="handoff-history-heading" className="p-5">
           <h3 id="handoff-history-heading" className="font-semibold">Handoff history</h3>
           {handoffs === undefined ? (
             <p className="mt-3 inline-flex items-center gap-2 text-sm text-slate-500"><Loader2 className="size-4 animate-spin" /> Loading handoffs</p>
@@ -510,7 +514,7 @@ export function HandoffPanel({
               })}
             </ul>
           )}
-        </section>
+        </section> : null}
       </div>
     </aside>
   );

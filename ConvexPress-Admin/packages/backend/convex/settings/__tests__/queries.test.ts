@@ -89,6 +89,17 @@ async function seedAuthenticatedUser(
       updatedBy: userId,
     });
 
+    await ctx.db.insert("settings", {
+      section: "plugins",
+      values: {
+        knowledgeBaseEnabled: false,
+        customExtensionEnabled: true,
+        internalConnectionLabel: "must-not-leak",
+      },
+      updatedAt: now,
+      updatedBy: userId,
+    });
+
     return {
       userId,
       email: capabilities.includes("manage_options")
@@ -155,5 +166,21 @@ describe("settings queries", () => {
     expect(ga4?.ga4ServiceAccountJson).toBe("__set__");
     expect(ga4?.ga4ServiceAccountEmail).toBe("ga4@example.test");
     expect(ga4?.ga4PropertyId).toBe("properties/123456789");
+  });
+
+  test("projects only plugin availability booleans to an active lower-role user", async () => {
+    const t = createHarness();
+    const editor = await seedAuthenticatedUser(t, []);
+
+    const availability = await editor.query(
+      api.settings.queries.getPluginAvailability,
+      {},
+    );
+    expect(availability).toMatchObject({
+      knowledgeBaseEnabled: false,
+      customExtensionEnabled: true,
+      ticketsEnabled: true,
+    });
+    expect(availability).not.toHaveProperty("internalConnectionLabel");
   });
 });

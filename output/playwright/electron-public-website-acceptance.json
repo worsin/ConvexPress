@@ -1,0 +1,11 @@
+{
+  "acceptanceMode": "public-website-electron",
+  "electronWindow": true,
+  "isolatedSiteDatabase": true,
+  "desktopRendered": true,
+  "mobileRendered": true,
+  "mobileNavigationOperated": true,
+  "desktopHorizontalOverflow": false,
+  "mobileHorizontalOverflow": false,
+  "rendererErrorCount": 0
+}

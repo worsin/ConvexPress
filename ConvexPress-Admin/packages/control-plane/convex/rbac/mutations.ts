@@ -2,6 +2,10 @@ import { v } from "convex/values";
 
 import { authorizedMutation } from "./functions";
 import { MVP_ROLE_DEFINITIONS } from "./roleSeeds";
+import {
+  scheduleControllerSessionRevocation,
+  scheduleOperatorSessionRevocation,
+} from "../siteBroker/revocationSchedule";
 
 const platformRbacMutation = authorizedMutation({
   selector: { type: "capability", code: "rbac.manage" },
@@ -190,9 +194,20 @@ export const upsertPermission = platformRbacMutation({
         ...value,
         createdAt: existing.createdAt ?? now,
       });
+      if (args.subjectType === "user") {
+        await scheduleOperatorSessionRevocation(ctx, subjectId);
+      } else {
+        await scheduleControllerSessionRevocation(ctx);
+      }
       return args.permissionId;
     }
-    return await ctx.db.insert("overseer_permissions", value);
+    const permissionId = await ctx.db.insert("overseer_permissions", value);
+    if (args.subjectType === "user") {
+      await scheduleOperatorSessionRevocation(ctx, subjectId);
+    } else {
+      await scheduleControllerSessionRevocation(ctx);
+    }
+    return permissionId;
   },
 });
 
@@ -210,6 +225,11 @@ export const setPermissionStatus = platformRbacMutation({
       updatedAt: Date.now(),
       grantedBy: String(ctx.operator._id),
     });
+    if (permission.subjectType === "user" && permission.subjectId) {
+      await scheduleOperatorSessionRevocation(ctx, permission.subjectId);
+    } else {
+      await scheduleControllerSessionRevocation(ctx);
+    }
     return args.permissionId;
   },
 });

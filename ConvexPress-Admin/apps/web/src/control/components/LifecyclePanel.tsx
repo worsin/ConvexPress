@@ -457,7 +457,11 @@ export function LifecyclePanel({
           </Button>
         </section>
 
-        <section aria-labelledby="current-operation-heading" className="border-b border-slate-200 p-5">
+        <section
+          aria-labelledby="current-operation-heading"
+          className="border-b border-slate-200 p-5"
+          data-operation-id={detail ? String(detail.operation.operationId) : undefined}
+        >
           <div className="flex items-center justify-between gap-3">
             <h3 id="current-operation-heading" className="font-semibold">
               Operation detail

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { authorizedMutation } from "./rbac/functions";
+import { scheduleOperatorSessionRevocation } from "./siteBroker/revocationSchedule";
 
 const manageAccess = authorizedMutation({
   selector: { type: "capability", code: "rbac.manage" },
@@ -45,9 +46,10 @@ export const grantOrganization = manageAccess({
         grantedBy: String(ctx.operator._id),
         grantedAt: Date.now(),
       });
+      await scheduleOperatorSessionRevocation(ctx, subjectId);
       return matches[0]._id;
     }
-    return await ctx.db.insert("overseer_organizationAccess", {
+    const grantId = await ctx.db.insert("overseer_organizationAccess", {
       subjectType: "user",
       subjectId,
       organizationId: args.organizationId,
@@ -55,6 +57,8 @@ export const grantOrganization = manageAccess({
       grantedBy: String(ctx.operator._id),
       grantedAt: Date.now(),
     });
+    await scheduleOperatorSessionRevocation(ctx, subjectId);
+    return grantId;
   },
 });
 
@@ -85,9 +89,10 @@ export const grantBusiness = manageAccess({
         grantedBy: String(ctx.operator._id),
         grantedAt: Date.now(),
       });
+      await scheduleOperatorSessionRevocation(ctx, subjectId);
       return matches[0]._id;
     }
-    return await ctx.db.insert("overseer_businessAccess", {
+    const grantId = await ctx.db.insert("overseer_businessAccess", {
       subjectType: "user",
       subjectId,
       businessId: args.businessId,
@@ -95,6 +100,8 @@ export const grantBusiness = manageAccess({
       grantedBy: String(ctx.operator._id),
       grantedAt: Date.now(),
     });
+    await scheduleOperatorSessionRevocation(ctx, subjectId);
+    return grantId;
   },
 });
 
@@ -127,9 +134,10 @@ export const grantWebsite = manageAccess({
         grantedBy: String(ctx.operator._id),
         grantedAt: Date.now(),
       });
+      await scheduleOperatorSessionRevocation(ctx, subjectId);
       return matches[0]._id;
     }
-    return await ctx.db.insert("overseer_websiteAccess", {
+    const grantId = await ctx.db.insert("overseer_websiteAccess", {
       subjectType: "user",
       subjectId,
       websiteId: args.websiteId,
@@ -138,6 +146,8 @@ export const grantWebsite = manageAccess({
       grantedBy: String(ctx.operator._id),
       grantedAt: Date.now(),
     });
+    await scheduleOperatorSessionRevocation(ctx, subjectId);
+    return grantId;
   },
 });
 
@@ -161,6 +171,7 @@ export const revokeOrganization = manageAccess({
     if (matches.length > 1) throw new Error("Duplicate organization access grant");
     if (!matches[0]) return false;
     await ctx.db.delete(matches[0]._id);
+    await scheduleOperatorSessionRevocation(ctx, subjectId);
     return true;
   },
 });
@@ -185,6 +196,7 @@ export const revokeBusiness = manageAccess({
     if (matches.length > 1) throw new Error("Duplicate business access grant");
     if (!matches[0]) return false;
     await ctx.db.delete(matches[0]._id);
+    await scheduleOperatorSessionRevocation(ctx, subjectId);
     return true;
   },
 });
@@ -209,6 +221,7 @@ export const revokeWebsite = manageAccess({
     if (matches.length > 1) throw new Error("Duplicate website access grant");
     if (!matches[0]) return false;
     await ctx.db.delete(matches[0]._id);
+    await scheduleOperatorSessionRevocation(ctx, subjectId);
     return true;
   },
 });

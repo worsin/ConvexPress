@@ -5,6 +5,7 @@ import {
   OPERATION_CODES,
   OPERATION_CODE_VALUES,
   operationCodeSchema,
+  siteSessionRoleSlugSchema,
   type OperationCode,
 } from "./codes";
 import { canonicalJson } from "./fingerprints";
@@ -66,8 +67,19 @@ const operationParameterSchemas: Readonly<
         .array(managementCapabilityCodeSchema)
         .min(1)
         .max(64),
+      requestedSiteRole: siteSessionRoleSlugSchema,
+      controllerSubjectId: portableKeySchema,
     })
     .strict(),
+  [OPERATION_CODES.sessionRevoke]: z.discriminatedUnion("scope", [
+    z
+      .object({
+        scope: z.literal("operator"),
+        controllerSubjectId: portableKeySchema,
+      })
+      .strict(),
+    z.object({ scope: z.literal("controller") }).strict(),
+  ]),
   [OPERATION_CODES.backupCreate]: z
     .object({ includeStorage: z.boolean() })
     .strict(),

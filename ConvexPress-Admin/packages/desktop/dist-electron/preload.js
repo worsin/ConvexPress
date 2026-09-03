@@ -31,7 +31,9 @@ var ALLOWED_INVOKE_CHANNELS = /* @__PURE__ */ new Set([
   "setup:complete",
   "app:reload-from-setup",
   // Portable website handoff
-  "handoff:save-package"
+  "handoff:save-package",
+  // Secure connection provisioning; the credential is collected elsewhere.
+  "connections:provision"
 ]);
 var ALLOWED_ON_CHANNELS = /* @__PURE__ */ new Set([
   // Window events
@@ -106,6 +108,9 @@ import_electron.contextBridge.exposeInMainWorld("convexpress", {
   },
   files: {
     saveHandoffPackage: (input) => import_electron.ipcRenderer.invoke("handoff:save-package", input)
+  },
+  connections: {
+    provision: (input) => import_electron.ipcRenderer.invoke("connections:provision", input)
   }
 });
 import_electron.contextBridge.exposeInMainWorld("electronAuth", {

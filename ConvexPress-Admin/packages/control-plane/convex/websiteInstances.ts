@@ -13,7 +13,10 @@ import {
   authenticatedQuery,
 } from "./rbac/functions";
 import { resolveStoredAccess } from "./rbac/runtime";
-import { buildWebsiteInstancePatch } from "./websiteInstancePolicy";
+import {
+  assertWebsiteInstanceArchiveConfirmation,
+  buildWebsiteInstancePatch,
+} from "./websiteInstancePolicy";
 
 const environmentKind = v.union(
   v.literal("live"),
@@ -456,6 +459,82 @@ export const update = authenticatedMutation({
     }
 
     await ctx.db.patch(instance._id, patch);
+    return summarize((await ctx.db.get(instance._id))!);
+  },
+});
+
+export const archive = authenticatedMutation({
+  args: {
+    instanceId: v.id("overseer_websiteInstances"),
+    confirmation: v.string(),
+  },
+  returns: instanceResult,
+  handler: async (ctx, args) => {
+    const instance = await ctx.db.get(args.instanceId);
+    if (!instance || instance.status !== "active") {
+      throw new Error("Environment not found");
+    }
+    const website = await ctx.db.get(instance.website_id);
+    if (
+      !website?.organization_id ||
+      !website.business_id ||
+      website.status !== "active"
+    ) {
+      throw new Error("Website not found");
+    }
+    const target = {
+      organizationId: String(website.organization_id),
+      businessId: String(website.business_id),
+      websiteId: String(website._id),
+      instanceId: String(instance._id),
+    };
+    await assertStoredAccess(ctx, ctx.operator, {
+      selector: { type: "capability", code: "website.update" },
+      target,
+    });
+    if (instance.kind === "live") {
+      await assertStoredAccess(ctx, ctx.operator, {
+        selector: { type: "capability", code: "environment.live.operate" },
+        target,
+      });
+    }
+    assertWebsiteInstanceArchiveConfirmation(
+      instance.instanceKey,
+      args.confirmation,
+    );
+    const activeConnections = await ctx.db
+      .query("overseer_connections")
+      .withIndex("by_instance", (q) =>
+        q.eq("instance_id", instance._id).eq("isActive", true),
+      )
+      .take(1);
+    if (activeConnections.length > 0) {
+      throw new Error("Revoke the active connection before archiving this environment");
+    }
+
+    const siblings = await ctx.db
+      .query("overseer_websiteInstances")
+      .withIndex("by_website", (q) => q.eq("website_id", website._id))
+      .take(100);
+    const replacement = siblings
+      .filter((candidate) => candidate._id !== instance._id && candidate.status === "active")
+      .sort((left, right) =>
+        left.kind === "live" && right.kind !== "live"
+          ? -1
+          : right.kind === "live" && left.kind !== "live"
+            ? 1
+            : left.instanceKey.localeCompare(right.instanceKey),
+      )[0];
+    const now = Date.now();
+    await ctx.db.patch(instance._id, {
+      status: "archived",
+      isDefault: false,
+      updatedAt: now,
+    });
+    if (instance.isDefault && replacement) {
+      await clearWebsiteDefault(ctx, website._id, String(replacement._id));
+      await ctx.db.patch(replacement._id, { isDefault: true, updatedAt: now });
+    }
     return summarize((await ctx.db.get(instance._id))!);
   },
 });

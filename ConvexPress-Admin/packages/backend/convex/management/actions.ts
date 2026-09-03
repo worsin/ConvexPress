@@ -43,7 +43,18 @@ interface ExchangeResult {
 
 interface ExchangeArgs {
   envelope: RuntimeSignedManagementEnvelope;
-  body: { requestedCapabilities: string[]; requestedSiteRole: string };
+  body: {
+    requestedCapabilities: string[];
+    requestedSiteRole: string;
+    controllerSubjectId: string;
+  };
+}
+
+interface RevokeSessionsArgs {
+  envelope: RuntimeSignedManagementEnvelope;
+  body:
+    | { scope: "operator"; controllerSubjectId: string }
+    | { scope: "controller" };
 }
 
 interface ManagementActionCtx {
@@ -57,6 +68,7 @@ export const exchangeSession = defineInternalAction({
     body: looseV.object({
       requestedCapabilities: looseV.array(looseV.string()),
       requestedSiteRole: looseV.string(),
+      controllerSubjectId: looseV.string(),
     }),
   },
   returns: looseV.object({
@@ -117,6 +129,7 @@ export const exchangeSession = defineInternalAction({
           envelope: args.envelope,
           requestedCapabilities: grant.capabilities,
           requestedSiteRole: args.body.requestedSiteRole,
+          controllerSubjectId: args.body.controllerSubjectId,
           tokenHash,
           expiresAt,
         },
@@ -138,6 +151,58 @@ export const exchangeSession = defineInternalAction({
       };
     } catch {
       throw new Error("Management session exchange failed");
+    }
+  },
+});
+
+export const revokeSessions = defineInternalAction({
+  args: {
+    envelope: managementEnvelopeValidator,
+    body: looseV.union(
+      looseV.object({
+        scope: looseV.literal("operator"),
+        controllerSubjectId: looseV.string(),
+      }),
+      looseV.object({ scope: looseV.literal("controller") }),
+    ),
+  },
+  returns: looseV.object({ revokedCount: looseV.number() }),
+  handler: async (
+    ctx: ManagementActionCtx,
+    args: RevokeSessionsArgs,
+  ): Promise<{ revokedCount: number }> => {
+    try {
+      const context: VerificationContext | null = await ctx.runQuery(
+        anyApi.management.runtime.getVerificationContext,
+        {
+          controllerId: args.envelope.controllerId,
+          keyId: args.envelope.keyId,
+          nonce: args.envelope.nonce,
+        },
+      );
+      if (!context?.authority) throw new Error("unavailable");
+      const verified = verifyStoredManagementEnvelope({
+        identity: context.identity,
+        authority: context.authority,
+        envelope: args.envelope,
+        body: args.body,
+        now: Date.now(),
+        expectedCapability: "session.exchange",
+        usedNonces: context.nonceUsed
+          ? new Set([args.envelope.nonce])
+          : new Set(),
+      });
+      if (!verified.ok) throw new Error("verification failed");
+      return await ctx.runMutation(
+        anyApi.management.runtime.consumeAndRevokeSessions,
+        {
+          authorityId: context.authority.authorityId,
+          envelope: args.envelope,
+          body: args.body,
+        },
+      );
+    } catch {
+      throw new Error("Management session revocation failed");
     }
   },
 });

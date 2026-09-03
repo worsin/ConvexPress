@@ -168,6 +168,28 @@ export const getBySection = query({
   },
 });
 
+/**
+ * Authenticated, non-secret projection used by the admin navigation. Lower
+ * roles need to know whether an installed extension is enabled, but must not
+ * receive the protected settings document that administrators edit.
+ */
+export const getPluginAvailability = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user || user.status !== "active") return null;
+
+    const values = await getMergedSettingsSection(ctx, "plugins");
+    return Object.fromEntries(
+      Object.entries(values).filter(
+        ([key, value]) =>
+          /^[A-Za-z][A-Za-z0-9]*Enabled$/u.test(key) &&
+          typeof value === "boolean",
+      ),
+    );
+  },
+});
+
 // ─── getAutoloaded ───────────────────────────────────────────────────────────
 
 /**

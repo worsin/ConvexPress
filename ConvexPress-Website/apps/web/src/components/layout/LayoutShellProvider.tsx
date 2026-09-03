@@ -23,6 +23,21 @@ interface UIState {
   searchOpen: boolean;
 }
 
+export function blurActiveElementBeforeOverlay(documentLike: {
+  activeElement: unknown;
+}): void {
+  const activeElement = documentLike.activeElement as
+    | { blur?: () => void }
+    | null;
+  activeElement?.blur?.();
+}
+
+export function getBackgroundInertProps(isOverlayOpen: boolean):
+  | { inert: true }
+  | Record<string, never> {
+  return isOverlayOpen ? { inert: true } : {};
+}
+
 function reducer(state: UIState, action: Action): UIState {
   switch (action.type) {
     case "TOGGLE_MOBILE_NAV":
@@ -64,7 +79,12 @@ export function LayoutShellProvider({ children }: LayoutShellProviderProps) {
 
   const actions: LayoutShellActions = React.useMemo(
     () => ({
-      toggleMobileNav: () => dispatch({ type: "TOGGLE_MOBILE_NAV" }),
+      toggleMobileNav: () => {
+        if (typeof document !== "undefined") {
+          blurActiveElementBeforeOverlay(document);
+        }
+        dispatch({ type: "TOGGLE_MOBILE_NAV" });
+      },
       closeMobileNav: () => dispatch({ type: "CLOSE_MOBILE_NAV" }),
       toggleSearch: () => dispatch({ type: "TOGGLE_SEARCH" }),
       closeSearch: () => dispatch({ type: "CLOSE_SEARCH" }),

@@ -33,6 +33,7 @@ interface SessionTarget {
   kind: string;
   requestedCapabilities: ManagementCapabilityCode[];
   requestedSiteRole: SiteSessionRoleSlug;
+  controllerSubjectId: string;
   credentials: CredentialEnvelope;
 }
 
@@ -90,6 +91,7 @@ export const exchange = action({
       const body = {
         requestedCapabilities: target.requestedCapabilities,
         requestedSiteRole: target.requestedSiteRole,
+        controllerSubjectId: target.controllerSubjectId,
       };
       const now = Date.now();
       const envelope = signManagementEnvelope(

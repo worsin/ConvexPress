@@ -67,16 +67,16 @@ async function assertStandaloneShellDoesNotOverlap(page) {
   }
 }
 
-async function waitForListCountGreater(locator, previousCount, timeoutMs) {
+async function clickAndWaitForNewOperation(detail, button, timeoutMs) {
+  const previousId = await detail.getAttribute("data-operation-id");
+  await button.click();
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const count = await locator.count();
-    if (count > previousCount) return count;
-    await new Promise((resolveWait) => setTimeout(resolveWait, 500));
+    const nextId = await detail.getAttribute("data-operation-id");
+    if (nextId && nextId !== previousId) return nextId;
+    await new Promise((resolveWait) => setTimeout(resolveWait, 250));
   }
-  throw new Error(
-    `Timed out waiting for list count to exceed ${previousCount}.`,
-  );
+  throw new Error("Timed out waiting for the newly created operation detail.");
 }
 
 async function selectOptionContaining(select, text, timeoutMs = 20_000) {
@@ -257,20 +257,17 @@ async function main() {
       name: "Site operations",
     });
     await liveOperationsPanel.waitFor({ state: "visible", timeout: 10_000 });
-    const liveBackupItems = liveOperationsPanel
-      .getByRole("region", { name: "Verified backups" })
-      .getByRole("listitem");
     await liveOperationsPanel
       .getByRole("heading", { name: "Verified backups" })
       .waitFor({ state: "visible", timeout: 20_000 });
-    const liveBackupCountBefore = await liveBackupItems.count();
-    await liveOperationsPanel
-      .getByRole("button", { name: "Create full backup" })
-      .click();
-    await waitForListCountGreater(liveBackupItems, liveBackupCountBefore, 240_000);
     const liveOperationDetail = liveOperationsPanel.getByRole("region", {
       name: "Operation detail",
     });
+    await clickAndWaitForNewOperation(
+      liveOperationDetail,
+      liveOperationsPanel.getByRole("button", { name: "Create full backup" }),
+      30_000,
+    );
     await liveOperationDetail
       .getByText("site.backup.create", { exact: true })
       .waitFor({ state: "visible", timeout: 20_000 });
@@ -362,8 +359,6 @@ async function main() {
     await verifiedBackupItems
       .first()
       .waitFor({ state: "visible", timeout: 20_000 });
-    const backupCountBefore = await verifiedBackupItems.count();
-
     phase = "create-real-staging-backup-from-electron";
     const createBackupButton = operationsPanel.getByRole("button", {
       name: "Create full backup",
@@ -376,11 +371,10 @@ async function main() {
         .catch(() => null);
       throw new Error(`Backup action unexpectedly disabled: ${blocker ?? "unknown"}`);
     }
-    await createBackupButton.click();
-    await waitForListCountGreater(verifiedBackupItems, backupCountBefore, 240_000);
     const operationDetail = operationsPanel.getByRole("region", {
       name: "Operation detail",
     });
+    await clickAndWaitForNewOperation(operationDetail, createBackupButton, 30_000);
     await operationDetail
       .getByText("Completed", { exact: true })
       .first()
@@ -404,14 +398,12 @@ async function main() {
       exact: true,
     });
     await selectOptionContaining(sourceEnvironmentSelect, "Live ·");
-    const stagingBackupCountBeforeClone = await verifiedBackupItems.count();
-    await operationsPanel
-      .getByRole("button", { name: "Create pre-backup and clone" })
-      .click();
-    await waitForListCountGreater(
-      verifiedBackupItems,
-      stagingBackupCountBeforeClone,
-      300_000,
+    await clickAndWaitForNewOperation(
+      operationDetail,
+      operationsPanel.getByRole("button", {
+        name: "Create pre-backup and clone",
+      }),
+      30_000,
     );
     await operationDetail
       .getByText("site.clone", { exact: true })
@@ -447,15 +439,12 @@ async function main() {
     await operationsPanel
       .getByLabel(/Type RESTORE acceptance:northstar:shop:staging/)
       .fill("RESTORE acceptance:northstar:shop:staging");
-    const stagingBackupCountBeforeCloneRollback =
-      await verifiedBackupItems.count();
-    await operationsPanel
-      .getByRole("button", { name: "Create pre-backup and restore" })
-      .click();
-    await waitForListCountGreater(
-      verifiedBackupItems,
-      stagingBackupCountBeforeCloneRollback,
-      300_000,
+    await clickAndWaitForNewOperation(
+      operationDetail,
+      operationsPanel.getByRole("button", {
+        name: "Create pre-backup and restore",
+      }),
+      30_000,
     );
     await operationDetail
       .getByText("site.restore", { exact: true })
@@ -479,14 +468,12 @@ async function main() {
     await operationsPanel
       .getByLabel(/Type RESTORE acceptance:northstar:shop:staging/)
       .fill("RESTORE acceptance:northstar:shop:staging");
-    const stagingBackupCountBeforeRestore = await verifiedBackupItems.count();
-    await operationsPanel
-      .getByRole("button", { name: "Create pre-backup and restore" })
-      .click();
-    await waitForListCountGreater(
-      verifiedBackupItems,
-      stagingBackupCountBeforeRestore,
-      240_000,
+    await clickAndWaitForNewOperation(
+      operationDetail,
+      operationsPanel.getByRole("button", {
+        name: "Create pre-backup and restore",
+      }),
+      30_000,
     );
     await operationDetail
       .getByText("site.restore", { exact: true })
@@ -521,14 +508,12 @@ async function main() {
     await operationsPanel
       .getByLabel(/Type RESTORE acceptance:northstar:shop:staging/)
       .fill("RESTORE acceptance:northstar:shop:staging");
-    const stagingBackupCountBeforeRollback = await verifiedBackupItems.count();
-    await operationsPanel
-      .getByRole("button", { name: "Create pre-backup and restore" })
-      .click();
-    await waitForListCountGreater(
-      verifiedBackupItems,
-      stagingBackupCountBeforeRollback,
-      240_000,
+    await clickAndWaitForNewOperation(
+      operationDetail,
+      operationsPanel.getByRole("button", {
+        name: "Create pre-backup and restore",
+      }),
+      30_000,
     );
     await operationDetail
       .getByText("site.restore", { exact: true })
@@ -569,18 +554,16 @@ async function main() {
     await liveOperationsPanel
       .getByLabel(/Type PROMOTE TO acceptance:northstar:shop:live/)
       .fill("PROMOTE TO acceptance:northstar:shop:live");
-    const liveBackupCountBeforePromotion = await liveBackupItems.count();
-    await liveOperationsPanel
-      .getByRole("button", { name: "Create pre-backup and promote" })
-      .click();
-    await waitForListCountGreater(
-      liveBackupItems,
-      liveBackupCountBeforePromotion,
-      300_000,
-    );
     const liveReplacementDetail = liveOperationsPanel.getByRole("region", {
       name: "Operation detail",
     });
+    await clickAndWaitForNewOperation(
+      liveReplacementDetail,
+      liveOperationsPanel.getByRole("button", {
+        name: "Create pre-backup and promote",
+      }),
+      30_000,
+    );
     await liveReplacementDetail
       .getByText("site.promote", { exact: true })
       .waitFor({ state: "visible", timeout: 30_000 });
@@ -615,15 +598,12 @@ async function main() {
     await liveOperationsPanel
       .getByLabel(/Type RESTORE acceptance:northstar:shop:live/)
       .fill("RESTORE acceptance:northstar:shop:live");
-    const liveBackupCountBeforePromotionRollback =
-      await liveBackupItems.count();
-    await liveOperationsPanel
-      .getByRole("button", { name: "Create pre-backup and restore" })
-      .click();
-    await waitForListCountGreater(
-      liveBackupItems,
-      liveBackupCountBeforePromotionRollback,
-      300_000,
+    await clickAndWaitForNewOperation(
+      liveReplacementDetail,
+      liveOperationsPanel.getByRole("button", {
+        name: "Create pre-backup and restore",
+      }),
+      30_000,
     );
     await liveReplacementDetail
       .getByText("site.restore", { exact: true })
@@ -673,7 +653,9 @@ async function main() {
     }
 
     phase = "export-portable-handoff-from-electron";
-    await page.getByRole("button", { name: "Transfer site" }).click();
+    await page
+      .getByRole("button", { name: "Transfer site", exact: true })
+      .click();
     const handoffPanel = page.getByRole("complementary", {
       name: "Website handoff",
     });

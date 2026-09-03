@@ -1,0 +1,10 @@
+{
+  "acceptanceMode": "packaged-macos-arm64",
+  "electronWindow": true,
+  "appIsPackaged": true,
+  "packagedAssetsLoaded": true,
+  "isolatedProfile": true,
+  "operatorAuthenticated": true,
+  "liveDatabaseRendered": true,
+  "rendererErrorCount": 0
+}

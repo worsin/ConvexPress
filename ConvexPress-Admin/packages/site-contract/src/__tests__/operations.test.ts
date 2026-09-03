@@ -70,7 +70,19 @@ describe("portable management operations", () => {
       {
         operationCode: OPERATION_CODES.sessionExchange,
         idempotencyKey: "session-exchange-001",
-        parameters: { requestedCapabilities: ["health.read", "backup.create"] },
+        parameters: {
+          requestedCapabilities: ["health.read", "backup.create"],
+          requestedSiteRole: "administrator",
+          controllerSubjectId: "operator_primary_001",
+        },
+      },
+      {
+        operationCode: OPERATION_CODES.sessionRevoke,
+        idempotencyKey: "session-revoke-001",
+        parameters: {
+          scope: "operator",
+          controllerSubjectId: "operator_primary_001",
+        },
       },
       {
         operationCode: OPERATION_CODES.backupCreate,

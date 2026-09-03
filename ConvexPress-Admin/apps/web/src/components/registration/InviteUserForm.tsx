@@ -92,7 +92,7 @@ export function InviteUserForm() {
   );
 
   return (
-    <div className="border border-border bg-card">
+    <div className="border border-border bg-card text-card-foreground">
       {/* Section Header */}
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">
@@ -121,6 +121,7 @@ export function InviteUserForm() {
             placeholder="user@example.com"
             required
             disabled={isSubmitting}
+            className="text-foreground"
           />
         </div>
 
@@ -135,6 +136,7 @@ export function InviteUserForm() {
               onChange={(e) => setFirstName(e.target.value)}
               placeholder="First name"
               disabled={isSubmitting}
+              className="text-foreground"
             />
           </div>
           <div className="space-y-1">
@@ -146,6 +148,7 @@ export function InviteUserForm() {
               onChange={(e) => setLastName(e.target.value)}
               placeholder="Last name"
               disabled={isSubmitting}
+              className="text-foreground"
             />
           </div>
         </div>
@@ -158,7 +161,7 @@ export function InviteUserForm() {
             value={role}
             onChange={(e) => setRole(e.target.value)}
             disabled={isSubmitting}
-            className="dark:bg-input/30 border-input focus-visible:border-ring focus-visible:ring-ring/50 h-8 w-full rounded-none border bg-transparent px-2.5 py-1 text-xs transition-colors focus-visible:ring-1 outline-hidden disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="dark:bg-input/30 border-input text-foreground focus-visible:border-ring focus-visible:ring-ring/50 h-8 w-full rounded-none border bg-transparent px-2.5 py-1 text-xs transition-colors focus-visible:ring-1 outline-hidden disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
           >
             {ROLE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -178,7 +181,7 @@ export function InviteUserForm() {
             placeholder="Add a personal note to the invitation email..."
             disabled={isSubmitting}
             rows={3}
-            className="dark:bg-input/30 border-input focus-visible:border-ring focus-visible:ring-ring/50 h-auto w-full rounded-none border bg-transparent px-2.5 py-1.5 text-xs transition-colors focus-visible:ring-1 outline-hidden resize-none placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="dark:bg-input/30 border-input text-foreground focus-visible:border-ring focus-visible:ring-ring/50 h-auto w-full rounded-none border bg-transparent px-2.5 py-1.5 text-xs transition-colors focus-visible:ring-1 outline-hidden resize-none placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>
 

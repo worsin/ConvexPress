@@ -75,6 +75,7 @@ export const managementTables = {
     authorityId: v.id("convexpress_managementAuthorities"),
     bindingId: v.id("convexpress_managementBindings"),
     userId: v.id("users"),
+    controllerSubjectId: v.optional(v.string()),
     websiteKey: v.string(),
     instanceKey: v.string(),
     capabilities: v.array(v.string()),
@@ -89,5 +90,10 @@ export const managementTables = {
   })
     .index("by_token_hash", ["tokenHash"])
     .index("by_authority", ["authorityId", "status"])
+    .index("by_authority_subject", [
+      "authorityId",
+      "controllerSubjectId",
+      "status",
+    ])
     .index("by_expiry", ["expiresAt"]),
 };

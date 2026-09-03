@@ -6,6 +6,7 @@ import {
   isExactWizardSender,
 } from "./ipc/setupSender.js";
 import { addHashRouteToUrl, normalizeInitialRoute } from "./launchRoute.js";
+import { PACKAGED_RENDERER_ENTRY_URL } from "./rendererProtocol.js";
 import { isQuitting } from "./utils/app-state.js";
 import { isDev } from "./utils/platform.js";
 
@@ -67,8 +68,6 @@ class WindowManager {
       },
     });
 
-    const rendererIndexPath = getRendererIndexPath();
-
     if (isDev()) {
       win.loadURL(
         addHashRouteToUrl(
@@ -77,13 +76,9 @@ class WindowManager {
         ),
       );
     } else {
-      console.log(`[WindowManager] Renderer path: ${rendererIndexPath}`);
+      console.log(`[WindowManager] Renderer URL: ${PACKAGED_RENDERER_ENTRY_URL}`);
       const initialRoute = normalizeInitialRoute(options.initialRoute);
-      if (initialRoute) {
-        win.loadFile(rendererIndexPath, { hash: initialRoute });
-      } else {
-        win.loadFile(rendererIndexPath);
-      }
+      win.loadURL(addHashRouteToUrl(PACKAGED_RENDERER_ENTRY_URL, initialRoute));
     }
 
     win.once("ready-to-show", () => {
@@ -120,7 +115,7 @@ class WindowManager {
     win.webContents.on("will-navigate", (event, url) => {
       const isInternal = isDev()
         ? isDevAppRendererSender(url)
-        : isAppRendererSender(url, { rendererIndexPath });
+        : isAppRendererSender(url);
       if (!isInternal) {
         event.preventDefault();
         openExternal(url);

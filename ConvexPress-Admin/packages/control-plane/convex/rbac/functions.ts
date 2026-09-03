@@ -25,13 +25,15 @@ export const authenticatedMutation = customMutation(
   customCtx(async (ctx: MutationCtx) => ({ operator: await requireAuth(ctx) })),
 );
 
-function denied(decision: Awaited<ReturnType<typeof resolveStoredAccess>>) {
-  return new ConvexError({
+export function publicAccessDeniedData() {
+  return {
     code: "CONTROL_PLANE_ACCESS_DENIED",
     message: "This operator is not authorized for the requested control-plane operation",
-    reason: decision.reason,
-    winningRuleId: decision.winningRuleId,
-  });
+  } as const;
+}
+
+function denied() {
+  return new ConvexError(publicAccessDeniedData());
 }
 
 export async function assertStoredAccess(
@@ -40,7 +42,7 @@ export async function assertStoredAccess(
   request: AccessDecisionInput["request"],
 ) {
   const decision = await resolveStoredAccess(ctx, operator, request);
-  if (!decision.allowed) throw denied(decision);
+  if (!decision.allowed) throw denied();
   return decision;
 }
 

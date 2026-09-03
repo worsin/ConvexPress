@@ -283,19 +283,27 @@ describe("setup validation", () => {
       }),
     ).toBe(true);
 
-    const rendererIndexPath = path.join(
-      "/Applications/ConvexPress.app/Contents/Resources/app.asar",
-      "packages/desktop/dist/index.html",
-    );
-    const rendererUrl = pathToFileURL(rendererIndexPath).href;
-
     expect(
-      isAppRendererSender(`${rendererUrl}#/setup`, { rendererIndexPath }),
+      isAppRendererSender("convexpress-app://shell/index.html#/setup"),
     ).toBe(true);
     expect(
       isAppRendererSender(
+        "convexpress-app://attacker/index.html#/setup",
+      ),
+    ).toBe(false);
+    expect(
+      isAppRendererSender(
+        "convexpress-app://shell/other.html#/setup",
+      ),
+    ).toBe(false);
+    expect(
+      isAppRendererSender(
+        "file:///Applications/ConvexPress.app/Contents/Resources/app.asar/packages/desktop/dist/index.html#/setup",
+      ),
+    ).toBe(false);
+    expect(
+      isAppRendererSender(
         "file:///Applications/ConvexPress.app/Contents/Resources/app.asar/packages/desktop/dist/other.html",
-        { rendererIndexPath },
       ),
     ).toBe(false);
   });

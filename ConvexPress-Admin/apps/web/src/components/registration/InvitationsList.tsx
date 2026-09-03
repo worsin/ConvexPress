@@ -175,7 +175,7 @@ export function InvitationsList() {
 
   if (invitations === undefined) {
     return (
-      <div className="border border-border bg-card">
+      <div className="border border-border bg-card text-card-foreground">
         <div className="border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold text-foreground">
             Invitations
@@ -194,7 +194,7 @@ export function InvitationsList() {
 
   if (invitations.length === 0) {
     return (
-      <div className="border border-border bg-card">
+      <div className="border border-border bg-card text-card-foreground">
         <div className="border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold text-foreground">
             Invitations
@@ -215,7 +215,7 @@ export function InvitationsList() {
 
   return (
     <>
-      <div className="border border-border bg-card">
+      <div className="border border-border bg-card text-card-foreground">
         <div className="border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold text-foreground">
             Invitations

@@ -6,7 +6,10 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
 import { BackToTop } from "@/components/layout/BackToTop";
 import { ContentWrapper } from "@/components/layout/ContentWrapper";
-import { LayoutShellProvider } from "@/components/layout/LayoutShellProvider";
+import {
+  getBackgroundInertProps,
+  LayoutShellProvider,
+} from "@/components/layout/LayoutShellProvider";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
@@ -52,8 +55,9 @@ function MarketingLayout() {
 
 /**
  * Inner layout component that can access LayoutShellProvider context.
- * Applies aria-hidden and inert to the main page content when
- * mobile nav is open for WCAG 2.1 AA compliance (finding #163).
+ * Applies native inert to the main page content when the mobile nav is open,
+ * removing the background from focus and the accessibility tree without an
+ * invalid aria-hidden transition on a focused descendant.
  *
  * Supports per-page hideHeader/hideFooter overrides via PageOverridesContext.
  * Child routes (blog posts, pages) can set overrides to hide the header
@@ -117,8 +121,7 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
         />
       )}
       <div
-        aria-hidden={mobileNavOpen || undefined}
-        {...(mobileNavOpen ? { inert: true } : {})}
+        {...getBackgroundInertProps(mobileNavOpen)}
       >
         <SkipToContent />
         <WebsiteAdminBar />
