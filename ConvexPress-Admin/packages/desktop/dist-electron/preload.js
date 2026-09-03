@@ -51,8 +51,12 @@ var ALLOWED_ON_CHANNELS = /* @__PURE__ */ new Set([
   "app:checking-for-updates"
 ]);
 var AUTH_KEY_PREFIXES = ["__convexAuth", "convexAuth"];
+var AUTH_EXACT_KEYS = /* @__PURE__ */ new Set([
+  "better-auth_cookie",
+  "better-auth_session_data"
+]);
 function isAllowedAuthKey(key) {
-  return AUTH_KEY_PREFIXES.some((prefix) => key.startsWith(prefix));
+  return AUTH_EXACT_KEYS.has(key) || AUTH_KEY_PREFIXES.some((prefix) => key.startsWith(prefix));
 }
 import_electron.contextBridge.exposeInMainWorld("convexpress", {
   /**

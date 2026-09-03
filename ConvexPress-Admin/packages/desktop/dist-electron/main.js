@@ -199,6 +199,7 @@ function isTrustedDesktopSender(senderUrl, options = {}) {
 }
 
 // electron/ipc/setupValidation.ts
+var import_node_crypto = require("crypto");
 var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 var CONVEX_CLOUD_URL_RE = /^https:\/\/[a-z0-9-]+\.convex\.cloud$/;
 var DEPLOYMENT_NAME_RE = /^[a-z0-9-]+$/;
@@ -208,6 +209,7 @@ var MAX_EMAIL_LENGTH = 254;
 var MAX_DISPLAY_NAME_LENGTH = 128;
 var MAX_PASSWORD_LENGTH = 256;
 var MAX_IDENTIFIER_LENGTH = 254;
+var AUTH_PRIVATE_KEY_ERROR = "AUTH_PRIVATE_KEY must be a PEM-encoded P-256 PKCS8 private key for ES256 local admin auth.";
 function cleanUrl(value) {
   return value.trim().replace(/\/+$/, "");
 }
@@ -224,6 +226,23 @@ function requireTrimmed(value, label, options = {}) {
 function validateStringLength(value, label, maxLength) {
   if (value.length > maxLength) {
     throw new Error(`${label} must be ${maxLength} characters or fewer.`);
+  }
+}
+function validateAuthPrivateKey(value) {
+  const trimmed = requireTrimmed(value, "AUTH_PRIVATE_KEY");
+  try {
+    const key = (0, import_node_crypto.createPrivateKey)(trimmed);
+    const namedCurve = key.asymmetricKeyDetails?.namedCurve;
+    const isP256 = key.asymmetricKeyType === "ec" && (namedCurve === "prime256v1" || namedCurve === "P-256");
+    if (!isP256) {
+      throw new Error(AUTH_PRIVATE_KEY_ERROR);
+    }
+    return trimmed;
+  } catch (error) {
+    if (error instanceof Error && error.message === AUTH_PRIVATE_KEY_ERROR) {
+      throw error;
+    }
+    throw new Error(AUTH_PRIVATE_KEY_ERROR);
   }
 }
 function deriveConvexSiteUrl(convexUrl) {
@@ -415,13 +434,35 @@ function registerConfigHandlers() {
 
 // electron/ipc/auth.ts
 var import_node_path3 = __toESM(require("path"));
-var { ipcMain: ipcMain3 } = require("electron");
+var { ipcMain: ipcMain3, safeStorage } = require("electron");
 var authStore = new JsonStore({
   name: "convexpress-auth"
 });
 var ALLOWED_PREFIXES = ["__convexAuth", "convexAuth"];
+var ALLOWED_EXACT_KEYS = /* @__PURE__ */ new Set([
+  "better-auth_cookie",
+  "better-auth_session_data"
+]);
+var ENCRYPTED_VALUE_PREFIX = "safe-storage:v1:";
+var MAX_AUTH_VALUE_BYTES = 512 * 1024;
 function isAllowedKey(key) {
-  return ALLOWED_PREFIXES.some((prefix) => key.startsWith(prefix));
+  return ALLOWED_EXACT_KEYS.has(key) || ALLOWED_PREFIXES.some((prefix) => key.startsWith(prefix));
+}
+function encryptAuthValue(value) {
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error("Protected authentication storage is unavailable.");
+  }
+  return `${ENCRYPTED_VALUE_PREFIX}${safeStorage.encryptString(value).toString("base64")}`;
+}
+function decryptAuthValue(value) {
+  if (typeof value !== "string") return null;
+  if (!value.startsWith(ENCRYPTED_VALUE_PREFIX)) return value;
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error("Protected authentication storage is unavailable.");
+  }
+  return safeStorage.decryptString(
+    Buffer.from(value.slice(ENCRYPTED_VALUE_PREFIX.length), "base64")
+  );
 }
 function getRendererIndexPath2() {
   return import_node_path3.default.join(__dirname, "..", "dist", "index.html");
@@ -440,7 +481,11 @@ function registerAuthHandlers() {
       console.log(`[Auth IPC] get BLOCKED key: ${key}`);
       return null;
     }
-    const val = authStore.get(key, null);
+    const stored = authStore.get(key);
+    const val = decryptAuthValue(stored);
+    if (val !== null && typeof stored === "string" && !stored.startsWith(ENCRYPTED_VALUE_PREFIX) && safeStorage.isEncryptionAvailable()) {
+      authStore.set(key, encryptAuthValue(val));
+    }
     console.log(
       `[Auth IPC] get "${key}" -> ${val ? "has value (" + String(val).length + " chars)" : "null"}`
     );
@@ -458,10 +503,13 @@ function registerAuthHandlers() {
       console.log(`[Auth IPC] set BLOCKED non-string value for key: ${key}`);
       return;
     }
+    if (Buffer.byteLength(value, "utf8") > MAX_AUTH_VALUE_BYTES) {
+      throw new Error("Authentication storage value is too large.");
+    }
     console.log(
       `[Auth IPC] set "${key}" -> ${value ? value.length + " chars" : "null"}`
     );
-    authStore.set(key, value);
+    authStore.set(key, encryptAuthValue(value));
   });
   ipcMain3.handle("auth:remove", (event, key) => {
     if (!isAuthAppSender(event.sender.getURL())) {
@@ -481,7 +529,7 @@ var import_node_child_process = require("child_process");
 var import_node_fs2 = require("fs");
 var import_node_os = require("os");
 var import_node_path4 = __toESM(require("path"));
-var import_node_crypto = require("crypto");
+var import_node_crypto2 = require("crypto");
 
 // electron/launchRoute.ts
 var FIRST_ADMIN_SETUP_ROUTE = "/setup";
@@ -549,7 +597,7 @@ function resolveBackendRoot() {
   );
 }
 function generateAuthPrivateKey() {
-  const { privateKey } = (0, import_node_crypto.generateKeyPairSync)("ec", {
+  const { privateKey } = (0, import_node_crypto2.generateKeyPairSync)("ec", {
     namedCurve: "P-256"
   });
   return privateKey.export({
@@ -558,7 +606,7 @@ function generateAuthPrivateKey() {
   });
 }
 function generateFirstAdminSetupSecret() {
-  return (0, import_node_crypto.randomBytes)(32).toString("base64url");
+  return (0, import_node_crypto2.randomBytes)(32).toString("base64url");
 }
 function parseEnvFile(filePath) {
   if (!(0, import_node_fs2.existsSync)(filePath)) return {};
@@ -625,8 +673,9 @@ function createBackendEnvFile(convexSiteUrl, backendRoot, firstAdminSetupSecret)
   const localEnv = loadLocalEnv(backendRoot);
   const tempDir = (0, import_node_fs2.mkdtempSync)(import_node_path4.default.join((0, import_node_os.tmpdir)(), "convexpress-setup-"));
   const filePath = import_node_path4.default.join(tempDir, "convex-env.local");
+  const configuredAuthPrivateKey = readSetupEnvValue("AUTH_PRIVATE_KEY", localEnv);
   const envVars = {
-    AUTH_PRIVATE_KEY: readSetupEnvValue("AUTH_PRIVATE_KEY", localEnv) ?? generateAuthPrivateKey(),
+    AUTH_PRIVATE_KEY: configuredAuthPrivateKey ? validateAuthPrivateKey(configuredAuthPrivateKey) : generateAuthPrivateKey(),
     AUTH_ISSUER_URL: convexSiteUrl,
     AUTH_ALLOWED_ORIGINS: readSetupEnvValue("AUTH_ALLOWED_ORIGINS", localEnv) ?? "http://localhost:4105,http://127.0.0.1:4105",
     AUTH_ALLOW_NULL_ORIGIN: readSetupEnvValue("AUTH_ALLOW_NULL_ORIGIN", localEnv) ?? "true"
