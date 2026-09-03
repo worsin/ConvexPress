@@ -24,6 +24,10 @@ export interface DashboardWidget {
   defaultOrder: number;
   /** Minimum capability required to see this widget. Undefined = visible to all. */
   minCapability?: string;
+  /** Only offered when the admin runs inside the standalone multisite shell. */
+  standaloneOnly?: boolean;
+  /** Span the full dashboard width instead of one column. */
+  fullWidth?: boolean;
 }
 
 // ─── Widget Preferences ─────────────────────────────────────────────────────

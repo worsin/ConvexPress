@@ -43,6 +43,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
     links: [
       {
         rel: "icon",
+        type: "image/svg+xml",
+        href: "/brand-lens.svg",
+      },
+      {
+        rel: "alternate icon",
         href: "/favicon.ico",
       },
     ],
@@ -58,7 +63,7 @@ function RootComponent() {
           setup wizard, error screens). The AdminBar has its own drag region
           that covers the full header height once the admin shell loads. */}
       {isElectron() && (
-        <div className="fixed top-0 left-0 right-0 z-[9999] h-8 app-drag" />
+        <div className="app-drag pointer-events-none fixed top-0 left-0 right-0 z-[9999] h-8" aria-hidden="true" />
       )}
       <ThemeProvider
         attribute="class"

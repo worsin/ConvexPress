@@ -6,7 +6,7 @@
  *
  * Keyboard shortcut: Ctrl+K / Cmd+K
  *
- * Layout: [Search icon] [Search everything...] [Ctrl+K hint]
+ * Layout: [Search icon] [Search posts, pages, people, settings] [⌘K hint]
  */
 
 import * as React from "react";
@@ -45,16 +45,17 @@ export function AdminSearchBar({ className }: AdminSearchBarProps) {
         type="button"
         onClick={() => setIsOpen(true)}
         className={cn(
-          "flex items-center gap-2 rounded-sm border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-          "min-w-[200px] max-w-xs",
+          "flex h-9 w-full min-w-[140px] max-w-[340px] items-center gap-2.5 rounded-lg border border-border bg-card px-3 text-[13.5px] text-muted-foreground transition-colors hover:border-line-strong hover:text-foreground",
           className,
         )}
         aria-label="Search admin content (Ctrl+K)"
       >
-        <Search className="size-3.5" />
-        <span className="flex-1 text-left text-xs">Search everything...</span>
-        <kbd className="hidden rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10px] leading-none text-muted-foreground sm:inline-block">
-          {isMac ? "\u2318K" : "Ctrl+K"}
+        <Search className="size-4 shrink-0" aria-hidden="true" />
+        <span className="flex-1 truncate text-left">
+          Search posts, pages, people, settings
+        </span>
+        <kbd className="hidden rounded-[5px] border border-border px-1.5 py-px font-sans text-[10.5px] leading-[16px] text-muted-foreground sm:inline-block">
+          {isMac ? "⌘K" : "Ctrl+K"}
         </kbd>
       </button>
 

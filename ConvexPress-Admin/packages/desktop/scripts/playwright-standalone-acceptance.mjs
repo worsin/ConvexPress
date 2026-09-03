@@ -16,6 +16,17 @@ import {
 } from "./lib/electron-acceptance-environment.mjs";
 import { quitOwnedElectron } from "./lib/process-lifecycle.mjs";
 import { loadTestFleetConfig } from "./lib/test-fleet-config.mjs";
+import {
+  environmentActionAvailable,
+  listSwitcherOrganizations,
+  openEnvironmentAction,
+  openSiteManager,
+  selectBusiness,
+  selectScope,
+  shellIsVisible,
+  waitForActiveEnvironment,
+  waitForShell,
+} from "./lib/shell-scope.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(scriptDirectory, "..");
@@ -52,14 +63,10 @@ async function readCredentials() {
 }
 
 async function assertStandaloneShellDoesNotOverlap(page) {
-  const environmentBar = page
-    .getByText(/^Contract:/)
-    .first()
-    .locator("..");
-  const dashboardHeading = page.getByRole("heading", {
-    name: "Dashboard",
-    exact: true,
-  });
+  const environmentBar = page.getByRole("banner").first();
+  const dashboardHeading = page.getByRole("heading", { level: 1 }).first();
+  await environmentBar.waitFor({ state: "visible", timeout: 20_000 });
+  await dashboardHeading.waitFor({ state: "visible", timeout: 20_000 });
   const [environmentBox, headingBox] = await Promise.all([
     environmentBar.boundingBox(),
     dashboardHeading.boundingBox(),
@@ -201,34 +208,21 @@ async function main() {
     });
 
     phase = "authenticate-operator";
-    const organizationSelect = page.getByRole("combobox", {
-      name: "Organization",
-    });
-    if (!(await organizationSelect.isVisible().catch(() => false))) {
+    if (!(await shellIsVisible(page))) {
       await page.getByRole("textbox", { name: /email/i }).fill(credentials.email);
-      await page.getByLabel(/password/i).fill(credentials.password);
+      await page.getByLabel(/^password$/i).fill(credentials.password);
       await page.getByRole("button", { name: /sign in|continue/i }).click();
     }
 
-    await organizationSelect.waitFor({ state: "visible", timeout: 20_000 });
+    await waitForShell(page);
     phase = "switch-shop-live";
-    await organizationSelect.selectOption({ label: "Acceptance Agency Group" });
-
-    const businessSelect = page.getByRole("combobox", { name: "Business" });
-    await businessSelect.waitFor({ state: "visible" });
-    await businessSelect.selectOption({ label: "Northstar Commerce" });
-
-    const websiteSelect = page.getByRole("combobox", { name: "Website" });
-    await websiteSelect.selectOption({ label: "Northstar Shop" });
-
-    const environmentSelect = page.getByRole("combobox", {
-      name: "Environment",
+    await selectScope(page, {
+      organization: "Acceptance Agency Group",
+      business: "Northstar Commerce",
+      website: "Northstar Shop",
+      environment: "Live",
     });
-    await environmentSelect.selectOption({ label: "Live" });
-    await page.getByText("Northstar Shop — Live", { exact: true }).first().waitFor({
-      state: "visible",
-      timeout: 20_000,
-    });
+    await waitForActiveEnvironment(page, "Northstar Shop — Live");
     await assertStandaloneShellDoesNotOverlap(page);
     await page.getByText("No recent activity.", { exact: true }).waitFor({
       state: "visible",
@@ -241,7 +235,7 @@ async function main() {
 
     if (!handoffOnly) {
     phase = "create-real-live-backup-from-electron";
-    await page.getByRole("button", { name: "Site operations" }).click();
+    await openEnvironmentAction(page, "Site operations");
     const liveOperationsPanel = page.getByRole("complementary", {
       name: "Site operations",
     });
@@ -269,14 +263,14 @@ async function main() {
       .click();
 
     phase = "switch-shop-staging";
-    await environmentSelect.selectOption({ label: "Staging" });
+    await selectScope(page, { environment: "Staging", website: "Northstar Shop", organization: "Acceptance Agency Group", business: "Northstar Commerce" });
     await page.waitForTimeout(2_000);
     const stagingTitle = page
       .getByText("Northstar Shop — Staging", { exact: true })
       .first();
     if (!(await stagingTitle.isVisible().catch(() => false))) {
       phase = "recover-staging-baseline-from-prebackup";
-      await page.getByRole("button", { name: "Site operations" }).click();
+      await openEnvironmentAction(page, "Site operations");
       const recoveryPanel = page.getByRole("complementary", {
         name: "Site operations",
       });
@@ -320,17 +314,14 @@ async function main() {
         .getByRole("button", { name: "Close site operations" })
         .click();
     }
-    await page
-      .getByText("Northstar Shop — Staging", { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: 20_000 });
+    await waitForActiveEnvironment(page, "Northstar Shop — Staging", 20_000);
     await page.screenshot({
       path: join(artifactRoot, "electron-staging-dashboard.png"),
       type: "png",
     });
 
     phase = "open-staging-lifecycle-panel";
-    await page.getByRole("button", { name: "Site operations" }).click();
+    await openEnvironmentAction(page, "Site operations");
     const operationsPanel = page.getByRole("complementary", {
       name: "Site operations",
     });
@@ -409,13 +400,10 @@ async function main() {
     await operationsPanel
       .getByRole("button", { name: "Close site operations" })
       .click();
-    await page
-      .getByText("Northstar Shop — Staging", { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: 30_000 });
+    await waitForActiveEnvironment(page, "Northstar Shop — Staging", 30_000);
 
     phase = "rollback-staging-clone-from-prebackup-in-electron";
-    await page.getByRole("button", { name: "Site operations" }).click();
+    await openEnvironmentAction(page, "Site operations");
     await operationsPanel.waitFor({ state: "visible", timeout: 10_000 });
     const restoreSelect = operationsPanel.getByRole("combobox", {
       name: "Verified snapshot",
@@ -442,13 +430,10 @@ async function main() {
     await operationsPanel
       .getByRole("button", { name: "Close site operations" })
       .click();
-    await page
-      .getByText("Northstar Shop — Staging", { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: 30_000 });
+    await waitForActiveEnvironment(page, "Northstar Shop — Staging", 30_000);
 
     phase = "restore-live-snapshot-into-staging-from-electron";
-    await page.getByRole("button", { name: "Site operations" }).click();
+    await openEnvironmentAction(page, "Site operations");
     await operationsPanel.waitFor({ state: "visible", timeout: 10_000 });
     await selectOptionContaining(restoreSelect, "live · manual");
     await operationsPanel
@@ -482,13 +467,10 @@ async function main() {
     await operationsPanel
       .getByRole("button", { name: "Close site operations" })
       .click();
-    await page
-      .getByText("Northstar Shop — Staging", { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: 30_000 });
+    await waitForActiveEnvironment(page, "Northstar Shop — Staging", 30_000);
 
     phase = "rollback-staging-from-verified-prebackup-in-electron";
-    await page.getByRole("button", { name: "Site operations" }).click();
+    await openEnvironmentAction(page, "Site operations");
     await operationsPanel.waitFor({ state: "visible", timeout: 10_000 });
     await selectOptionContaining(restoreSelect, "staging · pre-restore");
     await operationsPanel
@@ -516,18 +498,12 @@ async function main() {
     await operationsPanel
       .getByRole("button", { name: "Close site operations" })
       .click();
-    await page
-      .getByText("Northstar Shop — Staging", { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: 30_000 });
+    await waitForActiveEnvironment(page, "Northstar Shop — Staging", 30_000);
 
     phase = "promote-staging-into-live-from-electron";
-    await environmentSelect.selectOption({ label: "Live" });
-    await page
-      .getByText("Northstar Shop — Live", { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: 20_000 });
-    await page.getByRole("button", { name: "Site operations" }).click();
+    await selectScope(page, { environment: "Live", website: "Northstar Shop", organization: "Acceptance Agency Group", business: "Northstar Commerce" });
+    await waitForActiveEnvironment(page, "Northstar Shop — Live", 20_000);
+    await openEnvironmentAction(page, "Site operations");
     await liveOperationsPanel.waitFor({ state: "visible", timeout: 10_000 });
     const liveSourceEnvironmentSelect = liveOperationsPanel.getByRole(
       "combobox",
@@ -568,13 +544,10 @@ async function main() {
     await liveOperationsPanel
       .getByRole("button", { name: "Close site operations" })
       .click();
-    await page
-      .getByText("Northstar Shop — Live", { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: 30_000 });
+    await waitForActiveEnvironment(page, "Northstar Shop — Live", 30_000);
 
     phase = "rollback-live-promotion-from-prebackup-in-electron";
-    await page.getByRole("button", { name: "Site operations" }).click();
+    await openEnvironmentAction(page, "Site operations");
     await liveOperationsPanel.waitFor({ state: "visible", timeout: 10_000 });
     const liveRestoreSelect = liveOperationsPanel.getByRole("combobox", {
       name: "Verified snapshot",
@@ -606,42 +579,25 @@ async function main() {
     await liveOperationsPanel
       .getByRole("button", { name: "Close site operations" })
       .click();
-    await page
-      .getByText("Northstar Shop — Live", { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: 30_000 });
-    await environmentSelect.selectOption({ label: "Staging" });
-    await page
-      .getByText("Northstar Shop — Staging", { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: 20_000 });
+    await waitForActiveEnvironment(page, "Northstar Shop — Live", 30_000);
+    await selectScope(page, { environment: "Staging", website: "Northstar Shop", organization: "Acceptance Agency Group", business: "Northstar Commerce" });
+    await waitForActiveEnvironment(page, "Northstar Shop — Staging", 20_000);
 
     phase = "keyboard-environment-switch";
     await environmentSelect.focus();
     await environmentSelect.press("l");
-    await page
-      .getByText("Northstar Shop — Live", { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: 20_000 });
+    await waitForActiveEnvironment(page, "Northstar Shop — Live", 20_000);
     await page.waitForTimeout(1_100);
     await environmentSelect.press("s");
-    await page
-      .getByText("Northstar Shop — Staging", { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: 20_000 });
+    await waitForActiveEnvironment(page, "Northstar Shop — Staging", 20_000);
     } else {
       phase = "switch-staging-for-focused-handoff-acceptance";
-      await environmentSelect.selectOption({ label: "Staging" });
-      await page
-        .getByText("Northstar Shop — Staging", { exact: true })
-        .first()
-        .waitFor({ state: "visible", timeout: 20_000 });
+      await selectScope(page, { environment: "Staging", website: "Northstar Shop", organization: "Acceptance Agency Group", business: "Northstar Commerce" });
+      await waitForActiveEnvironment(page, "Northstar Shop — Staging", 20_000);
     }
 
     phase = "export-portable-handoff-from-electron";
-    await page
-      .getByRole("button", { name: "Transfer site", exact: true })
-      .click();
+    await openEnvironmentAction(page, "Transfer site");
     const handoffPanel = page.getByRole("complementary", {
       name: "Website handoff",
     });
@@ -744,11 +700,8 @@ async function main() {
       .click();
 
     phase = "switch-journal-live";
-    await websiteSelect.selectOption({ label: "Northstar Journal" });
-    await page
-      .getByText("Northstar Journal — Live", { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: 20_000 });
+    await selectScope(page, { organization: "Acceptance Agency Group", business: "Northstar Commerce", website: "Northstar Journal" });
+    await waitForActiveEnvironment(page, "Northstar Journal — Live", 20_000);
     await page.screenshot({
       path: join(artifactRoot, "electron-journal-live.png"),
       type: "png",
@@ -812,9 +765,7 @@ async function main() {
       if (message.type() === "error") rendererErrors.push(message.text());
     });
     phase = "verify-restored-session";
-    await restoredPage
-      .getByRole("combobox", { name: "Organization" })
-      .waitFor({ state: "visible", timeout: 20_000 });
+    await waitForShell(restoredPage, 20_000);
     if (await restoredPage.getByRole("textbox", { name: /email/i }).isVisible().catch(() => false)) {
       throw new Error("Protected operator session was not restored after restart.");
     }

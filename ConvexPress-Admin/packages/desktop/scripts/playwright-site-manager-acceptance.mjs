@@ -12,6 +12,17 @@ import { loadTestFleetConfig } from "./lib/test-fleet-config.mjs";
 
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
+import {
+  environmentActionAvailable,
+  listSwitcherOrganizations,
+  openEnvironmentAction,
+  openSiteManager,
+  selectBusiness,
+  selectScope,
+  shellIsVisible,
+  waitForActiveEnvironment,
+  waitForShell,
+} from "./lib/shell-scope.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(scriptDirectory, "..");
@@ -344,20 +355,18 @@ async function main() {
 
     phase = "authenticate";
     await page.getByRole("textbox", { name: /email/i }).fill(credentials.email);
-    await page.getByLabel(/password/i).fill(credentials.password);
+    await page.getByLabel(/^password$/i).fill(credentials.password);
     await page.getByRole("button", { name: /sign in|continue/i }).click();
-    const organizationSelect = page.getByRole("combobox", { name: "Organization" });
-    await organizationSelect.waitFor({ state: "visible", timeout: 20_000 });
-    await selectOptionContaining(organizationSelect, "Acceptance Agency Group");
-    const businessSelect = page.getByRole("combobox", { name: "Business" });
-    await selectOptionContaining(businessSelect, "Northstar Commerce");
-    const websiteSelect = page.getByRole("combobox", { name: "Website" });
-    await selectOptionContaining(websiteSelect, "Northstar Shop");
-    const environmentSelect = page.getByRole("combobox", { name: "Environment" });
-    await selectOptionContaining(environmentSelect, "Live");
+    await waitForShell(page);
+    await selectScope(page, {
+      organization: "Acceptance Agency Group",
+      business: "Northstar Commerce",
+      website: "Northstar Shop",
+      environment: "Live",
+    });
 
     phase = "open-manager";
-    await page.getByRole("button", { name: "Manage sites" }).click();
+    await openSiteManager(page);
     const manager = page.getByRole("complementary", { name: "Manage websites" });
     await manager.waitFor({ state: "visible", timeout: 10_000 });
     await manager.getByText("Acceptance Agency Group", { exact: true }).first().waitFor({ state: "visible", timeout: 15_000 });

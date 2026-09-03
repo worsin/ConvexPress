@@ -27,6 +27,10 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { BrandMark } from "@/components/brand/BrandMark";
+import { AuthError, AuthScreen } from "./AuthScreen";
 import { isElectron } from "../../lib/electron";
 import {
   FIRST_ADMIN_SETUP_ROUTE,
@@ -203,16 +207,7 @@ function AutoLogin({
     );
   }
 
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="mt-4 text-sm text-muted-foreground">
-          Signing in...
-        </p>
-      </div>
-    </div>
-  );
+  return <GateSpinner label="Signing in…" />;
 }
 
 // ---- AutoSignup -------------------------------------------------------------
@@ -287,16 +282,7 @@ function AutoSignup({
     );
   }
 
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="mt-4 text-sm text-muted-foreground">
-          Setting up your account...
-        </p>
-      </div>
-    </div>
-  );
+  return <GateSpinner label="Setting up your account…" />;
 }
 
 // ---- AdminCreationForm ------------------------------------------------------
@@ -366,31 +352,28 @@ function AdminCreationForm({
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-sm">
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold text-foreground">
-            ConvexPress Setup
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create the first administrator account to get started.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {error && (
-            <div className="border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
-              {error}
-            </div>
-          )}
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="admin-display-name"
-              className="text-sm font-medium text-foreground"
-            >
-              Display Name
-            </label>
-            <input
+    <AuthScreen
+      panelEyebrow="First run"
+      headline={
+        <>
+          Welcome to
+          <br />
+          ConvexPress.
+        </>
+      }
+      lede="Create the first administrator for this site. You can invite the rest of your team once you are in."
+      steps={null}
+      eyebrow="Setup"
+      title="Create the first administrator"
+      description="This account owns the site. Choose a strong password; you can add more administrators later."
+      cardClassName="max-w-[440px]"
+    >
+      <form onSubmit={handleSubmit}>
+        {error && <AuthError>{error}</AuthError>}
+        <div className="mt-6 space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="admin-display-name">Display Name</Label>
+            <Input
               id="admin-display-name"
               name="displayName"
               type="text"
@@ -400,18 +383,15 @@ function AdminCreationForm({
               required
               autoFocus
               autoComplete="name"
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="h-10"
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="admin-username"
-              className="text-sm font-medium text-foreground"
-            >
-              Username <span className="text-muted-foreground">(optional)</span>
-            </label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="admin-username">
+              Username <span className="font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
               id="admin-username"
               name="username"
               type="text"
@@ -420,21 +400,16 @@ function AdminCreationForm({
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
               aria-describedby="admin-username-hint"
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="h-10"
             />
-            <p id="admin-username-hint" className="text-xs text-muted-foreground">
+            <p id="admin-username-hint" className="text-[12px] text-muted-foreground">
               Leave blank to derive it from the email address.
             </p>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="admin-email"
-              className="text-sm font-medium text-foreground"
-            >
-              Email
-            </label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="admin-email">Email</Label>
+            <Input
               id="admin-email"
               name="email"
               type="email"
@@ -443,18 +418,13 @@ function AdminCreationForm({
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="h-10"
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="admin-password"
-              className="text-sm font-medium text-foreground"
-            >
-              Password
-            </label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="admin-password">Password</Label>
+            <Input
               id="admin-password"
               name="password"
               type="password"
@@ -464,18 +434,13 @@ function AdminCreationForm({
               required
               minLength={8}
               autoComplete="new-password"
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="h-10"
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="admin-confirm"
-              className="text-sm font-medium text-foreground"
-            >
-              Confirm Password
-            </label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="admin-confirm">Confirm Password</Label>
+            <Input
               id="admin-confirm"
               name="confirmPassword"
               type="password"
@@ -484,20 +449,17 @@ function AdminCreationForm({
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               autoComplete="new-password"
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="h-10"
             />
           </div>
+        </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-2 w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            {loading ? "Creating admin..." : "Create Admin Account"}
-          </button>
-        </form>
-      </div>
-    </div>
+        <Button type="submit" disabled={loading} className="mt-6 h-10 w-full text-[13.5px]">
+          {loading ? <Loader2 className="size-4 animate-spin" /> : null}
+          {loading ? "Creating admin…" : "Create Admin Account"}
+        </Button>
+      </form>
+    </AuthScreen>
   );
 }
 
@@ -505,17 +467,17 @@ function AdminCreationForm({
 
 function WaitingForServer() {
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center shadow-sm">
-        <h1 className="text-xl font-semibold text-foreground">
-          Waiting for Server
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The server administrator has not finished setting up yet. Please
-          contact your administrator and try again once the server is ready.
-        </p>
+    <AuthScreen
+      steps={null}
+      eyebrow="Client mode"
+      title="Waiting for server"
+      description="The server administrator has not finished setting up yet. Please contact your administrator and try again once the server is ready."
+    >
+      <div className="mt-6 flex items-center gap-3 rounded-lg bg-surface-2 px-3.5 py-3 text-[13px] text-ink-2">
+        <Loader2 className="size-4 animate-spin text-primary" aria-hidden="true" />
+        Checking for the first administrator…
       </div>
-    </div>
+    </AuthScreen>
   );
 }
 
@@ -555,23 +517,19 @@ function LoginFailure({
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center shadow-sm">
-        <h1 className="text-xl font-semibold text-foreground">
-          Sign In Failed
-        </h1>
-        <p className="mt-2 text-sm text-destructive">{message}</p>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Restart setup or clear the saved credentials, then try again.
-        </p>
-        {clearError && (
-          <p className="mt-3 text-sm text-destructive">{clearError}</p>
-        )}
-        {onClear && (
-          <Button
+    <AuthScreen
+      steps={null}
+      eyebrow="Setup"
+      title="Sign in failed"
+      description="Restart setup or clear the saved credentials, then try again."
+    >
+      <AuthError>{message}</AuthError>
+      {clearError && <AuthError>{clearError}</AuthError>}
+      {onClear && (
+        <Button
             type="button"
             variant="outline"
-            className="mt-5 w-full"
+            className="mt-6 h-10 w-full text-[13.5px]"
             onClick={handleClear}
             disabled={clearing}
           >
@@ -582,18 +540,25 @@ function LoginFailure({
             )}
             {clearing ? "Clearing..." : clearButtonLabel}
           </Button>
-        )}
-      </div>
-    </div>
+      )}
+    </AuthScreen>
   );
 }
 
 // ---- Shared spinner ---------------------------------------------------------
 
 function CenteredSpinner() {
+  return <GateSpinner />;
+}
+
+function GateSpinner({ label }: { label?: string }) {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    <div className="grid min-h-svh place-items-center bg-background text-foreground">
+      <div className="flex flex-col items-center text-center">
+        <BrandMark size={44} />
+        <Loader2 className="mt-6 size-5 animate-spin text-primary" aria-hidden="true" />
+        {label && <p className="mt-3 text-[13px] text-muted-foreground">{label}</p>}
+      </div>
     </div>
   );
 }

@@ -3,27 +3,26 @@ import type { Id } from "@control/convex/_generated/dataModel";
 import type { AnyRouter } from "@tanstack/react-router";
 import { RouterProvider } from "@tanstack/react-router";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Loader2, LogOut, PackageOpen, PanelTop, Settings2 } from "lucide-react";
+import { AlertTriangle, Loader2, X } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { BrandMark } from "@/components/brand/BrandMark";
 import type { ControlAuthClient } from "./auth-client";
+import { signOutControlOperator } from "./auth-client";
 import {
-  claimControlInvitation,
-  signInControlOperator,
-  signOutControlOperator,
-} from "./auth-client";
+  ControlShellProvider,
+  type ControlPanel,
+  type ControlShellValue,
+} from "./ControlShellContext";
+import { OperatorLogin } from "./OperatorLogin";
 import { SiteRuntimeProvider } from "./SiteRuntimeProvider";
-import { EnvironmentBar } from "./components/EnvironmentBar";
 import { HandoffPanel } from "./components/HandoffPanel";
 import { LifecyclePanel } from "./components/LifecyclePanel";
+import type { ScopeSelection } from "./components/ScopeSwitcher";
 import { SiteManagerPanel } from "./components/SiteManagerPanel";
+import { StandaloneFrame } from "./components/StandaloneFrame";
 import { controlSurfaceVisibility } from "./components/site-manager-view";
 import { siteSessionRole } from "./site-session-role";
-import {
-  ScopeSwitcher,
-  type ScopeSelection,
-} from "./components/ScopeSwitcher";
 
 export function StandaloneApp({
   authClient,
@@ -51,11 +50,10 @@ function ControlPlaneShell({
   const exchange = useAction(controlApi.siteBroker.session.exchange);
   const [pendingSelection, setPendingSelection] = useState<ScopeSelection | null>(null);
   const [scopeError, setScopeError] = useState<string | null>(null);
-  const [operationsOpen, setOperationsOpen] = useState(false);
-  const [handoffOpen, setHandoffOpen] = useState(false);
-  const [managerOpen, setManagerOpen] = useState(false);
+  const [openPanel, setOpenPanel] = useState<ControlPanel | null>(null);
   const [siteRuntimeRevision, setSiteRuntimeRevision] = useState(0);
   const switchGeneration = useRef(0);
+  const managerOpen = openPanel === "manager";
 
   const serverSelection: ScopeSelection = context?.active ?? {
     organizationId: null,
@@ -68,19 +66,26 @@ function ControlPlaneShell({
     context?.environments.find(
       (entry) => String(entry.instanceId) === selection.instanceId,
     ) ?? null;
-  const websiteEnvironments = selectedEnvironment
-    ? context?.environments.filter(
-        (entry) => entry.websiteId === selectedEnvironment.websiteId,
-      ) ?? []
-    : [];
-  const selectedWebsite = selectedEnvironment
+  const websiteEnvironments = useMemo(() => {
+    const websiteId = selectedEnvironment?.websiteId ?? selection.websiteId;
+    if (!websiteId || !context) return [];
+    return context.environments.filter(
+      (entry) => String(entry.websiteId) === String(websiteId),
+    );
+  }, [context, selectedEnvironment, selection.websiteId]);
+  const selectedWebsite = selection.websiteId
     ? context?.websites.find(
-        (entry) => entry.websiteId === selectedEnvironment.websiteId,
+        (entry) => String(entry.websiteId) === selection.websiteId,
       ) ?? null
     : null;
   const selectedBusiness = selection.businessId
     ? context?.businesses.find(
         (entry) => String(entry.businessId) === selection.businessId,
+      ) ?? null
+    : null;
+  const selectedOrganization = selection.organizationId
+    ? context?.organizations.find(
+        (entry) => String(entry.organizationId) === selection.organizationId,
       ) ?? null
     : null;
   const connections = useQuery(
@@ -219,6 +224,52 @@ function ControlPlaneShell({
     [setActive],
   );
 
+  const selectWebsite = useCallback(
+    (websiteId: string) => {
+      if (!context) return;
+      const website = context.websites.find(
+        (entry) => String(entry.websiteId) === websiteId,
+      );
+      if (!website) return;
+      const candidates = context.environments.filter(
+        (entry) => String(entry.websiteId) === websiteId,
+      );
+      const environment =
+        candidates.find((entry) => entry.isDefault) ?? candidates[0] ?? null;
+      changeScope({
+        organizationId: String(website.organizationId),
+        businessId: String(website.businessId),
+        websiteId,
+        instanceId: environment ? String(environment.instanceId) : null,
+      });
+    },
+    [changeScope, context],
+  );
+
+  const selectBusiness = useCallback(
+    (businessId: string) => {
+      if (!context) return;
+      const business = context.businesses.find(
+        (entry) => String(entry.businessId) === businessId,
+      );
+      if (!business) return;
+      changeScope({
+        organizationId: String(business.organizationId),
+        businessId,
+        websiteId: null,
+        instanceId: null,
+      });
+    },
+    [changeScope, context],
+  );
+
+  const selectEnvironment = useCallback(
+    (instanceId: string) => {
+      changeScope({ ...selection, instanceId });
+    },
+    [changeScope, selection],
+  );
+
   const signOut = useCallback(async () => {
     await signOutControlOperator(authClient);
   }, [authClient]);
@@ -232,316 +283,174 @@ function ControlPlaneShell({
     id: String(operator.userId),
     email: operator.email ?? "operator@convexpress.local",
     displayName: operator.name ?? operator.email ?? "ConvexPress Operator",
+    role: operator.role,
+  };
+
+  const connectionState: ControlShellValue["connectionState"] = !selectedEnvironment
+    ? "none"
+    : connections === undefined
+      ? "loading"
+      : activeConnection
+        ? "connected"
+        : "missing";
+
+  const shellValue: ControlShellValue = {
+    context,
+    selection,
+    pending: pendingSelection !== null,
+    scopeError,
+    selectedOrganization,
+    selectedBusiness,
+    selectedWebsite,
+    selectedEnvironment,
+    websiteEnvironments,
+    connectionState,
+    operator: operatorIdentity,
+    changeScope,
+    selectWebsite,
+    selectBusiness,
+    selectEnvironment,
+    signOut,
+    openPanel,
+    setOpenPanel,
+    visibility: {
+      operations: controlVisibility.operations,
+      handoff: controlVisibility.handoff,
+      handoffExport: controlVisibility.handoffExport,
+      handoffImport: controlVisibility.handoffImport,
+    },
   };
 
   return (
-    <div className="flex h-svh min-h-0 flex-col overflow-hidden bg-slate-100 text-slate-950">
-      <header className="relative z-[10000] shrink-0 bg-[#101827] text-white shadow-lg">
-        <div className="flex flex-col gap-3 px-3 pb-3 pt-8 lg:flex-row lg:items-center lg:pt-3">
-          <div className="flex min-w-56 items-center gap-3 px-1">
-            <span className="grid size-9 place-items-center bg-cyan-300 text-[#101827]">
-              <PanelTop className="size-5" aria-hidden="true" />
-            </span>
-            <span>
-              <span className="block font-serif text-lg leading-none">ConvexPress</span>
-              <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                Multisite control
-              </span>
-            </span>
-          </div>
-          <ScopeSwitcher
+    <ControlShellProvider value={shellValue}>
+      <div className="relative flex h-svh min-h-0 flex-col overflow-hidden bg-background text-foreground">
+        <ShellNotices
+          scopeError={scopeError}
+          missingConnection={connectionState === "missing"}
+          onDismissScopeError={() => setScopeError(null)}
+        />
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          <SiteRuntimeProvider
+            target={target}
+            exchangeSession={exchangeSession}
+            operator={operatorIdentity}
+            onSignOut={signOut}
+            runtimeRevision={siteRuntimeRevision}
+            renderState={(state) => <StandaloneFrame>{state}</StandaloneFrame>}
+          >
+            <RouterProvider router={router} />
+          </SiteRuntimeProvider>
+          <LifecyclePanel
+            open={openPanel === "operations"}
+            environments={websiteEnvironments.map((environment) => ({
+              instanceId: environment.instanceId,
+              instanceKey: environment.instanceKey,
+              kind: environment.kind,
+              label: environment.label,
+            }))}
+            instance={
+              selectedEnvironment
+                ? {
+                    instanceId: selectedEnvironment.instanceId,
+                    instanceKey: selectedEnvironment.instanceKey,
+                    kind: selectedEnvironment.kind,
+                    label: selectedEnvironment.label,
+                  }
+                : null
+            }
+            onClose={() => setOpenPanel(null)}
+            onEnvironmentReplaced={refreshSiteRuntime}
+          />
+          <HandoffPanel
+            open={openPanel === "handoff"}
+            source={
+              selectedEnvironment && selectedWebsite
+                ? {
+                    websiteId: selectedWebsite.websiteId,
+                    websiteKey: selectedWebsite.websiteKey,
+                    websiteTitle: selectedWebsite.title,
+                    instanceId: selectedEnvironment.instanceId,
+                  }
+                : null
+            }
+            destination={
+              selectedBusiness
+                ? {
+                    organizationId: selectedBusiness.organizationId,
+                    businessId: selectedBusiness.businessId,
+                    businessName: selectedBusiness.name,
+                  }
+                : null
+            }
+            canExport={controlVisibility.handoffExport}
+            canImport={controlVisibility.handoffImport}
+            onClose={() => setOpenPanel(null)}
+          />
+          <SiteManagerPanel
+            open={managerOpen}
             context={context}
             selection={selection}
-            pending={pendingSelection !== null}
-            onChange={changeScope}
+            operatorRole={operator.role}
+            authClient={authClient}
+            onChangeScope={changeScope}
+            onClose={() => setOpenPanel(null)}
           />
-          <div className="flex items-center justify-between gap-3 px-1 lg:justify-end">
-            <span className="max-w-44 truncate text-xs text-slate-300">
-              {operatorIdentity.displayName}
-            </span>
-            <Button
-              aria-expanded={managerOpen}
-              className="border border-white/20 bg-transparent text-white hover:bg-white/10"
-              size="sm"
-              onClick={() => {
-                setOperationsOpen(false);
-                setHandoffOpen(false);
-                setManagerOpen((value) => !value);
-              }}
-            >
-              <Settings2 className="mr-2 size-4" /> Manage sites
-            </Button>
-            {controlVisibility.handoff ? (
-              <Button
-                aria-expanded={handoffOpen}
-                className="border border-white/20 bg-transparent text-white hover:bg-white/10"
-                size="sm"
-                onClick={() => {
-                  setOperationsOpen(false);
-                  setManagerOpen(false);
-                  setHandoffOpen((value) => !value);
-                }}
-              >
-                <PackageOpen className="mr-2 size-4" /> Add or transfer site
-              </Button>
-            ) : null}
-            <Button
-              aria-label="Sign out of ConvexPress control plane"
-              className="border border-white/20 bg-transparent text-white hover:bg-white/10"
-              size="sm"
-              onClick={() => void signOut()}
-            >
-              <LogOut className="mr-2 size-4" /> Sign out
-            </Button>
-          </div>
         </div>
-        {scopeError ? (
-          <p role="alert" className="bg-red-700 px-4 py-2 text-sm text-white">
-            {scopeError}
-          </p>
-        ) : null}
-      </header>
-      <EnvironmentBar
-        environment={selectedEnvironment}
-        websiteTitle={selectedWebsite?.title ?? null}
-        operationsOpen={operationsOpen}
-        handoffOpen={handoffOpen}
-        canOpenOperations={controlVisibility.operations}
-        canOpenHandoff={controlVisibility.handoff}
-        onOpenOperations={() => {
-          setHandoffOpen(false);
-          setManagerOpen(false);
-          setOperationsOpen((value) => !value);
-        }}
-        onOpenHandoff={() => {
-          setOperationsOpen(false);
-          setManagerOpen(false);
-          setHandoffOpen((value) => !value);
-        }}
-      />
-      {connections !== undefined && selectedEnvironment && !activeConnection ? (
-        <p role="alert" className="shrink-0 border-b border-amber-300 bg-amber-100 px-4 py-3 text-sm text-amber-950">
-          This environment has no active management connection.
+      </div>
+    </ControlShellProvider>
+  );
+}
+
+function ShellNotices({
+  scopeError,
+  missingConnection,
+  onDismissScopeError,
+}: {
+  scopeError: string | null;
+  missingConnection: boolean;
+  onDismissScopeError: () => void;
+}) {
+  if (!scopeError && !missingConnection) return null;
+  return (
+    <div className="pointer-events-none absolute right-4 top-[60px] z-50 flex w-[min(420px,calc(100vw-2rem))] flex-col gap-2">
+      {scopeError ? (
+        <p
+          role="alert"
+          className="pointer-events-auto flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-card px-3.5 py-3 text-[13px] leading-5 text-foreground shadow-float"
+        >
+          <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-destructive" />
+          <span className="flex-1">{scopeError}</span>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            onClick={onDismissScopeError}
+            className="-mr-1 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <X aria-hidden="true" className="size-3.5" />
+          </button>
         </p>
       ) : null}
-      <div className="relative min-h-0 flex-1 overflow-hidden">
-        <SiteRuntimeProvider
-          target={target}
-          exchangeSession={exchangeSession}
-          operator={operatorIdentity}
-          onSignOut={signOut}
-          runtimeRevision={siteRuntimeRevision}
+      {missingConnection ? (
+        <p
+          role="alert"
+          className="pointer-events-auto flex items-start gap-2.5 rounded-xl border border-warning/40 bg-warning-soft px-3.5 py-3 text-[13px] leading-5 text-foreground shadow-float"
         >
-          <RouterProvider router={router} />
-        </SiteRuntimeProvider>
-        <LifecyclePanel
-          open={operationsOpen}
-          environments={websiteEnvironments.map((environment) => ({
-            instanceId: environment.instanceId,
-            instanceKey: environment.instanceKey,
-            kind: environment.kind,
-            label: environment.label,
-          }))}
-          instance={
-            selectedEnvironment
-              ? {
-                  instanceId: selectedEnvironment.instanceId,
-                  instanceKey: selectedEnvironment.instanceKey,
-                  kind: selectedEnvironment.kind,
-                  label: selectedEnvironment.label,
-                }
-              : null
-          }
-          onClose={() => setOperationsOpen(false)}
-          onEnvironmentReplaced={refreshSiteRuntime}
-        />
-        <HandoffPanel
-          open={handoffOpen}
-          source={
-            selectedEnvironment && selectedWebsite
-              ? {
-                  websiteId: selectedWebsite.websiteId,
-                  websiteKey: selectedWebsite.websiteKey,
-                  websiteTitle: selectedWebsite.title,
-                  instanceId: selectedEnvironment.instanceId,
-                }
-              : null
-          }
-          destination={
-            selectedBusiness
-              ? {
-                  organizationId: selectedBusiness.organizationId,
-                  businessId: selectedBusiness.businessId,
-                  businessName: selectedBusiness.name,
-                }
-              : null
-          }
-          canExport={controlVisibility.handoffExport}
-          canImport={controlVisibility.handoffImport}
-          onClose={() => setHandoffOpen(false)}
-        />
-        <SiteManagerPanel
-          open={managerOpen}
-          context={context}
-          selection={selection}
-          operatorRole={operator.role}
-          authClient={authClient}
-          onChangeScope={changeScope}
-          onClose={() => setManagerOpen(false)}
-        />
-      </div>
+          <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-warning" />
+          <span>This environment has no active management connection.</span>
+        </p>
+      ) : null}
     </div>
   );
 }
 
 function StartupState({ label }: { label: string }) {
   return (
-    <div className="grid min-h-svh place-items-center bg-[#101827] text-white">
-      <div className="text-center">
-        <Loader2 className="mx-auto mb-4 size-7 animate-spin text-cyan-300" />
-        <p className="text-sm text-slate-300">{label}</p>
+    <div className="grid min-h-svh place-items-center bg-background text-foreground">
+      <div className="flex flex-col items-center text-center">
+        <BrandMark size={44} />
+        <Loader2 className="mt-6 size-5 animate-spin text-primary" aria-hidden="true" />
+        <p className="mt-3 text-[13px] text-muted-foreground">{label}</p>
       </div>
     </div>
-  );
-}
-
-function OperatorLogin({ authClient }: { authClient: ControlAuthClient }) {
-  const [mode, setMode] = useState<"sign-in" | "claim">("sign-in");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [claimSecret, setClaimSecret] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  return (
-    <main className="grid min-h-svh bg-[#e8edf1] p-5 text-slate-950 lg:grid-cols-[1.15fr_0.85fr] lg:p-8">
-      <section className="relative hidden overflow-hidden bg-[#101827] p-12 text-white lg:block">
-        <div className="absolute inset-x-0 top-0 h-1 bg-cyan-300" />
-        <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-300">Standalone control plane</p>
-        <h1 className="mt-10 max-w-2xl font-serif text-6xl leading-[0.95] tracking-[-0.035em]">
-          One desk.<br />Every website.<br />No shared database.
-        </h1>
-        <p className="mt-8 max-w-xl text-lg leading-8 text-slate-300">
-          Manage organizations, businesses, and isolated ConvexPress environments without merging customer accounts or site data.
-        </p>
-        <div className="absolute bottom-12 left-12 right-12 grid grid-cols-3 gap-px bg-white/15 text-xs">
-          {[
-            ["01", "Choose scope"],
-            ["02", "Exchange authority"],
-            ["03", "Open isolated site"],
-          ].map(([number, label]) => (
-            <div key={number} className="bg-[#101827] p-4">
-              <span className="font-mono text-cyan-300">{number}</span>
-              <span className="mt-2 block text-slate-300">{label}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="grid place-items-center bg-white p-6 sm:p-12">
-        <form
-          className="w-full max-w-sm"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setPending(true);
-            setError(null);
-            const request =
-              mode === "claim"
-                ? claimControlInvitation(
-                    authClient,
-                    email,
-                    password,
-                    name,
-                    claimSecret,
-                  )
-                : signInControlOperator(authClient, email, password);
-            void request
-              .catch(() =>
-                setError(
-                  mode === "claim"
-                    ? "That invitation could not be claimed. Use the exact provisioned email, one-time invitation code, and a new password of at least eight characters."
-                    : "The email or password was not accepted.",
-                ),
-              )
-              .finally(() => setPending(false));
-          }}
-        >
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">Operator access</p>
-          <h2 className="mt-3 font-serif text-4xl tracking-tight">
-            {mode === "claim" ? "Claim your invitation" : "Sign in to ConvexPress"}
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            {mode === "claim"
-              ? "Use the exact email your ConvexPress administrator provisioned. This creates only your outer multisite operator login."
-              : "This account controls which businesses and websites you may open. Website customer logins remain separate."}
-          </p>
-          {error ? (
-            <p role="alert" className="mt-5 border-l-4 border-red-600 bg-red-50 p-3 text-sm text-red-900">{error}</p>
-          ) : null}
-          <label className="mt-7 block text-sm font-semibold" htmlFor="control-email">Email</label>
-          <input
-            id="control-email"
-            autoComplete="username"
-            autoFocus
-            className="mt-2 w-full border border-slate-300 bg-white px-3 py-3 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-200"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
-          {mode === "claim" ? (
-            <>
-              <label className="mt-5 block text-sm font-semibold" htmlFor="control-name">Name</label>
-              <input
-                id="control-name"
-                autoComplete="name"
-                className="mt-2 w-full border border-slate-300 bg-white px-3 py-3 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-200"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-              <label className="mt-5 block text-sm font-semibold" htmlFor="control-claim-secret">Invitation code</label>
-              <input
-                id="control-claim-secret"
-                autoComplete="one-time-code"
-                className="mt-2 w-full border border-slate-300 bg-white px-3 py-3 font-mono outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-200"
-                value={claimSecret}
-                onChange={(event) => setClaimSecret(event.target.value)}
-                required
-              />
-            </>
-          ) : null}
-          <label className="mt-5 block text-sm font-semibold" htmlFor="control-password">Password</label>
-          <input
-            id="control-password"
-            autoComplete="current-password"
-            className="mt-2 w-full border border-slate-300 bg-white px-3 py-3 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-200"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
-          <Button className="mt-7 w-full rounded-none bg-blue-700 py-6 text-white hover:bg-blue-800" disabled={pending} type="submit">
-            {pending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-            {pending
-              ? mode === "claim"
-                ? "Claiming invitation"
-                : "Signing in"
-              : mode === "claim"
-                ? "Claim invitation"
-                : "Continue"}
-          </Button>
-          <button
-            className="mt-5 w-full text-sm font-semibold text-blue-800 underline-offset-4 hover:underline"
-            type="button"
-            onClick={() => {
-              setError(null);
-              setMode((value) => (value === "sign-in" ? "claim" : "sign-in"));
-            }}
-          >
-            {mode === "claim" ? "Return to sign in" : "Have an operator invitation? Claim it"}
-          </button>
-        </form>
-      </section>
-    </main>
   );
 }

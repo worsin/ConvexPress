@@ -12,9 +12,10 @@
 
 import { useCallback } from "react";
 import { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon, SlidersHorizontal } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { WIDGET_REGISTRY } from "@/lib/dashboard/widget-registry";
+import { useControlShell } from "@/control/ControlShellContext";
 
 interface DashboardScreenOptionsProps {
   /** IDs of currently hidden widgets. */
@@ -33,8 +34,11 @@ export function DashboardScreenOptions({
   onRestoreWidget,
   onDismissWidget,
 }: DashboardScreenOptionsProps) {
+  const standalone = useControlShell() !== null;
+
   // Only show widgets the user has capability to see
   const availableWidgets = WIDGET_REGISTRY.filter((widget) => {
+    if (widget.standaloneOnly && !standalone) return false;
     if (
       widget.minCapability &&
       !userCapabilities.includes(widget.minCapability)
@@ -59,24 +63,23 @@ export function DashboardScreenOptions({
 
   return (
     <CollapsiblePrimitive.Root>
-      <div className="flex justify-end mb-2">
-        <CollapsiblePrimitive.Trigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+      <div className="flex justify-end">
+        <CollapsiblePrimitive.Trigger className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+          <SlidersHorizontal className="size-3.5" aria-hidden="true" />
           Screen Options
-          <ChevronDownIcon className="size-3.5 transition-transform data-[panel-open]:rotate-180" />
+          <ChevronDownIcon className="size-3.5 transition-transform data-[panel-open]:rotate-180" aria-hidden="true" />
         </CollapsiblePrimitive.Trigger>
       </div>
       <CollapsiblePrimitive.Panel className="overflow-hidden data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0">
-        <div className="border border-border bg-card p-4 mb-4">
-          <h4 className="text-xs font-semibold text-foreground mb-2">
-            Show on screen
-          </h4>
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
+        <div className="mt-2 rounded-xl border border-border bg-card px-[18px] py-4 shadow-soft">
+          <h4 className="eyebrow mb-3">Show on screen</h4>
+          <div className="flex flex-wrap gap-x-6 gap-y-2.5">
             {availableWidgets.map((widget) => {
               const isVisible = !hiddenWidgets.includes(widget.id);
               return (
                 <label
                   key={widget.id}
-                  className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer"
+                  className="flex cursor-pointer items-center gap-2 text-[13px] text-ink-2"
                 >
                   <Checkbox
                     checked={isVisible}

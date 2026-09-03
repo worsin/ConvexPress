@@ -31,6 +31,9 @@ const RecentCommentsWidget = lazy(
 const SystemHealthWidget = lazy(
   () => import("@/components/dashboard/widgets/SystemHealthWidget"),
 );
+const EnvironmentsWidget = lazy(
+  () => import("@/components/dashboard/widgets/EnvironmentsWidget"),
+);
 
 // ─── Widget Registry ────────────────────────────────────────────────────────
 
@@ -51,6 +54,15 @@ export const WIDGET_REGISTRY: DashboardWidget[] = [
     defaultColumn: "primary",
     defaultOrder: 10,
     minCapability: "dashboard.view",
+  },
+  {
+    id: "environments",
+    title: "Environments",
+    component: EnvironmentsWidget,
+    defaultColumn: "primary",
+    defaultOrder: 15,
+    minCapability: "dashboard.view",
+    standaloneOnly: true,
   },
   {
     id: "activity-feed",

@@ -9,6 +9,17 @@ import {
 } from "./lib/electron-acceptance-environment.mjs";
 import { quitOwnedElectron } from "./lib/process-lifecycle.mjs";
 import { loadTestFleetConfig } from "./lib/test-fleet-config.mjs";
+import {
+  environmentActionAvailable,
+  listSwitcherOrganizations,
+  openEnvironmentAction,
+  openSiteManager,
+  selectBusiness,
+  selectScope,
+  shellIsVisible,
+  waitForActiveEnvironment,
+  waitForShell,
+} from "./lib/shell-scope.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(scriptDirectory, "..");
@@ -70,30 +81,16 @@ function dismissShutdownDialogs(page) {
   page.on("dialog", (dialog) => void dialog.dismiss().catch(() => undefined));
 }
 
-async function selectScope(page, scope) {
-  const organization = page.getByRole("combobox", { name: "Organization" });
-  if ((await organization.inputValue()) !== (await organization.locator("option", { hasText: scope.organization }).getAttribute("value"))) {
-    await organization.selectOption({ label: scope.organization });
-  }
-
-  if (scope.business) {
-    const business = page.getByRole("combobox", { name: "Business" });
-    await business.selectOption({ label: scope.business });
-  }
-  if (scope.website) {
-    const website = page.getByRole("combobox", { name: "Website" });
-    await website.selectOption({ label: scope.website });
-  }
-  if (scope.environment) {
-    const environment = page.getByRole("combobox", { name: "Environment" });
-    await environment.selectOption({ label: scope.environment });
-  }
-
-  await page.getByText(scope.identity, { exact: true }).first().waitFor({
-    state: "visible",
-    timeout: 20_000,
+async function selectSiteScope(page, scope) {
+  await selectScope(page, {
+    organization: scope.organization,
+    business: scope.business,
+    website: scope.website,
+    environment: scope.environment,
   });
-  await page.getByRole("heading", { name: "Dashboard", exact: true }).or(
+
+  await waitForActiveEnvironment(page, scope.identity);
+  await page.getByRole("heading", { level: 1 }).or(
     page.getByRole("heading", { name: "Add New User", exact: true }),
   ).waitFor({ state: "visible", timeout: 20_000 });
 }
@@ -315,17 +312,14 @@ async function main() {
 
     phase = "authenticate";
     await page.getByRole("textbox", { name: /email/i }).fill(credentials.email);
-    await page.getByLabel(/password/i).fill(credentials.password);
+    await page.getByLabel(/^password$/i).fill(credentials.password);
     await page.getByRole("button", { name: /sign in|continue/i }).click();
-    await page.getByRole("combobox", { name: "Organization" }).waitFor({
-      state: "visible",
-      timeout: 20_000,
-    });
+    await waitForShell(page);
     await page.context().tracing.start({ screenshots: true, snapshots: true, sources: true });
     tracing = true;
 
     phase = "shop-customer";
-    await selectScope(page, scopes.shop);
+    await selectSiteScope(page, scopes.shop);
     await revokePendingAcceptanceInvitations(page);
     await inviteSubscriber(page, emails.shopLive);
     inviteFormContrast = await assertInviteFormContrast(page);
@@ -342,7 +336,7 @@ async function main() {
     });
 
     phase = "journal-customer";
-    await selectScope(page, scopes.journal);
+    await selectSiteScope(page, scopes.journal);
     await revokePendingAcceptanceInvitations(page);
     await assertInvitationVisibility(page, [], [emails.shopLive, emails.shopStaging]);
     await inviteSubscriber(page, emails.journal);
@@ -359,7 +353,7 @@ async function main() {
     });
 
     phase = "shop-staging-customer";
-    await selectScope(page, scopes.shopStaging);
+    await selectSiteScope(page, scopes.shopStaging);
     await revokePendingAcceptanceInvitations(page);
     await assertInvitationVisibility(page, [], [emails.shopLive, emails.journal]);
     await inviteSubscriber(page, emails.shopStaging);
@@ -376,7 +370,7 @@ async function main() {
     });
 
     phase = "return-to-shop";
-    await selectScope(page, scopes.shop);
+    await selectSiteScope(page, scopes.shop);
     await assertInvitationVisibility(
       page,
       [emails.shopLive],
@@ -384,7 +378,7 @@ async function main() {
     );
 
     phase = "outer-operator-separation";
-    await page.getByRole("button", { name: "Manage sites" }).click();
+    await openSiteManager(page);
     const manager = page.getByRole("complementary", { name: "Manage websites" });
     await manager.getByRole("button", { name: /People/ }).click();
     await manager
@@ -403,7 +397,7 @@ async function main() {
 
     phase = "cleanup";
     for (const [scope, email] of [...created].reverse()) {
-      await selectScope(page, scope);
+      await selectSiteScope(page, scope);
       await assertInvitationVisibility(page, [email], []);
       await revokeInvitation(page, email);
     }

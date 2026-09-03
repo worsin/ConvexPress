@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AdminNavSection } from "@/lib/admin-shell/types";
-import { NavItem } from "./NavItem";
+import { NAV_ROW_ACTIVE_CLASS, NAV_ROW_CLASS, NavBadge, NavItem } from "./NavItem";
 
 interface NavSectionProps {
   section: AdminNavSection;
@@ -26,7 +26,7 @@ export function NavSection({
     <li>
       {/* Separator line */}
       {section.separator && (
-        <div className="mx-3 my-2 border-t border-sidebar-border" />
+        <div className="mx-2.5 my-2 border-t border-sidebar-border" />
       )}
 
       {/* Collapsed mode: wrap in hover group for flyout */}
@@ -37,24 +37,23 @@ export function NavSection({
             type="button"
             onClick={onToggle}
             className={cn(
-              "flex w-full items-center justify-center rounded-sm py-2 text-sm transition-colors",
-              "text-sidebar-foreground",
-              "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
+              NAV_ROW_CLASS,
+              "h-8 w-full justify-center px-0",
+              isActive && "bg-sidebar-accent text-sidebar-accent-foreground shadow-soft [&_svg]:text-primary",
             )}
             title={section.label}
           >
-            <Icon className="size-4 shrink-0" />
+            <Icon />
           </button>
 
           {/* Flyout panel */}
           <div
             className={cn(
-              "invisible absolute left-full top-0 z-50 ml-1 min-w-44 rounded-sm border border-sidebar-border bg-sidebar p-1 shadow-md opacity-0 transition-all",
+              "invisible absolute left-full top-0 z-50 ml-2 min-w-48 rounded-xl border border-line-strong bg-popover p-1.5 opacity-0 shadow-float transition-all",
               "group-hover/flyout:visible group-hover/flyout:opacity-100",
             )}
           >
-            <div className="px-2 py-1.5 text-xs font-semibold text-sidebar-foreground">
+            <div className="px-2.5 py-1.5 text-[12px] font-semibold text-foreground">
               {section.label}
             </div>
             <ul role="list">
@@ -73,19 +72,12 @@ export function NavSection({
         /* Collapsed, no children: icon-only direct link */
         <Link
           to={section.to}
-          className={cn(
-            "flex items-center justify-center rounded-sm py-2 text-sm transition-colors",
-            "text-sidebar-foreground",
-            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            "[&.active]:bg-sidebar-primary [&.active]:text-sidebar-primary-foreground",
-          )}
+          className={cn(NAV_ROW_CLASS, NAV_ROW_ACTIVE_CLASS, "relative h-8 justify-center px-0")}
           title={section.label}
         >
-          <Icon className="size-4 shrink-0" />
+          <Icon />
           {section.badge !== undefined && section.badge > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 inline-flex items-center justify-center rounded-full bg-destructive px-1 py-0.5 text-[9px] font-bold leading-none text-destructive-foreground min-w-4">
-              {section.badge > 99 ? "99+" : section.badge}
-            </span>
+            <NavBadge count={section.badge} className="absolute -right-1 -top-1" />
           )}
         </Link>
       ) : hasChildren ? (
@@ -97,28 +89,24 @@ export function NavSection({
             aria-expanded={isExpanded}
             aria-controls={`section-${section.id}-children`}
             className={cn(
-              "flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm transition-colors",
-              "text-sidebar-foreground",
-              "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              NAV_ROW_CLASS,
+              "h-8 w-full px-2.5",
               isActive &&
                 !isExpanded &&
-                "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
+                "bg-sidebar-accent text-sidebar-accent-foreground shadow-soft [&_svg]:text-primary",
+              isActive && isExpanded && "text-sidebar-accent-foreground [&>svg:first-child]:text-primary",
             )}
           >
-            <Icon className="size-4 shrink-0" />
+            <Icon />
             <span className="truncate">{section.label}</span>
             {/* Badge on parent */}
             {section.badge !== undefined && section.badge > 0 && (
-              <span className="ml-auto mr-1 inline-flex items-center justify-center rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-medium leading-none text-destructive-foreground">
-                {section.badge > 99 ? "99+" : section.badge}
-              </span>
+              <NavBadge count={section.badge} className="ml-auto" />
             )}
             <ChevronDown
               className={cn(
-                "size-4 shrink-0 transition-transform duration-200",
-                section.badge === undefined || section.badge === 0
-                  ? "ml-auto"
-                  : "",
+                "size-3.5! transition-transform duration-200",
+                section.badge === undefined || section.badge === 0 ? "ml-auto" : "",
                 isExpanded && "rotate-180",
               )}
             />
@@ -130,7 +118,7 @@ export function NavSection({
             role="list"
             className={cn(
               "overflow-hidden transition-all duration-200",
-              isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0",
+              isExpanded ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0",
             )}
           >
             {section.children!.map((item) => (
@@ -147,19 +135,12 @@ export function NavSection({
         /* Expanded mode, no children: direct link */
         <Link
           to={section.to}
-          className={cn(
-            "flex items-center gap-2 rounded-sm px-3 py-2 text-sm transition-colors",
-            "text-sidebar-foreground",
-            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            "[&.active]:bg-sidebar-primary [&.active]:text-sidebar-primary-foreground",
-          )}
+          className={cn(NAV_ROW_CLASS, NAV_ROW_ACTIVE_CLASS, "h-8 px-2.5")}
         >
-          <Icon className="size-4 shrink-0" />
+          <Icon />
           <span className="truncate">{section.label}</span>
           {section.badge !== undefined && section.badge > 0 && (
-            <span className="ml-auto inline-flex items-center justify-center rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-medium leading-none text-destructive-foreground">
-              {section.badge > 99 ? "99+" : section.badge}
-            </span>
+            <NavBadge count={section.badge} className="ml-auto" />
           )}
         </Link>
       )}

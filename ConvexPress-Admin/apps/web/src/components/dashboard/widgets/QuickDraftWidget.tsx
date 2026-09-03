@@ -15,7 +15,9 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { useDashboardData } from "@/hooks/dashboard/useDashboardData";
 
 function QuickDraftWidget() {
@@ -64,15 +66,18 @@ function QuickDraftWidget() {
     [handleSaveDraft],
   );
 
+  const canDiscard = title.length > 0 || content.length > 0;
+
   return (
     <div>
       {/* Quick Draft Form */}
-      <div className="p-4 space-y-2" onKeyDown={handleKeyDown}>
-        <div>
-          <label className="text-xs text-muted-foreground block mb-1">
+      <div className="space-y-3 px-[18px] pb-4" onKeyDown={handleKeyDown}>
+        <div className="space-y-1.5">
+          <Label htmlFor="quick-draft-title" className="text-[12.5px] text-ink-2">
             Title
-          </label>
+          </Label>
           <Input
+            id="quick-draft-title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -80,35 +85,46 @@ function QuickDraftWidget() {
             disabled={isSaving}
           />
         </div>
-        <div>
-          <label className="text-xs text-muted-foreground block mb-1">
+        <div className="space-y-1.5">
+          <Label htmlFor="quick-draft-content" className="text-[12.5px] text-ink-2">
             Content
-          </label>
-          <textarea
+          </Label>
+          <Textarea
+            id="quick-draft-content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="What would you like to say?"
             disabled={isSaving}
             rows={3}
-            className="dark:bg-input/30 border-input focus-visible:border-ring focus-visible:ring-ring/50 h-auto rounded-none border bg-transparent px-2.5 py-1.5 text-xs transition-colors focus-visible:ring-1 md:text-xs placeholder:text-muted-foreground w-full min-w-0 outline-hidden resize-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-16 text-[13.5px]"
           />
         </div>
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {canDiscard && (
+            <Button
+              variant="ghost"
+              disabled={isSaving}
+              onClick={() => {
+                setTitle("");
+                setContent("");
+              }}
+            >
+              Discard
+            </Button>
+          )}
           <Button
-            size="sm"
+            variant="outline"
             onClick={handleSaveDraft}
             disabled={isSaving || !title.trim()}
           >
-            {isSaving ? "Saving..." : "Save Draft"}
+            {isSaving ? "Saving…" : "Save draft"}
           </Button>
         </div>
       </div>
 
       {/* Recent Drafts */}
-      <div className="border-t border-border p-4">
-        <h4 className="text-xs font-semibold text-foreground mb-2">
-          Your Recent Drafts
-        </h4>
+      <div className="border-t border-border px-[18px] py-4">
+        <h4 className="eyebrow mb-2">Your recent drafts</h4>
 
         {quickDrafts === undefined ? (
           <div className="space-y-2">
@@ -116,26 +132,26 @@ function QuickDraftWidget() {
             <Skeleton className="h-4 w-3/4" />
           </div>
         ) : quickDrafts === null || quickDrafts.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[13px] text-muted-foreground">
             No drafts yet. Use the form above to create one.
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-2.5">
             {quickDrafts.map((draft) => (
               <li key={draft._id}>
                 <Link
                   to="/posts/$postId/edit"
                   params={{ postId: draft._id }}
-                  className="text-xs text-primary hover:underline"
+                  className="text-[13.5px] font-medium text-foreground hover:text-primary"
                 >
                   {draft.title}
                 </Link>
                 {draft.excerpt && (
-                  <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                  <p className="mt-0.5 line-clamp-1 text-[12.5px] text-muted-foreground">
                     {draft.excerpt}
                   </p>
                 )}
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-[12px] text-muted-foreground">
                   {formatDate(draft.createdAt)}
                 </span>
               </li>

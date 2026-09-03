@@ -43,6 +43,8 @@ export interface ControlShellValue {
   operator: ControlOperator;
   changeScope: (next: ScopeSelection) => void;
   selectWebsite: (websiteId: string) => void;
+  /** Scope to a business that has no websites yet (for imports/handoff). */
+  selectBusiness: (businessId: string) => void;
   selectEnvironment: (instanceId: string) => void;
   signOut: () => Promise<void>;
   openPanel: ControlPanel | null;

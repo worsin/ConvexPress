@@ -4,7 +4,13 @@ import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 
+import { Loader2 } from "lucide-react";
+
+import { AuthError, AuthScreen } from "@/components/auth/AuthScreen";
 import Loader from "@/components/loader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useLocalAuthContext } from "@/lib/local-auth-context";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -61,14 +67,20 @@ function AuthenticatedLayout() {
 
   if (!adminAccess) {
     return (
-      <div className="flex h-svh items-center justify-center">
-        <div className="max-w-md space-y-4 text-center">
-          <h1 className="text-2xl font-bold">Access Denied</h1>
-          <p className="text-muted-foreground">
-            You don't have permission to access the admin panel.
-          </p>
-        </div>
-      </div>
+      <AuthScreen
+        steps={null}
+        eyebrow="Site administrator"
+        title="Access denied"
+        description="This account does not have permission to open the admin panel for this site."
+      >
+        <Button
+          variant="outline"
+          className="mt-6 h-10 w-full text-[13.5px]"
+          onClick={() => void logout()}
+        >
+          Sign out
+        </Button>
+      </AuthScreen>
     );
   }
 
@@ -105,21 +117,29 @@ function LoginForm({
   };
 
   return (
-    <div className="flex h-svh items-center justify-center">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">ConvexPress Admin</h1>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to continue</p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
-              {error}
-            </div>
-          )}
+    <AuthScreen
+      panelEyebrow="ConvexPress admin"
+      headline={
+        <>
+          Your site.
+          <br />
+          Your database.
+          <br />
+          <em className="text-primary">Your</em> rules.
+        </>
+      }
+      lede="Every ConvexPress website runs on its own isolated deployment. Sign in with the admin account for this site."
+      steps={null}
+      eyebrow="Site administrator"
+      title="Sign in to continue"
+      description="Use the email or username and password for this site's admin account."
+    >
+      <form onSubmit={handleSubmit}>
+        {error && <AuthError>{error}</AuthError>}
+        <div className="mt-6 space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="identifier" className="text-sm font-medium">Email or Username</label>
-            <input
+            <Label htmlFor="identifier">Email or Username</Label>
+            <Input
               id="identifier"
               name="identifier"
               type="text"
@@ -128,12 +148,12 @@ function LoginForm({
               required
               autoFocus
               autoComplete="username"
-              className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              className="h-10"
             />
           </div>
           <div className="space-y-1.5">
-            <label htmlFor="password" className="text-sm font-medium">Password</label>
-            <input
+            <Label htmlFor="password">Password</Label>
+            <Input
               id="password"
               name="password"
               type="password"
@@ -141,18 +161,15 @@ function LoginForm({
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              className="h-10"
             />
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-sm bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:opacity-50"
-          >
-            {loading ? "Signing in..." : "Sign In"}
-          </button>
-        </form>
-      </div>
-    </div>
+        </div>
+        <Button type="submit" disabled={loading} className="mt-6 h-10 w-full text-[13.5px]">
+          {loading ? <Loader2 className="size-4 animate-spin" /> : null}
+          {loading ? "Signing in" : "Sign In"}
+        </Button>
+      </form>
+    </AuthScreen>
   );
 }

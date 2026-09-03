@@ -13,6 +13,17 @@ import { loadTestFleetConfig } from "./lib/test-fleet-config.mjs";
 
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
+import {
+  environmentActionAvailable,
+  listSwitcherOrganizations,
+  openEnvironmentAction,
+  openSiteManager,
+  selectBusiness,
+  selectScope,
+  shellIsVisible,
+  waitForActiveEnvironment,
+  waitForShell,
+} from "./lib/shell-scope.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(scriptDirectory, "..");
@@ -188,12 +199,9 @@ async function launchElectron(_electron, profileLabel) {
 
 async function signInThroughElectron(page, credentials) {
   await page.getByRole("textbox", { name: /email/i }).fill(credentials.email);
-  await page.getByLabel(/password/i).fill(credentials.password);
+  await page.getByLabel(/^password$/i).fill(credentials.password);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByRole("combobox", { name: "Organization" }).waitFor({
-    state: "visible",
-    timeout: 20_000,
-  });
+  await waitForShell(page);
 }
 
 async function claimThroughElectron(page, account) {
@@ -201,12 +209,9 @@ async function claimThroughElectron(page, account) {
   await page.getByRole("textbox", { name: /email/i }).fill(account.email);
   await page.getByLabel("Name", { exact: true }).fill(account.name);
   await page.getByLabel("Invitation code", { exact: true }).fill(account.claimSecret);
-  await page.getByLabel(/password/i).fill(account.password);
+  await page.getByLabel(/^password$/i).fill(account.password);
   await page.getByRole("button", { name: "Claim invitation", exact: true }).click();
-  await page.getByRole("combobox", { name: "Organization" }).waitFor({
-    state: "visible",
-    timeout: 20_000,
-  });
+  await waitForShell(page);
 }
 
 async function optionLabels(select) {
@@ -216,21 +221,16 @@ async function optionLabels(select) {
 }
 
 async function selectTargetScope(page, target) {
-  await page.getByRole("combobox", { name: "Organization" }).selectOption({
-    label: target.organization.name,
+  await selectScope(page, {
+    organization: target.organization.name,
+    business: target.business.name,
+    website: target.website.title,
+    environment: target.environment.label ?? target.environment.kind,
   });
-  await page.getByRole("combobox", { name: "Business" }).selectOption({
-    label: target.business.name,
-  });
-  await page.getByRole("combobox", { name: "Website" }).selectOption({
-    label: target.website.title,
-  });
-  const environmentSelect = page.getByRole("combobox", { name: "Environment" });
-  await environmentSelect.selectOption({ label: target.environment.label ?? target.environment.kind });
 }
 
 async function openPeoplePanel(page) {
-  await page.getByRole("button", { name: "Manage sites" }).click();
+  await openSiteManager(page);
   const manager = page.getByRole("complementary", { name: "Manage websites" });
   await manager.waitFor({ state: "visible", timeout: 10_000 });
   await manager.getByRole("button", { name: /People/ }).click();
@@ -447,8 +447,7 @@ async function main() {
       await run.page.context().tracing.start({ screenshots: true, snapshots: true, sources: true });
       tracePaths.push(tracePath);
 
-      const organizationSelect = run.page.getByRole("combobox", { name: "Organization" });
-      const visibleOrganizations = await optionLabels(organizationSelect);
+      const visibleOrganizations = await listSwitcherOrganizations(run.page);
       if (account.key === "admin") {
         if (visibleOrganizations.length !== target.organizationCount) {
           throw new Error("Administrator did not receive the complete organization portfolio");
@@ -463,24 +462,13 @@ async function main() {
       const expectsOperations = ["admin", "business-manager", "site-operator"].includes(
         account.key,
       );
-      const operationsButton = run.page.getByRole("button", { name: "Site operations" });
-      if (expectsOperations) {
-        await operationsButton.waitFor({ state: "visible", timeout: 15_000 });
-      } else {
-        await run.page.waitForTimeout(1_000);
-      }
-      const operationsVisible = await operationsButton.isVisible().catch(() => false);
+      await run.page.waitForTimeout(expectsOperations ? 2_000 : 1_000);
+      const operationsVisible = await environmentActionAvailable(run.page, "Site operations");
       if (operationsVisible !== expectsOperations) {
         throw new Error(`${account.key} lifecycle launcher visibility was incorrect`);
       }
       const expectsHandoff = ["admin", "business-manager"].includes(account.key);
-      const handoffButton = run.page.getByRole("button", { name: "Add or transfer site" });
-      if (expectsHandoff) {
-        await handoffButton.waitFor({ state: "visible", timeout: 15_000 });
-      } else {
-        await run.page.waitForTimeout(1_000);
-      }
-      const handoffVisible = await handoffButton.isVisible().catch(() => false);
+      const handoffVisible = await environmentActionAvailable(run.page, "Transfer site");
       if (handoffVisible !== expectsHandoff) {
         throw new Error(`${account.key} handoff launcher visibility was incorrect`);
       }

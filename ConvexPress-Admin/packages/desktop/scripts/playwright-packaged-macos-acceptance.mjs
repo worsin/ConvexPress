@@ -8,6 +8,17 @@ import {
 } from "./lib/electron-acceptance-environment.mjs";
 import { quitOwnedElectron } from "./lib/process-lifecycle.mjs";
 import { loadTestFleetConfig } from "./lib/test-fleet-config.mjs";
+import {
+  environmentActionAvailable,
+  listSwitcherOrganizations,
+  openEnvironmentAction,
+  openSiteManager,
+  selectBusiness,
+  selectScope,
+  shellIsVisible,
+  waitForActiveEnvironment,
+  waitForShell,
+} from "./lib/shell-scope.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(scriptDirectory, "..");
@@ -108,28 +119,20 @@ async function main() {
     }
 
     phase = "authenticate-packaged-operator";
-    const organizationSelect = page.getByRole("combobox", { name: "Organization" });
-    if (!(await organizationSelect.isVisible().catch(() => false))) {
+    if (!(await shellIsVisible(page))) {
       await page.getByRole("textbox", { name: /email/i }).fill(credentials.email);
-      await page.getByLabel(/password/i).fill(credentials.password);
+      await page.getByLabel(/^password$/i).fill(credentials.password);
       await page.getByRole("button", { name: /sign in|continue/i }).click();
     }
-    await organizationSelect.waitFor({ state: "visible", timeout: 20_000 });
+    await waitForShell(page);
     phase = "render-packaged-live-site";
-    await organizationSelect.selectOption({ label: "Acceptance Agency Group" });
-    await page.getByRole("combobox", { name: "Business" }).selectOption({
-      label: "Northstar Commerce",
+    await selectScope(page, {
+      organization: "Acceptance Agency Group",
+      business: "Northstar Commerce",
+      website: "Northstar Shop",
+      environment: "Live",
     });
-    await page.getByRole("combobox", { name: "Website" }).selectOption({
-      label: "Northstar Shop",
-    });
-    await page.getByRole("combobox", { name: "Environment" }).selectOption({
-      label: "Live",
-    });
-    await page.getByText("Northstar Shop — Live", { exact: true }).first().waitFor({
-      state: "visible",
-      timeout: 20_000,
-    });
+    await waitForActiveEnvironment(page, "Northstar Shop — Live");
     await page.getByText("No recent activity.", { exact: true }).waitFor({
       state: "visible",
       timeout: 20_000,

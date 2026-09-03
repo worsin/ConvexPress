@@ -183,9 +183,9 @@ interface ManagerContext {
 }
 
 const inputClass =
-  "mt-1.5 w-full border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none transition focus:border-cyan-700 focus:ring-2 focus:ring-cyan-100";
+  "mt-1.5 w-full border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-cyan-700 focus:ring-2 focus:ring-cyan-100";
 const labelClass =
-  "text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-600";
+  "text-[10px] font-extrabold uppercase tracking-[0.14em] text-ink-2";
 
 export function SiteManagerPanel({
   open,
@@ -379,16 +379,14 @@ export function SiteManagerPanel({
   return (
     <aside
       aria-label="Manage websites"
-      className="absolute inset-y-0 right-0 z-[86] flex w-full max-w-[45rem] flex-col border-l border-slate-300 bg-[#edf2f5] shadow-2xl sm:w-[45rem]"
+      className="absolute inset-y-0 right-0 z-[86] flex w-full max-w-[45rem] flex-col border-l border-border bg-background shadow-float sm:w-[45rem]"
     >
-      <header className="shrink-0 border-b border-slate-300 bg-[#101827] px-5 pb-0 pt-5 text-white">
+      <header className="shrink-0 border-b border-border bg-card px-5 pb-0 pt-5 text-foreground">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-cyan-300">
-              Multisite portfolio
-            </p>
+            <p className="eyebrow text-primary">Multisite portfolio</p>
             <h2 className="mt-1 font-serif text-2xl tracking-tight">Manage sites</h2>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-muted-foreground">
               {selectedOrganization?.name ?? "Create your first organization"}
               {selectedBusiness ? ` / ${selectedBusiness.name}` : ""}
               {selectedWebsite ? ` / ${selectedWebsite.title}` : ""}
@@ -396,7 +394,6 @@ export function SiteManagerPanel({
           </div>
           <Button
             aria-label="Close site manager"
-            className="text-white hover:bg-white/10"
             size="icon"
             variant="ghost"
             onClick={onClose}
@@ -422,12 +419,12 @@ export function SiteManagerPanel({
 
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
         {error ? (
-          <p role="alert" className="mb-4 border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+          <p role="alert" className="mb-4 border border-destructive/40 bg-live-soft p-3 text-sm text-destructive">
             {error}
           </p>
         ) : null}
         {success ? (
-          <p role="status" className="mb-4 flex items-center gap-2 border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-950">
+          <p role="status" className="mb-4 flex items-center gap-2 border border-success/40 bg-success-soft p-3 text-sm font-semibold text-success">
             <CheckCircle2 className="size-4" /> {success}
           </p>
         ) : null}
@@ -489,8 +486,8 @@ export function SiteManagerPanel({
         ) : null}
       </div>
 
-      <footer className="shrink-0 border-t border-slate-300 bg-white px-5 py-3 text-xs text-slate-500">
-        Signed in as <span className="font-semibold text-slate-800">{scopedProfile?.effectiveLabel ?? operatorRole}</span>. Every change is re-authorized by the control plane.
+      <footer className="shrink-0 border-t border-border bg-card px-5 py-3 text-xs text-muted-foreground">
+        Signed in as <span className="font-semibold text-ink-2">{scopedProfile?.effectiveLabel ?? operatorRole}</span>. Every change is re-authorized by the control plane.
       </footer>
     </aside>
   );
@@ -630,16 +627,16 @@ function PortfolioSection({
 
   return (
     <div className="space-y-5">
-      <section className="grid gap-px overflow-hidden border border-slate-300 bg-slate-300 sm:grid-cols-3">
+      <section className="grid gap-px overflow-hidden border border-border bg-line-strong sm:grid-cols-3">
         <PortfolioCard icon={<Building2 className="size-4" />} label="Organization" value={organization?.name ?? "None selected"} />
         <PortfolioCard icon={<Network className="size-4" />} label="Business" value={business?.name ?? "None selected"} />
         <PortfolioCard icon={<Globe2 className="size-4" />} label="Website" value={website?.title ?? "None selected"} />
       </section>
 
       {organization && controls.editOrganization ? (
-        <details className="group border border-slate-300 bg-white">
-          <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-bold"><span className="flex items-center gap-2"><PencilLine className="size-4 text-cyan-700" /> Edit organization</span><span className="text-xs text-slate-400">{organization.slug}</span></summary>
-          <form className="grid gap-3 border-t border-slate-200 p-4" onSubmit={(event) => { event.preventDefault(); void run("edit-organization", async () => { await updateOrganization({ organizationId: organization.organizationId, name: editOrganization.name, slug: editOrganization.slug, description: editOrganization.description }); return "Organization updated."; }); }}>
+        <details className="group border border-border bg-card">
+          <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-bold"><span className="flex items-center gap-2"><PencilLine className="size-4 text-primary" /> Edit organization</span><span className="text-xs text-muted-foreground">{organization.slug}</span></summary>
+          <form className="grid gap-3 border-t border-border p-4" onSubmit={(event) => { event.preventDefault(); void run("edit-organization", async () => { await updateOrganization({ organizationId: organization.organizationId, name: editOrganization.name, slug: editOrganization.slug, description: editOrganization.description }); return "Organization updated."; }); }}>
             <TextField label="Name" value={editOrganization.name} onChange={(value) => setEditOrganization((current) => ({ ...current, name: value }))} />
             <TextField label="Slug" value={editOrganization.slug} onChange={(value) => setEditOrganization((current) => ({ ...current, slug: value }))} />
             <TextArea label="Description" value={editOrganization.description} onChange={(value) => setEditOrganization((current) => ({ ...current, description: value }))} />
@@ -649,9 +646,9 @@ function PortfolioSection({
       ) : null}
 
       {business && controls.editBusiness ? (
-        <details className="group border border-slate-300 bg-white">
-          <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-bold"><span className="flex items-center gap-2"><PencilLine className="size-4 text-cyan-700" /> Edit business</span><span className="text-xs text-slate-400">{business.slug}</span></summary>
-          <form className="grid gap-3 border-t border-slate-200 p-4" onSubmit={(event) => { event.preventDefault(); void run("edit-business", async () => { await updateBusiness({ businessId: business.businessId, name: editBusiness.name, slug: editBusiness.slug, description: editBusiness.description, accentColor: editBusiness.accentColor }); return "Business updated."; }); }}>
+        <details className="group border border-border bg-card">
+          <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-bold"><span className="flex items-center gap-2"><PencilLine className="size-4 text-primary" /> Edit business</span><span className="text-xs text-muted-foreground">{business.slug}</span></summary>
+          <form className="grid gap-3 border-t border-border p-4" onSubmit={(event) => { event.preventDefault(); void run("edit-business", async () => { await updateBusiness({ businessId: business.businessId, name: editBusiness.name, slug: editBusiness.slug, description: editBusiness.description, accentColor: editBusiness.accentColor }); return "Business updated."; }); }}>
             <TextField label="Name" value={editBusiness.name} onChange={(value) => setEditBusiness((current) => ({ ...current, name: value }))} />
             <TextField label="Slug" value={editBusiness.slug} onChange={(value) => setEditBusiness((current) => ({ ...current, slug: value }))} />
             <TextArea label="Description" value={editBusiness.description} onChange={(value) => setEditBusiness((current) => ({ ...current, description: value }))} />
@@ -662,9 +659,9 @@ function PortfolioSection({
       ) : null}
 
       {website && controls.editWebsite ? (
-        <details className="group border border-slate-300 bg-white">
-          <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-bold"><span className="flex items-center gap-2"><PencilLine className="size-4 text-cyan-700" /> Edit website</span><span className="max-w-64 truncate text-xs text-slate-400">{website.websiteKey}</span></summary>
-          <form className="grid gap-3 border-t border-slate-200 p-4" onSubmit={(event) => { event.preventDefault(); void run("edit-website", async () => { await updateWebsite({ websiteId: website.websiteId, title: editWebsite.title, primaryDomain: editWebsite.primaryDomain, description: editWebsite.description }); return "Website updated."; }); }}>
+        <details className="group border border-border bg-card">
+          <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-bold"><span className="flex items-center gap-2"><PencilLine className="size-4 text-primary" /> Edit website</span><span className="max-w-64 truncate text-xs text-muted-foreground">{website.websiteKey}</span></summary>
+          <form className="grid gap-3 border-t border-border p-4" onSubmit={(event) => { event.preventDefault(); void run("edit-website", async () => { await updateWebsite({ websiteId: website.websiteId, title: editWebsite.title, primaryDomain: editWebsite.primaryDomain, description: editWebsite.description }); return "Website updated."; }); }}>
             <TextField label="Title" value={editWebsite.title} onChange={(value) => setEditWebsite((current) => ({ ...current, title: value }))} />
             <TextField label="Primary domain" value={editWebsite.primaryDomain} onChange={(value) => setEditWebsite((current) => ({ ...current, primaryDomain: value }))} />
             <TextArea label="Description" value={editWebsite.description} onChange={(value) => setEditWebsite((current) => ({ ...current, description: value }))} />
@@ -673,12 +670,12 @@ function PortfolioSection({
         </details>
       ) : null}
 
-      <section aria-label="Add portfolio records" className="border border-slate-300 bg-white p-4">
-        <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-cyan-800">Add to the portfolio</p>
-        <p className="mt-1 text-sm text-slate-600">New records inherit the current level selected in the scope bar.</p>
+      <section aria-label="Add portfolio records" className="rounded-xl border border-border bg-card p-4">
+        <p className="eyebrow text-primary">Add to the portfolio</p>
+        <p className="mt-1 text-sm text-ink-2">New records inherit the current level selected in the scope bar.</p>
 
         {mayManageHierarchy ? (
-          <details className="mt-4 border-t border-slate-200 pt-3" open={!organization}>
+          <details className="mt-4 border-t border-border pt-3" open={!organization}>
             <summary className="cursor-pointer text-sm font-bold">New organization</summary>
             <form aria-label="Create organization" className="mt-3 grid gap-3" onSubmit={submitOrganization}>
               <TextField label="Organization name" value={organizationName} onChange={(value) => { setOrganizationName(value); if (!organizationSlug) setOrganizationSlug(slugifyPortablePart(value)); }} required />
@@ -690,7 +687,7 @@ function PortfolioSection({
         ) : null}
 
         {organization && mayManageHierarchy ? (
-          <details className="mt-4 border-t border-slate-200 pt-3" open={!business}>
+          <details className="mt-4 border-t border-border pt-3" open={!business}>
             <summary className="cursor-pointer text-sm font-bold">New business in {organization.name}</summary>
             <form aria-label="Create business" className="mt-3 grid gap-3" onSubmit={submitBusiness}>
               <TextField label="Business name" value={businessName} onChange={(value) => { setBusinessName(value); if (!businessSlug) setBusinessSlug(slugifyPortablePart(value)); }} required />
@@ -703,7 +700,7 @@ function PortfolioSection({
         ) : null}
 
         {organization && business && controls.createWebsite ? (
-          <details className="mt-4 border-t border-slate-200 pt-3" open={!website}>
+          <details className="mt-4 border-t border-border pt-3" open={!website}>
             <summary className="cursor-pointer text-sm font-bold">New website in {business.name}</summary>
             <form aria-label="Register website" className="mt-3 grid gap-3" onSubmit={submitWebsite}>
               <TextField label="Website title" value={websiteTitle} onChange={(value) => { setWebsiteTitle(value); if (!websiteKey) setWebsiteKey(buildWebsiteKey(business.slug, value)); }} required />
@@ -716,11 +713,11 @@ function PortfolioSection({
         ) : null}
 
         {accessPending ? (
-          <p role="status" className="mt-4 flex items-center gap-2 border-l-4 border-cyan-500 bg-cyan-50 px-3 py-2 text-sm text-cyan-950">
+          <p role="status" className="mt-4 flex items-center gap-2 border-l-4 border-primary bg-primary-soft px-3 py-2 text-sm text-primary">
             <Loader2 className="size-4 animate-spin" /> Checking portfolio permissions…
           </p>
         ) : !mayManageHierarchy && !mayManageBusiness ? (
-          <p className="mt-4 border-l-4 border-slate-400 bg-slate-50 px-3 py-2 text-sm text-slate-600">Your assigned role can view this portfolio but cannot change its hierarchy.</p>
+          <p className="mt-4 border-l-4 border-line-strong bg-surface-2 px-3 py-2 text-sm text-ink-2">Your assigned role can view this portfolio but cannot change its hierarchy.</p>
         ) : null}
       </section>
     </div>
@@ -814,10 +811,10 @@ function EnvironmentSection({
   return (
     <div className="space-y-5">
       {environment ? (
-        <section aria-label="Current environment details" className="border border-slate-300 bg-white">
-          <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-4">
-            <div><p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-cyan-800">Current environment</p><h3 className="mt-1 font-serif text-xl">{environment.label ?? environment.kind}</h3><p className="mt-1 break-all font-mono text-[10px] text-slate-500">{environment.instanceKey}</p></div>
-            <div className="text-right text-xs"><p className="font-bold uppercase text-slate-700">{environment.kind}</p><p className="mt-1 text-slate-500">{environment.health} / {environment.compatibility}</p></div>
+        <section aria-label="Current environment details" className="border border-border bg-card">
+          <div className="flex items-start justify-between gap-4 border-b border-border p-4">
+            <div><p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-primary">Current environment</p><h3 className="mt-1 font-serif text-xl">{environment.label ?? environment.kind}</h3><p className="mt-1 break-all font-mono text-[10px] text-muted-foreground">{environment.instanceKey}</p></div>
+            <div className="text-right text-xs"><p className="font-bold uppercase text-ink-2">{environment.kind}</p><p className="mt-1 text-muted-foreground">{environment.health} / {environment.compatibility}</p></div>
           </div>
           {mayManageWebsite ? (
             <form className="grid gap-3 p-4" onSubmit={(event) => { event.preventDefault(); void run("edit-environment", async () => { await updateEnvironment({ instanceId: environment.instanceId, label: editEnvironment.label || null, deploymentOrigin: editEnvironment.deploymentOrigin, managementOrigin: editEnvironment.managementOrigin, siteOrigin: editEnvironment.siteOrigin, siteContractVersion: editEnvironment.siteContractVersion || null, schemaVersion: editEnvironment.schemaVersion || null, engineVersion: editEnvironment.engineVersion || null }); return "Environment details updated."; }); }}>
@@ -825,39 +822,39 @@ function EnvironmentSection({
               <TextField label="Convex deployment URL" value={editEnvironment.deploymentOrigin} onChange={(value) => setEditEnvironment((current) => ({ ...current, deploymentOrigin: value }))} required />
               <TextField label="Convex site / management URL" value={editEnvironment.managementOrigin} onChange={(value) => setEditEnvironment((current) => ({ ...current, managementOrigin: value }))} required />
               <div className="grid gap-3 sm:grid-cols-3"><TextField label="Contract" value={editEnvironment.siteContractVersion} onChange={(value) => setEditEnvironment((current) => ({ ...current, siteContractVersion: value }))} /><TextField label="Schema" value={editEnvironment.schemaVersion} onChange={(value) => setEditEnvironment((current) => ({ ...current, schemaVersion: value }))} /><TextField label="Engine" value={editEnvironment.engineVersion} onChange={(value) => setEditEnvironment((current) => ({ ...current, engineVersion: value }))} /></div>
-              <div className="flex flex-wrap gap-2"><SubmitButton pending={pending === "edit-environment"}>Save environment</SubmitButton>{!environment.isDefault ? <Button type="button" variant="outline" disabled={pending !== null || (environment.kind === "live" && !liveAllowed)} onClick={() => void run("default-environment", async () => { await setDefault({ instanceId: environment.instanceId }); return "Default environment changed."; })}>Make default</Button> : <span className="self-center text-xs font-semibold text-emerald-700">Default environment</span>}</div>
+              <div className="flex flex-wrap gap-2"><SubmitButton pending={pending === "edit-environment"}>Save environment</SubmitButton>{!environment.isDefault ? <Button type="button" variant="outline" disabled={pending !== null || (environment.kind === "live" && !liveAllowed)} onClick={() => void run("default-environment", async () => { await setDefault({ instanceId: environment.instanceId }); return "Default environment changed."; })}>Make default</Button> : <span className="self-center text-xs font-semibold text-success">Default environment</span>}</div>
             </form>
           ) : null}
           {mayManageWebsite && (!environment.kind || environment.kind !== "live" || liveAllowed) ? (
-            <div className="border-t border-red-200 bg-red-50 p-4">
-              <p className="text-xs font-bold text-red-950">Archive this environment</p>
-              <p className="mt-1 text-xs text-red-800">First revoke its active controller connection. Then type <code className="font-bold">ARCHIVE ENVIRONMENT {environment.instanceKey}</code>.</p>
-              <div className="mt-3 flex gap-2"><input aria-label="Environment archive confirmation" className={`${inputClass} mt-0 flex-1`} value={archiveConfirmation} onChange={(event) => setArchiveConfirmation(event.target.value)} /><Button type="button" className="bg-red-700 text-white hover:bg-red-800" disabled={pending !== null || archiveConfirmation !== `ARCHIVE ENVIRONMENT ${environment.instanceKey}`} onClick={() => void run("archive-environment", async () => { await archiveEnvironment({ instanceId: environment.instanceId, confirmation: archiveConfirmation }); onChangeScope({ ...selection, instanceId: null }); return "Environment archived."; })}><Trash2 className="mr-2 size-4" /> Archive</Button></div>
+            <div className="border-t border-destructive/40 bg-live-soft p-4">
+              <p className="text-xs font-bold text-destructive">Archive this environment</p>
+              <p className="mt-1 text-xs text-destructive">First revoke its active controller connection. Then type <code className="font-bold">ARCHIVE ENVIRONMENT {environment.instanceKey}</code>.</p>
+              <div className="mt-3 flex gap-2"><input aria-label="Environment archive confirmation" className={`${inputClass} mt-0 flex-1`} value={archiveConfirmation} onChange={(event) => setArchiveConfirmation(event.target.value)} /><Button type="button" className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={pending !== null || archiveConfirmation !== `ARCHIVE ENVIRONMENT ${environment.instanceKey}`} onClick={() => void run("archive-environment", async () => { await archiveEnvironment({ instanceId: environment.instanceId, confirmation: archiveConfirmation }); onChangeScope({ ...selection, instanceId: null }); return "Environment archived."; })}><Trash2 className="mr-2 size-4" /> Archive</Button></div>
             </div>
           ) : null}
         </section>
       ) : null}
 
       {mayManageWebsite ? (
-        <section aria-label="Attach environment" className="border border-slate-300 bg-white p-4">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-cyan-800">Attach another isolated deployment</p>
-          <p className="mt-1 text-sm text-slate-600">ConvexPress records the addresses; this standalone app does not provision infrastructure automatically.</p>
+        <section aria-label="Attach environment" className="rounded-xl border border-border bg-card p-4">
+          <p className="eyebrow text-primary">Attach another isolated deployment</p>
+          <p className="mt-1 text-sm text-ink-2">ConvexPress records the addresses; this standalone app does not provision infrastructure automatically.</p>
           <form className="mt-4 grid gap-3" onSubmit={submitEnvironment}>
             <div className="grid gap-3 sm:grid-cols-2"><label className={labelClass}>Environment kind<select className={inputClass} value={kind} onChange={(event) => { const next = event.target.value as EnvironmentKind; setKind(next); setLabel(next.charAt(0).toUpperCase() + next.slice(1)); }}><option value="live">Live</option><option value="staging">Staging</option><option value="beta">Beta</option><option value="preview">Preview</option><option value="development">Development</option><option value="local">Local</option><option value="custom">Custom</option></select></label><TextField label="Label" value={label} onChange={setLabel} required /></div>
-            {kind === "live" && !liveAllowed ? <p role="alert" className="border-l-4 border-red-500 bg-red-50 px-3 py-2 text-xs text-red-900">Your role cannot attach a production environment.</p> : null}
+            {kind === "live" && !liveAllowed ? <p role="alert" className="border-l-4 border-destructive/60 bg-live-soft px-3 py-2 text-xs text-destructive">Your role cannot attach a production environment.</p> : null}
             <TextField label="Portable environment key" value={instanceKey} onChange={setInstanceKey} placeholder={buildEnvironmentKey({ websiteKey: website.websiteKey, kind, label, existingKeys: environments.map((entry) => entry.instanceKey) })} />
             <TextField label="Convex deployment URL" value={deploymentOrigin} onChange={setDeploymentOrigin} placeholder="https://deployment.convex.cloud" required />
             <TextField label="Convex site / management URL" value={managementOrigin} onChange={setManagementOrigin} placeholder="Defaults to deployment URL for local installs" />
             <TextField label="Public website URL" value={siteOrigin} onChange={setSiteOrigin} placeholder="https://shop.example.com" required />
             <div className="grid gap-3 sm:grid-cols-3"><TextField label="Contract version" value={siteContractVersion} onChange={setSiteContractVersion} /><TextField label="Schema version" value={schemaVersion} onChange={setSchemaVersion} /><TextField label="Engine version" value={engineVersion} onChange={setEngineVersion} /></div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={makeDefault} onChange={(event) => setMakeDefault(event.target.checked)} /> Make this the website default</label>
+            <label className="flex items-center gap-2 text-sm font-semibold text-ink-2"><input type="checkbox" checked={makeDefault} onChange={(event) => setMakeDefault(event.target.checked)} /> Make this the website default</label>
             <SubmitButton pending={pending === "create-environment"} disabled={kind === "live" && !liveAllowed}><Plus className="mr-2 size-4" /> Attach environment</SubmitButton>
           </form>
         </section>
       ) : accessPending ? (
-        <p role="status" className="flex items-center gap-2 border-l-4 border-cyan-500 bg-white px-3 py-3 text-sm text-cyan-950"><Loader2 className="size-4 animate-spin" /> Checking environment permissions…</p>
+        <p role="status" className="flex items-center gap-2 border-l-4 border-primary bg-card px-3 py-3 text-sm text-primary"><Loader2 className="size-4 animate-spin" /> Checking environment permissions…</p>
       ) : (
-        <p className="border-l-4 border-slate-400 bg-white px-3 py-3 text-sm text-slate-600">Your assigned role can view this environment but cannot change its deployment registration.</p>
+        <p className="border-l-4 border-line-strong bg-card px-3 py-3 text-sm text-ink-2">Your assigned role can view this environment but cannot change its deployment registration.</p>
       )}
     </div>
   );
@@ -892,18 +889,18 @@ function AuthoritySection({ authClient, environment, connections, mayManage, acc
 
   return (
     <div className="space-y-5">
-      <section aria-label="Controller authority" className="border border-slate-300 bg-white p-4">
-        <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-cyan-800">Controller authority</p><h3 className="mt-1 font-serif text-xl">{environment.label ?? environment.kind}</h3><p className="mt-1 text-xs text-slate-500">{environment.instanceKey}</p></div><KeyRound className="size-6 text-cyan-700" /></div>
-        {connections.length ? <div className="mt-4 space-y-3">{connections.map((connection) => <article aria-label={`Controller connection ${connection.name}`} key={connection.connectionId} className="border border-slate-200 bg-slate-50 p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-bold text-slate-950">{connection.name}</p><p className="mt-1 text-xs text-slate-500">{connection.accountLabel ?? "No account label"}</p></div><span className={`px-2 py-1 text-[10px] font-extrabold uppercase ${connection.status === "connected" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`}>{connection.status}</span></div><div className="mt-3 flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={!mayManage || pending !== null} onClick={() => void run(`test-${connection.connectionId}`, async () => { await testConnection({ connectionId: connection.connectionId }); return "Connection health verified."; })}>{pending === `test-${connection.connectionId}` ? <Loader2 className="mr-2 size-3.5 animate-spin" /> : <Activity className="mr-2 size-3.5" />} Test</Button><Button size="sm" variant="outline" disabled={!mayManage || pending !== null} onClick={() => void run(`rotate-${connection.connectionId}`, async () => { await rotateConnection({ connectionId: connection.connectionId }); return "Controller signing authority rotated."; })}>{pending === `rotate-${connection.connectionId}` ? <Loader2 className="mr-2 size-3.5 animate-spin" /> : <RefreshCw className="mr-2 size-3.5" />} Rotate</Button><Button size="sm" variant="outline" className="border-red-300 text-red-800 hover:bg-red-50" disabled={!mayManage || pending !== null} onClick={() => { setRevokeId(connection.connectionId); setRevokeConfirmation(""); }}><Trash2 className="mr-2 size-3.5" /> Revoke</Button></div>{connection.credentialVersion !== null ? <p className="mt-3 text-[10px] uppercase tracking-[0.12em] text-slate-500">Encrypted envelope v{connection.credentialVersion} · updated {new Date(connection.updatedAt).toLocaleString()}</p> : null}</article>)}</div> : <p className="mt-4 border-l-4 border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-950">This environment is registered but this controller has no authority to manage it.</p>}
+      <section aria-label="Controller authority" className="rounded-xl border border-border bg-card p-4">
+        <div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-primary">Controller authority</p><h3 className="mt-1 font-serif text-xl">{environment.label ?? environment.kind}</h3><p className="mt-1 text-xs text-muted-foreground">{environment.instanceKey}</p></div><KeyRound className="size-6 text-primary" /></div>
+        {connections.length ? <div className="mt-4 space-y-3">{connections.map((connection) => <article aria-label={`Controller connection ${connection.name}`} key={connection.connectionId} className="rounded-xl border border-border bg-surface-2 p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-bold text-foreground">{connection.name}</p><p className="mt-1 text-xs text-muted-foreground">{connection.accountLabel ?? "No account label"}</p></div><span className={`px-2 py-1 text-[10px] font-extrabold uppercase ${connection.status === "connected" ? "bg-emerald-100 text-emerald-800" : "bg-warning-soft text-warning"}`}>{connection.status}</span></div><div className="mt-3 flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={!mayManage || pending !== null} onClick={() => void run(`test-${connection.connectionId}`, async () => { await testConnection({ connectionId: connection.connectionId }); return "Connection health verified."; })}>{pending === `test-${connection.connectionId}` ? <Loader2 className="mr-2 size-3.5 animate-spin" /> : <Activity className="mr-2 size-3.5" />} Test</Button><Button size="sm" variant="outline" disabled={!mayManage || pending !== null} onClick={() => void run(`rotate-${connection.connectionId}`, async () => { await rotateConnection({ connectionId: connection.connectionId }); return "Controller signing authority rotated."; })}>{pending === `rotate-${connection.connectionId}` ? <Loader2 className="mr-2 size-3.5 animate-spin" /> : <RefreshCw className="mr-2 size-3.5" />} Rotate</Button><Button size="sm" variant="outline" className="border-destructive/40 text-destructive hover:bg-live-soft" disabled={!mayManage || pending !== null} onClick={() => { setRevokeId(connection.connectionId); setRevokeConfirmation(""); }}><Trash2 className="mr-2 size-3.5" /> Revoke</Button></div>{connection.credentialVersion !== null ? <p className="mt-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Encrypted envelope v{connection.credentialVersion} · updated {new Date(connection.updatedAt).toLocaleString()}</p> : null}</article>)}</div> : <p className="mt-4 border-l-4 border-warning/60 bg-warning-soft px-3 py-2 text-sm text-warning">This environment is registered but this controller has no authority to manage it.</p>}
       </section>
 
-      {revokeId ? <section className="border border-red-300 bg-red-50 p-4"><p className="text-sm font-bold text-red-950">Revoke this controller authority</p><p className="mt-1 text-xs text-red-800">Type <code className="font-bold">{expectedConnectionRevocation(String(revokeId))}</code>. Confirm another trusted controller works first if this is a client handoff.</p><input aria-label="Connection revocation confirmation" className={`${inputClass} border-red-300`} value={revokeConfirmation} onChange={(event) => setRevokeConfirmation(event.target.value)} /><div className="mt-3 flex gap-2"><Button variant="outline" onClick={() => { setRevokeId(null); setRevokeConfirmation(""); }}>Cancel</Button><Button className="bg-red-700 text-white hover:bg-red-800" disabled={pending !== null || revokeConfirmation !== expectedConnectionRevocation(String(revokeId))} onClick={() => void run("revoke", async () => { await revokeConnection({ connectionId: revokeId }); setRevokeId(null); setRevokeConfirmation(""); return "Controller authority revoked."; })}>Revoke authority</Button></div></section> : null}
+      {revokeId ? <section className="border border-destructive/40 bg-live-soft p-4"><p className="text-sm font-bold text-destructive">Revoke this controller authority</p><p className="mt-1 text-xs text-destructive">Type <code className="font-bold">{expectedConnectionRevocation(String(revokeId))}</code>. Confirm another trusted controller works first if this is a client handoff.</p><input aria-label="Connection revocation confirmation" className={`${inputClass} border-destructive/40`} value={revokeConfirmation} onChange={(event) => setRevokeConfirmation(event.target.value)} /><div className="mt-3 flex gap-2"><Button variant="outline" onClick={() => { setRevokeId(null); setRevokeConfirmation(""); }}>Cancel</Button><Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={pending !== null || revokeConfirmation !== expectedConnectionRevocation(String(revokeId))} onClick={() => void run("revoke", async () => { await revokeConnection({ connectionId: revokeId }); setRevokeId(null); setRevokeConfirmation(""); return "Controller authority revoked."; })}>Revoke authority</Button></div></section> : null}
 
-      {!activeConnection && mayManage ? <section className="border border-slate-300 bg-white p-4"><p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-cyan-800">Grant this controller access</p><p className="mt-1 text-sm text-slate-600">The deployment key is requested in a separate protected Electron window. It never enters this page.</p><div className="mt-4 grid gap-3"><TextField label="Connection name" value={connectionName} onChange={setConnectionName} required /><TextField label="Account label" value={accountLabel} onChange={setAccountLabel} placeholder="Client production" /><Button className="bg-cyan-700 text-white hover:bg-cyan-800" disabled={pending !== null || !connectionName.trim()} onClick={connect}>{pending === "connect" ? <Loader2 className="mr-2 size-4 animate-spin" /> : <KeyRound className="mr-2 size-4" />} Enter key in protected window</Button></div></section> : null}
+      {!activeConnection && mayManage ? <section className="rounded-xl border border-border bg-card p-4"><p className="eyebrow text-primary">Grant this controller access</p><p className="mt-1 text-sm text-ink-2">The deployment key is requested in a separate protected Electron window. It never enters this page.</p><div className="mt-4 grid gap-3"><TextField label="Connection name" value={connectionName} onChange={setConnectionName} required /><TextField label="Account label" value={accountLabel} onChange={setAccountLabel} placeholder="Client production" /><Button className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={pending !== null || !connectionName.trim()} onClick={connect}>{pending === "connect" ? <Loader2 className="mr-2 size-4 animate-spin" /> : <KeyRound className="mr-2 size-4" />} Enter key in protected window</Button></div></section> : null}
 
-      {accessPending ? <p role="status" className="flex items-center gap-2 border-l-4 border-cyan-500 bg-white px-3 py-3 text-sm text-cyan-950"><Loader2 className="size-4 animate-spin" /> Checking authority permissions…</p> : !mayManage ? <p className="border-l-4 border-slate-400 bg-white px-3 py-3 text-sm text-slate-600">Your assigned role may inspect this environment but cannot grant, rotate, or revoke controller authority.</p> : null}
+      {accessPending ? <p role="status" className="flex items-center gap-2 border-l-4 border-primary bg-card px-3 py-3 text-sm text-primary"><Loader2 className="size-4 animate-spin" /> Checking authority permissions…</p> : !mayManage ? <p className="border-l-4 border-line-strong bg-card px-3 py-3 text-sm text-ink-2">Your assigned role may inspect this environment but cannot grant, rotate, or revoke controller authority.</p> : null}
 
-      {history?.length ? <section className="border border-slate-300 bg-white p-4"><p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-cyan-800">Recent health checks</p><ol className="mt-3 divide-y divide-slate-200">{history.map((entry, index) => <li key={`${entry.checkedAt}-${index}`} className="flex items-center justify-between gap-3 py-2 text-xs"><span className="font-semibold capitalize text-slate-800">{entry.status}</span><span className="text-slate-500">{entry.latencyMs === null ? "—" : `${entry.latencyMs} ms`} · {new Date(entry.checkedAt).toLocaleString()}</span></li>)}</ol></section> : null}
+      {history?.length ? <section className="rounded-xl border border-border bg-card p-4"><p className="eyebrow text-primary">Recent health checks</p><ol className="mt-3 divide-y divide-border">{history.map((entry, index) => <li key={`${entry.checkedAt}-${index}`} className="flex items-center justify-between gap-3 py-2 text-xs"><span className="font-semibold capitalize text-ink-2">{entry.status}</span><span className="text-muted-foreground">{entry.latencyMs === null ? "—" : `${entry.latencyMs} ms`} · {new Date(entry.checkedAt).toLocaleString()}</span></li>)}</ol></section> : null}
     </div>
   );
 }
@@ -979,36 +976,36 @@ function PeopleSection({
 
   return (
     <div className="space-y-5">
-      <section className="border border-slate-300 bg-white p-4">
+      <section className="rounded-xl border border-border bg-card p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-cyan-800">
+            <p className="eyebrow text-primary">
               Your outer access
             </p>
             <h3 className="mt-1 font-serif text-xl">{currentRoleLabel}</h3>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+            <p className="mt-2 max-w-xl text-sm leading-6 text-ink-2">
               This role controls which organizations, businesses, websites, and
               environments appear in this multisite controller. Website customer
               accounts remain isolated inside each website database.
             </p>
           </div>
-          <Users className="size-6 shrink-0 text-cyan-700" />
+          <Users className="size-6 shrink-0 text-primary" />
         </div>
       </section>
 
       {accessPending ? (
-        <p role="status" className="flex items-center gap-2 border-l-4 border-cyan-500 bg-white px-3 py-3 text-sm text-cyan-950">
+        <p role="status" className="flex items-center gap-2 border-l-4 border-primary bg-card px-3 py-3 text-sm text-primary">
           <Loader2 className="size-4 animate-spin" /> Checking people-management permissions…
         </p>
       ) : mayManage ? (
         <>
-          <section className="border border-slate-300 bg-white p-4">
+          <section className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center gap-3">
-              <span className="grid size-9 place-items-center bg-cyan-100 text-cyan-800">
+              <span className="grid size-9 place-items-center bg-primary-soft text-primary">
                 <UserPlus className="size-4" />
               </span>
               <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-cyan-800">
+                <p className="eyebrow text-primary">
                   Add control-plane operator
                 </p>
                 <h3 className="mt-0.5 font-serif text-xl">Assign the narrowest useful scope</h3>
@@ -1034,7 +1031,7 @@ function PeopleSection({
                   <option value="viewer">Viewer — selected website read-only</option>
                 </select>
               </label>
-              <div className="border-l-4 border-cyan-600 bg-cyan-50 px-3 py-2 text-sm text-cyan-950">
+              <div className="border-l-4 border-primary bg-primary-soft px-3 py-2 text-sm text-primary">
                 {profile === "administrator"
                   ? "Scope: every organization, business, website, and environment in this installation."
                   : needsBusiness
@@ -1051,7 +1048,7 @@ function PeopleSection({
             {invitationReceipt ? (
               <aside
                 aria-label="One-time operator invitation"
-                className="mt-4 border border-amber-300 bg-amber-50 p-3 text-amber-950"
+                className="mt-4 border border-warning/50 bg-warning-soft p-3 text-warning"
               >
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.14em]">
                   Copy now · shown only in this session
@@ -1059,23 +1056,23 @@ function PeopleSection({
                 <p className="mt-2 text-sm">
                   {invitationReceipt.email} · expires {new Date(invitationReceipt.expiresAt).toLocaleString()}
                 </p>
-                <output className="mt-2 block break-all border border-amber-300 bg-white p-2 font-mono text-xs select-all">
+                <output className="mt-2 block break-all border border-warning/50 bg-card p-2 font-mono text-xs select-all">
                   {invitationReceipt.claimSecret}
                 </output>
               </aside>
             ) : null}
           </section>
 
-          <section aria-label="Control-plane operators" className="border border-slate-300 bg-white p-4">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-cyan-800">
+          <section aria-label="Control-plane operators" className="rounded-xl border border-border bg-card p-4">
+            <p className="eyebrow text-primary">
               Current operators
             </p>
             {operatorsPending ? (
-              <p role="status" className="mt-4 flex items-center gap-2 text-sm text-slate-600">
+              <p role="status" className="mt-4 flex items-center gap-2 text-sm text-ink-2">
                 <Loader2 className="size-4 animate-spin" /> Loading assigned access…
               </p>
             ) : (
-              <div className="mt-3 divide-y divide-slate-200">
+              <div className="mt-3 divide-y divide-border">
                 {operators.map((operator) => (
                   <article
                     aria-label={`Operator ${operator.email ?? operator.name ?? operator.userId}`}
@@ -1084,15 +1081,15 @@ function PeopleSection({
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-slate-950">
+                        <p className="truncate text-sm font-bold text-foreground">
                           {operator.name ?? operator.email ?? "Unnamed operator"}
                         </p>
-                        <p className="mt-0.5 truncate text-xs text-slate-500">
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
                           {operator.email ?? "No login email"} · {operatorProfileSummary(operator)}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
-                        <span className={`px-2 py-1 text-[9px] font-extrabold uppercase tracking-[0.1em] ${operator.isActive ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"}`}>
+                        <span className={`px-2 py-1 text-[9px] font-extrabold uppercase tracking-[0.1em] ${operator.isActive ? "bg-emerald-100 text-emerald-800" : "bg-muted text-ink-2"}`}>
                           {operator.isActive ? (operator.hasLogin ? "Active login" : "Claimable") : "Inactive"}
                         </span>
                         {operator.role !== "owner" ? (
@@ -1119,7 +1116,7 @@ function PeopleSection({
                       <ul className="mt-2 flex flex-wrap gap-1.5">
                         {operator.access.map((grant) => (
                           <li
-                            className="border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-600"
+                            className="border border-border bg-surface-2 px-2 py-1 text-[10px] text-ink-2"
                             key={`${grant.targetType}-${grant.targetId}`}
                           >
                             {grant.targetLabel} · {grant.level}
@@ -1135,7 +1132,7 @@ function PeopleSection({
           </section>
         </>
       ) : (
-        <p className="border-l-4 border-slate-400 bg-white px-3 py-3 text-sm text-slate-600">
+        <p className="border-l-4 border-line-strong bg-card px-3 py-3 text-sm text-ink-2">
           Only the installation owner or an administrator can add operators or change outer access. Your assigned sites remain available through the scope switcher.
         </p>
       )}
@@ -1178,12 +1175,12 @@ function operatorProfileSummary(operator: OperatorSummary): string {
   return operator.role === "member" ? "Member" : "Viewer";
 }
 
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) { return <button type="button" className={`inline-flex items-center gap-2 border-b-2 px-3 py-2.5 text-xs font-bold transition ${active ? "border-cyan-300 bg-white/10 text-white" : "border-transparent text-slate-400 hover:bg-white/5 hover:text-white"}`} aria-current={active ? "page" : undefined} onClick={onClick}>{children}</button>; }
-function PortfolioCard({ icon, label, value }: { icon: ReactNode; label: string; value: string }) { return <div className="bg-white p-4"><span className="text-cyan-700">{icon}</span><p className="mt-3 text-[9px] font-extrabold uppercase tracking-[0.16em] text-slate-500">{label}</p><p className="mt-1 truncate text-sm font-bold text-slate-950">{value}</p></div>; }
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) { return <button type="button" className={`inline-flex items-center gap-2 border-b-2 px-3 py-2.5 text-[12.5px] font-semibold transition ${active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`} aria-current={active ? "page" : undefined} onClick={onClick}>{children}</button>; }
+function PortfolioCard({ icon, label, value }: { icon: ReactNode; label: string; value: string }) { return <div className="bg-card p-4"><span className="text-primary">{icon}</span><p className="mt-3 text-[9px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">{label}</p><p className="mt-1 truncate text-sm font-bold text-foreground">{value}</p></div>; }
 function TextField({ label, value, onChange, required = false, placeholder }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; placeholder?: string }) { return <label className={labelClass}>{label}<input className={inputClass} value={value} required={required} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} /></label>; }
 function TextArea({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label className={labelClass}>{label}<textarea className={`${inputClass} min-h-20 resize-y`} value={value} onChange={(event) => onChange(event.target.value)} /></label>; }
-function SubmitButton({ pending, disabled = false, children }: { pending: boolean; disabled?: boolean; children: ReactNode }) { return <Button type="submit" className="justify-self-start bg-[#101827] text-white hover:bg-slate-700" disabled={pending || disabled}>{pending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}{children}</Button>; }
-function EmptyState({ icon, title, copy }: { icon: ReactNode; title: string; copy: string }) { return <div className="grid min-h-72 place-items-center border border-dashed border-slate-300 bg-white p-8 text-center"><div><span className="mx-auto grid size-12 place-items-center bg-cyan-100 text-cyan-800">{icon}</span><h3 className="mt-4 font-serif text-xl">{title}</h3><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-600">{copy}</p></div></div>; }
+function SubmitButton({ pending, disabled = false, children }: { pending: boolean; disabled?: boolean; children: ReactNode }) { return <Button type="submit" className="justify-self-start" disabled={pending || disabled}>{pending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}{children}</Button>; }
+function EmptyState({ icon, title, copy }: { icon: ReactNode; title: string; copy: string }) { return <div className="grid min-h-72 place-items-center border border-dashed border-border bg-card p-8 text-center"><div><span className="mx-auto grid size-12 place-items-center bg-primary-soft text-primary">{icon}</span><h3 className="mt-4 font-serif text-xl">{title}</h3><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-ink-2">{copy}</p></div></div>; }
 
 function managerError(cause: unknown): string {
   const message = cause instanceof Error ? cause.message : String(cause);

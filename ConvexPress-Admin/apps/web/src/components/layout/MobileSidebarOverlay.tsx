@@ -7,13 +7,18 @@ import { usePluginSettings } from "@/hooks/usePluginSettings";
 import { ADMIN_NAV_SECTIONS } from "@/lib/admin-shell/nav-config";
 import { filterNavSections } from "@/lib/admin-shell/capabilities";
 import { useAuth } from "@/lib/auth-context";
+import { BrandLockup } from "@/components/brand/BrandLockup";
+import { EnvironmentSwitch } from "@/components/shell/EnvironmentSwitch";
+import { OperatorFooter } from "@/components/shell/OperatorFooter";
+import { SiteSwitcher } from "@/components/shell/SiteSwitcher";
 import { NavSection } from "./NavSection";
-import { Shield, X } from "lucide-react";
+import { X } from "lucide-react";
 
 /**
  * Mobile sidebar overlay with backdrop.
  * Slides in from the left on mobile viewports.
- * Applies the same capability filtering as the desktop sidebar.
+ * Applies the same capability filtering as the desktop sidebar and carries
+ * the site switcher and environment switch so nothing is lost on phones.
  */
 export function MobileSidebarOverlay() {
   const {
@@ -49,7 +54,6 @@ export function MobileSidebarOverlay() {
         : section,
     );
 
-    // Inject dynamic badge counts
     sections = sections.map((section) => {
       if (section.id === "comments" && pendingCommentCount > 0) {
         return { ...section, badge: pendingCommentCount };
@@ -79,17 +83,14 @@ export function MobileSidebarOverlay() {
 
   useEffect(() => {
     if (mobileSidebarOpen && panelRef.current) {
-      // Remember what triggered the open so we can restore focus on close
       triggerRef.current = document.activeElement as HTMLElement | null;
       panelRef.current.focus();
     } else if (!mobileSidebarOpen && triggerRef.current) {
-      // Restore focus to the trigger element (hamburger button)
       triggerRef.current.focus();
       triggerRef.current = null;
     }
   }, [mobileSidebarOpen]);
 
-  // Full focus trap: cycle Tab through focusable elements within the panel
   useEffect(() => {
     if (!mobileSidebarOpen) return;
 
@@ -105,13 +106,11 @@ export function MobileSidebarOverlay() {
       const last = focusable[focusable.length - 1];
 
       if (e.shiftKey) {
-        // Shift+Tab: if at first focusable, wrap to last
         if (document.activeElement === first || document.activeElement === panelRef.current) {
           e.preventDefault();
           last.focus();
         }
       } else {
-        // Tab: if at last focusable, wrap to first
         if (document.activeElement === last) {
           e.preventDefault();
           first.focus();
@@ -140,7 +139,7 @@ export function MobileSidebarOverlay() {
       {/* Backdrop */}
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-black/50 transition-opacity duration-300 md:hidden",
+          "fixed inset-0 z-50 bg-foreground/40 transition-opacity duration-300 md:hidden",
           mobileSidebarOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none",
@@ -157,32 +156,32 @@ export function MobileSidebarOverlay() {
         aria-modal="true"
         aria-label="Navigation menu"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border",
+          "fixed inset-y-0 left-0 z-50 w-72 border-r border-sidebar-border bg-sidebar",
           "transform transition-transform duration-300 ease-in-out md:hidden",
           "flex flex-col outline-hidden",
           mobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         {/* Header with close button */}
-        <div className="flex items-center justify-between border-b border-sidebar-border px-3 h-12">
-          <div className="flex items-center gap-2">
-            <Shield className="size-5 shrink-0 text-sidebar-primary-foreground" />
-            <span className="text-sm font-semibold text-sidebar-foreground">
-              ConvexPress
-            </span>
-          </div>
+        <div className="flex h-[52px] shrink-0 items-center justify-between px-3.5">
+          <BrandLockup size={28} />
           <button
             type="button"
             onClick={closeMobileSidebar}
-            className="rounded-sm p-1 text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+            className="rounded-md p-1.5 text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
             aria-label="Close navigation menu"
           >
             <X className="size-4" />
           </button>
         </div>
 
+        <div className="shrink-0 space-y-2 px-3 pb-2">
+          <SiteSwitcher />
+          <EnvironmentSwitch className="max-w-full" />
+        </div>
+
         {/* Navigation */}
-        <div className="flex-1 overflow-y-auto py-2 px-2">
+        <div className="flex-1 overflow-y-auto px-2 py-1">
           <ul role="list" className="space-y-0.5">
             {filteredSections.map((section) => (
               <NavSection
@@ -196,6 +195,8 @@ export function MobileSidebarOverlay() {
             ))}
           </ul>
         </div>
+
+        <OperatorFooter collapsed={false} siteRoleName={role?.name ?? null} />
       </div>
     </>
   );

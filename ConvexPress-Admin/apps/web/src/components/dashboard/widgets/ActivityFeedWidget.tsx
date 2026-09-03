@@ -10,6 +10,7 @@
  */
 
 import { Link } from "@tanstack/react-router";
+import { FileTextIcon, MessageSquareIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboardData } from "@/hooks/dashboard/useDashboardData";
 
@@ -19,13 +20,10 @@ function ActivityFeedWidget() {
   // Loading
   if (activityFeed === undefined) {
     return (
-      <div className="p-4 space-y-3">
-        <Skeleton className="h-3 w-1/4" />
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-4 w-5/6" />
-        </div>
+      <div className="space-y-3 px-[18px] py-4">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-5/6" />
       </div>
     );
   }
@@ -33,7 +31,7 @@ function ActivityFeedWidget() {
   // Not authorized
   if (activityFeed === null) {
     return (
-      <div className="p-4 text-xs text-muted-foreground">
+      <div className="px-[18px] py-4 text-[13px] text-muted-foreground">
         You do not have permission to view this widget.
       </div>
     );
@@ -44,79 +42,87 @@ function ActivityFeedWidget() {
 
   if (!hasPosts && !hasComments) {
     return (
-      <div className="p-4 text-xs text-muted-foreground">
+      <div className="px-[18px] py-4 text-[13px] text-muted-foreground">
         No recent activity.
       </div>
     );
   }
 
   return (
-    <div className="divide-y divide-border">
-      {/* Recently Published */}
+    <div className="flex flex-col">
       {hasPosts && (
-        <div className="p-4">
-          <h4 className="text-xs font-semibold text-foreground mb-2">
-            Recently Published
-          </h4>
-          <ul className="space-y-2">
+        <div className="border-t border-border">
+          <h4 className="eyebrow px-[18px] pb-1 pt-3">Recently published</h4>
+          <ul>
             {activityFeed.recentPosts.map((post) => (
-              <li key={post._id} className="flex items-start gap-2">
-                <span className="text-[10px] text-muted-foreground whitespace-nowrap mt-0.5">
-                  {post.publishedAt
-                    ? formatRelativeDate(post.publishedAt)
-                    : ""}
-                </span>
-                <div className="min-w-0">
+              <li key={post._id}>
+                <ActivityRow
+                  icon={<FileTextIcon />}
+                  time={post.publishedAt ? formatRelativeDate(post.publishedAt) : ""}
+                >
                   <Link
                     to="/posts/$postId/edit"
                     params={{ postId: post._id }}
-                    className="text-xs text-primary hover:underline truncate block"
+                    className="font-medium text-foreground hover:text-primary"
                   >
                     {post.title || "(no title)"}
-                  </Link>
-                  <span className="text-[10px] text-muted-foreground">
-                    by {post.authorName}
-                  </span>
-                </div>
+                  </Link>{" "}
+                  <span className="text-ink-2">by {post.authorName}</span>
+                </ActivityRow>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Recent Comments */}
       {hasComments && (
-        <div className="p-4">
-          <h4 className="text-xs font-semibold text-foreground mb-2">
-            Recent Comments
-          </h4>
-          <ul className="space-y-3">
+        <div className="border-t border-border">
+          <h4 className="eyebrow px-[18px] pb-1 pt-3">Recent comments</h4>
+          <ul>
             {activityFeed.recentComments.map((comment) => (
-              <li key={comment._id} className="flex flex-col gap-0.5">
-                <div className="flex items-baseline gap-1 text-xs">
-                  <span className="font-medium text-foreground">
-                    {comment.authorName}
-                  </span>
-                  <span className="text-muted-foreground">on</span>
+              <li key={comment._id}>
+                <ActivityRow
+                  icon={<MessageSquareIcon />}
+                  time={formatRelativeDate(comment.createdAt)}
+                >
+                  <span className="font-medium text-foreground">{comment.authorName}</span>{" "}
+                  <span className="text-ink-2">on</span>{" "}
                   <Link
                     to="/posts/$postId/edit"
                     params={{ postId: comment.postId }}
-                    className="text-primary hover:underline truncate"
+                    className="font-medium text-foreground hover:text-primary"
                   >
                     {comment.postTitle}
                   </Link>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {comment.content}
-                </p>
-                <span className="text-[10px] text-muted-foreground">
-                  {formatRelativeDate(comment.createdAt)}
-                </span>
+                  <p className="mt-0.5 line-clamp-2 text-[12.5px] leading-5 text-muted-foreground">
+                    {comment.content}
+                  </p>
+                </ActivityRow>
               </li>
             ))}
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+function ActivityRow({
+  icon,
+  time,
+  children,
+}: {
+  icon: React.ReactNode;
+  time: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-[20px_minmax(0,1fr)_auto] items-start gap-3 px-[18px] py-2.5 text-[13.5px]">
+      <span className="mt-px grid size-5 place-items-center rounded-md bg-surface-2 text-ink-2 [&_svg]:size-3">
+        {icon}
+      </span>
+      <span className="min-w-0">{children}</span>
+      <span className="whitespace-nowrap text-[12px] text-muted-foreground">{time}</span>
     </div>
   );
 }
@@ -131,9 +137,9 @@ function formatRelativeDate(timestamp: number): string {
   const days = Math.floor(diff / 86400000);
 
   if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
+  if (minutes < 60) return `${minutes} min ago`;
+  if (hours < 24) return `${hours} h ago`;
+  if (days < 7) return `${days} d ago`;
 
   return new Date(timestamp).toLocaleDateString(undefined, {
     month: "short",

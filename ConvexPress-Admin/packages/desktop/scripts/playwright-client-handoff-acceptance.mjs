@@ -12,6 +12,17 @@ import { requireSecondaryControl } from "./lib/test-fleet-config.mjs";
 
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
+import {
+  environmentActionAvailable,
+  listSwitcherOrganizations,
+  openEnvironmentAction,
+  openSiteManager,
+  selectBusiness,
+  selectScope,
+  shellIsVisible,
+  waitForActiveEnvironment,
+  waitForShell,
+} from "./lib/shell-scope.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(scriptDirectory, "..");
@@ -332,16 +343,16 @@ async function main() {
 
     phase = "authenticate-receiving-owner";
     await page.getByRole("textbox", { name: /email/i }).fill(credentials.email);
-    await page.getByLabel(/password/i).fill(credentials.password);
+    await page.getByLabel(/^password$/i).fill(credentials.password);
     await page.getByRole("button", { name: /sign in|continue/i }).click();
-    const organizationSelect = page.getByRole("combobox", { name: "Organization" });
-    await organizationSelect.waitFor({ state: "visible", timeout: 20_000 });
-    await organizationSelect.selectOption({ label: "Client Handoff Organization" });
-    const businessSelect = page.getByRole("combobox", { name: "Business" });
-    await businessSelect.selectOption({ label: "Client Owned Websites" });
+    await waitForShell(page);
+    await selectBusiness(page, {
+      organization: "Client Handoff Organization",
+      business: "Client Owned Websites",
+    });
 
     phase = "import-package-on-clean-controller-in-electron";
-    await page.getByRole("button", { name: "Add or transfer site" }).click();
+    await openEnvironmentAction(page, "Transfer site");
     const handoffPanel = page.getByRole("complementary", { name: "Website handoff" });
     await handoffPanel.waitFor({ state: "visible", timeout: 10_000 });
     await handoffPanel.getByLabel("Handoff JSON file").setInputFiles(handoffPackagePath);
@@ -371,10 +382,12 @@ async function main() {
     await handoffPanel
       .getByRole("button", { name: "Close website handoff" })
       .click();
-    const websiteSelect = page.getByRole("combobox", { name: "Website" });
-    await websiteSelect.selectOption({ label: "Northstar Shop" });
-    const environmentSelect = page.getByRole("combobox", { name: "Environment" });
-    await environmentSelect.selectOption({ label: "Live" });
+    await selectScope(page, {
+      organization: "Client Handoff Organization",
+      business: "Client Owned Websites",
+      website: "Northstar Shop",
+      environment: "Live",
+    });
     await page
       .getByText("Northstar Shop — Live", { exact: true })
       .first()
@@ -399,7 +412,7 @@ async function main() {
     });
 
     phase = "render-staging-site-from-receiving-controller";
-    await environmentSelect.selectOption({ label: "Staging" });
+    await selectScope(page, { organization: "Client Handoff Organization", business: "Client Owned Websites", website: "Northstar Shop", environment: "Staging" });
     await page
       .getByText("Northstar Shop — Staging", { exact: true })
       .first()

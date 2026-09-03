@@ -24,6 +24,11 @@ export function LocalAuthProvider({
   );
 }
 
+/** Like useLocalAuthContext, but returns null outside a provider. */
+export function useOptionalLocalAuthContext() {
+  return useContext(LocalAuthContext);
+}
+
 export function useLocalAuthContext() {
   const ctx = useContext(LocalAuthContext);
   if (!ctx) throw new Error("useLocalAuthContext must be used within LocalAuthProvider");

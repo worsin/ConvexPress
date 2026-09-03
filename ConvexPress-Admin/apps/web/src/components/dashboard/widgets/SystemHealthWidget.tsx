@@ -12,12 +12,11 @@
  * lives in the Settings > System Info page.
  */
 
-import {
-  CheckCircleIcon,
-  CircleAlertIcon,
-  ServerIcon,
-} from "lucide-react";
 import { useConvex } from "convex/react";
+
+import { HealthDot } from "@/components/shell/EnvironmentChip";
+import { useControlShell } from "@/control/ControlShellContext";
+import { environmentDisplayName } from "@/components/shell/environment-presentation";
 
 /**
  * CMS version string. Single source of truth for the System Health widget.
@@ -29,48 +28,35 @@ import { useConvex } from "convex/react";
 const CMS_VERSION = "ConvexPress 1.0";
 
 function SystemHealthWidget() {
-  // Check if Convex client is connected
   const convex = useConvex();
+  const shell = useControlShell();
   const isConnected = convex !== null;
+  const environment = shell?.selectedEnvironment ?? null;
 
   return (
-    <div className="p-4">
-      <div className="space-y-3">
-        {/* Database connection */}
+    <div className="px-[18px] pb-4 pt-1">
+      <dl className="divide-y divide-border">
         <StatusRow
           label="Database"
           value={isConnected ? "Connected" : "Disconnected"}
-          status={isConnected ? "ok" : "error"}
+          tone={isConnected ? "ok" : "danger"}
         />
-
-        {/* Environment */}
         <StatusRow
           label="Environment"
-          value={getEnvironment()}
-          status="ok"
+          value={environment ? environmentDisplayName(environment) : getEnvironment()}
+          tone={environment && environment.kind === "live" ? "live" : "ok"}
         />
-
-        {/* Version */}
-        <StatusRow
-          label="CMS Version"
-          value={CMS_VERSION}
-          status="info"
-        />
-
-        {/* Auth provider */}
+        <StatusRow label="CMS version" value={CMS_VERSION} tone="quiet" />
         <StatusRow
           label="Auth"
-          value="Local JWT"
-          status="info"
+          value={shell ? "Operator session" : "Local JWT"}
+          tone="quiet"
         />
-      </div>
+      </dl>
 
-      {/* Footer note */}
-      <div className="mt-3 pt-3 border-t border-border">
-        <p className="text-[10px] text-muted-foreground">
-          For detailed system information, visit Settings.
-        </p>
-      </div>
+      <p className="mt-3 text-[12px] text-muted-foreground">
+        For detailed system information, visit Settings.
+      </p>
     </div>
   );
 }
@@ -80,27 +66,19 @@ function SystemHealthWidget() {
 function StatusRow({
   label,
   value,
-  status,
+  tone,
 }: {
   label: string;
   value: string;
-  status: "ok" | "error" | "info";
+  tone: "ok" | "danger" | "quiet" | "live";
 }) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        {status === "ok" && (
-          <CheckCircleIcon className="size-3.5 text-success" />
-        )}
-        {status === "error" && (
-          <CircleAlertIcon className="size-3.5 text-destructive" />
-        )}
-        {status === "info" && (
-          <ServerIcon className="size-3.5 text-muted-foreground" />
-        )}
-        <span className="text-xs text-muted-foreground">{label}</span>
-      </div>
-      <span className="text-xs text-foreground font-medium">{value}</span>
+    <div className="flex items-center justify-between py-2 text-[13px]">
+      <dt className="flex items-center gap-2 text-ink-2">
+        <HealthDot tone={tone} />
+        {label}
+      </dt>
+      <dd className="font-medium text-foreground">{value}</dd>
     </div>
   );
 }

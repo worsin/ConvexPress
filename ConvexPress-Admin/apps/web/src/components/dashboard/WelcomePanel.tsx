@@ -45,28 +45,32 @@ export function WelcomePanel({
   );
 
   return (
-    <div className="relative border border-border bg-card mb-4">
-      {/* Dismiss button */}
+    <section
+      aria-label="Welcome"
+      className="relative overflow-hidden rounded-xl border border-border bg-card shadow-soft"
+    >
       <button
         onClick={onDismiss}
-        className="absolute top-2 right-2 text-muted-foreground hover:text-foreground transition-colors"
+        className="absolute right-3 top-3 grid size-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         title="Dismiss this welcome panel"
+        aria-label="Dismiss welcome panel"
       >
-        <XIcon className="size-4" />
+        <XIcon className="size-4" aria-hidden="true" />
       </button>
 
-      <div className="p-4 pb-5">
-        <h2 className="text-sm font-semibold text-foreground mb-1">
-          Welcome to ConvexPress{displayName ? `, ${displayName}` : ""}!
+      <div className="px-6 pb-6 pt-5">
+        <p className="eyebrow">Getting started</p>
+        <h2 className="mt-1.5 font-serif text-[26px] leading-none tracking-[-0.01em] text-foreground">
+          Welcome to ConvexPress{displayName ? `, ${displayName}` : ""}
         </h2>
-        <p className="text-xs text-muted-foreground mb-4">
+        <p className="mt-2 text-[13px] text-ink-2">
           Here are some links to get you started:
         </p>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {/* Get Started */}
           <div>
-            <h3 className="text-xs font-semibold text-foreground mb-2">
+            <h3 className="mb-2 text-[13px] font-semibold text-foreground">
               Get Started
             </h3>
             <ul className="space-y-1.5">
@@ -96,7 +100,7 @@ export function WelcomePanel({
 
           {/* Next Steps */}
           <div>
-            <h3 className="text-xs font-semibold text-foreground mb-2">
+            <h3 className="mb-2 text-[13px] font-semibold text-foreground">
               Next Steps
             </h3>
             <ul className="space-y-1.5">
@@ -119,7 +123,7 @@ export function WelcomePanel({
 
           {/* More Actions */}
           <div>
-            <h3 className="text-xs font-semibold text-foreground mb-2">
+            <h3 className="mb-2 text-[13px] font-semibold text-foreground">
               More Actions
             </h3>
             <ul className="space-y-1.5">
@@ -136,12 +140,12 @@ export function WelcomePanel({
       </div>
 
       {/* Bottom dismiss bar */}
-      <div className="border-t border-border px-4 py-2 flex justify-end">
+      <div className="flex justify-end border-t border-border bg-surface-2 px-4 py-2">
         <Button variant="ghost" size="xs" onClick={onDismiss}>
           Dismiss
         </Button>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -160,7 +164,7 @@ function QuickLink({
     <li>
       <Link
         to={to}
-        className="inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 hover:underline transition-colors"
+        className="inline-flex items-center gap-2 text-[13px] font-medium text-primary transition-colors hover:text-foreground"
       >
         {icon}
         {label}

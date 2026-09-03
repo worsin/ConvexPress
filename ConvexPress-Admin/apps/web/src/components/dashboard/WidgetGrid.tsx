@@ -3,7 +3,8 @@
  *
  * Two-column (desktop) / single-column (mobile) grid container.
  * Renders widgets based on user preferences (order, visibility, collapse state).
- * Filters widgets by user capabilities.
+ * Filters widgets by user capabilities and, for standalone-only widgets, by
+ * whether the control shell is present.
  *
  * Supports drag-and-drop reordering via native HTML5 DnD API.
  */
@@ -12,6 +13,7 @@ import { useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { WIDGET_REGISTRY, getWidgetById } from "@/lib/dashboard/widget-registry";
 import type { WidgetPreferences } from "@/lib/dashboard/types";
+import { useControlShell } from "@/control/ControlShellContext";
 import { WidgetCard } from "./WidgetCard";
 import { useWidgetDrag } from "@/hooks/dashboard/useWidgetDrag";
 
@@ -32,14 +34,15 @@ export function WidgetGrid({
   onToggleCollapse,
   onReorder,
 }: WidgetGridProps) {
+  const standalone = useControlShell() !== null;
+
   // ── Capability filtering ────────────────────────────────────────────────
 
   const visibleWidgetIds = useMemo(() => {
     return new Set(
       WIDGET_REGISTRY.filter((widget) => {
-        // Skip hidden widgets
         if (prefs.hiddenWidgets.includes(widget.id)) return false;
-        // Skip widgets the user doesn't have capability for
+        if (widget.standaloneOnly && !standalone) return false;
         if (
           widget.minCapability &&
           !userCapabilities.includes(widget.minCapability)
@@ -48,19 +51,33 @@ export function WidgetGrid({
         return true;
       }).map((w) => w.id),
     );
-  }, [prefs.hiddenWidgets, userCapabilities]);
+  }, [prefs.hiddenWidgets, userCapabilities, standalone]);
 
   // ── Ordered widget IDs per column ───────────────────────────────────────
+  // Widgets registered after a user's preferences were saved are appended to
+  // their default column so new capabilities never silently disappear.
 
-  const primaryWidgets = useMemo(
-    () => prefs.widgetOrder.primary.filter((id) => visibleWidgetIds.has(id)),
-    [prefs.widgetOrder.primary, visibleWidgetIds],
-  );
+  const primaryWidgets = useMemo(() => {
+    const ordered = prefs.widgetOrder.primary.filter((id) => visibleWidgetIds.has(id));
+    const known = new Set([...prefs.widgetOrder.primary, ...prefs.widgetOrder.secondary]);
+    for (const widget of WIDGET_REGISTRY) {
+      if (widget.defaultColumn === "primary" && !known.has(widget.id) && visibleWidgetIds.has(widget.id)) {
+        ordered.push(widget.id);
+      }
+    }
+    return ordered;
+  }, [prefs.widgetOrder, visibleWidgetIds]);
 
-  const secondaryWidgets = useMemo(
-    () => prefs.widgetOrder.secondary.filter((id) => visibleWidgetIds.has(id)),
-    [prefs.widgetOrder.secondary, visibleWidgetIds],
-  );
+  const secondaryWidgets = useMemo(() => {
+    const ordered = prefs.widgetOrder.secondary.filter((id) => visibleWidgetIds.has(id));
+    const known = new Set([...prefs.widgetOrder.primary, ...prefs.widgetOrder.secondary]);
+    for (const widget of WIDGET_REGISTRY) {
+      if (widget.defaultColumn === "secondary" && !known.has(widget.id) && visibleWidgetIds.has(widget.id)) {
+        ordered.push(widget.id);
+      }
+    }
+    return ordered;
+  }, [prefs.widgetOrder, visibleWidgetIds]);
 
   // ── Drag and drop ──────────────────────────────────────────────────────
 
@@ -76,10 +93,10 @@ export function WidgetGrid({
     (column: "primary" | "secondary", widgetIds: string[]) => (
       <div
         className={cn(
-          "flex flex-col gap-4 min-h-[100px]",
+          "flex min-h-[100px] flex-col gap-3.5 rounded-xl",
           isDragging &&
             dragState.overColumn === column &&
-            "outline outline-2 outline-dashed outline-muted-foreground/20",
+            "outline-2 outline-dashed outline-line-strong",
         )}
         onDragOver={(e) => {
           e.preventDefault();
@@ -106,7 +123,7 @@ export function WidgetGrid({
               {isDragging &&
                 dragState.overColumn === column &&
                 dragState.overIndex === index && (
-                  <div className="h-0.5 bg-primary/50 -mb-0.5" />
+                  <div className="-mb-0.5 h-0.5 rounded bg-primary/60" />
                 )}
 
               <WidgetCard
@@ -128,7 +145,7 @@ export function WidgetGrid({
         {/* Drop zone at end of column */}
         {isDragging && widgetIds.length === 0 && (
           <div
-            className="border-2 border-dashed border-muted-foreground/20 p-8 text-center text-xs text-muted-foreground"
+            className="rounded-xl border-2 border-dashed border-line-strong p-8 text-center text-[12.5px] text-muted-foreground"
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = "move";
@@ -156,7 +173,7 @@ export function WidgetGrid({
   );
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
+    <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
       {/* Primary column (left, wider) */}
       {renderColumn("primary", primaryWidgets)}
 
