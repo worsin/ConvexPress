@@ -139,8 +139,8 @@ function ControlPlaneShell({
   };
 
   return (
-    <div className="min-h-svh bg-slate-100 text-slate-950">
-      <header className="relative z-[10000] bg-[#101827] text-white shadow-lg">
+    <div className="flex h-svh min-h-0 flex-col overflow-hidden bg-slate-100 text-slate-950">
+      <header className="relative z-[10000] shrink-0 bg-[#101827] text-white shadow-lg">
         <div className="flex flex-col gap-3 px-3 pb-3 pt-8 lg:flex-row lg:items-center lg:pt-3">
           <div className="flex min-w-56 items-center gap-3 px-1">
             <span className="grid size-9 place-items-center bg-cyan-300 text-[#101827]">
@@ -181,18 +181,20 @@ function ControlPlaneShell({
       </header>
       <EnvironmentBar environment={selectedEnvironment} />
       {connections !== undefined && selectedEnvironment && !activeConnection ? (
-        <p role="alert" className="border-b border-amber-300 bg-amber-100 px-4 py-3 text-sm text-amber-950">
+        <p role="alert" className="shrink-0 border-b border-amber-300 bg-amber-100 px-4 py-3 text-sm text-amber-950">
           This environment has no active management connection.
         </p>
       ) : null}
-      <SiteRuntimeProvider
-        target={target}
-        exchangeSession={exchangeSession}
-        operator={operatorIdentity}
-        onSignOut={signOut}
-      >
-        <RouterProvider router={router} />
-      </SiteRuntimeProvider>
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        <SiteRuntimeProvider
+          target={target}
+          exchangeSession={exchangeSession}
+          operator={operatorIdentity}
+          onSignOut={signOut}
+        >
+          <RouterProvider router={router} />
+        </SiteRuntimeProvider>
+      </div>
     </div>
   );
 }

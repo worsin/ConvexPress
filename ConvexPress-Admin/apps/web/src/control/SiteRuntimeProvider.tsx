@@ -138,7 +138,7 @@ function RuntimeState({
 }) {
   const Icon = busy ? Loader2 : danger ? AlertTriangle : null;
   return (
-    <main className="grid min-h-[calc(100svh-7.5rem)] place-items-center bg-[#f4f5f7] p-6 text-slate-950">
+    <main className="grid h-full min-h-0 place-items-center overflow-auto bg-[#f4f5f7] p-6 text-slate-950">
       <section className="max-w-lg border border-slate-300 bg-white p-8 shadow-[0_18px_55px_rgba(15,23,42,0.09)]">
         {Icon ? (
           <Icon

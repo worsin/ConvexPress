@@ -104,17 +104,20 @@ async function main() {
   };
   delete launchEnvironment.ELECTRON_RUN_AS_NODE;
 
-  let electronApp;
-  let tracingStarted = false;
-  const rendererErrors = [];
-  try {
-    electronApp = await _electron.launch({
+  const launchElectron = () =>
+    _electron.launch({
       executablePath: electronExecutable,
       args: [`--user-data-dir=${temporaryProfile}`, desktopRoot],
       cwd: desktopRoot,
       env: launchEnvironment,
       timeout: 30_000,
     });
+
+  let electronApp;
+  let tracingStarted = false;
+  const rendererErrors = [];
+  try {
+    electronApp = await launchElectron();
 
     const page = await electronApp.firstWindow();
     page.on("console", (message) => {
@@ -173,6 +176,10 @@ async function main() {
       timeout: 20_000,
     });
     await assertStandaloneShellDoesNotOverlap(page);
+    await page.getByText("No recent activity.", { exact: true }).waitFor({
+      state: "visible",
+      timeout: 20_000,
+    });
     await page.screenshot({
       path: join(artifactRoot, "electron-live-dashboard.png"),
       type: "png",
@@ -185,6 +192,37 @@ async function main() {
       .waitFor({ state: "visible", timeout: 20_000 });
     await page.screenshot({
       path: join(artifactRoot, "electron-staging-dashboard.png"),
+      type: "png",
+    });
+
+    await environmentSelect.focus();
+    await environmentSelect.press("l");
+    await page
+      .getByText("Northstar Shop — Live", { exact: true })
+      .first()
+      .waitFor({ state: "visible", timeout: 20_000 });
+    await page.waitForTimeout(1_100);
+    await environmentSelect.press("s");
+    await page
+      .getByText("Northstar Shop — Staging", { exact: true })
+      .first()
+      .waitFor({ state: "visible", timeout: 20_000 });
+
+    await electronApp.evaluate(({ BrowserWindow }) => {
+      BrowserWindow.getAllWindows()[0]?.setSize(1024, 768);
+    });
+    await page.waitForTimeout(250);
+    await assertStandaloneShellDoesNotOverlap(page);
+    await page.screenshot({
+      path: join(artifactRoot, "electron-minimum-window.png"),
+      type: "png",
+    });
+    await electronApp.evaluate(({ BrowserWindow }) => {
+      BrowserWindow.getAllWindows()[0]?.setSize(1440, 900);
+    });
+    await page.waitForTimeout(250);
+    await page.screenshot({
+      path: join(artifactRoot, "electron-wide-window.png"),
       type: "png",
     });
 
@@ -216,6 +254,23 @@ async function main() {
     });
     tracingStarted = false;
 
+    await electronApp.close();
+    electronApp = await launchElectron();
+    const restoredPage = await electronApp.firstWindow();
+    restoredPage.on("console", (message) => {
+      if (message.type() === "error") rendererErrors.push(message.text());
+    });
+    await restoredPage
+      .getByRole("combobox", { name: "Organization" })
+      .waitFor({ state: "visible", timeout: 20_000 });
+    if (await restoredPage.getByRole("textbox", { name: /email/i }).isVisible().catch(() => false)) {
+      throw new Error("Protected operator session was not restored after restart.");
+    }
+    await restoredPage.screenshot({
+      path: join(artifactRoot, "electron-restored-session.png"),
+      type: "png",
+    });
+
     console.log(
       JSON.stringify({
         electronWindow: true,
@@ -225,6 +280,34 @@ async function main() {
         rendererAuthStorageEmpty: true,
         liveDatabaseRendered: true,
         stagingDatabaseRendered: true,
+        keyboardEnvironmentSwitch: true,
+        minimumWindowVerified: true,
+        wideWindowVerified: true,
+        protectedSessionRestored: true,
+        rendererErrorCount: rendererErrors.length,
+      }),
+    );
+  } catch (error) {
+    const failurePage = electronApp?.windows()[0];
+    const alerts = failurePage
+      ? await failurePage
+          .getByRole("alert")
+          .allTextContents()
+          .catch(() => [])
+      : [];
+    if (failurePage) {
+      await failurePage
+        .screenshot({
+          path: join(artifactRoot, "electron-acceptance-failure.png"),
+          type: "png",
+        })
+        .catch(() => undefined);
+    }
+    throw new Error(
+      JSON.stringify({
+        message: error instanceof Error ? error.message : String(error),
+        pageUrl: failurePage?.url() ?? null,
+        alerts,
         rendererErrorCount: rendererErrors.length,
       }),
     );

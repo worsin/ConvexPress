@@ -14,7 +14,7 @@ export function EnvironmentBar({
 }) {
   if (!environment) {
     return (
-      <div className="border-b border-slate-200 bg-white px-4 py-2 text-xs text-slate-500">
+      <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-2 text-xs text-slate-500">
         No environment selected
       </div>
     );
@@ -24,7 +24,7 @@ export function EnvironmentBar({
   const compatible = environment.compatibility === "compatible";
   return (
     <div
-      className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-2 text-xs ${
+      className={`flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-2 text-xs ${
         isLive
           ? "border-red-300 bg-red-50 text-red-950"
           : "border-amber-200 bg-amber-50 text-amber-950"

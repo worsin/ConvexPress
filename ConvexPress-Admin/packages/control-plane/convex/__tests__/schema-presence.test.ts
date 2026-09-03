@@ -6,6 +6,7 @@ import { serverBootstrapTables } from "../schema/serverBootstrap";
 import { userProfileTables } from "../schema/userProfiles";
 import { hierarchyTables } from "../schema/hierarchy";
 import { connectionTables } from "../schema/connections";
+import { lifecycleTables } from "../schema/lifecycle";
 
 type InspectableTable = {
   indexes: Array<{ indexDescriptor: string; fields: string[] }>;
@@ -185,6 +186,43 @@ describe("donor-exact outer identity and RBAC schema", () => {
     );
     expect(indexShape(connectionTables.overseer_connections)).toContain(
       "by_instance:instance_id,isActive",
+    );
+  });
+
+  test("declares durable lifecycle, backup, receipt, and handoff records", () => {
+    expect(Object.keys(lifecycleTables).sort()).toEqual([
+      "overseer_operationReceipts",
+      "overseer_operationSteps",
+      "overseer_siteBackups",
+      "overseer_siteHandoffs",
+      "overseer_siteOperations",
+    ]);
+    expect(indexShape(lifecycleTables.overseer_siteOperations)).toEqual(
+      expect.arrayContaining([
+        "by_idempotency:idempotencyKey",
+        "by_instance_state:instanceId,state",
+        "by_operation_key:operationKey",
+      ]),
+    );
+    expect(fieldNames(lifecycleTables.overseer_siteOperations)).toEqual(
+      expect.arrayContaining([
+        "idempotencyKey",
+        "instanceId",
+        "instanceKey",
+        "operationCode",
+        "operationKey",
+        "requestedByUserId",
+        "revision",
+        "state",
+        "websiteId",
+        "websiteKey",
+      ]),
+    );
+    expect(indexShape(lifecycleTables.overseer_siteBackups)).toContain(
+      "by_snapshot_id:snapshotId",
+    );
+    expect(indexShape(lifecycleTables.overseer_operationReceipts)).toContain(
+      "by_receipt_id:receiptId",
     );
   });
 });

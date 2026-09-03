@@ -24,6 +24,7 @@ export type SiteClientSnapshot<TClient> = {
 };
 
 const TOKEN_EXPIRY_MARGIN_MS = 5_000;
+const CLIENT_RETIREMENT_GRACE_MS = 250;
 
 export class SiteClientManager<
   TClient extends SiteClientLike = ConvexReactClient,
@@ -130,7 +131,14 @@ export class SiteClientManager<
     const active = this.activeClient;
     this.activeClient = null;
     this.activeToken = null;
-    if (active) void active.close();
+    if (active) {
+      // React providers still run passive cleanup against the previous client
+      // after the external-store snapshot changes, and development/HMR may
+      // schedule that passive cleanup on a later task. Retire it immediately
+      // from application state, then close it after a bounded grace window so
+      // cleanup can clear auth/subscriptions without touching a closed client.
+      setTimeout(() => void active.close(), CLIENT_RETIREMENT_GRACE_MS);
+    }
   }
 
   private setSnapshot(snapshot: SiteClientSnapshot<TClient>) {

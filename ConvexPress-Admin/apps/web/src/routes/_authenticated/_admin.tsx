@@ -33,6 +33,9 @@ function AdminLayout() {
 function AuthorizedAdminLayout() {
   const location = useLocation();
   const { isLoading, canAccessRoute } = useAuth();
+  const isStandaloneControlPlane = Boolean(
+    import.meta.env.VITE_CONTROL_PLANE_URL,
+  );
   // Fetch site title from the Settings System
   const generalSettings = useQuery(api.settings.queries.getBySection, {
     section: "general",
@@ -56,7 +59,13 @@ function AuthorizedAdminLayout() {
           Skip to main content
         </a>
 
-        <div className="fixed inset-0 flex h-svh overflow-hidden">
+        <div
+          className={
+            isStandaloneControlPlane
+              ? "absolute inset-0 flex h-full overflow-hidden"
+              : "fixed inset-0 flex h-svh overflow-hidden"
+          }
+        >
           <AdminSidebar />
           <div className="flex flex-1 min-h-0 min-w-0 flex-col">
             <AdminBar siteTitle={siteTitle} />

@@ -41,13 +41,17 @@ describe("replaceable site client manager", () => {
       target("instance_staging", "https://staging.convex.cloud"),
       () => new Promise((resolve) => (finishExchange = resolve)),
     );
-    expect(clients[0]?.closed).toBe(true);
+    expect(clients[0]?.closed).toBe(false);
     expect(manager.getSnapshot()).toMatchObject({
       status: "switching",
       instanceKey: "instance_staging",
       client: null,
     });
     expect(await manager.fetchAccessToken()).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(clients[0]?.closed).toBe(false);
+    await new Promise((resolve) => setTimeout(resolve, 275));
+    expect(clients[0]?.closed).toBe(true);
 
     finishExchange({ token: "token-staging", expiresAt: Date.now() + 60_000 });
     await pending;
@@ -84,6 +88,10 @@ describe("replaceable site client manager", () => {
     expect(clients).toHaveLength(1);
 
     manager.clear();
+    expect(clients[0]?.closed).toBe(false);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(clients[0]?.closed).toBe(false);
+    await new Promise((resolve) => setTimeout(resolve, 275));
     expect(clients[0]?.closed).toBe(true);
     expect(manager.getSnapshot()).toMatchObject({ status: "idle", client: null });
     expect(await manager.fetchAccessToken()).toBeNull();

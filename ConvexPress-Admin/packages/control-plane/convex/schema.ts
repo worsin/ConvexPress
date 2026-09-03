@@ -6,6 +6,7 @@ import { serverBootstrapTables } from "./schema/serverBootstrap";
 import { userProfileTables } from "./schema/userProfiles";
 import { hierarchyTables } from "./schema/hierarchy";
 import { connectionTables } from "./schema/connections";
+import { lifecycleTables } from "./schema/lifecycle";
 
 export default defineSchema({
   ...authTables,
@@ -14,4 +15,5 @@ export default defineSchema({
   ...serverBootstrapTables,
   ...hierarchyTables,
   ...connectionTables,
+  ...lifecycleTables,
 });
