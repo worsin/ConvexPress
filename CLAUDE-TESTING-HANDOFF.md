@@ -20,14 +20,18 @@ Rendered acceptance was done only through Playwright's Electron API (`_electron.
 
 ## Credential and identity handling
 
-The outer operator was an existing owner account supplied by the user. In the Codex session, the values were held in the tool-side secret store under these logical names:
+There are no real users or customer records in this acceptance fleet. Codex generated a synthetic email address, display name, high-entropy password, and one-time bootstrap claim secret for a disposable outer owner. The user did not provide an account, email address, password, or personal information.
+
+In the Codex session, the generated email and password were retained in the tool-side secret store under these logical names:
 
 - `playwright_email`
 - `playwright_password`
 
-Those secret-store values are not part of the repository and will not automatically be available to Claude. Ask the user to provide the existing owner credentials through a secure/runtime-only mechanism. Do not ask for them in a file and do not put them in chat output, shell history, command-line arguments, `.env`, screenshots, traces, or source code.
+Those labels describe generated test values; they are not the user's credentials. The secret-store values are not part of the repository and will not automatically be available to Claude. Do not guess that they belong to the user, and do not put replacement credentials in chat output, shell history, command-line arguments, `.env`, screenshots, traces, or source code.
 
-The actual email and password are intentionally not included in this handoff. I loaded them into memory and sent a one-line JSON object to each acceptance script over standard input. The scripts read only the first stdin line. A safe interactive zsh pattern is:
+The worker control plane now contains that synthetic owner. To reuse the current fleet, the ephemeral credential must be transferred to the next test process through a secure runtime-only channel. If it is unavailable, do not pretend to know it. Because the fleet contains no real data, a fresh synthetic owner can instead be generated during an explicitly authorized disposable-fleet reset and bootstrap. Do not reset the current volumes merely to recover a password without first telling the user.
+
+The generated email and password are intentionally not included in this repository handoff. I loaded them into memory and sent a one-line JSON object to each acceptance script over standard input. The scripts read only the first stdin line. A safe interactive zsh pattern for a newly generated or securely transferred test identity is:
 
 ```zsh
 read "cp_owner_email?Outer owner email: "
@@ -44,7 +48,9 @@ unset cp_owner_email cp_owner_password cp_owner_payload
 
 Do not enable `set -x` while handling these values.
 
-This owner login is only for the standalone outer control plane. It is not a website-customer login. Customer-isolation acceptance creates unique `@example.test` site invitations, verifies that they exist only in the selected site database, verifies that they never appear in the outer People directory, and revokes them during cleanup.
+The initial synthetic owner was created by `scripts/standalone/bootstrap-linux-fleet.mjs`. The bootstrap first tries Better Auth email sign-in. On a new disposable control plane, it uses the control-plane admin key to reserve the one-time owner bootstrap, signs up through Better Auth with the `x-convexpress-claim-secret` header, signs in, finalizes the reservation, and seeds the MVP outer roles. The generated bootstrap claim is one-time setup material, not an ongoing login credential.
+
+This synthetic owner login is only for the standalone outer control plane. It is not a website-customer login. Customer-isolation acceptance creates unique `@example.test` site invitations, verifies that they exist only in the selected site database, verifies that they never appear in the outer People directory, and revokes them during cleanup.
 
 ### How login works
 
@@ -230,4 +236,3 @@ done
 ```
 
 No output is expected after cleanup. Leave unrelated checkouts and their processes alone. The working tree contains the MVP work and generated evidence and was intentionally not committed or pushed.
-
