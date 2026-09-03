@@ -493,8 +493,9 @@ async function main() {
     await attach.waitFor({ state: "visible", timeout: 30_000 });
     await attach.getByLabel("Environment kind").selectOption("staging");
     await attach.getByLabel("Label").fill("Acceptance Staging");
-    await attach.getByLabel("Convex deployment URL").fill("http://192.0.2.10:5200");
-    await attach.getByLabel("Convex site / management URL").fill("http://192.0.2.10:5201");
+    const acceptancePort = 5200 + (Date.now() % 400) * 2;
+    await attach.getByLabel("Convex deployment URL").fill(`http://192.0.2.10:${acceptancePort}`);
+    await attach.getByLabel("Convex site / management URL").fill(`http://192.0.2.10:${acceptancePort + 1}`);
     await attach.getByLabel("Public website URL").fill(`https://staging-${organizationSlug}.example.test`);
     await attach.getByRole("button", { name: "Attach environment" }).click();
     await addDialog.getByRole("form", { name: "Connect controller" }).waitFor({ state: "visible", timeout: 30_000 });
