@@ -23,6 +23,7 @@ const envelopeValidator = v.object({
 const actionTargetResult = v.object({
   connectionId: v.id("overseer_connections"),
   instanceId: v.id("overseer_websiteInstances"),
+  controllerSubjectId: v.string(),
   websiteKey: v.string(),
   instanceKey: v.string(),
   deploymentOrigin: v.string(),
@@ -129,6 +130,7 @@ export const createPending = internalMutation({
     return {
       connectionId,
       instanceId: instance._id,
+      controllerSubjectId: String(operator._id),
       websiteKey: website.websiteKey,
       instanceKey: instance.instanceKey,
       deploymentOrigin: instance.deploymentOrigin,
@@ -148,7 +150,7 @@ export const prepare = internalQuery({
     if (!connection?.instance_id || !connection.website_id || !connection.isActive) {
       throw new Error("Connection not found");
     }
-    const { instance, website } = await requireConnectionTarget(
+    const { operator, instance, website } = await requireConnectionTarget(
       ctx,
       connection.instance_id,
     );
@@ -162,6 +164,7 @@ export const prepare = internalQuery({
     return {
       connectionId: connection._id,
       instanceId: instance._id,
+      controllerSubjectId: String(operator._id),
       websiteKey: website.websiteKey,
       instanceKey: instance.instanceKey,
       deploymentOrigin: instance.deploymentOrigin,

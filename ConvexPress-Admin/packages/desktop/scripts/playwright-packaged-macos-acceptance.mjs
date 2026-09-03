@@ -2,6 +2,12 @@ import { access, mkdtemp, mkdir, readdir, realpath, rm, writeFile } from "node:f
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  acceptanceProxyArguments,
+  buildElectronAcceptanceEnvironment,
+} from "./lib/electron-acceptance-environment.mjs";
+import { quitOwnedElectron } from "./lib/process-lifecycle.mjs";
+import { loadTestFleetConfig } from "./lib/test-fleet-config.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(scriptDirectory, "..");
@@ -39,24 +45,12 @@ async function readCredentials() {
   return parsed;
 }
 
-async function quitElectron(electronApp) {
-  if (!electronApp) return;
-  const child = electronApp.process();
-  if (child.exitCode !== null || child.signalCode !== null) return;
-  const exited = new Promise((resolveExit) => child.once("exit", resolveExit));
-  await electronApp.evaluate(({ app }) => app.exit(0)).catch(() => undefined);
-  await Promise.race([
-    exited,
-    new Promise((resolveWait) => setTimeout(resolveWait, 5_000)),
-  ]);
-  if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
-}
-
 async function main() {
   if (process.platform !== "darwin" || process.arch !== "arm64") {
     throw new Error("This acceptance targets the packaged macOS arm64 application.");
   }
   const credentials = await readCredentials();
+  const fleet = loadTestFleetConfig();
   await mkdir(artifactRoot, { recursive: true });
   await access(packagedExecutable);
 
@@ -73,16 +67,13 @@ async function main() {
     JSON.stringify({
       setupComplete: true,
       mode: "existing",
-      convexUrl: "http://127.0.0.1:4720",
-      convexSiteUrl: "http://127.0.0.1:4721",
+      convexUrl: fleet.control.deploymentOrigin,
+      convexSiteUrl: fleet.control.siteOrigin,
     }),
     "utf8",
   );
 
-  const launchEnvironment = { ...process.env };
-  delete launchEnvironment.ELECTRON_RUN_AS_NODE;
-  delete launchEnvironment.CONVEXPRESS_DESKTOP_DEV;
-  delete launchEnvironment.CONVEXPRESS_DESKTOP_DEV_URL;
+  const launchEnvironment = buildElectronAcceptanceEnvironment();
 
   let electronApp;
   let page;
@@ -91,7 +82,10 @@ async function main() {
   try {
     electronApp = await _electron.launch({
       executablePath: packagedExecutable,
-      args: [`--user-data-dir=${temporaryProfile}`],
+      args: [
+        `--user-data-dir=${temporaryProfile}`,
+        ...acceptanceProxyArguments(),
+      ],
       cwd: desktopRoot,
       env: launchEnvironment,
       timeout: 60_000,
@@ -184,7 +178,7 @@ async function main() {
       }),
     );
   } finally {
-    await quitElectron(electronApp).catch(() => undefined);
+    await quitOwnedElectron(electronApp).catch(() => undefined);
     await rm(temporaryProfile, { recursive: true, force: true });
   }
 }

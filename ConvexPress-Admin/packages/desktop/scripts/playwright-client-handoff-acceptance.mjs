@@ -3,6 +3,12 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  acceptanceProxyArguments,
+  buildElectronAcceptanceEnvironment,
+} from "./lib/electron-acceptance-environment.mjs";
+import { quitOwnedElectron } from "./lib/process-lifecycle.mjs";
+import { requireSecondaryControl } from "./lib/test-fleet-config.mjs";
 
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
@@ -17,11 +23,12 @@ const handoffPackagePath = join(
   "electron-northstar-handoff.json",
 );
 
-const A_ORIGIN = "http://127.0.0.1:4720";
-const A_SITE_ORIGIN = "http://127.0.0.1:4721";
-const B_ORIGIN = "http://127.0.0.1:4920";
-const B_SITE_ORIGIN = "http://127.0.0.1:4921";
-const RENDERER_ORIGIN = "http://127.0.0.1:4105";
+const fleet = requireSecondaryControl();
+const A_ORIGIN = fleet.control.deploymentOrigin;
+const A_SITE_ORIGIN = fleet.control.siteOrigin;
+const B_ORIGIN = fleet.secondaryControl.deploymentOrigin;
+const B_SITE_ORIGIN = fleet.secondaryControl.siteOrigin;
+const RENDERER_ORIGIN = fleet.rendererOrigin;
 const WEBSITE_KEY = "acceptance:northstar:shop";
 
 const requireFromControlPlane = createRequire(
@@ -59,7 +66,12 @@ async function readCredentials() {
     if (input.includes("\n")) break;
   }
   const value = JSON.parse(input.trim());
-  if (typeof value.email !== "string" || typeof value.password !== "string") {
+  if (
+    typeof value.email !== "string" ||
+    typeof value.password !== "string" ||
+    typeof value.siteAdminKeys?.live !== "string" ||
+    typeof value.siteAdminKeys?.staging !== "string"
+  ) {
     throw new Error("Electron client handoff credentials were not provided");
   }
   return value;
@@ -136,25 +148,16 @@ async function targetEnvironments(client) {
   return targets;
 }
 
-async function fixtureAdminKey(kind) {
-  const config = JSON.parse(
-    await readFile(
-      resolve(repositoryRoot, `temp/site-fixtures/${kind}/.convex/local/default/config.json`),
-      "utf8",
-    ),
-  );
-  if (typeof config.adminKey !== "string") {
-    throw new Error(`The ${kind} fixture admin key is unavailable`);
-  }
-  return config.adminKey;
+function fixtureAdminKey(kind, credentials) {
+  return credentials.siteAdminKeys[kind];
 }
 
-async function ensureConnections(client, label) {
+async function ensureConnections(client, label, credentials) {
   const targets = await targetEnvironments(client);
   const connected = [];
   for (const target of targets) {
     const kind = target.kind === "live" ? "live" : "staging";
-    const adminKey = await fixtureAdminKey(kind);
+    const adminKey = fixtureAdminKey(kind, credentials);
     const existing = await client.query(listConnections, {
       instanceId: target.instanceId,
     });
@@ -186,7 +189,7 @@ async function ensureConnections(client, label) {
   return connected;
 }
 
-async function revokeActiveConnections(client) {
+async function revokeActiveConnections(client, credentials) {
   const targets = await targetEnvironments(client);
   const revoked = [];
   for (const target of targets) {
@@ -199,7 +202,7 @@ async function revokeActiveConnections(client) {
     );
     if (!connection) throw new Error(`The agency ${kind} connection is missing`);
     await client.action(revokeConnection, { connectionId: connection.connectionId });
-    revoked.push({ target, adminKey: await fixtureAdminKey(kind), kind });
+    revoked.push({ target, adminKey: fixtureAdminKey(kind, credentials), kind });
   }
   return revoked;
 }
@@ -249,16 +252,6 @@ function dismissShutdownDialogs(page) {
   });
 }
 
-async function quitElectron(electronApp) {
-  if (!electronApp) return;
-  const child = electronApp.process();
-  if (child.exitCode !== null || child.signalCode !== null) return;
-  const exited = new Promise((resolveExit) => child.once("exit", resolveExit));
-  await electronApp.evaluate(({ app }) => app.exit(0)).catch(() => undefined);
-  await Promise.race([exited, new Promise((resolveWait) => setTimeout(resolveWait, 5_000))]);
-  if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
-}
-
 async function main() {
   const credentials = await readCredentials();
   await mkdir(artifactRoot, { recursive: true });
@@ -296,12 +289,10 @@ async function main() {
     "utf8",
   );
 
-  const launchEnvironment = {
-    ...process.env,
+  const launchEnvironment = buildElectronAcceptanceEnvironment(process.env, {
     CONVEXPRESS_DESKTOP_DEV: "1",
     CONVEXPRESS_DESKTOP_DEV_URL: RENDERER_ORIGIN,
-  };
-  delete launchEnvironment.ELECTRON_RUN_AS_NODE;
+  });
 
   let electronApp;
   let agencyClient;
@@ -316,7 +307,11 @@ async function main() {
   try {
     electronApp = await _electron.launch({
       executablePath: electronExecutable,
-      args: [`--user-data-dir=${temporaryProfile}`, desktopRoot],
+      args: [
+        `--user-data-dir=${temporaryProfile}`,
+        ...acceptanceProxyArguments(),
+        desktopRoot,
+      ],
       cwd: desktopRoot,
       env: launchEnvironment,
       timeout: 60_000,
@@ -365,11 +360,12 @@ async function main() {
     receivingConnections = await ensureConnections(
       receivingClient,
       "receiving controller",
+      credentials,
     );
 
     phase = "remove-agency-authority";
     agencyClient = await operatorClient(A_ORIGIN, A_SITE_ORIGIN, credentials);
-    agencyRevoked = await revokeActiveConnections(agencyClient);
+    agencyRevoked = await revokeActiveConnections(agencyClient, credentials);
 
     phase = "render-live-site-from-receiving-controller";
     await handoffPanel
@@ -461,7 +457,7 @@ async function main() {
         path: join(artifactRoot, "client-handoff-electron-acceptance-failed.zip"),
       }).catch(() => undefined);
     }
-    await quitElectron(electronApp).catch(() => undefined);
+    await quitOwnedElectron(electronApp).catch(() => undefined);
     if (agencyClient && agencyRevoked.length > 0) {
       try {
         await restoreAgencyConnections(agencyClient, agencyRevoked);

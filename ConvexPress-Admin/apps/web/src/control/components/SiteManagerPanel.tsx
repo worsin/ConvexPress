@@ -31,6 +31,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { getElectronBridge } from "@/lib/electron";
 import type { ControlAuthClient } from "../auth-client";
+import { generateControlClaimSecret } from "../auth-client";
 import type { ScopeSelection } from "./ScopeSwitcher";
 import {
   buildEnvironmentKey,
@@ -39,6 +40,10 @@ import {
   portfolioControlVisibility,
   slugifyPortablePart,
 } from "./site-manager-view";
+import {
+  siteManagerQueryPlan,
+  type SiteManagerTab,
+} from "./site-manager-query-plan";
 
 type OrganizationId = Id<"overseer_organizations">;
 type BusinessId = Id<"overseer_businesses">;
@@ -135,12 +140,17 @@ interface ManagerContext {
     organizationId: OrganizationId;
     name: string;
     slug: string;
+    description: string | null;
+    updatedAt: number;
   }>;
   businesses: Array<{
     businessId: BusinessId;
     organizationId: OrganizationId;
     name: string;
     slug: string;
+    description: string | null;
+    accentColor: string | null;
+    updatedAt: number;
   }>;
   websites: Array<{
     websiteId: WebsiteId;
@@ -150,6 +160,8 @@ interface ManagerContext {
     title: string;
     primaryDomain: string;
     isDefault: boolean;
+    description: string | null;
+    updatedAt: number;
   }>;
   environments: Array<{
     instanceId: InstanceId;
@@ -163,6 +175,10 @@ interface ManagerContext {
     health: string;
     compatibility: string;
     isDefault: boolean;
+    siteContractVersion: string | null;
+    schemaVersion: string | null;
+    engineVersion: string | null;
+    updatedAt: number;
   }>;
 }
 
@@ -188,9 +204,7 @@ export function SiteManagerPanel({
   onChangeScope: (selection: ScopeSelection) => void;
   onClose: () => void;
 }) {
-  const [tab, setTab] = useState<
-    "portfolio" | "environment" | "authority" | "people"
-  >("portfolio");
+  const [tab, setTab] = useState<SiteManagerTab>("portfolio");
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -199,32 +213,17 @@ export function SiteManagerPanel({
   const selectedBusinessId = selection.businessId as BusinessId | null;
   const selectedWebsiteId = selection.websiteId as WebsiteId | null;
   const selectedInstanceId = selection.instanceId as InstanceId | null;
+  const queryPlan = siteManagerQueryPlan(tab);
 
-  const organizations = useQuery(
-    controlApi.organizations.list,
-    open ? {} : "skip",
-  );
-  const businesses = useQuery(
-    controlApi.businesses.list,
-    open && selectedOrganizationId
-      ? { organizationId: selectedOrganizationId }
-      : "skip",
-  );
-  const websites = useQuery(
-    controlApi.websites.list,
-    open && selectedBusinessId ? { businessId: selectedBusinessId } : "skip",
-  );
-  const environments = useQuery(
-    controlApi.websiteInstances.list,
-    open && selectedWebsiteId ? { websiteId: selectedWebsiteId } : "skip",
-  );
   const connections = useQuery(
     controlApi.connections.queries.listForInstance,
-    open && selectedInstanceId ? { instanceId: selectedInstanceId } : "skip",
+    open && queryPlan.connections && selectedInstanceId
+      ? { instanceId: selectedInstanceId }
+      : "skip",
   );
   const scopedProfile = useQuery(
     controlApi.operators.currentScopeProfile,
-    open
+    open && queryPlan.scopedProfile
       ? {
           ...(selectedOrganizationId
             ? { organizationId: selectedOrganizationId }
@@ -237,26 +236,29 @@ export function SiteManagerPanel({
   );
   const rbacAccess = useQuery(
     controlApi.rbac.queries.checkMyAccess,
-    open
+    open && queryPlan.rbacAccess
       ? { selectorType: "capability", code: "rbac.manage" }
       : "skip",
   );
   const operators = useQuery(
     controlApi.operators.list,
-    open && tab === "people" && rbacAccess?.allowed === true
+    open && queryPlan.operators && rbacAccess?.allowed === true
       ? { limit: 100 }
       : "skip",
   );
 
   const hierarchyAccess = useQuery(
     controlApi.rbac.queries.checkMyAccess,
-    open
+    open && queryPlan.hierarchyAccess
       ? { selectorType: "capability", code: "hierarchy.manage" }
       : "skip",
   );
   const businessAccess = useQuery(
     controlApi.rbac.queries.checkMyAccess,
-    open && selectedOrganizationId && selectedBusinessId
+    open &&
+      queryPlan.businessAccess &&
+      selectedOrganizationId &&
+      selectedBusinessId
       ? {
           selectorType: "capability",
           code: "business.update",
@@ -267,7 +269,11 @@ export function SiteManagerPanel({
   );
   const websiteAccess = useQuery(
     controlApi.rbac.queries.checkMyAccess,
-    open && selectedOrganizationId && selectedBusinessId && selectedWebsiteId
+    open &&
+      queryPlan.websiteAccess &&
+      selectedOrganizationId &&
+      selectedBusinessId &&
+      selectedWebsiteId
       ? {
           selectorType: "capability",
           code: "website.update",
@@ -280,6 +286,7 @@ export function SiteManagerPanel({
   const connectionAccess = useQuery(
     controlApi.rbac.queries.checkMyAccess,
     open &&
+      queryPlan.connectionAccess &&
       selectedOrganizationId &&
       selectedBusinessId &&
       selectedWebsiteId &&
@@ -297,6 +304,7 @@ export function SiteManagerPanel({
   const liveAccess = useQuery(
     controlApi.rbac.queries.checkMyAccess,
     open &&
+      queryPlan.liveAccess &&
       selectedOrganizationId &&
       selectedBusinessId &&
       selectedWebsiteId
@@ -313,26 +321,23 @@ export function SiteManagerPanel({
       : "skip",
   );
 
-  const selectedOrganization = organizations?.find(
-    (entry) => entry.organizationId === selectedOrganizationId,
-  ) ?? context.organizations.find(
+  const selectedOrganization = context.organizations.find(
     (entry) => entry.organizationId === selectedOrganizationId,
   );
-  const selectedBusiness = businesses?.find(
-    (entry) => entry.businessId === selectedBusinessId,
-  ) ?? context.businesses.find(
+  const selectedBusiness = context.businesses.find(
     (entry) => entry.businessId === selectedBusinessId,
   );
-  const selectedWebsite = websites?.find(
-    (entry) => entry.websiteId === selectedWebsiteId,
-  ) ?? context.websites.find(
+  const selectedWebsite = context.websites.find(
     (entry) => entry.websiteId === selectedWebsiteId,
   );
-  const selectedEnvironment = environments?.find(
-    (entry) => entry.instanceId === selectedInstanceId,
-  ) ?? context.environments.find(
+  const selectedEnvironment = context.environments.find(
     (entry) => entry.instanceId === selectedInstanceId,
   );
+  const websiteEnvironments = selectedWebsiteId
+    ? context.environments.filter(
+        (entry) => entry.websiteId === selectedWebsiteId,
+      )
+    : [];
   const mayManageHierarchy = hierarchyAccess?.allowed === true;
   const mayManageBusiness = businessAccess?.allowed === true;
   const mayManageWebsite = websiteAccess?.allowed === true;
@@ -446,7 +451,7 @@ export function SiteManagerPanel({
           <EnvironmentSection
             website={selectedWebsite}
             environment={selectedEnvironment}
-            environments={environments ?? []}
+            environments={websiteEnvironments}
             mayManageWebsite={mayManageWebsite}
             liveAllowed={liveAccess?.allowed === true}
             accessPending={environmentAccessPending}
@@ -736,7 +741,7 @@ function EnvironmentSection({
 }: {
   website: WebsiteView | undefined;
   environment: EnvironmentView | undefined;
-  environments: EnvironmentSummary[];
+  environments: EnvironmentView[];
   mayManageWebsite: boolean;
   liveAllowed: boolean;
   accessPending: boolean;
@@ -936,6 +941,11 @@ function PeopleSection({
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [profile, setProfile] = useState<ProvisionProfile>("viewer");
+  const [invitationReceipt, setInvitationReceipt] = useState<{
+    email: string;
+    claimSecret: string;
+    expiresAt: number;
+  } | null>(null);
 
   const needsBusiness = profile === "business-manager";
   const needsWebsite =
@@ -947,16 +957,23 @@ function PeopleSection({
     event.preventDefault();
     if (!targetReady) return;
     void run("provision-operator", async () => {
-      await provision({
+      const claimSecret = generateControlClaimSecret();
+      const result = await provision({
         email,
         ...(name.trim() ? { name } : {}),
         profile,
+        claimSecret,
         ...(needsBusiness && business ? { businessId: business.businessId } : {}),
         ...(needsWebsite && website ? { websiteId: website.websiteId } : {}),
       });
+      setInvitationReceipt({
+        email: email.trim().toLowerCase(),
+        claimSecret: result.claimSecret,
+        expiresAt: result.claimExpiresAt,
+      });
       setEmail("");
       setName("");
-      return `${profileLabel(profile)} invitation prepared. The operator can now claim it with this exact email.`;
+      return `${profileLabel(profile)} invitation prepared. Share the one-time code shown below through a secure channel.`;
     });
   };
 
@@ -1031,6 +1048,22 @@ function PeopleSection({
                 <UserPlus className="mr-2 size-4" /> Prepare operator invitation
               </SubmitButton>
             </form>
+            {invitationReceipt ? (
+              <aside
+                aria-label="One-time operator invitation"
+                className="mt-4 border border-amber-300 bg-amber-50 p-3 text-amber-950"
+              >
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.14em]">
+                  Copy now · shown only in this session
+                </p>
+                <p className="mt-2 text-sm">
+                  {invitationReceipt.email} · expires {new Date(invitationReceipt.expiresAt).toLocaleString()}
+                </p>
+                <output className="mt-2 block break-all border border-amber-300 bg-white p-2 font-mono text-xs select-all">
+                  {invitationReceipt.claimSecret}
+                </output>
+              </aside>
+            ) : null}
           </section>
 
           <section aria-label="Control-plane operators" className="border border-slate-300 bg-white p-4">

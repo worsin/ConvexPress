@@ -1,9 +1,9 @@
-import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import path from "node:path";
 
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
+
+import { requireSecondaryControl } from "../../packages/desktop/scripts/lib/test-fleet-config.mjs";
 
 const requireFromControlPlane = createRequire(
   new URL("../../packages/control-plane/package.json", import.meta.url),
@@ -13,10 +13,10 @@ const { convexClient, crossDomainClient } = requireFromControlPlane(
 );
 const { createAuthClient } = requireFromControlPlane("better-auth/client");
 
-const CONTROL_ORIGIN = "http://127.0.0.1:4920";
-const CONTROL_SITE_ORIGIN = "http://127.0.0.1:4921";
-const RENDERER_ORIGIN = "http://127.0.0.1:4105";
-const controllerRoot = path.resolve("temp/client-handoff-controller");
+const fleet = requireSecondaryControl();
+const CONTROL_ORIGIN = fleet.secondaryControl.deploymentOrigin;
+const CONTROL_SITE_ORIGIN = fleet.secondaryControl.siteOrigin;
+const RENDERER_ORIGIN = fleet.rendererOrigin;
 
 const reserveBootstrap = makeFunctionReference("serverBootstrap:reserve");
 const finalizeBootstrap = makeFunctionReference("serverBootstrap:finalize");
@@ -48,7 +48,9 @@ async function readCredentials() {
   if (
     typeof value.email !== "string" ||
     typeof value.password !== "string" ||
-    typeof value.name !== "string"
+    typeof value.name !== "string" ||
+    typeof value.controlAdminKey !== "string" ||
+    typeof value.bootstrapClaimSecret !== "string"
   ) {
     throw new Error("Client controller owner credentials are required on stdin");
   }
@@ -56,6 +58,8 @@ async function readCredentials() {
     email: value.email.trim().toLowerCase(),
     password: value.password,
     name: value.name.trim(),
+    controlAdminKey: value.controlAdminKey,
+    bootstrapClaimSecret: value.bootstrapClaimSecret,
   };
 }
 
@@ -92,21 +96,8 @@ async function exchangeToken(auth) {
 }
 
 const credentials = await readCredentials();
-const localConfig = JSON.parse(
-  await readFile(
-    path.join(
-      controllerRoot,
-      "packages/control-plane/.convex/local/default/config.json",
-    ),
-    "utf8",
-  ),
-);
-if (typeof localConfig.adminKey !== "string") {
-  throw new Error("Client controller deployment admin key is unavailable");
-}
-
 const admin = new ConvexHttpClient(CONTROL_ORIGIN);
-admin.setAdminAuth(localConfig.adminKey);
+admin.setAdminAuth(credentials.controlAdminKey);
 const auth = authClient();
 let createdOwner = false;
 process.stderr.write("client-handoff-controller: checking owner login\n");
@@ -116,7 +107,7 @@ let signIn = await auth.signIn.email({
 });
 if (signIn.error) {
   process.stderr.write("client-handoff-controller: reserving first owner\n");
-  const reservationId = "reservation_client_handoff_acceptance";
+  const reservationId = credentials.bootstrapClaimSecret;
   await admin.mutation(reserveBootstrap, {
     reservationId,
     machineId: "machine_client_handoff_acceptance",
@@ -124,14 +115,26 @@ if (signIn.error) {
     ttlMs: 30 * 60_000,
   });
   process.stderr.write("client-handoff-controller: creating first owner\n");
-  const signUp = await auth.signUp.email({
-    email: credentials.email,
-    password: credentials.password,
-    name: credentials.name,
-  });
+  const signUp = await auth.signUp.email(
+    {
+      email: credentials.email,
+      password: credentials.password,
+      name: credentials.name,
+    },
+    {
+      headers: {
+        "x-convexpress-claim-secret": credentials.bootstrapClaimSecret,
+      },
+    },
+  );
   if (signUp.error) {
     throw new Error(`Client controller owner creation failed: ${signUp.error.code ?? "FAILED"}`);
   }
+  signIn = await auth.signIn.email({
+    email: credentials.email,
+    password: credentials.password,
+  });
+  if (signIn.error) throw new Error("Client controller owner could not sign in");
   process.stderr.write("client-handoff-controller: finalizing first owner\n");
   await admin.mutation(finalizeBootstrap, { reservationId });
   createdOwner = true;

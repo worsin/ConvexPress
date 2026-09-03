@@ -33,6 +33,27 @@ function isLoopbackUrl(value: unknown): boolean {
   }
 }
 
+function exactNetworkOrigins(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+  try {
+    const parsed = new URL(value);
+    if (
+      !["http:", "https:", "ws:", "wss:"].includes(parsed.protocol) ||
+      parsed.username ||
+      parsed.password
+    ) {
+      return [];
+    }
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      const websocketProtocol = parsed.protocol === "http:" ? "ws:" : "wss:";
+      return [parsed.origin, `${websocketProtocol}//${parsed.host}`];
+    }
+    return [parsed.origin];
+  } catch {
+    return [];
+  }
+}
+
 export function controllerConfigUsesLoopback(
   convexUrl: unknown,
   convexSiteUrl: unknown,
@@ -43,14 +64,20 @@ export function controllerConfigUsesLoopback(
 export function buildDesktopContentSecurityPolicy({
   development,
   allowLoopback,
+  additionalConnectOrigins = [],
 }: {
   development: boolean;
   allowLoopback: boolean;
+  additionalConnectOrigins?: readonly unknown[];
 }): string {
   const permitsLoopback = development || allowLoopback;
   const connectSources = [
     "'self'",
     ...(permitsLoopback ? LOOPBACK_CONNECT_SOURCES : []),
+    ...new Set(
+      additionalConnectOrigins
+        .flatMap(exactNetworkOrigins),
+    ),
     ...CLOUD_CONNECT_SOURCES,
   ];
   const imageSources = [

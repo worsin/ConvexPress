@@ -7,6 +7,7 @@ import { userProfileTables } from "../schema/userProfiles";
 import { hierarchyTables } from "../schema/hierarchy";
 import { connectionTables } from "../schema/connections";
 import { lifecycleTables } from "../schema/lifecycle";
+import { operatorInvitationTables } from "../schema/operatorInvitations";
 
 type InspectableTable = {
   indexes: Array<{ indexDescriptor: string; fields: string[] }>;
@@ -122,6 +123,27 @@ describe("donor-exact outer identity and RBAC schema", () => {
       "by_reservationId:reservationId",
       "by_reservationKey:reservationKey",
     ]);
+  });
+
+  test("stores one-time operator invitation hashes outside the VO user table", () => {
+    expect(Object.keys(operatorInvitationTables)).toEqual([
+      "overseer_operatorInvitations",
+    ]);
+    expect(
+      fieldNames(operatorInvitationTables.overseer_operatorInvitations),
+    ).toEqual(
+      expect.arrayContaining([
+        "operatorId",
+        "email",
+        "tokenHash",
+        "status",
+        "expiresAt",
+        "createdBy",
+      ]),
+    );
+    expect(
+      fieldNames(operatorInvitationTables.overseer_operatorInvitations),
+    ).not.toContain("claimSecret");
   });
 
   test("declares the standalone hierarchy and direct-access table contract", () => {

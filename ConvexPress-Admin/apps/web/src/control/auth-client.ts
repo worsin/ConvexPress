@@ -22,6 +22,18 @@ export function createControlAuthClient(siteOrigin: string) {
 
 export type ControlAuthClient = ReturnType<typeof createControlAuthClient>;
 
+const CONTROL_CLAIM_SECRET_HEADER = "x-convexpress-claim-secret";
+
+export function generateControlClaimSecret() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/u, "");
+}
+
 export function prepareControlIdentity(emailValue: string, nameValue: string) {
   const email = emailValue.trim().toLowerCase();
   const name = nameValue.trim() || email.split("@", 1)[0] || "ConvexPress operator";
@@ -46,10 +58,16 @@ export async function claimControlInvitation(
   emailValue: string,
   password: string,
   nameValue: string,
+  claimSecretValue: string,
 ) {
   const { email, name } = prepareControlIdentity(emailValue, nameValue);
-  const { error } = await client.signUp.email({ email, password, name });
+  const claimSecret = claimSecretValue.trim();
+  const { error } = await client.signUp.email(
+    { email, password, name },
+    { headers: { [CONTROL_CLAIM_SECRET_HEADER]: claimSecret } },
+  );
   if (error) throw new Error(error.message || "Invitation claim failed");
+  await signInControlOperator(client, email, password);
   await flushControlAuthStorage();
 }
 

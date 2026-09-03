@@ -3,6 +3,8 @@ import { createRequire } from "node:module";
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
 
+import { loadTestFleetConfig } from "../../packages/desktop/scripts/lib/test-fleet-config.mjs";
+
 const requireFromControlPlane = createRequire(
   new URL("../../packages/control-plane/package.json", import.meta.url),
 );
@@ -11,8 +13,9 @@ const { convexClient, crossDomainClient } = requireFromControlPlane(
 );
 const { createAuthClient } = requireFromControlPlane("better-auth/client");
 
-const CONTROL_ORIGIN = "http://127.0.0.1:4720";
-const CONTROL_SITE_ORIGIN = "http://127.0.0.1:4721";
+const fleet = loadTestFleetConfig();
+const CONTROL_ORIGIN = fleet.control.deploymentOrigin;
+const CONTROL_SITE_ORIGIN = fleet.control.siteOrigin;
 const WEBSITE_KEY = "acceptance:northstar:shop";
 const INSTANCE_KEY = "acceptance:northstar:shop:staging";
 
@@ -54,7 +57,7 @@ async function getControlToken(credentials) {
     baseURL: CONTROL_SITE_ORIGIN,
     fetchOptions: {
       timeout: 15_000,
-      headers: { origin: "http://127.0.0.1:4105" },
+      headers: { origin: fleet.rendererOrigin },
     },
     plugins: [
       convexClient(),
@@ -78,7 +81,7 @@ async function getControlToken(credentials) {
     headers: {
       accept: "application/json",
       cookie,
-      origin: "http://127.0.0.1:4105",
+      origin: fleet.rendererOrigin,
     },
   });
   if (!response.ok) throw new Error("authentication.exchange");

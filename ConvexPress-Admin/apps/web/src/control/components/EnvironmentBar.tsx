@@ -1,7 +1,20 @@
 import { CircleCheck, CircleHelp, ExternalLink, History, PackageOpen, ShieldAlert } from "lucide-react";
 
+export function environmentIdentityLabel(
+  websiteTitle: string | null,
+  environment: {
+    instanceKey: string;
+    kind: string;
+    label: string | null;
+  },
+) {
+  if (!websiteTitle) return environment.instanceKey;
+  return `${websiteTitle} — ${environment.label || environment.kind}`;
+}
+
 export function EnvironmentBar({
   environment,
+  websiteTitle,
   operationsOpen,
   handoffOpen,
   canOpenOperations,
@@ -17,6 +30,7 @@ export function EnvironmentBar({
     health: string;
     compatibility: string;
   } | null;
+  websiteTitle: string | null;
   operationsOpen: boolean;
   handoffOpen: boolean;
   canOpenOperations: boolean;
@@ -46,7 +60,9 @@ export function EnvironmentBar({
         {isLive ? <ShieldAlert className="size-4" /> : <CircleHelp className="size-4" />}
         {environment.kind}
       </span>
-      <span className="font-semibold">{environment.label || environment.instanceKey}</span>
+      <span aria-label="Active website environment" className="font-semibold">
+        {environmentIdentityLabel(websiteTitle, environment)}
+      </span>
       <span className="inline-flex items-center gap-1">
         {healthy ? <CircleCheck className="size-3.5" /> : <CircleHelp className="size-3.5" />}
         Health: {environment.health}

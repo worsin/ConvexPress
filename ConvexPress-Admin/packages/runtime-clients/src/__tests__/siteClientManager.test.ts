@@ -22,6 +22,36 @@ const target = (instanceKey: string, deploymentOrigin: string) => ({
 });
 
 describe("replaceable site client manager", () => {
+  test("single-flights repeated React selections for the same logical request", async () => {
+    const manager = new SiteClientManager<FakeClient>(() => new FakeClient());
+    let exchangeCalls = 0;
+    let finishExchange!: (value: { token: string; expiresAt: number }) => void;
+    const first = manager.select(
+      target("instance_journal", "https://journal.convex.cloud"),
+      () => {
+        exchangeCalls += 1;
+        return new Promise((resolve) => (finishExchange = resolve));
+      },
+      "instance_journal|revision:0",
+    );
+    const repeated = manager.select(
+      target("instance_journal", "https://journal.convex.cloud"),
+      async () => {
+        exchangeCalls += 1;
+        throw new Error("a duplicate exchange must never run");
+      },
+      "instance_journal|revision:0",
+    );
+
+    expect(exchangeCalls).toBe(1);
+    finishExchange({ token: "token-journal", expiresAt: Date.now() + 60_000 });
+    await Promise.all([first, repeated]);
+    expect(manager.getSnapshot()).toMatchObject({
+      status: "ready",
+      instanceKey: "instance_journal",
+    });
+  });
+
   test("keeps no old client visible while a new site session is exchanged", async () => {
     const clients: FakeClient[] = [];
     const manager = new SiteClientManager<FakeClient>((_origin) => {

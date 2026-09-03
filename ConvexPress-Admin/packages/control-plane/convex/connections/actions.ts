@@ -24,6 +24,7 @@ import {
   parseEnvelopeKey,
   parseEnvelopeKeys,
 } from "./crypto";
+import { probeControllerAuthority } from "./authorityProbe";
 
 const actionResult = v.object({
   connectionId: v.id("overseer_connections"),
@@ -38,6 +39,7 @@ const actionResult = v.object({
 interface ConnectionActionTarget {
   connectionId: Id<"overseer_connections">;
   instanceId: Id<"overseer_websiteInstances">;
+  controllerSubjectId: string;
   websiteKey: string;
   instanceKey: string;
   deploymentOrigin: string;
@@ -349,12 +351,21 @@ export const test = action({
         process.env.CONVEXPRESS_CONNECTION_ENVELOPE_KEYS,
         target.credentials.version,
       );
-      parseControllerCredential(decryptCredentialPayload({
-        envelope: target.credentials,
-        key,
-        aad: aad(target),
-      }));
+      const credential = parseControllerCredential(
+        decryptCredentialPayload({
+          envelope: target.credentials,
+          key,
+          aad: aad(target),
+        }),
+      );
       await probeTargetIdentity(target);
+      await probeControllerAuthority({
+        managementOrigin: target.managementOrigin,
+        websiteKey: target.websiteKey,
+        instanceKey: target.instanceKey,
+        controllerSubjectId: target.controllerSubjectId,
+        credential,
+      });
       await ctx.runMutation(internal.connections.mutations.recordHealth, {
         connectionId: args.connectionId,
         status: "healthy",

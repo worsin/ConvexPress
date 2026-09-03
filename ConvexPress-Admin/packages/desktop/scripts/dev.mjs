@@ -2,6 +2,10 @@ import { cp, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import {
+	ownedSpawnOptions,
+	terminateOwnedProcess,
+} from "./lib/process-lifecycle.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(__dirname, "..");
@@ -22,6 +26,7 @@ function run(command, args, options = {}) {
 			cwd: desktopRoot,
 			stdio: "inherit",
 			...options,
+			...ownedSpawnOptions(options),
 		});
 
 		child.on("error", rejectRun);
@@ -77,22 +82,29 @@ async function isUrlReady(url) {
 
 async function main() {
 	let webDevServer;
+	let electron;
+	let requestedSignal;
 
-	if (shouldStartWeb && !(await isUrlReady(webUrl))) {
-		webDevServer = spawn(bun, ["run", "dev:web"], {
-			cwd: repoRoot,
-			stdio: "inherit",
-			env: childEnv,
-		});
-
-		webDevServer.on("error", (error) => {
-			console.error(
-				`[desktop:dev] Failed to start renderer dev server: ${error.message}`,
+	try {
+		if (shouldStartWeb && !(await isUrlReady(webUrl))) {
+			webDevServer = spawn(
+				bun,
+				["run", "dev:web"],
+				ownedSpawnOptions({
+					cwd: repoRoot,
+					stdio: "inherit",
+					env: childEnv,
+				}),
 			);
-		});
-	}
 
-	await run(bun, [
+			webDevServer.on("error", (error) => {
+				console.error(
+					`[desktop:dev] Failed to start renderer dev server: ${error.message}`,
+				);
+			});
+		}
+
+		await run(bun, [
 		"x",
 		"tsup",
 		"electron/main.ts",
@@ -106,9 +118,9 @@ async function main() {
 		"electron-updater",
 		"--external",
 		"fix-path",
-	]);
+		]);
 
-	await run(bun, [
+		await run(bun, [
 		"x",
 		"tsup",
 		"electron/preload.ts",
@@ -118,48 +130,68 @@ async function main() {
 		"dist-electron",
 		"--external",
 		"electron",
-	]);
+		]);
 
-	const wizardOutputPath = resolve(desktopRoot, "dist-electron/wizard");
-	await rm(wizardOutputPath, { recursive: true, force: true });
-	await cp(resolve(desktopRoot, "electron/wizard"), wizardOutputPath, {
-		recursive: true,
-	});
+		const wizardOutputPath = resolve(desktopRoot, "dist-electron/wizard");
+		await rm(wizardOutputPath, { recursive: true, force: true });
+		await cp(resolve(desktopRoot, "electron/wizard"), wizardOutputPath, {
+			recursive: true,
+		});
 
-	await waitForUrl(webUrl);
+		await waitForUrl(webUrl);
 
-	const electron = spawn(bun, ["x", "electron", "."], {
-		cwd: desktopRoot,
-		stdio: "inherit",
-		env: {
-			...childEnv,
-			CONVEXPRESS_DESKTOP_DEV: "1",
-			CONVEXPRESS_DESKTOP_DEV_URL: webUrl,
-		},
-	});
-
-	const stop = (signal) => {
-		if (!electron.killed) electron.kill(signal);
-		if (webDevServer && !webDevServer.killed) webDevServer.kill(signal);
-	};
-
-	process.on("SIGINT", () => stop("SIGINT"));
-	process.on("SIGTERM", () => stop("SIGTERM"));
-
-	webDevServer?.on("exit", (code, signal) => {
-		if (electron.killed) return;
-		console.error(
-			`[desktop:dev] Renderer dev server exited ${
-				signal ? `with signal ${signal}` : `with code ${code}`
-			}`,
+		electron = spawn(
+			bun,
+			["x", "electron", "."],
+			ownedSpawnOptions({
+				cwd: desktopRoot,
+				stdio: "inherit",
+				env: {
+					...childEnv,
+					CONVEXPRESS_DESKTOP_DEV: "1",
+					CONVEXPRESS_DESKTOP_DEV_URL: webUrl,
+				},
+			}),
 		);
-		electron.kill("SIGTERM");
-	});
 
-	electron.on("exit", (code) => {
-		process.exitCode = code ?? 0;
-		if (webDevServer && !webDevServer.killed) webDevServer.kill("SIGTERM");
-	});
+		const stop = (signal) => {
+			requestedSignal = signal;
+			void terminateOwnedProcess(electron, {
+				label: "ConvexPress Electron development process",
+				groupOwned: true,
+			});
+		};
+
+		process.once("SIGINT", () => stop("SIGINT"));
+		process.once("SIGTERM", () => stop("SIGTERM"));
+
+		webDevServer?.on("exit", (code, signal) => {
+			if (!electron || electron.exitCode !== null || electron.signalCode !== null) return;
+			console.error(
+				`[desktop:dev] Renderer dev server exited ${
+					signal ? `with signal ${signal}` : `with code ${code}`
+				}`,
+			);
+			void terminateOwnedProcess(electron, {
+				label: "ConvexPress Electron after renderer exit",
+				groupOwned: true,
+			});
+		});
+
+		const exitCode = await new Promise((resolveExit) =>
+			electron.once("exit", (code) => resolveExit(code ?? 0)),
+		);
+		process.exitCode = requestedSignal ? 128 : exitCode;
+	} finally {
+		await terminateOwnedProcess(electron, {
+			label: "ConvexPress Electron development process",
+			groupOwned: true,
+		}).catch((error) => console.error(`[desktop:dev] ${error.message}`));
+		await terminateOwnedProcess(webDevServer, {
+			label: "ConvexPress renderer development process",
+			groupOwned: true,
+		}).catch((error) => console.error(`[desktop:dev] ${error.message}`));
+	}
 }
 
 main().catch((error) => {

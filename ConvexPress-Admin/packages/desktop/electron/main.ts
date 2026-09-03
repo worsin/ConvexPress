@@ -246,6 +246,20 @@ app.whenReady().then(async () => {
         store.get("convexUrl"),
         store.get("convexSiteUrl"),
       ),
+      additionalConnectOrigins: [
+        store.get("convexUrl"),
+        store.get("convexSiteUrl"),
+        process.env.CONVEXPRESS_ACCEPTANCE_CONTROL_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_CONTROL_SITE_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SITE_ALPHA_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SITE_ALPHA_SITE_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SITE_BETA_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SITE_BETA_SITE_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SITE_GAMMA_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SITE_GAMMA_SITE_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SECONDARY_CONTROL_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SECONDARY_CONTROL_SITE_ORIGIN,
+      ],
     });
 
     callback({

@@ -58,4 +58,23 @@ describe("desktop CSP policy", () => {
       }),
     ).not.toContain("'unsafe-eval'");
   });
+
+  test("allows only exact configured HTTP origins for remote self-hosted fleets", () => {
+    const policy = buildDesktopContentSecurityPolicy({
+      development: true,
+      allowLoopback: false,
+      additionalConnectOrigins: [
+        "http://192.168.1.246:4720",
+        "http://192.168.1.246:4721/path-is-ignored",
+        "file:///tmp/not-network",
+        "http://name:secret@192.168.1.246:4820",
+      ],
+    });
+    expect(policy).toContain("http://192.168.1.246:4720");
+    expect(policy).toContain("ws://192.168.1.246:4720");
+    expect(policy).toContain("http://192.168.1.246:4721");
+    expect(policy).not.toContain("path-is-ignored");
+    expect(policy).not.toContain("name:secret");
+    expect(policy).not.toContain("file:///tmp/not-network");
+  });
 });

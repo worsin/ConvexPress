@@ -30,6 +30,8 @@ export class SiteClientManager<
   TClient extends SiteClientLike = ConvexReactClient,
 > {
   private generation = 0;
+  private activeRequestKey: string | null = null;
+  private pendingSelection: Promise<void> | null = null;
   private activeClient: TClient | null = null;
   private activeToken: SiteSession | null = null;
   private listeners = new Set<() => void>();
@@ -63,11 +65,17 @@ export class SiteClientManager<
     return () => this.listeners.delete(listener);
   };
 
-  async select(
+  select(
     target: SiteClientTarget,
     exchangeSession: (target: SiteClientTarget) => Promise<SiteSession>,
+    requestKey = `${target.connectionId}|${target.instanceKey}|${target.deploymentOrigin}`,
   ): Promise<void> {
+    if (requestKey === this.activeRequestKey) {
+      return this.pendingSelection ?? Promise.resolve();
+    }
+
     const selection = ++this.generation;
+    this.activeRequestKey = requestKey;
     this.disposeActiveClient();
     this.setSnapshot({
       status: "switching",
@@ -76,6 +84,24 @@ export class SiteClientManager<
       error: null,
     });
 
+    const operation = this.runSelection(selection, target, exchangeSession);
+    this.pendingSelection = operation;
+    void operation.then(
+      () => {
+        if (selection === this.generation) this.pendingSelection = null;
+      },
+      () => {
+        if (selection === this.generation) this.pendingSelection = null;
+      },
+    );
+    return operation;
+  }
+
+  private async runSelection(
+    selection: number,
+    target: SiteClientTarget,
+    exchangeSession: (target: SiteClientTarget) => Promise<SiteSession>,
+  ): Promise<void> {
     try {
       const session = await exchangeSession(target);
       if (selection !== this.generation) return;
@@ -118,6 +144,8 @@ export class SiteClientManager<
 
   clear() {
     this.generation += 1;
+    this.activeRequestKey = null;
+    this.pendingSelection = null;
     this.disposeActiveClient();
     this.setSnapshot({
       status: "idle",

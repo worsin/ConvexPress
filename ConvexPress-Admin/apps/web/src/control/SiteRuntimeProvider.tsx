@@ -1,4 +1,8 @@
-import { SiteClientManager, type SiteClientTarget } from "@convexpress/runtime-clients";
+import {
+  SiteClientManager,
+  type SiteClientSnapshot,
+  type SiteClientTarget,
+} from "@convexpress/runtime-clients";
 import { ConvexProviderWithAuth } from "convex/react";
 import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
 import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
@@ -31,6 +35,18 @@ interface SiteRuntimeProviderProps {
   children: ReactNode;
 }
 
+export function isSiteRuntimeSwitching(
+  target: SelectedSiteTarget | null,
+  snapshot: Pick<SiteClientSnapshot<unknown>, "status" | "instanceKey">,
+) {
+  if (!target) return false;
+  return (
+    snapshot.status === "idle" ||
+    snapshot.status === "switching" ||
+    snapshot.instanceKey !== target.instanceKey
+  );
+}
+
 export function SiteRuntimeProvider({
   target,
   exchangeSession,
@@ -57,7 +73,11 @@ export function SiteRuntimeProvider({
       manager.clear();
       return;
     }
-    void manager.select(target, async () => exchangeSession(target));
+    void manager.select(
+      target,
+      async () => exchangeSession(target),
+      `${targetKey}|retry:${retryVersion}|runtime:${runtimeRevision}`,
+    );
   }, [exchangeSession, manager, retryVersion, runtimeRevision, target, targetKey]);
 
   useEffect(() => () => manager.clear(), [manager]);
@@ -92,7 +112,7 @@ export function SiteRuntimeProvider({
       />
     );
   }
-  if (snapshot.status === "switching" || snapshot.status === "idle") {
+  if (isSiteRuntimeSwitching(target, snapshot)) {
     return (
       <RuntimeState
         busy
@@ -117,7 +137,11 @@ export function SiteRuntimeProvider({
   }
 
   return (
-    <ConvexProviderWithAuth client={snapshot.client} useAuth={useSiteAuth}>
+    <ConvexProviderWithAuth
+      client={snapshot.client}
+      key={snapshot.instanceKey}
+      useAuth={useSiteAuth}
+    >
       <ConvexQueryCacheProvider expiration={300_000} maxIdleEntries={250}>
         <LocalAuthProvider value={localAuthValue}>{children}</LocalAuthProvider>
       </ConvexQueryCacheProvider>

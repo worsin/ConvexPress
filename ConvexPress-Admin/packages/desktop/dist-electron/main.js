@@ -1054,7 +1054,9 @@ function validateDeploymentAdminKey(value) {
 // electron/ipc/connectionProvision.ts
 var { BrowserWindow: BrowserWindow3, ipcMain: ipcMain6 } = require("electron");
 var configStore = new JsonStore({ name: "convexpress-config" });
-var createConnection = (0, import_server.makeFunctionReference)("connections/actions:create");
+var createConnection = (0, import_server.makeFunctionReference)(
+  "connections/actions:create"
+);
 var activePrompt = null;
 function getRendererIndexPath4() {
   return import_node_path7.default.join(__dirname, "..", "dist", "index.html");
@@ -1831,17 +1833,37 @@ function isLoopbackUrl(value) {
     return false;
   }
 }
+function exactNetworkOrigins(value) {
+  if (typeof value !== "string") return [];
+  try {
+    const parsed = new URL(value);
+    if (!["http:", "https:", "ws:", "wss:"].includes(parsed.protocol) || parsed.username || parsed.password) {
+      return [];
+    }
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      const websocketProtocol = parsed.protocol === "http:" ? "ws:" : "wss:";
+      return [parsed.origin, `${websocketProtocol}//${parsed.host}`];
+    }
+    return [parsed.origin];
+  } catch {
+    return [];
+  }
+}
 function controllerConfigUsesLoopback(convexUrl, convexSiteUrl) {
   return isLoopbackUrl(convexUrl) || isLoopbackUrl(convexSiteUrl);
 }
 function buildDesktopContentSecurityPolicy({
   development,
-  allowLoopback
+  allowLoopback,
+  additionalConnectOrigins = []
 }) {
   const permitsLoopback = development || allowLoopback;
   const connectSources = [
     "'self'",
     ...permitsLoopback ? LOOPBACK_CONNECT_SOURCES : [],
+    ...new Set(
+      additionalConnectOrigins.flatMap(exactNetworkOrigins)
+    ),
     ...CLOUD_CONNECT_SOURCES
   ];
   const imageSources = [
@@ -2090,7 +2112,21 @@ app6.whenReady().then(async () => {
       allowLoopback: controllerConfigUsesLoopback(
         store2.get("convexUrl"),
         store2.get("convexSiteUrl")
-      )
+      ),
+      additionalConnectOrigins: [
+        store2.get("convexUrl"),
+        store2.get("convexSiteUrl"),
+        process.env.CONVEXPRESS_ACCEPTANCE_CONTROL_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_CONTROL_SITE_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SITE_ALPHA_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SITE_ALPHA_SITE_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SITE_BETA_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SITE_BETA_SITE_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SITE_GAMMA_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SITE_GAMMA_SITE_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SECONDARY_CONTROL_ORIGIN,
+        process.env.CONVEXPRESS_ACCEPTANCE_SECONDARY_CONTROL_SITE_ORIGIN
+      ]
     });
     callback({
       responseHeaders: {

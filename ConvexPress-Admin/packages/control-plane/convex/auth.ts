@@ -2,6 +2,7 @@ import { createClient, type AuthFunctions, type GenericCtx } from "@convex-dev/b
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
 import { twoFactor } from "better-auth/plugins";
+import { makeFunctionReference, type FunctionReference } from "convex/server";
 import { ConvexError } from "convex/values";
 
 import authConfig from "./auth.config";
@@ -10,11 +11,27 @@ import type { DataModel, Id } from "./_generated/dataModel";
 import { resolveAuthRuntimeConfig } from "./authOrigins";
 import { decideAuthUserClaim } from "./authPolicy";
 import {
+  consumePendingOperatorInvitation,
+  getPendingOperatorInvitation,
+} from "./operatorInvitations";
+import {
   authorizeFirstOwnerCreation,
   recordFirstOwnerCreated,
 } from "./serverBootstrap";
 
 const authFunctions: AuthFunctions = internal.auth;
+export const CONTROL_CLAIM_SECRET_HEADER = "x-convexpress-claim-secret";
+
+const validateSignupReference = makeFunctionReference<
+  "query",
+  { email: string; claimSecret: string },
+  { kind: "owner" | "operator"; operatorId: string | null }
+>("operatorInvitations:validateForSignup") as unknown as FunctionReference<
+  "query",
+  "internal",
+  { email: string; claimSecret: string },
+  { kind: "owner" | "operator"; operatorId: string | null }
+>;
 
 export const authComponent = createClient<DataModel>(components.betterAuth, {
   authFunctions,
@@ -38,6 +55,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
           decideAuthUserClaim({
             now,
             normalizedEmail: email,
+            emailVerified: authUser.emailVerified === true,
             anyUserExists: false,
             reservation,
           });
@@ -48,6 +66,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
             name,
             role: "owner",
             isActive: true,
+            emailVerificationTime: now,
             createdAt: now,
             lastLoginAt: now,
           });
@@ -73,17 +92,30 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
           );
         }
         const provisioned = matches[0];
+        const invitation = provisioned
+          ? await getPendingOperatorInvitation(ctx, {
+              operatorId: provisioned._id,
+            })
+          : null;
         decideAuthUserClaim({
           now,
           normalizedEmail: email ?? "",
+          emailVerified: authUser.emailVerified === true,
           anyUserExists: true,
-          provisionedUser: provisioned,
+          provisionedUser: provisioned
+            ? { ...provisioned, invitation: invitation ?? undefined }
+            : undefined,
         });
 
         await ctx.db.patch(provisioned!._id, {
           authUserId: authUser._id,
           name: provisioned!.name ?? name,
           lastLoginAt: now,
+          emailVerificationTime: now,
+        });
+        await consumePendingOperatorInvitation(ctx, {
+          operatorId: provisioned!._id,
+          now,
         });
         await authComponent.setUserId(ctx, authUser._id, provisioned!._id);
         await ensureUserProfile(ctx, {
@@ -222,8 +254,30 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: true,
-      requireEmailVerification: false,
+      requireEmailVerification: true,
+      autoSignIn: false,
       minPasswordLength: 8,
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          before: async (user, requestContext) => {
+            const claimSecret = requestContext?.request?.headers.get(
+              CONTROL_CLAIM_SECRET_HEADER,
+            );
+            if (!claimSecret || !("runQuery" in ctx)) {
+              throw new ConvexError(
+                "A one-time ConvexPress invitation code is required",
+              );
+            }
+            await ctx.runQuery(validateSignupReference, {
+              email: user.email,
+              claimSecret,
+            });
+            return { data: { ...user, emailVerified: true } };
+          },
+        },
+      },
     },
     plugins: [
       twoFactor(),

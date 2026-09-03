@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
-import { prepareControlIdentity } from "./auth-client";
+import {
+  generateControlClaimSecret,
+  prepareControlIdentity,
+} from "./auth-client";
 
 describe("outer operator invitation claim", () => {
   test("normalizes the exact provisioned email and requires a usable name", () => {
@@ -12,5 +15,13 @@ describe("outer operator invitation claim", () => {
       email: "operator@example.com",
       name: "operator",
     });
+  });
+
+  test("generates a 256-bit URL-safe one-time claim secret", () => {
+    const first = generateControlClaimSecret();
+    const second = generateControlClaimSecret();
+    expect(/^[A-Za-z0-9_-]{43}$/u.test(first)).toBe(true);
+    expect(/^[A-Za-z0-9_-]{43}$/u.test(second)).toBe(true);
+    expect(second === first).toBe(false);
   });
 });

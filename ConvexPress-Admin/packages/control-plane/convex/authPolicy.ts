@@ -6,6 +6,11 @@ export interface ProvisionedOperator {
   email?: string;
   isActive?: boolean;
   authUserId?: string;
+  invitation?: {
+    tokenHash: string;
+    status: "pending" | "consumed" | "revoked" | "expired";
+    expiresAt: number;
+  };
 }
 
 export interface OwnerReservation {
@@ -17,10 +22,14 @@ export interface OwnerReservation {
 export function decideAuthUserClaim(input: {
   now: number;
   normalizedEmail: string;
+  emailVerified: boolean;
   anyUserExists: boolean;
   reservation?: OwnerReservation;
   provisionedUser?: ProvisionedOperator;
 }): AuthClaimDecision {
+  if (!input.emailVerified) {
+    throw new Error("A verified outer email identity is required");
+  }
   if (!input.anyUserExists) {
     const reservation = input.reservation;
     if (
@@ -43,6 +52,13 @@ export function decideAuthUserClaim(input: {
   }
   if (user.authUserId) {
     throw new Error("This operator already has a login");
+  }
+  if (
+    !user.invitation ||
+    user.invitation.status !== "pending" ||
+    user.invitation.expiresAt <= input.now
+  ) {
+    throw new Error("A live one-time operator invitation is required");
   }
 
   return { kind: "claim-provisioned-user" };

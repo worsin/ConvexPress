@@ -13,6 +13,8 @@ const contextResult = v.object({
       organizationId: v.id("overseer_organizations"),
       name: v.string(),
       slug: v.string(),
+      description: v.union(v.string(), v.null()),
+      updatedAt: v.number(),
     }),
   ),
   businesses: v.array(
@@ -21,6 +23,9 @@ const contextResult = v.object({
       organizationId: v.id("overseer_organizations"),
       name: v.string(),
       slug: v.string(),
+      description: v.union(v.string(), v.null()),
+      accentColor: v.union(v.string(), v.null()),
+      updatedAt: v.number(),
     }),
   ),
   websites: v.array(
@@ -32,6 +37,8 @@ const contextResult = v.object({
       title: v.string(),
       primaryDomain: v.string(),
       isDefault: v.boolean(),
+      description: v.union(v.string(), v.null()),
+      updatedAt: v.number(),
     }),
   ),
   environments: v.array(
@@ -64,6 +71,10 @@ const contextResult = v.object({
         v.literal("incompatible"),
       ),
       isDefault: v.boolean(),
+      siteContractVersion: v.union(v.string(), v.null()),
+      schemaVersion: v.union(v.string(), v.null()),
+      engineVersion: v.union(v.string(), v.null()),
+      updatedAt: v.number(),
     }),
   ),
   active: v.object({
@@ -311,12 +322,17 @@ async function buildContext(ctx: ReadCtx, operator: Doc<"overseer_users">) {
       organizationId: row._id,
       name: row.name,
       slug: row.slug,
+      description: row.description ?? null,
+      updatedAt: row.updatedAt,
     })),
     businesses: docs.businesses.map((row) => ({
       businessId: row._id,
       organizationId: row.organizationId!,
       name: row.name,
       slug: row.slug,
+      description: row.description ?? null,
+      accentColor: row.accentColor ?? null,
+      updatedAt: row.updatedAt,
     })),
     websites: docs.websites.map((row) => ({
       websiteId: row._id,
@@ -326,6 +342,8 @@ async function buildContext(ctx: ReadCtx, operator: Doc<"overseer_users">) {
       title: row.title,
       primaryDomain: row.primaryDomain,
       isDefault: row.isDefault === true,
+      description: row.description ?? null,
+      updatedAt: row.updatedAt,
     })),
     environments: docs.environments.map((row) => ({
       instanceId: row._id,
@@ -339,6 +357,10 @@ async function buildContext(ctx: ReadCtx, operator: Doc<"overseer_users">) {
       health: row.health,
       compatibility: row.compatibility,
       isDefault: row.isDefault === true,
+      siteContractVersion: row.siteContractVersion ?? null,
+      schemaVersion: row.schemaVersion ?? null,
+      engineVersion: row.engineVersion ?? null,
+      updatedAt: row.updatedAt,
     })),
     active: {
       organizationId: organization?._id ?? null,

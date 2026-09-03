@@ -7,6 +7,8 @@ import {
   operatorProfilePlan,
   type OperatorProfile,
 } from "./operatorProfile";
+import { publicOperatorProvisionResult } from "./operatorProvisionResult";
+import { issueOperatorInvitation } from "./operatorInvitations";
 import { authorizedMutation, authorizedQuery } from "./rbac/functions";
 import { authenticatedQuery } from "./rbac/functions";
 import { resolveStoredAccess } from "./rbac/runtime";
@@ -63,6 +65,7 @@ async function upsertClaimableOperator(
     email: string;
     name?: string;
     role: "admin" | "manager" | "member" | "viewer";
+    claimSecret: string;
   },
 ) {
   const email = normalizeEmail(args.email);
@@ -84,7 +87,13 @@ async function upsertClaimableOperator(
       isActive: true,
       updatedAt: Date.now(),
     });
-    return { userId: matches[0]._id, created: false };
+    const invitation = await issueOperatorInvitation(ctx, {
+      operatorId: matches[0]._id,
+      email,
+      claimSecret: args.claimSecret,
+      createdBy: ctx.operator._id,
+    });
+    return { userId: matches[0]._id, created: false, ...invitation };
   }
 
   const userId = await ctx.db.insert("overseer_users", {
@@ -95,7 +104,13 @@ async function upsertClaimableOperator(
     createdAt: Date.now(),
     createdBy: ctx.operator._id,
   });
-  return { userId, created: true };
+  const invitation = await issueOperatorInvitation(ctx, {
+    operatorId: userId,
+    email,
+    claimSecret: args.claimSecret,
+    createdBy: ctx.operator._id,
+  });
+  return { userId, created: true, ...invitation };
 }
 
 async function upsertBusinessAccess(
@@ -199,15 +214,24 @@ export const provision = authorizedMutation(manageOperatorsRequest)({
     email: v.string(),
     name: v.optional(v.string()),
     role: operatorRole,
+    claimSecret: v.string(),
   },
   returns: v.object({
     userId: v.id("overseer_users"),
     created: v.boolean(),
     claimable: v.boolean(),
+    claimSecret: v.string(),
+    claimExpiresAt: v.number(),
   }),
   handler: async (ctx, args) => {
     const result = await upsertClaimableOperator(ctx, args);
-    return { ...result, claimable: true };
+    return {
+      userId: result.userId,
+      created: result.created,
+      claimable: true,
+      claimSecret: args.claimSecret,
+      claimExpiresAt: result.expiresAt,
+    };
   },
 });
 
@@ -216,6 +240,7 @@ export const provisionScoped = authorizedMutation(manageOperatorsRequest)({
     email: v.string(),
     name: v.optional(v.string()),
     profile: operatorProfile,
+    claimSecret: v.string(),
     businessId: v.optional(v.id("overseer_businesses")),
     websiteId: v.optional(v.id("overseer_websites")),
   },
@@ -230,6 +255,8 @@ export const provisionScoped = authorizedMutation(manageOperatorsRequest)({
       v.literal("website"),
     ),
     targetId: v.union(v.string(), v.null()),
+    claimSecret: v.string(),
+    claimExpiresAt: v.number(),
   }),
   handler: async (ctx, args) => {
     const plan = operatorProfilePlan(args.profile as OperatorProfile);
@@ -247,6 +274,7 @@ export const provisionScoped = authorizedMutation(manageOperatorsRequest)({
       email: args.email,
       name: args.name,
       role: plan.platformRole,
+      claimSecret: args.claimSecret,
     });
     let targetId: string | null = null;
     if (plan.scope === "business" && args.businessId) {
@@ -257,13 +285,13 @@ export const provisionScoped = authorizedMutation(manageOperatorsRequest)({
       await upsertWebsiteAccess(ctx, result.userId, args.websiteId, plan.level);
       targetId = String(args.websiteId);
     }
-    return {
-      ...result,
-      claimable: true,
+    return publicOperatorProvisionResult({
+      invitation: result,
+      claimSecret: args.claimSecret,
       profile: args.profile,
       targetType: plan.scope,
       targetId,
-    };
+    });
   },
 });
 

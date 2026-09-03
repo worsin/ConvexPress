@@ -12,6 +12,11 @@ export interface AuthRuntimeConfig {
   trustedOrigins: string[];
 }
 
+export interface AuthRouteCorsConfig {
+  allowedOrigins: string[];
+  allowedHeaders: string[];
+}
+
 function normalizeHttpOrigin(value: string): string | undefined {
   const trimmed = value.trim().replace(/\/+$/u, "");
   if (!trimmed || trimmed === "null" || trimmed.includes("*")) return undefined;
@@ -130,5 +135,23 @@ export function resolveAuthRuntimeConfig(input: {
       mode,
       additionalOrigins: parseAdditionalOrigins(input.additionalOrigins),
     }),
+  };
+}
+
+/**
+ * Keep the Convex HTTP router's CORS allowlist aligned with Better Auth's
+ * request-origin policy. The cross-domain plugin currently replaces its
+ * internal trusted-origin context with the control site URL, so relying on
+ * that inferred value alone drops the packaged Electron protocol.
+ */
+export function resolveAuthRouteCorsConfig(input: {
+  siteUrl: string;
+  configuredMode?: string;
+  additionalOrigins?: string;
+}): AuthRouteCorsConfig {
+  const runtime = resolveAuthRuntimeConfig(input);
+  return {
+    allowedOrigins: runtime.trustedOrigins,
+    allowedHeaders: ["X-ConvexPress-Claim-Secret"],
   };
 }

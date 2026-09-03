@@ -10,6 +10,12 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  acceptanceProxyArguments,
+  buildElectronAcceptanceEnvironment,
+} from "./lib/electron-acceptance-environment.mjs";
+import { quitOwnedElectron } from "./lib/process-lifecycle.mjs";
+import { loadTestFleetConfig } from "./lib/test-fleet-config.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(scriptDirectory, "..");
@@ -102,28 +108,9 @@ function dismissShutdownDialogs(page) {
   });
 }
 
-async function quitElectron(electronApp) {
-  if (!electronApp) return;
-  const child = electronApp.process();
-  if (child.exitCode !== null || child.signalCode !== null) return;
-  const exited = new Promise((resolveExit) => child.once("exit", resolveExit));
-  await electronApp
-    .evaluate(({ app }) => app.exit(0))
-    .catch(() => undefined);
-  await Promise.race([
-    exited,
-    new Promise((resolveWait) => setTimeout(resolveWait, 5_000)),
-  ]);
-  if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
-  await Promise.race([
-    exited,
-    new Promise((resolveWait) => setTimeout(resolveWait, 5_000)),
-  ]);
-  if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
-}
-
 async function main() {
   const credentials = await readCredentials();
+  const fleet = loadTestFleetConfig();
   const handoffOnly =
     process.env.CONVEXPRESS_ACCEPTANCE_HANDOFF_ONLY === "1";
   await mkdir(artifactRoot, { recursive: true });
@@ -148,23 +135,25 @@ async function main() {
     JSON.stringify({
       setupComplete: true,
       mode: "existing",
-      convexUrl: "http://127.0.0.1:4720",
-      convexSiteUrl: "http://127.0.0.1:4721",
+      convexUrl: fleet.control.deploymentOrigin,
+      convexSiteUrl: fleet.control.siteOrigin,
     }),
     "utf8",
   );
 
-  const launchEnvironment = {
-    ...process.env,
+  const launchEnvironment = buildElectronAcceptanceEnvironment(process.env, {
     CONVEXPRESS_DESKTOP_DEV: "1",
-    CONVEXPRESS_DESKTOP_DEV_URL: "http://127.0.0.1:4105",
-  };
-  delete launchEnvironment.ELECTRON_RUN_AS_NODE;
+    CONVEXPRESS_DESKTOP_DEV_URL: fleet.rendererOrigin,
+  });
 
   const launchElectron = () =>
     _electron.launch({
       executablePath: electronExecutable,
-      args: [`--user-data-dir=${temporaryProfile}`, desktopRoot],
+      args: [
+        `--user-data-dir=${temporaryProfile}`,
+        ...acceptanceProxyArguments(),
+        desktopRoot,
+      ],
       cwd: desktopRoot,
       env: launchEnvironment,
       timeout: 60_000,
@@ -356,9 +345,6 @@ async function main() {
       name: "Verified backups",
     });
     const verifiedBackupItems = verifiedBackupsRegion.getByRole("listitem");
-    await verifiedBackupItems
-      .first()
-      .waitFor({ state: "visible", timeout: 20_000 });
     phase = "create-real-staging-backup-from-electron";
     const createBackupButton = operationsPanel.getByRole("button", {
       name: "Create full backup",
@@ -424,7 +410,7 @@ async function main() {
       .getByRole("button", { name: "Close site operations" })
       .click();
     await page
-      .getByText("Northstar Shop — Live", { exact: true })
+      .getByText("Northstar Shop — Staging", { exact: true })
       .first()
       .waitFor({ state: "visible", timeout: 30_000 });
 
@@ -497,7 +483,7 @@ async function main() {
       .getByRole("button", { name: "Close site operations" })
       .click();
     await page
-      .getByText("Northstar Shop — Live", { exact: true })
+      .getByText("Northstar Shop — Staging", { exact: true })
       .first()
       .waitFor({ state: "visible", timeout: 30_000 });
 
@@ -583,7 +569,7 @@ async function main() {
       .getByRole("button", { name: "Close site operations" })
       .click();
     await page
-      .getByText("Northstar Shop — Staging", { exact: true })
+      .getByText("Northstar Shop — Live", { exact: true })
       .first()
       .waitFor({ state: "visible", timeout: 30_000 });
 
@@ -768,27 +754,6 @@ async function main() {
       type: "png",
     });
 
-    phase = "switch-summit-live";
-    await organizationSelect.selectOption({ label: "Acceptance Client Group" });
-    await page
-      .getByText("Summit Main — Live", { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: 20_000 });
-    if (
-      await page
-        .getByText("This environment has no active management connection.", {
-          exact: true,
-        })
-        .isVisible()
-        .catch(() => false)
-    ) {
-      throw new Error("A connected website rendered as disconnected.");
-    }
-    await page.screenshot({
-      path: join(artifactRoot, "electron-summit-live.png"),
-      type: "png",
-    });
-
     phase = "verify-window-sizes";
     await electronApp.evaluate(({ BrowserWindow }) => {
       BrowserWindow.getAllWindows()[0]?.setSize(1024, 768);
@@ -839,7 +804,7 @@ async function main() {
     tracingStarted = false;
 
     phase = "restart-electron";
-    await quitElectron(electronApp);
+    await quitOwnedElectron(electronApp);
     electronApp = await launchElectron();
     const restoredPage = await electronApp.firstWindow();
     dismissShutdownDialogs(restoredPage);
@@ -868,8 +833,8 @@ async function main() {
         rendererAuthStorageEmpty: true,
         liveDatabaseRendered: true,
         stagingDatabaseRendered: true,
-        threeWebsitesRendered: true,
-        fourDatabasesRendered: true,
+        twoWebsitesRendered: true,
+        threeSiteDatabasesRendered: true,
         keyboardEnvironmentSwitch: !handoffOnly,
         minimumWindowVerified: true,
         wideWindowVerified: true,
@@ -927,7 +892,7 @@ async function main() {
         path: join(artifactRoot, "standalone-electron-acceptance-failed.zip"),
       }).catch(() => undefined);
     }
-    await quitElectron(electronApp).catch(() => undefined);
+    await quitOwnedElectron(electronApp).catch(() => undefined);
     await rm(temporaryProfile, { recursive: true, force: true });
   }
 }

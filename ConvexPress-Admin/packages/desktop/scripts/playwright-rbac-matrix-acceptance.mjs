@@ -4,6 +4,12 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  acceptanceProxyArguments,
+  buildElectronAcceptanceEnvironment,
+} from "./lib/electron-acceptance-environment.mjs";
+import { quitOwnedElectron } from "./lib/process-lifecycle.mjs";
+import { loadTestFleetConfig } from "./lib/test-fleet-config.mjs";
 
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
@@ -13,14 +19,17 @@ const desktopRoot = resolve(scriptDirectory, "..");
 const repositoryRoot = resolve(desktopRoot, "../..");
 const artifactRoot = resolve(repositoryRoot, "../output/playwright");
 const bunModulesRoot = join(repositoryRoot, "node_modules/.bun");
-const CONTROL_ORIGIN = "http://127.0.0.1:4920";
-const CONTROL_SITE_ORIGIN = "http://127.0.0.1:4921";
-const RENDERER_ORIGIN = "http://127.0.0.1:4105";
-const TARGET_ORGANIZATION = "Client Handoff Organization";
-const TARGET_BUSINESS = "Client Owned Websites";
+const fleet = loadTestFleetConfig();
+const CONTROL_ORIGIN = fleet.control.deploymentOrigin;
+const CONTROL_SITE_ORIGIN = fleet.control.siteOrigin;
+const RENDERER_ORIGIN = fleet.rendererOrigin;
+const TARGET_ORGANIZATION = "Acceptance Agency Group";
+const TARGET_BUSINESS = "Northstar Commerce";
 const TARGET_WEBSITE_KEY = "acceptance:northstar:shop";
 
 const listOrganizations = makeFunctionReference("organizations:list");
+const createOrganization = makeFunctionReference("organizations:create");
+const updateOrganization = makeFunctionReference("organizations:update");
 const listBusinesses = makeFunctionReference("businesses:list");
 const listWebsites = makeFunctionReference("websites:list");
 const listInstances = makeFunctionReference("websiteInstances:list");
@@ -62,7 +71,13 @@ async function readCredentials() {
     if (input.includes("\n")) break;
   }
   const parsed = JSON.parse(input.trim());
-  if (typeof parsed.email !== "string" || typeof parsed.password !== "string") {
+  if (
+    typeof parsed.email !== "string" ||
+    typeof parsed.password !== "string" ||
+    typeof parsed.siteAdminKeys?.alpha !== "string" ||
+    typeof parsed.siteAdminKeys?.beta !== "string" ||
+    typeof parsed.siteAdminKeys?.gamma !== "string"
+  ) {
     throw new Error("Electron RBAC owner credentials were not provided");
   }
   return parsed;
@@ -124,16 +139,6 @@ function safeRendererErrorSummary(errors) {
     .slice(0, 1_000);
 }
 
-async function quitElectron(electronApp) {
-  if (!electronApp) return;
-  const child = electronApp.process();
-  if (child.exitCode !== null || child.signalCode !== null) return;
-  const exited = new Promise((resolveExit) => child.once("exit", resolveExit));
-  await electronApp.evaluate(({ app }) => app.exit(0)).catch(() => undefined);
-  await Promise.race([exited, new Promise((resolveWait) => setTimeout(resolveWait, 5_000))]);
-  if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
-}
-
 async function launchElectron(_electron, profileLabel) {
   const temporaryProfile = await mkdtemp(join(tmpdir(), `convexpress-rbac-${profileLabel}-`));
   const expectedUserData = join(temporaryProfile, "-dev");
@@ -148,19 +153,21 @@ async function launchElectron(_electron, profileLabel) {
     }),
     "utf8",
   );
-  const launchEnvironment = {
-    ...process.env,
+  const launchEnvironment = buildElectronAcceptanceEnvironment(process.env, {
     CONVEXPRESS_DESKTOP_DEV: "1",
     CONVEXPRESS_DESKTOP_DEV_URL: RENDERER_ORIGIN,
-  };
-  delete launchEnvironment.ELECTRON_RUN_AS_NODE;
+  });
   const electronExecutable = await resolveBunPackage(
     "electron@",
     "node_modules/electron/dist/Electron.app/Contents/MacOS/Electron",
   );
   const electronApp = await _electron.launch({
     executablePath: electronExecutable,
-    args: [`--user-data-dir=${temporaryProfile}`, desktopRoot],
+    args: [
+      `--user-data-dir=${temporaryProfile}`,
+      ...acceptanceProxyArguments(),
+      desktopRoot,
+    ],
     cwd: desktopRoot,
     env: launchEnvironment,
     timeout: 60_000,
@@ -193,6 +200,7 @@ async function claimThroughElectron(page, account) {
   await page.getByRole("button", { name: "Have an operator invitation? Claim it" }).click();
   await page.getByRole("textbox", { name: /email/i }).fill(account.email);
   await page.getByLabel("Name", { exact: true }).fill(account.name);
+  await page.getByLabel("Invitation code", { exact: true }).fill(account.claimSecret);
   await page.getByLabel(/password/i).fill(account.password);
   await page.getByRole("button", { name: "Claim invitation", exact: true }).click();
   await page.getByRole("combobox", { name: "Organization" }).waitFor({
@@ -260,23 +268,52 @@ async function findTarget(client) {
   return { organization, business, website, environment, siblingOrganization, organizationCount: organizations.length };
 }
 
-async function fixtureAdminKey(kind) {
-  const config = JSON.parse(
-    await readFile(
-      resolve(
-        repositoryRoot,
-        `temp/site-fixtures/${kind}/.convex/local/default/config.json`,
-      ),
-      "utf8",
-    ),
+async function ensureSiblingOrganization(client, suffix) {
+  const organizations = await client.query(listOrganizations, {});
+  const target = organizations.find((entry) => entry.name === TARGET_ORGANIZATION);
+  if (!target) throw new Error("RBAC target organization is unavailable");
+  const existing = organizations.find(
+    (entry) => entry.organizationId !== target.organizationId,
   );
-  if (typeof config.adminKey !== "string") {
-    throw new Error(`The ${kind} fixture admin key is unavailable`);
-  }
-  return config.adminKey;
+  if (existing) return { organization: existing, created: false };
+  const organization = await client.mutation(createOrganization, {
+    name: `Electron RBAC Sibling ${suffix}`,
+    slug: `electron-rbac-sibling-${suffix}`,
+    description: "Disposable out-of-scope organization for Electron RBAC acceptance.",
+  });
+  return { organization, created: true };
 }
 
-async function ensureAcceptanceConnection(client, target) {
+function fleetAdminKey(credentials, environment) {
+  const endpoint = fleet.sites.find(
+    (candidate) =>
+      candidate.deploymentOrigin === environment.deploymentOrigin &&
+      candidate.siteOrigin === environment.managementOrigin,
+  );
+  if (!endpoint) {
+    throw new Error("The RBAC target is not one of the isolated Linux Worker sites");
+  }
+  return credentials.siteAdminKeys[endpoint.key];
+}
+
+function directSiteOrigin(environment) {
+  const configured = process.env.CONVEXPRESS_ACCEPTANCE_SITE_DIRECT_ORIGIN?.trim();
+  if (!configured) return environment.deploymentOrigin;
+  const parsed = new URL(configured);
+  if (
+    !["http:", "https:"].includes(parsed.protocol) ||
+    parsed.username ||
+    parsed.password ||
+    parsed.pathname !== "/" ||
+    parsed.search ||
+    parsed.hash
+  ) {
+    throw new Error("The direct RBAC site endpoint must be an HTTP(S) origin");
+  }
+  return parsed.origin;
+}
+
+async function ensureAcceptanceConnection(client, target, credentials) {
   const connections = await client.query(listConnections, {
     instanceId: target.environment.instanceId,
   });
@@ -288,7 +325,7 @@ async function ensureAcceptanceConnection(client, target) {
     instanceId: target.environment.instanceId,
     name: "Electron RBAC revocation acceptance",
     accountLabel: "Disposable RBAC session authority",
-    deploymentAdminKey: await fixtureAdminKey(target.environment.kind),
+    deploymentAdminKey: fleetAdminKey(credentials, target.environment),
   });
   return { connectionId: created.connectionId, created: true };
 }
@@ -313,7 +350,6 @@ async function main() {
   );
   const { _electron } = await import(pathToFileURL(playwrightEntry).href);
   const ownerClient = await operatorClient(ownerCredentials);
-  const target = await findTarget(ownerClient);
   const suffix = `${Date.now().toString(36)}-${randomBytes(4).toString("hex")}`;
   const password = `Cv!${randomBytes(18).toString("base64url")}`;
   const accounts = [
@@ -333,14 +369,25 @@ async function main() {
   let denyPermissionId = null;
   let siteOperatorSiteSession = null;
   let acceptanceConnection = null;
+  let target = null;
+  let disposableSiblingId = null;
+  let disposableSiblingCleaned = false;
   let phase = "owner-launch";
 
   try {
+    phase = "prepare-sibling-scope";
+    const sibling = await ensureSiblingOrganization(ownerClient, suffix);
+    if (sibling.created) disposableSiblingId = sibling.organization.organizationId;
+    target = await findTarget(ownerClient);
     const ownerRun = await launchElectron(_electron, "owner");
     electronRuns.push(ownerRun);
     await signInThroughElectron(ownerRun.page, ownerCredentials);
     await selectTargetScope(ownerRun.page, target);
-    acceptanceConnection = await ensureAcceptanceConnection(ownerClient, target);
+    acceptanceConnection = await ensureAcceptanceConnection(
+      ownerClient,
+      target,
+      ownerCredentials,
+    );
     const ownerManager = await openPeoplePanel(ownerRun.page);
     await ownerManager.getByText("Owner", { exact: true }).first().waitFor({
       state: "visible",
@@ -353,10 +400,29 @@ async function main() {
       await ownerManager.getByLabel("Login email").fill(account.email);
       await ownerManager.getByLabel("Outer access role").selectOption(account.profile);
       await ownerManager.getByRole("button", { name: "Prepare operator invitation" }).click();
+      const receipt = ownerManager.getByRole("complementary", {
+        name: "One-time operator invitation",
+      });
+      await receipt.waitFor({ state: "visible", timeout: 30_000 });
+      await receipt.filter({ hasText: account.email }).waitFor({
+        state: "visible",
+        timeout: 30_000,
+      });
+      const backendOperators = await ownerClient.query(listOperators, { limit: 200 });
+      if (!backendOperators.some((entry) => entry.email === account.email)) {
+        throw new Error(`Provisioned ${account.key} operator was not persisted`);
+      }
       await ownerManager.getByRole("article", { name: `Operator ${account.email}` }).waitFor({
         state: "visible",
-        timeout: 15_000,
+        timeout: 30_000,
       });
+      const claimSecret = (
+        await receipt.locator("output").textContent()
+      )?.trim();
+      if (!claimSecret || !/^[A-Za-z0-9_-]{43}$/u.test(claimSecret)) {
+        throw new Error(`Provisioned ${account.key} invitation code is unavailable`);
+      }
+      account.claimSecret = claimSecret;
     }
     await ownerRun.page.screenshot({
       path: join(artifactRoot, "electron-rbac-owner-people.png"),
@@ -368,7 +434,7 @@ async function main() {
       if (!operator) throw new Error(`Provisioned ${account.key} operator is missing`);
       operatorIds.push(operator.userId);
     }
-    await quitElectron(ownerRun.electronApp);
+    await quitOwnedElectron(ownerRun.electronApp);
     await rm(ownerRun.temporaryProfile, { recursive: true, force: true });
     electronRuns.splice(electronRuns.indexOf(ownerRun), 1);
 
@@ -535,7 +601,9 @@ async function main() {
           requestedCapabilities: ["health.read", "compatibility.read"],
           requestedSiteRole: "administrator",
         });
-        const siteClient = new ConvexHttpClient(target.environment.deploymentOrigin);
+        const siteClient = new ConvexHttpClient(
+          directSiteOrigin(target.environment),
+        );
         siteClient.setAuth(session.token);
         const currentSiteUser = await siteClient.query(getSiteCurrentUser, {});
         if (!currentSiteUser?.isInternal) {
@@ -543,7 +611,7 @@ async function main() {
         }
         siteOperatorSiteSession = {
           token: session.token,
-          deploymentOrigin: target.environment.deploymentOrigin,
+          deploymentOrigin: directSiteOrigin(target.environment),
         };
       }
       if (account.key === "member") {
@@ -575,7 +643,7 @@ async function main() {
       }
 
       await run.page.context().tracing.stop({ path: tracePath });
-      await quitElectron(run.electronApp);
+      await quitOwnedElectron(run.electronApp);
       await rm(run.temporaryProfile, { recursive: true, force: true });
       electronRuns.splice(electronRuns.indexOf(run), 1);
       if (run.rendererErrors.length) {
@@ -623,7 +691,7 @@ async function main() {
     if (!revoked) {
       throw new Error("Deactivated Site Operator retained an issued site session");
     }
-    await quitElectron(deactivationRun.electronApp);
+    await quitOwnedElectron(deactivationRun.electronApp);
     await rm(deactivationRun.temporaryProfile, { recursive: true, force: true });
     electronRuns.splice(electronRuns.indexOf(deactivationRun), 1);
 
@@ -642,6 +710,14 @@ async function main() {
         throw new Error("An RBAC acceptance trace retained a raw password");
       }
     }
+    if (disposableSiblingId) {
+      await ownerClient.mutation(updateOrganization, {
+        organizationId: disposableSiblingId,
+        isActive: false,
+      });
+      disposableSiblingId = null;
+    }
+    disposableSiblingCleaned = true;
 
     process.stdout.write(`${JSON.stringify({
       acceptanceMode: "electron-rbac-matrix",
@@ -658,9 +734,17 @@ async function main() {
       websiteCustomerAuthRemainsSeparate: true,
       issuedSiteSessionRevokedOnDeactivation: true,
       temporaryOperatorsDeactivated: true,
+      disposableSiblingOrganizationCleaned: disposableSiblingCleaned,
       rendererErrorCount: 0,
     })}\n`);
   } catch (error) {
+    const activeRun = electronRuns.at(-1);
+    if (activeRun) {
+      await activeRun.page.screenshot({
+        path: join(artifactRoot, "electron-rbac-failure.png"),
+        type: "png",
+      }).catch(() => undefined);
+    }
     process.stderr.write(`Electron RBAC acceptance failed during ${phase}: ${error instanceof Error ? error.message : String(error)}\n`);
     throw error;
   } finally {
@@ -675,6 +759,12 @@ async function main() {
         connectionId: acceptanceConnection.connectionId,
       }).catch(() => undefined);
     }
+    if (disposableSiblingId) {
+      await ownerClient.mutation(updateOrganization, {
+        organizationId: disposableSiblingId,
+        isActive: false,
+      }).catch(() => undefined);
+    }
     const currentOperators = await ownerClient.query(listOperators, { limit: 200 }).catch(() => []);
     for (const operator of currentOperators) {
       if (operator.email?.includes(`-${suffix}@example.test`) && operator.isActive) {
@@ -685,7 +775,7 @@ async function main() {
       }
     }
     for (const run of electronRuns) {
-      await quitElectron(run.electronApp).catch(() => undefined);
+      await quitOwnedElectron(run.electronApp).catch(() => undefined);
       await rm(run.temporaryProfile, { recursive: true, force: true }).catch(() => undefined);
     }
   }

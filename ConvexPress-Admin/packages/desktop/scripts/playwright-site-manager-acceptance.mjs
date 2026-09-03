@@ -3,6 +3,12 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  acceptanceProxyArguments,
+  buildElectronAcceptanceEnvironment,
+} from "./lib/electron-acceptance-environment.mjs";
+import { quitOwnedElectron } from "./lib/process-lifecycle.mjs";
+import { loadTestFleetConfig } from "./lib/test-fleet-config.mjs";
 
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
@@ -12,9 +18,10 @@ const desktopRoot = resolve(scriptDirectory, "..");
 const repositoryRoot = resolve(desktopRoot, "../..");
 const artifactRoot = resolve(repositoryRoot, "../output/playwright");
 const bunModulesRoot = join(repositoryRoot, "node_modules/.bun");
-const B_ORIGIN = "http://127.0.0.1:4920";
-const B_SITE_ORIGIN = "http://127.0.0.1:4921";
-const RENDERER_ORIGIN = "http://127.0.0.1:4105";
+const fleet = loadTestFleetConfig();
+const B_ORIGIN = fleet.control.deploymentOrigin;
+const B_SITE_ORIGIN = fleet.control.siteOrigin;
+const RENDERER_ORIGIN = fleet.rendererOrigin;
 const WEBSITE_KEY = "acceptance:northstar:shop";
 const ACCEPTANCE_CONNECTION_LABEL = "Electron secure credential acceptance";
 
@@ -27,9 +34,19 @@ const { convexClient, crossDomainClient } = requireFromControlPlane(
 const { createAuthClient } = requireFromControlPlane("better-auth/client");
 
 const listWebsites = makeFunctionReference("websites:list");
+const updateWebsite = makeFunctionReference("websites:update");
+const listOrganizations = makeFunctionReference("organizations:list");
+const updateOrganization = makeFunctionReference("organizations:update");
+const listBusinesses = makeFunctionReference("businesses:list");
+const updateBusiness = makeFunctionReference("businesses:update");
 const listInstances = makeFunctionReference("websiteInstances:list");
+const archiveInstance = makeFunctionReference("websiteInstances:archive");
 const listConnections = makeFunctionReference("connections/queries:listForInstance");
+const createConnection = makeFunctionReference("connections/actions:create");
+const testConnection = makeFunctionReference("connections/actions:test");
 const revokeConnection = makeFunctionReference("connections/actions:revoke");
+const BASELINE_CONNECTION_NAME = "Northstar Shop Live";
+const BASELINE_CONNECTION_LABEL = "Linux Worker acceptance fleet";
 
 async function resolveBunPackage(prefix, relativeEntry) {
   const entries = await readdir(bunModulesRoot);
@@ -48,7 +65,11 @@ async function readCredentials() {
     if (input.includes("\n")) break;
   }
   const parsed = JSON.parse(input.trim());
-  if (typeof parsed.email !== "string" || typeof parsed.password !== "string") {
+  if (
+    typeof parsed.email !== "string" ||
+    typeof parsed.password !== "string" ||
+    typeof parsed.siteAdminKey !== "string"
+  ) {
     throw new Error("Electron site-manager credentials were not provided");
   }
   return parsed;
@@ -98,10 +119,10 @@ async function operatorClient(credentials) {
 async function liveEnvironment(client) {
   const websites = await client.query(listWebsites, {});
   const website = websites.find((entry) => entry.websiteKey === WEBSITE_KEY);
-  if (!website) throw new Error("Northstar Shop is not registered in controller B");
+  if (!website) throw new Error("Northstar Shop is not registered in the controller");
   const environments = await client.query(listInstances, { websiteId: website.websiteId });
   const live = environments.find((entry) => entry.kind === "live");
-  if (!live) throw new Error("Northstar Shop live is not registered in controller B");
+  if (!live) throw new Error("Northstar Shop live is not registered in the controller");
   return live;
 }
 
@@ -115,15 +136,99 @@ async function cleanupAcceptanceConnections(client) {
   }
 }
 
-async function fixtureAdminKey() {
-  const config = JSON.parse(
-    await readFile(
-      resolve(repositoryRoot, "temp/site-fixtures/live/.convex/local/default/config.json"),
-      "utf8",
-    ),
+async function ensureBaselineConnection(client, adminKey) {
+  const live = await liveEnvironment(client);
+  const connections = await client.query(listConnections, {
+    instanceId: live.instanceId,
+  });
+  let active = connections.find(
+    (connection) => connection.isActive && connection.status !== "revoked",
   );
-  if (typeof config.adminKey !== "string") throw new Error("Live fixture admin key is unavailable");
-  return config.adminKey;
+  if (!active) {
+    const created = await client.action(createConnection, {
+      instanceId: live.instanceId,
+      name: BASELINE_CONNECTION_NAME,
+      accountLabel: BASELINE_CONNECTION_LABEL,
+      deploymentAdminKey: adminKey,
+    });
+    const refreshed = await client.query(listConnections, {
+      instanceId: live.instanceId,
+    });
+    active = refreshed.find(
+      (connection) => connection.connectionId === created.connectionId,
+    );
+  }
+  if (!active) throw new Error("The test-fleet baseline authority could not be restored");
+  const health = await client.action(testConnection, {
+    connectionId: active.connectionId,
+  });
+  if (health.status !== "healthy") {
+    throw new Error("The restored test-fleet baseline authority is not healthy");
+  }
+  return active;
+}
+
+async function prepareAuthorityEnrollment(client, adminKey) {
+  await cleanupAcceptanceConnections(client);
+  const baseline = await ensureBaselineConnection(client, adminKey);
+  await client.action(revokeConnection, {
+    connectionId: baseline.connectionId,
+  });
+}
+
+async function cleanupAcceptanceHierarchy(client, target) {
+  if (!target) return;
+  const organizations = await client.query(listOrganizations, {
+    includeInactive: true,
+  });
+  const organization = organizations.find(
+    (entry) => entry.slug === target.organizationSlug,
+  );
+  if (!organization) return;
+  const businesses = await client.query(listBusinesses, {
+    organizationId: organization.organizationId,
+    includeInactive: true,
+  });
+  const business = businesses.find((entry) => entry.slug === target.businessSlug);
+  if (business) {
+    const websites = await client.query(listWebsites, {
+      businessId: business.businessId,
+      includeArchived: true,
+    });
+    const website = websites.find((entry) => entry.websiteKey === target.websiteKey);
+    if (website) {
+      const environments = await client.query(listInstances, {
+        websiteId: website.websiteId,
+        includeArchived: true,
+      });
+      for (const environment of environments) {
+        if (environment.status === "active") {
+          await client.mutation(archiveInstance, {
+            instanceId: environment.instanceId,
+            confirmation: `ARCHIVE ENVIRONMENT ${environment.instanceKey}`,
+          });
+        }
+      }
+      if (website.status !== "archived") {
+        await client.mutation(updateWebsite, {
+          websiteId: website.websiteId,
+          status: "archived",
+        });
+      }
+    }
+    if (business.isActive) {
+      await client.mutation(updateBusiness, {
+        businessId: business.businessId,
+        isActive: false,
+      });
+    }
+  }
+  if (organization.isActive) {
+    await client.mutation(updateOrganization, {
+      organizationId: organization.organizationId,
+      isActive: false,
+    });
+  }
 }
 
 async function selectOptionContaining(select, text, timeoutMs = 20_000) {
@@ -172,21 +277,11 @@ function dismissShutdownDialogs(page) {
   page.on("dialog", (dialog) => void dialog.dismiss().catch(() => undefined));
 }
 
-async function quitElectron(electronApp) {
-  if (!electronApp) return;
-  const child = electronApp.process();
-  if (child.exitCode !== null || child.signalCode !== null) return;
-  const exited = new Promise((resolveExit) => child.once("exit", resolveExit));
-  await electronApp.evaluate(({ app }) => app.exit(0)).catch(() => undefined);
-  await Promise.race([exited, new Promise((resolveWait) => setTimeout(resolveWait, 5_000))]);
-  if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
-}
-
 async function main() {
   const credentials = await readCredentials();
-  const adminKey = await fixtureAdminKey();
+  const adminKey = credentials.siteAdminKey;
   const client = await operatorClient(credentials);
-  await cleanupAcceptanceConnections(client);
+  await prepareAuthorityEnrollment(client, adminKey);
   await mkdir(artifactRoot, { recursive: true });
   const [playwrightEntry, electronExecutable] = await Promise.all([
     resolveBunPackage("playwright@", "node_modules/playwright/index.mjs"),
@@ -203,12 +298,10 @@ async function main() {
     "utf8",
   );
 
-  const launchEnvironment = {
-    ...process.env,
+  const launchEnvironment = buildElectronAcceptanceEnvironment(process.env, {
     CONVEXPRESS_DESKTOP_DEV: "1",
     CONVEXPRESS_DESKTOP_DEV_URL: RENDERER_ORIGIN,
-  };
-  delete launchEnvironment.ELECTRON_RUN_AS_NODE;
+  });
 
   let electronApp;
   let traceStarted = false;
@@ -218,10 +311,17 @@ async function main() {
   let secretSeenInRendererRequest = false;
   let securePromptVerified = false;
   let connectionRevoked = false;
+  let acceptanceHierarchy = null;
+  let hierarchyCleaned = false;
+  let baselineRestored = false;
   try {
     electronApp = await _electron.launch({
       executablePath: electronExecutable,
-      args: [`--user-data-dir=${temporaryProfile}`, desktopRoot],
+      args: [
+        `--user-data-dir=${temporaryProfile}`,
+        ...acceptanceProxyArguments(),
+        desktopRoot,
+      ],
       cwd: desktopRoot,
       env: launchEnvironment,
       timeout: 60_000,
@@ -248,9 +348,9 @@ async function main() {
     await page.getByRole("button", { name: /sign in|continue/i }).click();
     const organizationSelect = page.getByRole("combobox", { name: "Organization" });
     await organizationSelect.waitFor({ state: "visible", timeout: 20_000 });
-    await selectOptionContaining(organizationSelect, "Client Handoff Organization");
+    await selectOptionContaining(organizationSelect, "Acceptance Agency Group");
     const businessSelect = page.getByRole("combobox", { name: "Business" });
-    await selectOptionContaining(businessSelect, "Client Owned Websites");
+    await selectOptionContaining(businessSelect, "Northstar Commerce");
     const websiteSelect = page.getByRole("combobox", { name: "Website" });
     await selectOptionContaining(websiteSelect, "Northstar Shop");
     const environmentSelect = page.getByRole("combobox", { name: "Environment" });
@@ -260,13 +360,12 @@ async function main() {
     await page.getByRole("button", { name: "Manage sites" }).click();
     const manager = page.getByRole("complementary", { name: "Manage websites" });
     await manager.waitFor({ state: "visible", timeout: 10_000 });
-    await manager.getByText("Client Handoff Organization", { exact: true }).first().waitFor({ state: "visible", timeout: 15_000 });
+    await manager.getByText("Acceptance Agency Group", { exact: true }).first().waitFor({ state: "visible", timeout: 15_000 });
     await manager.getByText("New organization", { exact: true }).waitFor({ state: "visible", timeout: 15_000 });
     await page.screenshot({ path: join(artifactRoot, "electron-site-manager-portfolio.png"), type: "png" });
 
     phase = "secure-credential-window";
     await manager.getByRole("button", { name: /Authority/ }).click();
-    await manager.getByText("this controller has no authority", { exact: false }).waitFor({ state: "visible", timeout: 15_000 });
     await manager.getByLabel("Connection name").fill("Electron acceptance controller");
     await manager.getByLabel("Account label").fill(ACCEPTANCE_CONNECTION_LABEL);
     const promptPromise = electronApp.waitForEvent("window", { timeout: 15_000 });
@@ -351,7 +450,7 @@ async function main() {
     const businessSlug = `client-studio-${suffix}`;
     const websiteTitle = `Acceptance Site ${suffix}`;
     const websiteKey = `${businessSlug}:acceptance-site`;
-    const deploymentPort = 5_200 + (Date.now() % 300);
+    acceptanceHierarchy = { organizationSlug, businessSlug, websiteKey };
     const addRecords = manager.getByRole("region", { name: "Add portfolio records" });
     await addRecords.getByText("New organization", { exact: true }).click();
     const organizationForm = addRecords.getByRole("form", { name: "Create organization" });
@@ -395,8 +494,8 @@ async function main() {
     const attach = manager.getByRole("region", { name: "Attach environment" });
     await attach.getByLabel("Environment kind").selectOption("staging");
     await attach.getByLabel("Label").fill("Acceptance Staging");
-    await attach.getByLabel("Convex deployment URL").fill(`http://127.0.0.1:${deploymentPort}`);
-    await attach.getByLabel("Convex site / management URL").fill(`http://127.0.0.1:${deploymentPort + 1}`);
+    await attach.getByLabel("Convex deployment URL").fill("http://192.0.2.10:5200");
+    await attach.getByLabel("Convex site / management URL").fill("http://192.0.2.10:5201");
     await attach.getByLabel("Public website URL").fill(`https://staging-${organizationSlug}.example.test`);
     await attach.getByRole("button", { name: "Attach environment" }).click();
     const currentEnvironment = manager.getByRole("region", { name: "Current environment details" });
@@ -425,7 +524,7 @@ async function main() {
     if (rendererStorageContainsSecret || secretSeenInRendererRequest) {
       throw new Error("Deployment credential reached renderer storage or network");
     }
-    await quitElectron(electronApp);
+    await quitOwnedElectron(electronApp);
     electronApp = null;
     if (await containsRawSecret(temporaryProfile, adminKey)) {
       throw new Error("Deployment credential was persisted in the Electron profile");
@@ -433,6 +532,10 @@ async function main() {
     if (await containsRawSecret(artifactRoot, adminKey)) {
       throw new Error("Deployment credential was written to an acceptance artifact");
     }
+    await cleanupAcceptanceHierarchy(client, acceptanceHierarchy);
+    hierarchyCleaned = true;
+    await ensureBaselineConnection(client, adminKey);
+    baselineRestored = true;
 
     process.stdout.write(`${JSON.stringify({
       acceptanceMode: "site-manager-electron",
@@ -452,6 +555,8 @@ async function main() {
       connectionHealthTested: true,
       controllerAuthorityRotated: true,
       controllerAuthorityRevoked: connectionRevoked,
+      disposableHierarchyCleaned: hierarchyCleaned,
+      baselineAuthorityRestoredAndHealthy: baselineRestored,
       failedRendererRequests: failedRequests.length,
       rendererErrorCount: rendererErrors.length,
     })}\n`);
@@ -471,8 +576,14 @@ async function main() {
     if (traceStarted && electronApp) {
       await electronApp.windows()[0]?.context().tracing.stop({ path: join(artifactRoot, "site-manager-electron-acceptance-failed.zip") }).catch(() => undefined);
     }
-    await quitElectron(electronApp).catch(() => undefined);
+    await quitOwnedElectron(electronApp).catch(() => undefined);
     await cleanupAcceptanceConnections(client).catch(() => undefined);
+    if (!baselineRestored) {
+      await ensureBaselineConnection(client, adminKey).catch(() => undefined);
+    }
+    if (!hierarchyCleaned) {
+      await cleanupAcceptanceHierarchy(client, acceptanceHierarchy).catch(() => undefined);
+    }
     await rm(temporaryProfile, { recursive: true, force: true });
   }
 }

@@ -1,6 +1,3 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
 
@@ -13,8 +10,8 @@ import {
   generateManagementKeyPair,
   signManagementEnvelope,
 } from "../../packages/site-contract/src/node.ts";
+import { loadTestFleetConfig } from "../../packages/desktop/scripts/lib/test-fleet-config.mjs";
 
-const fixturesRoot = path.resolve("temp/site-fixtures");
 const proofSuffix = Date.now().toString(36);
 const capabilities = [
   "health.read",
@@ -31,29 +28,41 @@ const revokeAuthority = makeFunctionReference(
   "management/bootstrap:revokeAuthority",
 );
 
-async function readFixture(kind, expectedCloudPort, expectedSitePort) {
-  const root = path.join(fixturesRoot, kind);
-  const config = JSON.parse(
-    await readFile(path.join(root, ".convex/local/default/config.json"), "utf8"),
-  );
-  if (
-    config.ports?.cloud !== expectedCloudPort ||
-    config.ports?.site !== expectedSitePort ||
-    typeof config.adminKey !== "string"
-  ) {
-    throw new Error(`${kind} fixture is not the expected isolated deployment`);
+async function readCredentials() {
+  let input = "";
+  for await (const chunk of process.stdin) {
+    input += chunk.toString("utf8");
+    if (input.includes("\n")) break;
   }
-  const client = new ConvexHttpClient(`http://127.0.0.1:${expectedCloudPort}`);
-  client.setAdminAuth(config.adminKey);
+  const value = JSON.parse(input.trim());
+  for (const key of ["alpha", "beta", "gamma"]) {
+    if (typeof value.siteAdminKeys?.[key] !== "string") {
+      throw new Error("All three Linux Worker site admin keys are required on stdin");
+    }
+  }
+  return value.siteAdminKeys;
+}
+
+async function readFixture(endpoint, adminKey) {
+  const client = new ConvexHttpClient(endpoint.deploymentOrigin);
+  client.setAdminAuth(adminKey);
   const healthResponse = await fetch(
-    `http://127.0.0.1:${expectedSitePort}/api/convexpress/management/health`,
+    `${endpoint.siteOrigin}/api/convexpress/management/health`,
   );
-  if (!healthResponse.ok) throw new Error(`${kind} health endpoint is unavailable`);
+  if (!healthResponse.ok) {
+    throw new Error(`${endpoint.key} health endpoint is unavailable`);
+  }
   const health = await healthResponse.json();
+  if (
+    typeof health.websiteKey !== "string" ||
+    typeof health.instanceKey !== "string"
+  ) {
+    throw new Error(`${endpoint.key} health identity is incomplete`);
+  }
   return {
-    kind,
+    kind: endpoint.key,
     client,
-    siteUrl: `http://127.0.0.1:${expectedSitePort}`,
+    siteUrl: endpoint.siteOrigin,
     websiteKey: health.websiteKey,
     instanceKey: health.instanceKey,
   };
@@ -63,6 +72,7 @@ function signedExchange(fixture, controller, nonce) {
   const body = {
     requestedCapabilities: ["health.read"],
     requestedSiteRole: "subscriber",
+    controllerSubjectId: `${controller.controllerId}_acceptance_operator`,
   };
   return {
     body,
@@ -123,53 +133,74 @@ const vo = {
   keyId: `key_vo_proof_${proofSuffix}`,
   ...voKeys,
 };
-const fixtures = await Promise.all([
-  readFixture("live", 4820, 4821),
-  readFixture("staging", 4830, 4831),
-]);
+const fleet = loadTestFleetConfig();
+const siteAdminKeys = await readCredentials();
+const fixtures = await Promise.all(
+  fleet.sites.map((endpoint) =>
+    readFixture(endpoint, siteAdminKeys[endpoint.key]),
+  ),
+);
+const enrolled = [];
+const cleanupFailures = [];
+let revocationVerified = false;
 
-for (const fixture of fixtures) {
-  for (const controller of [standalone, vo]) {
-    await fixture.client.mutation(enrollAuthority, {
-      controllerId: controller.controllerId,
-      keyId: controller.keyId,
-      label:
-        controller === standalone
-          ? "Standalone ConvexPress acceptance controller"
-          : "Virtual Overseer acceptance controller",
-      publicKeyPem: controller.publicKeyPem,
-      capabilities,
-    });
+try {
+  for (const fixture of fixtures) {
+    for (const controller of [standalone, vo]) {
+      await fixture.client.mutation(enrollAuthority, {
+        controllerId: controller.controllerId,
+        keyId: controller.keyId,
+        label:
+          controller === standalone
+            ? "Standalone ConvexPress acceptance controller"
+            : "Virtual Overseer acceptance controller",
+        publicKeyPem: controller.publicKeyPem,
+        capabilities,
+      });
+      enrolled.push({ fixture, controller });
+    }
+    await exchange(
+      fixture,
+      standalone,
+      `nonce_${fixture.kind}_standalone_${proofSuffix}`,
+    );
+    await exchange(fixture, vo, `nonce_${fixture.kind}_vo_${proofSuffix}`);
   }
-  await exchange(
-    fixture,
-    standalone,
-    `nonce_${fixture.kind}_standalone_${proofSuffix}`,
+
+  const live = fixtures[0];
+  if (!live) throw new Error("Live fixture is missing");
+  await live.client.mutation(revokeAuthority, {
+    controllerId: standalone.controllerId,
+    keyId: standalone.keyId,
+  });
+  const revokedIndex = enrolled.findIndex(
+    (entry) => entry.fixture === live && entry.controller === standalone,
   );
-  await exchange(fixture, vo, `nonce_${fixture.kind}_vo_${proofSuffix}`);
+  if (revokedIndex >= 0) enrolled.splice(revokedIndex, 1);
+  await exchange(
+    live,
+    standalone,
+    `nonce_${live.kind}_standalone_revoked_${proofSuffix}`,
+    401,
+  );
+  await exchange(live, vo, `nonce_${live.kind}_vo_after_revoke_${proofSuffix}`);
+  revocationVerified = true;
+} finally {
+  for (const { fixture, controller } of enrolled.reverse()) {
+    await fixture.client
+      .mutation(revokeAuthority, {
+        controllerId: controller.controllerId,
+        keyId: controller.keyId,
+      })
+      .catch(() => cleanupFailures.push(`${fixture.kind}:${controller.controllerId}`));
+  }
 }
 
-const live = fixtures.find((fixture) => fixture.kind === "live");
-if (!live) throw new Error("Live fixture is missing");
-await live.client.mutation(revokeAuthority, {
-  controllerId: standalone.controllerId,
-  keyId: standalone.keyId,
-});
-await exchange(
-  live,
-  standalone,
-  `nonce_live_standalone_revoked_${proofSuffix}`,
-  401,
-);
-await exchange(live, vo, `nonce_live_vo_after_revoke_${proofSuffix}`);
-
-for (const fixture of fixtures) {
-  for (const controller of [standalone, vo]) {
-    await fixture.client.mutation(revokeAuthority, {
-      controllerId: controller.controllerId,
-      keyId: controller.keyId,
-    });
-  }
+if (cleanupFailures.length) {
+  throw new Error(`Could not revoke test authorities: ${cleanupFailures.join(", ")}`);
+}
+if (!revocationVerified) {
+  throw new Error("Dual-authority revocation proof did not complete");
 }
 
 console.log(

@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { decideAuthUserClaim } from "../authPolicy";
 import {
   PACKAGED_CONVEXPRESS_APP_ORIGIN,
+  resolveAuthRouteCorsConfig,
   resolveAuthRuntimeConfig,
   resolveAuthTrustedOrigins,
 } from "../authOrigins";
@@ -15,6 +16,7 @@ describe("outer operator signup policy", () => {
       decideAuthUserClaim({
         now: NOW,
         normalizedEmail: "owner@example.com",
+        emailVerified: true,
         anyUserExists: false,
         reservation: {
           ownerEmail: "owner@example.com",
@@ -28,6 +30,7 @@ describe("outer operator signup policy", () => {
       decideAuthUserClaim({
         now: NOW,
         normalizedEmail: "wrong@example.com",
+        emailVerified: true,
         anyUserExists: false,
         reservation: {
           ownerEmail: "owner@example.com",
@@ -36,6 +39,7 @@ describe("outer operator signup policy", () => {
         },
       }),
     ).toThrow("reservation");
+
   });
 
   test("allows later signup only to claim an active pre-provisioned row", () => {
@@ -43,10 +47,16 @@ describe("outer operator signup policy", () => {
       decideAuthUserClaim({
         now: NOW,
         normalizedEmail: "operator@example.com",
+        emailVerified: true,
         anyUserExists: true,
         provisionedUser: {
           email: "operator@example.com",
           isActive: true,
+          invitation: {
+            tokenHash: "hash",
+            status: "pending",
+            expiresAt: NOW + 60_000,
+          },
         },
       }),
     ).toEqual({ kind: "claim-provisioned-user" });
@@ -55,6 +65,7 @@ describe("outer operator signup policy", () => {
       decideAuthUserClaim({
         now: NOW,
         normalizedEmail: "operator@example.com",
+        emailVerified: true,
         anyUserExists: true,
       }),
     ).toThrow("provisioned");
@@ -62,10 +73,16 @@ describe("outer operator signup policy", () => {
       decideAuthUserClaim({
         now: NOW,
         normalizedEmail: "operator@example.com",
+        emailVerified: true,
         anyUserExists: true,
         provisionedUser: {
           email: "operator@example.com",
           isActive: false,
+          invitation: {
+            tokenHash: "hash",
+            status: "pending",
+            expiresAt: NOW + 60_000,
+          },
         },
       }),
     ).toThrow("inactive");
@@ -73,18 +90,75 @@ describe("outer operator signup policy", () => {
       decideAuthUserClaim({
         now: NOW,
         normalizedEmail: "operator@example.com",
+        emailVerified: true,
         anyUserExists: true,
         provisionedUser: {
           email: "operator@example.com",
           isActive: true,
           authUserId: "already-claimed",
+          invitation: {
+            tokenHash: "hash",
+            status: "pending",
+            expiresAt: NOW + 60_000,
+          },
         },
       }),
     ).toThrow("already has a login");
+
+    expect(() =>
+      decideAuthUserClaim({
+        now: NOW,
+        normalizedEmail: "operator@example.com",
+        emailVerified: false,
+        anyUserExists: true,
+        provisionedUser: {
+          email: "operator@example.com",
+          isActive: true,
+          invitation: {
+            tokenHash: "hash",
+            status: "pending",
+            expiresAt: NOW + 60_000,
+          },
+        },
+      }),
+    ).toThrow("verified");
+
+    expect(() =>
+      decideAuthUserClaim({
+        now: NOW,
+        normalizedEmail: "operator@example.com",
+        emailVerified: true,
+        anyUserExists: true,
+        provisionedUser: {
+          email: "operator@example.com",
+          isActive: true,
+          invitation: {
+            tokenHash: "hash",
+            status: "consumed",
+            expiresAt: NOW + 60_000,
+          },
+        },
+      }),
+    ).toThrow("invitation");
   });
 });
 
 describe("outer auth origin policy", () => {
+  test("propagates the packaged origin to the Convex HTTP CORS router", () => {
+    expect(
+      resolveAuthRouteCorsConfig({
+        siteUrl: "https://control.example.convex.site",
+        configuredMode: "packaged",
+      }),
+    ).toEqual({
+      allowedOrigins: [
+        "https://control.example.convex.site",
+        PACKAGED_CONVEXPRESS_APP_ORIGIN,
+      ],
+      allowedHeaders: ["X-ConvexPress-Claim-Secret"],
+    });
+  });
+
   test("allows the packaged protocol and exact development renderer only in their modes", () => {
     expect(
       resolveAuthTrustedOrigins({

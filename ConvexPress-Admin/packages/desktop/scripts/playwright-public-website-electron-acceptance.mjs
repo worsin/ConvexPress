@@ -2,13 +2,21 @@ import { mkdtemp, mkdir, readdir, realpath, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  acceptanceProxyArguments,
+  buildElectronAcceptanceEnvironment,
+} from "./lib/electron-acceptance-environment.mjs";
+import { quitOwnedElectron } from "./lib/process-lifecycle.mjs";
+import { loadTestFleetConfig } from "./lib/test-fleet-config.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(scriptDirectory, "..");
 const repositoryRoot = resolve(desktopRoot, "../..");
 const artifactRoot = resolve(repositoryRoot, "../output/playwright");
 const bunModulesRoot = join(repositoryRoot, "node_modules/.bun");
-const websiteRendererUrl = "http://localhost:4106";
+const websiteRendererUrl =
+  process.env.CONVEXPRESS_ACCEPTANCE_WEBSITE_RENDERER_ORIGIN ??
+  "http://127.0.0.1:4106";
 
 async function resolveBunPackage(prefix, relativeEntry) {
   const entries = await readdir(bunModulesRoot);
@@ -20,19 +28,6 @@ async function resolveBunPackage(prefix, relativeEntry) {
   return join(bunModulesRoot, packageDirectory, relativeEntry);
 }
 
-async function quitElectron(electronApp) {
-  if (!electronApp) return;
-  const child = electronApp.process();
-  if (child.exitCode !== null || child.signalCode !== null) return;
-  const exited = new Promise((resolveExit) => child.once("exit", resolveExit));
-  await electronApp.evaluate(({ app }) => app.exit(0)).catch(() => undefined);
-  await Promise.race([
-    exited,
-    new Promise((resolveWait) => setTimeout(resolveWait, 5_000)),
-  ]);
-  if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
-}
-
 function assertNoHorizontalOverflow(metrics, label) {
   if (metrics.scrollWidth > metrics.clientWidth + 1) {
     throw new Error(`${label} has horizontal overflow: ${JSON.stringify(metrics)}`);
@@ -40,6 +35,7 @@ function assertNoHorizontalOverflow(metrics, label) {
 }
 
 async function main() {
+  const fleet = loadTestFleetConfig();
   await mkdir(artifactRoot, { recursive: true });
   const playwrightEntry = await resolveBunPackage(
     "playwright@",
@@ -60,18 +56,16 @@ async function main() {
     JSON.stringify({
       setupComplete: true,
       mode: "existing",
-      convexUrl: "http://127.0.0.1:4820",
-      convexSiteUrl: "http://127.0.0.1:4821",
+      convexUrl: fleet.sites[0].deploymentOrigin,
+      convexSiteUrl: fleet.sites[0].siteOrigin,
     }),
     "utf8",
   );
 
-  const launchEnvironment = {
-    ...process.env,
+  const launchEnvironment = buildElectronAcceptanceEnvironment(process.env, {
     CONVEXPRESS_DESKTOP_DEV: "1",
     CONVEXPRESS_DESKTOP_DEV_URL: websiteRendererUrl,
-  };
-  delete launchEnvironment.ELECTRON_RUN_AS_NODE;
+  });
 
   let electronApp;
   let page;
@@ -80,7 +74,11 @@ async function main() {
   try {
     electronApp = await _electron.launch({
       executablePath: electronExecutable,
-      args: [`--user-data-dir=${temporaryProfile}`, desktopRoot],
+      args: [
+        `--user-data-dir=${temporaryProfile}`,
+        ...acceptanceProxyArguments(),
+        desktopRoot,
+      ],
       cwd: desktopRoot,
       env: launchEnvironment,
       timeout: 60_000,
@@ -146,10 +144,18 @@ async function main() {
     const openNavigation = page.getByRole("button", { name: "Open navigation menu" });
     await openNavigation.waitFor({ state: "visible", timeout: 10_000 });
     await openNavigation.click();
-    await page.locator('[data-slot="mobile-nav-backdrop"]').waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
+    await page.waitForTimeout(250);
+    const navigationState = await page.evaluate(() => ({
+      backdropCount: document.querySelectorAll('[data-slot="mobile-nav-backdrop"]').length,
+      ariaModal: document.querySelector('[data-slot="mobile-nav"]')?.getAttribute("aria-modal"),
+      backgroundInert: document.querySelector('[data-slot="mobile-nav"]')?.nextElementSibling?.hasAttribute("inert") ?? false,
+      bodyOverflow: document.body.style.overflow,
+    }));
+    if (navigationState.backdropCount !== 1) {
+      throw new Error(
+        `Mobile navigation state did not open: ${JSON.stringify(navigationState)}`,
+      );
+    }
     const navigationDialog = page.getByRole("dialog", { name: "Navigation menu" });
     if ((await navigationDialog.getAttribute("aria-modal")) !== "true") {
       throw new Error("Mobile navigation dialog did not enter its modal open state.");
@@ -211,7 +217,7 @@ async function main() {
       body: await page?.locator("body").innerText().catch(() => null),
     }));
   } finally {
-    await quitElectron(electronApp).catch(() => undefined);
+    await quitOwnedElectron(electronApp).catch(() => undefined);
     await rm(temporaryProfile, { recursive: true, force: true });
   }
 }

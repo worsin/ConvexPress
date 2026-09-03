@@ -3,15 +3,22 @@ import { mkdir, mkdtemp, readdir, realpath, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  acceptanceProxyArguments,
+  buildElectronAcceptanceEnvironment,
+} from "./lib/electron-acceptance-environment.mjs";
+import { quitOwnedElectron } from "./lib/process-lifecycle.mjs";
+import { loadTestFleetConfig } from "./lib/test-fleet-config.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(scriptDirectory, "..");
 const repositoryRoot = resolve(desktopRoot, "../..");
 const artifactRoot = resolve(repositoryRoot, "../output/playwright");
 const bunModulesRoot = join(repositoryRoot, "node_modules/.bun");
-const CONTROL_ORIGIN = "http://127.0.0.1:4720";
-const CONTROL_SITE_ORIGIN = "http://127.0.0.1:4721";
-const RENDERER_ORIGIN = "http://127.0.0.1:4105";
+const fleet = loadTestFleetConfig();
+const CONTROL_ORIGIN = fleet.control.deploymentOrigin;
+const CONTROL_SITE_ORIGIN = fleet.control.siteOrigin;
+const RENDERER_ORIGIN = fleet.rendererOrigin;
 
 const scopes = {
   shop: {
@@ -27,10 +34,12 @@ const scopes = {
     website: "Northstar Journal",
     identity: "Northstar Journal — Live",
   },
-  summit: {
-    organization: "Acceptance Client Group",
-    website: "Summit Main",
-    identity: "Summit Main — Live",
+  shopStaging: {
+    organization: "Acceptance Agency Group",
+    business: "Northstar Commerce",
+    website: "Northstar Shop",
+    environment: "Staging",
+    identity: "Northstar Shop — Staging",
   },
 };
 
@@ -59,16 +68,6 @@ async function readCredentials() {
 
 function dismissShutdownDialogs(page) {
   page.on("dialog", (dialog) => void dialog.dismiss().catch(() => undefined));
-}
-
-async function quitElectron(electronApp) {
-  if (!electronApp) return;
-  const child = electronApp.process();
-  if (child.exitCode !== null || child.signalCode !== null) return;
-  const exited = new Promise((resolveExit) => child.once("exit", resolveExit));
-  await electronApp.evaluate(({ app }) => app.exit(0)).catch(() => undefined);
-  await Promise.race([exited, new Promise((resolveWait) => setTimeout(resolveWait, 5_000))]);
-  if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
 }
 
 async function selectScope(page, scope) {
@@ -236,7 +235,7 @@ async function revokeInvitation(page, email) {
 async function revokePendingAcceptanceInvitations(page) {
   await openInvitationPage(page);
   const rows = page.getByRole("row").filter({
-    hasText: /cvpr-(shop|journal|summit)-customer-[^\s]+@example\.test/,
+    hasText: /cvpr-(shop-live|shop-staging|journal)-customer-[^\s]+@example\.test/,
   });
   for (let index = (await rows.count()) - 1; index >= 0; index -= 1) {
     const row = rows.nth(index);
@@ -272,18 +271,16 @@ async function main() {
     "utf8",
   );
 
-  const launchEnvironment = {
-    ...process.env,
+  const launchEnvironment = buildElectronAcceptanceEnvironment(process.env, {
     CONVEXPRESS_DESKTOP_DEV: "1",
     CONVEXPRESS_DESKTOP_DEV_URL: RENDERER_ORIGIN,
-  };
-  delete launchEnvironment.ELECTRON_RUN_AS_NODE;
+  });
 
   const suffix = `${Date.now().toString(36)}-${randomBytes(4).toString("hex")}`;
   const emails = {
-    shop: `cvpr-shop-customer-${suffix}@example.test`,
+    shopLive: `cvpr-shop-live-customer-${suffix}@example.test`,
+    shopStaging: `cvpr-shop-staging-customer-${suffix}@example.test`,
     journal: `cvpr-journal-customer-${suffix}@example.test`,
-    summit: `cvpr-summit-customer-${suffix}@example.test`,
   };
   const created = [];
   const rendererErrors = [];
@@ -296,7 +293,11 @@ async function main() {
   try {
     electronApp = await _electron.launch({
       executablePath: electronExecutable,
-      args: [`--user-data-dir=${temporaryProfile}`, desktopRoot],
+      args: [
+        `--user-data-dir=${temporaryProfile}`,
+        ...acceptanceProxyArguments(),
+        desktopRoot,
+      ],
       cwd: desktopRoot,
       env: launchEnvironment,
       timeout: 60_000,
@@ -326,11 +327,15 @@ async function main() {
     phase = "shop-customer";
     await selectScope(page, scopes.shop);
     await revokePendingAcceptanceInvitations(page);
-    await inviteSubscriber(page, emails.shop);
+    await inviteSubscriber(page, emails.shopLive);
     inviteFormContrast = await assertInviteFormContrast(page);
-    created.push([scopes.shop, emails.shop]);
-    await assertInvitationVisibility(page, [emails.shop], [emails.journal, emails.summit]);
-    await page.getByRole("row").filter({ hasText: emails.shop }).scrollIntoViewIfNeeded();
+    created.push([scopes.shop, emails.shopLive]);
+    await assertInvitationVisibility(
+      page,
+      [emails.shopLive],
+      [emails.shopStaging, emails.journal],
+    );
+    await page.getByRole("row").filter({ hasText: emails.shopLive }).scrollIntoViewIfNeeded();
     await page.screenshot({
       path: join(artifactRoot, "electron-customer-isolation-shop.png"),
       type: "png",
@@ -339,38 +344,52 @@ async function main() {
     phase = "journal-customer";
     await selectScope(page, scopes.journal);
     await revokePendingAcceptanceInvitations(page);
-    await assertInvitationVisibility(page, [], [emails.shop]);
+    await assertInvitationVisibility(page, [], [emails.shopLive, emails.shopStaging]);
     await inviteSubscriber(page, emails.journal);
     created.push([scopes.journal, emails.journal]);
-    await assertInvitationVisibility(page, [emails.journal], [emails.shop, emails.summit]);
+    await assertInvitationVisibility(
+      page,
+      [emails.journal],
+      [emails.shopLive, emails.shopStaging],
+    );
     await page.getByRole("row").filter({ hasText: emails.journal }).scrollIntoViewIfNeeded();
     await page.screenshot({
       path: join(artifactRoot, "electron-customer-isolation-journal.png"),
       type: "png",
     });
 
-    phase = "summit-customer";
-    await selectScope(page, scopes.summit);
+    phase = "shop-staging-customer";
+    await selectScope(page, scopes.shopStaging);
     await revokePendingAcceptanceInvitations(page);
-    await assertInvitationVisibility(page, [], [emails.shop, emails.journal]);
-    await inviteSubscriber(page, emails.summit);
-    created.push([scopes.summit, emails.summit]);
-    await assertInvitationVisibility(page, [emails.summit], [emails.shop, emails.journal]);
-    await page.getByRole("row").filter({ hasText: emails.summit }).scrollIntoViewIfNeeded();
+    await assertInvitationVisibility(page, [], [emails.shopLive, emails.journal]);
+    await inviteSubscriber(page, emails.shopStaging);
+    created.push([scopes.shopStaging, emails.shopStaging]);
+    await assertInvitationVisibility(
+      page,
+      [emails.shopStaging],
+      [emails.shopLive, emails.journal],
+    );
+    await page.getByRole("row").filter({ hasText: emails.shopStaging }).scrollIntoViewIfNeeded();
     await page.screenshot({
-      path: join(artifactRoot, "electron-customer-isolation-summit.png"),
+      path: join(artifactRoot, "electron-customer-isolation-shop-staging.png"),
       type: "png",
     });
 
     phase = "return-to-shop";
     await selectScope(page, scopes.shop);
-    await assertInvitationVisibility(page, [emails.shop], [emails.journal, emails.summit]);
+    await assertInvitationVisibility(
+      page,
+      [emails.shopLive],
+      [emails.shopStaging, emails.journal],
+    );
 
     phase = "outer-operator-separation";
     await page.getByRole("button", { name: "Manage sites" }).click();
     const manager = page.getByRole("complementary", { name: "Manage websites" });
     await manager.getByRole("button", { name: /People/ }).click();
-    await manager.getByText("Current operators", { exact: true }).waitFor({ state: "visible" });
+    await manager
+      .getByRole("region", { name: "Control-plane operators" })
+      .waitFor({ state: "visible", timeout: 30_000 });
     for (const email of Object.values(emails)) {
       if (await manager.getByText(email, { exact: true }).isVisible().catch(() => false)) {
         throw new Error(`${email} was incorrectly promoted into the outer operator directory`);
@@ -400,7 +419,8 @@ async function main() {
     process.stdout.write(`${JSON.stringify({
       acceptanceMode: "electron-website-customer-isolation",
       electronOnly: true,
-      threeWebsiteDatabasesVerified: true,
+      twoWebsitesVerified: true,
+      threeSiteDatabasesVerified: true,
       subscriberInvitationsCreatedInUi: true,
       crossSiteCustomerLeakageRejected: true,
       outerOperatorDirectoryRemainedSeparate: true,
@@ -428,7 +448,7 @@ async function main() {
         path: join(artifactRoot, "electron-website-customer-isolation-failure.zip"),
       }).catch(() => undefined);
     }
-    await quitElectron(electronApp).catch(() => undefined);
+    await quitOwnedElectron(electronApp).catch(() => undefined);
     await rm(temporaryProfile, { recursive: true, force: true }).catch(() => undefined);
   }
 }

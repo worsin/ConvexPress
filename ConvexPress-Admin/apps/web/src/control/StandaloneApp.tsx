@@ -19,6 +19,7 @@ import { HandoffPanel } from "./components/HandoffPanel";
 import { LifecyclePanel } from "./components/LifecyclePanel";
 import { SiteManagerPanel } from "./components/SiteManagerPanel";
 import { controlSurfaceVisibility } from "./components/site-manager-view";
+import { siteSessionRole } from "./site-session-role";
 import {
   ScopeSwitcher,
   type ScopeSelection,
@@ -84,7 +85,7 @@ function ControlPlaneShell({
     : null;
   const connections = useQuery(
     controlApi.connections.queries.listForInstance,
-    selectedEnvironment
+    !managerOpen && selectedEnvironment
       ? { instanceId: selectedEnvironment.instanceId }
       : "skip",
   );
@@ -99,7 +100,7 @@ function ControlPlaneShell({
   );
   const lifecycleAccess = useQuery(
     controlApi.rbac.queries.checkMyAccess,
-    selectedEnvironment && selectedWebsite && selectedBusiness
+    !managerOpen && selectedEnvironment && selectedWebsite && selectedBusiness
       ? {
           selectorType: "capability",
           code: "site.backup.create",
@@ -112,7 +113,7 @@ function ControlPlaneShell({
   );
   const handoffExportAccess = useQuery(
     controlApi.rbac.queries.checkMyAccess,
-    selectedEnvironment && selectedWebsite && selectedBusiness
+    !managerOpen && selectedEnvironment && selectedWebsite && selectedBusiness
       ? {
           selectorType: "capability",
           code: "site.handoff.export",
@@ -125,7 +126,7 @@ function ControlPlaneShell({
   );
   const handoffImportAccess = useQuery(
     controlApi.rbac.queries.checkMyAccess,
-    selectedBusiness
+    !managerOpen && selectedBusiness
       ? {
           selectorType: "capability",
           code: "business.update",
@@ -136,7 +137,7 @@ function ControlPlaneShell({
   );
   const liveOperateAccess = useQuery(
     controlApi.rbac.queries.checkMyAccess,
-    liveEnvironment && selectedWebsite && selectedBusiness
+    !managerOpen && liveEnvironment && selectedWebsite && selectedBusiness
       ? {
           selectorType: "capability",
           code: "environment.live.operate",
@@ -157,11 +158,16 @@ function ControlPlaneShell({
     handoffImportAllowed: handoffImportAccess?.allowed === true,
   });
 
-  const siteRole = roleToSiteRole(operator?.role);
+  const siteRole = siteSessionRole({
+    platformRole: operator?.role,
+    environmentKind: selectedEnvironment?.kind,
+    liveOperateAllowed: liveOperateAccess?.allowed,
+  });
   const target = useMemo(() => {
     if (
       !selectedEnvironment ||
       !activeConnection ||
+      !siteRole ||
       selectedEnvironment.compatibility === "incompatible"
     ) {
       return null;
@@ -172,10 +178,11 @@ function ControlPlaneShell({
       deploymentOrigin: selectedEnvironment.deploymentOrigin,
       siteOrigin: selectedEnvironment.siteOrigin,
     };
-  }, [activeConnection, selectedEnvironment]);
+  }, [activeConnection, selectedEnvironment, siteRole]);
 
   const exchangeSession = useCallback(
     async (requestedTarget: NonNullable<typeof target>) => {
+      if (!siteRole) throw new Error("Site session authorization is still loading");
       const result = await exchange({
         connectionId: requestedTarget.connectionId as Id<"overseer_connections">,
         requestedCapabilities: ["health.read", "compatibility.read"],
@@ -296,6 +303,7 @@ function ControlPlaneShell({
       </header>
       <EnvironmentBar
         environment={selectedEnvironment}
+        websiteTitle={selectedWebsite?.title ?? null}
         operationsOpen={operationsOpen}
         handoffOpen={handoffOpen}
         canOpenOperations={controlVisibility.operations}
@@ -386,12 +394,6 @@ function ControlPlaneShell({
   );
 }
 
-function roleToSiteRole(role: string | undefined) {
-  if (role === "viewer") return "subscriber" as const;
-  if (role === "member") return "editor" as const;
-  return "administrator" as const;
-}
-
 function StartupState({ label }: { label: string }) {
   return (
     <div className="grid min-h-svh place-items-center bg-[#101827] text-white">
@@ -408,6 +410,7 @@ function OperatorLogin({ authClient }: { authClient: ControlAuthClient }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [claimSecret, setClaimSecret] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -444,13 +447,19 @@ function OperatorLogin({ authClient }: { authClient: ControlAuthClient }) {
             setError(null);
             const request =
               mode === "claim"
-                ? claimControlInvitation(authClient, email, password, name)
+                ? claimControlInvitation(
+                    authClient,
+                    email,
+                    password,
+                    name,
+                    claimSecret,
+                  )
                 : signInControlOperator(authClient, email, password);
             void request
               .catch(() =>
                 setError(
                   mode === "claim"
-                    ? "That invitation could not be claimed. Use the exact provisioned email, a new password of at least eight characters, and confirm the invitation is still active."
+                    ? "That invitation could not be claimed. Use the exact provisioned email, one-time invitation code, and a new password of at least eight characters."
                     : "The email or password was not accepted.",
                 ),
               )
@@ -489,6 +498,15 @@ function OperatorLogin({ authClient }: { authClient: ControlAuthClient }) {
                 className="mt-2 w-full border border-slate-300 bg-white px-3 py-3 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-200"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
+              />
+              <label className="mt-5 block text-sm font-semibold" htmlFor="control-claim-secret">Invitation code</label>
+              <input
+                id="control-claim-secret"
+                autoComplete="one-time-code"
+                className="mt-2 w-full border border-slate-300 bg-white px-3 py-3 font-mono outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-200"
+                value={claimSecret}
+                onChange={(event) => setClaimSecret(event.target.value)}
+                required
               />
             </>
           ) : null}

@@ -16,6 +16,7 @@ import { PageTransitionIndicator } from "@/components/layout/PageTransitionIndic
 import { MobileSidebarOverlay } from "@/components/layout/MobileSidebarOverlay";
 import Loader from "@/components/loader";
 import { buttonVariants } from "@/components/ui/button";
+import { adminShellPositionClass } from "@/lib/admin-shell/layout-mode";
 
 export const Route = createFileRoute("/_authenticated/_admin")({
   component: AdminLayout,
@@ -33,9 +34,6 @@ function AdminLayout() {
 function AuthorizedAdminLayout() {
   const location = useLocation();
   const { isLoading, canAccessRoute } = useAuth();
-  const isStandaloneControlPlane = Boolean(
-    import.meta.env.VITE_CONTROL_PLANE_URL,
-  );
   // Fetch site title from the Settings System
   const generalSettings = useQuery(api.settings.queries.getBySection, {
     section: "general",
@@ -60,11 +58,11 @@ function AuthorizedAdminLayout() {
         </a>
 
         <div
-          className={
-            isStandaloneControlPlane
-              ? "absolute inset-0 flex h-full overflow-hidden"
-              : "fixed inset-0 flex h-svh overflow-hidden"
-          }
+          className={adminShellPositionClass({
+            standaloneControlPlane:
+              import.meta.env.VITE_STANDALONE_CONTROL_PLANE === "true",
+            controlPlaneUrl: import.meta.env.VITE_CONTROL_PLANE_URL,
+          })}
         >
           <AdminSidebar />
           <div className="flex flex-1 min-h-0 min-w-0 flex-col">
