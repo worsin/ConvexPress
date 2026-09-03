@@ -29,7 +29,9 @@ var ALLOWED_INVOKE_CHANNELS = /* @__PURE__ */ new Set([
   "app:install-update",
   // Setup wizard
   "setup:complete",
-  "app:reload-from-setup"
+  "app:reload-from-setup",
+  // Portable website handoff
+  "handoff:save-package"
 ]);
 var ALLOWED_ON_CHANNELS = /* @__PURE__ */ new Set([
   // Window events
@@ -101,6 +103,9 @@ import_electron.contextBridge.exposeInMainWorld("convexpress", {
     get: (key) => import_electron.ipcRenderer.invoke("config:get", key),
     set: (key, value) => import_electron.ipcRenderer.invoke("config:set", key, value),
     testConnection: (url) => import_electron.ipcRenderer.invoke("config:test-connection", url)
+  },
+  files: {
+    saveHandoffPackage: (input) => import_electron.ipcRenderer.invoke("handoff:save-package", input)
   }
 });
 import_electron.contextBridge.exposeInMainWorld("electronAuth", {

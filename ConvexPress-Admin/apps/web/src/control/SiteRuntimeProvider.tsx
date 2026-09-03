@@ -27,6 +27,7 @@ interface SiteRuntimeProviderProps {
   }>;
   operator: { id: string; email: string; displayName: string };
   onSignOut: () => Promise<void>;
+  runtimeRevision?: number;
   children: ReactNode;
 }
 
@@ -35,6 +36,7 @@ export function SiteRuntimeProvider({
   exchangeSession,
   operator,
   onSignOut,
+  runtimeRevision = 0,
   children,
 }: SiteRuntimeProviderProps) {
   const managerRef = useRef<SiteClientManager | null>(null);
@@ -56,7 +58,7 @@ export function SiteRuntimeProvider({
       return;
     }
     void manager.select(target, async () => exchangeSession(target));
-  }, [exchangeSession, manager, retryVersion, target, targetKey]);
+  }, [exchangeSession, manager, retryVersion, runtimeRevision, target, targetKey]);
 
   useEffect(() => () => manager.clear(), [manager]);
 

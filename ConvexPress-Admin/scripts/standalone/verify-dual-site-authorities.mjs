@@ -7,6 +7,7 @@ import { makeFunctionReference } from "convex/server";
 import {
   createUnsignedManagementEnvelope,
   OPERATION_CODES,
+  siteSessionExchangeResponseSchema,
 } from "../../packages/site-contract/src/index.ts";
 import {
   generateManagementKeyPair,
@@ -98,11 +99,11 @@ async function exchange(fixture, controller, nonce, expectedStatus = 200) {
       `${fixture.kind} ${controller.controllerId} exchange returned ${response.status}`,
     );
   }
-  const result = await response.json();
+  const rawResult = await response.json();
   if (expectedStatus === 200) {
+    const result = siteSessionExchangeResponseSchema.parse(rawResult);
     if (
-      typeof result.token !== "string" ||
-      !result.token.startsWith("cpms_") ||
+      result.token.split(".").length !== 3 ||
       result.controllerId !== controller.controllerId
     ) {
       throw new Error(`${fixture.kind} returned an invalid site session`);
@@ -162,6 +163,15 @@ await exchange(
 );
 await exchange(live, vo, `nonce_live_vo_after_revoke_${proofSuffix}`);
 
+for (const fixture of fixtures) {
+  for (const controller of [standalone, vo]) {
+    await fixture.client.mutation(revokeAuthority, {
+      controllerId: controller.controllerId,
+      keyId: controller.keyId,
+    });
+  }
+}
+
 console.log(
   JSON.stringify({
     status: "passed",
@@ -172,6 +182,7 @@ console.log(
       authoritiesEnrolled: 2,
     })),
     oneControllerRevocation: "standalone-denied-vo-allowed",
+    testAuthoritiesRevoked: true,
     privateKeysPersisted: false,
   }),
 );

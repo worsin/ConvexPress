@@ -3,7 +3,7 @@ import type { Id } from "@control/convex/_generated/dataModel";
 import type { AnyRouter } from "@tanstack/react-router";
 import { RouterProvider } from "@tanstack/react-router";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Loader2, LogOut, PanelTop } from "lucide-react";
+import { Loader2, LogOut, PackageOpen, PanelTop } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import {
 } from "./auth-client";
 import { SiteRuntimeProvider } from "./SiteRuntimeProvider";
 import { EnvironmentBar } from "./components/EnvironmentBar";
+import { HandoffPanel } from "./components/HandoffPanel";
+import { LifecyclePanel } from "./components/LifecyclePanel";
 import {
   ScopeSwitcher,
   type ScopeSelection,
@@ -45,6 +47,9 @@ function ControlPlaneShell({
   const exchange = useAction(controlApi.siteBroker.session.exchange);
   const [pendingSelection, setPendingSelection] = useState<ScopeSelection | null>(null);
   const [scopeError, setScopeError] = useState<string | null>(null);
+  const [operationsOpen, setOperationsOpen] = useState(false);
+  const [handoffOpen, setHandoffOpen] = useState(false);
+  const [siteRuntimeRevision, setSiteRuntimeRevision] = useState(0);
   const switchGeneration = useRef(0);
 
   const serverSelection: ScopeSelection = context?.active ?? {
@@ -58,6 +63,21 @@ function ControlPlaneShell({
     context?.environments.find(
       (entry) => String(entry.instanceId) === selection.instanceId,
     ) ?? null;
+  const websiteEnvironments = selectedEnvironment
+    ? context?.environments.filter(
+        (entry) => entry.websiteId === selectedEnvironment.websiteId,
+      ) ?? []
+    : [];
+  const selectedWebsite = selectedEnvironment
+    ? context?.websites.find(
+        (entry) => entry.websiteId === selectedEnvironment.websiteId,
+      ) ?? null
+    : null;
+  const selectedBusiness = selection.businessId
+    ? context?.businesses.find(
+        (entry) => String(entry.businessId) === selection.businessId,
+      ) ?? null
+    : null;
   const connections = useQuery(
     controlApi.connections.queries.listForInstance,
     selectedEnvironment
@@ -129,6 +149,9 @@ function ControlPlaneShell({
   const signOut = useCallback(async () => {
     await signOutControlOperator(authClient);
   }, [authClient]);
+  const refreshSiteRuntime = useCallback(() => {
+    setSiteRuntimeRevision((revision) => revision + 1);
+  }, []);
 
   if (!context || !operator) return <StartupState label="Loading authorized websites" />;
 
@@ -164,6 +187,17 @@ function ControlPlaneShell({
               {operatorIdentity.displayName}
             </span>
             <Button
+              aria-expanded={handoffOpen}
+              className="border border-white/20 bg-transparent text-white hover:bg-white/10"
+              size="sm"
+              onClick={() => {
+                setOperationsOpen(false);
+                setHandoffOpen((value) => !value);
+              }}
+            >
+              <PackageOpen className="mr-2 size-4" /> Add or transfer site
+            </Button>
+            <Button
               aria-label="Sign out of ConvexPress control plane"
               className="border border-white/20 bg-transparent text-white hover:bg-white/10"
               size="sm"
@@ -179,7 +213,19 @@ function ControlPlaneShell({
           </p>
         ) : null}
       </header>
-      <EnvironmentBar environment={selectedEnvironment} />
+      <EnvironmentBar
+        environment={selectedEnvironment}
+        operationsOpen={operationsOpen}
+        handoffOpen={handoffOpen}
+        onOpenOperations={() => {
+          setHandoffOpen(false);
+          setOperationsOpen((value) => !value);
+        }}
+        onOpenHandoff={() => {
+          setOperationsOpen(false);
+          setHandoffOpen((value) => !value);
+        }}
+      />
       {connections !== undefined && selectedEnvironment && !activeConnection ? (
         <p role="alert" className="shrink-0 border-b border-amber-300 bg-amber-100 px-4 py-3 text-sm text-amber-950">
           This environment has no active management connection.
@@ -191,9 +237,54 @@ function ControlPlaneShell({
           exchangeSession={exchangeSession}
           operator={operatorIdentity}
           onSignOut={signOut}
+          runtimeRevision={siteRuntimeRevision}
         >
           <RouterProvider router={router} />
         </SiteRuntimeProvider>
+        <LifecyclePanel
+          open={operationsOpen}
+          environments={websiteEnvironments.map((environment) => ({
+            instanceId: environment.instanceId,
+            instanceKey: environment.instanceKey,
+            kind: environment.kind,
+            label: environment.label,
+          }))}
+          instance={
+            selectedEnvironment
+              ? {
+                  instanceId: selectedEnvironment.instanceId,
+                  instanceKey: selectedEnvironment.instanceKey,
+                  kind: selectedEnvironment.kind,
+                  label: selectedEnvironment.label,
+                }
+              : null
+          }
+          onClose={() => setOperationsOpen(false)}
+          onEnvironmentReplaced={refreshSiteRuntime}
+        />
+        <HandoffPanel
+          open={handoffOpen}
+          source={
+            selectedEnvironment && selectedWebsite
+              ? {
+                  websiteId: selectedWebsite.websiteId,
+                  websiteKey: selectedWebsite.websiteKey,
+                  websiteTitle: selectedWebsite.title,
+                  instanceId: selectedEnvironment.instanceId,
+                }
+              : null
+          }
+          destination={
+            selectedBusiness
+              ? {
+                  organizationId: selectedBusiness.organizationId,
+                  businessId: selectedBusiness.businessId,
+                  businessName: selectedBusiness.name,
+                }
+              : null
+          }
+          onClose={() => setHandoffOpen(false)}
+        />
       </div>
     </div>
   );

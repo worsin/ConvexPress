@@ -55,6 +55,12 @@ export interface ConvexpressBridge {
   window: ConvexpressWindow;
   app: ConvexpressApp;
   config: ConvexpressConfig;
+  files: {
+    saveHandoffPackage: (input: {
+      suggestedFilename: string;
+      packageJson: string;
+    }) => Promise<{ saved: boolean; filePath: string | null }>;
+  };
 }
 
 export interface ElectronAuthStorage {

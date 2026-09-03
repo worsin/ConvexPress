@@ -46,7 +46,8 @@ export function assertOperationTransition(input: {
   }
   if (
     input.to === "succeeded" &&
-    (input.operationCode === "site.restore" ||
+    (input.operationCode === "site.clone" ||
+      input.operationCode === "site.restore" ||
       input.operationCode === "site.promote") &&
     !input.preBackupReceiptId
   ) {

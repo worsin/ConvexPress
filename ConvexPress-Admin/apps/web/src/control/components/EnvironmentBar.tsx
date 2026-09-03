@@ -1,7 +1,11 @@
-import { CircleCheck, CircleHelp, ExternalLink, ShieldAlert } from "lucide-react";
+import { CircleCheck, CircleHelp, ExternalLink, History, PackageOpen, ShieldAlert } from "lucide-react";
 
 export function EnvironmentBar({
   environment,
+  operationsOpen,
+  handoffOpen,
+  onOpenOperations,
+  onOpenHandoff,
 }: {
   environment: {
     instanceKey: string;
@@ -11,6 +15,10 @@ export function EnvironmentBar({
     health: string;
     compatibility: string;
   } | null;
+  operationsOpen: boolean;
+  handoffOpen: boolean;
+  onOpenOperations: () => void;
+  onOpenHandoff: () => void;
 }) {
   if (!environment) {
     return (
@@ -40,6 +48,22 @@ export function EnvironmentBar({
         Health: {environment.health}
       </span>
       <span>Contract: {compatible ? "compatible" : environment.compatibility}</span>
+      <button
+        aria-expanded={operationsOpen}
+        className="inline-flex items-center gap-1.5 border border-current px-2.5 py-1 font-bold hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+        onClick={onOpenOperations}
+        type="button"
+      >
+        <History className="size-3.5" aria-hidden="true" /> Site operations
+      </button>
+      <button
+        aria-expanded={handoffOpen}
+        className="inline-flex items-center gap-1.5 border border-current px-2.5 py-1 font-bold hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+        onClick={onOpenHandoff}
+        type="button"
+      >
+        <PackageOpen className="size-3.5" aria-hidden="true" /> Transfer site
+      </button>
       <a
         className="ml-auto inline-flex items-center gap-1 font-semibold underline underline-offset-2"
         href={environment.siteOrigin}

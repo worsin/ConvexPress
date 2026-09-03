@@ -52,8 +52,13 @@ export const lifecycleTables = {
     instanceKey: v.string(),
     sourceInstanceId: v.optional(v.id("overseer_websiteInstances")),
     sourceInstanceKey: v.optional(v.string()),
+    snapshotId: v.optional(v.string()),
     requestedByUserId: v.id("overseer_users"),
     provider: v.union(v.literal("manual"), v.literal("magicdb")),
+    workflowId: v.optional(v.string()),
+    requestFingerprint: v.string(),
+    requestJson: v.string(),
+    exclusiveTargetLock: v.boolean(),
     state: operationState,
     currentStep: v.optional(v.string()),
     liveTarget: v.boolean(),
@@ -70,6 +75,8 @@ export const lifecycleTables = {
   })
     .index("by_operation_key", ["operationKey"])
     .index("by_idempotency", ["idempotencyKey"])
+    .index("by_instance_created", ["instanceId", "createdAt"])
+    .index("by_instance_exclusive", ["instanceId", "exclusiveTargetLock"])
     .index("by_instance_state", ["instanceId", "state"])
     .index("by_website_created", ["websiteId", "createdAt"])
     .index("by_requested_by", ["requestedByUserId", "createdAt"])
@@ -99,6 +106,16 @@ export const lifecycleTables = {
 
   overseer_siteBackups: defineTable({
     snapshotId: v.string(),
+    sourceOperationId: v.id("overseer_siteOperations"),
+    purpose: v.union(
+      v.literal("manual"),
+      v.literal("pre-clone"),
+      v.literal("pre-restore"),
+      v.literal("pre-promote"),
+      v.literal("clone-source"),
+      v.literal("promote-source"),
+      v.literal("handoff"),
+    ),
     websiteId: v.id("overseer_websites"),
     instanceId: v.id("overseer_websiteInstances"),
     websiteKey: v.string(),
@@ -111,7 +128,8 @@ export const lifecycleTables = {
     sizeBytes: v.number(),
     tableCount: v.number(),
     storageObjectCount: v.number(),
-    artifactRef: v.string(),
+    artifactStorageId: v.id("_storage"),
+    manifestJson: v.string(),
     verificationStatus: v.union(
       v.literal("pending"),
       v.literal("verified"),
@@ -125,7 +143,9 @@ export const lifecycleTables = {
     createdAt: v.number(),
   })
     .index("by_snapshot_id", ["snapshotId"])
+    .index("by_operation", ["sourceOperationId", "createdAt"])
     .index("by_instance_created", ["instanceId", "createdAt"])
+    .index("by_website_created", ["websiteId", "createdAt"])
     .index("by_verification", ["verificationStatus", "createdAt"]),
 
   overseer_operationReceipts: defineTable({

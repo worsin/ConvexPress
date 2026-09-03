@@ -30,6 +30,8 @@ const ALLOWED_INVOKE_CHANNELS = new Set([
   // Setup wizard
   "setup:complete",
   "app:reload-from-setup",
+  // Portable website handoff
+  "handoff:save-package",
 ]);
 
 const ALLOWED_ON_CHANNELS = new Set([
@@ -133,6 +135,17 @@ contextBridge.exposeInMainWorld("convexpress", {
         ok: boolean;
         status?: number;
         error?: string;
+      }>,
+  },
+
+  files: {
+    saveHandoffPackage: (input: {
+      suggestedFilename: string;
+      packageJson: string;
+    }) =>
+      ipcRenderer.invoke("handoff:save-package", input) as Promise<{
+        saved: boolean;
+        filePath: string | null;
       }>,
   },
 });

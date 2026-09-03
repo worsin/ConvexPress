@@ -200,6 +200,8 @@ describe("donor-exact outer identity and RBAC schema", () => {
     expect(indexShape(lifecycleTables.overseer_siteOperations)).toEqual(
       expect.arrayContaining([
         "by_idempotency:idempotencyKey",
+        "by_instance_created:instanceId,createdAt",
+        "by_instance_exclusive:instanceId,exclusiveTargetLock",
         "by_instance_state:instanceId,state",
         "by_operation_key:operationKey",
       ]),
@@ -209,17 +211,39 @@ describe("donor-exact outer identity and RBAC schema", () => {
         "idempotencyKey",
         "instanceId",
         "instanceKey",
+        "exclusiveTargetLock",
         "operationCode",
         "operationKey",
+        "requestFingerprint",
+        "requestJson",
         "requestedByUserId",
         "revision",
+        "snapshotId",
         "state",
         "websiteId",
         "websiteKey",
+        "workflowId",
       ]),
     );
     expect(indexShape(lifecycleTables.overseer_siteBackups)).toContain(
       "by_snapshot_id:snapshotId",
+    );
+    expect(fieldNames(lifecycleTables.overseer_siteBackups)).toEqual(
+      expect.arrayContaining([
+        "artifactStorageId",
+        "manifestJson",
+        "purpose",
+        "sourceOperationId",
+      ]),
+    );
+    expect(fieldNames(lifecycleTables.overseer_siteBackups)).not.toContain(
+      "artifactRef",
+    );
+    expect(indexShape(lifecycleTables.overseer_siteBackups)).toContain(
+      "by_operation:sourceOperationId,createdAt",
+    );
+    expect(indexShape(lifecycleTables.overseer_siteBackups)).toContain(
+      "by_website_created:websiteId,createdAt",
     );
     expect(indexShape(lifecycleTables.overseer_operationReceipts)).toContain(
       "by_receipt_id:receiptId",

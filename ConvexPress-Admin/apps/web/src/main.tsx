@@ -3,6 +3,7 @@ import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
 import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
 import ReactDOM from "react-dom/client";
 
+import { resolveControlPlaneEndpoints } from "./bootstrap-config";
 import { AdminGate } from "./components/auth/AdminGate";
 import type { AdminGateProps } from "./components/auth/AdminGate";
 import Loader from "./components/loader";
@@ -89,19 +90,21 @@ async function resolveConfig(): Promise<BootstrapConfig> {
       deriveConvexSiteUrl(resolvedConvexUrl) ||
       resolvedConvexUrl;
 
+    const controlPlane = resolveControlPlaneEndpoints({
+      isElectron: true,
+      standaloneEnabled:
+        import.meta.env.VITE_STANDALONE_CONTROL_PLANE === "true",
+      configuredConvexUrl: resolvedConvexUrl,
+      configuredConvexSiteUrl: resolvedSiteUrl,
+      environmentControlPlaneUrl: import.meta.env.VITE_CONTROL_PLANE_URL,
+      environmentControlPlaneSiteUrl:
+        import.meta.env.VITE_CONTROL_PLANE_SITE_URL,
+    });
+
     return {
       convexUrl: resolvedConvexUrl,
       convexSiteUrl: resolvedSiteUrl,
-      controlPlaneUrl:
-        import.meta.env.VITE_CONTROL_PLANE_URL ||
-        (import.meta.env.VITE_STANDALONE_CONTROL_PLANE === "true"
-          ? resolvedConvexUrl
-          : undefined),
-      controlPlaneSiteUrl:
-        import.meta.env.VITE_CONTROL_PLANE_SITE_URL ||
-        (import.meta.env.VITE_STANDALONE_CONTROL_PLANE === "true"
-          ? resolvedSiteUrl
-          : undefined),
+      ...controlPlane,
       electronMode,
       pendingCredentials,
       pendingLoginCredentials,

@@ -2,6 +2,7 @@ export * from "./backups";
 export * from "./codes";
 export * from "./envelope";
 export * from "./fingerprints";
+export * from "./handoffs";
 export * from "./operations";
 export * from "./receipts";
 export * from "./schemas";

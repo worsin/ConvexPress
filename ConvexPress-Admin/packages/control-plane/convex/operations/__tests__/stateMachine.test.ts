@@ -68,8 +68,12 @@ describe("durable site operation state machine", () => {
     ).toThrow("Invalid operation transition");
   });
 
-  test("requires verified pre-backup evidence before restore or promotion succeeds", () => {
-    for (const operationCode of ["site.restore", "site.promote"] as const) {
+  test("requires verified pre-backup evidence before any replacement succeeds", () => {
+    for (const operationCode of [
+      "site.clone",
+      "site.restore",
+      "site.promote",
+    ] as const) {
       expect(() =>
         assertOperationTransition({
           from: "running",

@@ -42,6 +42,13 @@ export interface ConvexPressAPI {
       error?: string;
     }>;
   };
+
+  files: {
+    saveHandoffPackage: (input: {
+      suggestedFilename: string;
+      packageJson: string;
+    }) => Promise<{ saved: boolean; filePath: string | null }>;
+  };
 }
 
 export interface ElectronAuthAPI {

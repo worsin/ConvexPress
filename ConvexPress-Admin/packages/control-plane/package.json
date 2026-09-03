@@ -12,15 +12,19 @@
   },
   "dependencies": {
     "@convex-dev/better-auth": "0.12.5",
+    "@convex-dev/workflow": "0.4.6",
     "@convexpress/site-contract": "workspace:*",
     "better-auth": "1.6.23",
     "convex": "catalog:",
     "convex-helpers": "0.1.120",
+    "fflate": "0.8.2",
+    "yauzl": "2.10.0",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",
     "@types/node": "^22.13.14",
+    "@types/yauzl": "2.10.3",
     "convex-test": "^0.0.54",
     "typescript": "catalog:"
   }
