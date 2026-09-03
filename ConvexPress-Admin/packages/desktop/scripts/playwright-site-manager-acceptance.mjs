@@ -423,6 +423,7 @@ async function main() {
         `Secure credential prompt isolation failed: ${JSON.stringify({ promptSecurity, promptSurface })}`,
       );
     }
+    await credentialWindow.screenshot({ path: join(artifactRoot, "electron-credential-window.png"), type: "png" }).catch(() => undefined);
     await credentialWindow.getByLabel("Deployment admin key").fill(adminKey);
     const closed = credentialWindow.waitForEvent("close", { timeout: 30_000 });
     await credentialWindow.getByRole("button", { name: "Connect securely" }).click();

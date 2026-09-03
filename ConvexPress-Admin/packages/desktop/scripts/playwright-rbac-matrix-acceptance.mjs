@@ -388,7 +388,7 @@ async function main() {
       ownerCredentials,
     );
     const ownerManager = await openPeoplePanel(ownerRun.page);
-    await ownerManager.getByText("Owner", { exact: true }).first().waitFor({
+    await ownerManager.getByText(/^(Owner|Administrator)$/).first().waitFor({
       state: "visible",
       timeout: 15_000,
     });

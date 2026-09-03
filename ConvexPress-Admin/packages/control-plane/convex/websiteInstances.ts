@@ -203,14 +203,18 @@ export const attach = authenticatedMutation({
         .withIndex("by_site_origin", (q) => q.eq("siteOrigin", siteOrigin))
         .take(2),
     ]);
+    // Archived environments have left the portfolio; their addresses may be
+    // registered again. Portable keys stay reserved so identity never repeats.
+    const active = (rows: Array<{ status: "active" | "archived" }>) =>
+      rows.filter((row) => row.status === "active");
     if (keyMatches.length > 0) throw new Error("Portable instance key already exists");
-    if (deploymentMatches.length > 0) {
+    if (active(deploymentMatches).length > 0) {
       throw new Error("Deployment origin is already attached to another environment");
     }
-    if (managementMatches.length > 0) {
+    if (active(managementMatches).length > 0) {
       throw new Error("Management origin is already attached to another environment");
     }
-    if (siteMatches.length > 0) {
+    if (active(siteMatches).length > 0) {
       throw new Error("Site origin is already attached to another environment");
     }
 
@@ -428,7 +432,7 @@ export const update = authenticatedMutation({
           q.eq("deploymentOrigin", patch.deploymentOrigin as string),
         )
         .take(2);
-      if (matches.some((match) => match._id !== instance._id)) {
+      if (matches.some((match) => match._id !== instance._id && match.status === "active")) {
         throw new Error("Deployment origin is already attached to another environment");
       }
     }
@@ -439,7 +443,7 @@ export const update = authenticatedMutation({
           q.eq("siteOrigin", patch.siteOrigin as string),
         )
         .take(2);
-      if (matches.some((match) => match._id !== instance._id)) {
+      if (matches.some((match) => match._id !== instance._id && match.status === "active")) {
         throw new Error("Site origin is already attached to another environment");
       }
     }
@@ -453,7 +457,7 @@ export const update = authenticatedMutation({
           q.eq("managementOrigin", patch.managementOrigin as string),
         )
         .take(2);
-      if (matches.some((match) => match._id !== instance._id)) {
+      if (matches.some((match) => match._id !== instance._id && match.status === "active")) {
         throw new Error("Management origin is already attached to another environment");
       }
     }
