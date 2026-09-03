@@ -586,11 +586,14 @@ async function main() {
     await waitForActiveEnvironment(page, "Northstar Shop — Staging", 20_000);
 
     phase = "keyboard-environment-switch";
-    await environmentSelect.focus();
-    await environmentSelect.press("l");
+    // The segmented switch supports first-letter jumps like the old select did.
+    const environmentGroup = page.getByRole("group", { name: "Environment" }).first();
+    await environmentGroup.locator("button[aria-pressed='true']").first().focus();
+    await page.keyboard.press("l");
     await waitForActiveEnvironment(page, "Northstar Shop — Live", 20_000);
     await page.waitForTimeout(1_100);
-    await environmentSelect.press("s");
+    await environmentGroup.locator("button[aria-pressed='true']").first().focus();
+    await page.keyboard.press("s");
     await waitForActiveEnvironment(page, "Northstar Shop — Staging", 20_000);
     } else {
       phase = "switch-staging-for-focused-handoff-acceptance";
