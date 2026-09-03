@@ -10,7 +10,6 @@ import { UserPlus } from "lucide-react";
 import { initialsFor } from "@/components/shell/environment-presentation";
 import { Button } from "@/components/ui/button";
 import type { WorkspaceApi } from "../SitesWorkspace";
-import { useSitesAccess } from "../useSitesAccess";
 
 export function AccessList({
   api,
@@ -18,19 +17,21 @@ export function AccessList({
   targetId,
   label,
   inviteScope,
+  canManagePeople,
 }: {
   api: WorkspaceApi;
   targetType: "organization" | "business" | "website";
   targetId: string;
   label: string;
   inviteScope?: { organizationId?: string; businessId?: string; websiteId?: string };
+  /** From the page's `useSitesAccess`, so this list adds no subscription of its own. */
+  canManagePeople: boolean;
 }) {
-  const access = useSitesAccess({});
   const operators = useQuery(
     controlApi.operators.list,
-    access.managePeople ? { limit: 200 } : "skip",
+    canManagePeople ? { limit: 200 } : "skip",
   );
-  if (!access.managePeople) return null;
+  if (!canManagePeople) return null;
 
   const withAccess = (operators ?? []).filter(
     (operator) =>

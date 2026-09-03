@@ -95,6 +95,9 @@ export function InviteOperatorDialog({
               className="rounded-lg border border-warning/50 bg-warning-soft p-3.5"
             >
               <p className="eyebrow text-warning">Copy now · shown only in this session</p>
+              <p className="mt-1.5 text-[12.5px] text-ink-2">
+                Invitation for <span className="font-medium text-foreground">{receipt.email}</span>
+              </p>
               <div className="mt-2 flex items-center gap-2">
                 <output className="min-w-0 flex-1 break-all rounded-md border border-warning/40 bg-card px-2.5 py-2 font-mono text-[12.5px] text-foreground select-all">
                   {receipt.claimSecret}

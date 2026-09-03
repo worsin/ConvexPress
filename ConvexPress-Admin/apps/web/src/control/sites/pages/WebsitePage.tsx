@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { EnvironmentCard } from "../EnvironmentCard";
 import type { WorkspaceApi } from "../SitesWorkspace";
 import { findWebsite, sortEnvironments } from "../sites-model";
-import { useSitesAccess } from "../useSitesAccess";
+import { useEnvironmentsAccess, useSitesAccess } from "../useSitesAccess";
 import { AccessList } from "./AccessList";
 
 export function WebsitePage({ api, websiteId }: { api: WorkspaceApi; websiteId: string }) {
@@ -29,15 +29,26 @@ export function WebsitePage({ api, websiteId }: { api: WorkspaceApi; websiteId: 
     websiteId,
   });
   const archiveWebsite = useMutation(controlApi.websites.archive);
-  if (!found) return null;
-  const { organization, business, website } = found;
-
   const sorted = [...(environments ?? [])].sort((left, right) =>
     sortEnvironments(
       { ...left, instanceId: String(left.instanceId), websiteId: String(left.websiteId), label: left.label ?? null },
       { ...right, instanceId: String(right.instanceId), websiteId: String(right.websiteId), label: right.label ?? null },
     ),
   );
+  // One subscription for every environment's capabilities (hooks stay unconditional).
+  const environmentAccess = useEnvironmentsAccess(
+    found
+      ? sorted.map((entry) => ({
+          organizationId: found.organization.organizationId,
+          businessId: found.business.businessId,
+          websiteId,
+          instanceId: String(entry.instanceId),
+          isLive: entry.kind === "live",
+        }))
+      : [],
+  );
+  if (!found) return null;
+  const { organization, business, website } = found;
   const defaultEnvironment = sorted.find((entry) => entry.isDefault) ?? sorted[0];
   const connectionsByInstance = new Map(
     (connections ?? []).map((entry) => [String(entry.instanceId), entry.connections]),
@@ -144,6 +155,14 @@ export function WebsitePage({ api, websiteId }: { api: WorkspaceApi; websiteId: 
                 environment={environment}
                 connections={connectionsByInstance.get(String(environment.instanceId)) ?? []}
                 canEdit={access.updateWebsite}
+                access={
+                  environmentAccess.get(String(environment.instanceId)) ?? {
+                    loading: true,
+                    manageConnection: false,
+                    liveAllowed: environment.kind !== "live",
+                    operations: false,
+                  }
+                }
               />
             ))}
           </div>
@@ -152,6 +171,7 @@ export function WebsitePage({ api, websiteId }: { api: WorkspaceApi; websiteId: 
 
       <AccessList
         api={api}
+        canManagePeople={access.managePeople}
         targetType="website"
         targetId={websiteId}
         label={website.title}

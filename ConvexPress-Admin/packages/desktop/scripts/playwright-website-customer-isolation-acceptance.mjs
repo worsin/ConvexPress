@@ -392,7 +392,9 @@ async function main() {
       path: join(artifactRoot, "electron-customer-isolation-outer-people.png"),
       type: "png",
     });
-    await manager.getByRole("button", { name: "Close site manager" }).click();
+    await manager.getByRole("button", { name: "Close sites" }).click();
+    await manager.waitFor({ state: "hidden", timeout: 15_000 });
+    await waitForShell(page);
 
     phase = "cleanup";
     for (const [scope, email] of [...created].reverse()) {

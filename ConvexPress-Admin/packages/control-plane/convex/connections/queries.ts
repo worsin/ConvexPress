@@ -19,6 +19,24 @@ const connectionSummary = v.object({
   updatedAt: v.number(),
 });
 
+const healthEntry = v.object({
+  status: v.union(
+    v.literal("healthy"),
+    v.literal("degraded"),
+    v.literal("unreachable"),
+    v.literal("revoked"),
+  ),
+  latencyMs: v.union(v.number(), v.null()),
+  errorCode: v.union(v.string(), v.null()),
+  checkedAt: v.number(),
+});
+
+const connectionSummaryWithHealth = v.object({
+  ...connectionSummary.fields,
+  /** Most recent health probe, so cards need no per-connection subscription. */
+  latestHealth: v.union(healthEntry, v.null()),
+});
+
 export const listForInstance = authenticatedQuery({
   args: { instanceId: v.id("overseer_websiteInstances") },
   returns: v.array(connectionSummary),
@@ -58,7 +76,7 @@ export const listForWebsite = authenticatedQuery({
   returns: v.array(
     v.object({
       instanceId: v.id("overseer_websiteInstances"),
-      connections: v.array(connectionSummary),
+      connections: v.array(connectionSummaryWithHealth),
     }),
   ),
   handler: async (ctx, args) => {
@@ -97,10 +115,26 @@ export const listForWebsite = authenticatedQuery({
           q.eq("instance_id", instance._id).eq("isActive", true),
         )
         .take(20);
-      result.push({
-        instanceId: instance._id,
-        connections: connections.map(safeConnectionSummary),
-      });
+      const summaries = [];
+      for (const connection of connections) {
+        const latest = await ctx.db
+          .query("overseer_connectionHealthHistory")
+          .withIndex("by_connection", (q) => q.eq("connectionId", connection._id))
+          .order("desc")
+          .first();
+        summaries.push({
+          ...safeConnectionSummary(connection),
+          latestHealth: latest
+            ? {
+                status: latest.status,
+                latencyMs: latest.latencyMs ?? null,
+                errorCode: latest.errorCode ?? null,
+                checkedAt: latest.checkedAt,
+              }
+            : null,
+        });
+      }
+      result.push({ instanceId: instance._id, connections: summaries });
     }
     return result;
   },
@@ -111,19 +145,7 @@ export const healthHistory = authenticatedQuery({
     connectionId: v.id("overseer_connections"),
     limit: v.optional(v.number()),
   },
-  returns: v.array(
-    v.object({
-      status: v.union(
-        v.literal("healthy"),
-        v.literal("degraded"),
-        v.literal("unreachable"),
-        v.literal("revoked"),
-      ),
-      latencyMs: v.union(v.number(), v.null()),
-      errorCode: v.union(v.string(), v.null()),
-      checkedAt: v.number(),
-    }),
-  ),
+  returns: v.array(healthEntry),
   handler: async (ctx, args) => {
     const connection = await ctx.db.get(args.connectionId);
     if (!connection?.instance_id) throw new Error("Connection not found");

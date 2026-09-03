@@ -53,10 +53,28 @@ export async function shellIsVisible(page) {
  * are matched against the group header shown above the website so ambiguous
  * titles resolve to the intended path.
  */
-export async function selectWebsite(
+export async function selectWebsite(page, scope, timeout = DEFAULT_TIMEOUT) {
+  // The popover lives inside the sidebar, which is remounted when the site
+  // runtime finishes loading. If that happens mid-selection the option node is
+  // detached; re-open and try again rather than failing the whole run.
+  let lastError;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      await selectWebsiteOnce(page, scope, timeout);
+      return;
+    } catch (error) {
+      lastError = error;
+      await page.keyboard.press("Escape").catch(() => undefined);
+      await page.waitForTimeout(750);
+    }
+  }
+  throw lastError;
+}
+
+async function selectWebsiteOnce(
   page,
   { organization, business, website },
-  timeout = DEFAULT_TIMEOUT,
+  timeout,
 ) {
   const dialog = await openSwitcher(page, timeout);
   const search = dialog.getByRole("combobox", { name: "Search websites" });
@@ -86,7 +104,7 @@ export async function selectWebsite(
       }
     }
   }
-  await picked.click();
+  await picked.click({ timeout: Math.min(timeout, 8_000) });
   await dialog.waitFor({ state: "hidden", timeout }).catch(() => undefined);
 }
 
@@ -221,14 +239,9 @@ export async function listSwitcherOrganizations(page, timeout = DEFAULT_TIMEOUT)
   const dialog = await openSwitcher(page, timeout);
   const names = await dialog.evaluate((node) => {
     const found = new Set();
-    for (const header of node.querySelectorAll("[role=listbox] > div > div:first-child")) {
-      const text = header.textContent ?? "";
-      if (text.includes("›")) found.add(text.split("›")[0].trim());
-    }
-    for (const option of node.querySelectorAll("[role=option]")) {
-      const summary = option.textContent ?? "";
-      const match = summary.match(/^(.*?)\d+ business/);
-      if (match && match[1].trim()) found.add(match[1].trim());
+    for (const section of node.querySelectorAll("[role=listbox] [data-organization]")) {
+      const name = section.getAttribute("data-organization")?.trim();
+      if (name) found.add(name);
     }
     return [...found];
   });

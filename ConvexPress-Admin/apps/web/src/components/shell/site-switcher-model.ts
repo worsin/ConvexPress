@@ -55,6 +55,8 @@ export interface SwitcherSection {
   organizationId?: string;
   businessId?: string;
   businessName?: string;
+  /** Folded organization that has no businesses yet; activating opens Sites. */
+  empty?: boolean;
 }
 
 export function normalizeQuery(query: string): string {
@@ -154,7 +156,18 @@ export function buildSections(
     const organizationGroups = groups.filter(
       (group) => group.organization.organizationId === organization.organizationId,
     );
-    if (organizationGroups.length === 0) continue;
+    if (organizationGroups.length === 0) {
+      sections.push({
+        kind: "folded",
+        key: `folded:${organization.organizationId}`,
+        title: organization.name,
+        summary: "No businesses yet · set up in Sites",
+        websites: [],
+        organizationId: organization.organizationId,
+        empty: true,
+      });
+      continue;
+    }
     if (visibleOrganizations.has(organization.organizationId)) {
       for (const group of organizationGroups) {
         sections.push({
@@ -189,7 +202,14 @@ export function buildSections(
 
 export type SwitcherRow =
   | { kind: "website"; key: string; website: SwitcherWebsite; sectionKey: string }
-  | { kind: "folded"; key: string; organizationId: string; title: string; summary: string }
+  | {
+      kind: "folded";
+      key: string;
+      organizationId: string;
+      title: string;
+      summary: string;
+      empty: boolean;
+    }
   | {
       /** A business with no websites yet; selecting it scopes the shell to it. */
       kind: "business";
@@ -210,6 +230,7 @@ export function flattenRows(sections: SwitcherSection[]): SwitcherRow[] {
         organizationId: section.organizationId ?? "",
         title: section.title,
         summary: section.summary ?? "",
+        empty: section.empty ?? false,
       });
       continue;
     }

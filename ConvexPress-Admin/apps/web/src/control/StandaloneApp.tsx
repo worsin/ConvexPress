@@ -105,56 +105,60 @@ function ControlPlaneShell({
   const liveEnvironment = websiteEnvironments.find(
     (environment) => environment.kind === "live",
   );
-  const lifecycleAccess = useQuery(
-    controlApi.rbac.queries.checkMyAccess,
-    !managerOpen && selectedEnvironment && selectedWebsite && selectedBusiness
-      ? {
-          selectorType: "capability",
-          code: "site.backup.create",
-          organizationId: String(selectedBusiness.organizationId),
-          businessId: String(selectedBusiness.businessId),
-          websiteId: String(selectedWebsite.websiteId),
-          instanceId: String(selectedEnvironment.instanceId),
-        }
+  // Shell-level capability checks travel in ONE subscription; constrained
+  // backends cap concurrent query executions and a burst of tiny checks on
+  // reconnect keeps the socket cycling.
+  const shellChecks = useMemo(() => {
+    if (managerOpen || !selectedBusiness) return [];
+    const business = {
+      organizationId: String(selectedBusiness.organizationId),
+      businessId: String(selectedBusiness.businessId),
+    };
+    const checks: Array<{
+      key: "backup" | "handoffExport" | "handoffImport" | "liveOperate";
+      selectorType: "capability";
+      code: string;
+      organizationId: string;
+      businessId: string;
+      websiteId?: string;
+      instanceId?: string;
+    }> = [];
+    if (selectedEnvironment && selectedWebsite) {
+      const environment = {
+        ...business,
+        websiteId: String(selectedWebsite.websiteId),
+        instanceId: String(selectedEnvironment.instanceId),
+      };
+      checks.push({ key: "backup", selectorType: "capability", code: "site.backup.create", ...environment });
+      checks.push({ key: "handoffExport", selectorType: "capability", code: "site.handoff.export", ...environment });
+    }
+    checks.push({ key: "handoffImport", selectorType: "capability", code: "business.update", ...business });
+    if (liveEnvironment && selectedWebsite) {
+      checks.push({
+        key: "liveOperate",
+        selectorType: "capability",
+        code: "environment.live.operate",
+        ...business,
+        websiteId: String(selectedWebsite.websiteId),
+        instanceId: String(liveEnvironment.instanceId),
+      });
+    }
+    return checks;
+  }, [managerOpen, selectedBusiness, selectedEnvironment, selectedWebsite, liveEnvironment]);
+  const shellDecisions = useQuery(
+    controlApi.rbac.queries.checkManyAccess,
+    shellChecks.length > 0
+      ? { checks: shellChecks.map(({ key: _key, ...check }) => check) }
       : "skip",
   );
-  const handoffExportAccess = useQuery(
-    controlApi.rbac.queries.checkMyAccess,
-    !managerOpen && selectedEnvironment && selectedWebsite && selectedBusiness
-      ? {
-          selectorType: "capability",
-          code: "site.handoff.export",
-          organizationId: String(selectedBusiness.organizationId),
-          businessId: String(selectedBusiness.businessId),
-          websiteId: String(selectedWebsite.websiteId),
-          instanceId: String(selectedEnvironment.instanceId),
-        }
-      : "skip",
-  );
-  const handoffImportAccess = useQuery(
-    controlApi.rbac.queries.checkMyAccess,
-    !managerOpen && selectedBusiness
-      ? {
-          selectorType: "capability",
-          code: "business.update",
-          organizationId: String(selectedBusiness.organizationId),
-          businessId: String(selectedBusiness.businessId),
-        }
-      : "skip",
-  );
-  const liveOperateAccess = useQuery(
-    controlApi.rbac.queries.checkMyAccess,
-    !managerOpen && liveEnvironment && selectedWebsite && selectedBusiness
-      ? {
-          selectorType: "capability",
-          code: "environment.live.operate",
-          organizationId: String(selectedBusiness.organizationId),
-          businessId: String(selectedBusiness.businessId),
-          websiteId: String(selectedWebsite.websiteId),
-          instanceId: String(liveEnvironment.instanceId),
-        }
-      : "skip",
-  );
+  const decisionFor = (key: (typeof shellChecks)[number]["key"]) => {
+    const index = shellChecks.findIndex((check) => check.key === key);
+    return index === -1 ? undefined : shellDecisions?.[index];
+  };
+  const lifecycleAccess = decisionFor("backup");
+  const handoffExportAccess = decisionFor("handoffExport");
+  const handoffImportAccess = decisionFor("handoffImport");
+  const liveOperateAccess = decisionFor("liveOperate");
   const controlVisibility = controlSurfaceVisibility({
     backupAllowed: lifecycleAccess?.allowed === true,
     selectedEnvironmentIsLive: selectedEnvironment?.kind === "live",

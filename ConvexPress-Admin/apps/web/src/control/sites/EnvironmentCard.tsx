@@ -10,7 +10,7 @@
 import { api as controlApi } from "@control/convex/_generated/api";
 import type { Id } from "@control/convex/_generated/dataModel";
 import type { FunctionReturnType } from "convex/server";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import {
   Activity,
   Archive,
@@ -40,12 +40,12 @@ import {
 import { cn } from "@/lib/utils";
 import { expectedConnectionRevocation } from "../components/site-manager-view";
 import type { WorkspaceApi } from "./SitesWorkspace";
-import { useEnvironmentAccess } from "./useSitesAccess";
+import type { EnvironmentAccess } from "./useSitesAccess";
 
 type EnvironmentDetail = FunctionReturnType<typeof controlApi.websiteInstances.list>[number];
 type ConnectionSummary = FunctionReturnType<
-  typeof controlApi.connections.queries.listForInstance
->[number];
+  typeof controlApi.connections.queries.listForWebsite
+>[number]["connections"][number];
 
 interface EnvironmentCardProps {
   api: WorkspaceApi;
@@ -55,6 +55,8 @@ interface EnvironmentCardProps {
   environment: EnvironmentDetail;
   connections: ConnectionSummary[];
   canEdit: boolean;
+  /** Resolved by the page for every environment in one subscription. */
+  access: EnvironmentAccess;
 }
 
 export function EnvironmentCard({
@@ -65,16 +67,10 @@ export function EnvironmentCard({
   environment,
   connections,
   canEdit,
+  access,
 }: EnvironmentCardProps) {
   const instanceId = String(environment.instanceId);
   const isLive = environment.kind === "live";
-  const access = useEnvironmentAccess({
-    organizationId,
-    businessId,
-    websiteId,
-    instanceId,
-    isLive,
-  });
   const setDefault = useMutation(controlApi.websiteInstances.setDefault);
   const archiveEnvironment = useMutation(controlApi.websiteInstances.archive);
   const testConnection = useAction(controlApi.connections.actions.test);
@@ -84,11 +80,7 @@ export function EnvironmentCard({
   const activeConnection = connections.find(
     (entry) => entry.isActive && entry.status === "connected" && entry.hasCredentials,
   );
-  const history = useQuery(
-    controlApi.connections.queries.healthHistory,
-    activeConnection ? { connectionId: activeConnection.connectionId, limit: 1 } : "skip",
-  );
-  const lastCheck = history?.[0];
+  const lastCheck = activeConnection?.latestHealth ?? null;
   const treeEnvironment = {
     instanceId,
     websiteId,

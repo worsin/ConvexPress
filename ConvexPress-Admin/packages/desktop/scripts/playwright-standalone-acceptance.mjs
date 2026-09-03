@@ -265,10 +265,12 @@ async function main() {
     phase = "switch-shop-staging";
     await selectScope(page, { environment: "Staging", website: "Northstar Shop", organization: "Acceptance Agency Group", business: "Northstar Commerce" });
     await page.waitForTimeout(2_000);
-    const stagingTitle = page
-      .getByText("Northstar Shop — Staging", { exact: true })
-      .first();
-    if (!(await stagingTitle.isVisible().catch(() => false))) {
+    // The identity label lives on the topbar's data attribute (and in the
+    // environment options menu), not as loose page text.
+    const stagingReady = await waitForActiveEnvironment(page, "Northstar Shop — Staging", 10_000)
+      .then(() => true)
+      .catch(() => false);
+    if (!stagingReady) {
       phase = "recover-staging-baseline-from-prebackup";
       await openEnvironmentAction(page, "Site operations");
       const recoveryPanel = page.getByRole("complementary", {

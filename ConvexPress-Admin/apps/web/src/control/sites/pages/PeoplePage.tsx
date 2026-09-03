@@ -4,6 +4,7 @@
  */
 
 import { api as controlApi } from "@control/convex/_generated/api";
+import type { Id } from "@control/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { UserPlus } from "lucide-react";
 
@@ -41,7 +42,15 @@ export function profileSummary(operator: {
 export function PeoplePage({ api }: { api: WorkspaceApi }) {
   const shell = useControlShell()!;
   const access = useSitesAccess({});
-  const scopedProfile = useQuery(controlApi.operators.currentScopeProfile, {});
+  // Resolve the operator's label against the shell's current scope so a
+  // business manager reads as "Business Manager", not the bare platform role.
+  const { selection } = shell;
+  const scopedProfile = useQuery(controlApi.operators.currentScopeProfile, {
+    organizationId: (selection.organizationId ?? undefined) as Id<"overseer_organizations"> | undefined,
+    businessId: (selection.businessId ?? undefined) as Id<"overseer_businesses"> | undefined,
+    websiteId: (selection.websiteId ?? undefined) as Id<"overseer_websites"> | undefined,
+    instanceId: (selection.instanceId ?? undefined) as Id<"overseer_websiteInstances"> | undefined,
+  });
   const operators = useQuery(
     controlApi.operators.list,
     access.managePeople ? { limit: 200 } : "skip",

@@ -19,6 +19,7 @@ import {
   openEnvironmentAction,
   openSiteManager,
   selectBusiness,
+  selectPortfolioNode,
   selectScope,
   shellIsVisible,
   waitForActiveEnvironment,
@@ -537,6 +538,9 @@ async function main() {
         );
 
         const operator = provisioned.find((entry) => entry.email === account.email);
+        const websitePage = await selectPortfolioNode(run.page, target.website.title);
+        const editWebsite = websitePage.getByRole("button", { name: "Edit", exact: true });
+        await editWebsite.waitFor({ state: "visible", timeout: 15_000 });
         denyPermissionId = await ownerClient.mutation(upsertPermission, {
           subjectType: "user",
           subjectId: String(operator.userId),
@@ -549,8 +553,7 @@ async function main() {
           websiteId: String(target.website.websiteId),
           includeChildren: true,
         });
-        await manager.getByRole("button", { name: /Portfolio/ }).click();
-        await manager.getByText("Edit website", { exact: true }).waitFor({ state: "hidden", timeout: 15_000 });
+        await editWebsite.waitFor({ state: "hidden", timeout: 15_000 });
         const denied = await client.query(
           checkMyAccess,
           accessArgs(target, "website.update"),

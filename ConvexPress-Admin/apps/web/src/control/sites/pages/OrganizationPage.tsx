@@ -86,7 +86,7 @@ export function OrganizationPage({ api, organizationId }: { api: WorkspaceApi; o
         )}
       </section>
 
-      <AccessList api={api} targetType="organization" targetId={organizationId} label={organization.name} />
+      <AccessList api={api} targetType="organization" targetId={organizationId} label={organization.name} canManagePeople={access.managePeople} />
 
       {access.manageHierarchy && (
         <section aria-label="Danger zone" className="rounded-xl border border-destructive/30 p-4">

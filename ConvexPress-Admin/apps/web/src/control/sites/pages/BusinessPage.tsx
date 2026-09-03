@@ -155,6 +155,7 @@ export function BusinessPage({ api, businessId }: { api: WorkspaceApi; businessI
 
       <AccessList
         api={api}
+        canManagePeople={access.managePeople}
         targetType="business"
         targetId={businessId}
         label={business.name}

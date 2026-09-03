@@ -8,7 +8,7 @@
  * opens it, arrows move, Enter opens, Escape closes.
  */
 
-import { ChevronDown, ChevronRight, Globe2, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Globe2, Plus, Search } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -155,6 +155,11 @@ export function SiteSwitcher({ collapsed = false }: { collapsed?: boolean }) {
     (row: SwitcherRow) => {
       if (!shell) return;
       if (row.kind === "folded") {
+        if (row.empty) {
+          shell.openSites({ type: "organization", id: row.organizationId });
+          close();
+          return;
+        }
         setExpandedOrganizations((previous) => {
           const next = new Set(previous);
           next.add(row.organizationId);
@@ -306,7 +311,12 @@ export function SiteSwitcher({ collapsed = false }: { collapsed?: boolean }) {
             </p>
           )}
           {sections.map((section) => (
-            <div key={section.key}>
+            <div
+              key={section.key}
+              data-organization={
+                section.kind === "recent" ? undefined : section.title.split(" › ")[0]
+              }
+            >
               {section.kind !== "folded" && (
                 <div className="flex items-center gap-2 px-3.5 pb-1 pt-2.5">
                   {section.kind === "recent" ? (
@@ -352,7 +362,11 @@ export function SiteSwitcher({ collapsed = false }: { collapsed?: boolean }) {
                         className="mx-1.5 my-0.5 flex w-[calc(100%-0.75rem)] items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-ink-2 hover:bg-surface-2 data-highlighted:bg-surface-2"
                       >
                         <span className="grid size-7 place-items-center rounded-lg border border-dashed border-line-strong">
-                          <ChevronRight aria-hidden="true" className="size-3.5" />
+                          {section.empty ? (
+                            <Plus aria-hidden="true" className="size-3.5" />
+                          ) : (
+                            <ChevronRight aria-hidden="true" className="size-3.5" />
+                          )}
                         </span>
                         <span className="flex min-w-0 flex-col leading-[1.15]">
                           <span className="truncate text-[13px] font-medium">

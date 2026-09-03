@@ -84,6 +84,31 @@ describe("site switcher model", () => {
     expect(websiteMatches(input.websites[3], "studio.example")).toBe(true);
   });
 
+  test("organizations without businesses stay visible as set-up rows", () => {
+    const sections = buildSections(
+      {
+        ...input,
+        organizations: [
+          ...input.organizations,
+          { organizationId: "org-new", name: "Fresh Org" },
+        ],
+      },
+      {
+        query: "",
+        selectedWebsiteId: "w-shop",
+        selectedOrganizationId: "org-a",
+        expandedOrganizationIds: new Set(),
+        recentWebsiteIds: [],
+      },
+    );
+    const fresh = sections.find((section) => section.title === "Fresh Org");
+    expect(fresh?.kind).toBe("folded");
+    expect(fresh?.empty).toBe(true);
+    const rows = flattenRows(sections);
+    const row = rows.find((entry) => entry.kind === "folded" && entry.organizationId === "org-new");
+    expect(row && row.kind === "folded" ? row.empty : null).toBe(true);
+  });
+
   test("flatten produces keyboard rows including folded organizations", () => {
     const rows = flattenRows(
       buildSections(input, {
