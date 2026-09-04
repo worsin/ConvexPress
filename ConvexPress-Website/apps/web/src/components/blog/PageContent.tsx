@@ -13,6 +13,19 @@ interface PageContentProps {
 /**
  * Single page content renderer. Displays page title and block content.
  */
+const HERO_BLOCKS = new Set([
+  "core/hero",
+  "core/hero-split",
+  "core/hero-text-only",
+  "blocks/page-banner",
+]);
+
+function opensWithHero(page: PageDetail): boolean {
+  if (page.contentMode !== "blocks") return false;
+  const first = page.blocks?.[0];
+  return !!first && HERO_BLOCKS.has(first.name);
+}
+
 export function PageContent({ page, className }: PageContentProps) {
   return (
     <article
@@ -31,8 +44,10 @@ export function PageContent({ page, className }: PageContentProps) {
         </figure>
       )}
 
-      {/* Title */}
-      <h1 className="text-lg font-bold leading-tight md:text-xl">{page.title}</h1>
+      {/* Title — omitted when the page opens with a hero/banner block, which carries its own headline. */}
+      {!opensWithHero(page) && (
+        <h1 className="text-lg font-bold leading-tight md:text-xl">{page.title}</h1>
+      )}
 
       {/* Content */}
       {page.contentMode === "blocks" ? (

@@ -12,7 +12,7 @@
 
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery as useTanStackQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import type { PageDetail, BlockDocument } from "@/lib/blog/types";
@@ -38,6 +38,14 @@ const latestPostsQuery = convexQuery(api.posts.queries.listPublished, {
 
 export const Route = createFileRoute("/_marketing/")({
 	loader: async ({ context: { queryClient } }) => {
+		// Shops land visitors on the catalog (Reading settings → "The shop").
+		const publicSettings = (await queryClient.ensureQueryData(
+			convexQuery(api.settings.queries.getPublic, {}),
+		)) as { homepageDisplays?: string; siteTitle?: string } | null;
+		if (publicSettings?.homepageDisplays === "shop") {
+			throw redirect({ to: "/products" });
+		}
+		const siteTitle = publicSettings?.siteTitle || "ConvexPress";
 		const frontPage = await queryClient.ensureQueryData(frontPageQuery);
 		if (!frontPage) {
 			await queryClient.ensureQueryData(latestPostsQuery);
@@ -46,11 +54,11 @@ export const Route = createFileRoute("/_marketing/")({
 		return {
 			seoHead: buildIndexablePageHead({
 				title: frontPage?.title
-					? `${frontPage.title} - ConvexPress`
-					: "ConvexPress",
+					? `${frontPage.title} – ${siteTitle}`
+					: siteTitle,
 				description:
 					frontPage?.excerpt ??
-					"Read the latest published articles from ConvexPress.",
+					`Read the latest published articles from ${siteTitle}.`,
 				path: "/",
 			}),
 		};

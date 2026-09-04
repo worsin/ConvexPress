@@ -24,6 +24,7 @@ import { PostPagination } from "@/components/blog/PostPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaxonomyBreadcrumbs } from "@/components/taxonomy/Breadcrumbs";
 import { SubcategoryList } from "@/components/taxonomy/SubcategoryList";
+import { siteTitled } from "@/lib/seo/head";
 
 interface CategorySearchParams {
   page?: number;
@@ -45,7 +46,7 @@ export const Route = createFileRoute("/_marketing/category/$slug")({
   },
   head: ({ params }) => ({
     meta: [
-      { title: `Category: ${params.slug} - ConvexPress` },
+      { title: siteTitled(`Category: ${params.slug}`) },
     ],
     links: [
       {

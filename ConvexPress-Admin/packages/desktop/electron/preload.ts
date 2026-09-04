@@ -46,6 +46,8 @@ const ALLOWED_INVOKE_CHANNELS = new Set([
   "site-runner:logs",
   "site-runner:open",
   "site-runner:open-url",
+  "security:register-deployment-origins",
+  "security:list-deployment-origins",
 ]);
 
 const ALLOWED_ON_CHANNELS = new Set([
@@ -184,6 +186,17 @@ contextBridge.exposeInMainWorld("convexpress", {
       ipcRenderer.on("site-runner:changed", handler);
       return () => ipcRenderer.removeListener("site-runner:changed", handler);
     },
+  },
+
+  security: {
+    /** Allow the renderer to reach a site deployment; `added` lists origins new to the policy. */
+    registerDeploymentOrigins: (origins: string[]) =>
+      ipcRenderer.invoke("security:register-deployment-origins", origins) as Promise<{
+        added: string[];
+        origins: string[];
+      }>,
+    listDeploymentOrigins: () =>
+      ipcRenderer.invoke("security:list-deployment-origins") as Promise<string[]>,
   },
 
   connections: {

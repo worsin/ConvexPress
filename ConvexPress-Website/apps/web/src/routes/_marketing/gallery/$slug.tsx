@@ -7,7 +7,7 @@ import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { GalleryAlbumPage } from "@/components/gallery/GalleryAlbumPage";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
+import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/gallery/$slug")({
   component: GalleryDetailPage,
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_marketing/gallery/$slug")({
     return {
       galleryDisabled: false as const,
       seoHead: buildSeoHead({
-        title: `${album?.title ?? params.slug} - Gallery - ConvexPress`,
+        title: siteTitled(`${album?.title ?? params.slug} - Gallery`),
         description: album?.excerpt || `Gallery album: ${album?.title ?? params.slug}.`,
         canonical: toAbsoluteUrl(`/gallery/${params.slug}`, siteUrl),
       }),

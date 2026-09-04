@@ -3,6 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
+import { siteTitled } from "@/lib/seo/head";
 
 type KbCategory = {
   _id: string;
@@ -56,7 +57,7 @@ export const Route = createFileRoute("/_marketing/help/$categorySlug/")({
   head: ({ params }) => ({
     meta: [
       {
-        title: `${params.categorySlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} - Help Center - ConvexPress`,
+        title: siteTitled(`${params.categorySlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} - Help Center`),
       },
     ],
   }),

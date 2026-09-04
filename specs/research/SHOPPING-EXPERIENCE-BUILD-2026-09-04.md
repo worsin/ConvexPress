@@ -43,3 +43,51 @@
 - Phases 3–5 of the strategy (proactive tips scheduling, compare-table prompts, photo → cart, UCP 2026-08-25 conformance, agentic watches) are not started. The `commerce.assistant.proactiveTips` setting exists but the rail does not yet emit unsolicited tips.
 - Assistant latency is 15–25 s per tool-calling turn on `anthropic/claude-sonnet-4.6`; briefs 6–12 s (then cached). No streaming yet.
 - Admin relation-graph review queue and recommendation analytics screens are not built (backend queries exist: `commerce/relations.ts`, `commerce_recommendation_events`).
+
+
+---
+
+## Update 2026-09-04 (evening): real demo sites, authored through the admin UI
+
+Both demo stores are now full websites built the way a customer would build them — through the
+ConvexPress admin (Electron), not seeds. Driver: `output/playwright/shopping-experience/author-site.mjs`
+(signs in, switches site via the site switcher, then works the real screens).
+
+Per site (Northstar Coffee on alpha, Ridgeline Cycles on gamma):
+- **Media Library** → Add New: 6 hero/lifestyle images uploaded per site (generated with the OpenRouter
+  image model; `scratchpad/images/<shop>/site`). Library is scoped per site deployment.
+- **Pages** → Add New Page → block editor: Home (Hero split · Category Tiles · Product Showcase · Feature Grid ·
+  Media + Text · Testimonials · Shopping Assistant Band · Newsletter), Our Story (Hero · Media+Text · Stats ·
+  Media+Text · CTA), Help (Hero · FAQ · CTA; slug changed to `/faq` in the permalink editor because `/help`
+  and `/support` are built-in routes), Contact (Hero · Contact Stack · Contact form). Images picked from the
+  library inside the block's media field. Published from the Publish box.
+- **Settings → Reading**: "A static page" → Homepage = Home.
+- **Menus**: "Main Navigation" (Home, Shop, two category links, Contact, Help, Our Story) → Primary Navigation;
+  "Footer" (Shop all, three categories, Cart, Contact, Help) → Footer Navigation.
+
+New blocks (block-build contract, admin `blocks/*` + website `blocks/*`, `bun run check:blocks` passes, 13 official):
+`commerce/product-showcase` (newest / category / sale / hand-picked slugs, live cards with cart steppers),
+`commerce/category-tiles` (live categories with cover + count → `/products?category=`),
+`commerce/assistant-band` (example questions → `/products?ask=…` opens the rail with that question).
+Backend: `commerce/storefront.ts` gained `productCardsBySlugs` and `categoryTiles`.
+
+Bugs found and fixed along the way (all real, all in the product):
+- Block media picker called `api.media.queries.getById`, which never existed → editor crashed on every image pick. Now uses `get`.
+- Desktop CSP only allow-listed the control plane; site deployment origins were blocked for websockets and
+  images (Media Library thumbnails broken for any fleet site). Origins are now registered at runtime
+  (`electron/deploymentOrigins.ts`, `ipc/security.ts`, `SiteRuntimeProvider` registers + reloads once) and
+  `img-src`/`media-src` include them.
+- Website `PublicPluginGate` and `/page/$` read Convex directly → SSR skeleton vs client content hydration
+  mismatch. Both read the TanStack cache the loaders fill. `/$slug` redirect moved server-side.
+- Cart session token was read from localStorage during render → `disabled` hydration mismatch on every product grid.
+- 49 routes hardcoded "… - ConvexPress" titles. `lib/seo/head.ts` now has `siteTitled()` / `resolveSiteName()`;
+  root loader + SettingsProvider remember the site name (one process = one site).
+- Pages that open with a hero no longer repeat the page title; full-width template is actually wide (max-w-6xl);
+  default template drops the empty sidebar column when there are no child pages.
+- Brand typography/radius from Settings › Brand now applied on the storefront (`ThemeStyleInjector` loads the
+  Google Fonts and sets `--font-sans`, `--font-display`, `--radius`); Fraunces vs Space Grotesk visible per site.
+- Admin: settings selects showed raw values ("full") → show labels; block outline shows icons for official blocks;
+  media titles from filenames are capitalized.
+
+Evidence: `output/playwright/shopping-experience/{authoring,storefronts}/<site>/*.png`.
+Tests: admin 2178 pass, website 367 pass, desktop CSP/origins 7 pass; both apps typecheck.

@@ -1,5 +1,5 @@
 import type { BlockRendererProps, WebsiteBlockDefinition } from "@/lib/blocks/types";
-import { RichText, SectionIntro } from "../_shared/rendering";
+import { SectionIntro } from "../_shared/rendering";
 import { contactStackAttrsSchema, type ContactStackAttrs } from "./schema";
 
 function ContactRow({
@@ -28,8 +28,15 @@ function ContactStackRenderer({ attrs }: BlockRendererProps<ContactStackAttrs>) 
   return (
     <div className="space-y-6">
       <SectionIntro heading={attrs.heading} body={attrs.intro} />
-      <div className="grid gap-4 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-        <dl className="grid gap-3">
+      {/* With a map the details sit beside it; without one they spread across the width. */}
+      <div
+        className={
+          attrs.mapEmbedUrl
+            ? "grid gap-4 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]"
+            : "grid gap-4"
+        }
+      >
+        <dl className={attrs.mapEmbedUrl ? "grid gap-3" : "grid gap-3 sm:grid-cols-2"}>
           <ContactRow label="Phone" value={attrs.phone} href={attrs.phone ? `tel:${attrs.phone}` : ""} />
           <ContactRow label="Email" value={attrs.email} href={attrs.email ? `mailto:${attrs.email}` : ""} />
           <ContactRow label="Address" value={attrs.address} />
@@ -38,18 +45,14 @@ function ContactStackRenderer({ attrs }: BlockRendererProps<ContactStackAttrs>) 
             <ContactRow key={index} label={item.label} value={item.value} href={item.href} />
           ))}
         </dl>
-        {attrs.mapEmbedUrl ? (
+        {attrs.mapEmbedUrl && (
           <iframe
             src={attrs.mapEmbedUrl}
             title={`${attrs.heading} map`}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-          className="min-h-96 w-full rounded-md border border-border"
-        />
-      ) : (
-          <div className="rounded-md border border-border bg-muted p-5">
-            <RichText text={attrs.address} className="text-sm text-muted-foreground" />
-          </div>
+            className="min-h-96 w-full rounded-md border border-border"
+          />
         )}
       </div>
     </div>

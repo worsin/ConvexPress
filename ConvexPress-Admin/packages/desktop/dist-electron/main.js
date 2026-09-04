@@ -23,7 +23,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // electron/main.ts
-var import_node_path14 = __toESM(require("path"));
+var import_node_path15 = __toESM(require("path"));
 var import_node_fs7 = require("fs");
 var import_node_url2 = require("url");
 
@@ -2354,8 +2354,71 @@ function shutdownSiteRunner() {
   manager?.killAllSync();
 }
 
+// electron/deploymentOrigins.ts
+var MAX_ORIGINS = 200;
+var store3 = new JsonStore({
+  name: "convexpress-deployment-origins",
+  defaults: { origins: [] }
+});
+function normalizeDeploymentOrigin(value) {
+  if (typeof value !== "string" || value.length > 2048) return null;
+  try {
+    const parsed = new URL(value.trim());
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    if (parsed.username || parsed.password) return null;
+    if (!parsed.hostname) return null;
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+function readOrigins() {
+  const raw = store3.get("origins");
+  return Array.isArray(raw) ? raw.filter((entry) => typeof entry === "string") : [];
+}
+function listRegisteredDeploymentOrigins() {
+  return readOrigins();
+}
+function registerDeploymentOrigins(candidates) {
+  if (!Array.isArray(candidates)) throw new Error("origins must be an array");
+  const current = new Set(readOrigins());
+  const added = [];
+  for (const candidate of candidates.slice(0, 50)) {
+    const origin = normalizeDeploymentOrigin(candidate);
+    if (!origin || current.has(origin)) continue;
+    current.add(origin);
+    added.push(origin);
+  }
+  if (added.length) {
+    const next = [...current].slice(-MAX_ORIGINS);
+    store3.set("origins", next);
+  }
+  return { added, origins: [...current] };
+}
+
+// electron/ipc/security.ts
+var import_node_path13 = __toESM(require("path"));
+var { ipcMain: ipcMain10 } = require("electron");
+function assertSender2(event) {
+  const senderUrl = event.sender.getURL();
+  const ok = isDev() ? isDevAppRendererSender(senderUrl) : isAppRendererSender(senderUrl, {
+    rendererIndexPath: import_node_path13.default.join(__dirname, "..", "dist", "index.html")
+  });
+  if (!ok) throw new Error("Deployment origins can only be registered from the ConvexPress app.");
+}
+function registerSecurityHandlers() {
+  ipcMain10.handle("security:register-deployment-origins", (event, origins) => {
+    assertSender2(event);
+    return registerDeploymentOrigins(origins);
+  });
+  ipcMain10.handle("security:list-deployment-origins", (event) => {
+    assertSender2(event);
+    return listRegisteredDeploymentOrigins();
+  });
+}
+
 // electron/ipc/index.ts
-var { ipcMain: ipcMain10, app: app5 } = require("electron");
+var { ipcMain: ipcMain11, app: app5 } = require("electron");
 function registerAllIpcHandlers() {
   registerWindowHandlers();
   registerConfigHandlers();
@@ -2366,17 +2429,18 @@ function registerAllIpcHandlers() {
   registerAppUpdaterHandlers();
   registerUpdaterHandlers();
   registerSiteRunnerHandlers();
-  ipcMain10.handle("app:get-version", () => {
+  registerSecurityHandlers();
+  ipcMain11.handle("app:get-version", () => {
     return app5.getVersion();
   });
-  ipcMain10.handle("app:get-platform", () => {
+  ipcMain11.handle("app:get-platform", () => {
     return {
       os: process.platform,
       arch: process.arch,
       electron: process.versions.electron
     };
   });
-  ipcMain10.handle("app:quit", () => {
+  ipcMain11.handle("app:quit", () => {
     app5.quit();
   });
 }
@@ -2432,6 +2496,13 @@ function exactNetworkOrigins(value) {
 function controllerConfigUsesLoopback(convexUrl, convexSiteUrl) {
   return isLoopbackUrl2(convexUrl) || isLoopbackUrl2(convexSiteUrl);
 }
+function exactHttpOrigins(values) {
+  return [
+    ...new Set(
+      values.flatMap(exactNetworkOrigins).filter((origin) => origin.startsWith("http:") || origin.startsWith("https:"))
+    )
+  ];
+}
 function buildDesktopContentSecurityPolicy({
   development,
   allowLoopback,
@@ -2446,12 +2517,14 @@ function buildDesktopContentSecurityPolicy({
     ),
     ...CLOUD_CONNECT_SOURCES
   ];
+  const deploymentHttpOrigins = exactHttpOrigins(additionalConnectOrigins);
   const imageSources = [
     "'self'",
     ...development ? [] : ["file:"],
     "data:",
     "blob:",
     ...permitsLoopback ? LOOPBACK_MEDIA_SOURCES : [],
+    ...deploymentHttpOrigins,
     "https://*.convex.cloud",
     "https://*.convex.site",
     "https://convex.cloud",
@@ -2463,6 +2536,7 @@ function buildDesktopContentSecurityPolicy({
     "data:",
     "blob:",
     ...permitsLoopback ? LOOPBACK_MEDIA_SOURCES : [],
+    ...deploymentHttpOrigins,
     "https://*.convex.cloud",
     "https://*.convex.site"
   ];
@@ -2480,11 +2554,11 @@ function buildDesktopContentSecurityPolicy({
 }
 
 // electron/tray.ts
-var import_node_path13 = __toESM(require("path"));
+var import_node_path14 = __toESM(require("path"));
 var { app: app6, Menu, nativeImage, Tray } = require("electron");
 var tray = null;
 function loadTrayIcon() {
-  const iconPath = isDev() ? import_node_path13.default.join(__dirname, "../resources/iconTemplate.png") : import_node_path13.default.join(process.resourcesPath, "iconTemplate.png");
+  const iconPath = isDev() ? import_node_path14.default.join(__dirname, "../resources/iconTemplate.png") : import_node_path14.default.join(process.resourcesPath, "iconTemplate.png");
   const image = nativeImage.createFromPath(iconPath);
   image.setTemplateImage(false);
   return image;
@@ -2536,7 +2610,7 @@ function createTray(wm) {
 var {
   app: app7,
   BrowserWindow: BrowserWindow6,
-  ipcMain: ipcMain11,
+  ipcMain: ipcMain12,
   nativeTheme,
   net: net3,
   protocol,
@@ -2556,9 +2630,9 @@ protocol.registerSchemesAsPrivileged([
 ]);
 app7.setName("ConvexPress");
 if (isDev()) {
-  app7.setPath("userData", import_node_path14.default.join(app7.getPath("userData"), "-dev"));
+  app7.setPath("userData", import_node_path15.default.join(app7.getPath("userData"), "-dev"));
 }
-var LOG_FILE = import_node_path14.default.join(app7.getPath("userData"), "convexpress-debug.log");
+var LOG_FILE = import_node_path15.default.join(app7.getPath("userData"), "convexpress-debug.log");
 function fileLog(msg) {
   const line = `[${(/* @__PURE__ */ new Date()).toISOString()}] ${msg}
 `;
@@ -2595,7 +2669,7 @@ if (process.platform === "darwin") {
     process.env.PATH = [...missing, ...parts].join(":");
   }
 }
-var store3 = new JsonStore({ name: "convexpress-config" });
+var store4 = new JsonStore({ name: "convexpress-config" });
 process.on("uncaughtException", (error) => {
   safeError("[Main] Uncaught exception:", error);
 });
@@ -2603,34 +2677,34 @@ process.on("unhandledRejection", (reason) => {
   safeError("[Main] Unhandled rejection:", reason);
 });
 function isSetupComplete() {
-  const setupComplete = store3.get("setupComplete");
-  const convexUrl = store3.get("convexUrl");
+  const setupComplete = store4.get("setupComplete");
+  const convexUrl = store4.get("convexUrl");
   return !!(setupComplete && convexUrl);
 }
 function removeDeprecatedSecretsFromConfig() {
-  if (store3.get("adminKey") !== void 0) {
-    store3.delete("adminKey");
+  if (store4.get("adminKey") !== void 0) {
+    store4.delete("adminKey");
     fileLog("[Main] Removed deprecated deploy key from desktop config");
   }
 }
 function getInitialRouteForCurrentLaunch() {
-  const pendingAdminCredentials = store3.get("pendingAdminCredentials");
-  const pendingLoginCredentials = store3.get("pendingLoginCredentials");
+  const pendingAdminCredentials = store4.get("pendingAdminCredentials");
+  const pendingLoginCredentials = store4.get("pendingLoginCredentials");
   if (pendingAdminCredentials != null && !isPendingAdminHandoffUsable(pendingAdminCredentials)) {
-    store3.delete("pendingAdminCredentials");
+    store4.delete("pendingAdminCredentials");
     fileLog("[Main] Cleared expired first-admin setup handoff");
   }
   if (pendingLoginCredentials != null && !isPendingLoginHandoffUsable(pendingLoginCredentials)) {
-    store3.delete("pendingLoginCredentials");
+    store4.delete("pendingLoginCredentials");
     fileLog("[Main] Cleared expired setup login handoff");
   }
   return getInitialRouteForLaunch({
-    pendingAdminCredentials: store3.get("pendingAdminCredentials"),
-    pendingLoginCredentials: store3.get("pendingLoginCredentials")
+    pendingAdminCredentials: store4.get("pendingAdminCredentials"),
+    pendingLoginCredentials: store4.get("pendingLoginCredentials")
   });
 }
 function getWizardIndexPath3() {
-  return import_node_path14.default.join(__dirname, "wizard", "index.html");
+  return import_node_path15.default.join(__dirname, "wizard", "index.html");
 }
 function launchApp() {
   createTray(windowManager);
@@ -2645,7 +2719,7 @@ function launchApp() {
     }
   });
   if (app7.isPackaged && !isDev()) {
-    const installPath = import_node_path14.default.dirname(app7.getAppPath());
+    const installPath = import_node_path15.default.dirname(app7.getAppPath());
     const manifest = readManifest(installPath);
     if (manifest) {
       fileLog(`[Main] App-content updater initialized at ${installPath}`);
@@ -2673,7 +2747,7 @@ if (!gotTheLock) {
 app7.whenReady().then(async () => {
   fileLog("[Main] App ready");
   removeDeprecatedSecretsFromConfig();
-  const packagedRendererRoot = import_node_path14.default.join(__dirname, "..", "dist");
+  const packagedRendererRoot = import_node_path15.default.join(__dirname, "..", "dist");
   protocol.handle(PACKAGED_RENDERER_SCHEME, (request) => {
     try {
       const rendererPath = resolvePackagedRendererPath(
@@ -2690,12 +2764,12 @@ app7.whenReady().then(async () => {
     const csp = buildDesktopContentSecurityPolicy({
       development: isDev(),
       allowLoopback: controllerConfigUsesLoopback(
-        store3.get("convexUrl"),
-        store3.get("convexSiteUrl")
+        store4.get("convexUrl"),
+        store4.get("convexSiteUrl")
       ),
       additionalConnectOrigins: [
-        store3.get("convexUrl"),
-        store3.get("convexSiteUrl"),
+        store4.get("convexUrl"),
+        store4.get("convexSiteUrl"),
         process.env.CONVEXPRESS_ACCEPTANCE_CONTROL_ORIGIN,
         process.env.CONVEXPRESS_ACCEPTANCE_CONTROL_SITE_ORIGIN,
         process.env.CONVEXPRESS_ACCEPTANCE_SITE_ALPHA_ORIGIN,
@@ -2705,7 +2779,9 @@ app7.whenReady().then(async () => {
         process.env.CONVEXPRESS_ACCEPTANCE_SITE_GAMMA_ORIGIN,
         process.env.CONVEXPRESS_ACCEPTANCE_SITE_GAMMA_SITE_ORIGIN,
         process.env.CONVEXPRESS_ACCEPTANCE_SECONDARY_CONTROL_ORIGIN,
-        process.env.CONVEXPRESS_ACCEPTANCE_SECONDARY_CONTROL_SITE_ORIGIN
+        process.env.CONVEXPRESS_ACCEPTANCE_SECONDARY_CONTROL_SITE_ORIGIN,
+        // Site deployments the renderer has connected to (control plane assigns them).
+        ...listRegisteredDeploymentOrigins()
       ]
     });
     callback({
@@ -2718,7 +2794,7 @@ app7.whenReady().then(async () => {
   registerAllIpcHandlers();
   setSiteRunnerLogger(fileLog);
   let appLaunched = false;
-  ipcMain11.handle("app:reload-from-setup", (event) => {
+  ipcMain12.handle("app:reload-from-setup", (event) => {
     if (!isExactWizardSender(event.sender.getURL(), getWizardIndexPath3())) {
       throw new Error("Setup launch can only be requested from the setup wizard.");
     }

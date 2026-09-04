@@ -7,7 +7,7 @@ import { MediaImage } from "@/components/media/MediaImage";
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
+import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/recipes/category/$slug")({
   component: RecipeCategoryPage,
@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_marketing/recipes/category/$slug")({
     return {
       recipesDisabled: false as const,
       seoHead: buildSeoHead({
-        title: `${categoryName} - Recipes - ConvexPress`,
+        title: siteTitled(`${categoryName} - Recipes`),
         description: category?.description || `Recipes filed under ${categoryName}.`,
         canonical: toAbsoluteUrl(`/recipes/category/${params.slug}`, siteUrl),
       }),

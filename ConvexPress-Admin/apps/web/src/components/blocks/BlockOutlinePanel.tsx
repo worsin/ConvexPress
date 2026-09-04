@@ -146,7 +146,7 @@ export function BlockOutlinePanel({
       <ol className="max-h-[60vh] overflow-y-auto p-1 space-y-0.5">
         {blocks.map((block, idx) => {
           const def = getBlockDefinition(block.name);
-          const Icon = ICON_BY_NAME[block.name] ?? Square;
+          const Icon = ICON_BY_NAME[block.name] ?? def?.icon ?? Square;
           const preview = previewFor(block);
           return (
             <li key={block.id}>

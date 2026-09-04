@@ -8,7 +8,7 @@ import { z } from "zod";
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { MediaImage } from "@/components/media/MediaImage";
 import { useSettings } from "@/contexts/SettingsContext";
-import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
+import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 
 type ProductCategory = {
   _id: string;
@@ -68,7 +68,7 @@ export const Route = createFileRoute("/_marketing/categories/$slug")({
 
     const title =
       (category as ProductCategory | null)?.metaTitle ??
-      `${(category as ProductCategory | null)?.name ?? slug} - ConvexPress`;
+      siteTitled(`${(category as ProductCategory | null)?.name ?? slug}`);
     const description =
       (category as ProductCategory | null)?.metaDescription ??
       (category as ProductCategory | null)?.description ??

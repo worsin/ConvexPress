@@ -12,7 +12,7 @@ import { SearchResultCard } from "@/components/blog/SearchResultCard";
 import { SearchFilters } from "@/components/search/SearchFilters";
 import { EmptySearchResults } from "@/components/search/EmptySearchResults";
 import { Skeleton } from "@/components/ui/skeleton";
-import { buildSeoHead } from "@/lib/seo/head";
+import { buildSeoHead, siteTitled } from "@/lib/seo/head";
 
 /** Content type filter for search API */
 type SearchContentType = "post" | "page" | "media" | "course" | undefined;
@@ -53,7 +53,7 @@ export const Route = createFileRoute("/_marketing/search")({
     const search = (ctx as { search?: SearchPageParams }).search;
     const query = typeof search?.q === "string" ? search.q : "";
     return buildSeoHead({
-      title: query ? `Search: ${query} - ConvexPress` : "Search - ConvexPress",
+      title: query ? siteTitled(`Search: ${query}`) : siteTitled("Search"),
       robots: "noindex, follow",
     });
   },

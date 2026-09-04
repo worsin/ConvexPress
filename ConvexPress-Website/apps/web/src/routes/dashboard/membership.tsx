@@ -20,12 +20,13 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/dashboard/membership")({
   head: () => ({
     meta: [
       { name: "robots", content: "noindex" },
-      { title: "My Membership - ConvexPress" },
+      { title: siteTitled("My Membership") },
     ],
   }),
   loader: async ({ context: { queryClient } }) => {

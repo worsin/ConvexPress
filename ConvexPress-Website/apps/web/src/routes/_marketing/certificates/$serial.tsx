@@ -3,12 +3,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Award, CheckCircle2, Download, Printer, XCircle } from "lucide-react";
 
-import { buildSeoHead } from "@/lib/seo/head";
+import { buildSeoHead, siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/certificates/$serial")({
   head: ({ params }) =>
     buildSeoHead({
-      title: `Certificate ${params.serial} - ConvexPress`,
+      title: siteTitled(`Certificate ${params.serial}`),
       description: "Verified ConvexPress LMS certificate.",
       robots: "noindex, follow",
     }),

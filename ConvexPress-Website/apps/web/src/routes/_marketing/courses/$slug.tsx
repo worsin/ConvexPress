@@ -20,7 +20,7 @@ import { LessonContentRenderer } from "@/components/lms/LessonContentRenderer";
 import { LmsRoutePending } from "@/components/lms/LmsRoutePending";
 import { MediaImage } from "@/components/media/MediaImage";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
+import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/courses/$slug")({
   loader: async ({ context: { queryClient }, params }) => {
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/_marketing/courses/$slug")({
       return {
         lmsEnabled: false,
         seoHead: buildSeoHead({
-          title: "Course - ConvexPress",
+          title: siteTitled("Course"),
           canonical: toAbsoluteUrl(`/courses/${params.slug}`, siteUrl),
         }),
       };
@@ -55,7 +55,7 @@ export const Route = createFileRoute("/_marketing/courses/$slug")({
     return {
       lmsEnabled: true,
       seoHead: buildSeoHead({
-        title: `${course?.title ?? params.slug} - Course - ConvexPress`,
+        title: siteTitled(`${course?.title ?? params.slug} - Course`),
         description:
           course?.excerpt ??
           `View the curriculum for ${course?.title ?? params.slug}.`,

@@ -47,6 +47,8 @@ export function SelectField({
       }}
       disabled={disabled}
       name={field.name}
+      // Lets the trigger show the option's label ("Full text") rather than its raw value ("full").
+      items={options.map((opt) => ({ value: opt.value, label: opt.label }))}
     >
       <SelectPrimitive.Trigger
         id={field.name}

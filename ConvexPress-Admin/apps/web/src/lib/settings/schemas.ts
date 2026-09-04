@@ -67,7 +67,7 @@ export type GeneralSettingsSchema = z.infer<typeof generalSettingsSchema>;
 
 export const readingSettingsSchema = z
   .object({
-    homepageDisplays: z.enum(["latest_posts", "static_page"]),
+    homepageDisplays: z.enum(["latest_posts", "static_page", "shop"]),
     homepageId: z.string().nullable().default(null),
     postsPageId: z.string().nullable().default(null),
     postsPerPage: z

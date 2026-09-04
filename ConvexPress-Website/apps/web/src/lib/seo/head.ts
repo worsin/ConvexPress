@@ -2,6 +2,30 @@ import { getSiteRuntime } from "@/lib/site-runtime";
 import { buildJsonLdString } from "@/lib/seo/jsonld";
 
 const FALLBACK_SITE_NAME = "ConvexPress";
+
+/**
+ * Site name learned from public settings. One storefront process serves one
+ * site (the runtime config pins the deployment), so a process-level value is
+ * correct on the server; the client remembers it from the settings provider.
+ */
+let knownSiteName: string | null = null;
+
+export function rememberSiteName(name?: string | null): void {
+  const trimmed = typeof name === "string" ? name.trim() : "";
+  if (trimmed) knownSiteName = trimmed;
+}
+
+export function resolveSiteName(explicit?: string | null): string {
+  const trimmed = typeof explicit === "string" ? explicit.trim() : "";
+  return trimmed || knownSiteName || FALLBACK_SITE_NAME;
+}
+
+/** "Shop" → "Shop – Northstar Coffee". Never repeats the site name. */
+export function siteTitled(base: string, siteName?: string | null): string {
+  const name = resolveSiteName(siteName);
+  const trimmed = base.trim();
+  return trimmed && trimmed !== name ? `${trimmed} – ${name}` : name;
+}
 const DEFAULT_LOCAL_SITE_URL = "http://localhost:4106";
 
 export interface SeoHeadInput {
@@ -61,7 +85,7 @@ export function humanizeSlug(slug: string): string {
 }
 
 export function buildSeoHead(input: SeoHeadInput) {
-  const siteName = input.siteName?.trim() || FALLBACK_SITE_NAME;
+  const siteName = resolveSiteName(input.siteName);
   const meta: Array<Record<string, string>> = [{ title: input.title }];
   const links: Array<Record<string, string>> = [];
   const scripts: Array<Record<string, string>> = [];

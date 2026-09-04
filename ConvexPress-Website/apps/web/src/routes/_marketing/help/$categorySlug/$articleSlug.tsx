@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
+import { siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute(
   "/_marketing/help/$categorySlug/$articleSlug",
@@ -28,7 +29,7 @@ export const Route = createFileRoute(
   head: ({ params }) => ({
     meta: [
       {
-        title: `${params.articleSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} - Help Center - ConvexPress`,
+        title: siteTitled(`${params.articleSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} - Help Center`),
       },
     ],
   }),

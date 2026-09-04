@@ -5,10 +5,11 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { Package } from "lucide-react";
 
 import { useSettings } from "@/contexts/SettingsContext";
+import { siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/bundles/")({
   head: () => ({
-    meta: [{ title: "Product Bundles - ConvexPress" }],
+    meta: [{ title: siteTitled("Product Bundles") }],
   }),
   component: BundlesIndexPage,
 });

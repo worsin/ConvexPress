@@ -3,11 +3,11 @@ import { useClerk } from "@clerk/clerk-react";
 import { useEffect } from "react";
 
 import { AuthPageLayout } from "@/components/auth/AuthPageLayout";
-import { buildRestrictedPageHead } from "@/lib/seo/head";
+import { buildRestrictedPageHead, siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/logout")({
   head: () => buildRestrictedPageHead({
-    title: "Signing Out - ConvexPress",
+    title: siteTitled("Signing Out"),
     path: "/logout",
   }),
   component: LogoutComponent,

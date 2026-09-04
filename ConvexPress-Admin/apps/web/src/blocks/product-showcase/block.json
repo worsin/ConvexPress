@@ -1,0 +1,17 @@
+{
+  "name": "commerce/product-showcase",
+  "title": "Product Showcase",
+  "description": "A live product grid pulled from the catalog: newest, a category, items on sale, or hand-picked products by slug. Cards carry live prices, stock and add-to-cart.",
+  "category": "commerce",
+  "keywords": ["products", "shop", "featured", "catalog", "grid", "cart", "live"],
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": false
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "homepage featured products, category landing sections, sale sections, and hand-picked bundles that must show live prices and stock",
+    "avoid": "manual product cards with typed prices (use Product Collection) or a single product page"
+  }
+}

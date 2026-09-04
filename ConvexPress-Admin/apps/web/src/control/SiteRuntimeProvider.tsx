@@ -4,6 +4,8 @@ import {
   type SiteClientTarget,
 } from "@convexpress/runtime-clients";
 import { ConvexProviderWithAuth } from "convex/react";
+
+import { getElectronBridge } from "@/lib/electron";
 import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
 import { AlertTriangle, Globe2, Loader2, RefreshCw } from "lucide-react";
 import {
@@ -70,6 +72,30 @@ export function SiteRuntimeProvider({
     manager.getSnapshot,
   );
   const [retryVersion, setRetryVersion] = useState(0);
+  // Desktop: the Content-Security-Policy is fixed per document, so a deployment
+  // this window has never connected to must be registered with the main
+  // process and the document reloaded once before its websocket and media
+  // are allowed. Later launches already include it.
+  const deploymentOrigin = target?.deploymentOrigin ?? null;
+  useEffect(() => {
+    if (!deploymentOrigin) return;
+    const bridge = getElectronBridge();
+    if (!bridge?.security) return;
+    let cancelled = false;
+    void bridge.security
+      .registerDeploymentOrigins([deploymentOrigin])
+      .then((result) => {
+        if (cancelled || !result.added.length) return;
+        const marker = `convexpress:csp-reloaded:${deploymentOrigin}`;
+        if (window.sessionStorage.getItem(marker)) return;
+        window.sessionStorage.setItem(marker, String(Date.now()));
+        window.location.reload();
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [deploymentOrigin]);
   const targetKey = target
     ? `${target.connectionId}|${target.instanceKey}|${target.deploymentOrigin}`
     : "none";

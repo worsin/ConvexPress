@@ -24,6 +24,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
+import { useQuery as useTanStackQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import {
@@ -36,7 +37,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePageOverrides } from "@/contexts/PageOverridesContext";
 import type { BlockContent, PageDetail } from "@/lib/blog/types";
 import { parseTipTapDocument } from "@/lib/schemas/content";
-import { buildSeoHead, humanizeSlug } from "@/lib/seo/head";
+import { buildSeoHead, humanizeSlug, siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/page/$")({
 	component: SinglePage,
@@ -65,8 +66,8 @@ export const Route = createFileRoute("/_marketing/page/$")({
 			seoHead: buildSeoHead({
 				title:
 					page && typeof page === "object" && "title" in page
-						? `${page.title} - ConvexPress`
-						: `${humanizeSlug(segments.at(-1) ?? "Page")} - ConvexPress`,
+						? siteTitled(`${page.title}`)
+						: siteTitled(`${humanizeSlug(segments.at(-1) ?? "Page")}`),
 				description:
 					page && typeof page === "object" && "excerpt" in page
 						? page.excerpt
@@ -97,9 +98,11 @@ function SinglePage() {
 	const pagePath = `/${segments.join("/")}`;
 
 	// Primary lookup: getByPath handles both flat and hierarchical pages.
-	const rawPageByPath = useQuery(api.pages.queries.getByPath, {
-		path: pagePath,
-	});
+	// Read through the TanStack cache the loader filled, so the server and the
+	// hydrating client render the same page instead of a skeleton vs. content.
+	const { data: rawPageByPath } = useTanStackQuery(
+		convexQuery(api.pages.queries.getByPath, { path: pagePath }) as any,
+	) as { data: any };
 	const rawPage = rawPageByPath;
 
 	// Propagate per-page layout overrides (hideHeader/hideFooter) to parent layout
@@ -144,15 +147,13 @@ function SinglePage() {
 	// Membership access check — skip until we know the page id. Backend
 	// short-circuits with `reason: "plugin_disabled"` when the membership
 	// plugin is off; we treat that as unrestricted (see gate logic below).
-	const access = useQuery(
-		api.membership.queries.checkAccess,
-		pageId
-			? {
-					resourceType: "page" as const,
-					resourceIdOrKey: pageId as string,
-				}
-			: "skip",
-	);
+	const { data: access } = useTanStackQuery({
+		...(convexQuery(api.membership.queries.checkAccess, {
+			resourceType: "page" as const,
+			resourceIdOrKey: (pageId ?? "") as string,
+		}) as any),
+		enabled: !!pageId,
+	}) as { data: any };
 
 	// Password verification query (skipped until password is submitted)
 	const isPasswordProtected =

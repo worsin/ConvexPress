@@ -17,6 +17,7 @@ import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { PostGrid } from "@/components/blog/PostGrid";
 import { PostPagination } from "@/components/blog/PostPagination";
 import { Skeleton } from "@/components/ui/skeleton";
+import { siteTitled } from "@/lib/seo/head";
 
 interface AuthorSearchParams {
   page?: number;
@@ -37,7 +38,7 @@ export const Route = createFileRoute("/_marketing/author/$slug")({
     meta: [
       // Initial title uses slug as a fallback; the component updates
       // document.title with the author's display name once data loads.
-      { title: `Author: ${params.slug} - ConvexPress` },
+      { title: siteTitled(`Author: ${params.slug}`) },
     ],
     links: [
       {
@@ -68,7 +69,7 @@ function AuthorArchive() {
   // once data is loaded, replacing the slug-based fallback from head().
   useEffect(() => {
     if (author?.displayName) {
-      document.title = `Author: ${author.displayName} - ConvexPress`;
+      document.title = siteTitled(`Author: ${author.displayName}`);
     }
   }, [author?.displayName]);
 

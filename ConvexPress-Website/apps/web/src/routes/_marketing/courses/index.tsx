@@ -21,7 +21,7 @@ import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { CourseImageFallback } from "@/components/lms/CourseImageFallback";
 import { LmsRoutePending } from "@/components/lms/LmsRoutePending";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
+import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 
 const coursesSearchSchema = z.object({
   q: z.string().optional(),
@@ -118,7 +118,7 @@ export const Route = createFileRoute("/_marketing/courses/")({
       catalogMode,
       lmsEnabled,
       seoHead: buildSeoHead({
-        title: deps.q ? `Courses matching ${deps.q} - ConvexPress` : "Courses - ConvexPress",
+        title: deps.q ? siteTitled(`Courses matching ${deps.q}`) : siteTitled("Courses"),
         description: "Browse published courses from the ConvexPress learning catalog.",
         canonical: toAbsoluteUrl(canonicalPath, siteUrl),
       }),

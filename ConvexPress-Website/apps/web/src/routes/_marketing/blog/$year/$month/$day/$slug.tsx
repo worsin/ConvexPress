@@ -17,6 +17,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { Skeleton } from "@/components/ui/skeleton";
+import { siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute(
   "/_marketing/blog/$year/$month/$day/$slug",
@@ -25,7 +26,7 @@ export const Route = createFileRoute(
   head: ({ params }) => ({
     meta: [
       {
-        title: `${params.slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())} - ConvexPress`,
+        title: siteTitled(`${params.slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`),
       },
     ],
   }),

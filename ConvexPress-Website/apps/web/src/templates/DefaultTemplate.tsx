@@ -18,6 +18,7 @@ interface DefaultTemplateProps {
 }
 
 export function DefaultTemplate({ page, className }: DefaultTemplateProps) {
+  const hasSidebar = !!page.children && page.children.length > 0;
   return (
     <div
       data-slot="template-default"
@@ -33,19 +34,24 @@ export function DefaultTemplate({ page, className }: DefaultTemplateProps) {
       )}
 
       {/* Two-column layout */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_280px]">
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-8",
+          // The sidebar column only exists when there is something to put in it.
+          hasSidebar && "lg:grid-cols-[1fr_280px]",
+        )}
+      >
         {/* Main content */}
         <main>
           <PageContent page={page} />
         </main>
 
         {/* Sidebar */}
-        <aside className="space-y-6">
-          {/* Child pages in sidebar */}
-          {page.children && page.children.length > 0 && (
-            <PageChildrenList children={page.children} />
-          )}
-        </aside>
+        {hasSidebar && (
+          <aside className="space-y-6">
+            <PageChildrenList children={page.children!} />
+          </aside>
+        )}
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { MediaImage } from "@/components/media/MediaImage";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
+import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 
 const recipesSearchSchema = z.object({
   page: z.number().min(1).optional(),
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/_marketing/recipes/")({
     return {
       recipesDisabled: false as const,
       seoHead: buildSeoHead({
-        title: page > 1 ? `Recipes Page ${page} - ConvexPress` : "Recipes - ConvexPress",
+        title: page > 1 ? siteTitled(`Recipes Page ${page}`) : siteTitled("Recipes"),
         description: "Browse beautifully organized recipes powered by ConvexPress.",
         canonical: toAbsoluteUrl(page > 1 ? `/recipes?page=${page}` : "/recipes", siteUrl),
       }),

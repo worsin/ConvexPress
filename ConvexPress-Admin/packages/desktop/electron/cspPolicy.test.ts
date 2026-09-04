@@ -77,4 +77,19 @@ describe("desktop CSP policy", () => {
     expect(policy).not.toContain("name:secret");
     expect(policy).not.toContain("file:///tmp/not-network");
   });
+
+  test("lets images and media load from the connected site deployments", () => {
+    const policy = buildDesktopContentSecurityPolicy({
+      development: false,
+      allowLoopback: false,
+      additionalConnectOrigins: ["http://192.168.1.246:4820", "wss://ignored.example"],
+    });
+    const directives = Object.fromEntries(
+      policy.split("; ").map((d) => [d.split(" ")[0], d]),
+    );
+    expect(directives["img-src"]).toContain("http://192.168.1.246:4820");
+    expect(directives["media-src"]).toContain("http://192.168.1.246:4820");
+    expect(directives["img-src"]).not.toContain("wss://ignored.example");
+    expect(directives["connect-src"]).toContain("ws://192.168.1.246:4820");
+  });
 });

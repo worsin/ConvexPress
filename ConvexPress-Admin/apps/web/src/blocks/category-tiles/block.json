@@ -1,0 +1,17 @@
+{
+  "name": "commerce/category-tiles",
+  "title": "Category Tiles",
+  "description": "Live shop categories as image tiles with product counts, linking into the catalog. Pick specific categories or show every visible one.",
+  "category": "commerce",
+  "keywords": ["categories", "shop", "tiles", "navigation", "collections", "catalog"],
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": false
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "homepage 'shop by category' sections and department landing pages",
+    "avoid": "product lists (use Product Showcase) or editorial image grids"
+  }
+}

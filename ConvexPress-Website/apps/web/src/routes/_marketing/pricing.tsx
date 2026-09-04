@@ -23,6 +23,7 @@ import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { PricingCardsRenderer } from "@/lib/pricingCardRenderer";
 import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
 import type { PricingOffer, PricingCardConfig } from "@/lib/pricingCardRenderer";
+import { siteTitled } from "@/lib/seo/head";
 
 // ─── Route definition ─────────────────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ export const Route = createFileRoute("/_marketing/pricing")({
 	  head: () => {
 	    return {
       meta: [
-        { title: "Pricing - ConvexPress" },
+        { title: siteTitled("Pricing") },
         {
           name: "description",
           content: "Pick the plan that fits your needs.",

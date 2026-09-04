@@ -5,12 +5,13 @@ import { Calendar } from "lucide-react";
 
 import type { DateArchiveGroup } from "@/lib/blog/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/archive")({
   component: ArchivePage,
   head: () => ({
     meta: [
-      { title: "Archive - ConvexPress" },
+      { title: siteTitled("Archive") },
       {
         name: "description",
         content: "Browse all posts by date.",

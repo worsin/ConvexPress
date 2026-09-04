@@ -259,6 +259,7 @@ export const getPublic = query({
     const plugins = await getMergedSettingsSection(ctx, "plugins");
     const commerce = await getMergedSettingsSection(ctx, "commerce.general");
     const assistant = await getMergedSettingsSection(ctx, "commerce.assistant");
+    const brand = await getMergedSettingsSection(ctx, "brand");
     const shipping = await getMergedSettingsSection(ctx, "integrations.shipping");
     const blocks = await getMergedSettingsSection(ctx, "blocks");
     const activeTheme = await ctx.db
@@ -378,6 +379,14 @@ export const getPublic = query({
       // Shopping assistant rail. No secrets live in this section; the model
       // key stays in Settings > AI.
       assistantConfig: assistant,
+
+      // Public brand inputs the storefront renders from (fonts, radius, density).
+      brandConfig: {
+        typography: brand.typography,
+        density: brand.density,
+        radius: brand.radius,
+        industry: brand.industry,
+      },
     };
   },
 });

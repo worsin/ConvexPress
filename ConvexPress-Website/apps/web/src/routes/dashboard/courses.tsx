@@ -9,12 +9,13 @@ import { CourseImageFallback } from "@/components/lms/CourseImageFallback";
 import { MediaImage } from "@/components/media/MediaImage";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { Skeleton } from "@/components/ui/skeleton";
+import { siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/dashboard/courses")({
   head: () => ({
     meta: [
       { name: "robots", content: "noindex" },
-      { title: "My Courses - ConvexPress" },
+      { title: siteTitled("My Courses") },
     ],
   }),
   component: DashboardCoursesPage,

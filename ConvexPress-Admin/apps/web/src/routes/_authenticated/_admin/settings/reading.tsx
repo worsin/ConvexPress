@@ -41,6 +41,11 @@ const homepageDisplayOptions = [
     value: "static_page",
     description: "Select specific pages for the homepage and posts page.",
   },
+  {
+    label: "The shop",
+    value: "shop",
+    description: "Visitors land on the product catalog with search and the shopping assistant.",
+  },
 ];
 
 const feedContentOptions = [

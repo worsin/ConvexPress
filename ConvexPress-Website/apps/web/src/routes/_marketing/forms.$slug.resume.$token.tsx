@@ -9,7 +9,7 @@ import { FormWizard } from "@/extensions/forms/FormWizard";
 import { DraftExpiredNotice } from "@/extensions/forms/DraftExpiredNotice";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { throwPublicNotFound } from "@/lib/plugins/public-route-loader";
-import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
+import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 
 /**
  * Public, no-auth resume route (Form Multi-Step & Save-Continue System).
@@ -78,7 +78,7 @@ export const Route = createFileRoute("/_marketing/forms/$slug/resume/$token")({
 
     return {
       seoHead: buildSeoHead({
-        title: `Resume ${form?.title ?? params.slug} - ConvexPress`,
+        title: siteTitled(`Resume ${form?.title ?? params.slug}`),
         description: `Resume your saved ${form?.title ?? params.slug} form.`,
         canonical: toAbsoluteUrl(`/forms/${params.slug}`, siteUrl),
         robots: "noindex",

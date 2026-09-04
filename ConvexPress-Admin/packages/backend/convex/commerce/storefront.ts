@@ -45,6 +45,8 @@ const relatedForProductsArgs = {
 const sessionArgs = { sessionToken: v.string(), perGroup: v.optional(v.number()) };
 const sessionOnlyArgs = { sessionToken: v.string() };
 const queryArgs = { q: v.string() };
+const slugsArgs = { slugs: v.array(v.string()) };
+const categoryTilesArgs = { slugs: v.optional(v.array(v.string())), limit: v.optional(v.number()) };
 
 export interface ProductCard {
   productId: string;
@@ -272,6 +274,66 @@ export const productCardBySlug = query({
       .unique();
     if (!product || product.status !== "publish") return null;
     return await toProductCard(ctx, product);
+  },
+});
+
+export const productCardsBySlugs = query({
+  args: slugsArgs,
+  handler: async (ctx: any, args: any) => {
+    await requireCommerceEnabled(ctx);
+    const cards: ProductCard[] = [];
+    for (const slug of args.slugs.slice(0, 24)) {
+      const product = await ctx.db
+        .query("commerce_products")
+        .withIndex("by_slug", (q: any) => q.eq("slug", slug))
+        .unique();
+      if (product && product.status === "publish") cards.push(await toProductCard(ctx, product));
+    }
+    return cards;
+  },
+});
+
+/** Visible categories with a representative product image, for tile grids. */
+export const categoryTiles = query({
+  args: categoryTilesArgs,
+  handler: async (ctx: any, args: any) => {
+    await requireCommerceEnabled(ctx);
+    let categories = await ctx.db.query("commerce_product_categories").take(200);
+    categories = categories.filter((category: any) => category.isVisible !== false);
+    if (args.slugs?.length) {
+      const wanted = new Map(args.slugs.map((slug: string, index: number) => [slug, index]));
+      categories = categories
+        .filter((category: any) => wanted.has(category.slug))
+        .sort((a: any, b: any) => (wanted.get(a.slug) ?? 0) - (wanted.get(b.slug) ?? 0));
+    } else {
+      categories.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    }
+    const products = await ctx.db
+      .query("commerce_products")
+      .withIndex("by_status", (q: any) => q.eq("status", "publish"))
+      .take(1000);
+    const tiles = [];
+    for (const category of categories.slice(0, Math.min(24, args.limit ?? 12))) {
+      const members = products.filter((product: any) =>
+        (product.categoryIds ?? []).some((id: any) => String(id) === String(category._id)),
+      );
+      const cover = members.find((product: any) => product.featuredMediaId) ?? null;
+      if (!members.length && args.slugs?.length === undefined) continue;
+      tiles.push({
+        id: String(category._id),
+        slug: category.slug,
+        name: category.name,
+        description: category.description ?? "",
+        productCount: members.length,
+        coverMediaId: category.thumbnailMediaId
+          ? String(category.thumbnailMediaId)
+          : cover?.featuredMediaId
+            ? String(cover.featuredMediaId)
+            : null,
+        coverTitle: cover?.title ?? null,
+      });
+    }
+    return tiles;
   },
 });
 

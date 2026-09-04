@@ -6,7 +6,7 @@
  *
  * Template mapping:
  *   "default"       -> DefaultTemplate (two-column with right sidebar)
- *   "full-width"    -> FullWidthTemplate (single column, max-w-3xl)
+ *   "full-width"    -> FullWidthTemplate (single column, max-w-6xl)
  *   "sidebar-left"  -> SidebarLeftTemplate (two-column with left sidebar)
  *   "sidebar-right" -> DefaultTemplate (alias, same as default)
  *   "landing"       -> LandingTemplate (clean, no nav elements)

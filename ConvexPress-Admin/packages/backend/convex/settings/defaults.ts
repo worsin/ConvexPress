@@ -145,7 +145,7 @@ export interface GeneralSettings {
 }
 
 export interface ReadingSettings {
-  homepageDisplays: "latest_posts" | "static_page";
+  homepageDisplays: "latest_posts" | "static_page" | "shop";
   homepageId: string | null;
   postsPageId: string | null;
   postsPerPage: number;

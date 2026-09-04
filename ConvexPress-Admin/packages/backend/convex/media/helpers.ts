@@ -300,7 +300,10 @@ export function generateSlug(input: string): string {
 export function titleFromFilename(fileName: string): string {
   const lastDot = fileName.lastIndexOf(".");
   const base = lastDot > 0 ? fileName.slice(0, lastDot) : fileName;
-  return base.replace(/[-_]+/g, " ").trim() || "Untitled";
+  const words = base.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!words) return "Untitled";
+  // "hero-espresso-bar.png" → "Hero espresso bar": readable in the library without inventing casing.
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 /**

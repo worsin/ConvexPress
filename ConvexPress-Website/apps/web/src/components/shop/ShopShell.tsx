@@ -8,7 +8,7 @@
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { Sparkles } from "lucide-react";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { useAssistantConfig, type AssistantConfig } from "@/hooks/useAssistantConfig";
 import { cn } from "@/lib/utils";
@@ -56,12 +56,15 @@ export function ShopShell({
   kind,
   query,
   productId,
+  initialPrompt,
   children,
   className,
 }: {
   kind: ShopRouteKind;
   query?: string;
   productId?: string;
+  /** Question to open the assistant with on arrival (e.g. from a homepage block). */
+  initialPrompt?: string;
   children: ReactNode;
   className?: string;
 }) {
@@ -105,6 +108,14 @@ export function ShopShell({
     setSheetOpen(false);
     writeStored(RAIL_STATE_KEY, "closed");
   }, []);
+
+  // A question handed in through the URL opens the assistant once.
+  const askedInitial = useRef<string | null>(null);
+  useEffect(() => {
+    if (!hydrated || !routeEnabled || !initialPrompt || askedInitial.current === initialPrompt) return;
+    askedInitial.current = initialPrompt;
+    openRail(initialPrompt);
+  }, [hydrated, routeEnabled, initialPrompt, openRail]);
 
   const value = useMemo<ShopShellValue>(
     () => ({ config, railOpen, openRail, closeRail, ask: (prompt) => openRail(prompt), kind, query, productId }),

@@ -10,10 +10,11 @@ import { Package, Check, Minus, Plus, ShoppingCart } from "lucide-react";
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
+import { siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/bundles/$slug")({
   head: ({ params }) => ({
-    meta: [{ title: `${params.slug} - Bundle - ConvexPress` }],
+    meta: [{ title: siteTitled(`${params.slug} - Bundle`) }],
   }),
   component: BundleDetailPage,
 });

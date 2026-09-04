@@ -5,7 +5,7 @@ import { Award, CheckCircle2, Search, XCircle } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 
-import { buildSeoHead } from "@/lib/seo/head";
+import { buildSeoHead, siteTitled } from "@/lib/seo/head";
 
 const verifySearchSchema = z.object({
   serial: z.string().optional(),
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_marketing/certificates/verify")({
   validateSearch: verifySearchSchema,
   head: () =>
     buildSeoHead({
-      title: "Verify Certificate - ConvexPress",
+      title: siteTitled("Verify Certificate"),
       description: "Verify an issued ConvexPress LMS certificate by serial number.",
     }),
   component: VerifyCertificatePage,

@@ -61,7 +61,7 @@ export function ProductGridCard({ product, className }: { product: ProductCardDa
           {product.title}
         </Link>
         {product.summary && <p className="line-clamp-2 text-sm leading-5 text-muted-foreground">{product.summary}</p>}
-        <div className="mt-auto flex items-end justify-between gap-3 pt-2">
+        <div className="mt-auto flex flex-wrap items-end justify-between gap-x-3 gap-y-2 pt-2">
           <div className="flex flex-col">
             {product.compareAtPrice && (
               <span className="text-xs text-muted-foreground line-through">

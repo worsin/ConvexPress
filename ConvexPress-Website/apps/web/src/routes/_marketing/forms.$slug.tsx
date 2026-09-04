@@ -16,7 +16,7 @@ import {
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { throwPublicNotFound } from "@/lib/plugins/public-route-loader";
 import { parsePrefill } from "@/lib/forms/prefill/parsePrefill";
-import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
+import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 
 /**
  * Public form render + submit page (Forms extension).
@@ -87,7 +87,7 @@ export const Route = createFileRoute("/_marketing/forms/$slug")({
 
     return {
       seoHead: buildSeoHead({
-        title: `${form?.title ?? params.slug} - ConvexPress`,
+        title: siteTitled(`${form?.title ?? params.slug}`),
         description:
           form?.description || `Form: ${form?.title ?? params.slug}.`,
         canonical: toAbsoluteUrl(`/forms/${params.slug}`, siteUrl),

@@ -26,6 +26,8 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 import { convexQuery } from "@convex-dev/react-query";
+
+import { rememberSiteName } from "@/lib/seo/head";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@convexpress-website/backend/generated/api";
 
@@ -52,7 +54,7 @@ export interface PublicSettings {
   weekStartsOn: number;
 
   // Reading
-  homepageDisplays: "latest_posts" | "static_page";
+  homepageDisplays: "latest_posts" | "static_page" | "shop";
   homepageId: string | null;
   postsPageId: string | null;
   postsPerPage: number;
@@ -135,6 +137,14 @@ export interface PublicSettings {
 
   // Shopping assistant rail configuration (Settings > Shop assistant).
   assistantConfig?: Record<string, unknown> | null;
+
+  // Brand inputs (Settings > Brand): fonts, corner radius, density, industry.
+  brandConfig?: {
+    typography?: { display?: string; body?: string; scale?: "compact" | "comfortable" | "spacious" };
+    density?: "compact" | "comfortable" | "spacious";
+    radius?: "sharp" | "subtle" | "rounded" | "pill";
+    industry?: string;
+  } | null;
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -157,6 +167,9 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   const { data: settings } = useQuery(
     convexQuery(api.settings.queries.getPublic, {}) as any,
   ) as { data: PublicSettings | null | undefined };
+
+  // Titles built outside React (route heads) read the site name from here.
+  if (settings?.siteTitle) rememberSiteName(settings.siteTitle);
 
   return (
     <SettingsContext value={settings ?? null}>

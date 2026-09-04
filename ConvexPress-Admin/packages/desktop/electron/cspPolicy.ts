@@ -61,6 +61,17 @@ export function controllerConfigUsesLoopback(
   return isLoopbackUrl(convexUrl) || isLoopbackUrl(convexSiteUrl);
 }
 
+/** http(s) origins only — the ones images and media can be fetched from. */
+function exactHttpOrigins(values: readonly unknown[]): string[] {
+  return [
+    ...new Set(
+      values
+        .flatMap(exactNetworkOrigins)
+        .filter((origin) => origin.startsWith("http:") || origin.startsWith("https:")),
+    ),
+  ];
+}
+
 export function buildDesktopContentSecurityPolicy({
   development,
   allowLoopback,
@@ -80,12 +91,16 @@ export function buildDesktopContentSecurityPolicy({
     ),
     ...CLOUD_CONNECT_SOURCES,
   ];
+  // Media (thumbnails, uploads, product photos) is served by the same site
+  // deployments the renderer connects to, so they get the same allow-list.
+  const deploymentHttpOrigins = exactHttpOrigins(additionalConnectOrigins);
   const imageSources = [
     "'self'",
     ...(development ? [] : ["file:"]),
     "data:",
     "blob:",
     ...(permitsLoopback ? LOOPBACK_MEDIA_SOURCES : []),
+    ...deploymentHttpOrigins,
     "https://*.convex.cloud",
     "https://*.convex.site",
     "https://convex.cloud",
@@ -97,6 +112,7 @@ export function buildDesktopContentSecurityPolicy({
     "data:",
     "blob:",
     ...(permitsLoopback ? LOOPBACK_MEDIA_SOURCES : []),
+    ...deploymentHttpOrigins,
     "https://*.convex.cloud",
     "https://*.convex.site",
   ];

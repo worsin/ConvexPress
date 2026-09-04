@@ -2,7 +2,8 @@
  * FullWidthTemplate - Full-width layout without sidebar
  *
  * Renders the page content at full width with no sidebar.
- * Good for content-heavy pages where maximum reading width is desired.
+ * Section blocks (heroes, grids, tiles) get the full container; text blocks
+ * keep their own reading measure.
  */
 
 import { cn } from "@/lib/utils";
@@ -20,7 +21,7 @@ export function FullWidthTemplate({ page, className }: FullWidthTemplateProps) {
   return (
     <div
       data-slot="template-full-width"
-      className={cn("mx-auto max-w-3xl px-4", className)}
+      className={cn("mx-auto max-w-6xl px-4 sm:px-6", className)}
     >
       {/* Breadcrumbs */}
       {page.breadcrumbs && page.breadcrumbs.length > 1 && (

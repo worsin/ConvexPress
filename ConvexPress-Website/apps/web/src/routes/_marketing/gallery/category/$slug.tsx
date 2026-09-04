@@ -6,7 +6,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { MediaImage } from "@/components/media/MediaImage";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
+import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/gallery/category/$slug")({
   component: GalleryCategoryPage,
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_marketing/gallery/category/$slug")({
     return {
       galleryDisabled: false as const,
       seoHead: buildSeoHead({
-        title: `${categoryName} - Gallery - ConvexPress`,
+        title: siteTitled(`${categoryName} - Gallery`),
         description: data?.category?.description || `Gallery albums filed under ${categoryName}.`,
         canonical: toAbsoluteUrl(`/gallery/category/${params.slug}`, siteUrl),
       }),

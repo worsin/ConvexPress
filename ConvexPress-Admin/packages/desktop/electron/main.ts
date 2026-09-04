@@ -10,6 +10,7 @@ import {
   buildDesktopContentSecurityPolicy,
   controllerConfigUsesLoopback,
 } from "./cspPolicy.js";
+import { listRegisteredDeploymentOrigins } from "./deploymentOrigins.js";
 import {
   getInitialRouteForLaunch,
   isPendingAdminHandoffUsable,
@@ -260,6 +261,8 @@ app.whenReady().then(async () => {
         process.env.CONVEXPRESS_ACCEPTANCE_SITE_GAMMA_SITE_ORIGIN,
         process.env.CONVEXPRESS_ACCEPTANCE_SECONDARY_CONTROL_ORIGIN,
         process.env.CONVEXPRESS_ACCEPTANCE_SECONDARY_CONTROL_SITE_ORIGIN,
+        // Site deployments the renderer has connected to (control plane assigns them).
+        ...listRegisteredDeploymentOrigins(),
       ],
     });
 

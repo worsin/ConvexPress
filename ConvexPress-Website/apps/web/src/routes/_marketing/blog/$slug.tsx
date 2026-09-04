@@ -37,7 +37,7 @@ import type {
 import { parseTipTapDocument } from "@/lib/schemas/content";
 import { slugParamsSchema } from "@/lib/schemas/routeParams";
 import type { PostSeoData, SeoSettings } from "@/lib/seo/resolve";
-import { buildSeoHead } from "@/lib/seo/head";
+import { buildSeoHead, siteTitled } from "@/lib/seo/head";
 import {
 	buildArticleJsonLd,
 	createFallbackSeo,
@@ -69,8 +69,8 @@ export const Route = createFileRoute("/_marketing/blog/$slug")({
 			seoHead: buildSeoHead({
 				title:
 					post && typeof post === "object" && "title" in post
-						? `${post.title} - ConvexPress`
-						: `${slug} - ConvexPress`,
+						? siteTitled(`${post.title}`)
+						: siteTitled(`${slug}`),
 				description:
 					post && typeof post === "object" && "excerpt" in post
 						? post.excerpt

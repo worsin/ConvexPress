@@ -1,4 +1,4 @@
-import type { ConvexQueryClient } from "@convex-dev/react-query";
+import { convexQuery, type ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { StrictMode } from "react";
@@ -11,10 +11,12 @@ import { WebsiteNotificationToastProvider } from "@/components/notifications/Web
 import { NotFoundTemplate } from "@/templates/NotFoundTemplate";
 import { ErrorTemplate } from "@/templates/ErrorTemplate";
 import { SupportWidget } from "@/components/support/widget/SupportWidget";
+import { api } from "@convexpress-website/backend/generated/api";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { getSiteRuntime, siteRuntimeBootstrapScript } from "@/lib/site-runtime";
 
 import appCss from "../index.css?url";
+import { resolveSiteName, rememberSiteName } from "@/lib/seo/head";
 
 export interface RouterAppContext {
   queryClient: QueryClient;
@@ -24,6 +26,17 @@ export interface RouterAppContext {
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   notFoundComponent: NotFoundTemplate,
   errorComponent: ErrorTemplate,
+  // Learn the site's name before any route head is rendered on the server.
+  loader: async ({ context: { queryClient } }) => {
+    try {
+      const settings = (await queryClient.ensureQueryData(
+        convexQuery(api.settings.queries.getPublic, {}),
+      )) as { siteTitle?: string } | null;
+      rememberSiteName(settings?.siteTitle);
+    } catch {
+      // Settings unavailable: titles fall back to the generic name.
+    }
+  },
   head: () => ({
     meta: [
       {
@@ -34,11 +47,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "ConvexPress",
+        title: resolveSiteName(),
       },
       {
         name: "description",
-        content: "ConvexPress - A modern content management system",
+        content: `${resolveSiteName()} website`,
       },
       {
         name: "robots",
@@ -47,7 +60,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       // Open Graph site-wide defaults (overridden by child routes)
       {
         property: "og:site_name",
-        content: "ConvexPress",
+        content: resolveSiteName(),
       },
       {
         property: "og:type",

@@ -9,7 +9,7 @@ import { estimateReadingTime, extractPlainText } from "@/lib/blog/renderContent"
 import { PostGrid } from "@/components/blog/PostGrid";
 import { PostPagination } from "@/components/blog/PostPagination";
 import { PostCardSkeletonGrid } from "@/components/blog/PostCardSkeleton";
-import { buildSeoHead } from "@/lib/seo/head";
+import { buildSeoHead, siteTitled } from "@/lib/seo/head";
 
 // PostCardSkeletonGrid is used as the pending component during SSR loader
 
@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_marketing/blog/")({
     );
     return {
       seoHead: buildSeoHead({
-        title: "Blog - ConvexPress",
+        title: siteTitled("Blog"),
         description: "Read the latest articles, tutorials, and insights from ConvexPress.",
       }),
     };

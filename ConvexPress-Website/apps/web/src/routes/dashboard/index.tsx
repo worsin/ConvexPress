@@ -4,11 +4,11 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUserDashboard } from "@/hooks/useUserDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserDashboard } from "@/components/dashboard/UserDashboard";
-import { buildRestrictedPageHead } from "@/lib/seo/head";
+import { buildRestrictedPageHead, siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/dashboard/")({
   head: () => buildRestrictedPageHead({
-    title: "Dashboard - ConvexPress",
+    title: siteTitled("Dashboard"),
     path: "/dashboard",
   }),
   component: DashboardHomePage,

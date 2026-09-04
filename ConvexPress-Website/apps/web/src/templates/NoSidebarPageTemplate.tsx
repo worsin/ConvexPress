@@ -2,7 +2,7 @@
  * No Sidebar Page Template
  *
  * Renders page content without any sidebar at a comfortable reading width.
- * Unlike FullWidthTemplate which constrains to max-w-3xl, this template
+ * Unlike FullWidthTemplate which constrains to max-w-6xl, this template
  * uses the theme's configured content size and includes breadcrumbs.
  */
 

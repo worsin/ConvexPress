@@ -6,7 +6,7 @@ import { FolderTree, PackageOpen } from "lucide-react";
 
 import { MediaImage } from "@/components/media/MediaImage";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
+import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 
 type ProductCategory = {
   _id: string;
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_marketing/categories/")({
 
     return {
       seoHead: buildSeoHead({
-        title: "Product Categories - ConvexPress",
+        title: siteTitled("Product Categories"),
         description: "Browse the ConvexPress product catalog by category.",
         canonical: toAbsoluteUrl("/categories", siteUrl),
       }),

@@ -17,11 +17,12 @@ import { api } from "@convexpress-website/backend/generated/api";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { Skeleton } from "@/components/ui/skeleton";
+import { siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/archives/$id")({
   component: NumericPermalink,
   head: ({ params }) => ({
-    meta: [{ title: `Post #${params.id} - ConvexPress` }],
+    meta: [{ title: siteTitled(`Post #${params.id}`) }],
   }),
 });
 

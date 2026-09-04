@@ -63,6 +63,11 @@ export interface ConvexpressBridge {
   };
   /** Present in desktop builds that ship the local storefront runner. */
   siteRunner?: ConvexpressSiteRunner;
+  /** Present in desktop builds that allow-list site deployment origins at runtime. */
+  security?: {
+    registerDeploymentOrigins: (origins: string[]) => Promise<{ added: string[]; origins: string[] }>;
+    listDeploymentOrigins: () => Promise<string[]>;
+  };
   connections: {
     provision: (input: {
       instanceId: string;

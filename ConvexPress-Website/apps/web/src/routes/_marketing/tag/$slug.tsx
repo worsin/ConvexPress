@@ -23,6 +23,7 @@ import { PostGrid } from "@/components/blog/PostGrid";
 import { PostPagination } from "@/components/blog/PostPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaxonomyBreadcrumbs } from "@/components/taxonomy/Breadcrumbs";
+import { siteTitled } from "@/lib/seo/head";
 
 interface TagSearchParams {
   page?: number;
@@ -44,7 +45,7 @@ export const Route = createFileRoute("/_marketing/tag/$slug")({
   },
   head: ({ params }) => ({
     meta: [
-      { title: `Tag: ${params.slug} - ConvexPress` },
+      { title: siteTitled(`Tag: ${params.slug}`) },
     ],
     links: [
       {

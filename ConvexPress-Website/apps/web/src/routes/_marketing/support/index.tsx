@@ -1,14 +1,14 @@
 import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { useAuth } from "@clerk/clerk-react";
 import { LifeBuoy, Loader2, MessageSquarePlus, List, Search } from "lucide-react";
-import { buildIndexablePageHead } from "@/lib/seo/head";
+import { buildIndexablePageHead, siteTitled } from "@/lib/seo/head";
 import { useSettings } from "@/contexts/SettingsContext";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
 export const Route = createFileRoute("/_marketing/support/")({
   loader: () => ({
     seoHead: buildIndexablePageHead({
-      title: "Support - ConvexPress",
+      title: siteTitled("Support"),
       description: "Find help, search the knowledge base, or submit a support ticket.",
       path: "/support",
     }),

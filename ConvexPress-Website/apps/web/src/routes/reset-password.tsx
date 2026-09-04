@@ -12,7 +12,7 @@ import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthInd
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { buildRestrictedPageHead } from "@/lib/seo/head";
+import { buildRestrictedPageHead, siteTitled } from "@/lib/seo/head";
 
 const resetPasswordSearchSchema = z.object({
   /** Token passed in the reset email link. */
@@ -24,7 +24,7 @@ const resetPasswordSearchSchema = z.object({
 export const Route = createFileRoute("/reset-password")({
   validateSearch: resetPasswordSearchSchema,
   head: () => buildRestrictedPageHead({
-    title: "Reset Password - ConvexPress",
+    title: siteTitled("Reset Password"),
     path: "/reset-password",
   }),
   component: ResetPasswordComponent,

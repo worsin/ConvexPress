@@ -1,0 +1,17 @@
+{
+  "name": "commerce/assistant-band",
+  "title": "Shopping Assistant Band",
+  "description": "A call-out that invites shoppers to ask the store's shopping assistant, with tappable example questions that open the assistant with that question.",
+  "category": "commerce",
+  "keywords": ["assistant", "ai", "help", "questions", "shop", "recommendation", "cta"],
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": false
+  },
+  "rendererStatus": "ready",
+  "aiHints": {
+    "useFor": "homepage or landing sections that hand the visitor to the shopping assistant with a starting question",
+    "avoid": "plain calls to action without a question (use CTA Band)"
+  }
+}

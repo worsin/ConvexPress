@@ -228,8 +228,8 @@ function validateReading(values: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
 
   // homepageDisplays enum
-  if (!isString(values.homepageDisplays) || !["latest_posts", "static_page"].includes(values.homepageDisplays)) {
-    errors.push({ field: "homepageDisplays", message: "Homepage display must be 'latest_posts' or 'static_page'." });
+  if (!isString(values.homepageDisplays) || !["latest_posts", "static_page", "shop"].includes(values.homepageDisplays)) {
+    errors.push({ field: "homepageDisplays", message: "Homepage display must be 'latest_posts', 'static_page' or 'shop'." });
   }
 
   // If static_page, homepageId is required

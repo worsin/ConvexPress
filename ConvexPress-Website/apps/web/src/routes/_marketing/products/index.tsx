@@ -34,6 +34,8 @@ const searchSchema = z.object({
   page: z.number().min(1).optional(),
   min: z.number().min(0).optional(),
   max: z.number().min(0).optional(),
+  /** Opens the assistant with this question (used by the assistant band block). */
+  ask: z.string().max(200).optional(),
 });
 
 const PER_PAGE = 12;
@@ -88,7 +90,7 @@ function ShopPage() {
   const search = Route.useSearch();
   const q = search.q?.trim() || "";
   return (
-    <ShopShell kind={q ? "search" : "catalog"} query={q || undefined}>
+    <ShopShell kind={q ? "search" : "catalog"} query={q || undefined} initialPrompt={search.ask}>
       <ShopContent />
     </ShopShell>
   );

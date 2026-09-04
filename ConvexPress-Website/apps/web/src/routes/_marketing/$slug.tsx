@@ -1,10 +1,14 @@
-import { Navigate, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+/**
+ * Pretty page URLs: /our-story → /page/our-story.
+ *
+ * The redirect happens in the loader, so it runs during SSR and the visitor's
+ * first response is the real page with its own <title> and meta (a client-side
+ * <Navigate/> shipped an empty shell first, which crawlers and link previews saw).
+ */
 export const Route = createFileRoute("/_marketing/$slug")({
-  component: RootSlugPage,
+  loader: ({ params }) => {
+    throw redirect({ to: "/page/$", params: { _splat: params.slug }, replace: true });
+  },
 });
-
-function RootSlugPage() {
-  const { slug } = Route.useParams();
-  return <Navigate to="/page/$" params={{ _splat: slug }} replace />;
-}

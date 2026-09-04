@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { buildIndexablePageHead } from "@/lib/seo/head";
+import { buildIndexablePageHead, siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/help/")({
   component: HelpCenter,
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_marketing/help/")({
     ]);
   },
   head: () => buildIndexablePageHead({
-    title: "Help Center - ConvexPress",
+    title: siteTitled("Help Center"),
     description: "Find answers to your questions in our help center.",
     path: "/help",
   }),

@@ -4,7 +4,7 @@ import { createFileRoute, Link, useNavigate, ErrorComponent } from "@tanstack/re
 import { z } from "zod";
 import { api } from "@convexpress-website/backend/generated/api";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { buildSeoHead } from "@/lib/seo/head";
+import { buildSeoHead, siteTitled } from "@/lib/seo/head";
 
 const searchSchema = z.object({
   q: z.string().optional(),
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_marketing/help/search")({
     }
   },
   head: () => buildSeoHead({
-    title: "Search - Help Center - ConvexPress",
+    title: siteTitled("Search - Help Center"),
     robots: "noindex, follow",
   }),
 });

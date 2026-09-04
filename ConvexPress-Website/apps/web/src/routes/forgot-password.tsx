@@ -7,11 +7,11 @@ import { AuthPageLayout } from "@/components/auth/AuthPageLayout";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { ForgotPasswordSuccess } from "@/components/auth/ForgotPasswordSuccess";
 import { AuthLink } from "@/components/auth/AuthLink";
-import { buildRestrictedPageHead } from "@/lib/seo/head";
+import { buildRestrictedPageHead, siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/forgot-password")({
   head: () => buildRestrictedPageHead({
-    title: "Forgot Password - ConvexPress",
+    title: siteTitled("Forgot Password"),
     path: "/forgot-password",
   }),
   component: ForgotPasswordComponent,

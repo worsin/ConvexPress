@@ -9,6 +9,7 @@ import { MediaImage } from "@/components/media/MediaImage";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { useSettings } from "@/contexts/SettingsContext";
 import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
+import { siteTitled } from "@/lib/seo/head";
 
 type ShopSearch = {
   page?: number;
@@ -43,7 +44,7 @@ export const Route = createFileRoute("/_marketing/shop")({
     );
   },
   head: () => ({
-    meta: [{ title: "Shop - ConvexPress" }],
+    meta: [{ title: siteTitled("Shop") }],
   }),
   component: ShopPage,
 });

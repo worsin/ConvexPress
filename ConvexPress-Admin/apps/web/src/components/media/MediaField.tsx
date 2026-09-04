@@ -51,7 +51,7 @@ export function MediaField({
 
   // Existing selection — show a thumbnail.
   const mediaDoc = useQuery(
-    api.media.queries.getById,
+    api.media.queries.get,
     value ? { mediaId: value as Id<"media"> } : "skip",
   );
 

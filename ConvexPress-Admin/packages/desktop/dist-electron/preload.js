@@ -45,7 +45,9 @@ var ALLOWED_INVOKE_CHANNELS = /* @__PURE__ */ new Set([
   "site-runner:forget",
   "site-runner:logs",
   "site-runner:open",
-  "site-runner:open-url"
+  "site-runner:open-url",
+  "security:register-deployment-origins",
+  "security:list-deployment-origins"
 ]);
 var ALLOWED_ON_CHANNELS = /* @__PURE__ */ new Set([
   // Window events
@@ -140,6 +142,11 @@ import_electron.contextBridge.exposeInMainWorld("convexpress", {
       import_electron.ipcRenderer.on("site-runner:changed", handler);
       return () => import_electron.ipcRenderer.removeListener("site-runner:changed", handler);
     }
+  },
+  security: {
+    /** Allow the renderer to reach a site deployment; `added` lists origins new to the policy. */
+    registerDeploymentOrigins: (origins) => import_electron.ipcRenderer.invoke("security:register-deployment-origins", origins),
+    listDeploymentOrigins: () => import_electron.ipcRenderer.invoke("security:list-deployment-origins")
   },
   connections: {
     provision: (input) => import_electron.ipcRenderer.invoke("connections:provision", input)

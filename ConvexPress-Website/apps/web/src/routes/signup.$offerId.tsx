@@ -11,6 +11,7 @@ import {
   requirePublicPluginEnabled,
   throwPublicNotFound,
 } from "@/lib/plugins/public-route-loader";
+import { siteTitled } from "@/lib/seo/head";
 
 /**
  * Direct-signup landing page for a single subscription offer (Wave 5 Task 5.2).
@@ -49,7 +50,7 @@ export const Route = createFileRoute("/signup/$offerId")({
   head: () => ({
     meta: [
       { name: "robots", content: "noindex" },
-      { title: "Sign up - ConvexPress" },
+      { title: siteTitled("Sign up") },
     ],
   }),
   component: SignupOfferPage,

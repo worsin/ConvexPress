@@ -8,7 +8,7 @@ import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { LessonContentRenderer } from "@/components/lms/LessonContentRenderer";
 import { LmsRoutePending } from "@/components/lms/LmsRoutePending";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
+import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/courses/$slug_/$nodeId")({
   loader: async ({ context: { queryClient }, params }) => {
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_marketing/courses/$slug_/$nodeId")({
       return {
         lmsEnabled: false,
         seoHead: buildSeoHead({
-          title: "Course preview - ConvexPress",
+          title: siteTitled("Course preview"),
           canonical: toAbsoluteUrl(
             `/courses/${params.slug}/${params.nodeId}`,
             siteUrl,
@@ -46,7 +46,7 @@ export const Route = createFileRoute("/_marketing/courses/$slug_/$nodeId")({
     return {
       lmsEnabled: true,
       seoHead: buildSeoHead({
-        title: `${course?.title ?? params.slug} preview - ConvexPress`,
+        title: siteTitled(`${course?.title ?? params.slug} preview`),
         description:
           course?.excerpt ??
           `Preview a lesson from ${course?.title ?? params.slug}.`,

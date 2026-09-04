@@ -3,6 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
+import { siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/_marketing/help/collections/$slug")({
   component: CollectionView,
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/_marketing/help/collections/$slug")({
   head: ({ params }) => ({
     meta: [
       {
-        title: `${params.slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} - Collections - Help Center - ConvexPress`,
+        title: siteTitled(`${params.slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} - Collections - Help Center`),
       },
     ],
   }),

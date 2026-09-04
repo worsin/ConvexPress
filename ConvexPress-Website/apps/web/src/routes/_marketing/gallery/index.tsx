@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { MediaImage } from "@/components/media/MediaImage";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
-import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
+import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 
 const gallerySearchSchema = z.object({
   page: z.number().min(1).optional(),
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/_marketing/gallery/")({
     return {
       galleryDisabled: false as const,
       seoHead: buildSeoHead({
-        title: page > 1 ? `Gallery Page ${page} - ConvexPress` : "Gallery - ConvexPress",
+        title: page > 1 ? siteTitled(`Gallery Page ${page}`) : siteTitled("Gallery"),
         description: "Browse image galleries published through ConvexPress.",
         canonical: toAbsoluteUrl(page > 1 ? `/gallery?page=${page}` : "/gallery", siteUrl),
       }),

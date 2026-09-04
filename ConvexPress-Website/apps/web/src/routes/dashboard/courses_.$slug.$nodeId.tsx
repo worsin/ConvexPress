@@ -17,12 +17,13 @@ import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { LessonContentRenderer } from "@/components/lms/LessonContentRenderer";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { Skeleton } from "@/components/ui/skeleton";
+import { siteTitled } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/dashboard/courses_/$slug/$nodeId")({
   head: () => ({
     meta: [
       { name: "robots", content: "noindex" },
-      { title: "Course Player - ConvexPress" },
+      { title: siteTitled("Course Player") },
     ],
   }),
   component: DashboardCoursePlayerPage,
