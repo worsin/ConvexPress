@@ -20,6 +20,10 @@ interface MobileNavProps {
   menu: ResolvedMenu | undefined;
   siteIdentity: SiteIdentity | undefined;
   config?: HeaderConfig["mobileMenu"];
+  /** Open state; defaults to the layout shell's mobile nav state. */
+  open?: boolean;
+  /** Close callback; defaults to the layout shell's closeMobileNav. */
+  onClose?: () => void;
 }
 
 /**
@@ -27,8 +31,10 @@ interface MobileNavProps {
  * Visible only on viewports smaller than lg.
  * Includes focus trap for WCAG 2.1 AA compliance.
  */
-export function MobileNav({ menu, siteIdentity, config }: MobileNavProps) {
-  const { mobileNavOpen, closeMobileNav } = useLayoutShell();
+export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileNavProps) {
+  const shell = useLayoutShell();
+  const mobileNavOpen = open ?? shell.mobileNavOpen;
+  const closeMobileNav = onClose ?? shell.closeMobileNav;
   const { user } = useUser();
   const { isLoaded } = useAuth();
   const { signOut } = useClerk();

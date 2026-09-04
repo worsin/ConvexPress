@@ -7,7 +7,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { cn } from "@/lib/utils";
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
 import { useFooterConfig } from "@/hooks/layout/useFooterConfig";
-import type { FooterConfig } from "@/lib/layout/types";
+import type { FooterConfig, SiteIdentity } from "@/lib/layout/types";
 
 import { FooterBottom } from "./FooterBottom";
 import { FooterNav } from "./FooterNav";
@@ -16,6 +16,10 @@ import { SocialLinks } from "./SocialLinks";
 
 interface SiteFooterProps {
   variant?: "full" | "minimal";
+  /** Site identity; defaults to the site's stored identity. */
+  siteIdentity?: SiteIdentity;
+  /** Footer settings; defaults to the site's stored footer config. */
+  footerConfig?: FooterConfig;
 }
 
 /**
@@ -23,9 +27,11 @@ interface SiteFooterProps {
  * "minimal" variant shows only the copyright line (used in dashboard layout).
  * Falls back to standard layout when no config is stored.
  */
-export function SiteFooter({ variant = "full" }: SiteFooterProps) {
-  const siteIdentity = useSiteIdentity();
-  const footerConfig = useFooterConfig();
+export function SiteFooter({ variant = "full", siteIdentity: siteIdentityProp, footerConfig: footerConfigProp }: SiteFooterProps) {
+  const storedSiteIdentity = useSiteIdentity();
+  const storedFooterConfig = useFooterConfig();
+  const siteIdentity = siteIdentityProp ?? storedSiteIdentity;
+  const footerConfig = footerConfigProp ?? storedFooterConfig;
   const siteTitle = siteIdentity?.title ?? "ConvexPress";
 
   // v2 rows builder: if the admin has authored rows, render them and skip

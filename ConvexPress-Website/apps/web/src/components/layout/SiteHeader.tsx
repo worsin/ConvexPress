@@ -5,9 +5,11 @@ import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
 import { useHeaderConfig } from "@/hooks/layout/useHeaderConfig";
 import type { HeaderConfig, LayoutConfig, ResolvedMenu, SiteIdentity } from "@/lib/layout/types";
 
+import CoreSearchOverlay from "@/templates/packs/core/surfaces/chrome.searchOverlay";
+import { Surface } from "@/templates/sdk/Surface";
+
 import { DesktopNav } from "./DesktopNav";
 import { HeaderActions } from "./HeaderActions";
-import { SearchOverlay } from "./SearchOverlay";
 import { SiteBrand } from "./SiteBrand";
 import { SocialLinks } from "./SocialLinks";
 
@@ -15,6 +17,8 @@ interface SiteHeaderProps {
   siteIdentity: SiteIdentity | undefined;
   menu: ResolvedMenu | undefined;
   layoutConfig?: LayoutConfig;
+  /** Header settings; defaults to the site's stored header config. */
+  headerConfig?: HeaderConfig;
 }
 
 /**
@@ -22,9 +26,10 @@ interface SiteHeaderProps {
  * Renders dynamically based on header config from admin settings.
  * Falls back to standard layout when no config is stored.
  */
-export function SiteHeader({ siteIdentity, menu, layoutConfig }: SiteHeaderProps) {
-  const { isScrolled, toggleMobileNav } = useLayoutShell();
-  const headerConfig = useHeaderConfig();
+export function SiteHeader({ siteIdentity, menu, layoutConfig, headerConfig: headerConfigProp }: SiteHeaderProps) {
+  const { isScrolled, toggleMobileNav, searchOpen, closeSearch } = useLayoutShell();
+  const storedHeaderConfig = useHeaderConfig();
+  const headerConfig = headerConfigProp ?? storedHeaderConfig;
 
   const stickyHeader = layoutConfig?.stickyHeader !== false;
   const stickyMode = headerConfig.layout.sticky;
@@ -97,7 +102,13 @@ export function SiteHeader({ siteIdentity, menu, layoutConfig }: SiteHeaderProps
       </div>
 
       {/* Search overlay - renders below header bar when open */}
-      {headerConfig.search.enabled && <SearchOverlay />}
+      {headerConfig.search.enabled && (
+        <Surface
+          name="chrome.searchOverlay"
+          data={{ open: searchOpen, onClose: closeSearch }}
+          fallback={CoreSearchOverlay}
+        />
+      )}
     </header>
   );
 }

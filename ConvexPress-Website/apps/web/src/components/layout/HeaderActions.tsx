@@ -5,12 +5,13 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { Search, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 
-import { CartDrawer } from "@/components/commerce/CartDrawer";
 import { cn } from "@/lib/utils";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 import { useSettings } from "@/contexts/SettingsContext";
 import type { HeaderConfig } from "@/lib/layout/types";
+import CoreCartDrawer from "@/templates/packs/core/surfaces/chrome.cartDrawer";
+import { Surface } from "@/templates/sdk/Surface";
 
 import { UserMenu } from "./UserMenu";
 import { WebsiteNotificationBell } from "./WebsiteNotificationBell";
@@ -76,7 +77,11 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
               </span>
             ) : null}
           </button>
-          <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
+          <Surface
+            name="chrome.cartDrawer"
+            data={{ open: cartOpen, onOpenChange: setCartOpen }}
+            fallback={CoreCartDrawer}
+          />
         </>
       )}
 

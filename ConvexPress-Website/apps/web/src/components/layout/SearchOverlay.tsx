@@ -12,8 +12,17 @@ import { useSettings } from "@/contexts/SettingsContext";
  * Full-width search input overlay that slides down from the header.
  * Includes live search suggestions as the user types.
  */
-export function SearchOverlay() {
-  const { searchOpen, closeSearch } = useLayoutShell();
+interface SearchOverlayProps {
+  /** Open state; defaults to the layout shell's search state. */
+  open?: boolean;
+  /** Close callback; defaults to the layout shell's closeSearch. */
+  onClose?: () => void;
+}
+
+export function SearchOverlay({ open, onClose }: SearchOverlayProps = {}) {
+  const shell = useLayoutShell();
+  const searchOpen = open ?? shell.searchOpen;
+  const closeSearch = onClose ?? shell.closeSearch;
   const [query, setQuery] = React.useState("");
   const [suggestionsVisible, setSuggestionsVisible] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
