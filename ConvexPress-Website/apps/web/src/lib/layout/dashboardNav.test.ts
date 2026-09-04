@@ -106,7 +106,7 @@ describe("buildDashboardNavItems", () => {
 
   test("every item has a registry-style icon name", () => {
     for (const item of allDashboardNavItems()) {
-      expect(item.iconName, item.id).toBeTruthy();
+      expect(item.iconName).toBeTruthy();
     }
   });
 });

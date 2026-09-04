@@ -5,12 +5,10 @@ import { useMutation } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { z } from "zod";
 
-import { AuthPageLayout } from "@/components/auth/AuthPageLayout";
-import { OAuthButtons } from "@/components/auth/OAuthButtons";
-import { AuthDivider } from "@/components/auth/AuthDivider";
-import { LoginForm } from "@/components/auth/LoginForm";
 import { sanitizeRedirectUrl } from "@/lib/security/redirect";
 import { buildRestrictedPageHead, siteTitled } from "@/lib/seo/head";
+import CoreAuthLogin, { type AuthLoginSurfaceData } from "@/templates/packs/core/surfaces/auth.login";
+import { Surface } from "@/templates/sdk/Surface";
 
 /**
  * Search params schema for the login page.
@@ -61,11 +59,11 @@ function LoginComponent() {
   });
 
   // Redirect authenticated users to their destination
-	  useEffect(() => {
-	    if (isLoaded && isSignedIn) {
-	      navigate({ to: safeReturnTo } as any);
-	    }
-	  }, [isLoaded, isSignedIn, navigate, safeReturnTo]);
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      navigate({ to: safeReturnTo } as any);
+    }
+  }, [isLoaded, isSignedIn, navigate, safeReturnTo]);
 
   // If redirected back with an error, record the failed attempt
   useEffect(() => {
@@ -91,19 +89,7 @@ function LoginComponent() {
     return null;
   }
 
-  return (
-    <AuthPageLayout
-      title="Sign In"
-      description="Sign in to access your account."
-    >
-      {errorMessage && (
-        <div className="mb-4 border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
-          {errorMessage}
-        </div>
-      )}
-      <OAuthButtons mode="signin" returnTo={safeReturnTo} />
-      <AuthDivider />
-      <LoginForm returnTo={safeReturnTo} />
-    </AuthPageLayout>
-  );
+  const data: AuthLoginSurfaceData = { errorMessage, returnTo: safeReturnTo };
+
+  return <Surface name="auth.login" data={data} fallback={CoreAuthLogin} />;
 }

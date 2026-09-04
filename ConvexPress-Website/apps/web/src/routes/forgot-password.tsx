@@ -3,11 +3,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth/clerk";
 import { useState } from "react";
 
-import { AuthPageLayout } from "@/components/auth/AuthPageLayout";
-import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
-import { ForgotPasswordSuccess } from "@/components/auth/ForgotPasswordSuccess";
-import { AuthLink } from "@/components/auth/AuthLink";
 import { buildRestrictedPageHead, siteTitled } from "@/lib/seo/head";
+import CoreAuthForgot, { type AuthForgotSurfaceData } from "@/templates/packs/core/surfaces/auth.forgot";
+import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/forgot-password")({
   head: () => buildRestrictedPageHead({
@@ -23,11 +21,11 @@ function ForgotPasswordComponent() {
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   // Authenticated users should manage passwords in dashboard settings
-	  useEffect(() => {
-	    if (isLoaded && isSignedIn) {
-	      navigate({ to: "/dashboard/settings" } as any);
-	    }
-	  }, [isLoaded, isSignedIn, navigate]);
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      navigate({ to: "/dashboard/settings" } as any);
+    }
+  }, [isLoaded, isSignedIn, navigate]);
 
   const handleSuccess = (email: string) => {
     setSubmittedEmail(email);
@@ -37,25 +35,7 @@ function ForgotPasswordComponent() {
     return null;
   }
 
-  return (
-    <AuthPageLayout
-      title="Forgot Password"
-      description={
-        submittedEmail
-          ? undefined
-          : "Enter your email to receive a reset link."
-      }
-    >
-      {submittedEmail ? (
-        <ForgotPasswordSuccess email={submittedEmail} />
-      ) : (
-        <>
-          <ForgotPasswordForm onSuccess={handleSuccess} />
-          <div className="text-center">
-            <AuthLink to="/login">Back to Sign In</AuthLink>
-          </div>
-        </>
-      )}
-    </AuthPageLayout>
-  );
+  const data: AuthForgotSurfaceData = { submittedEmail, onSubmitted: handleSuccess };
+
+  return <Surface name="auth.forgot" data={data} fallback={CoreAuthForgot} />;
 }

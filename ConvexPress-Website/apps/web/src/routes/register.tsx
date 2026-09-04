@@ -3,13 +3,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth/clerk";
 import { z } from "zod";
 
-import { AuthPageLayout } from "@/components/auth/AuthPageLayout";
-import { OAuthButtons } from "@/components/auth/OAuthButtons";
-import { AuthDivider } from "@/components/auth/AuthDivider";
-import { RegisterForm } from "@/components/auth/RegisterForm";
-import { RegistrationGate } from "@/components/auth/RegistrationGate";
 import { sanitizeRedirectUrl } from "@/lib/security/redirect";
 import { buildRestrictedPageHead, siteTitled } from "@/lib/seo/head";
+import CoreAuthRegister, { type AuthRegisterSurfaceData } from "@/templates/packs/core/surfaces/auth.register";
+import { Surface } from "@/templates/sdk/Surface";
 
 const searchSchema = z.object({
   token: z.string().optional(),
@@ -35,27 +32,17 @@ function RegisterComponent() {
   });
 
   // Redirect authenticated users
-	  useEffect(() => {
-	    if (isLoaded && isSignedIn) {
-	      navigate({ to: safeReturnTo } as any);
-	    }
-	  }, [isLoaded, isSignedIn, navigate, safeReturnTo]);
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      navigate({ to: safeReturnTo } as any);
+    }
+  }, [isLoaded, isSignedIn, navigate, safeReturnTo]);
 
   if (isLoaded && isSignedIn) {
     return null;
   }
 
-  return (
-    <AuthPageLayout
-      title="Create Account"
-      description="Join our community."
-      maxWidth="md"
-    >
-      <RegistrationGate token={token}>
-        <OAuthButtons mode="signup" returnTo={safeReturnTo} />
-        <AuthDivider />
-        <RegisterForm returnTo={safeReturnTo} />
-      </RegistrationGate>
-    </AuthPageLayout>
-  );
+  const data: AuthRegisterSurfaceData = { token, returnTo: safeReturnTo };
+
+  return <Surface name="auth.register" data={data} fallback={CoreAuthRegister} />;
 }

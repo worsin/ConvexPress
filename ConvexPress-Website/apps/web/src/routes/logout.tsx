@@ -2,8 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useClerk } from "@/lib/auth/clerk";
 import { useEffect } from "react";
 
-import { AuthPageLayout } from "@/components/auth/AuthPageLayout";
 import { buildRestrictedPageHead, siteTitled } from "@/lib/seo/head";
+import CoreAuthLogout from "@/templates/packs/core/surfaces/auth.logout";
+import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/logout")({
   head: () => buildRestrictedPageHead({
@@ -37,14 +38,5 @@ function LogoutComponent() {
     performLogout();
   }, [signOut, navigate]);
 
-  return (
-    <AuthPageLayout title="Signing Out" showLogo={false}>
-      <div className="flex flex-col items-center gap-3 py-4 text-center">
-        <div className="size-5 animate-spin rounded-none border-2 border-muted border-t-primary" />
-        <p className="text-xs text-muted-foreground">
-          Signing you out...
-        </p>
-      </div>
-    </AuthPageLayout>
-  );
+  return <Surface name="auth.logout" data={{}} fallback={CoreAuthLogout} />;
 }
