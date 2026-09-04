@@ -318,3 +318,18 @@ Rules:
 - Phase 2 adds: the on-site Customizer (draft layer, context awareness, click-to-edit, device iframe, publish/promote) with the included modules re-packaged as groups; the admin's Customize entry launches it.
 - Phases 3–4: Journal and Depot each ship two or three colour presets and their own option groups.
 - Decision 3 in §11 is settled: the builders move into templates as settings modules (§13); only Themes, `layouts`, `templates/` and `template-parts/` are deleted, in phase 1.
+
+
+## 16. Progress log and how to resume (keep this current)
+
+**Resume procedure for a fresh session:** read this section, then `ConvexPress-Website/apps/web/src/templates/sdk/*` (the SDK) and `templates/packs/core/template.json`. Run `bun run check-types` in both apps and `bun run check:templates` in the Website to see the state. Everything below is additive; the site keeps working at every step because `<Surface>` falls back to the route's own component when a pack has no implementation.
+
+| Step | State | Where |
+|---|---|---|
+| Backend section `appearance.template` (active, overrides, variants, settings) + public `templateConfig` | done and deployed to alpha/beta/gamma 2026-09-04 | `packages/backend/convex/settings/{defaults,validators,validation,queries,mutations}.ts`, `schema/settings.ts`, admin `types/settings.ts` |
+| Storefront SDK: surface catalog (82 ids, 17 areas), manifest types, pack registry (glob discovery + resolution), `useTemplate()` with `?template=` / `?variant.<surface>=` preview, `<Surface>` | done 2026-09-04 | `apps/web/src/templates/sdk/{catalog,types,registry,useTemplate,Surface}.ts(x)` |
+| Core pack manifest + first two surfaces (`shop.catalog`, `shop.product`) routed through `<Surface>`; catalog logic moved to `components/shop/ShopCatalog.tsx`, search schema to `lib/commerce/shopSearch.ts` | done 2026-09-04 | `apps/web/src/templates/packs/core/`, `routes/_marketing/products/{index,$slug}.tsx` |
+| `check:templates` script (manifest schema, surface ids in catalog, files exist, no backend imports / colour literals in surfaces, admin catalog mirror agrees) | done 2026-09-04 (`bun run check:templates` in apps/web) | `ConvexPress-Website/scripts/check-template-packs.mjs`, package script |
+| Admin Appearance › Templates gallery + coverage matrix (enabled plugins only) + activate + preview link | done 2026-09-04 (first cut; cover screenshots, per-surface overrides and variants tab still todo) | `apps/web/src/routes/_authenticated/_admin/appearance/templates.tsx`, `lib/templates/catalog.ts` (mirror of the Website catalog), nav entry replacing the frozen Themes item |
+| **Next:** verify Templates page in the Electron admin and `?template=core` on a storefront; then extract remaining Core surfaces one by one (chrome first, then blog/pages, then plugins), delete `templates/`, `template-parts/`, Themes, `layouts` | todo | per §3 inventory |
+| Customizer, settings modules, Journal, Depot, template-kit | todo | §13–14, §10 phases 2–5 |

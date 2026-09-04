@@ -45,6 +45,7 @@ export type SettingsSection =
   | "support.ai"
   | "commerce.assistant"
   | "commerce.layout"
+  | "appearance.template"
   | "brand"
   | "layout"
   | "header"

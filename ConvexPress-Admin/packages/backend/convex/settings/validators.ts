@@ -49,6 +49,7 @@ export const sectionValidator = v.union(
   v.literal("commerce.payments"),
   v.literal("commerce.assistant"),
   v.literal("commerce.layout"),
+  v.literal("appearance.template"),
   v.literal("brand"),
   v.literal("commerce.subscriptions.counters"),
   v.literal("integrations.shipping"),

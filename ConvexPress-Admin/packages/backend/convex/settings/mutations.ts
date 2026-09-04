@@ -103,6 +103,7 @@ const SECTION_CAPABILITY_MAP: Record<
   "commerce.payments": "manage_options",
   "commerce.assistant": "manage_options",
   "commerce.layout": "manage_options",
+  "appearance.template": "manage_options",
   brand: "manage_options",
   "commerce.subscriptions.counters": "manage_options",
   "integrations.shipping": "manage_options",

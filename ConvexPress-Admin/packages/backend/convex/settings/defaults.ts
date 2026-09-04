@@ -35,6 +35,7 @@ export type SettingsSection =
   | "commerce.payments"
   | "commerce.assistant"
   | "commerce.layout"
+  | "appearance.template"
   | "brand"
   | "integrations.shipping"
   | "integrations.shipping.shipstation"
@@ -83,6 +84,7 @@ export const SECTION_NAMES: SettingsSection[] = [
   "commerce.payments",
   "commerce.assistant",
   "commerce.layout",
+  "appearance.template",
   "brand",
   "integrations.shipping",
   "integrations.shipping.shipstation",
@@ -281,6 +283,22 @@ export const SHOP_LAYOUT_IDS = ["boutique", "marketplace"] as const;
 export type ShopLayoutId = (typeof SHOP_LAYOUT_IDS)[number];
 export const PRODUCT_LAYOUT_IDS = ["classic", "marketplace", "split", "showcase", "minimal"] as const;
 export type ProductLayoutId = (typeof PRODUCT_LAYOUT_IDS)[number];
+
+/**
+ * Active template pack and its per-site data (Appearance › Templates).
+ * Packs are discovered from the Website checkout; this section only points
+ * at one and stores the operator's choices for it. Per environment.
+ */
+export interface AppearanceTemplateSettings {
+  /** Pack id, e.g. "core", "journal", "depot", "<site>-custom". */
+  active: string;
+  /** Per-surface override: surface id → pack id that renders it instead. */
+  overrides: Record<string, string>;
+  /** Chosen variant per surface (e.g. "shop.product": "split"). */
+  variants: Record<string, string>;
+  /** Customize values per pack: packId → module/group → values. */
+  settings: Record<string, Record<string, unknown>>;
+}
 
 export interface CommerceLayoutSettings {
   /** Catalog / search page composition. */
@@ -1031,6 +1049,13 @@ export const BRAND_DEFAULTS: BrandSettings = {
   faviconUrl: "",
 };
 
+export const APPEARANCE_TEMPLATE_DEFAULTS: AppearanceTemplateSettings = {
+  active: "core",
+  overrides: {},
+  variants: {},
+  settings: {},
+};
+
 export const COMMERCE_LAYOUT_DEFAULTS: CommerceLayoutSettings = {
   shopLayout: "boutique",
   productLayout: "classic",
@@ -1385,6 +1410,7 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   "commerce.payments": COMMERCE_PAYMENTS_DEFAULTS,
   "commerce.assistant": COMMERCE_ASSISTANT_DEFAULTS,
   "commerce.layout": COMMERCE_LAYOUT_DEFAULTS,
+  "appearance.template": APPEARANCE_TEMPLATE_DEFAULTS,
   brand: BRAND_DEFAULTS,
   "commerce.subscriptions.counters": COMMERCE_SUBSCRIPTIONS_COUNTERS_DEFAULTS,
   "integrations.shipping": SHIPPING_INTEGRATION_DEFAULTS,

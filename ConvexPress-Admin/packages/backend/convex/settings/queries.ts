@@ -56,6 +56,7 @@ const SECTION_READ_CAPABILITY_MAP: Partial<Record<SettingsSection, Capability>> 
   "commerce.payments": "manage_options",
   "commerce.assistant": "manage_options",
   "commerce.layout": "manage_options",
+  "appearance.template": "manage_options",
   brand: "manage_options",
   "commerce.subscriptions.counters": "manage_options",
   "integrations.shipping": "manage_options",
@@ -279,6 +280,7 @@ export const getPublic = query({
     const commerce = await getMergedSettingsSection(ctx, "commerce.general");
     const assistant = await getMergedSettingsSection(ctx, "commerce.assistant");
     const layout = await getMergedSettingsSection(ctx, "commerce.layout");
+    const template = await getMergedSettingsSection(ctx, "appearance.template");
     const brand = await getMergedSettingsSection(ctx, "brand");
     const shipping = await getMergedSettingsSection(ctx, "integrations.shipping");
     const blocks = await getMergedSettingsSection(ctx, "blocks");
@@ -397,6 +399,9 @@ export const getPublic = query({
 
       // Storefront layout presets (Settings › Shop layouts).
       layoutConfig: layout,
+
+      // Active template pack + per-surface overrides/variants (Appearance › Templates).
+      templateConfig: template,
 
       // Public brand inputs the storefront renders from (fonts, radius, density).
       brandConfig: {

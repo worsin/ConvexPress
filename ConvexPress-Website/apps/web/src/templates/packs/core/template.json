@@ -1,0 +1,17 @@
+{
+  "id": "core",
+  "name": "Core",
+  "version": "1.0.0",
+  "sdk": "^1",
+  "tagline": "The built-in front end, every area covered",
+  "description": "The storefront as shipped: centred content, configurable header and footer, the boutique and marketplace shop layouts, five product page layouts. Every surface is implemented, so it is the fallback for any surface another template leaves out.",
+  "author": "ConvexPress",
+  "bestFor": ["Any site as the safe default", "Sites that customise through the header, footer and colour settings"],
+  "surfaces": ["shop.catalog", "shop.product"],
+  "variants": {
+    "shop.catalog": ["boutique", "marketplace"],
+    "shop.product": ["classic", "marketplace", "split", "showcase", "minimal"]
+  },
+  "modules": ["colors", "typography", "layout", "header", "footer", "menuLayout", "shop", "pageTemplates"],
+  "menuLocations": { "primary": "header", "secondary": "secondary", "footer-1": "footer-1", "footer-2": "footer-2", "footer-3": "footer-3" }
+}

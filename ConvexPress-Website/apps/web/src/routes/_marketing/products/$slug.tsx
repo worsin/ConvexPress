@@ -13,17 +13,20 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
-import { PRODUCT_LAYOUTS } from "@/components/shop/product/ProductLayouts";
 import { useProductPage, type ProductDetail } from "@/components/shop/product/useProductPage";
 import { ShopShell } from "@/components/shop/ShopShell";
-import { PRODUCT_LAYOUT_IDS, SHOP_LAYOUT_IDS, useShopLayout } from "@/hooks/useShopLayout";
+import { PRODUCT_LAYOUT_IDS, SHOP_LAYOUT_IDS } from "@/hooks/useShopLayout";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
+import CoreProduct from "@/templates/packs/core/surfaces/shop.product";
+import { Surface } from "@/templates/sdk/Surface";
 
 const searchSchema = z.object({
   /** Admin preview overrides (Settings › Shop layouts). Never persisted. */
   productLayout: z.enum(PRODUCT_LAYOUT_IDS).optional(),
   layout: z.enum(SHOP_LAYOUT_IDS).optional(),
   cartPanel: z.enum(["persistent", "drawer"]).optional(),
+  /** Template preview override (Appearance › Templates). Never persisted. */
+  template: z.string().max(64).optional(),
 });
 
 export const Route = createFileRoute("/_marketing/products/$slug")({
@@ -58,18 +61,13 @@ export const Route = createFileRoute("/_marketing/products/$slug")({
 function ProductDetailPage() {
   const { slug } = Route.useParams();
   const { data: product } = useSuspenseQuery(convexQuery(api.commerce.products.getBySlug, { slug }) as any) as { data: ProductDetail | null };
-  const layout = useShopLayout();
   const state = useProductPage(product);
 
   if (!product) return <NotFoundPage />;
 
-  const Layout = PRODUCT_LAYOUTS[layout.productLayout] ?? PRODUCT_LAYOUTS.classic;
-
   return (
     <ShopShell kind="product" productId={product._id}>
-      <div data-product-layout={layout.productLayout} className="mx-auto w-full max-w-[1440px]">
-        <Layout product={product} state={state} />
-      </div>
+      <Surface name="shop.product" data={{ product, state }} fallback={CoreProduct} />
     </ShopShell>
   );
 }

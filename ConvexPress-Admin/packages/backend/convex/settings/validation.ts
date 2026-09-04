@@ -995,6 +995,8 @@ export function validateSectionValues(
       return validateCommerceAssistant(values);
     case "commerce.layout":
       return validateCommerceLayout(values);
+    case "appearance.template":
+      return validateAppearanceTemplate(values);
     case "brand":
       return []; // Free-form brand inputs; the design kit interprets them.
     case "commerce.payments":
@@ -1035,6 +1037,33 @@ export function validateSectionValues(
 }
 
 // ─── Commerce Assistant ──────────────────────────────────────────────────────
+
+function validateAppearanceTemplate(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const slug = /^[a-z0-9][a-z0-9-]{0,63}$/;
+  if (values.active !== undefined && (typeof values.active !== "string" || !slug.test(values.active))) {
+    errors.push({ field: "active", message: "active must be a template pack id (lowercase slug)." });
+  }
+  const stringMap = (field: string) => {
+    const value = values[field];
+    if (value === undefined) return;
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      errors.push({ field, message: `${field} must be an object.` });
+      return;
+    }
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (!slug.test(key.replace(/\./g, "-")) || typeof entry !== "string" || !slug.test(entry)) {
+        errors.push({ field: `${field}.${key}`, message: `${field}.${key} must map a surface id to a slug.` });
+      }
+    }
+  };
+  stringMap("overrides");
+  stringMap("variants");
+  if (values.settings !== undefined && (!values.settings || typeof values.settings !== "object" || Array.isArray(values.settings))) {
+    errors.push({ field: "settings", message: "settings must be an object keyed by pack id." });
+  }
+  return errors;
+}
 
 function validateCommerceLayout(values: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
