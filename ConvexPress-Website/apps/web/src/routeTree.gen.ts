@@ -21,6 +21,7 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
 import { Route as SignupOfferIdRouteImport } from './routes/signup.$offerId'
 import { Route as DashboardWishlistRouteImport } from './routes/dashboard/wishlist'
+import { Route as DashboardTicketsRouteImport } from './routes/dashboard/tickets'
 import { Route as DashboardSubscriptionsRouteImport } from './routes/dashboard/subscriptions'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
 import { Route as DashboardSecurityRouteImport } from './routes/dashboard/security'
@@ -31,6 +32,7 @@ import { Route as DashboardPostsRouteImport } from './routes/dashboard/posts'
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard/orders'
 import { Route as DashboardNotificationsRouteImport } from './routes/dashboard/notifications'
 import { Route as DashboardMembershipRouteImport } from './routes/dashboard/membership'
+import { Route as DashboardHelpRouteImport } from './routes/dashboard/help'
 import { Route as DashboardDownloadsRouteImport } from './routes/dashboard/downloads'
 import { Route as DashboardCoursesRouteImport } from './routes/dashboard/courses'
 import { Route as DashboardCommentsRouteImport } from './routes/dashboard/comments'
@@ -184,6 +186,11 @@ const DashboardWishlistRoute = DashboardWishlistRouteImport.update({
   path: '/wishlist',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardTicketsRoute = DashboardTicketsRouteImport.update({
+  id: '/tickets',
+  path: '/tickets',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardSubscriptionsRoute = DashboardSubscriptionsRouteImport.update({
   id: '/subscriptions',
   path: '/subscriptions',
@@ -232,6 +239,11 @@ const DashboardNotificationsRoute = DashboardNotificationsRouteImport.update({
 const DashboardMembershipRoute = DashboardMembershipRouteImport.update({
   id: '/membership',
   path: '/membership',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardHelpRoute = DashboardHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardDownloadsRoute = DashboardDownloadsRouteImport.update({
@@ -756,6 +768,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/comments': typeof DashboardCommentsRoute
   '/dashboard/courses': typeof DashboardCoursesRoute
   '/dashboard/downloads': typeof DashboardDownloadsRoute
+  '/dashboard/help': typeof DashboardHelpRoute
   '/dashboard/membership': typeof DashboardMembershipRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
   '/dashboard/orders': typeof DashboardOrdersRouteWithChildren
@@ -766,6 +779,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/security': typeof DashboardSecurityRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/subscriptions': typeof DashboardSubscriptionsRouteWithChildren
+  '/dashboard/tickets': typeof DashboardTicketsRoute
   '/dashboard/wishlist': typeof DashboardWishlistRoute
   '/signup/$offerId': typeof SignupOfferIdRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -860,6 +874,7 @@ export interface FileRoutesByTo {
   '/dashboard/comments': typeof DashboardCommentsRoute
   '/dashboard/courses': typeof DashboardCoursesRoute
   '/dashboard/downloads': typeof DashboardDownloadsRoute
+  '/dashboard/help': typeof DashboardHelpRoute
   '/dashboard/membership': typeof DashboardMembershipRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
   '/dashboard/orders': typeof DashboardOrdersRouteWithChildren
@@ -870,6 +885,7 @@ export interface FileRoutesByTo {
   '/dashboard/security': typeof DashboardSecurityRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/subscriptions': typeof DashboardSubscriptionsRouteWithChildren
+  '/dashboard/tickets': typeof DashboardTicketsRoute
   '/dashboard/wishlist': typeof DashboardWishlistRoute
   '/signup/$offerId': typeof SignupOfferIdRoute
   '/': typeof MarketingIndexRoute
@@ -977,6 +993,7 @@ export interface FileRoutesById {
   '/dashboard/comments': typeof DashboardCommentsRoute
   '/dashboard/courses': typeof DashboardCoursesRoute
   '/dashboard/downloads': typeof DashboardDownloadsRoute
+  '/dashboard/help': typeof DashboardHelpRoute
   '/dashboard/membership': typeof DashboardMembershipRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
   '/dashboard/orders': typeof DashboardOrdersRouteWithChildren
@@ -987,6 +1004,7 @@ export interface FileRoutesById {
   '/dashboard/security': typeof DashboardSecurityRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/subscriptions': typeof DashboardSubscriptionsRouteWithChildren
+  '/dashboard/tickets': typeof DashboardTicketsRoute
   '/dashboard/wishlist': typeof DashboardWishlistRoute
   '/signup/$offerId': typeof SignupOfferIdRoute
   '/_marketing/': typeof MarketingIndexRoute
@@ -1096,6 +1114,7 @@ export interface FileRouteTypes {
     | '/dashboard/comments'
     | '/dashboard/courses'
     | '/dashboard/downloads'
+    | '/dashboard/help'
     | '/dashboard/membership'
     | '/dashboard/notifications'
     | '/dashboard/orders'
@@ -1106,6 +1125,7 @@ export interface FileRouteTypes {
     | '/dashboard/security'
     | '/dashboard/settings'
     | '/dashboard/subscriptions'
+    | '/dashboard/tickets'
     | '/dashboard/wishlist'
     | '/signup/$offerId'
     | '/dashboard/'
@@ -1200,6 +1220,7 @@ export interface FileRouteTypes {
     | '/dashboard/comments'
     | '/dashboard/courses'
     | '/dashboard/downloads'
+    | '/dashboard/help'
     | '/dashboard/membership'
     | '/dashboard/notifications'
     | '/dashboard/orders'
@@ -1210,6 +1231,7 @@ export interface FileRouteTypes {
     | '/dashboard/security'
     | '/dashboard/settings'
     | '/dashboard/subscriptions'
+    | '/dashboard/tickets'
     | '/dashboard/wishlist'
     | '/signup/$offerId'
     | '/'
@@ -1316,6 +1338,7 @@ export interface FileRouteTypes {
     | '/dashboard/comments'
     | '/dashboard/courses'
     | '/dashboard/downloads'
+    | '/dashboard/help'
     | '/dashboard/membership'
     | '/dashboard/notifications'
     | '/dashboard/orders'
@@ -1326,6 +1349,7 @@ export interface FileRouteTypes {
     | '/dashboard/security'
     | '/dashboard/settings'
     | '/dashboard/subscriptions'
+    | '/dashboard/tickets'
     | '/dashboard/wishlist'
     | '/signup/$offerId'
     | '/_marketing/'
@@ -1521,6 +1545,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardWishlistRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/tickets': {
+      id: '/dashboard/tickets'
+      path: '/tickets'
+      fullPath: '/dashboard/tickets'
+      preLoaderRoute: typeof DashboardTicketsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/subscriptions': {
       id: '/dashboard/subscriptions'
       path: '/subscriptions'
@@ -1589,6 +1620,13 @@ declare module '@tanstack/react-router' {
       path: '/membership'
       fullPath: '/dashboard/membership'
       preLoaderRoute: typeof DashboardMembershipRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/help': {
+      id: '/dashboard/help'
+      path: '/help'
+      fullPath: '/dashboard/help'
+      preLoaderRoute: typeof DashboardHelpRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/downloads': {
@@ -2566,6 +2604,7 @@ interface DashboardRouteChildren {
   DashboardCommentsRoute: typeof DashboardCommentsRoute
   DashboardCoursesRoute: typeof DashboardCoursesRoute
   DashboardDownloadsRoute: typeof DashboardDownloadsRoute
+  DashboardHelpRoute: typeof DashboardHelpRoute
   DashboardMembershipRoute: typeof DashboardMembershipRoute
   DashboardNotificationsRoute: typeof DashboardNotificationsRoute
   DashboardOrdersRoute: typeof DashboardOrdersRouteWithChildren
@@ -2576,6 +2615,7 @@ interface DashboardRouteChildren {
   DashboardSecurityRoute: typeof DashboardSecurityRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardSubscriptionsRoute: typeof DashboardSubscriptionsRouteWithChildren
+  DashboardTicketsRoute: typeof DashboardTicketsRoute
   DashboardWishlistRoute: typeof DashboardWishlistRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardCoursesSlugNodeIdRoute: typeof DashboardCoursesSlugNodeIdRoute
@@ -2586,6 +2626,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardCommentsRoute: DashboardCommentsRoute,
   DashboardCoursesRoute: DashboardCoursesRoute,
   DashboardDownloadsRoute: DashboardDownloadsRoute,
+  DashboardHelpRoute: DashboardHelpRoute,
   DashboardMembershipRoute: DashboardMembershipRoute,
   DashboardNotificationsRoute: DashboardNotificationsRoute,
   DashboardOrdersRoute: DashboardOrdersRouteWithChildren,
@@ -2596,6 +2637,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardSecurityRoute: DashboardSecurityRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardSubscriptionsRoute: DashboardSubscriptionsRouteWithChildren,
+  DashboardTicketsRoute: DashboardTicketsRoute,
   DashboardWishlistRoute: DashboardWishlistRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardCoursesSlugNodeIdRoute: DashboardCoursesSlugNodeIdRoute,

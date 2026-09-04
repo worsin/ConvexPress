@@ -76,6 +76,7 @@ describe("deriveNeedsAction", () => {
   test("persistent notifications with a link need attention; plain info does not", () => {
     expect(deriveNeedsAction({ notificationKey: "x", type: "info", persistent: true, actionUrl: "/dashboard/orders/1" })).toBe(true);
     expect(deriveNeedsAction({ notificationKey: "x", type: "info", persistent: true })).toBe(false);
+    expect(deriveNeedsAction({ notificationKey: "x", type: "success", persistent: true, actionUrl: "/courses/a" })).toBe(false);
     expect(deriveNeedsAction({ notificationKey: "x", type: "success", persistent: false, actionUrl: "/blog/a" })).toBe(false);
   });
 
@@ -85,8 +86,8 @@ describe("deriveNeedsAction", () => {
   });
 
   test("registry-driven derivation matches expectations for the customer-facing keys", () => {
-    const expectTrue = ["ticket_reply_agent", "purchase_payment_failed", "subscription_past_due", "subscription_trial_ending"];
-    const expectFalse = ["purchase_created", "post_published", "comment_reply", "lms_course_completed", "ticket_resolved"];
+    const expectTrue = ["ticket_reply_agent", "purchase_payment_failed", "subscription_past_due", "subscription_trial_ending", "comment_reply"];
+    const expectFalse = ["purchase_created", "post_published", "lms_course_completed", "lms_certificate_issued", "ticket_resolved", "subscription_renewed"];
     for (const key of expectTrue) {
       const config = NOTIFICATION_TYPES[key as keyof typeof NOTIFICATION_TYPES];
       expect(deriveNeedsAction({ notificationKey: config.key, type: config.type, persistent: config.persistent, actionUrl: config.actionUrlTemplate })).toBe(true);

@@ -4,6 +4,7 @@
  * Reactive queries for reading notification data:
  *
  *   - list: Paginated notifications for the current user (with cursor-based pagination)
+ *   - listForCenter: Customer notification center (views, kind filter, search, counts)
  *   - unreadCount: Count of unread notifications for bell badge (capped at 100)
  *   - get: Single notification detail
  *   - getPreferences: All notification preferences for current user (merged with defaults)
@@ -33,7 +34,20 @@ import {
   getUserIdentifier,
 } from "../helpers/permissions";
 import {
+  CENTER_DEFAULT_LIMIT,
+  CENTER_MAX_LIMIT,
+  computeCounts,
+  filterForCenter,
+  isCenterView,
+  isSnoozed,
+  toCenterItem,
+  NOTIFICATION_KINDS,
+  type CenterItem,
+  type NotificationKind,
+} from "./center";
+import {
   listArgs,
+  listForCenterArgs,
   unreadCountArgs,
   getArgs,
   getPreferencesArgs,
@@ -107,10 +121,14 @@ export const list = query({
     }
 
     // 3. Apply post-filters
+    const now = Date.now();
     // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     let filtered = notifications.filter((n) => {
-      // Exclude dismissed
+      // Exclude dismissed (archived)
       if (n.dismissedAt !== undefined) return false;
+
+      // Exclude snoozed (they come back on their own once snoozedUntil passes)
+      if (isSnoozed(n, now)) return false;
 
       // Unread only filter (already handled by index when unreadOnly && !type)
       if (args.unreadOnly && n.readAt !== undefined) return false;
@@ -147,6 +165,9 @@ export const list = query({
         actionUrl: n.actionUrl,
         actionLabel: n.actionLabel,
         readAt: n.readAt,
+        snoozedUntil: n.snoozedUntil,
+        actionedAt: n.actionedAt,
+        needsAction: n.needsAction,
         groupKey: n.groupKey,
         groupCount: n.groupCount,
         actorId: n.actorId,
@@ -157,6 +178,69 @@ export const list = query({
       })),
       nextCursor,
       hasMore,
+    };
+  },
+});
+
+// ─── listForCenter ───────────────────────────────────────────────────────────
+
+/** Rows scanned per user for the center. Feeds are pruned by retention. */
+const CENTER_SCAN_LIMIT = 500;
+
+/**
+ * The customer notification center in one subscription.
+ *
+ * Returns the rows for the requested view (inbox | unread | needs | snoozed |
+ * archived), optionally narrowed by kind and search text, plus live counts
+ * for every view so the tabs and the bell agree. Snooze expiry is evaluated
+ * at query time: once `snoozedUntil` is in the past the row is simply back in
+ * the inbox, no cron involved.
+ *
+ * Items use the public-safe shape from notifications/center.ts (no raw
+ * metadata, no user ids).
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const listForCenter = query({
+  args: listForCenterArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const empty = {
+      items: [] as CenterItem[],
+      counts: { inbox: 0, unread: 0, needs: 0, snoozed: 0, archived: 0 },
+      kinds: [] as NotificationKind[],
+      now,
+    };
+
+    const user = await getCurrentUser(ctx);
+    if (!user) return empty;
+
+    const view = isCenterView(args.view) ? args.view : "inbox";
+    const kind =
+      typeof args.kind === "string" && (NOTIFICATION_KINDS as readonly string[]).includes(args.kind)
+        ? (args.kind as NotificationKind)
+        : "all";
+    const limit = Math.max(1, Math.min(args.limit ?? CENTER_DEFAULT_LIMIT, CENTER_MAX_LIMIT));
+
+    const rows = await ctx.db
+      .query("siteNotifications")
+      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", getUserIdentifier(user)))
+      .order("desc")
+      .take(CENTER_SCAN_LIMIT);
+
+    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
+    const items: CenterItem[] = rows.map((row) => toCenterItem(row));
+    const counts = computeCounts(items, now);
+    const kindsPresent = new Set<NotificationKind>();
+    for (const item of items) {
+      if (item.dismissedAt === undefined) kindsPresent.add(item.kind);
+    }
+
+    return {
+      items: filterForCenter(items, { view, kind, search: args.search, limit }, now),
+      counts,
+      kinds: NOTIFICATION_KINDS.filter((k) => kindsPresent.has(k)),
+      now,
     };
   },
 });
@@ -191,9 +275,12 @@ export const unreadCount = query({
       )
       .take(101); // Cap at 101 to detect > 100
 
-    // 3. Filter out dismissed and count
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-    const count = unread.filter((n) => n.dismissedAt === undefined).length;
+    // 3. Filter out dismissed (archived) and snoozed, then count
+    const now = Date.now();
+    const count = unread.filter(
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
+      (n) => n.dismissedAt === undefined && !isSnoozed(n, now),
+    ).length;
 
     // 4. Cap at 100
     return { count: Math.min(count, 100) };
@@ -263,6 +350,9 @@ export const get = query({
       actionLabel: notification.actionLabel,
       readAt: notification.readAt,
       dismissedAt: notification.dismissedAt,
+      snoozedUntil: notification.snoozedUntil,
+      actionedAt: notification.actionedAt,
+      needsAction: notification.needsAction,
       groupKey: notification.groupKey,
       groupCount: notification.groupCount,
       actorId: notification.actorId,

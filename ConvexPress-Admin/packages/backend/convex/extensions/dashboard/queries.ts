@@ -10,7 +10,7 @@
 import { v } from "convex/values";
 
 import { query } from "../../_generated/server";
-import { getCurrentUser, requireCan, resolveUserRole } from "../../helpers/permissions";
+import { getCurrentUser, getUserIdentifier, requireCan, resolveUserRole } from "../../helpers/permissions";
 import { getDefaults } from "../../settings/defaults";
 import {
   BADGE_SOURCES,
@@ -137,11 +137,18 @@ export const myBadges = query({
     if (!user || user.status !== "active") return empty;
     const counts: Record<string, number> = { ...empty };
     try {
+      // siteNotifications.userId is the notification-system identifier
+      // (clerkUserId when present, else the Convex _id), not always _id.
+      const now = Date.now();
       const unread = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user_unread", (q: any) => q.eq("userId", user._id).eq("readAt", undefined))
+        .withIndex("by_user_unread", (q: any) =>
+          q.eq("userId", getUserIdentifier(user)).eq("readAt", undefined),
+        )
         .take(100);
-      counts["notifications.unread"] = unread.filter((n: any) => !n.dismissedAt).length;
+      counts["notifications.unread"] = unread.filter(
+        (n: any) => !n.dismissedAt && !(typeof n.snoozedUntil === "number" && n.snoozedUntil > now),
+      ).length;
     } catch {
       // table shape differs: leave 0
     }

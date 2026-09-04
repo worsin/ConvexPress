@@ -154,13 +154,16 @@ export interface NeedsActionInput {
  * Whether a notification asks the recipient to do something.
  *
  * Rule: an explicit per-key override wins; otherwise errors and warnings
- * need attention, and a persistent notification that carries a link does
- * too (persistent means "do not auto-expire until dealt with").
+ * need attention, successes never do, and a persistent info notification
+ * that carries a link does (persistent means "do not auto-expire until dealt
+ * with", e.g. a reply to your comment).
  */
 export function deriveNeedsAction(n: NeedsActionInput): boolean {
   const key = n.notificationKey ?? "";
   if (key in NEEDS_ACTION_OVERRIDES) return NEEDS_ACTION_OVERRIDES[key];
   if (n.type === "error" || n.type === "warning") return true;
+  // Successes are celebrations (order paid, course completed): never a to-do.
+  if (n.type === "success") return false;
   if (n.persistent === true && typeof n.actionUrl === "string" && n.actionUrl.length > 0) {
     return true;
   }

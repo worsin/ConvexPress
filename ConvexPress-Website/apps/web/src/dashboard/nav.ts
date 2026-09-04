@@ -48,6 +48,8 @@ export interface RegistryNavOptions {
   basePath: string;
   /** Capabilities held by the viewer; pages requiring one are hidden otherwise. */
   capabilities?: readonly string[];
+  /** Alternative to `capabilities`: a predicate (e.g. useCanFn()). */
+  can?: (capability: string) => boolean;
   /** Include pages with defaultInSidebar=false (used by the mobile "all pages" list). */
   includeAll?: boolean;
   /** Emit group headings between groups. */
@@ -104,7 +106,10 @@ export function registryToNav(pages: DashboardPageDefinition[], options: Registr
   const capabilities = new Set(options.capabilities ?? []);
   const visible = pages.filter((page) => {
     if (!options.includeAll && !page.defaultInSidebar) return false;
-    if (page.capability && !capabilities.has(page.capability)) return false;
+    if (page.capability) {
+      const allowed = options.can ? options.can(page.capability) : capabilities.has(page.capability);
+      if (!allowed) return false;
+    }
     if (options.implementedPageIds && !options.implementedPageIds.has(page.id)) return false;
     return true;
   });

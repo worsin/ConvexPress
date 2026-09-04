@@ -48,6 +48,7 @@ import { Route as AuthenticatedAdminLayoutsIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminKbIndexRouteImport } from './routes/_authenticated/_admin/kb/index'
 import { Route as AuthenticatedAdminGalleryIndexRouteImport } from './routes/_authenticated/_admin/gallery/index'
 import { Route as AuthenticatedAdminFormsIndexRouteImport } from './routes/_authenticated/_admin/forms/index'
+import { Route as AuthenticatedAdminCustomerDashboardIndexRouteImport } from './routes/_authenticated/_admin/customer-dashboard/index'
 import { Route as AuthenticatedAdminCustomFieldsIndexRouteImport } from './routes/_authenticated/_admin/custom-fields/index'
 import { Route as AuthenticatedAdminCommerceIndexRouteImport } from './routes/_authenticated/_admin/commerce/index'
 import { Route as AuthenticatedAdminCommentsIndexRouteImport } from './routes/_authenticated/_admin/comments/index'
@@ -486,6 +487,12 @@ const AuthenticatedAdminFormsIndexRoute =
   AuthenticatedAdminFormsIndexRouteImport.update({
     id: '/forms/',
     path: '/forms/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCustomerDashboardIndexRoute =
+  AuthenticatedAdminCustomerDashboardIndexRouteImport.update({
+    id: '/customer-dashboard/',
+    path: '/customer-dashboard/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminCustomFieldsIndexRoute =
@@ -1933,6 +1940,7 @@ export interface FileRoutesByFullPath {
   '/comments/': typeof AuthenticatedAdminCommentsIndexRoute
   '/commerce/': typeof AuthenticatedAdminCommerceIndexRoute
   '/custom-fields/': typeof AuthenticatedAdminCustomFieldsIndexRoute
+  '/customer-dashboard/': typeof AuthenticatedAdminCustomerDashboardIndexRoute
   '/forms/': typeof AuthenticatedAdminFormsIndexRoute
   '/gallery/': typeof AuthenticatedAdminGalleryIndexRoute
   '/kb/': typeof AuthenticatedAdminKbIndexRoute
@@ -2170,6 +2178,7 @@ export interface FileRoutesByTo {
   '/comments': typeof AuthenticatedAdminCommentsIndexRoute
   '/commerce': typeof AuthenticatedAdminCommerceIndexRoute
   '/custom-fields': typeof AuthenticatedAdminCustomFieldsIndexRoute
+  '/customer-dashboard': typeof AuthenticatedAdminCustomerDashboardIndexRoute
   '/forms': typeof AuthenticatedAdminFormsIndexRoute
   '/gallery': typeof AuthenticatedAdminGalleryIndexRoute
   '/kb': typeof AuthenticatedAdminKbIndexRoute
@@ -2423,6 +2432,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/comments/': typeof AuthenticatedAdminCommentsIndexRoute
   '/_authenticated/_admin/commerce/': typeof AuthenticatedAdminCommerceIndexRoute
   '/_authenticated/_admin/custom-fields/': typeof AuthenticatedAdminCustomFieldsIndexRoute
+  '/_authenticated/_admin/customer-dashboard/': typeof AuthenticatedAdminCustomerDashboardIndexRoute
   '/_authenticated/_admin/forms/': typeof AuthenticatedAdminFormsIndexRoute
   '/_authenticated/_admin/gallery/': typeof AuthenticatedAdminGalleryIndexRoute
   '/_authenticated/_admin/kb/': typeof AuthenticatedAdminKbIndexRoute
@@ -2675,6 +2685,7 @@ export interface FileRouteTypes {
     | '/comments/'
     | '/commerce/'
     | '/custom-fields/'
+    | '/customer-dashboard/'
     | '/forms/'
     | '/gallery/'
     | '/kb/'
@@ -2912,6 +2923,7 @@ export interface FileRouteTypes {
     | '/comments'
     | '/commerce'
     | '/custom-fields'
+    | '/customer-dashboard'
     | '/forms'
     | '/gallery'
     | '/kb'
@@ -3164,6 +3176,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/comments/'
     | '/_authenticated/_admin/commerce/'
     | '/_authenticated/_admin/custom-fields/'
+    | '/_authenticated/_admin/customer-dashboard/'
     | '/_authenticated/_admin/forms/'
     | '/_authenticated/_admin/gallery/'
     | '/_authenticated/_admin/kb/'
@@ -3571,6 +3584,13 @@ declare module '@tanstack/react-router' {
       path: '/forms'
       fullPath: '/forms/'
       preLoaderRoute: typeof AuthenticatedAdminFormsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/customer-dashboard/': {
+      id: '/_authenticated/_admin/customer-dashboard/'
+      path: '/customer-dashboard'
+      fullPath: '/customer-dashboard/'
+      preLoaderRoute: typeof AuthenticatedAdminCustomerDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/custom-fields/': {
@@ -5974,6 +5994,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminUsersNewRoute: typeof AuthenticatedAdminUsersNewRoute
   AuthenticatedAdminApiKeysIndexRoute: typeof AuthenticatedAdminApiKeysIndexRoute
   AuthenticatedAdminCommentsIndexRoute: typeof AuthenticatedAdminCommentsIndexRoute
+  AuthenticatedAdminCustomerDashboardIndexRoute: typeof AuthenticatedAdminCustomerDashboardIndexRoute
   AuthenticatedAdminFormsIndexRoute: typeof AuthenticatedAdminFormsIndexRoute
   AuthenticatedAdminLayoutsIndexRoute: typeof AuthenticatedAdminLayoutsIndexRoute
   AuthenticatedAdminMediaIndexRoute: typeof AuthenticatedAdminMediaIndexRoute
@@ -6044,6 +6065,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminUsersNewRoute: AuthenticatedAdminUsersNewRoute,
   AuthenticatedAdminApiKeysIndexRoute: AuthenticatedAdminApiKeysIndexRoute,
   AuthenticatedAdminCommentsIndexRoute: AuthenticatedAdminCommentsIndexRoute,
+  AuthenticatedAdminCustomerDashboardIndexRoute:
+    AuthenticatedAdminCustomerDashboardIndexRoute,
   AuthenticatedAdminFormsIndexRoute: AuthenticatedAdminFormsIndexRoute,
   AuthenticatedAdminLayoutsIndexRoute: AuthenticatedAdminLayoutsIndexRoute,
   AuthenticatedAdminMediaIndexRoute: AuthenticatedAdminMediaIndexRoute,

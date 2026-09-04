@@ -24,6 +24,7 @@ import { internal } from "../_generated/api";
 import { emitEvent } from "../helpers/events";
 import { interpolateTemplate } from "../helpers/notification";
 import { getUserIdentifier } from "../helpers/permissions";
+import { deriveNeedsAction } from "./center";
 import {
   sendArgs,
   sendBulkArgs,
@@ -364,6 +365,18 @@ export const send = internalMutation({
     const isPersistent = args.persistent ?? notificationConfig?.persistent ?? false;
     const expiresAt = isPersistent ? undefined : now + THIRTY_DAYS_MS;
 
+    // ─── 5b. Does this ask the recipient to do something? ─────────────
+    // Drives the "Needs you" view in the customer notification center.
+    const actionUrl = args.actionUrl?.slice(0, 500);
+    const needsAction =
+      args.needsAction ??
+      deriveNeedsAction({
+        notificationKey: args.notificationKey,
+        type: args.type,
+        persistent: isPersistent,
+        actionUrl,
+      });
+
     // ─── 6. Insert notification record ─────────────────────────────────
     const notificationId = await ctx.db.insert("siteNotifications", {
       userId: args.userId,
@@ -374,10 +387,11 @@ export const send = internalMutation({
       title,
       message,
       icon: args.icon,
-      actionUrl: args.actionUrl?.slice(0, 500),
+      actionUrl,
       actionLabel: args.actionLabel?.slice(0, 50),
       readAt: undefined,
       dismissedAt: undefined,
+      needsAction,
       groupKey: args.groupKey?.slice(0, 200),
       groupCount: args.groupKey ? 1 : undefined,
       actorId: args.actorId,

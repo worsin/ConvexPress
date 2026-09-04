@@ -7,6 +7,9 @@
  *   - markAllRead: Mark all unread notifications as read (owner only)
  *   - dismiss: Soft-dismiss a notification (owner only)
  *   - dismissAll: Dismiss all read notifications (owner only)
+ *   - markUnread / markActioned / archive / restore / snooze / unsnooze / archiveRead:
+ *     customer notification center actions (owner only). "archive" is the
+ *     center's name for dismiss; archived rows stay listed under "Archived".
  *   - updatePreferences: Update per-key notification preferences (owner only)
  *   - bulkUpdatePreferences: Batch update multiple preferences (owner only)
  *
@@ -32,8 +35,42 @@ import {
   dismissArgs,
   dismissAllArgs,
   updatePreferencesArgs,
+  notificationIdArgs,
+  snoozeArgs,
+  archiveReadArgs,
   isValidNotificationKey,
 } from "./validators";
+import { isSnoozed, validateSnoozeUntil } from "./center";
+
+// ─── Ownership helper ────────────────────────────────────────────────────────
+
+/**
+ * Load a notification the current user owns, or throw. Shared by every
+ * single-row center mutation (markUnread, archive, restore, snooze, ...).
+ */
+async function requireOwnNotification(ctx: any, notificationId: any) {
+  const user = await getCurrentUser(ctx);
+  if (!user) {
+    throw new ConvexError({
+      code: "UNAUTHORIZED",
+      message: "Authentication required",
+    });
+  }
+  const notification = await ctx.db.get("siteNotifications", notificationId);
+  if (!notification) {
+    throw new ConvexError({
+      code: "NOT_FOUND",
+      message: "Notification not found",
+    });
+  }
+  if (notification.userId !== getUserIdentifier(user)) {
+    throw new ConvexError({
+      code: "FORBIDDEN",
+      message: "Cannot modify another user's notification",
+    });
+  }
+  return { user, notification };
+}
 
 // ─── markRead ────────────────────────────────────────────────────────────────
 
@@ -373,5 +410,159 @@ export const sendTestNotification = mutation({
         actorName,
       },
     );
+  },
+});
+
+// ─── Notification center mutations ───────────────────────────────────────────
+
+/**
+ * Mark a notification unread again (owner only). Idempotent.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const markUnread = mutation({
+  args: notificationIdArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    const { notification } = await requireOwnNotification(ctx, args.notificationId);
+    if (notification.readAt === undefined) return;
+    await ctx.db.patch("siteNotifications", args.notificationId, { readAt: undefined });
+  },
+});
+
+/**
+ * Record that the recipient followed the notification's link. Marks it read
+ * too, and clears it from the "Needs you" view. Idempotent.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const markActioned = mutation({
+  args: notificationIdArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    const { notification } = await requireOwnNotification(ctx, args.notificationId);
+    const now = Date.now();
+    const patch: Record<string, unknown> = {};
+    if (notification.actionedAt === undefined) patch.actionedAt = now;
+    if (notification.readAt === undefined) patch.readAt = now;
+    if (Object.keys(patch).length === 0) return;
+    await ctx.db.patch("siteNotifications", args.notificationId, patch);
+  },
+});
+
+/**
+ * Archive a notification (the center's name for dismiss). Archived rows are
+ * hidden from the inbox and listed under "Archived"; restore brings them back.
+ * Also marks it read so the unread badge does not count hidden rows.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const archive = mutation({
+  args: notificationIdArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    const { notification } = await requireOwnNotification(ctx, args.notificationId);
+    if (notification.dismissedAt !== undefined) return;
+    const now = Date.now();
+    await ctx.db.patch("siteNotifications", args.notificationId, {
+      dismissedAt: now,
+      readAt: notification.readAt ?? now,
+    });
+  },
+});
+
+/**
+ * Bring an archived notification back to the inbox. Clears any snooze too.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const restore = mutation({
+  args: notificationIdArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    const { notification } = await requireOwnNotification(ctx, args.notificationId);
+    if (notification.dismissedAt === undefined) return;
+    await ctx.db.patch("siteNotifications", args.notificationId, {
+      dismissedAt: undefined,
+      snoozedUntil: undefined,
+    });
+  },
+});
+
+/**
+ * Snooze a notification until an absolute timestamp (1 minute to 30 days
+ * out). Snoozed rows leave the inbox and come back on their own once the
+ * time passes; nothing is scheduled. Snoozing an archived row restores it.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const snooze = mutation({
+  args: snoozeArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    const { notification } = await requireOwnNotification(ctx, args.notificationId);
+    const now = Date.now();
+    const problem = validateSnoozeUntil(args.until, now);
+    if (problem) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: problem });
+    }
+    await ctx.db.patch("siteNotifications", args.notificationId, {
+      snoozedUntil: Math.floor(args.until),
+      dismissedAt: undefined,
+      // Reading it is implied by choosing when to see it again.
+      readAt: notification.readAt ?? now,
+    });
+    return { snoozedUntil: Math.floor(args.until) };
+  },
+});
+
+/**
+ * Bring a snoozed notification back now. Marks it unread so it stands out.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const unsnooze = mutation({
+  args: notificationIdArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    const { notification } = await requireOwnNotification(ctx, args.notificationId);
+    if (!isSnoozed(notification, Date.now())) {
+      if (notification.snoozedUntil === undefined) return;
+    }
+    await ctx.db.patch("siteNotifications", args.notificationId, {
+      snoozedUntil: undefined,
+      readAt: undefined,
+    });
+  },
+});
+
+/**
+ * Archive every inbox notification the user has already read (not snoozed,
+ * not already archived). Processes up to 500 rows in one call.
+ *
+ * Returns: { count: number }
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const archiveRead = mutation({
+  args: archiveReadArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Authentication required",
+      });
+    }
+    const now = Date.now();
+    const rows = await ctx.db
+      .query("siteNotifications")
+      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", getUserIdentifier(user)))
+      .order("desc")
+      .take(500);
+
+    let count = 0;
+    for (const row of rows) {
+      if (row.readAt === undefined) continue;
+      if (row.dismissedAt !== undefined) continue;
+      if (isSnoozed(row, now)) continue;
+      await ctx.db.patch("siteNotifications", row._id, { dismissedAt: now });
+      count++;
+    }
+    return { count };
   },
 });

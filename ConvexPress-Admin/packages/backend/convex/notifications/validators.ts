@@ -1171,7 +1171,53 @@ export const listAllArgs = {
   cursor: v.optional(v.number()),
 };
 
+/**
+ * Args for the listForCenter query (customer notification center).
+ */
+export const listForCenterArgs = {
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  view: v.optional(
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    v.union(
+      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+      v.literal("inbox"),
+      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+      v.literal("unread"),
+      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+      v.literal("needs"),
+      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+      v.literal("snoozed"),
+      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+      v.literal("archived"),
+    ),
+  ),
+  kind: v.optional(v.string()),
+  search: v.optional(v.string()),
+  limit: v.optional(v.number()),
+};
+
 // ─── Mutation Argument Validators ────────────────────────────────────────────
+
+/**
+ * Args for markUnread / markActioned / archive / restore / unsnooze mutations.
+ */
+export const notificationIdArgs = {
+  notificationId: v.id("siteNotifications"),
+};
+
+/**
+ * Args for the snooze mutation.
+ */
+export const snoozeArgs = {
+  notificationId: v.id("siteNotifications"),
+  /** Absolute timestamp (ms) the notification returns to the inbox at. */
+  until: v.number(),
+};
+
+/**
+ * Args for the archiveRead mutation (archive everything already read in the inbox).
+ */
+export const archiveReadArgs = {};
 
 /**
  * Args for markRead mutation.
@@ -1251,6 +1297,8 @@ export const sendArgs = {
   metadata: v.optional(v.string()),
   persistent: v.optional(v.boolean()),
   groupKey: v.optional(v.string()),
+  /** Explicit "needs you" flag; derived from key/type/persistent/actionUrl when omitted. */
+  needsAction: v.optional(v.boolean()),
 };
 
 /**
@@ -1274,6 +1322,7 @@ export const sendBulkArgs = {
   metadata: v.optional(v.string()),
   persistent: v.optional(v.boolean()),
   groupKey: v.optional(v.string()),
+  needsAction: v.optional(v.boolean()),
 };
 
 /**
