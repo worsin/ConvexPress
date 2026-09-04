@@ -13,7 +13,7 @@ import type { CategoryArchiveProduct, CategoryArchiveSurfaceData } from "@/templ
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Breadcrumbs, Card, Container, EmptyState, Label, Pagination, Price, Toolbar, buttonClasses } from "../parts";
-import { PageHeader } from "../parts/extra";
+import { PageHeader } from "../parts/extra-commerce";
 
 const GRID = "grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
 

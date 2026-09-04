@@ -6,7 +6,7 @@ import type { BlogTagSurfaceData } from "@/templates/packs/core/surfaces/blog.ta
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Breadcrumbs, Container, EmptyState, Pagination } from "../parts";
-import { PageHeader, PostRows } from "../parts/extra";
+import { PageHeader, PostRows } from "../parts/extra-commerce";
 
 export default function DepotBlogTag({ data }: SurfaceProps<BlogTagSurfaceData>) {
   const { tag, slug, posts, pagination } = data;

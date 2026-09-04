@@ -16,7 +16,7 @@ import type { HelpArticleSurfaceData } from "@/templates/packs/core/surfaces/hel
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Breadcrumbs, Container, EmptyState, LinkButton, Prose, Rule, SmallCaps, formatDate } from "../parts";
-import { MetaLine } from "../parts/content";
+import { MetaLine } from "../parts/extra-plugins";
 
 /* ───────────────────────── content ───────────────────────── */
 

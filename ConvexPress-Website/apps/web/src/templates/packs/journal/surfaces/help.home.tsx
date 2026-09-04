@@ -10,7 +10,7 @@ import type { HelpHomeSurfaceData } from "@/templates/packs/core/surfaces/help.h
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Container, EmptyState, Rule, SectionHeading, SmallCaps } from "../parts";
-import { SearchLine } from "../parts/content";
+import { SearchLine } from "../parts/extra-plugins";
 
 export default function JournalHelpHome({ data }: SurfaceProps<HelpHomeSurfaceData>) {
   const { categories, featured, actions } = data;

@@ -11,7 +11,7 @@ import type { PasswordGateSurfaceData } from "@/templates/packs/core/surfaces/sy
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Button, Label } from "../parts";
-import { SystemFrame, inputClasses } from "../parts/extra";
+import { SystemFrame, inputClasses } from "../parts/extra-commerce";
 
 export default function DepotPasswordGate({ data }: SurfaceProps<PasswordGateSurfaceData>) {
   const { kind, title, onSubmit, isVerifying, error } = data;

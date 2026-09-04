@@ -11,7 +11,7 @@ import type { CategoriesSurfaceData, CategoryDirectoryItem } from "@/templates/p
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Badge, Card, Container, EmptyState, Label, SectionHeading } from "../parts";
-import { PageHeader } from "../parts/extra";
+import { PageHeader } from "../parts/extra-commerce";
 
 const GRID = "grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
 

@@ -10,7 +10,7 @@ import type { ErrorSurfaceData } from "@/templates/packs/core/surfaces/system.er
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Button, Label, buttonClasses } from "../parts";
-import { SystemFrame } from "../parts/extra";
+import { SystemFrame } from "../parts/extra-commerce";
 
 export default function DepotSystemError({ data }: SurfaceProps<ErrorSurfaceData>) {
   const { error, reset } = data;

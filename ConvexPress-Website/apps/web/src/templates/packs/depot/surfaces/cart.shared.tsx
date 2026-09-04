@@ -9,7 +9,7 @@ import type { SharedCartSurfaceData } from "@/templates/packs/core/surfaces/cart
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Badge, Button, Container, DataTable, EmptyState, LinkButton, Skeleton, StickyPanel, Td, Th } from "../parts";
-import { PageHeader } from "../parts/extra";
+import { PageHeader } from "../parts/extra-commerce";
 
 export default function DepotSharedCart({ data }: SurfaceProps<SharedCartSurfaceData>) {
   const { sharedCart, isReady, isCopying, onCopy } = data;

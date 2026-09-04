@@ -6,7 +6,7 @@ import type { BlogAuthorSurfaceData } from "@/templates/packs/core/surfaces/blog
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Container, EmptyState, Label, Pagination } from "../parts";
-import { PostRows } from "../parts/extra";
+import { PostRows } from "../parts/extra-commerce";
 
 export default function DepotBlogAuthor({ data }: SurfaceProps<BlogAuthorSurfaceData>) {
   const { archive, slug, posts, pagination } = data;

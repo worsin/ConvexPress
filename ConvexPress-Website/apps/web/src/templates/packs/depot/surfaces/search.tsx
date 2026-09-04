@@ -15,7 +15,7 @@ import type { SearchSurfaceData } from "@/templates/packs/core/surfaces/search";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Button, Card, Chip, Container, EmptyState, Label, Pagination, Select, Skeleton, Toolbar, formatDate } from "../parts";
-import { PageHeader } from "../parts/extra";
+import { PageHeader } from "../parts/extra-commerce";
 
 const CONTENT_TYPES: ReadonlyArray<{ value: string | undefined; label: string }> = [
   { value: undefined, label: "All" },

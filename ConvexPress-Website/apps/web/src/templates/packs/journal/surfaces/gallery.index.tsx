@@ -7,7 +7,7 @@ import type { GalleryIndexSurfaceData } from "@/templates/packs/core/surfaces/ga
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Container, EmptyState, LinkButton, SectionHeading, SmallCaps } from "../parts";
-import { AlbumTile, HairlineGrid } from "../parts/content";
+import { AlbumTile, HairlineGrid } from "../parts/extra-plugins";
 
 export default function JournalGalleryIndex({ data }: SurfaceProps<GalleryIndexSurfaceData>) {
   const { albums } = data;

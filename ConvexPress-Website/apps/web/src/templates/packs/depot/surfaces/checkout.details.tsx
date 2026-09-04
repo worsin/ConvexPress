@@ -8,7 +8,7 @@ import type { CheckoutDetailsSurfaceData } from "@/templates/packs/core/surfaces
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Button, Card, Container, DataTable, EmptyState, LinkButton, Skeleton, StickyPanel } from "../parts";
-import { CheckoutNotice, CheckoutSteps, Field, PageHeader } from "../parts/extra";
+import { CheckoutNotice, CheckoutSteps, Field, PageHeader } from "../parts/extra-commerce";
 
 export default function DepotCheckoutDetails({ data }: SurfaceProps<CheckoutDetailsSurfaceData>) {
   const { storeEmail, isReady, cart, session, email, isSubmitting, onEmailChange, onSubmit } = data;

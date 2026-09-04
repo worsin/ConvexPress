@@ -15,7 +15,7 @@ import type { CheckoutShippingSurfaceData, ShippingAddressForm, ShippingQuote } 
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Badge, Button, Card, Container, DataTable, EmptyState, Label, LinkButton, Skeleton, StickyPanel, Td, Th } from "../parts";
-import { CheckoutNotice, CheckoutSteps, Field, Notice, PageHeader, inputClasses } from "../parts/extra";
+import { CheckoutNotice, CheckoutSteps, Field, Notice, PageHeader, inputClasses } from "../parts/extra-commerce";
 
 const ADDRESS_FIELDS: ReadonlyArray<{ key: keyof ShippingAddressForm; label: string; wide?: boolean; autoComplete: string }> = [
   { key: "firstName", label: "First name", autoComplete: "given-name" },

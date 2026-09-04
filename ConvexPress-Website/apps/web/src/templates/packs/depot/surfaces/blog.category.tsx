@@ -9,7 +9,7 @@ import type { BlogCategorySurfaceData } from "@/templates/packs/core/surfaces/bl
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Breadcrumbs, Container, EmptyState, Label, Pagination, Toolbar, buttonClasses } from "../parts";
-import { PageHeader, PostRows } from "../parts/extra";
+import { PageHeader, PostRows } from "../parts/extra-commerce";
 
 export default function DepotBlogCategory({ data }: SurfaceProps<BlogCategorySurfaceData>) {
   const { category, slug, ancestors, subcategories, posts, pagination } = data;

@@ -10,7 +10,7 @@ import type { HelpSearchSurfaceData } from "@/templates/packs/core/surfaces/help
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Breadcrumbs, Container, EmptyState, LinkButton, SmallCaps } from "../parts";
-import { SearchLine } from "../parts/content";
+import { SearchLine } from "../parts/extra-plugins";
 
 export default function JournalHelpSearch({ data }: SurfaceProps<HelpSearchSurfaceData>) {
   const { q, hasQuery, results, total, actions } = data;

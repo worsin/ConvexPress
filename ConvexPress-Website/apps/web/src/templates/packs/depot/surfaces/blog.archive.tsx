@@ -11,7 +11,7 @@ import type { BlogArchiveSurfaceData } from "@/templates/packs/core/surfaces/blo
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Card, Container, EmptyState, Label, Skeleton, Td, Th } from "../parts";
-import { PageHeader } from "../parts/extra";
+import { PageHeader } from "../parts/extra-commerce";
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 

@@ -13,7 +13,7 @@ import type { CheckoutPaymentSurfaceData } from "@/templates/packs/core/surfaces
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Badge, Button, Card, Container, DataTable, EmptyState, LinkButton, Skeleton, StickyPanel } from "../parts";
-import { CheckoutNotice, CheckoutSteps, Notice, PageHeader } from "../parts/extra";
+import { CheckoutNotice, CheckoutSteps, Notice, PageHeader } from "../parts/extra-commerce";
 
 const METHOD_ICONS: Record<string, typeof CreditCard> = {
   card: CreditCard,
