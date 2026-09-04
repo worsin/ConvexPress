@@ -23,6 +23,7 @@ import { Surface } from "@/templates/sdk/Surface";
 import { SupportWidget } from "@/components/support/widget/SupportWidget";
 import { api } from "@convexpress-website/backend/generated/api";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { TemplateSettingsDraftProvider } from "@/templates/sdk/useTemplateSettings";
 import { getSiteRuntime, siteRuntimeBootstrapScript } from "@/lib/site-runtime";
 
 import appCss from "../index.css?url";
@@ -204,10 +205,12 @@ function RootDocument() {
             </head>
             <body className="min-h-svh" suppressHydrationWarning>
               <SettingsProvider>
+              <TemplateSettingsDraftProvider>
                 <WebsiteNotificationToastProvider>
                   <Outlet />
                 </WebsiteNotificationToastProvider>
                 <SupportWidget />
+              </TemplateSettingsDraftProvider>
               </SettingsProvider>
               <Toaster richColors />
               <Scripts />

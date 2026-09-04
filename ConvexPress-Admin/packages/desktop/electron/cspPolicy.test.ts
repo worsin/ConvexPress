@@ -91,5 +91,11 @@ describe("desktop CSP policy", () => {
     expect(directives["media-src"]).toContain("http://192.168.1.246:4820");
     expect(directives["img-src"]).not.toContain("wss://ignored.example");
     expect(directives["connect-src"]).toContain("ws://192.168.1.246:4820");
+    expect(directives["frame-src"]).toContain("http://192.168.1.246:4820");
+  });
+
+  test("lets the Customizer frame loopback storefronts in development", () => {
+    const policy = buildDesktopContentSecurityPolicy({ development: true, allowLoopback: false });
+    expect(policy).toMatch(/frame-src [^;]*http:\/\/127\.0\.0\.1:\*/);
   });
 });

@@ -1,0 +1,67 @@
+{
+  "id": "depot",
+  "name": "Depot",
+  "version": "1.0.0",
+  "sdk": "^1",
+  "tagline": "Dense. Fast. Everything in view.",
+  "description": "A dense, edge-to-edge marketplace for large catalogs: a two-row header with a prominent search bar and department navigation, a toolbar-driven product grid with numbered pagination, spec tables, sticky buy boxes and a tabular cart. Information first, boxes not rules, tight rhythm.",
+  "author": "ConvexPress",
+  "bestFor": [
+    "Large catalogs",
+    "Parts and consumables",
+    "Comparison shoppers"
+  ],
+  "surfaces": [
+    "chrome.header",
+    "chrome.mobileNav",
+    "chrome.footer",
+    "system.notFound",
+    "home",
+    "page",
+    "blog.index",
+    "blog.post",
+    "shop.catalog",
+    "shop.product",
+    "cart"
+  ],
+  "variants": {
+    "page": [
+      "default",
+      "sidebar-left",
+      "full-width",
+      "no-sidebar",
+      "landing",
+      "blank"
+    ],
+    "shop.catalog": [
+      "marketplace"
+    ],
+    "shop.product": [
+      "marketplace",
+      "classic",
+      "showcase"
+    ]
+  },
+  "modules": [
+    "colors",
+    "typography",
+    "layout",
+    "header",
+    "footer",
+    "menuLayout",
+    "shop",
+    "pageTemplates"
+  ],
+  "menuLocations": {
+    "primary": "header",
+    "secondary": "secondary",
+    "footer-1": "footer-1",
+    "footer-2": "footer-2",
+    "footer-3": "footer-3"
+  },
+  "defaults": {
+    "layout": {
+      "contentWidth": "full"
+    }
+  }
+}

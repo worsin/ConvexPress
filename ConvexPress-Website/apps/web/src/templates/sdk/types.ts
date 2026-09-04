@@ -46,6 +46,8 @@ export interface TemplateManifest {
   modules?: string[];
   /** Pack-specific Customize groups. */
   settings?: TemplateSettingsGroup[];
+  /** Per-pack defaults for module fields, e.g. { layout: { contentWidth: "full" } }. */
+  defaults?: Record<string, Record<string, unknown>>;
   /** Menu locations rendered, keyed by role. */
   menuLocations?: Record<string, string>;
 }

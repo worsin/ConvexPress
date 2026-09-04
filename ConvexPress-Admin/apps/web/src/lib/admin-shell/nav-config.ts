@@ -389,6 +389,7 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
       // useHeaderConfig / useFooterConfig and renders SiteHeader / SiteFooter
       // from the live values. NOT a preset picker — full per-section control.
       { id: "appearance-templates", label: "Templates", to: "/appearance/templates" },
+      { id: "appearance-customize", label: "Customize", to: "/appearance/customize" },
       { id: "appearance-header", label: "Header", to: "/appearance/header" },
       { id: "appearance-footer", label: "Footer", to: "/appearance/footer" },
       { id: "appearance-colors", label: "Colors", to: "/appearance/colors" },

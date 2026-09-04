@@ -23,10 +23,9 @@ export function ContentWrapper({
   return (
     <div
       data-slot="content-wrapper"
-      className={cn(
-        "mx-auto w-full px-4 py-6 md:px-6 lg:px-8 lg:py-8",
-        MAX_WIDTH_MAP[maxWidth],
-      )}
+      className={cn("mx-auto w-full px-4 py-6 md:px-6 lg:px-8 lg:py-8", MAX_WIDTH_MAP[maxWidth])}
+      // The template's Layout › Content width setting (Customize) overrides the static cap.
+      style={{ maxWidth: "var(--content-max-width, none)" } as React.CSSProperties}
     >
       {/* Breadcrumbs */}
       {showBreadcrumbs && <Breadcrumbs className="mb-4" />}

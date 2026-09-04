@@ -242,6 +242,13 @@ app.whenReady().then(async () => {
 
   // ---------- Content-Security-Policy Headers ----------
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    // Only the app's own documents get the desktop policy. Framed pages (the
+    // Customizer's live storefront preview) keep their own headers; stamping
+    // `frame-ancestors 'none'` onto them would refuse the very frame we opened.
+    if (details.resourceType !== "mainFrame") {
+      callback({ responseHeaders: details.responseHeaders });
+      return;
+    }
     const csp = buildDesktopContentSecurityPolicy({
       development: isDev(),
       allowLoopback: controllerConfigUsesLoopback(

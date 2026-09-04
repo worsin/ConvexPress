@@ -117,6 +117,9 @@ export function buildDesktopContentSecurityPolicy({
     "https://*.convex.site",
   ];
 
+  // The Customizer previews the live storefront in an iframe.
+  const frameSources = ["'self'", ...(permitsLoopback ? LOOPBACK_MEDIA_SOURCES : []), ...deploymentHttpOrigins];
+
   return [
     development ? "default-src 'self'" : "default-src 'self' file: blob:",
     development
@@ -128,6 +131,7 @@ export function buildDesktopContentSecurityPolicy({
     `connect-src ${connectSources.join(" ")}`,
     `img-src ${imageSources.join(" ")}`,
     `media-src ${mediaSources.join(" ")}`,
+    `frame-src ${frameSources.join(" ")}`,
     development ? "font-src 'self' data:" : "font-src 'self' file: data:",
     "frame-ancestors 'none'",
     "base-uri 'self'",

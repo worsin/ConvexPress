@@ -151,6 +151,7 @@ import { Route as AuthenticatedAdminAppearanceThemesRouteImport } from './routes
 import { Route as AuthenticatedAdminAppearanceTemplatesRouteImport } from './routes/_authenticated/_admin/appearance/templates'
 import { Route as AuthenticatedAdminAppearanceHeaderRouteImport } from './routes/_authenticated/_admin/appearance/header'
 import { Route as AuthenticatedAdminAppearanceFooterRouteImport } from './routes/_authenticated/_admin/appearance/footer'
+import { Route as AuthenticatedAdminAppearanceCustomizeRouteImport } from './routes/_authenticated/_admin/appearance/customize'
 import { Route as AuthenticatedAdminAppearanceColorsRouteImport } from './routes/_authenticated/_admin/appearance/colors'
 import { Route as AuthenticatedAdminToolsWordpressSyncIndexRouteImport } from './routes/_authenticated/_admin/tools/wordpress-sync/index'
 import { Route as AuthenticatedAdminToolsWebsiteImportIndexRouteImport } from './routes/_authenticated/_admin/tools/website-import/index'
@@ -1117,6 +1118,12 @@ const AuthenticatedAdminAppearanceFooterRoute =
     path: '/footer',
     getParentRoute: () => AuthenticatedAdminAppearanceRoute,
   } as any)
+const AuthenticatedAdminAppearanceCustomizeRoute =
+  AuthenticatedAdminAppearanceCustomizeRouteImport.update({
+    id: '/customize',
+    path: '/customize',
+    getParentRoute: () => AuthenticatedAdminAppearanceRoute,
+  } as any)
 const AuthenticatedAdminAppearanceColorsRoute =
   AuthenticatedAdminAppearanceColorsRouteImport.update({
     id: '/colors',
@@ -1860,6 +1867,7 @@ export interface FileRoutesByFullPath {
   '/tools': typeof AuthenticatedAdminToolsRouteWithChildren
   '/updates': typeof AuthenticatedAdminUpdatesRoute
   '/appearance/colors': typeof AuthenticatedAdminAppearanceColorsRoute
+  '/appearance/customize': typeof AuthenticatedAdminAppearanceCustomizeRoute
   '/appearance/footer': typeof AuthenticatedAdminAppearanceFooterRoute
   '/appearance/header': typeof AuthenticatedAdminAppearanceHeaderRoute
   '/appearance/templates': typeof AuthenticatedAdminAppearanceTemplatesRoute
@@ -2102,6 +2110,7 @@ export interface FileRoutesByTo {
   '/support': typeof AuthenticatedAdminSupportRouteWithChildren
   '/updates': typeof AuthenticatedAdminUpdatesRoute
   '/appearance/colors': typeof AuthenticatedAdminAppearanceColorsRoute
+  '/appearance/customize': typeof AuthenticatedAdminAppearanceCustomizeRoute
   '/appearance/footer': typeof AuthenticatedAdminAppearanceFooterRoute
   '/appearance/header': typeof AuthenticatedAdminAppearanceHeaderRoute
   '/appearance/templates': typeof AuthenticatedAdminAppearanceTemplatesRoute
@@ -2358,6 +2367,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/tools': typeof AuthenticatedAdminToolsRouteWithChildren
   '/_authenticated/_admin/updates': typeof AuthenticatedAdminUpdatesRoute
   '/_authenticated/_admin/appearance/colors': typeof AuthenticatedAdminAppearanceColorsRoute
+  '/_authenticated/_admin/appearance/customize': typeof AuthenticatedAdminAppearanceCustomizeRoute
   '/_authenticated/_admin/appearance/footer': typeof AuthenticatedAdminAppearanceFooterRoute
   '/_authenticated/_admin/appearance/header': typeof AuthenticatedAdminAppearanceHeaderRoute
   '/_authenticated/_admin/appearance/templates': typeof AuthenticatedAdminAppearanceTemplatesRoute
@@ -2614,6 +2624,7 @@ export interface FileRouteTypes {
     | '/tools'
     | '/updates'
     | '/appearance/colors'
+    | '/appearance/customize'
     | '/appearance/footer'
     | '/appearance/header'
     | '/appearance/templates'
@@ -2856,6 +2867,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/updates'
     | '/appearance/colors'
+    | '/appearance/customize'
     | '/appearance/footer'
     | '/appearance/header'
     | '/appearance/templates'
@@ -3111,6 +3123,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/tools'
     | '/_authenticated/_admin/updates'
     | '/_authenticated/_admin/appearance/colors'
+    | '/_authenticated/_admin/appearance/customize'
     | '/_authenticated/_admin/appearance/footer'
     | '/_authenticated/_admin/appearance/header'
     | '/_authenticated/_admin/appearance/templates'
@@ -4346,6 +4359,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAppearanceFooterRouteImport
       parentRoute: typeof AuthenticatedAdminAppearanceRoute
     }
+    '/_authenticated/_admin/appearance/customize': {
+      id: '/_authenticated/_admin/appearance/customize'
+      path: '/customize'
+      fullPath: '/appearance/customize'
+      preLoaderRoute: typeof AuthenticatedAdminAppearanceCustomizeRouteImport
+      parentRoute: typeof AuthenticatedAdminAppearanceRoute
+    }
     '/_authenticated/_admin/appearance/colors': {
       id: '/_authenticated/_admin/appearance/colors'
       path: '/colors'
@@ -5135,6 +5155,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminAppearanceRouteChildren {
   AuthenticatedAdminAppearanceColorsRoute: typeof AuthenticatedAdminAppearanceColorsRoute
+  AuthenticatedAdminAppearanceCustomizeRoute: typeof AuthenticatedAdminAppearanceCustomizeRoute
   AuthenticatedAdminAppearanceFooterRoute: typeof AuthenticatedAdminAppearanceFooterRoute
   AuthenticatedAdminAppearanceHeaderRoute: typeof AuthenticatedAdminAppearanceHeaderRoute
   AuthenticatedAdminAppearanceTemplatesRoute: typeof AuthenticatedAdminAppearanceTemplatesRoute
@@ -5146,6 +5167,8 @@ const AuthenticatedAdminAppearanceRouteChildren: AuthenticatedAdminAppearanceRou
   {
     AuthenticatedAdminAppearanceColorsRoute:
       AuthenticatedAdminAppearanceColorsRoute,
+    AuthenticatedAdminAppearanceCustomizeRoute:
+      AuthenticatedAdminAppearanceCustomizeRoute,
     AuthenticatedAdminAppearanceFooterRoute:
       AuthenticatedAdminAppearanceFooterRoute,
     AuthenticatedAdminAppearanceHeaderRoute:

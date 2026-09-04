@@ -20,7 +20,7 @@ import { resolveDashboardConfig, stripBasePath } from "@/lib/dashboard/config";
  * instead of redirecting, hiding the marketing chrome for that render.
  */
 export const Route = createFileRoute("/_marketing/$slug")({
-  loader: async ({ context: { queryClient }, params }) => {
+  loader: async ({ context: { queryClient }, params, location }) => {
     try {
       const settings = (await queryClient.ensureQueryData(
         convexQuery(api.settings.queries.getPublic, {}),
@@ -32,7 +32,8 @@ export const Route = createFileRoute("/_marketing/$slug")({
     } catch {
       // Settings unavailable: treat as a page slug.
     }
-    throw redirect({ to: "/page/$", params: { _splat: params.slug }, replace: true });
+    // Keep the query string: template / Customizer previews and campaign tags survive the redirect.
+    throw redirect({ to: "/page/$", params: { _splat: params.slug }, search: location.search as any, replace: true });
   },
   component: SlugDashboardHost,
 });

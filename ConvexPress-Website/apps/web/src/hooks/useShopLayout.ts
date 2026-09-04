@@ -40,11 +40,15 @@ export function useShopLayout(): ShopLayout {
   const settings = useSettings();
   const search = useSearch({ strict: false }) as Record<string, unknown>;
   const stored = settings?.layoutConfig ?? null;
+  // Template choices (Appearance › Customize / Templates) win over the older Shop layouts section.
+  const template = (settings as { templateConfig?: { active?: string; variants?: Record<string, string>; settings?: Record<string, Record<string, unknown>> } } | null)?.templateConfig;
+  const templateVariants = template?.variants ?? {};
+  const templateShop = (template?.active ? template.settings?.[template.active]?.shop : undefined) as Record<string, unknown> | undefined;
 
   const base = {
-    shopLayout: pick(stored?.shopLayout, SHOP_LAYOUT_IDS, DEFAULTS.shopLayout),
-    productLayout: pick(stored?.productLayout, PRODUCT_LAYOUT_IDS, DEFAULTS.productLayout),
-    cartPanel: pick(stored?.cartPanel, ["persistent", "drawer"] as const, DEFAULTS.cartPanel),
+    shopLayout: pick(templateVariants["shop.catalog"] ?? templateShop?.catalogVariant ?? stored?.shopLayout, SHOP_LAYOUT_IDS, DEFAULTS.shopLayout),
+    productLayout: pick(templateVariants["shop.product"] ?? templateShop?.productVariant ?? stored?.productLayout, PRODUCT_LAYOUT_IDS, DEFAULTS.productLayout),
+    cartPanel: pick(templateShop?.cartPanel ?? stored?.cartPanel, ["persistent", "drawer"] as const, DEFAULTS.cartPanel),
     gridDensity: pick(stored?.gridDensity, ["comfortable", "dense"] as const, DEFAULTS.gridDensity),
   };
 

@@ -11,6 +11,7 @@ import type { ReactElement } from "react";
 
 import type { SurfaceComponent } from "./types";
 import { useTemplate } from "./useTemplate";
+import { useDraftVariants } from "./useTemplateSettings";
 
 export function Surface<TData>({
   name,
@@ -22,7 +23,10 @@ export function Surface<TData>({
   fallback?: SurfaceComponent<TData>;
 }): ReactElement | null {
   const template = useTemplate();
-  const { packId, component: Component, variant } = template.resolve(name);
+  const draftVariants = useDraftVariants();
+  const resolved = template.resolve(name);
+  const { packId, component: Component } = resolved;
+  const variant = draftVariants[name] ?? resolved.variant;
   const Render = (Component ?? Fallback) as SurfaceComponent<TData> | undefined;
   if (!Render) return null;
   return (

@@ -3200,6 +3200,7 @@ function buildDesktopContentSecurityPolicy({
     "https://*.convex.cloud",
     "https://*.convex.site"
   ];
+  const frameSources = ["'self'", ...permitsLoopback ? LOOPBACK_MEDIA_SOURCES : [], ...deploymentHttpOrigins];
   return [
     development ? "default-src 'self'" : "default-src 'self' file: blob:",
     development ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self' file: 'unsafe-inline'",
@@ -3207,6 +3208,7 @@ function buildDesktopContentSecurityPolicy({
     `connect-src ${connectSources.join(" ")}`,
     `img-src ${imageSources.join(" ")}`,
     `media-src ${mediaSources.join(" ")}`,
+    `frame-src ${frameSources.join(" ")}`,
     development ? "font-src 'self' data:" : "font-src 'self' file: data:",
     "frame-ancestors 'none'",
     "base-uri 'self'"
@@ -3421,6 +3423,10 @@ app7.whenReady().then(async () => {
     }
   });
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    if (details.resourceType !== "mainFrame") {
+      callback({ responseHeaders: details.responseHeaders });
+      return;
+    }
     const csp = buildDesktopContentSecurityPolicy({
       development: isDev(),
       allowLoopback: controllerConfigUsesLoopback(
