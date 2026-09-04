@@ -45,7 +45,8 @@ for (const path of paths) {
   const nav = await page.locator("header nav a").allTextContents().catch(() => []);
   const footerLinks = await page.locator("footer a").allTextContents().catch(() => []);
   const h1 = await page.locator("h1").first().textContent().catch(() => null);
-  console.log(JSON.stringify({ path, title, h1: h1?.trim(), nav: nav.map((t) => t.trim()).filter(Boolean), footer: footerLinks.map((t) => t.trim()).filter(Boolean).slice(0, 12) }));
+  const surfaces = await page.evaluate(() => [...document.querySelectorAll("[data-surface]")].map((el) => `${el.getAttribute("data-surface")}@${el.getAttribute("data-template")}`));
+  console.log(JSON.stringify({ path, title, h1: h1?.trim(), surfaces: [...new Set(surfaces)], nav: nav.length, footer: footerLinks.length }));
 }
 // One mobile view of the homepage.
 await page.setViewportSize({ width: 390, height: 844 });

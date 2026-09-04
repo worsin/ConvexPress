@@ -32,6 +32,7 @@ const SHOPS = {
     email: "hello@northstar.coffee",
     slugs: { Help: "faq" },
     layouts: { shop: "Boutique", product: "Split" },
+    template: "Journal",
     pages: [
       {
         title: "Home",
@@ -125,6 +126,7 @@ const SHOPS = {
     email: "shop@ridgeline.bike",
     slugs: { Help: "faq" },
     layouts: { shop: "Marketplace", product: "Marketplace", density: "Dense" },
+    template: "Depot",
     pages: [
       {
         title: "Home",
@@ -236,6 +238,12 @@ const profile = await mkdtemp(join(tmpdir(), "convexpress-author-"));
 const userData = join(profile, "-dev");
 await mkdir(userData, { recursive: true });
 await writeFile(join(userData, "convexpress-config.json"), JSON.stringify({ setupComplete: true, mode: "existing", convexUrl: CONTROL, convexSiteUrl: CONTROL_SITE }));
+// Pre-register the fleet's deployment origins so the shell never has to reload
+// mid-run to widen its CSP (a real install registers each origin once).
+await writeFile(
+  join(userData, "convexpress-deployment-origins.json"),
+  JSON.stringify({ origins: [4720, 4721, 4820, 4821, 4830, 4831, 4840, 4841, 4850, 4851].map((port) => `http://192.168.1.246:${port}`) }),
+);
 const env = {
   PATH: process.env.PATH, HOME: process.env.HOME, TMPDIR: process.env.TMPDIR, USER: process.env.USER, LANG: process.env.LANG ?? "en_US.UTF-8",
   CONVEXPRESS_DESKTOP_DEV: "1",
@@ -273,16 +281,64 @@ async function signIn(page) {
   await page.getByRole("button", { name: /^continue$/i }).click();
   await trigger.waitFor({ state: "visible", timeout: 30_000 });
 }
-async function pickWebsite(page, needle, pattern) {
-  await page.getByRole("button", { name: "Switch website" }).click();
-  const dialog = page.getByRole("dialog", { name: "Switch website" });
-  await dialog.getByRole("combobox", { name: "Search websites" }).fill(needle);
-  await dialog.getByRole("option", { name: pattern }).first().click();
-  await settle(page, 4000);
-  const envGroup = page.getByRole("group", { name: "Environment" }).first();
-  await envGroup.getByRole("button", { name: /Live/ }).click().catch(() => {});
-  await settle(page, 3000);
+// The shell reloads once per newly registered deployment origin (desktop CSP), so
+// every click here is non-blocking and we re-wait for the switcher afterwards.
+// Polls with isVisible(): unlike waitFor()/click() it does not wait for navigations
+// the desktop intercepts (external links), which otherwise never "finish".
+async function waitForShell(page, timeout = 60_000) {
+  const trigger = page.getByRole("button", { name: "Switch website" }).first();
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (await trigger.isVisible().catch(() => false)) {
+      await new Promise((r) => setTimeout(r, 1500));
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error("shell did not appear (Switch website button not visible)");
 }
+async function pickWebsite(page, needle, pattern) {
+  await waitForShell(page);
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await page.getByRole("button", { name: "Switch website" }).click({ noWaitAfter: true, timeout: 10_000 }).catch(() => {});
+    const dialog = page.getByRole("dialog", { name: "Switch website" });
+    if (await dialog.isVisible().catch(() => false)) {
+      await dialog.getByRole("combobox", { name: "Search websites" }).fill(needle);
+      await dialog.getByRole("option", { name: pattern }).first().click({ noWaitAfter: true });
+      break;
+    }
+    await new Promise((r) => setTimeout(r, 800));
+  }
+  await settle(page, 4000);
+  await waitForShell(page);
+  const live = page.getByRole("group", { name: "Environment" }).first().getByRole("button", { name: /Live/ });
+  const liveState = await live.getAttribute("aria-pressed").catch(() => null);
+  const liveCurrent = await live.getAttribute("aria-current").catch(() => null);
+  if (liveState !== "true" && liveCurrent === null) {
+    await live.click({ noWaitAfter: true, timeout: 5000 }).catch(() => {});
+    await settle(page, 3000);
+  }
+  await waitForShell(page);
+}
+// Clears any navigation Playwright thinks is pending (external links the desktop
+// intercepts) so later waits do not stall on "waiting for navigation to finish".
+async function resetNavigation(page) {
+  await page.evaluate(() => window.stop()).catch(() => {});
+  await page.reload({ waitUntil: "domcontentloaded", timeout: 60_000 }).catch(() => {});
+  await settle(page, 2500);
+  await waitForShell(page);
+}
+async function openEnvMenu(page) {
+  const trigger = page.getByRole("button", { name: "Environment options" });
+  await trigger.waitFor({ state: "visible", timeout: 30_000 });
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await trigger.click({ noWaitAfter: true, timeout: 10_000 }).catch(() => {});
+    if (await page.getByRole("menu").isVisible().catch(() => false)) return;
+    await new Promise((r) => setTimeout(r, 800));
+  }
+  await page.getByRole("menu").waitFor({ state: "visible", timeout: 10_000 });
+}
+
 async function waitSaved(page, timeout = 15_000) {
   await page.getByText(/^Saved/).first().waitFor({ state: "visible", timeout }).catch(() => {});
 }
@@ -561,11 +617,103 @@ try {
   await settle(page, 1500);
   await signIn(page);
   await settle(page, 2000);
-  await pickWebsite(page, ...shop.switcher);
-  await shot(page, "site-selected");
+  await resetNavigation(page);
+  page.on("framenavigated", (frame) => { if (frame === page.mainFrame()) log("navigated:", frame.url()); });
+  if (!only.has("debugswitch")) {
+    await pickWebsite(page, ...shop.switcher);
+    await shot(page, "site-selected");
+  }
 
   if (only.has("media")) await uploadMedia(page);
   if (only.has("pages")) for (const def of shop.pages) { if (!pageFilter || pageFilter.has(def.title)) await buildPage(page, def); }
+  // Appearance › Templates: select the pack card by name and activate it for this environment.
+  if (only.has("activate") && shop.template) {
+    await goHash(page, "#/appearance/templates", 3500);
+    await page.getByRole("heading", { name: "Templates" }).waitFor({ timeout: 20_000 });
+    const card = page.getByRole("radio", { name: new RegExp(`^${shop.template}\\b`) }).first();
+    await card.waitFor({ state: "visible", timeout: 10_000 });
+    await card.click();
+    await settle(page, 600);
+    const activate = page.getByRole("button", { name: new RegExp(`^Activate ${shop.template}`) });
+    if (await activate.isEnabled().catch(() => false)) {
+      await activate.click();
+      await page.getByText(/is now the active template/).waitFor({ state: "visible", timeout: 15_000 }).catch(() => {});
+    }
+    await settle(page, 800);
+    await shot(page, `activate-${shop.template.toLowerCase()}`);
+    log(`template ${shop.template} active`);
+  }
+  // Final showcase: open both live sites through "View website" and keep everything open.
+  if (only.has("debugswitch")) {
+    const probe = async (label) => {
+      const trigger = page.getByRole("button", { name: "Switch website" });
+      const info = {
+        url: page.url(),
+        triggers: await trigger.count().catch((e) => `err ${e.message.split("\n")[0]}`),
+        visible: await trigger.first().isVisible().catch(() => "err"),
+        interstitial: await page.getByText(/Opening isolated site|Site session unavailable|Choose a website environment/).count().catch(() => "err"),
+      };
+      log(label, JSON.stringify(info));
+    };
+    await probe("start");
+    await page.getByRole("button", { name: "Switch website" }).click({ noWaitAfter: true });
+    await probe("after-click");
+    const dialog = page.getByRole("dialog", { name: "Switch website" });
+    await dialog.getByRole("combobox", { name: "Search websites" }).fill("Northstar");
+    await dialog.getByRole("option", { name: /Northstar Coffee/ }).first().click({ noWaitAfter: true });
+    for (let i = 0; i < 12; i++) { await new Promise((r) => setTimeout(r, 2500)); await probe(`t+${(i + 1) * 2.5}s`); }
+    await shot(page, "debug-switch");
+  }
+  if (only.has("showcase")) {
+    const viewWebsite = async (label) => {
+      await openEnvMenu(page);
+      const item = page.getByRole("menuitem", { name: /View website/ });
+      await item.waitFor({ state: "attached", timeout: 10_000 });
+      await new Promise((r) => setTimeout(r, 400));
+      await item.click({ noWaitAfter: true, force: true, timeout: 10_000 }).catch(async () => {
+        await item.dispatchEvent("click").catch(() => {});
+      });
+      await page.getByText(/running at http:\/\/127\.0\.0\.1:\d+|Could not|exited|did not answer|stopped before|No storefront/i).first().waitFor({ state: "visible", timeout: 240_000 });
+      const toasts = await page.locator("[data-sonner-toast]").allTextContents().catch(() => []);
+      log(label, "toast:", toasts.join(" | "));
+      await settle(page, 1500);
+      await resetNavigation(page);
+    };
+    for (const [needle, pattern, label] of [["Northstar", /Northstar Coffee/, "northstar"], ["Ridgeline", /Ridgeline Cycles/, "ridgeline"]]) {
+      await pickWebsite(page, needle, pattern);
+      await viewWebsite(label);
+      await shot(page, `showcase-${label}`);
+    }
+    await goHash(page, "#/appearance/templates", 3000);
+  }
+  if (only.has("customize")) {
+    await goHash(page, "#/appearance/customize", 4000);
+    await page.getByRole("heading", { name: "Customize" }).waitFor({ timeout: 20_000 });
+    await settle(page, 6000);
+    await shot(page, "appearance-customize");
+    const frame = page.frameLocator('iframe[title="Site preview"]');
+    const frameH1 = await frame.locator("h1").first().textContent({ timeout: 30_000 }).catch((e) => `no h1: ${e.message.split("\n")[0]}`);
+    log("preview h1:", frameH1?.trim());
+    const colorsBtn = page.getByRole("button", { name: /^Colors/ }).first();
+    if ((await colorsBtn.getAttribute("aria-expanded").catch(() => "true")) !== "true") await colorsBtn.click();
+    await settle(page, 500);
+    const primary = page.locator("#customize-primary");
+    if (await primary.count()) {
+      await primary.fill("#c2410c");
+      await settle(page, 2000);
+      const applied = await frame.locator("html").evaluate((el) => getComputedStyle(el).getPropertyValue("--primary").trim()).catch((e) => `n/a ${e.message.split("\n")[0]}`);
+      log("preview --primary after draft:", applied);
+      await shot(page, "appearance-customize-draft");
+    }
+  }
+  if (only.has("templates")) {
+    await goHash(page, "#/appearance/templates", 3500);
+    await page.getByRole("heading", { name: "Templates" }).waitFor({ timeout: 20_000 });
+    await settle(page, 800);
+    await shot(page, "appearance-templates");
+    const areas = await page.locator("ul li").allTextContents();
+    log("coverage rows:", areas.filter((t) => /covered|Core|enabled/.test(t)).length);
+  }
   if (only.has("layout") && shop.layouts) await chooseLayouts(page, shop.layouts);
   if (only.has("slug")) for (const [title, slug] of Object.entries(shop.slugs ?? {})) await fixSlug(page, title, slug);
   if (only.has("reading")) await setStaticFrontPage(page);
