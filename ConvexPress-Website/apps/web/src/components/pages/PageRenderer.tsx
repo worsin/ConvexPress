@@ -1,28 +1,16 @@
 /**
- * PageRenderer - Template dispatcher for pages
+ * PageRenderer - renders a page through the `page` surface.
  *
- * Selects the correct template component based on the page's
- * `template` (or `pageTemplate`) field and renders it.
- *
- * Template mapping:
- *   "default"       -> DefaultTemplate (two-column with right sidebar)
- *   "full-width"    -> FullWidthTemplate (single column, max-w-6xl)
- *   "sidebar-left"  -> SidebarLeftTemplate (two-column with left sidebar)
- *   "sidebar-right" -> DefaultTemplate (alias, same as default)
- *   "landing"       -> LandingTemplate (clean, no nav elements)
- *   "blank"         -> BlankTemplate (raw content, no wrappers)
- *
- * Falls back to DefaultTemplate if the template field is missing
- * or unrecognized.
+ * The template dispatch (default / full-width / sidebar-left / sidebar-right /
+ * no-sidebar / landing / blank) lives in the Core pack's `page` surface
+ * (`templates/packs/core/surfaces/page.tsx`); the active template pack may
+ * replace it. Kept as a component so routes outside the Pages system (help,
+ * support) can render a page record without knowing about surfaces.
  */
 
 import type { PageDetail } from "@/lib/blog/types";
-import { DefaultTemplate } from "@/templates/DefaultTemplate";
-import { FullWidthTemplate } from "@/templates/FullWidthTemplate";
-import { SidebarLeftTemplate } from "@/templates/SidebarLeftTemplate";
-import { LandingTemplate } from "@/templates/LandingTemplate";
-import { BlankTemplate } from "@/templates/BlankTemplate";
-import { NoSidebarPageTemplate } from "@/templates/NoSidebarPageTemplate";
+import CorePage from "@/templates/packs/core/surfaces/page";
+import { Surface } from "@/templates/sdk/Surface";
 
 interface PageRendererProps {
   page: PageDetail;
@@ -30,30 +18,5 @@ interface PageRendererProps {
 }
 
 export function PageRenderer({ page, className }: PageRendererProps) {
-  const template = page.template ?? "default";
-
-  switch (template) {
-    case "full-width":
-      return <FullWidthTemplate page={page} className={className} />;
-
-    case "sidebar-left":
-      return <SidebarLeftTemplate page={page} className={className} />;
-
-    case "sidebar-right":
-      // sidebar-right is the same layout as default (right sidebar)
-      return <DefaultTemplate page={page} className={className} />;
-
-    case "no-sidebar":
-      return <NoSidebarPageTemplate page={page} className={className} />;
-
-    case "landing":
-      return <LandingTemplate page={page} className={className} />;
-
-    case "blank":
-      return <BlankTemplate page={page} />;
-
-    case "default":
-    default:
-      return <DefaultTemplate page={page} className={className} />;
-  }
+  return <Surface name="page" data={{ page, className }} fallback={CorePage} />;
 }

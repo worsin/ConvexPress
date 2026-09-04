@@ -2,7 +2,14 @@ import { convexQuery, type ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { StrictMode } from "react";
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
+import {
+  HeadContent,
+  Outlet,
+  Scripts,
+  createRootRouteWithContext,
+  type ErrorComponentProps,
+  type NotFoundRouteProps,
+} from "@tanstack/react-router";
 import { ClerkProvider, useAuth } from "@/lib/auth/clerk";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { AuthConfigProvider } from "@/contexts/AuthConfigContext";
@@ -10,8 +17,9 @@ import { coerceAuthConfig, defaultWebsiteAuthConfig, type WebsiteAuthConfig } fr
 
 import { Toaster } from "@/components/ui/sonner";
 import { WebsiteNotificationToastProvider } from "@/components/notifications/WebsiteNotificationToastProvider";
-import { NotFoundTemplate } from "@/templates/NotFoundTemplate";
-import { ErrorTemplate } from "@/templates/ErrorTemplate";
+import CoreError from "@/templates/packs/core/surfaces/system.error";
+import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
+import { Surface } from "@/templates/sdk/Surface";
 import { SupportWidget } from "@/components/support/widget/SupportWidget";
 import { api } from "@convexpress-website/backend/generated/api";
 import { SettingsProvider } from "@/contexts/SettingsContext";
@@ -25,9 +33,19 @@ export interface RouterAppContext {
   convexQueryClient: ConvexQueryClient;
 }
 
+/** Bare 404 outside the marketing chrome; the active template pack may restyle it. */
+function RootNotFound(props: NotFoundRouteProps) {
+  return <Surface name="system.notFound" data={{ kind: "root", data: props.data }} fallback={CoreNotFound} />;
+}
+
+/** Runtime error screen; the active template pack may restyle it. */
+function RootError({ error, reset }: ErrorComponentProps) {
+  return <Surface name="system.error" data={{ error, reset }} fallback={CoreError} />;
+}
+
 export const Route = createRootRouteWithContext<RouterAppContext>()({
-  notFoundComponent: NotFoundTemplate,
-  errorComponent: ErrorTemplate,
+  notFoundComponent: RootNotFound,
+  errorComponent: RootError,
   // Learn the site's name and its sign-in provider before anything renders on
   // the server: the Clerk publishable key comes from the site database first,
   // so one build serves every site (env vars stay as fallbacks).

@@ -11,7 +11,7 @@
  * The page is gated on the `commerceSubscriptions` plugin — if disabled,
  * PublicPluginGate renders NotFoundPage.
  *
- * Note: Dialog uses our Base UI wrapper — never @radix-ui.
+ * Rendering lives in the `pricing` surface of the active template pack.
  */
 
 import { convexQuery } from "@convex-dev/react-query";
@@ -20,10 +20,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
-import { PricingCardsRenderer } from "@/lib/pricingCardRenderer";
 import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
 import type { PricingOffer, PricingCardConfig } from "@/lib/pricingCardRenderer";
 import { siteTitled } from "@/lib/seo/head";
+import CorePricing, { type PricingSurfaceData } from "@/templates/packs/core/surfaces/pricing";
+import { Surface } from "@/templates/sdk/Surface";
 
 // ─── Route definition ─────────────────────────────────────────────────────────
 
@@ -78,32 +79,7 @@ function PricingPageInner() {
     convexQuery((api as any).commerceSubscriptions.offers.listOffersForPricing, {}),
   ) as { data: PricingOffer[] };
 
-  const headline = config?.headline || "Choose your plan";
-  const subheadline = config?.subheadline || "Pick the plan that fits your needs.";
+  const surfaceData: PricingSurfaceData = { config, offers };
 
-  return (
-    <div
-      data-slot="pricing-page"
-      className="flex flex-col gap-10 py-12"
-    >
-      {/* Page header */}
-      <div className="flex flex-col items-center gap-3 text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-          {headline}
-        </h1>
-        <p className="max-w-xl text-base text-muted-foreground">
-          {subheadline}
-        </p>
-      </div>
-
-      {/* Pricing cards grid — renders nothing if plugin disabled / no offers */}
-      {offers && offers.length > 0 ? (
-        <PricingCardsRenderer config={config ?? {}} offers={offers} />
-      ) : (
-        <p className="text-center text-sm text-muted-foreground">
-          No plans are currently available. Check back soon.
-        </p>
-      )}
-    </div>
-  );
+  return <Surface name="pricing" data={surfaceData} fallback={CorePricing} />;
 }

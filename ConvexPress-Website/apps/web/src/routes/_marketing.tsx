@@ -10,22 +10,24 @@ import {
   getBackgroundInertProps,
   LayoutShellProvider,
 } from "@/components/layout/LayoutShellProvider";
-import { MobileNav } from "@/components/layout/MobileNav";
-import { SiteFooter } from "@/components/layout/SiteFooter";
-import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SkipToContent } from "@/components/layout/SkipToContent";
 import { ThemeStyleInjector } from "@/components/layout/ThemeStyleInjector";
 import { WebsiteAdminBar } from "@/components/layout/WebsiteAdminBar";
-import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { PageOverridesProvider, usePageOverrides } from "@/contexts/PageOverridesContext";
+import { useFooterConfig } from "@/hooks/layout/useFooterConfig";
 import { useLayoutConfig } from "@/hooks/layout/useLayoutConfig";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
 import { useHeaderConfig } from "@/hooks/layout/useHeaderConfig";
 import { useMenuForLocation } from "@/hooks/layout/useMenuForLocation";
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
-import { RestrictedContent } from "@/components/membership/RestrictedContent";
 import { checkRouteAccess } from "@/lib/routeRestriction";
 import type { RouteAccessResult } from "@/lib/routeRestriction";
+import CoreFooter from "@/templates/packs/core/surfaces/chrome.footer";
+import CoreHeader from "@/templates/packs/core/surfaces/chrome.header";
+import CoreMobileNav from "@/templates/packs/core/surfaces/chrome.mobileNav";
+import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
+import CoreRestricted from "@/templates/packs/core/surfaces/system.restricted";
+import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/_marketing")({
   loader: async ({ context: { queryClient }, location }) => {
@@ -39,8 +41,13 @@ export const Route = createFileRoute("/_marketing")({
     return { routeAccess };
   },
   component: MarketingLayout,
-  notFoundComponent: NotFoundPage,
+  notFoundComponent: MarketingNotFound,
 });
+
+/** In-layout 404 (search + links); the active template pack may restyle it. */
+function MarketingNotFound() {
+  return <Surface name="system.notFound" data={{ kind: "page" }} fallback={CoreNotFound} />;
+}
 
 function MarketingLayout() {
   const { routeAccess } = Route.useLoaderData();
@@ -72,7 +79,8 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
   const headerConfig = useHeaderConfig();
   const headerMenu = useMenuForLocation(getHeaderMenuLocation(headerConfig.navigation));
   const layoutConfig = useLayoutConfig();
-  const { mobileNavOpen } = useLayoutShell();
+  const footerConfig = useFooterConfig();
+  const { mobileNavOpen, closeMobileNav } = useLayoutShell();
   const { overrides } = usePageOverrides();
   const { user, isLoaded } = useUser();
 
@@ -96,14 +104,18 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
   const userState = !user ? "logged_out" : "logged_in_non_member";
 
   const pageContent = isRouteGated ? (
-    <RestrictedContent
-      mode={routeAccess.teaserMode ?? "hide"}
-      rule={{
-        teaserMode: routeAccess.teaserMode,
-        customMessage: routeAccess.customMessage,
-        matchingPlanIds: routeAccess.matchingPlanIds as any,
+    <Surface
+      name="system.restricted"
+      data={{
+        mode: routeAccess.teaserMode ?? "hide",
+        rule: {
+          teaserMode: routeAccess.teaserMode,
+          customMessage: routeAccess.customMessage,
+          matchingPlanIds: routeAccess.matchingPlanIds as any,
+        },
+        userState,
       }}
-      userState={userState}
+      fallback={CoreRestricted}
     />
   ) : (
     <Outlet />
@@ -115,10 +127,16 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
       <ThemeStyleInjector />
       {/* MobileNav is outside the inert wrapper so focus trap works */}
       {!hideHeader && (
-        <MobileNav
-          menu={headerMenu}
-          siteIdentity={siteIdentity}
-          config={headerConfig.mobileMenu}
+        <Surface
+          name="chrome.mobileNav"
+          data={{
+            menu: headerMenu,
+            siteIdentity,
+            config: headerConfig.mobileMenu,
+            open: mobileNavOpen,
+            onClose: closeMobileNav,
+          }}
+          fallback={CoreMobileNav}
         />
       )}
       <div
@@ -127,10 +145,10 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
         <SkipToContent />
         <WebsiteAdminBar />
         {!hideHeader && (
-          <SiteHeader
-            siteIdentity={siteIdentity}
-            menu={headerMenu}
-            layoutConfig={layoutConfig}
+          <Surface
+            name="chrome.header"
+            data={{ siteIdentity, menu: headerMenu, layoutConfig, headerConfig }}
+            fallback={CoreHeader}
           />
         )}
         <div className="flex flex-1 flex-col">
@@ -142,7 +160,13 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
             </ContentWrapper>
           )}
         </div>
-        {!hideFooter && <SiteFooter variant="full" />}
+        {!hideFooter && (
+          <Surface
+            name="chrome.footer"
+            data={{ variant: "full", siteIdentity, footerConfig }}
+            fallback={CoreFooter}
+          />
+        )}
         <BackToTop />
       </div>
     </>

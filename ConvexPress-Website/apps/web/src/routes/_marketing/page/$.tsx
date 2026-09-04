@@ -26,18 +26,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useQuery as useTanStackQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { NotFoundPage } from "@/components/blog/NotFoundPage";
-import {
-	RestrictedContent,
-	type RestrictedTeaserMode,
-} from "@/components/membership/RestrictedContent";
-import { PagePasswordForm } from "@/components/pages/PagePasswordForm";
-import { PageRenderer } from "@/components/pages/PageRenderer";
+import type { RestrictedTeaserMode } from "@/components/membership/RestrictedContent";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageOverrides } from "@/contexts/PageOverridesContext";
 import type { BlockContent, PageDetail } from "@/lib/blog/types";
 import { parseTipTapDocument } from "@/lib/schemas/content";
 import { buildSeoHead, humanizeSlug, siteTitled } from "@/lib/seo/head";
+import CorePage from "@/templates/packs/core/surfaces/page";
+import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
+import CorePasswordGate from "@/templates/packs/core/surfaces/system.passwordGate";
+import CoreRestricted from "@/templates/packs/core/surfaces/system.restricted";
+import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/_marketing/page/$")({
 	component: SinglePage,
@@ -202,29 +201,34 @@ function SinglePage() {
 
 	// Not found
 	if (rawPage === null) {
-		return <NotFoundPage />;
+		return <Surface name="system.notFound" data={{ kind: "page" }} fallback={CoreNotFound} />;
 	}
 
 	// Password-protected page: show password form until verified
 	if (isPasswordProtected) {
 		if (!verifiedPage) {
 			return (
-				<PagePasswordForm
-					pageTitle={rawPage.title}
-					onSubmit={(password: string) => {
-						setPasswordError(null);
-						setIsVerifying(true);
-						setSubmittedPassword(password);
+				<Surface
+					name="system.passwordGate"
+					data={{
+						kind: "page",
+						title: rawPage.title,
+						onSubmit: (password: string) => {
+							setPasswordError(null);
+							setIsVerifying(true);
+							setSubmittedPassword(password);
+						},
+						isVerifying: isVerifying && verifiedPage === undefined,
+						error: passwordError ?? undefined,
 					}}
-					isLoading={isVerifying && verifiedPage === undefined}
-					error={passwordError ?? undefined}
+					fallback={CorePasswordGate}
 				/>
 			);
 		}
 	}
 
 	if (!rawPage) {
-		return <NotFoundPage />;
+		return <Surface name="system.notFound" data={{ kind: "page" }} fallback={CoreNotFound} />;
 	}
 
 	// Use verified page data when password-protected page has been unlocked
@@ -314,29 +318,26 @@ function SinglePage() {
 				: undefined;
 
 		return (
-			<div
-				data-slot="restricted-page"
-				className="mx-auto flex max-w-3xl flex-col gap-6 px-4"
-			>
-				<h1 className="text-lg font-bold leading-tight md:text-xl">
-					{page.title}
-				</h1>
-				<RestrictedContent
-					mode={teaserMode}
-					rule={{
+			<Surface
+				name="system.restricted"
+				data={{
+					title: page.title,
+					mode: teaserMode,
+					rule: {
 						teaserMode:
 							effectiveAccess.teaserMode as RestrictedTeaserMode | null,
 						customMessage: effectiveAccess.customMessage,
 						matchingPlanIds: effectiveAccess.matchingPlanIds as
 							| Id<"membership_plans">[]
 							| null,
-					}}
-					excerpt={restrictedExcerpt}
-					userState={isSignedIn ? "logged_in_non_member" : "logged_out"}
-				/>
-			</div>
+					},
+					excerpt: restrictedExcerpt,
+					userState: isSignedIn ? "logged_in_non_member" : "logged_out",
+				}}
+				fallback={CoreRestricted}
+			/>
 		);
 	}
 
-	return <PageRenderer page={page} />;
+	return <Surface name="page" data={{ page }} fallback={CorePage} />;
 }
