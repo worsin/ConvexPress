@@ -18,7 +18,7 @@ import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { internalMutation } from "../_generated/server";
 import { internal } from "../_generated/api";
-import type { SchedulableFunctionReference } from "convex/server";
+import { makeFunctionReference, type SchedulableFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import { evaluateFilter } from "../helpers/eventFilter";
 import { shouldRetry, getNextRetryAt } from "../helpers/eventRetry";
@@ -45,24 +45,22 @@ function resolveHandler(
   handlerFunction: string,
 ): SchedulableFunctionReference | null {
   try {
-    // Split module path (e.g., "notifications/internals" -> ["notifications", "internals"])
-    const parts = handlerModule.split("/");
-
-    // Navigate the internal API tree
-    let current: Record<string, unknown> = internal as unknown as Record<string, unknown>;
-    for (const part of parts) {
-      if (!current || typeof current !== "object" || !(part in current)) {
-        return null;
-      }
-      current = current[part] as Record<string, unknown>;
-    }
-
-    // Resolve the function name
-    if (!current || typeof current !== "object" || !(handlerFunction in current)) {
+    // Validate the shape before building a reference: "system/module" and an identifier.
+    const modulePattern = /^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/u;
+    const functionPattern = /^[A-Za-z_$][A-Za-z0-9_$]*$/u;
+    if (!modulePattern.test(handlerModule) || !functionPattern.test(handlerFunction)) {
       return null;
     }
 
-    return current[handlerFunction] as SchedulableFunctionReference;
+    // `internal` from _generated/api is an `anyApi` proxy at runtime: walking it
+    // with the `in` operator always fails (no `has` trap), which made every
+    // listener report "Handler not found". Build the reference directly from
+    // the registered "module:function" path instead; the scheduler validates
+    // that the function exists when it runs.
+    void internal;
+    return makeFunctionReference<"mutation">(
+      `${handlerModule}:${handlerFunction}`,
+    ) as unknown as SchedulableFunctionReference;
   } catch {
     return null;
   }
