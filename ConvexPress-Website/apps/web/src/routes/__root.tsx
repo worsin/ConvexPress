@@ -49,6 +49,18 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   // Learn the site's name and its sign-in provider before anything renders on
   // the server: the Clerk publishable key comes from the site database first,
   // so one build serves every site (env vars stay as fallbacks).
+  // beforeLoad runs before any child loader or head, so every route title can
+  // use the site's name on the very first server render.
+  beforeLoad: async ({ context: { queryClient } }) => {
+    try {
+      const settings = (await queryClient.ensureQueryData(
+        convexQuery(api.settings.queries.getPublic, {}),
+      )) as { siteTitle?: string } | null;
+      rememberSiteName(settings?.siteTitle);
+    } catch {
+      // Settings unavailable: titles fall back to the generic name.
+    }
+  },
   loader: async ({ context: { queryClient } }): Promise<{ authConfig: WebsiteAuthConfig }> => {
     try {
       const settings = (await queryClient.ensureQueryData(
@@ -182,6 +194,10 @@ function RootDocument() {
               {/* Site identity for this process; read by getSiteRuntime() on the client. */}
               <script
                 dangerouslySetInnerHTML={{ __html: siteRuntimeBootstrapScript(siteRuntime) }}
+              />
+              {/* The client evaluates route heads before settings load; give it the name the server used. */}
+              <script
+                dangerouslySetInnerHTML={{ __html: `window.__CONVEXPRESS_SITE_NAME__=${JSON.stringify(resolveSiteName())};` }}
               />
               <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}})()` }} />
               <HeadContent />

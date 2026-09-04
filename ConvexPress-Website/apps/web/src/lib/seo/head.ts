@@ -15,9 +15,16 @@ export function rememberSiteName(name?: string | null): void {
   if (trimmed) knownSiteName = trimmed;
 }
 
+/** The name the server rendered with, handed to the client before hydration (see __root.tsx). */
+function bootstrappedSiteName(): string | null {
+  if (typeof window === "undefined") return null;
+  const value = (window as { __CONVEXPRESS_SITE_NAME__?: unknown }).__CONVEXPRESS_SITE_NAME__;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 export function resolveSiteName(explicit?: string | null): string {
   const trimmed = typeof explicit === "string" ? explicit.trim() : "";
-  return trimmed || knownSiteName || FALLBACK_SITE_NAME;
+  return trimmed || knownSiteName || bootstrappedSiteName() || FALLBACK_SITE_NAME;
 }
 
 /** "Shop" → "Shop – Northstar Coffee". Never repeats the site name. */

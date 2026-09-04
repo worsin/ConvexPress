@@ -1,6 +1,7 @@
 import { convexQuery } from "@convex-dev/react-query";
+import { useQuery as useTanStackQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { useEffect, useRef, useCallback } from "react";
 
 import { api } from "@convexpress-website/backend/generated/api";
@@ -63,9 +64,9 @@ function SearchPage() {
 
   // Connect to Convex search query
   // API uses `orderBy` (not `sort`) and returns `total` (not `totalCount`)
-  const searchData = useQuery(
-    api.search.queries.search,
-    hasQuery
+  // Same cache the loader filled, so SSR and the hydrating client render the same tree.
+  const { data: searchData } = useTanStackQuery(
+    convexQuery(api.search.queries.search, hasQuery
       ? {
           q: query!.trim(),
           page: page ?? 1,
@@ -73,8 +74,8 @@ function SearchPage() {
           contentType: type as SearchContentType,
           orderBy: (sort as SearchOrderBy) ?? "relevance",
         }
-      : "skip",
-  );
+      : "skip",) as any,
+  ) as { data: any };
 
   // ── Analytics: Log search query after results return (#23) ──────────
   const logSearch = useMutation(api.search.mutations.logSearch);

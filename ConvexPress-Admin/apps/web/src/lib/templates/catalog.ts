@@ -55,7 +55,6 @@ export const SURFACE_CATALOG: SurfaceDefinition[] = [
   S("chrome.footer", "Footer", "chrome"),
   S("chrome.searchOverlay", "Search overlay", "chrome"),
   S("chrome.cartDrawer", "Cart drawer", "chrome", { plugin: "commerce" }),
-  S("chrome.consent", "Consent banner", "chrome"),
   S("system.notFound", "Not found", "chrome"),
   S("system.error", "Error", "chrome"),
   S("system.restricted", "Restricted content", "chrome"),

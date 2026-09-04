@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+
+import { siteTitled } from "@/lib/seo/head";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { toast } from "sonner";
@@ -10,6 +12,7 @@ import CoreCheckoutDetails, { type CheckoutDetailsSurfaceData } from "@/template
 import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/_marketing/checkout/")({
+  head: () => ({ meta: [{ title: siteTitled("Checkout") }, { name: "robots", content: "noindex, nofollow" }] }),
   component: CheckoutIndexPage,
 });
 
