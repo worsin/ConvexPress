@@ -4,7 +4,9 @@ import { api } from "@convexpress-website/backend/generated/api";
 
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
-import { DASHBOARD_NAV_ITEMS } from "@/lib/layout/constants";
+import { useSettings } from "@/contexts/SettingsContext";
+import { useCanFn } from "@/hooks/useCan";
+import { buildDashboardNavItems } from "@/lib/layout/dashboardNav";
 import { AvatarDisplay } from "@/components/dashboard/profile/AvatarDisplay";
 
 /**
@@ -17,6 +19,10 @@ import { AvatarDisplay } from "@/components/dashboard/profile/AvatarDisplay";
  */
 export function DashboardSidebar() {
   const { user } = useCurrentUser();
+  const settings = useSettings();
+  const can = useCanFn();
+  // Core items plus the commerce/membership/LMS pages, gated by plugin flags.
+  const navItems = buildDashboardNavItems(settings, { can });
 
   // Lightweight reactive query for the unread notification badge
   const unreadCountResult = useQuery(
@@ -60,7 +66,7 @@ export function DashboardSidebar() {
 
       <nav aria-label="Dashboard navigation" className="flex-1 py-4">
         <ul role="list" className="space-y-1 px-3">
-          {DASHBOARD_NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const showBadge = item.id === "notifications" && unreadCount > 0;
 

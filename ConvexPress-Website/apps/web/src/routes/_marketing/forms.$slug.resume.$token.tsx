@@ -5,11 +5,14 @@ import { api } from "@convexpress-website/backend/generated/api";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { type PublicForm } from "@/components/forms/FormRenderer";
-import { FormWizard } from "@/extensions/forms/FormWizard";
-import { DraftExpiredNotice } from "@/extensions/forms/DraftExpiredNotice";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { throwPublicNotFound } from "@/lib/plugins/public-route-loader";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
+import CoreFormResume, {
+  type FormResumeSurfaceData,
+  type ResumeDraftState,
+} from "@/templates/packs/core/surfaces/forms.resume";
+import { Surface } from "@/templates/sdk/Surface";
 
 /**
  * Public, no-auth resume route (Form Multi-Step & Save-Continue System).
@@ -22,8 +25,9 @@ import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib
  *
  * Branches:
  *   - form missing / unpublished, or draft == null → <NotFoundPage />
- *   - draft.status === "expired" (TTL marker) → <DraftExpiredNotice />
- *   - else → <FormWizard initialValues={draft.values} initialStep={...}>
+ *   - draft.formSlug !== slug (partial draft for another form) → <NotFoundPage />
+ *   - draft.status === "expired" (TTL marker) → surface shows <DraftExpiredNotice />
+ *   - else → surface mounts <FormWizard initialValues={draft.values} initialStep={...}>
  *
  * Forms are conversion surfaces, not indexable → `noindex`.
  */
@@ -32,17 +36,7 @@ const getBySlugFn = (api as any).extensions.forms.queries.getBySlug;
 const resumeFn = (api as any).extensions.forms.queries.resume;
 
 /** The resume-query projection (resume-safe; keyed by fieldKey). */
-type ResumeDraft =
-  | { status: "expired" }
-  | {
-      submissionId: string;
-      formSlug: string;
-      status: "partial";
-      currentStep: number;
-      expiresAt: number;
-      values: Record<string, string>;
-    }
-  | null;
+type ResumeDraft = ResumeDraftState | null;
 
 export const Route = createFileRoute("/_marketing/forms/$slug/resume/$token")({
   component: ResumeFormPage,
@@ -107,27 +101,13 @@ function ResumeFormInner() {
     return <NotFoundPage />;
   }
 
-  // Expired / non-resumable → start-fresh notice.
-  if (draft.status === "expired") {
-    return (
-      <div className="mx-auto w-full max-w-2xl py-10">
-        <DraftExpiredNotice slug={slug} />
-      </div>
-    );
-  }
-
-  if (draft.formSlug !== slug) {
+  // A partial draft that belongs to a different form → 404.
+  // (An expired marker carries no formSlug, so it was never subject to this check.)
+  if (draft.status !== "expired" && draft.formSlug !== slug) {
     return <NotFoundPage />;
   }
 
-  return (
-    <div className="mx-auto w-full max-w-2xl py-10">
-      <FormWizard
-        form={form}
-        resumeToken={token}
-        initialValues={draft.values}
-        initialStep={draft.currentStep}
-      />
-    </div>
-  );
+  const data: FormResumeSurfaceData = { form, slug, token, draft };
+
+  return <Surface name="forms.resume" data={data} fallback={CoreFormResume} />;
 }

@@ -1,11 +1,19 @@
 import {
+  BadgeCheck,
   Bell,
+  Download,
   FileText,
   GraduationCap,
+  Heart,
   LayoutDashboard,
+  MapPin,
   MessageSquare,
+  PackageOpen,
+  Repeat,
   Settings,
   Shield,
+  ShoppingBag,
+  Star,
   User,
 } from "lucide-react";
 
@@ -71,14 +79,20 @@ export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
 };
 
 /**
- * Navigation items for the user dashboard sidebar.
+ * Core navigation items for the user dashboard (registry ids, legacy
+ * `/dashboard` paths). Ordered like the dashboard registry groups: overview,
+ * activity, learning, account. Commerce and membership pages live in
+ * DASHBOARD_EXTENSION_NAV_ITEMS; `buildDashboardNavItems()` in
+ * lib/layout/dashboardNav.ts merges both and applies the plugin/capability
+ * gates.
  */
 export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
   {
-    id: "dashboard",
+    id: "home",
     label: "Dashboard",
     to: "/dashboard",
     icon: LayoutDashboard,
+    iconName: "layout-dashboard",
     exact: true,
   },
   {
@@ -86,42 +100,126 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     label: "My Posts",
     to: "/dashboard/posts",
     icon: FileText,
-  },
-  {
-    id: "courses",
-    label: "Courses",
-    to: "/dashboard/courses",
-    icon: GraduationCap,
-  },
-  {
-    id: "profile",
-    label: "Profile",
-    to: "/dashboard/profile",
-    icon: User,
+    iconName: "file-text",
+    capability: "edit_posts",
   },
   {
     id: "comments",
     label: "Comments",
     to: "/dashboard/comments",
     icon: MessageSquare,
+    iconName: "message-square",
   },
   {
     id: "notifications",
     label: "Notifications",
     to: "/dashboard/notifications",
     icon: Bell,
+    iconName: "bell",
+    badge: "notifications.unread",
+  },
+  {
+    id: "courses",
+    label: "Courses",
+    to: "/dashboard/courses",
+    icon: GraduationCap,
+    iconName: "graduation-cap",
+    plugin: "lms",
+    badge: "courses.inProgress",
+  },
+  {
+    id: "profile",
+    label: "Profile",
+    to: "/dashboard/profile",
+    icon: User,
+    iconName: "user",
   },
   {
     id: "security",
     label: "Security",
     to: "/dashboard/security",
     icon: Shield,
+    iconName: "shield-check",
   },
   {
     id: "settings",
     label: "Settings",
     to: "/dashboard/settings",
     icon: Settings,
+    iconName: "settings",
+  },
+];
+
+/**
+ * Commerce, subscription and membership dashboard pages. Each is gated by the
+ * public plugin flag that owns it; `buildDashboardNavItems()` inserts the
+ * block between the activity items and Courses.
+ */
+export const DASHBOARD_EXTENSION_NAV_ITEMS: DashboardNavItem[] = [
+  {
+    id: "orders",
+    label: "Orders",
+    to: "/dashboard/orders",
+    icon: ShoppingBag,
+    iconName: "shopping-bag",
+    plugin: "commerce",
+    badge: "orders.active",
+  },
+  {
+    id: "subscriptions",
+    label: "Subscriptions",
+    to: "/dashboard/subscriptions",
+    icon: Repeat,
+    iconName: "repeat",
+    plugin: "commerceSubscriptions",
+  },
+  {
+    id: "returns",
+    label: "Returns",
+    to: "/dashboard/returns",
+    icon: PackageOpen,
+    iconName: "package-open",
+    plugin: "commerceReturns",
+  },
+  {
+    id: "downloads",
+    label: "Downloads",
+    to: "/dashboard/downloads",
+    icon: Download,
+    iconName: "download",
+    plugin: "commerceDigital",
+  },
+  {
+    id: "wishlist",
+    label: "Wishlist",
+    to: "/dashboard/wishlist",
+    icon: Heart,
+    iconName: "heart",
+    plugin: "commerceWishlists",
+  },
+  {
+    id: "reviews",
+    label: "My Reviews",
+    to: "/dashboard/reviews",
+    icon: Star,
+    iconName: "star",
+    plugin: "commerceReviews",
+  },
+  {
+    id: "addresses",
+    label: "Addresses",
+    to: "/dashboard/addresses",
+    icon: MapPin,
+    iconName: "map-pin",
+    plugin: "commerce",
+  },
+  {
+    id: "membership",
+    label: "Membership",
+    to: "/dashboard/membership",
+    icon: BadgeCheck,
+    iconName: "badge-check",
+    plugin: "membership",
   },
 ];
 
@@ -154,4 +252,14 @@ export const ROUTE_LABEL_MAP: Record<string, string> = {
   comments: "My Comments",
   notifications: "Notifications",
   security: "Security",
+  orders: "Orders",
+  returns: "Returns",
+  subscriptions: "Subscriptions",
+  downloads: "Downloads",
+  reviews: "My Reviews",
+  wishlist: "Wishlist",
+  addresses: "Addresses",
+  membership: "Membership",
+  tickets: "Support tickets",
+  help: "Help center",
 };

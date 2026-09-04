@@ -1,13 +1,14 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
-import { MediaImage } from "@/components/media/MediaImage";
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
+import CoreRecipesCategory, { type RecipesCategorySurfaceData } from "@/templates/packs/core/surfaces/recipes.category";
+import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/_marketing/recipes/category/$slug")({
   component: RecipeCategoryPage,
@@ -72,60 +73,7 @@ function RecipeCategoryPageInner() {
     return <NotFoundPage />;
   }
 
-  return (
-    <div className="flex flex-col gap-8">
-      <section className="rounded-[2rem] border border-border bg-card p-8">
-        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-          Recipe Category
-        </div>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight">
-          {category.name}
-        </h1>
-        {category.description && (
-          <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
-            {category.description}
-          </p>
-        )}
-      </section>
+  const surfaceData: RecipesCategorySurfaceData = { category, recipes: data.recipes };
 
-      {data.recipes.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">
-          No recipes are published in this category yet.
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {data.recipes.map((recipe: any) => (
-            <article
-              key={recipe._id}
-              className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm"
-            >
-              <Link to="/recipes/$slug" params={{ slug: recipe.slug }}>
-                <div className="aspect-[4/3] bg-muted/40">
-                  {recipe.featuredImageId ? (
-                    <MediaImage
-                      mediaId={recipe.featuredImageId}
-                      alt={recipe.title}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center bg-muted text-sm text-muted-foreground">
-                      Recipe
-                    </div>
-                  )}
-                </div>
-                <div className="p-5">
-                  <h2 className="text-xl font-semibold">{recipe.title}</h2>
-                  {recipe.excerpt && (
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      {recipe.excerpt}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            </article>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  return <Surface name="recipes.category" data={surfaceData} fallback={CoreRecipesCategory} />;
 }

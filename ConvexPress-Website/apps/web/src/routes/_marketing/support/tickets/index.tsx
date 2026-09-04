@@ -1,15 +1,15 @@
 import { useEffect } from "react";
-import { createFileRoute, Link, ErrorComponent, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, ErrorComponent, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useAuth } from "@/lib/auth/clerk";
 import { api } from "@convexpress-website/backend/generated/api";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
 
 import { buildRestrictedPageHead } from "@/lib/seo/head";
 import { useDashboardEnabled, useDashboardPath } from "@/hooks/useDashboardConfig";
 import type { TicketOverviewResult } from "@/lib/support-tickets";
-import { TicketList } from "@/components/support/tickets/TicketList";
+import CoreSupportTickets, { type SupportTicketsSurfaceData } from "@/templates/packs/core/surfaces/support.tickets";
+import { Surface } from "@/templates/sdk/Surface";
 
 const searchSchema = z.object({
   status: z.enum(["open", "awaitingResponse", "inProgress", "resolved", "closed"]).optional(),
@@ -45,34 +45,21 @@ function MyTicketsPage() {
     if (shouldRedirect) void navigate({ to: to("/tickets"), replace: true } as never);
   }, [shouldRedirect, navigate, to]);
 
-  const data = useQuery(api.tickets.queries.getMyTicketsOverview, isLoaded && isSignedIn && dashboardEnabled === false ? {} : "skip") as TicketOverviewResult | undefined;
+  const tickets = useQuery(api.tickets.queries.getMyTicketsOverview, isLoaded && isSignedIn && dashboardEnabled === false ? {} : "skip") as TicketOverviewResult | undefined;
 
-  if (!isLoaded || dashboardEnabled === null || shouldRedirect) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Loading" />
-      </div>
-    );
-  }
+  const status: SupportTicketsSurfaceData["status"] =
+    !isLoaded || dashboardEnabled === null || shouldRedirect
+      ? "loading"
+      : !isSignedIn
+        ? "signedOut"
+        : "ready";
 
-  if (!isSignedIn) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-4 px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold text-foreground">My Tickets</h1>
-        <p className="text-muted-foreground">
-          Please{" "}
-          <Link to="/login" className="text-primary hover:underline">
-            sign in
-          </Link>{" "}
-          to view your support tickets.
-        </p>
-      </div>
-    );
-  }
+  const data: SupportTicketsSurfaceData = {
+    status,
+    tickets,
+    hrefFor: (ticketNumber) => `/support/tickets/${ticketNumber}`,
+    newHref: "/support/new",
+  };
 
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <TicketList data={data} hrefFor={(ticketNumber) => `/support/tickets/${ticketNumber}`} newHref="/support/new" />
-    </div>
-  );
+  return <Surface name="support.tickets" data={data} fallback={CoreSupportTickets} />;
 }

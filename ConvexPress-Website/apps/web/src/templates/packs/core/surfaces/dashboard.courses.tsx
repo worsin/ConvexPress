@@ -1,0 +1,183 @@
+/** Core · dashboard.courses — enrolled courses with progress, resume and certificate links. */
+import { Link } from "@tanstack/react-router";
+import { Award, BookOpen, GraduationCap, PlayCircle } from "lucide-react";
+
+import { DashboardCard } from "@/components/dashboard/DashboardCard";
+import { EmptyState } from "@/components/dashboard/EmptyState";
+import { CourseImageFallback } from "@/components/lms/CourseImageFallback";
+import { MediaImage } from "@/components/media/MediaImage";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { SurfaceProps } from "@/templates/sdk/types";
+
+export interface DashboardLearningCourse {
+  enrollmentId: string;
+  courseId: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  featuredImageId?: string;
+  lessonCount: number;
+  enrolledAt: number;
+  expiresAt?: number;
+  percent: number;
+  completedCount: number;
+  nextNodeId?: string | null;
+  certificateSerial?: string;
+  certificatePdfUrl?: string;
+}
+
+export interface DashboardCoursesSurfaceData {
+  /** undefined while the enrollment query (or the plugin gate) is pending. */
+  courses: DashboardLearningCourse[] | undefined;
+  hrefs: {
+    /** Public course catalog. */
+    catalog: string;
+    /** Public course page (when no lesson is queued). */
+    course: (slug: string) => string;
+    /** Lesson player under the dashboard base path. */
+    lesson: (slug: string, nodeId: string) => string;
+    certificate: (serial: string) => string;
+  };
+}
+
+export default function CoreDashboardCourses({ data }: SurfaceProps<DashboardCoursesSurfaceData>) {
+  const { courses, hrefs } = data;
+
+  if (courses === undefined) {
+    return <CoursesSkeleton />;
+  }
+
+  return (
+    <div className="space-y-8">
+      <header>
+        <h1 className="text-sm font-medium text-foreground">My Courses</h1>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Continue lessons, review progress, and access earned certificates.
+        </p>
+      </header>
+
+      {courses.length === 0 ? (
+        <DashboardCard title="No courses yet">
+          <EmptyState
+            icon={GraduationCap}
+            title="You are not enrolled in any courses"
+            description="Browse the course catalog and enroll to start learning."
+            action={{ label: "Browse courses", href: hrefs.catalog }}
+          />
+        </DashboardCard>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {courses.map((course) => (
+            <CourseCard key={course.enrollmentId} course={course} hrefs={hrefs} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CoursesSkeleton() {
+  return (
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-3 w-64" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Skeleton className="h-56 w-full" />
+        <Skeleton className="h-56 w-full" />
+      </div>
+    </div>
+  );
+}
+
+function CourseCard({ course, hrefs }: { course: DashboardLearningCourse; hrefs: DashboardCoursesSurfaceData["hrefs"] }) {
+  const percent = Math.min(Math.max(course.percent, 0), 100);
+  const continueHref = course.nextNodeId ? hrefs.lesson(course.slug, course.nextNodeId) : hrefs.course(course.slug);
+
+  return (
+    <article className="overflow-hidden border border-border bg-card text-card-foreground">
+      <div className="aspect-[16/9] bg-muted/40">
+        {course.featuredImageId ? (
+          <MediaImage
+            mediaId={course.featuredImageId as any}
+            alt={course.title}
+            className="h-full w-full object-cover"
+            preferredSize="large"
+            sizes="(max-width: 1024px) 100vw, 50vw"
+          />
+        ) : (
+          <CourseImageFallback title={course.title} subtitle={`${percent}% complete`} />
+        )}
+      </div>
+
+      <div className="space-y-4 p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="line-clamp-2 text-base font-semibold text-foreground">
+              {course.title}
+            </h2>
+            {course.excerpt ? (
+              <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                {course.excerpt}
+              </p>
+            ) : null}
+          </div>
+          {course.certificateSerial ? (
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <Link
+                to={hrefs.certificate(course.certificateSerial)}
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                <Award className="size-3.5" aria-hidden="true" />
+                Certificate
+              </Link>
+              {course.certificatePdfUrl ? (
+                <a
+                  href={course.certificatePdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  Download PDF
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>{course.completedCount} of {course.lessonCount} lessons</span>
+            <span>{percent}%</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div className="h-full bg-primary" style={{ width: `${percent}%` }} />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <BookOpen className="size-3.5" aria-hidden="true" />
+            Enrolled {formatDate(course.enrolledAt)}
+          </span>
+          <Link
+            to={continueHref}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90"
+          >
+            <PlayCircle className="size-3.5" aria-hidden="true" />
+            {percent >= 100 ? "Review course" : "Continue"}
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function formatDate(ts: number) {
+  return new Date(ts).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}

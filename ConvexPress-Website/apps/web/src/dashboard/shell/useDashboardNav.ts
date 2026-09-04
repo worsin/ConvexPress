@@ -14,10 +14,12 @@ import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 
-import { menuToNav, registryToNav, type MenuTreeNode, type NavItem } from "../nav";
+import { menuToNav, navItemsFromDashboardNav, registryToNav, type MenuTreeNode, type NavItem } from "../nav";
 import { listPageModuleIds } from "../registry";
 import type { DashboardRegistryPayload } from "../types";
+import { useSettings } from "@/contexts/SettingsContext";
 import { useCanFn } from "@/hooks/useCan";
+import { buildDashboardNavItems } from "@/lib/layout/dashboardNav";
 
 interface MenuPayload {
   menu: { _id: string; name: string; slug: string };
@@ -76,4 +78,20 @@ export function useRegistryNav(
       implementedPageIds: new Set(listPageModuleIds()),
     });
   }, [basePath, can, options.includeAll, options.withHeadings, registry]);
+}
+
+/**
+ * Settings-driven fallback navigation: DASHBOARD_NAV_ITEMS plus the commerce,
+ * subscription and membership pages, gated by the public plugin flags and the
+ * viewer's capabilities, limited to implemented modules. Renders while the
+ * registry query is still loading (SSR included) or when it is unavailable.
+ */
+export function useFallbackNav(basePath: string): NavItem[] {
+  const settings = useSettings();
+  const can = useCanFn();
+  return useMemo(() => {
+    const implemented = new Set(listPageModuleIds());
+    const items = buildDashboardNavItems(settings, { can, basePath }).filter((item) => implemented.has(item.id));
+    return navItemsFromDashboardNav(items);
+  }, [basePath, can, settings]);
 }

@@ -3,7 +3,7 @@
  *
  * SSR category archive page with breadcrumbs, archive header,
  * post grid, subcategory list, pagination, and SEO.
- * 404 if slug not found.
+ * 404 if slug not found. Rendering belongs to the `blog.category` surface.
  */
 
 import { convexQuery } from "@convex-dev/react-query";
@@ -17,14 +17,11 @@ import type {
   PostCard as PostCardType,
 } from "@/lib/blog/types";
 import { estimateReadingTime } from "@/lib/blog/renderContent";
-import { ArchiveHeader } from "@/components/taxonomy/ArchiveHeader";
-import { NotFoundPage } from "@/components/blog/NotFoundPage";
-import { PostGrid } from "@/components/blog/PostGrid";
-import { PostPagination } from "@/components/blog/PostPagination";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TaxonomyBreadcrumbs } from "@/components/taxonomy/Breadcrumbs";
-import { SubcategoryList } from "@/components/taxonomy/SubcategoryList";
 import { siteTitled } from "@/lib/seo/head";
+import CoreBlogCategory from "@/templates/packs/core/surfaces/blog.category";
+import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
+import { Surface } from "@/templates/sdk/Surface";
 
 interface CategorySearchParams {
   page?: number;
@@ -113,7 +110,7 @@ function CategoryArchive() {
 
   // Not found
   if (category === null) {
-    return <NotFoundPage />;
+    return <Surface name="system.notFound" data={{ kind: "page" }} fallback={CoreNotFound} />;
   }
 
   // Build ancestor chain for breadcrumbs
@@ -123,27 +120,29 @@ function CategoryArchive() {
   const subcategories = findSubcategories(category._id, categoryTree);
 
   // Map posts data (getPostsByTerm returns raw post docs without denormalized author)
-  const posts: PostCardType[] = (postsData?.posts ?? []).map((post: NonNullable<NonNullable<typeof postsData>['posts']>[number]) => ({
-    _id: post._id,
-    title: post.title,
-    slug: post.slug,
-    excerpt: post.excerpt,
-    featuredImageUrl: post.featuredImageUrl ?? undefined,
-    featuredImageAlt: post.featuredImageAlt ?? undefined,
-    publishedAt: post.publishedAt
-      ? new Date(post.publishedAt).toISOString()
-      : undefined,
-    author: {
-      _id: post.author?._id ?? post.authorId ?? "",
-      displayName: post.author?.displayName ?? "Unknown",
-      slug: post.author?.slug ?? "",
-      avatarUrl: post.author?.avatarUrl,
-    },
-    primaryCategory: undefined,
-    commentCount: post.commentCount ?? 0,
-    isSticky: post.isSticky ?? false,
-    readingTime: estimateReadingTime(post.content),
-  }));
+  const posts: PostCardType[] | undefined = postsData
+    ? (postsData.posts ?? []).map((post: NonNullable<NonNullable<typeof postsData>['posts']>[number]) => ({
+        _id: post._id,
+        title: post.title,
+        slug: post.slug,
+        excerpt: post.excerpt,
+        featuredImageUrl: post.featuredImageUrl ?? undefined,
+        featuredImageAlt: post.featuredImageAlt ?? undefined,
+        publishedAt: post.publishedAt
+          ? new Date(post.publishedAt).toISOString()
+          : undefined,
+        author: {
+          _id: post.author?._id ?? post.authorId ?? "",
+          displayName: post.author?.displayName ?? "Unknown",
+          slug: post.author?.slug ?? "",
+          avatarUrl: post.author?.avatarUrl,
+        },
+        primaryCategory: undefined,
+        commentCount: post.commentCount ?? 0,
+        isSticky: post.isSticky ?? false,
+        readingTime: estimateReadingTime(post.content),
+      }))
+    : undefined;
   const pagination: PaginationData | undefined = postsData
     ? {
         currentPage: postsData.page,
@@ -156,53 +155,24 @@ function CategoryArchive() {
     : undefined;
 
   return (
-    <div data-slot="category-archive" className="flex flex-col gap-8">
-      {/* Breadcrumbs */}
-      <TaxonomyBreadcrumbs
-        type="category"
-        termName={category.name}
-        termSlug={category.slug}
-        ancestors={ancestors}
-      />
-
-      {/* Archive Header */}
-      <ArchiveHeader
-        name={category.name}
-        type="category"
-        description={category.description}
-        postCount={category.count}
-      />
-
-      {/* Subcategories */}
-      {subcategories.length > 0 && (
-        <SubcategoryList subcategories={subcategories} />
-      )}
-
-      {/* Posts */}
-      {postsData === undefined ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex flex-col gap-3">
-              <Skeleton className="aspect-video w-full" />
-              <Skeleton className="h-3 w-3/4" />
-              <Skeleton className="h-3 w-1/2" />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <>
-          <PostGrid posts={posts} layout="grid" />
-
-          {pagination && pagination.totalPages > 1 && (
-            <PostPagination
-              pagination={pagination}
-              baseUrl={`/category/${slug}`}
-              className="pt-4"
-            />
-          )}
-        </>
-      )}
-    </div>
+    <Surface
+      name="blog.category"
+      data={{
+        category: {
+          _id: category._id,
+          name: category.name,
+          slug: category.slug,
+          description: category.description,
+          count: category.count,
+        },
+        slug,
+        ancestors,
+        subcategories,
+        posts,
+        pagination,
+      }}
+      fallback={CoreBlogCategory}
+    />
   );
 }
 

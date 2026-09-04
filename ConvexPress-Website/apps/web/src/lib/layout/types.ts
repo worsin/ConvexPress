@@ -1,5 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 
+import type { PublicPluginId } from "@/lib/plugins/public";
+
 /**
  * A resolved menu item from the Menu System, ready for rendering.
  * This is what the getMenuForLocation query returns (flattened or tree-structured).
@@ -349,16 +351,24 @@ export interface AdminBarItem {
  * Dashboard navigation item.
  */
 export interface DashboardNavItem {
-  /** Unique item ID */
+  /** Unique item ID (matches the dashboard registry page id) */
   id: string;
   /** Display label */
   label: string;
-  /** Route path */
+  /** Route path under the legacy `/dashboard` base path */
   to: string;
   /** Lucide icon component */
   icon: LucideIcon;
+  /** Kebab-case icon name for renderers that resolve icons by name (dashboard/icons.ts) */
+  iconName?: string;
   /** Whether to match exact path only */
   exact?: boolean;
+  /** Public plugin that must be enabled for the item to show (see lib/plugins/public.ts) */
+  plugin?: PublicPluginId;
+  /** Website capability the viewer must hold for the item to show */
+  capability?: string;
+  /** Badge counter key from the dashboard badge query (e.g. "notifications.unread") */
+  badge?: string;
 }
 
 // ─── Dashboard Config (Dashboard extension, from admin settings) ────────────

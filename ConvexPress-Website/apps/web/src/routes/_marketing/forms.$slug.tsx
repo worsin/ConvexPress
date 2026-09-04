@@ -3,20 +3,15 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
-import { AuthError } from "@/components/auth/AuthError";
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
-import {
-  SubmittedConfirmation,
-  type PublicForm,
-} from "@/components/forms/FormRenderer";
-import {
-  FormWizard,
-  parseOrderFormSettings,
-} from "@/extensions/forms/FormWizard";
+import { type PublicForm } from "@/components/forms/FormRenderer";
+import { parseOrderFormSettings } from "@/extensions/forms/FormWizard";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { throwPublicNotFound } from "@/lib/plugins/public-route-loader";
 import { parsePrefill } from "@/lib/forms/prefill/parsePrefill";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
+import CoreForm, { type FormSurfaceData } from "@/templates/packs/core/surfaces/forms.form";
+import { Surface } from "@/templates/sdk/Surface";
 
 /**
  * Public form render + submit page (Forms extension).
@@ -30,8 +25,9 @@ import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib
  *   3. Loads the published form via `extensions.forms.queries.getBySlug`
  *      (PUBLIC, no auth). Unpublished / missing → null → 404.
  *   4. Reads arbitrary query params via `useSearch()`, resolves PREFILL
- *      (allowlisted, sanitized) into `initialValues`, and mounts `<FormWizard>`
- *      — which splits on `page_break` markers into a multi-step wizard with
+ *      (allowlisted, sanitized) into `initialValues`, and hands the
+ *      `forms.form` surface the view model — Core mounts `<FormWizard>`,
+ *      which splits on `page_break` markers into a multi-step wizard with
  *      autosave, degrading to a single page (with a plain Submit) when the form
  *      has no `page_break`.
  *
@@ -118,73 +114,15 @@ function FormPageInner() {
   // admin-only / layout / password fields are never seeded. SSR-safe + pure.
   const prefill = parsePrefill(search, { fields: form.fields });
   const orderForm = parseOrderFormSettings(form.settings);
-  if (search.payment === "complete") {
-    if (search.redirect_status === "succeeded") {
-      return (
-        <div className="mx-auto w-full max-w-2xl py-10">
-          <SubmittedConfirmation formTitle={form.title} renderedMessage="" />
-        </div>
-      );
-    }
-    return (
-      <div className="mx-auto w-full max-w-2xl py-10">
-        <PaymentReturnNotice
-          formTitle={form.title}
-          slug={slug}
-          status={search.redirect_status}
-        />
-      </div>
-    );
-  }
 
-  return (
-    <div
-      className={
-        orderForm.enabled
-          ? "mx-auto w-full max-w-6xl py-10"
-          : "mx-auto w-full max-w-2xl py-10"
-      }
-    >
-      <FormWizard form={form} initialValues={prefill.initialValues} />
-    </div>
-  );
-}
+  const data: FormSurfaceData = {
+    form,
+    slug,
+    initialValues: prefill.initialValues,
+    orderFormEnabled: orderForm.enabled,
+    paymentReturn:
+      search.payment === "complete" ? { status: search.redirect_status } : null,
+  };
 
-function PaymentReturnNotice({
-  formTitle,
-  slug,
-  status,
-}: {
-  formTitle: string;
-  slug: string;
-  status?: string;
-}) {
-  const normalized = status ?? "unknown";
-  const isProcessing = normalized === "processing";
-  return (
-    <section className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6">
-      <div className="flex flex-col gap-1.5 border-b border-border pb-4">
-        <p className="text-xs font-medium uppercase text-muted-foreground">
-          {formTitle}
-        </p>
-        <h1 className="text-xl font-semibold text-foreground">
-          {isProcessing ? "Payment processing" : "Payment not completed"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {isProcessing
-            ? "Stripe is still processing this payment. You can refresh this page in a moment."
-            : "Stripe did not confirm a successful payment for this order."}
-        </p>
-      </div>
-      {!isProcessing ? (
-        <AuthError message="Payment was not completed. Please try the form again or contact support if you were charged." />
-      ) : null}
-      <a
-        href={`/forms/${slug}`}
-        className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
-      >
-        Return to form
-      </a>
-    </section>
-  );
+  return <Surface name="forms.form" data={data} fallback={CoreForm} />;
 }

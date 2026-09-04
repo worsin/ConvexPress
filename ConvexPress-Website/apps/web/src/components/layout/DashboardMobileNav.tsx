@@ -3,7 +3,9 @@ import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { cn } from "@/lib/utils";
-import { DASHBOARD_NAV_ITEMS } from "@/lib/layout/constants";
+import { useSettings } from "@/contexts/SettingsContext";
+import { useCanFn } from "@/hooks/useCan";
+import { buildDashboardNavItems } from "@/lib/layout/dashboardNav";
 
 /**
  * Horizontal scrolling navigation bar for the dashboard on mobile viewports.
@@ -13,6 +15,10 @@ import { DASHBOARD_NAV_ITEMS } from "@/lib/layout/constants";
  * with the active item highlighted and notification badge for unread count.
  */
 export function DashboardMobileNav() {
+  const settings = useSettings();
+  const can = useCanFn();
+  // Core items plus the commerce/membership/LMS pages, gated by plugin flags.
+  const navItems = buildDashboardNavItems(settings, { can });
   const unreadCountResult = useQuery(
     api.notifications.queries.unreadCount,
     {},
@@ -29,7 +35,7 @@ export function DashboardMobileNav() {
       className="flex border-b border-border bg-card md:hidden"
     >
       <div className="flex w-full items-center gap-0.5 overflow-x-auto px-2 py-1.5 scrollbar-none">
-        {DASHBOARD_NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const showBadge = item.id === "notifications" && unreadCount > 0;
 

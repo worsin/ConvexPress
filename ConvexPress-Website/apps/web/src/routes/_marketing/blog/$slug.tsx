@@ -5,23 +5,11 @@ import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useEffect, useState } from "react";
-import { AuthorBox } from "@/components/blog/AuthorBox";
-import { NotFoundPage } from "@/components/blog/NotFoundPage";
-import { PasswordGate } from "@/components/blog/PasswordGate";
-import { PostContent } from "@/components/blog/PostContent";
-import { PostFooter } from "@/components/blog/PostFooter";
-import { PostHeader } from "@/components/blog/PostHeader";
-import { RelatedPosts } from "@/components/blog/RelatedPosts";
-import { BlockListRenderer } from "@/components/blocks/BlockListRenderer";
 import {
 	hasStructuredContent,
-	StructuredContent,
+	type StructuredContentProps,
 } from "@/components/blog/StructuredContent";
-import { CommentSection } from "@/components/comments/CommentSection";
-import {
-	RestrictedContent,
-	type RestrictedTeaserMode,
-} from "@/components/membership/RestrictedContent";
+import type { RestrictedTeaserMode } from "@/components/membership/RestrictedContent";
 import { SeoHead } from "@/components/seo/SeoHead";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageOverrides } from "@/contexts/PageOverridesContext";
@@ -43,6 +31,11 @@ import {
 	createFallbackSeo,
 	resolvePostSeoFromQueries,
 } from "@/lib/seo/resolve";
+import CoreBlogPost from "@/templates/packs/core/surfaces/blog.post";
+import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
+import CorePasswordGate from "@/templates/packs/core/surfaces/system.passwordGate";
+import type { RestrictedSurfaceData } from "@/templates/packs/core/surfaces/system.restricted";
+import { Surface } from "@/templates/sdk/Surface";
 export const Route = createFileRoute("/_marketing/blog/$slug")({
 	// .parse() is intentional here: TanStack Router catches the thrown ZodError
 	// and triggers the not-found/error boundary for malformed slug params.
@@ -219,20 +212,25 @@ function SinglePost() {
 	}
 	// Not found
 	if (rawPost === null) {
-		return <NotFoundPage />;
+		return <Surface name="system.notFound" data={{ kind: "page" }} fallback={CoreNotFound} />;
 	}
 	// Password-protected post: show gate until password verified
 	if (rawPost.isPasswordProtected && !verifiedPost) {
 		return (
-			<PasswordGate
-				title={rawPost.title}
-				onSubmit={(password: string) => {
-					setPasswordError(undefined);
-					setIsVerifying(true);
-					setSubmittedPassword(password);
+			<Surface
+				name="system.passwordGate"
+				data={{
+					kind: "post",
+					title: rawPost.title,
+					onSubmit: (password: string) => {
+						setPasswordError(undefined);
+						setIsVerifying(true);
+						setSubmittedPassword(password);
+					},
+					error: passwordError,
+					isVerifying,
 				}}
-				error={passwordError}
-				isVerifying={isVerifying}
+				fallback={CorePasswordGate}
 			/>
 		);
 	}
@@ -414,80 +412,57 @@ function SinglePost() {
 			readingTime: undefined,
 		}),
 	);
-	return (
-		<article
-			data-slot="single-post"
-			className="mx-auto flex max-w-3xl flex-col gap-8"
-		>
-			{/* SEO Meta Tags + JSON-LD */}
-			<SeoHead
-				seo={resolvedSeo}
-				siteUrl={siteUrl || `/blog/${slug}`}
-				jsonLdGraph={jsonLdGraph}
-			/>
-			{/* Header */}
-			<PostHeader
-				title={post.title}
-				author={post.author}
-				publishedAt={post.publishedAt}
-				readingTime={post.readingTime}
-				categories={post.categories}
-				featuredImageUrl={post.featuredImageUrl}
-				featuredImageAlt={post.featuredImageAlt}
-			/>
-			{/* Content: gated by membership when a restriction rule applies.
-          Otherwise structured (AI-generated) takes priority over TipTap blocks. */}
-			{isAccessRestricted && accessRule ? (
-				<RestrictedContent
-					mode={teaserMode}
-					rule={{
+	// Membership gate view model for the `system.restricted` surface (null = unrestricted).
+	const restricted: RestrictedSurfaceData | null =
+		isAccessRestricted && accessRule
+			? {
+					mode: teaserMode,
+					rule: {
 						teaserMode: accessRule.teaserMode as RestrictedTeaserMode | null,
 						customMessage: accessRule.customMessage,
 						matchingPlanIds: accessRule.matchingPlanIds as
 							| Id<"membership_plans">[]
 							| null,
-					}}
-					excerpt={restrictedExcerpt}
-					userState={isSignedIn ? "logged_in_non_member" : "logged_out"}
-				/>
-				) : post.contentMode === "blocks" && post.blocks && post.blocks.length > 0 ? (
-					<BlockListRenderer blocks={post.blocks} />
-				) : hasStructuredContent({
-					hero: resolvedPostData.hero,
-					topics: resolvedPostData.topics,
-					summary: resolvedPostData.summary,
-					sources: resolvedPostData.sources,
-					tableOfContents: resolvedPostData.tableOfContents,
-				}) ? (
-				<StructuredContent
-					hero={resolvedPostData.hero}
-					topics={resolvedPostData.topics}
-					summary={resolvedPostData.summary}
-					sources={resolvedPostData.sources}
-					tableOfContents={resolvedPostData.tableOfContents}
-				/>
-			) : (
-				<PostContent content={post.content} />
-			)}
-			{/* Footer (tags, share, nav) */}
-			<PostFooter
-				tags={post.tags}
-				shareUrl={shareUrl}
-				shareTitle={post.title}
-				previousPost={post.previousPost}
-				nextPost={post.nextPost}
+					},
+					excerpt: restrictedExcerpt,
+					userState: isSignedIn ? "logged_in_non_member" : "logged_out",
+				}
+			: null;
+	// AI structured content (hero / topics / summary) wins over TipTap when present.
+	const structuredProps: StructuredContentProps = {
+		hero: resolvedPostData.hero,
+		topics: resolvedPostData.topics,
+		summary: resolvedPostData.summary,
+		sources: resolvedPostData.sources,
+		tableOfContents: resolvedPostData.tableOfContents,
+	};
+	const structured = hasStructuredContent(structuredProps) ? structuredProps : null;
+	return (
+		<>
+			{/* SEO Meta Tags + JSON-LD: emitted by the route so every template pack keeps them */}
+			<SeoHead
+				seo={resolvedSeo}
+				siteUrl={siteUrl || `/blog/${slug}`}
+				jsonLdGraph={jsonLdGraph}
 			/>
-			{/* Author Box */}
-			<AuthorBox author={authorData} />
-			{/* Related Posts */}
-			<RelatedPosts posts={relatedPosts} />
-			{/* Comment Section */}
-			<CommentSection
-				postId={post._id}
-				commentStatus={rawPost.commentStatus ?? "open"}
-				isLoggedIn={!!isSignedIn}
-				currentUserId={userId ?? undefined}
+			<Surface
+				name="blog.post"
+				data={{
+					post,
+					author: authorData,
+					relatedPosts,
+					shareUrl,
+					structured,
+					restricted,
+					comments: {
+						postId: post._id,
+						commentStatus: rawPost.commentStatus ?? "open",
+						isLoggedIn: !!isSignedIn,
+						currentUserId: userId ?? undefined,
+					},
+				}}
+				fallback={CoreBlogPost}
 			/>
-		</article>
+		</>
 	);
 }

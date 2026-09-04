@@ -5,6 +5,7 @@
  */
 
 import { buildDashboardPath } from "@/lib/dashboard/config";
+import type { DashboardNavItem } from "@/lib/layout/types";
 import { PAGE_GROUP_LABELS, PAGE_GROUP_ORDER, type DashboardPageDefinition } from "./types";
 
 export type NavItemKind = "link" | "heading" | "separator";
@@ -144,6 +145,26 @@ export function registryToNav(pages: DashboardPageDefinition[], options: Registr
     }
   }
   return out;
+}
+
+/**
+ * Maps the settings-driven fallback list (lib/layout/dashboardNav.ts) to nav
+ * items. Used while the page registry is loading or unavailable so the shell
+ * never renders an empty sidebar; `to` must already be rebased.
+ */
+export function navItemsFromDashboardNav(items: DashboardNavItem[]): NavItem[] {
+  return items.map((item) => ({
+    id: `page:${item.id}`,
+    kind: "link",
+    label: item.label,
+    href: item.to,
+    icon: item.iconName,
+    badge: item.badge,
+    pageId: item.id,
+    exact: Boolean(item.exact),
+    external: false,
+    children: [],
+  }));
 }
 
 /** Whether a nav link is the active one for the current pathname. */

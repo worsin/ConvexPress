@@ -1,20 +1,18 @@
 /**
- * WidgetGrid — the dashboard home.
+ * WidgetGridView — the dashboard home (presentational).
  *
- * Reads the member's layout (api.extensions.dashboard.queries.myLayout) and
- * the widget registry, renders one card per visible layout item on a
- * 12-column grid (DASHBOARD_GRID geometry from the server), and — when the
- * site allows it — lets the member customize: drag to move, resize to the
+ * Renders the member's layout on a 12-column grid (DASHBOARD_GRID geometry
+ * from the server), one card per visible layout item, and — when the site
+ * allows it — lets the member customize: drag to move, resize to the
  * widget's allowed sizes, hide/show, add from the picker, per-widget
- * settings, and reset to the site default. Layout writes are debounced and
- * reflected through the live subscription.
+ * settings, and reset to the site default. The layout query and the editor
+ * (debounced writes through the live subscription) live in the page loader
+ * (dashboard/pages/home/HomePage.tsx); this view only receives them.
  *
  * Mobile renders the visible widgets stacked in reading order (y, then x).
  */
 
-import { useCallback, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@convexpress-website/backend/generated/api";
+import { useCallback, useId, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Check, Eye, LayoutGrid, Plus, RotateCcw, SlidersHorizontal } from "lucide-react";
 
 import {
@@ -32,6 +30,7 @@ import { cn } from "@/lib/utils";
 import type { DashboardWidgetProps } from "./contracts";
 import {
   DEFAULT_DASHBOARD_GRID,
+  type DashboardGridGeometry,
   type DashboardWidgetDefinition,
   type DashboardWidgetSize,
   type MyLayoutPayload,
@@ -40,33 +39,36 @@ import { nearestSize, pixelsToCells, sizeCells, sizeNameFor, sortByPosition, typ
 import { WidgetCard, WidgetEmpty } from "./grid/WidgetCard";
 import { WidgetPicker } from "./grid/WidgetPicker";
 import { WidgetSettingsDialog, resolveWidgetSettings } from "./grid/WidgetSettingsDialog";
-import { useLayoutEditor, type LayoutEditor } from "./grid/useLayoutEditor";
-import { getWidgetModule, listWidgetModuleIds } from "./registry";
-import { useDashboardShell } from "./shell/DashboardShellContext";
+import type { LayoutEditor } from "./grid/useLayoutEditor";
+import { getWidgetModule } from "./registry";
 
-export function WidgetGrid() {
-  const layout = useQuery(api.extensions.dashboard.queries.myLayout, {}) as MyLayoutPayload | null | undefined;
-  const { registry } = useDashboardShell();
-  const grid = layout?.grid ?? registry?.grid ?? DEFAULT_DASHBOARD_GRID;
-  const widgets = useMemo(() => registry?.widgets ?? [], [registry?.widgets]);
-  const widgetById = useMemo(() => new Map(widgets.map((widget) => [widget.id, widget])), [widgets]);
-  const editor = useLayoutEditor(layout, widgets, grid);
+export interface WidgetGridViewProps {
+  status: "loading" | "signedOut" | "ready";
+  layout: MyLayoutPayload | null;
+  grid: DashboardGridGeometry;
+  widgets: DashboardWidgetDefinition[];
+  availableWidgetIds: string[];
+  editor: LayoutEditor;
+}
+
+export function WidgetGridView({ status, layout, grid, widgets, availableWidgetIds, editor }: WidgetGridViewProps) {
+  const widgetById = new Map(widgets.map((widget) => [widget.id, widget]));
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [settingsKey, setSettingsKey] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [noticeDismissed, setNoticeDismissed] = useState(false);
 
-  if (layout === undefined || !registry) return <GridSkeleton />;
-  if (layout === null) {
-    return <WidgetEmpty icon="layout-grid" title="Sign in to see your dashboard" />;
+  if (status === "loading" || !layout) {
+    if (status === "signedOut") return <WidgetEmpty icon="layout-grid" title="Sign in to see your dashboard" />;
+    return <GridSkeleton />;
   }
 
   const visible = sortByPosition(editor.items.filter((item) => !item.hidden));
   const hidden = editor.items.filter((item) => item.hidden);
   const settingsItem = settingsKey ? editor.items.find((item) => item.key === settingsKey) : undefined;
   const settingsWidget = settingsItem ? widgetById.get(settingsItem.widgetId) : undefined;
-  const availableIds = new Set(listWidgetModuleIds());
+  const availableIds = new Set(availableWidgetIds);
 
   return (
     <div data-slot="dashboard-widget-grid" className="space-y-4">

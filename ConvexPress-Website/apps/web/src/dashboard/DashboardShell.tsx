@@ -1,5 +1,11 @@
 /**
- * DashboardShell — the frame around every customer dashboard page.
+ * DashboardShell — the loader behind every customer dashboard page.
+ *
+ * Keeps the auth gate, the customer-account provisioning states, the
+ * sign-in redirect and the navigation data (menus, registry, badges, the
+ * settings-driven fallback), then hands one view model to the
+ * `dashboard.shell` surface; the active template pack decides how the frame
+ * looks (Core: dashboard/shell/FullShell.tsx or AccountLayout.tsx).
  *
  * Honors every `dashboardConfig` field (design-kit/DASHBOARD.md):
  *   layout             sidebar | topbar | both
@@ -11,7 +17,9 @@
  *
  * When the Dashboard plugin is disabled the same page modules render inside
  * the compact AccountLayout instead (site header + tabbed account page).
- * Navigation never comes from hardcoded routes: menus first, registry second.
+ * Navigation never comes from hardcoded routes: menus first, registry second,
+ * and while the registry is unavailable the settings-driven fallback
+ * (lib/layout/dashboardNav.ts) keeps the sidebar populated.
  */
 
 import { useEffect, useRef, type ReactNode } from "react";
@@ -19,28 +27,23 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth/clerk";
 
 import { LoginTracker } from "@/components/auth/LoginTracker";
-import { LayoutShellProvider, getBackgroundInertProps } from "@/components/layout/LayoutShellProvider";
-import { SearchOverlay } from "@/components/layout/SearchOverlay";
-import { SkipToContent } from "@/components/layout/SkipToContent";
+import { LayoutShellProvider } from "@/components/layout/LayoutShellProvider";
 import { ThemeStyleInjector } from "@/components/layout/ThemeStyleInjector";
-import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDashboardConfig, useDashboardEnabled, useDashboardPath } from "@/hooks/useDashboardConfig";
 import { useEnsureCustomerAccount } from "@/hooks/useEnsureCustomerAccount";
 import { useClerk } from "@/lib/auth/clerk";
 import { Button } from "@/components/ui/button";
-import { AccountLayout } from "./AccountLayout";
+import CoreDashboardShell, { type DashboardShellSurfaceData } from "@/templates/packs/core/surfaces/dashboard.shell";
+import { Surface } from "@/templates/sdk/Surface";
 import { DashboardShellContext, type DashboardShellValue } from "./shell/DashboardShellContext";
-import { MobileDrawer } from "./shell/MobileDrawer";
-import { ShellFooter } from "./shell/ShellFooter";
-import { SidebarNav } from "./shell/SidebarNav";
-import { Topbar } from "./shell/Topbar";
 import {
   useDashboardBadges,
   useDashboardMenu,
   useDashboardRegistry,
+  useFallbackNav,
   useRegistryNav,
 } from "./shell/useDashboardNav";
-import { useSidebarCollapsed } from "./shell/useSidebarCollapsed";
 import type { NavItem } from "./nav";
 
 interface DashboardShellProps {
@@ -126,12 +129,13 @@ export function DashboardShell({ children }: DashboardShellProps) {
   );
 }
 
-/** Resolves menus, registry, and badges once; provides them to the chrome and widgets. */
+/** Resolves menus, registry, badges and the member once; provides them to the surface, the chrome and the widgets. */
 function ShellData({ children, compact }: { children: ReactNode; compact: boolean }) {
   const { config } = useDashboardConfig();
   const { basePath, to } = useDashboardPath();
   const registry = useDashboardRegistry();
   const badges = useDashboardBadges();
+  const { user } = useCurrentUser();
 
   const wantsSidebar = config.layout !== "topbar";
   const wantsTopbarNav = config.layout !== "sidebar";
@@ -140,9 +144,12 @@ function ShellData({ children, compact }: { children: ReactNode; compact: boolea
   const profileMenu = useDashboardMenu(config.profileLocation, basePath);
   const generatedNav = useRegistryNav(registry, basePath, { withHeadings: true });
   const generatedFlat = useRegistryNav(registry, basePath, { withHeadings: false });
+  // Settings-driven list (DASHBOARD_NAV_ITEMS + commerce/membership/LMS pages,
+  // plugin-gated) used until the registry answers or when it is unavailable.
+  const fallbackNav = useFallbackNav(basePath);
 
-  const sidebarNav: NavItem[] = sidebarMenu.nav ?? generatedNav;
-  const topbarNav: NavItem[] = topbarMenu.nav ?? (wantsSidebar ? [] : generatedFlat);
+  const sidebarNav: NavItem[] = sidebarMenu.nav ?? (registry ? generatedNav : fallbackNav);
+  const topbarNav: NavItem[] = topbarMenu.nav ?? (wantsSidebar ? [] : registry ? generatedFlat : fallbackNav);
   const profileNav: NavItem[] = profileMenu.nav ?? defaultProfileNav(to);
 
   const value: DashboardShellValue = {
@@ -157,48 +164,28 @@ function ShellData({ children, compact }: { children: ReactNode; compact: boolea
     compact,
   };
 
+  const unread = badges?.["notifications.unread"];
+  const surfaceData: DashboardShellSurfaceData = {
+    config,
+    compact,
+    sidebarNav,
+    topbarNav,
+    profileNav,
+    sidebarFromMenu: value.sidebarFromMenu,
+    badges,
+    unreadCount: typeof unread === "number" && unread > 0 ? unread : 0,
+    user: user ?? null,
+    to,
+    children,
+  };
+
   return (
     <DashboardShellContext value={value}>
       <ThemeStyleInjector />
-      {compact ? <AccountLayout>{children}</AccountLayout> : <FullShell>{children}</FullShell>}
+      <Surface name="dashboard.shell" data={surfaceData} fallback={CoreDashboardShell} />
       <LoginTracker />
     </DashboardShellContext>
   );
-}
-
-function FullShell({ children }: { children: ReactNode }) {
-  const { config } = useDashboardConfigFromShell();
-  const { mobileNavOpen } = useLayoutShell();
-  const [collapsed, toggleCollapsed] = useSidebarCollapsed(config.sidebarCollapsedByDefault);
-  const hasSidebar = config.layout !== "topbar";
-
-  return (
-    <>
-      <MobileDrawer />
-      <div
-        data-slot="dashboard-shell"
-        data-layout={config.layout}
-        className="flex min-h-svh bg-background text-foreground"
-        style={{ "--dashboard-sidebar-width": `${config.sidebarWidth}px` } as React.CSSProperties}
-        {...getBackgroundInertProps(mobileNavOpen)}
-      >
-        <SkipToContent />
-        {hasSidebar && <SidebarNav collapsed={collapsed} onToggle={toggleCollapsed} />}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar hasSidebar={hasSidebar} />
-          <SearchOverlay />
-          <main id="main-content" role="main" className="flex-1 px-4 py-6 md:px-8 md:py-8">
-            <div className="mx-auto w-full max-w-7xl">{children}</div>
-          </main>
-          <ShellFooter variant={config.footerVariant} />
-        </div>
-      </div>
-    </>
-  );
-}
-
-function useDashboardConfigFromShell() {
-  return useDashboardConfig();
 }
 
 /** Fallback profile dropdown when no profile menu is assigned. */

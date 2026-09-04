@@ -1,12 +1,12 @@
 import { useEffect } from "react";
-import { createFileRoute, Link, ErrorComponent, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, ErrorComponent, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth/clerk";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
 
 import { buildSeoHead } from "@/lib/seo/head";
 import { useDashboardEnabled, useDashboardPath } from "@/hooks/useDashboardConfig";
-import { NewTicketForm } from "@/components/support/tickets/NewTicketForm";
+import CoreSupportNew, { type SupportNewSurfaceData } from "@/templates/packs/core/surfaces/support.new";
+import { Surface } from "@/templates/sdk/Surface";
 
 /** Other pages (notification "Ask about this", a closed ticket) can pre-fill via search params. */
 const newTicketSearchSchema = z.object({
@@ -49,36 +49,19 @@ function CreateTicketPage() {
     void navigate({ to: to(`/tickets/new${qs ? `?${qs}` : ""}`), replace: true } as never);
   }, [shouldRedirect, navigate, to, search.subject, search.category, search.context]);
 
-  if (!isLoaded || dashboardEnabled === null || shouldRedirect) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Loading" />
-      </div>
-    );
-  }
+  const status: SupportNewSurfaceData["status"] =
+    !isLoaded || dashboardEnabled === null || shouldRedirect
+      ? "loading"
+      : !isSignedIn
+        ? "signedOut"
+        : "ready";
 
-  if (!isSignedIn) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-4 px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold text-foreground">Submit a Ticket</h1>
-        <p className="text-muted-foreground">
-          Please{" "}
-          <Link to="/login" className="text-primary hover:underline">
-            sign in
-          </Link>{" "}
-          to submit a support ticket.
-        </p>
-      </div>
-    );
-  }
+  const data: SupportNewSurfaceData = {
+    status,
+    prefill: { subject: search.subject, category: search.category, context: search.context },
+    backHref: "/support",
+    ticketHref: (ticketNumber) => `/support/tickets/${ticketNumber}`,
+  };
 
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <NewTicketForm
-        prefill={{ subject: search.subject, category: search.category, context: search.context }}
-        backHref="/support"
-        ticketHref={(ticketNumber) => `/support/tickets/${ticketNumber}`}
-      />
-    </div>
-  );
+  return <Surface name="support.new" data={data} fallback={CoreSupportNew} />;
 }

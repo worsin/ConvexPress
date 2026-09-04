@@ -1,41 +1,13 @@
 /**
- * Dashboard page module body — moved verbatim from routes/dashboard/profile.tsx.
- * Rendered by dashboard/pages/profile/manifest.tsx inside the dashboard shell.
+ * Profile page loader: the current member, handed to the `dashboard.profile`
+ * surface (Core composes components/dashboard/profile/ProfileForm).
  */
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ProfileForm } from "@/components/dashboard/profile/ProfileForm";
+import CoreDashboardProfile, { type DashboardProfileSurfaceData } from "@/templates/packs/core/surfaces/dashboard.profile";
+import { Surface } from "@/templates/sdk/Surface";
 
 export function ProfilePage() {
   const { user, isLoading } = useCurrentUser();
-
-  if (isLoading || !user) {
-    return <ProfileSkeleton />;
-  }
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-sm font-medium text-foreground">Edit Profile</h1>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Update your public profile information.
-        </p>
-      </div>
-      <ProfileForm user={user} />
-    </div>
-  );
-}
-
-function ProfileSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <Skeleton className="h-5 w-32" />
-        <Skeleton className="mt-1 h-3 w-64" />
-      </div>
-      <Skeleton className="h-40" />
-      <Skeleton className="h-32" />
-      <Skeleton className="h-48" />
-    </div>
-  );
+  const data: DashboardProfileSurfaceData = { user: user ?? null, isLoading };
+  return <Surface name="dashboard.profile" data={data} fallback={CoreDashboardProfile} />;
 }

@@ -4,10 +4,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
-import { GalleryAlbumPage } from "@/components/gallery/GalleryAlbumPage";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
+import CoreGalleryAlbum, { type GalleryAlbumSurfaceData } from "@/templates/packs/core/surfaces/gallery.album";
+import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/_marketing/gallery/$slug")({
   component: GalleryDetailPage,
@@ -58,5 +59,7 @@ function GalleryDetailPageInner() {
     return <NotFoundPage />;
   }
 
-  return <GalleryAlbumPage album={album} />;
+  const data: GalleryAlbumSurfaceData = { album };
+
+  return <Surface name="gallery.album" data={data} fallback={CoreGalleryAlbum} />;
 }

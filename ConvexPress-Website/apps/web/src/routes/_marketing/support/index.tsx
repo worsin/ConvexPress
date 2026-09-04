@@ -1,9 +1,10 @@
-import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
+import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth/clerk";
-import { LifeBuoy, Loader2, MessageSquarePlus, List, Search } from "lucide-react";
 import { buildIndexablePageHead, siteTitled } from "@/lib/seo/head";
 import { useSettings } from "@/contexts/SettingsContext";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
+import CoreSupportHome, { type SupportHomeSurfaceData } from "@/templates/packs/core/surfaces/support.home";
+import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/_marketing/support/")({
   loader: () => ({
@@ -23,74 +24,11 @@ function SupportLandingPage() {
   const settings = useSettings();
   const knowledgeBaseEnabled = isPublicPluginEnabled("kb", settings);
 
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const data: SupportHomeSurfaceData = {
+    isLoaded: !!isLoaded,
+    isSignedIn: !!isSignedIn,
+    knowledgeBaseEnabled,
+  };
 
-  return (
-    <div className="max-w-3xl mx-auto px-4 py-12 space-y-8">
-      {/* Hero */}
-      <div className="text-center space-y-3">
-        <LifeBuoy className="h-12 w-12 mx-auto text-primary" />
-        <h1 className="text-3xl font-bold">How can we help?</h1>
-        <p className="text-lg text-foreground/60 max-w-lg mx-auto">
-          Browse our help center, search for answers, or submit a support
-          ticket and we'll get back to you as soon as possible.
-        </p>
-      </div>
-
-      {/* Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link
-          to="/support/new"
-          className="rounded-lg border border-border p-6 hover:border-primary/40 hover:shadow-sm transition-all text-center space-y-2"
-        >
-          <MessageSquarePlus className="h-8 w-8 mx-auto text-primary" />
-          <h2 className="text-lg font-semibold">Submit a Ticket</h2>
-          <p className="text-sm text-foreground/50">
-            Describe your issue and our team will respond promptly.
-          </p>
-        </Link>
-
-        {isSignedIn && (
-          <Link
-            to="/support/tickets"
-            className="rounded-lg border border-border p-6 hover:border-primary/40 hover:shadow-sm transition-all text-center space-y-2"
-          >
-            <List className="h-8 w-8 mx-auto text-primary" />
-            <h2 className="text-lg font-semibold">My Tickets</h2>
-            <p className="text-sm text-foreground/50">
-              View and manage your existing support tickets.
-            </p>
-          </Link>
-        )}
-
-        {knowledgeBaseEnabled ? (
-          <Link
-            to="/help"
-            className="rounded-lg border border-border p-6 hover:border-primary/40 hover:shadow-sm transition-all text-center space-y-2"
-          >
-            <Search className="h-8 w-8 mx-auto text-primary" />
-            <h2 className="text-lg font-semibold">Help Center</h2>
-            <p className="text-sm text-foreground/50">
-              Search our knowledge base for instant answers.
-            </p>
-          </Link>
-        ) : null}
-      </div>
-
-      {!isSignedIn && (
-        <div className="text-center text-sm text-foreground/40">
-          <Link to="/login" className="text-primary hover:underline">
-            Sign in
-          </Link>{" "}
-          to submit a ticket or view your existing tickets.
-        </div>
-      )}
-    </div>
-  );
+  return <Surface name="support.home" data={data} fallback={CoreSupportHome} />;
 }

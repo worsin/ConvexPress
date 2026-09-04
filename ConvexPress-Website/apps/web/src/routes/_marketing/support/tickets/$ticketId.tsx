@@ -1,14 +1,14 @@
 import { useEffect } from "react";
-import { createFileRoute, Link, ErrorComponent, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, ErrorComponent, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useAuth } from "@/lib/auth/clerk";
 import { api } from "@convexpress-website/backend/generated/api";
-import { Loader2 } from "lucide-react";
 
 import { buildSeoHead } from "@/lib/seo/head";
 import { useDashboardEnabled, useDashboardPath } from "@/hooks/useDashboardConfig";
 import { looksLikeTicketNumber } from "@/lib/support-tickets";
-import { TicketDetail } from "@/components/support/tickets/TicketDetail";
+import CoreSupportTicket, { type SupportTicketSurfaceData } from "@/templates/packs/core/surfaces/support.ticket";
+import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/_marketing/support/tickets/$ticketId")({
   component: TicketThreadPage,
@@ -43,47 +43,24 @@ function TicketThreadPage() {
     if (shouldRedirect && ticketNumber) void navigate({ to: to(`/tickets/${ticketNumber}`), replace: true } as never);
   }, [shouldRedirect, ticketNumber, navigate, to]);
 
-  if (!isLoaded || dashboardEnabled === null) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Loading" />
-      </div>
-    );
-  }
+  // Same precedence as the original inline branches.
+  const status: SupportTicketSurfaceData["status"] =
+    !isLoaded || dashboardEnabled === null
+      ? "loading"
+      : !isSignedIn
+        ? "signedOut"
+        : !isNumber && byId === null
+          ? "notFound"
+          : !ticketNumber || shouldRedirect
+            ? "loading"
+            : "ready";
 
-  if (!isSignedIn) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-12 text-center">
-        <p className="text-muted-foreground">
-          Please{" "}
-          <Link to="/login" className="text-primary hover:underline">
-            sign in
-          </Link>{" "}
-          to view this ticket.
-        </p>
-      </div>
-    );
-  }
+  const data: SupportTicketSurfaceData = {
+    status,
+    ticketNumber,
+    backHref: "/support/tickets",
+    newTicketHref: (p) => `/support/new?subject=${encodeURIComponent(p.subject)}&category=${encodeURIComponent(p.category)}`,
+  };
 
-  if (!isNumber && byId === null) {
-    return <div className="mx-auto max-w-2xl px-4 py-12 text-center text-muted-foreground">Ticket not found or you do not have permission to view it.</div>;
-  }
-
-  if (!ticketNumber || shouldRedirect) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Loading" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <TicketDetail
-        ticketNumber={ticketNumber}
-        backHref="/support/tickets"
-        newTicketHref={(p) => `/support/new?subject=${encodeURIComponent(p.subject)}&category=${encodeURIComponent(p.category)}`}
-      />
-    </div>
-  );
+  return <Surface name="support.ticket" data={data} fallback={CoreSupportTicket} />;
 }

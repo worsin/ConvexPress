@@ -12,12 +12,11 @@ import type {
   PostCard as PostCardType,
 } from "@/lib/blog/types";
 import { estimateReadingTime } from "@/lib/blog/renderContent";
-import { ArchiveHeader } from "@/components/blog/ArchiveHeader";
-import { NotFoundPage } from "@/components/blog/NotFoundPage";
-import { PostGrid } from "@/components/blog/PostGrid";
-import { PostPagination } from "@/components/blog/PostPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { siteTitled } from "@/lib/seo/head";
+import CoreBlogAuthor from "@/templates/packs/core/surfaces/blog.author";
+import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
+import { Surface } from "@/templates/sdk/Surface";
 
 interface AuthorSearchParams {
   page?: number;
@@ -111,7 +110,7 @@ function AuthorArchive() {
 
   // Not found
   if (author === null) {
-    return <NotFoundPage />;
+    return <Surface name="system.notFound" data={{ kind: "page" }} fallback={CoreNotFound} />;
   }
 
   const archiveData: ArchiveData = {
@@ -158,38 +157,10 @@ function AuthorArchive() {
     : undefined;
 
   return (
-    <div data-slot="author-archive" className="flex flex-col gap-8">
-      <ArchiveHeader archive={archiveData} />
-
-      {posts === undefined ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex flex-col gap-3">
-              <Skeleton className="aspect-video w-full" />
-              <Skeleton className="h-3 w-3/4" />
-              <Skeleton className="h-3 w-1/2" />
-            </div>
-          ))}
-        </div>
-      ) : posts.length === 0 ? (
-        <div className="py-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            This author hasn't published any posts yet.
-          </p>
-        </div>
-      ) : (
-        <>
-          <PostGrid posts={posts} layout="grid" />
-
-          {pagination && pagination.totalPages > 1 && (
-            <PostPagination
-              pagination={pagination}
-              baseUrl={`/author/${slug}`}
-              className="pt-4"
-            />
-          )}
-        </>
-      )}
-    </div>
+    <Surface
+      name="blog.author"
+      data={{ archive: archiveData, slug, posts, pagination }}
+      fallback={CoreBlogAuthor}
+    />
   );
 }
