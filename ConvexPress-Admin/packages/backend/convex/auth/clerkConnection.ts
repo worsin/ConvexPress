@@ -539,17 +539,19 @@ export const runTokenProbe = action({
     const found = await clerkFetch(snap.secretKey, `/users?email_address=${encodeURIComponent(email)}&limit=1`);
     userId = listData(found.json)[0]?.id;
     if (!userId) {
-      const created = await clerkFetch(snap.secretKey, "/users", {
-        method: "POST",
-        body: {
-          email_address: [email],
-          first_name: "ConvexPress",
-          last_name: "Probe",
-          skip_password_requirement: true,
-          skip_legal_checks: true,
-          private_metadata: { convexpress: { probe: true } },
-        },
-      });
+      // Satisfy whatever identifiers this instance requires (username, phone).
+      const caps = (snap.values.clerkCapabilities as AuthCapabilities | null) ?? null;
+      const body: Record<string, unknown> = {
+        email_address: [email],
+        first_name: "ConvexPress",
+        last_name: "Probe",
+        skip_password_requirement: true,
+        skip_legal_checks: true,
+        private_metadata: { convexpress: { probe: true } },
+      };
+      if (caps?.attributes.username.required) body.username = `cp_probe_${Date.now().toString(36)}`;
+      if (caps?.attributes.phoneNumber.required) body.phone_number = ["+15005550006"];
+      const created = await clerkFetch(snap.secretKey, "/users", { method: "POST", body });
       if (!created.ok) return { ok: false, detail: `Could not create the probe user: ${clerkErrorText(created)}` };
       userId = String(created.json?.id ?? "");
     }

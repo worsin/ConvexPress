@@ -24,6 +24,16 @@ protects admin routes, customer data, API access, and extension capabilities.
 - Website auth: `../ConvexPress-Website/apps/web/src/routes/login.tsx`,
   `register.tsx`, `reset-password.tsx`, `dashboard/security.tsx`.
 
+## Clerk connection (customer sign-in)
+
+Per-site Clerk is managed on `/settings/integrations/clerk`
+(`apps/web/src/routes/_authenticated/_admin/settings/integrations.clerk.tsx`)
+backed by `packages/backend/convex/auth/clerkConnection*.ts`. Read
+`docs/CLERK-CONNECTION.md` before changing anything: the issuer must also be
+live on the deployment (`auth.config.ts` reads env at deploy time), the desktop
+`site-deploy:run` IPC applies it, and the website follows the capability
+snapshot the page syncs from Clerk.
+
 ## Workflow
 
 1. Identify whether this is user CRUD, role/capability registry, route guard,

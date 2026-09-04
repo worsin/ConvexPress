@@ -284,3 +284,32 @@ Until the above lands, this is the full set of hand steps for site #2:
    (or edit the shared website `.env`, which breaks site #1's local runs).
 7. Register a test user and confirm the user row appears (webhook) and the
    dashboard loads (JWT accepted).
+
+
+---
+
+## Addendum (same day): implemented
+
+Everything in sections 5 and 6 except the Platform API tier was built and
+verified on the worker fleet on 2026-09-04. Operator guide and code map:
+`ConvexPress-Admin/docs/CLERK-CONNECTION.md`.
+
+Verified end to end with a second Clerk application created in the owner's
+Clerk account ("ConvexPress Northstar Test", username enabled, Google on):
+
+- Admin → Clerk connection → paste secret key → connected; publishable key,
+  issuer, `convex` template (created), origins, webhook app and sign-in options
+  derived automatically.
+- Environment applied to the site deployment (control plane and desktop
+  paths) and redeployed; readiness ledger green; sign-in probe minted and
+  verified a real Clerk token against the deployment.
+- Storefront: publishable key served from the site database (no env var),
+  login form adapted to "Email or Username", Google button from Clerk's
+  configuration, Turnstile rendered inside the form when bot protection was
+  on, registration with a required username, email-code verification, account
+  provisioned on first sign-in without a webhook, dashboard loaded; sign-in with
+  Clerk's new-device email code step.
+- Keyless path: creates a claimable Clerk app with no account and connects it.
+
+Still user-gated: Clerk Platform API (private beta request); production
+instance creation stays in the Clerk dashboard.

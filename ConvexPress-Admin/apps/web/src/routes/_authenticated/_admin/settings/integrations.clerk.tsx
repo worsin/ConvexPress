@@ -720,7 +720,9 @@ function ClerkConnectionPage() {
                 ) : (
                   <ManualCommands status={status} />
                 )}
-                {deployLog.length > 0 && (
+              </div>
+            )}
+            {deployLog.length > 0 && (
                   <div className="rounded-2xl border border-border bg-surface-2 p-3">
                     <div className="mb-2 flex items-center gap-2 text-xs font-medium">
                       {deployPhase === "complete" ? (
@@ -737,8 +739,6 @@ function ClerkConnectionPage() {
                     </pre>
                   </div>
                 )}
-              </div>
-            )}
           </SettingsSection>
 
           {/* Webhook */}

@@ -34,7 +34,7 @@ type Step =
   | { kind: "identifier" }
   | { kind: "password" }
   | { kind: "first_code"; strategy: "email_code" | "phone_code" | "email_link"; factor: FactorLike }
-  | { kind: "second_code"; strategy: "totp" | "phone_code" | "backup_code"; factor: FactorLike | null; alternatives: string[] }
+  | { kind: "second_code"; strategy: "totp" | "phone_code" | "email_code" | "backup_code"; factor: FactorLike | null; alternatives: string[] }
   | { kind: "new_password" };
 
 export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps) {
@@ -111,6 +111,11 @@ export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps
     if (!signIn) return;
     if (next.strategy === "phone_code" && next.factor?.phoneNumberId) {
       await signIn.prepareSecondFactor({ strategy: "phone_code", phoneNumberId: next.factor.phoneNumberId });
+    } else if (next.strategy === "email_code") {
+      await signIn.prepareSecondFactor({
+        strategy: "email_code",
+        ...(next.factor?.emailAddressId ? { emailAddressId: next.factor.emailAddressId } : {}),
+      } as never);
     }
     setStep({ kind: "second_code", strategy: next.strategy, factor: next.factor, alternatives: next.alternatives });
   };
@@ -231,7 +236,7 @@ export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps
     const factor = factors.find((item) => item.strategy === strategy) ?? null;
     await prepareSecondCode({
       kind: "second_code",
-      strategy: strategy as "totp" | "phone_code" | "backup_code",
+      strategy: strategy as "totp" | "phone_code" | "email_code" | "backup_code",
       factor,
       alternatives: factors.map((item) => item.strategy).filter((item) => item !== strategy),
     });
@@ -308,7 +313,13 @@ export function LoginForm({ returnTo = "/dashboard", className }: LoginFormProps
           <div className="flex flex-wrap justify-center gap-3 text-xs">
             {step.alternatives.map((strategy) => (
               <button key={strategy} type="button" className="text-primary hover:underline" onClick={() => useAnotherSecondFactor(strategy)}>
-                {strategy === "totp" ? "Use authenticator app" : strategy === "phone_code" ? "Text me a code" : "Use a backup code"}
+                {strategy === "totp"
+                  ? "Use authenticator app"
+                  : strategy === "phone_code"
+                    ? "Text me a code"
+                    : strategy === "email_code"
+                      ? "Email me a code"
+                      : "Use a backup code"}
               </button>
             ))}
           </div>

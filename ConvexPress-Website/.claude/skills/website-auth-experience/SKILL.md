@@ -19,6 +19,17 @@ auth/user data; Website owns the public route experience.
   - `verify-email.tsx`
   - `logout.tsx`
   - `api/auth/callback.tsx`
+- Clerk wiring (runtime-switched): `apps/web/src/lib/auth/clerk.tsx` (import
+  Clerk hooks from here, never from `@clerk/clerk-react`), shim in
+  `lib/auth/clerk-shim.tsx`, site config via `contexts/AuthConfigContext.tsx`
+  (loaded in `routes/__root.tsx` from `auth/clerkPublic:getWebsiteAuthConfig`).
+- Adaptive forms: `lib/auth/capabilities.ts` (what Clerk accepts),
+  `lib/auth/clerk-flow.ts` (next-step reducers, unit-tested),
+  `hooks/useSignUpFlow.ts`, `components/auth/{SignUpFields,LegalConsent,CodeInput}.tsx`.
+  Forms must follow capabilities (fields, verification strategy, social
+  providers, captcha `#clerk-captcha`, consent, password rules, second factors).
+- First-sign-in provisioning: `hooks/useEnsureCustomerAccount.ts` (called by
+  `dashboard/DashboardShell.tsx`); the webhook is optional.
 - Dashboard protection: `apps/web/src/routes/dashboard.tsx`
 - Backend owner: `../ConvexPress-Admin/packages/backend/convex/auth`,
   `users`, Clerk/local auth helpers.

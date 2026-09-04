@@ -1,8 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import * as React from "react";
-import { useQuery } from "convex/react";
-import { api } from "@convexpress-website/backend/generated/api";
+import { useSettings } from "@/contexts/SettingsContext";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -28,9 +27,10 @@ export function AuthPageLayout({
   showLogo = true,
   maxWidth = "sm",
 }: AuthPageLayoutProps) {
-  // Fetch site settings for dynamic branding.
-  // Falls back to "ConvexPress" while loading or if settings are not configured.
-  const publicSettings = useQuery(api.settings.queries.getPublic);
+  // Site settings arrive through the SSR-hydrated settings context, so the
+  // title renders identically on the server and the client (no hydration
+  // mismatch on auth pages).
+  const publicSettings = useSettings();
   const siteTitle =
     (publicSettings?.siteTitle as string | undefined) || "ConvexPress";
   const siteLogo =

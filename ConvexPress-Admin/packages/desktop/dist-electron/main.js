@@ -2575,6 +2575,16 @@ function readBundledDeployCredential() {
     return null;
   }
 }
+function mapDeploymentOrigin(origin) {
+  if (!isDev()) return origin;
+  const raw = process.env.CONVEXPRESS_DEPLOY_ORIGIN_MAP;
+  if (!raw) return origin;
+  for (const pair of raw.split(",")) {
+    const [from, to] = pair.split("=").map((part) => part.trim().replace(/\/+$/, ""));
+    if (from && to && from === origin.replace(/\/+$/, "")) return to;
+  }
+  return origin;
+}
 async function execute(request, run) {
   const backendRoot = resolveBackendRoot();
   const secrets = [];
@@ -2593,7 +2603,7 @@ async function execute(request, run) {
     secrets.push(request.credential.adminKey);
     targetArgs.push(
       "--url",
-      request.credential.deploymentOrigin,
+      mapDeploymentOrigin(request.credential.deploymentOrigin),
       "--admin-key",
       request.credential.adminKey
     );

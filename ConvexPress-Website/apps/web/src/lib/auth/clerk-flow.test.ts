@@ -67,6 +67,16 @@ describe("nextSignInStep", () => {
     });
   });
 
+  test("device-trust email code after a password is a second factor", () => {
+    const emailSecond = { strategy: "email_code", emailAddressId: "idn_9", safeIdentifier: "t***@example.com" };
+    expect(nextSignInStep({ status: "needs_second_factor", supportedSecondFactors: [emailSecond] }, { passwordEntered: true, preferOtp: false })).toEqual({
+      kind: "second_code",
+      strategy: "email_code",
+      factor: emailSecond,
+      alternatives: [],
+    });
+  });
+
   test("new password, identifier, unsupported, complete", () => {
     const opts = { passwordEntered: false, preferOtp: false };
     expect(nextSignInStep({ status: "needs_new_password" }, opts)).toEqual({ kind: "new_password" });

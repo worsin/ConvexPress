@@ -137,6 +137,23 @@ export function readBundledDeployCredential(): {
   }
 }
 
+/**
+ * Development acceptance runs reach the worker fleet through SSH tunnels while
+ * the control plane records the fleet's LAN origins. `CONVEXPRESS_DEPLOY_ORIGIN_MAP`
+ * ("http://lan:4830=http://127.0.0.1:14830,…") lets the dev desktop deploy to
+ * the tunnelled address. Ignored in packaged builds.
+ */
+function mapDeploymentOrigin(origin: string): string {
+  if (!isDev()) return origin;
+  const raw = process.env.CONVEXPRESS_DEPLOY_ORIGIN_MAP;
+  if (!raw) return origin;
+  for (const pair of raw.split(",")) {
+    const [from, to] = pair.split("=").map((part) => part.trim().replace(/\/+$/, ""));
+    if (from && to && from === origin.replace(/\/+$/, "")) return to;
+  }
+  return origin;
+}
+
 async function execute(request: SiteDeployRequest, run: RunState): Promise<void> {
   const backendRoot = resolveBackendRoot();
   const secrets: string[] = [];
@@ -155,7 +172,7 @@ async function execute(request: SiteDeployRequest, run: RunState): Promise<void>
     secrets.push(request.credential.adminKey);
     targetArgs.push(
       "--url",
-      request.credential.deploymentOrigin,
+      mapDeploymentOrigin(request.credential.deploymentOrigin),
       "--admin-key",
       request.credential.adminKey,
     );

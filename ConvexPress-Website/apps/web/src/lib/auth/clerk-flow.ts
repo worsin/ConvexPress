@@ -95,14 +95,16 @@ export type SignInNext =
   | { kind: "complete"; sessionId: string }
   | { kind: "password" }
   | { kind: "first_code"; strategy: "email_code" | "phone_code" | "email_link"; factor: FactorLike }
-  | { kind: "second_code"; strategy: "totp" | "phone_code" | "backup_code"; factor: FactorLike | null; alternatives: string[] }
+  | { kind: "second_code"; strategy: "totp" | "phone_code" | "email_code" | "backup_code"; factor: FactorLike | null; alternatives: string[] }
   | { kind: "new_password" }
   | { kind: "needs_identifier" }
   | { kind: "unsupported"; strategies: string[] }
   | { kind: "unknown"; status: string };
 
 const FIRST_FACTOR_ORDER = ["password", "email_code", "phone_code", "email_link"] as const;
-const SECOND_FACTOR_ORDER = ["totp", "phone_code", "backup_code"] as const;
+// email_code appears as a second factor for Clerk's Device Trust (new-device
+// verification after a password) as well as when email is a configured MFA method.
+const SECOND_FACTOR_ORDER = ["totp", "phone_code", "email_code", "backup_code"] as const;
 
 /**
  * Decide the next sign-in screen. `passwordEntered` says whether the current

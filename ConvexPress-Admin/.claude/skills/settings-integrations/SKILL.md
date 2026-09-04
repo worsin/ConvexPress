@@ -50,6 +50,16 @@ Rules learned the hard way:
   codegen against the test fleet with `--url http://127.0.0.1:148x0 --admin-key`
   only; never run bare `convex deploy` / `convex codegen` in that package.
 
+## Clerk connection (customer sign-in)
+
+Per-site Clerk is managed on `/settings/integrations/clerk`
+(`apps/web/src/routes/_authenticated/_admin/settings/integrations.clerk.tsx`)
+backed by `packages/backend/convex/auth/clerkConnection*.ts`. Read
+`docs/CLERK-CONNECTION.md` before changing anything: the issuer must also be
+live on the deployment (`auth.config.ts` reads env at deploy time), the desktop
+`site-deploy:run` IPC applies it, and the website follows the capability
+snapshot the page syncs from Clerk.
+
 ## Workflow
 
 1. Identify settings section: general, writing, reading, discussion, privacy,
