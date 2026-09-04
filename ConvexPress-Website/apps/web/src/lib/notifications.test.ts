@@ -6,6 +6,7 @@ import {
   groupByDay,
   isPendingAction,
   linkLabel,
+  matchesView,
   relativeTime,
   resolveLink,
   searchText,
@@ -54,6 +55,18 @@ describe("state", () => {
     expect(isPendingAction({ needsAction: true, snoozedUntil: NOW + HOUR }, NOW)).toBe(false);
     expect(isPendingAction({ needsAction: true, snoozedUntil: NOW - HOUR }, NOW)).toBe(true);
     expect(isPendingAction({ needsAction: false }, NOW)).toBe(false);
+  });
+
+  test("matchesView mirrors the backend views", () => {
+    const base = { needsAction: true } as const;
+    expect(matchesView(base, "inbox", NOW)).toBe(true);
+    expect(matchesView(base, "unread", NOW)).toBe(true);
+    expect(matchesView(base, "needs", NOW)).toBe(true);
+    expect(matchesView({ ...base, readAt: NOW }, "unread", NOW)).toBe(false);
+    expect(matchesView({ ...base, snoozedUntil: NOW + HOUR }, "snoozed", NOW)).toBe(true);
+    expect(matchesView({ ...base, snoozedUntil: NOW + HOUR }, "inbox", NOW)).toBe(false);
+    expect(matchesView({ ...base, dismissedAt: NOW }, "archived", NOW)).toBe(true);
+    expect(matchesView({ ...base, dismissedAt: NOW }, "needs", NOW)).toBe(false);
   });
 
   test("summary line", () => {

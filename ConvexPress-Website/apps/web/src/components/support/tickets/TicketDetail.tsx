@@ -69,7 +69,7 @@ export function TicketDetail({ ticketNumber, backHref, newTicketHref }: TicketDe
       <div className="py-16 text-center">
         <h2 className="text-xl font-semibold text-foreground">We couldn't find that ticket</h2>
         <p className="mt-1 text-muted-foreground">It may have been opened by another account.</p>
-        <Button className="mt-5" variant="outline" render={<Link to={backHref as "/"} />}>
+        <Button className="mt-5" variant="outline" nativeButton={false} render={<Link to={backHref as "/"} />}>
           Back to tickets
         </Button>
       </div>

@@ -190,7 +190,7 @@ export function NewTicketForm({ prefill, backHref, ticketHref, compactHeader = f
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-12" data-slot="new-ticket-form">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" aria-label="Back to tickets" render={<Link to={backHref as "/"} />}>
+        <Button variant="ghost" size="icon" aria-label="Back to tickets" nativeButton={false} render={<Link to={backHref as "/"} />}>
           <ArrowLeft className="size-5" />
         </Button>
         <div>
@@ -395,7 +395,7 @@ export function NewTicketForm({ prefill, backHref, ticketHref, compactHeader = f
           )}
 
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button type="button" variant="outline" render={<Link to={backHref as "/"} />}>
+            <Button type="button" variant="outline" nativeButton={false} render={<Link to={backHref as "/"} />}>
               Cancel
             </Button>
             <Button type="submit" disabled={submitting}>

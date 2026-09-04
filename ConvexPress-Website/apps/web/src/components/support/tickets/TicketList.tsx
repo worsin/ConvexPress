@@ -58,7 +58,7 @@ export function TicketList({ data, hrefFor, newHref, now = Date.now(), compactHe
             </p>
           )}
         </div>
-        <Button render={<Link to={newHref as "/"} />}>
+        <Button nativeButton={false} render={<Link to={newHref as "/"} />}>
           <Plus className="size-4" aria-hidden />
           New ticket
         </Button>
@@ -111,7 +111,7 @@ export function TicketList({ data, hrefFor, newHref, now = Date.now(), compactHe
               </span>
               <h2 className="text-lg font-bold text-foreground">No tickets yet</h2>
               <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Stuck on something, or an order not looking right? Open a ticket and a real person on our team will pick it up. Everything stays in one thread here.</p>
-              <Button className="mt-5" render={<Link to={newHref as "/"} />}>
+              <Button className="mt-5" nativeButton={false} render={<Link to={newHref as "/"} />}>
                 <Plus className="size-4" aria-hidden />
                 Open a ticket
               </Button>

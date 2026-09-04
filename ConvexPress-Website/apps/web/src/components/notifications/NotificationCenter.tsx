@@ -11,6 +11,7 @@ import {
   defaultSnoozePreset,
   groupByDay,
   isArchived,
+  matchesView,
   searchText,
   summaryLine,
   type CenterNotification,
@@ -94,8 +95,8 @@ export function NotificationCenter({
   // pass keeps typing responsive between subscription updates.
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return all.filter((n) => (kind === "all" || n.kind === kind) && (!q || searchText(n).includes(q)));
-  }, [all, kind, query]);
+    return all.filter((n) => matchesView(n, view, now) && (kind === "all" || n.kind === kind) && (!q || searchText(n).includes(q)));
+  }, [all, view, now, kind, query]);
   const groups = useMemo(() => groupByDay(visible, now), [visible, now]);
   const selected = selectedId ? (all.find((n) => n.id === selectedId) ?? null) : null;
   const kindsPresent = kinds ?? Array.from(new Set(all.map((n) => n.kind)));

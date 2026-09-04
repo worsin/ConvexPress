@@ -7,7 +7,7 @@
  * preferences section reachable from a "Preferences" toggle.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
@@ -33,11 +33,20 @@ export function NotificationsPage() {
   const preferencesOpen = search.tab === "preferences";
   const [query, setQuery] = useState("");
 
-  const result = useQuery(api.notifications.queries.listForCenter, {
+  const live = useQuery(api.notifications.queries.listForCenter, {
     view,
     kind: kind === "all" ? undefined : kind,
     search: query.trim() || undefined,
   }) as CenterResult | undefined;
+
+  // Keep the last answer on screen while a new view/kind/search subscription
+  // loads, so switching tabs or typing never flashes skeletons. The center
+  // filters client-side too, so the stale list is already narrowed correctly.
+  const [last, setLast] = useState<CenterResult | undefined>(undefined);
+  useEffect(() => {
+    if (live !== undefined) setLast(live);
+  }, [live]);
+  const result = live ?? last;
 
   const setSearch = useCallback(
     (next: { id?: string | null; view?: NotificationView; kind?: NotificationKind | "all"; tab?: "preferences" | null }) => {

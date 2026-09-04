@@ -109,6 +109,24 @@ export function isPendingAction(n: Pick<CenterNotification, "needsAction" | "act
   return n.needsAction && typeof n.actionedAt !== "number" && !isArchived(n) && !isSnoozed(n, now);
 }
 
+/** Client-side mirror of the backend view rules (used to filter a stale list while a new query loads). */
+export function matchesView(n: Pick<CenterNotification, "readAt" | "dismissedAt" | "snoozedUntil" | "actionedAt" | "needsAction">, view: NotificationView, now: number): boolean {
+  switch (view) {
+    case "archived":
+      return isArchived(n);
+    case "snoozed":
+      return !isArchived(n) && isSnoozed(n, now);
+    case "inbox":
+      return !isArchived(n) && !isSnoozed(n, now);
+    case "unread":
+      return !isArchived(n) && !isSnoozed(n, now) && !isRead(n);
+    case "needs":
+      return isPendingAction(n, now);
+    default:
+      return true;
+  }
+}
+
 // ─── Links ───────────────────────────────────────────────────────────────────
 
 export type LinkTarget =
