@@ -4,6 +4,7 @@ import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
 import ReactDOM from "react-dom/client";
 
 import { resolveControlPlaneEndpoints } from "./bootstrap-config";
+import { AdminShellErrorBoundary } from "@/components/layout/AdminShellErrorBoundary";
 import { AdminGate } from "./components/auth/AdminGate";
 import type { AdminGateProps } from "./components/auth/AdminGate";
 import Loader from "./components/loader";
@@ -184,8 +185,48 @@ async function bootstrap() {
 
   if (!rootElement.innerHTML) {
     const root = ReactDOM.createRoot(rootElement);
-    root.render(<RouterProvider router={router} />);
+    root.render(
+      <AdminShellErrorBoundary>
+        <RouterProvider router={router} />
+      </AdminShellErrorBoundary>,
+    );
   }
 }
 
-bootstrap();
+/**
+ * A failed boot must never be a blank window. Anything thrown before React
+ * renders (config resolution, the standalone bootstrap, a crashed client)
+ * is written into the root as a readable error with the controller address.
+ */
+function renderBootFailure(error: unknown) {
+  const rootElement = document.getElementById("app");
+  if (!rootElement) return;
+  const message = error instanceof Error ? error.message : String(error);
+  const controller = import.meta.env.VITE_CONVEX_URL ?? "the configured controller";
+  rootElement.innerHTML = "";
+  const box = document.createElement("div");
+  box.setAttribute("role", "alert");
+  box.style.cssText = "max-width:560px;margin:15vh auto;padding:24px 28px;font:14px/1.5 system-ui,sans-serif;color:var(--foreground,#1a1a1a);background:var(--card,#fff);border:1px solid var(--border,#ddd);border-radius:12px";
+  const title = document.createElement("h1");
+  title.style.cssText = "font-size:18px;margin:0 0 8px";
+  title.textContent = "ConvexPress could not start";
+  const body = document.createElement("p");
+  body.style.margin = "0 0 12px";
+  body.textContent = `The admin could not reach ${controller}. Check that the controller is running and that this app is pointed at it, then reopen the app.`;
+  const detail = document.createElement("pre");
+  detail.style.cssText = "white-space:pre-wrap;font-size:12px;padding:10px 12px;border-radius:8px;background:var(--muted,#f4f4f4);margin:0";
+  detail.textContent = message;
+  box.append(title, body, detail);
+  rootElement.append(box);
+}
+
+window.addEventListener("error", (event) => {
+  const rootElement = document.getElementById("app");
+  if (rootElement && !rootElement.innerHTML.trim()) renderBootFailure(event.error ?? event.message);
+});
+window.addEventListener("unhandledrejection", (event) => {
+  const rootElement = document.getElementById("app");
+  if (rootElement && !rootElement.innerHTML.trim()) renderBootFailure(event.reason);
+});
+
+bootstrap().catch(renderBootFailure);

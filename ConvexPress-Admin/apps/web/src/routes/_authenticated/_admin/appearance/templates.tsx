@@ -138,7 +138,7 @@ function TemplatesPage() {
                 aria-checked={isSelected}
                 onClick={() => setSelectedId(pack.id)}
                 className={cn(
-                  "flex flex-col gap-3 rounded-xl border p-4 text-left transition-[border-color,box-shadow,background-color] duration-200",
+                  "flex flex-col gap-3 self-start rounded-xl border p-4 text-left transition-[border-color,box-shadow,background-color] duration-200",
                   isSelected
                     ? "border-primary bg-primary/[0.04] shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_18%,transparent)]"
                     : "border-border bg-card hover:border-primary/40",

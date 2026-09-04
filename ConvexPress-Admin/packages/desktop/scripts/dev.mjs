@@ -15,6 +15,11 @@ const webUrl =
 const bun = process.platform === "win32" ? "bun.cmd" : "bun";
 const shouldStartWeb = !process.env.CONVEXPRESS_DESKTOP_DEV_URL;
 const childEnv = { ...process.env };
+// The desktop always talks to a standalone control plane (build:web hardcodes
+// this for packaged builds). Without it the dev renderer boots the single-site
+// login flow against the control plane, its first query fails, and the window
+// stays blank.
+childEnv.VITE_STANDALONE_CONTROL_PLANE ??= "true";
 
 // Some shells export this globally. If it leaks into Electron, the app starts
 // in Node-only mode and the main process never receives the real Electron API.

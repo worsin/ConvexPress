@@ -7,6 +7,8 @@ import {
   createRouter,
 } from "@tanstack/react-router";
 import { ConvexReactClient } from "convex/react";
+
+import { AdminShellErrorBoundary } from "@/components/layout/AdminShellErrorBoundary";
 import ReactDOM from "react-dom/client";
 
 import "../index.css";
@@ -38,6 +40,7 @@ export async function bootstrapStandalone(input: {
   root.render(
     // The theme must exist before the router mounts so the operator login and
     // the loading states render in the viewer's chosen mode, not a flash.
+    <AdminShellErrorBoundary>
     <ThemeProvider
       attribute="class"
       defaultTheme="dark"
@@ -52,6 +55,7 @@ export async function bootstrapStandalone(input: {
           <StandaloneApp authClient={authClient} router={router} />
         </ControlClientProvider>
       </ConvexBetterAuthProvider>
-    </ThemeProvider>,
+    </ThemeProvider>
+    </AdminShellErrorBoundary>,
   );
 }
