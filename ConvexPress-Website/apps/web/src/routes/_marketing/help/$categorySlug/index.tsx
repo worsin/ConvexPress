@@ -1,30 +1,19 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
+import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { siteTitled } from "@/lib/seo/head";
-
-type KbCategory = {
-  _id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  icon?: string;
-  articleCount: number;
-};
-
-type ArticleItem = {
-  _id: string;
-  title: string;
-  slug: string;
-  excerpt?: string;
-  readingTimeMinutes?: number;
-};
+import CoreHelpCategory, {
+  type HelpCategorySurfaceData,
+  type KbArticleItem,
+  type KbCategory,
+} from "@/templates/packs/core/surfaces/help.category";
+import { Surface } from "@/templates/sdk/Surface";
 
 type ArticlesResult = {
-  items?: ArticleItem[];
-  page?: ArticleItem[];
+  items?: KbArticleItem[];
+  page?: KbArticleItem[];
 };
 
 export const Route = createFileRoute("/_marketing/help/$categorySlug/")({
@@ -80,65 +69,11 @@ function CategoryPage() {
     }) as any,
   ) as { data: ArticlesResult | null };
 
-  if (!category) {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold">Category not found</h1>
-        <Link
-          to="/help"
-          className="mt-4 inline-block text-primary hover:underline"
-        >
-          Back to Help Center
-        </Link>
-      </div>
-    );
-  }
+  const data: HelpCategorySurfaceData = {
+    categorySlug,
+    category,
+    articles: articles?.items ?? articles?.page ?? [],
+  };
 
-  const articleItems = articles?.items ?? articles?.page ?? [];
-
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
-      {/* Breadcrumb */}
-      <nav className="mb-6 text-sm text-muted-foreground">
-        <Link to="/help" className="hover:text-foreground transition-colors">
-          Help Center
-        </Link>
-        <span className="mx-2">/</span>
-        <span>{category.name}</span>
-      </nav>
-
-      <h1 className="text-3xl font-bold">{category.name}</h1>
-      {category.description && (
-        <p className="mt-2 text-muted-foreground">{category.description}</p>
-      )}
-
-      <div className="mt-8 space-y-3">
-        {articleItems.map((article) => (
-          <Link
-            key={article._id}
-            to="/help/$categorySlug/$articleSlug"
-            params={{ categorySlug, articleSlug: article.slug }}
-            className="block rounded-lg border border-border bg-card p-4 transition hover:border-primary/50 hover:shadow-sm"
-          >
-            <h3 className="font-medium">{article.title}</h3>
-            {article.excerpt && (
-              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                {article.excerpt}
-              </p>
-            )}
-            {article.readingTimeMinutes && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                {article.readingTimeMinutes} min read
-              </p>
-            )}
-          </Link>
-        ))}
-        {articleItems.length === 0 && (
-          <p className="text-muted-foreground">
-            No articles in this category yet.
-          </p>
-        )}
-      </div>
-    </div>
-  );
+  return <Surface name="help.category" data={data} fallback={CoreHelpCategory} />;
 }

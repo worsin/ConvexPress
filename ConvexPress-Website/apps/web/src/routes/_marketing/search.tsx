@@ -6,13 +6,9 @@ import { useEffect, useRef, useCallback } from "react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { useSetting } from "@/contexts/SettingsContext";
 import type { PaginationData, SearchResult } from "@/lib/blog/types";
-import { PostPagination } from "@/components/blog/PostPagination";
-import { SearchForm } from "@/components/blog/SearchForm";
-import { SearchResultCard } from "@/components/blog/SearchResultCard";
-import { SearchFilters } from "@/components/search/SearchFilters";
-import { EmptySearchResults } from "@/components/search/EmptySearchResults";
-import { Skeleton } from "@/components/ui/skeleton";
 import { buildSeoHead, siteTitled } from "@/lib/seo/head";
+import CoreSearch from "@/templates/packs/core/surfaces/search";
+import { Surface } from "@/templates/sdk/Surface";
 
 /** Content type filter for search API */
 type SearchContentType = "post" | "page" | "media" | "course" | undefined;
@@ -170,89 +166,19 @@ function SearchPage() {
       : undefined;
 
   return (
-    <div data-slot="search-page" className="flex flex-col gap-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-bold">Search</h1>
-        <SearchForm initialQuery={query ?? ""} autoFocus={!hasQuery} />
-      </div>
-
-      {/* Results */}
-      {hasQuery && (
-        <div className="flex flex-col gap-4">
-          {/* Filters */}
-          <SearchFilters
-            currentQuery={query!}
-            currentType={type}
-            currentSort={sort}
-          />
-
-          {/* Result Count */}
-          {results !== undefined && total > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {total} {total === 1 ? "result" : "results"} for{" "}
-              <span className="font-medium text-foreground">
-                &ldquo;{query}&rdquo;
-              </span>
-            </p>
-          )}
-
-          {/* Loading */}
-          {results === undefined ? (
-            <div className="flex flex-col gap-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex gap-3 border-b border-border py-4">
-                  <Skeleton className="size-8" />
-                  <div className="flex flex-1 flex-col gap-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-48" />
-                    <Skeleton className="h-3 w-full" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : results.length === 0 ? (
-            /* Empty State */
-            <EmptySearchResults query={query!} />
-          ) : (
-            /* Results List */
-            <>
-              <div className="flex flex-col">
-                {results.map((result, index) => (
-                  <SearchResultCard
-                    key={result._id}
-                    result={result}
-                    onClick={() =>
-                      handleResultClick(
-                        result.contentType,
-                        result._id,
-                        index + 1,
-                      )
-                    }
-                  />
-                ))}
-              </div>
-
-              {pagination && (
-                <PostPagination
-                  pagination={pagination}
-                  baseUrl={`/search?q=${encodeURIComponent(query ?? "")}${type ? `&type=${type}` : ""}${sort ? `&sort=${sort}` : ""}`}
-                  className="pt-4"
-                />
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* No Query State */}
-      {!hasQuery && (
-        <div className="flex flex-col gap-2 py-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Enter a search term to find posts, pages, and more.
-          </p>
-        </div>
-      )}
-    </div>
+    <Surface
+      name="search"
+      data={{
+        query,
+        hasQuery,
+        type,
+        sort,
+        results,
+        total,
+        pagination,
+        onResultClick: handleResultClick,
+      }}
+      fallback={CoreSearch}
+    />
   );
 }

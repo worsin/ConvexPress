@@ -6,10 +6,10 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { useSetting } from "@/contexts/SettingsContext";
 import type { PaginationData, PostCard as PostCardType } from "@/lib/blog/types";
 import { estimateReadingTime, extractPlainText } from "@/lib/blog/renderContent";
-import { PostGrid } from "@/components/blog/PostGrid";
-import { PostPagination } from "@/components/blog/PostPagination";
 import { PostCardSkeletonGrid } from "@/components/blog/PostCardSkeleton";
 import { buildSeoHead, siteTitled } from "@/lib/seo/head";
+import CoreBlogIndex from "@/templates/packs/core/surfaces/blog.index";
+import { Surface } from "@/templates/sdk/Surface";
 
 // PostCardSkeletonGrid is used as the pending component during SSR loader
 
@@ -94,41 +94,11 @@ function BlogIndex() {
   };
 
   return (
-    <div data-slot="blog-index" className="flex flex-col gap-8">
-      {/* Page Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-lg font-bold">Blog</h1>
-        <p className="text-xs text-muted-foreground">
-          Latest articles and insights
-        </p>
-      </div>
-
-      {/* Posts */}
-      {posts.length === 0 ? (
-        <div className="py-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            No posts yet. Check back soon!
-          </p>
-        </div>
-      ) : (
-        <>
-          <PostGrid
-            posts={posts}
-            layout="grid"
-            showFeatured={page === 1}
-          />
-
-          {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
-            <PostPagination
-              pagination={pagination}
-              baseUrl="/blog"
-              className="pt-4"
-            />
-          )}
-        </>
-      )}
-    </div>
+    <Surface
+      name="blog.index"
+      data={{ posts, pagination, page: page ?? 1 }}
+      fallback={CoreBlogIndex}
+    />
   );
 }
 
