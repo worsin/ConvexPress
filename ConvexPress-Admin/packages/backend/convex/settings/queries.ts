@@ -54,6 +54,7 @@ const SECTION_READ_CAPABILITY_MAP: Partial<Record<SettingsSection, Capability>> 
   "commerce.general": "manage_options",
   "commerce.payments": "manage_options",
   "commerce.assistant": "manage_options",
+  "commerce.layout": "manage_options",
   brand: "manage_options",
   "commerce.subscriptions.counters": "manage_options",
   "integrations.shipping": "manage_options",
@@ -259,6 +260,7 @@ export const getPublic = query({
     const plugins = await getMergedSettingsSection(ctx, "plugins");
     const commerce = await getMergedSettingsSection(ctx, "commerce.general");
     const assistant = await getMergedSettingsSection(ctx, "commerce.assistant");
+    const layout = await getMergedSettingsSection(ctx, "commerce.layout");
     const brand = await getMergedSettingsSection(ctx, "brand");
     const shipping = await getMergedSettingsSection(ctx, "integrations.shipping");
     const blocks = await getMergedSettingsSection(ctx, "blocks");
@@ -379,6 +381,9 @@ export const getPublic = query({
       // Shopping assistant rail. No secrets live in this section; the model
       // key stays in Settings > AI.
       assistantConfig: assistant,
+
+      // Storefront layout presets (Settings › Shop layouts).
+      layoutConfig: layout,
 
       // Public brand inputs the storefront renders from (fonts, radius, density).
       brandConfig: {

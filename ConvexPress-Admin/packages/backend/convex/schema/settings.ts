@@ -53,6 +53,7 @@ export const settingsTables = {
       v.literal("commerce.general"),
       v.literal("commerce.payments"),
       v.literal("commerce.assistant"),
+      v.literal("commerce.layout"),
       v.literal("brand"),
       v.literal("commerce.subscriptions.counters"),
       v.literal("integrations.shipping"),

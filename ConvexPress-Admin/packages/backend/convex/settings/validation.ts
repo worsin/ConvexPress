@@ -1,3 +1,4 @@
+import { PRODUCT_LAYOUT_IDS, SHOP_LAYOUT_IDS } from "./defaults";
 /**
  * Settings System - Server-Side Validation
  *
@@ -909,6 +910,8 @@ export function validateSectionValues(
       return validateCommerceGeneral(values);
     case "commerce.assistant":
       return validateCommerceAssistant(values);
+    case "commerce.layout":
+      return validateCommerceLayout(values);
     case "brand":
       return []; // Free-form brand inputs; the design kit interprets them.
     case "commerce.payments":
@@ -947,6 +950,21 @@ export function validateSectionValues(
 }
 
 // ─── Commerce Assistant ──────────────────────────────────────────────────────
+
+function validateCommerceLayout(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const oneOf = (field: string, allowed: readonly string[]) => {
+    const value = values[field];
+    if (value !== undefined && (typeof value !== "string" || !allowed.includes(value))) {
+      errors.push({ field, message: `${field} must be one of: ${allowed.join(", ")}.` });
+    }
+  };
+  oneOf("shopLayout", SHOP_LAYOUT_IDS);
+  oneOf("productLayout", PRODUCT_LAYOUT_IDS);
+  oneOf("cartPanel", ["persistent", "drawer"]);
+  oneOf("gridDensity", ["comfortable", "dense"]);
+  return errors;
+}
 
 function validateCommerceAssistant(values: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];

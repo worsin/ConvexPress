@@ -214,7 +214,7 @@ function CartPage() {
 
   return (
     <PublicPluginGate pluginId="commerce">
-    <ShopShell kind="cart">
+    <ShopShell kind="cart" cart={false}>
       <div className="flex w-full flex-col gap-8 py-6 lg:py-8">
         <div className="space-y-2">
           <h1 className="text-4xl font-semibold tracking-tight">Cart</h1>

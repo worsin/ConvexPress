@@ -24,6 +24,28 @@ const RADIUS_TOKENS: Record<string, string> = {
 // so the fallback frame still has the right character while the webfont loads.
 const SERIF_HINTS = /fraunces|playfair|lora|merriweather|garamond|libre baskerville|dm serif|newsreader|source serif|crimson|cormorant|spectral|literata/i;
 
+/** Relative luminance of a hex colour, or null when the value is not hex. */
+function hexLuminance(value: string): number | null {
+  const hex = value.trim().replace("#", "");
+  const full = hex.length === 3 || hex.length === 4 ? hex.slice(0, 3).split("").map((c) => c + c).join("") : hex.slice(0, 6);
+  if (full.length !== 6) return null;
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16) / 255);
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+/**
+ * Tells the browser whether the site is dark or light so native UI
+ * (scrollbars, form controls, the overscroll area) matches the palette.
+ */
+export function colorSchemeFor(entries: PaletteEntry[] | undefined): "light" | "dark" | null {
+  const background = entries?.find((entry) => entry.slug === "background");
+  if (!background || typeof background.color !== "string") return null;
+  const luminance = hexLuminance(background.color);
+  if (luminance === null) return null;
+  return luminance < 0.3 ? "dark" : "light";
+}
+
 function toCssVariables(entries: PaletteEntry[] | undefined): string {
   if (!entries || entries.length === 0) return "";
 
@@ -95,7 +117,14 @@ export function ThemeStyleInjector() {
   );
   const brand = useMemo(() => brandCss(publicSettings?.brandConfig), [publicSettings]);
 
-  const cssText = [paletteCss ? `:root {\n${paletteCss}\n}` : "", brand.css].filter(Boolean).join("\n");
+  const scheme = colorSchemeFor((publicSettings as any)?.colorPalette as PaletteEntry[] | undefined);
+  const cssText = [
+    paletteCss ? `:root {\n${paletteCss}\n}` : "",
+    scheme ? `:root { color-scheme: ${scheme}; }` : "",
+    brand.css,
+  ]
+    .filter(Boolean)
+    .join("\n");
   if (!cssText) return null;
 
   return (

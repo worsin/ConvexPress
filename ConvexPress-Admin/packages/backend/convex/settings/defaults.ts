@@ -34,6 +34,7 @@ export type SettingsSection =
   | "commerce.general"
   | "commerce.payments"
   | "commerce.assistant"
+  | "commerce.layout"
   | "brand"
   | "integrations.shipping"
   | "integrations.shipping.shipstation"
@@ -80,6 +81,7 @@ export const SECTION_NAMES: SettingsSection[] = [
   "commerce.general",
   "commerce.payments",
   "commerce.assistant",
+  "commerce.layout",
   "brand",
   "integrations.shipping",
   "integrations.shipping.shipstation",
@@ -264,6 +266,30 @@ export interface BlockSettings {
  * Storefront shopping assistant. Everything the public rail renders is
  * driven by these values; nothing about its behaviour is hardcoded.
  */
+/**
+ * Storefront layout presets (Settings › Shop layouts).
+ *
+ * A preset is a fundamental page composition — where the catalog, the
+ * assistant and the cart sit, how the product page is arranged — not a
+ * colour theme. New presets are added to the catalogs in both apps
+ * (`lib/commerce/layout-presets`) and listed here so validation knows them.
+ */
+export const SHOP_LAYOUT_IDS = ["boutique", "marketplace"] as const;
+export type ShopLayoutId = (typeof SHOP_LAYOUT_IDS)[number];
+export const PRODUCT_LAYOUT_IDS = ["classic", "marketplace", "split", "showcase", "minimal"] as const;
+export type ProductLayoutId = (typeof PRODUCT_LAYOUT_IDS)[number];
+
+export interface CommerceLayoutSettings {
+  /** Catalog / search page composition. */
+  shopLayout: ShopLayoutId;
+  /** Product detail page composition. */
+  productLayout: ProductLayoutId;
+  /** Keep the cart visible beside the catalog on wide screens, or only as a drawer. */
+  cartPanel: "persistent" | "drawer";
+  /** Product grid density on the catalog. */
+  gridDensity: "comfortable" | "dense";
+}
+
 export interface CommerceAssistantSettings {
   enabled: boolean;
   /** Name shown in the rail header, e.g. "Shop assistant". */
@@ -939,6 +965,13 @@ export const BRAND_DEFAULTS: BrandSettings = {
   faviconUrl: "",
 };
 
+export const COMMERCE_LAYOUT_DEFAULTS: CommerceLayoutSettings = {
+  shopLayout: "boutique",
+  productLayout: "classic",
+  cartPanel: "persistent",
+  gridDensity: "comfortable",
+};
+
 export const COMMERCE_ASSISTANT_DEFAULTS: CommerceAssistantSettings = {
   enabled: true,
   displayName: "Shop assistant",
@@ -1248,6 +1281,7 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   "commerce.general": COMMERCE_GENERAL_DEFAULTS,
   "commerce.payments": COMMERCE_PAYMENTS_DEFAULTS,
   "commerce.assistant": COMMERCE_ASSISTANT_DEFAULTS,
+  "commerce.layout": COMMERCE_LAYOUT_DEFAULTS,
   brand: BRAND_DEFAULTS,
   "commerce.subscriptions.counters": COMMERCE_SUBSCRIPTIONS_COUNTERS_DEFAULTS,
   "integrations.shipping": SHIPPING_INTEGRATION_DEFAULTS,

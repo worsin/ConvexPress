@@ -138,6 +138,14 @@ export interface PublicSettings {
   // Shopping assistant rail configuration (Settings > Shop assistant).
   assistantConfig?: Record<string, unknown> | null;
 
+  // Storefront layout presets (Settings > Shop layouts).
+  layoutConfig?: {
+    shopLayout?: string;
+    productLayout?: string;
+    cartPanel?: "persistent" | "drawer";
+    gridDensity?: "comfortable" | "dense";
+  } | null;
+
   // Brand inputs (Settings > Brand): fonts, corner radius, density, industry.
   brandConfig?: {
     typography?: { display?: string; body?: string; scale?: "compact" | "comfortable" | "spacious" };
