@@ -65,6 +65,34 @@ function isEnabled(pluginId: string, values: Record<string, boolean> | undefined
   return values[key] === true;
 }
 
+/**
+ * Live thumbnail: the site's home page rendered with the pack applied, scaled
+ * down inside the card. Falls back to an icon when no site address is set.
+ */
+function PackPreview({ packId, siteUrl, large = false }: { packId: string; siteUrl: string; large?: boolean }) {
+  const scale = large ? 0.5 : 0.25;
+  const width = 1280;
+  if (!siteUrl) {
+    return (
+      <div className="flex aspect-[16/10] items-center justify-center rounded-lg border border-border bg-surface-2/60">
+        <LayoutTemplate className="size-8 text-muted-foreground" aria-hidden="true" />
+      </div>
+    );
+  }
+  return (
+    <div className="relative aspect-[16/10] overflow-hidden rounded-lg border border-border bg-background" aria-hidden="true">
+      <iframe
+        title={`${packId} preview`}
+        src={`${siteUrl}/?template=${packId}`}
+        tabIndex={-1}
+        loading="lazy"
+        className="pointer-events-none absolute left-0 top-0 origin-top-left border-0"
+        style={{ width, height: width * 0.625, transform: `scale(${scale})`, transformOrigin: "top left" }}
+      />
+    </div>
+  );
+}
+
 function openExternal(url: string) {
   const bridge = getElectronBridge();
   if (bridge?.siteRunner?.openUrl) void bridge.siteRunner.openUrl(url);
@@ -144,9 +172,7 @@ function TemplatesPage() {
                     : "border-border bg-card hover:border-primary/40",
                 )}
               >
-                <div className="flex aspect-[16/10] items-center justify-center rounded-lg border border-border bg-surface-2/60">
-                  <LayoutTemplate className="size-8 text-muted-foreground" aria-hidden="true" />
-                </div>
+                <PackPreview packId={pack.id} siteUrl={siteUrl} />
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="flex items-center gap-2 text-[13.5px] font-semibold text-foreground">
@@ -174,6 +200,9 @@ function TemplatesPage() {
             <CardDescription>{selected.description}</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
+            <div className="mx-auto w-full max-w-[640px]">
+              <PackPreview packId={selected.id} siteUrl={siteUrl} large />
+            </div>
             {selected.bestFor?.length ? (
               <ul className="space-y-1 text-[12.5px] text-foreground">
                 {selected.bestFor.map((item) => (

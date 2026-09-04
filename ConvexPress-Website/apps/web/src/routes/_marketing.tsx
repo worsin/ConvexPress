@@ -11,8 +11,6 @@ import {
   LayoutShellProvider,
 } from "@/components/layout/LayoutShellProvider";
 import { SkipToContent } from "@/components/layout/SkipToContent";
-import { ThemeStyleInjector } from "@/components/layout/ThemeStyleInjector";
-import { TemplateSettingsInjector } from "@/templates/sdk/useTemplateSettings";
 import { WebsiteAdminBar } from "@/components/layout/WebsiteAdminBar";
 import { PageOverridesProvider, usePageOverrides } from "@/contexts/PageOverridesContext";
 import { useFooterConfig } from "@/hooks/layout/useFooterConfig";
@@ -125,8 +123,6 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
   return (
     <>
       <AnalyticsProvider />
-      <ThemeStyleInjector />
-      <TemplateSettingsInjector />
       {/* MobileNav is outside the inert wrapper so focus trap works */}
       {!hideHeader && (
         <Surface

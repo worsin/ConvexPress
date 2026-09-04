@@ -4,6 +4,8 @@
  * right. Same gates as Core: skeleton until the session is ready, an empty
  * cart stops here, the failed / expired notice shows above the field.
  */
+import type { FormEvent } from "react";
+
 import type { CheckoutDetailsSurfaceData } from "@/templates/packs/core/surfaces/checkout.details";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
@@ -27,7 +29,7 @@ export default function DepotCheckoutDetails({ data }: SurfaceProps<CheckoutDeta
         <EmptyState title="Your cart is empty." description="Add something from the catalog before checking out." action={<LinkButton to="/products">Browse products</LinkButton>} />
       ) : (
         <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
-          <Card as="form" onSubmit={(event: React.FormEvent<HTMLFormElement>) => void onSubmit(event)} className="flex flex-col gap-4 p-4 xl:col-span-8" noValidate={false}>
+          <Card as="form" onSubmit={(event: FormEvent<HTMLFormElement>) => void onSubmit(event)} className="flex flex-col gap-4 p-4 xl:col-span-8">
             <CheckoutNotice status={(session as any)?.status} failureReason={(session as any)?.failureReason} />
             <h2 className="text-lg font-semibold text-foreground">Contact email</h2>
             <Field label="Email address" type="email" value={email} onChange={(event) => onEmailChange(event.target.value)} placeholder="you@example.com" autoComplete="email" required className="max-w-md" hint="Order updates and receipts go to this address." />

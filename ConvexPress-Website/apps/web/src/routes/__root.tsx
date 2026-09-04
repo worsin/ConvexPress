@@ -23,7 +23,8 @@ import { Surface } from "@/templates/sdk/Surface";
 import { SupportWidget } from "@/components/support/widget/SupportWidget";
 import { api } from "@convexpress-website/backend/generated/api";
 import { SettingsProvider } from "@/contexts/SettingsContext";
-import { TemplateSettingsDraftProvider } from "@/templates/sdk/useTemplateSettings";
+import { ThemeStyleInjector } from "@/components/layout/ThemeStyleInjector";
+import { TemplateSettingsDraftProvider, TemplateSettingsInjector } from "@/templates/sdk/useTemplateSettings";
 import { getSiteRuntime, siteRuntimeBootstrapScript } from "@/lib/site-runtime";
 
 import appCss from "../index.css?url";
@@ -206,6 +207,9 @@ function RootDocument() {
             <body className="min-h-svh" suppressHydrationWarning>
               <SettingsProvider>
               <TemplateSettingsDraftProvider>
+              {/* Site palette, brand type and template settings apply to every route, not just the marketing layout. */}
+              <ThemeStyleInjector />
+              <TemplateSettingsInjector />
                 <WebsiteNotificationToastProvider>
                   <Outlet />
                 </WebsiteNotificationToastProvider>

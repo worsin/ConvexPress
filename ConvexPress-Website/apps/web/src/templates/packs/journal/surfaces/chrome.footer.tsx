@@ -302,10 +302,12 @@ function LegacyColumns({ footerConfig }: { footerConfig: FooterConfig }) {
         </div>
       ) : null}
       {navColumns.map((column, index) => (
-        <div key={`${column.menuSource}-${index}`} className="flex flex-col gap-3">
-          <CellHeading>{column.heading}</CellHeading>
-          <FooterLocationLinks location={column.menuSource === "footer-1" || column.menuSource === "footer-2" || column.menuSource === "footer-3" ? column.menuSource : "footer"} />
-        </div>
+        <FooterColumn
+          key={`${column.menuSource}-${index}`}
+          heading={column.heading}
+          location={column.menuSource === "footer-1" || column.menuSource === "footer-2" || column.menuSource === "footer-3" ? column.menuSource : "footer"}
+          first={index === 0}
+        />
       ))}
       {showNewsletter ? (
         <div className="flex flex-col gap-3">
@@ -330,6 +332,21 @@ function LegacyColumns({ footerConfig }: { footerConfig: FooterConfig }) {
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/** A heading + links column; renders nothing when its menu location has no links (the first column falls back to the Footer menu). */
+function FooterColumn({ heading, location, first }: { heading: string; location: string; first: boolean }) {
+  const located = useMenuForLocation(location);
+  const fallback = useMenuForLocation("footer");
+  const menu = located && located.items.some((item) => !item.isOrphaned) ? located : first ? fallback : null;
+  const visible = menu ? menu.items.filter((item) => !item.isOrphaned) : [];
+  if (visible.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-3">
+      <CellHeading>{heading}</CellHeading>
+      <MenuLinks items={visible} />
     </div>
   );
 }
