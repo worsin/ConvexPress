@@ -3,6 +3,9 @@
  *
  * All read operations for tickets:
  *   getMyTickets              - User's own tickets (paginated, filterable by status)
+ *   getMyTicketsOverview      - Website inbox: unread/waiting flags, previews, counts
+ *   getMyTicketThread         - Website thread by ticket number (public messages, file URLs)
+ *   getCustomerCategories     - Categories + response-window copy for the new-ticket form
  *   getByTicketNumber         - Lookup by human-readable ticket number
  *   getById                   - Lookup by Convex ID
  *   getTicketWithReplies      - Full ticket detail with all messages
@@ -24,7 +27,21 @@ import {
   currentUserCan,
 } from "../helpers/permissions";
 import {
+  compareForCustomerList,
+  isFinished,
+  isUnreadForCustomer,
+  isWaitingOnCustomer,
+  initials as nameInitials,
+  messagePreview,
+  overviewCounts,
+  responseWindowForCategory,
+  type CategoryOption,
+} from "./customer";
+import { getDefaults } from "../settings/defaults";
+import {
   getMyTicketsArgs,
+  getMyTicketsOverviewArgs,
+  getMyTicketThreadArgs,
   getByTicketNumberArgs,
   getByIdArgs,
   getTicketWithRepliesArgs,
@@ -621,5 +638,295 @@ export const getAwaitingFirstResponse = query({
       createdAt: t.createdAt,
       waitingMs: Date.now() - t.createdAt,
     }));
+  },
+});
+
+// ─── Customer settings helpers ──────────────────────────────────────────────
+
+async function readTicketSection(ctx: any, section: "ticket.general" | "ticket.sla") {
+  const defaults = getDefaults(section) as Record<string, unknown>;
+  const doc = await ctx.db
+    .query("settings")
+    .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", section))
+    .unique();
+  return { ...defaults, ...((doc?.values as Record<string, unknown>) ?? {}) };
+}
+
+function normalizeCategories(raw: unknown): CategoryOption[] {
+  if (!Array.isArray(raw)) return [];
+  const out: CategoryOption[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const value = (entry as { value?: unknown }).value;
+    const label = (entry as { label?: unknown }).label;
+    const target = (entry as { firstResponseTarget?: unknown }).firstResponseTarget;
+    if (typeof value !== "string" || typeof label !== "string") continue;
+    out.push({
+      value,
+      label,
+      firstResponseTarget: typeof target === "number" && target > 0 ? target : undefined,
+    });
+  }
+  return out;
+}
+
+async function loadCustomerSla(ctx: any) {
+  const general = await readTicketSection(ctx, "ticket.general");
+  const sla = await readTicketSection(ctx, "ticket.sla");
+  const categories = normalizeCategories(general.categories);
+  const firstResponseTarget =
+    typeof sla.firstResponseTarget === "number" ? sla.firstResponseTarget : undefined;
+  const resolutionTarget =
+    typeof sla.resolutionTarget === "number" ? sla.resolutionTarget : undefined;
+  return { categories, firstResponseTarget, resolutionTarget };
+}
+
+function responseWindowFor(
+  categoryValue: string,
+  categories: CategoryOption[],
+  firstResponseTarget: number | undefined,
+): string {
+  const category = categories.find((c) => c.value === categoryValue);
+  return responseWindowForCategory(category, firstResponseTarget);
+}
+
+// ─── getCustomerCategories ──────────────────────────────────────────────────
+
+/**
+ * Ticket categories for the website's new-ticket form, each with the
+ * response-window promise derived from ticket.sla (or a per-category
+ * override in ticket.general). Public; returns null when tickets are off.
+ */
+export interface CustomerCategoriesResult {
+  categories: Array<{ value: string; label: string; responseWindow: string }>;
+  firstResponseTargetMinutes: number | null;
+  resolutionTargetMinutes: number | null;
+}
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const getCustomerCategories = query({
+  args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx): Promise<CustomerCategoriesResult | null> => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
+    const { categories, firstResponseTarget, resolutionTarget } = await loadCustomerSla(ctx);
+    const result: CustomerCategoriesResult = {
+      categories: categories.map((c: CategoryOption) => ({
+        value: c.value,
+        label: c.label,
+        responseWindow: responseWindowForCategory(c, firstResponseTarget),
+      })),
+      firstResponseTargetMinutes: firstResponseTarget ?? null,
+      resolutionTargetMinutes: resolutionTarget ?? null,
+    };
+    return result;
+  },
+});
+
+// ─── getMyTicketsOverview ───────────────────────────────────────────────────
+
+/** Tickets scanned per member for the website inbox. */
+const OVERVIEW_SCAN_LIMIT = 200;
+
+export interface TicketsOverviewResult {
+  tickets: Array<Record<string, unknown>>;
+  counts: { yours: number; active: number; done: number; total: number };
+  responseWindow: string;
+}
+
+/**
+ * Everything the website's ticket list and widget need in one subscription:
+ * each of the member's tickets with `unread` (agent replied since they last
+ * opened it), `waitingOnYou` (status awaitingResponse), a one-line preview of
+ * the latest public message, the agent's name, and counts for the
+ * Yours / Active / Done tabs. Sorted with tickets needing the member first.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const getMyTicketsOverview = query({
+  args: getMyTicketsOverviewArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args): Promise<TicketsOverviewResult> => {
+    const empty: TicketsOverviewResult = {
+      tickets: [],
+      counts: { yours: 0, active: 0, done: 0, total: 0 },
+      responseWindow: "as soon as we can",
+    };
+    if (!(await isPluginEnabled(ctx, "tickets"))) return empty;
+    const user = await getCurrentUser(ctx);
+    if (!user) return empty;
+
+    const limit = Math.max(1, Math.min(args.limit ?? OVERVIEW_SCAN_LIMIT, OVERVIEW_SCAN_LIMIT));
+    const rows: any[] = await ctx.db
+      .query("ticket_tickets")
+      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", user._id))
+      .order("desc")
+      .take(limit);
+
+    const { categories, firstResponseTarget } = await loadCustomerSla(ctx);
+    const counts = overviewCounts(rows);
+    const sorted = [...rows].sort(compareForCustomerList);
+
+    const agentNames: Map<string, string> = new Map();
+    const tickets: Array<Record<string, unknown>> = [];
+    for (const t of sorted as any[]) {
+      // Latest public message for the preview (internal notes never leak).
+      const recent = await ctx.db
+        .query("ticket_messages")
+        .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", t._id))
+        .order("desc")
+        .take(5);
+      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
+      const last = recent.find((m) => !m.isInternal);
+
+      let agentName: string | null = null;
+      if (t.assignedTo) {
+        const cached = agentNames.get(t.assignedTo);
+        if (cached) {
+          agentName = cached;
+        } else {
+          const agent = await ctx.db.get("users", t.assignedTo);
+          if (agent) {
+            agentName = getTicketUserSnapshotName(agent);
+            agentNames.set(t.assignedTo, agentName);
+          }
+        }
+      }
+
+      tickets.push({
+        _id: t._id,
+        ticketNumber: t.ticketNumber,
+        subject: t.subject,
+        category: t.category,
+        status: t.status,
+        priority: t.priority,
+        messageCount: t.messageCount,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+        lastMessageAt: t.lastMessageAt,
+        firstResponseAt: t.firstResponseAt,
+        resolvedAt: t.resolvedAt,
+        closedAt: t.closedAt,
+        rating: t.rating,
+        unread: isUnreadForCustomer(t),
+        waitingOnYou: isWaitingOnCustomer(t),
+        finished: isFinished(t),
+        lastMessagePreview: last ? messagePreview(last.content) : messagePreview(t.description),
+        lastMessageSender: last ? last.senderType : "user",
+        agentName,
+        agentInitials: agentName ? nameInitials(agentName) : null,
+        responseWindow: responseWindowFor(t.category, categories, firstResponseTarget),
+      });
+    }
+
+    const result: TicketsOverviewResult = {
+      tickets,
+      counts,
+      responseWindow: responseWindowForCategory(undefined, firstResponseTarget),
+    };
+    return result;
+  },
+});
+
+// ─── getMyTicketThread ──────────────────────────────────────────────────────
+
+/**
+ * A ticket and its public conversation for the website, looked up by ticket
+ * number. Owner only (staff with ticket.viewAll may also open it). Internal
+ * notes are never included; attachments resolve to signed storage URLs.
+ * Reads nothing back: the website calls tickets.mutations.markReadByCustomer
+ * when the member opens the thread.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const getMyTicketThread = query({
+  args: getMyTicketThreadArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args): Promise<Record<string, unknown> | null> => {
+    if (!(await isPluginEnabled(ctx, "tickets"))) return null;
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
+
+    const ticket: any = await ctx.db
+      .query("ticket_tickets")
+      .withIndex("by_ticket_number", (q: ConvexQueryBuilder) =>
+        q.eq("ticketNumber", args.ticketNumber.trim().toUpperCase()),
+      )
+      .unique();
+    if (!ticket) return null;
+
+    const isOwner = ticket.userId === user._id;
+    if (!isOwner) {
+      const canViewAll = await currentUserCan(ctx, "ticket.viewAll");
+      if (!canViewAll) return null;
+    }
+
+    const allMessages: any[] = await ctx.db
+      .query("ticket_messages")
+      .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", ticket._id))
+      .take(1000);
+
+    const messages: Array<Record<string, unknown>> = [];
+    for (const m of allMessages.filter((m: any) => !m.isInternal)) {
+      const attachments: Array<{ name: string; mimeType: string; size: number; url: string }> = [];
+      for (const a of (m.attachments ?? []) as Array<{ name: string; mimeType: string; size: number; storageId: any }>) {
+        const url = await ctx.storage.getUrl(a.storageId);
+        if (!url) continue;
+        attachments.push({ name: a.name, mimeType: a.mimeType, size: a.size, url });
+      }
+      messages.push({
+        _id: m._id,
+        sequence: m.sequence,
+        senderType: m.senderType,
+        senderName: m.senderName,
+        content: m.content,
+        createdAt: m.createdAt,
+        editedAt: m.editedAt,
+        attachments,
+      });
+    }
+
+    let agent: { name: string; initials: string } | null = null;
+    if (ticket.assignedTo) {
+      const assignee = await ctx.db.get("users", ticket.assignedTo);
+      if (assignee) {
+        const name = getTicketUserSnapshotName(assignee);
+        agent = { name, initials: nameInitials(name) };
+      }
+    }
+
+    const { categories, firstResponseTarget, resolutionTarget } = await loadCustomerSla(ctx);
+    const categoryLabel =
+      categories.find((c: CategoryOption) => c.value === ticket.category)?.label ?? ticket.category;
+
+    return {
+      ticket: {
+        _id: ticket._id,
+        ticketNumber: ticket.ticketNumber,
+        subject: ticket.subject,
+        description: ticket.description,
+        category: ticket.category,
+        categoryLabel,
+        status: ticket.status,
+        priority: ticket.priority,
+        messageCount: ticket.messageCount,
+        createdAt: ticket.createdAt,
+        updatedAt: ticket.updatedAt,
+        lastMessageAt: ticket.lastMessageAt,
+        lastMessageSenderType: ticket.lastMessageSenderType,
+        firstResponseAt: ticket.firstResponseAt,
+        resolvedAt: ticket.resolvedAt,
+        closedAt: ticket.closedAt,
+        rating: ticket.rating,
+        ratingComment: ticket.ratingComment,
+        unread: isUnreadForCustomer(ticket),
+        waitingOnYou: isWaitingOnCustomer(ticket),
+        finished: isFinished(ticket),
+        isOwner,
+        viewerName: getTicketUserSnapshotName(user),
+      },
+      messages,
+      agent,
+      responseWindow: responseWindowFor(ticket.category, categories, firstResponseTarget),
+      resolutionTargetMinutes: resolutionTarget ?? null,
+    };
   },
 });

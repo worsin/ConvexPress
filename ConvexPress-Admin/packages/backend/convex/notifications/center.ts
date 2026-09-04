@@ -254,7 +254,9 @@ export const EMPTY_COUNTS: CenterCounts = { inbox: 0, unread: 0, needs: 0, snooz
 export function computeCounts(rows: CenterStateInput[], now: number): CenterCounts {
   const counts: CenterCounts = { ...EMPTY_COUNTS };
   for (const row of rows) {
-    for (const view of viewsOf(row, now)) counts[view] += 1;
+    for (const view of viewsOf(row, now)) {
+      counts[view] = counts[view] + 1;
+    }
   }
   return counts;
 }

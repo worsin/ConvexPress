@@ -110,6 +110,36 @@ export const createTicketArgs = {
   aiResponse: v.optional(v.string()),
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   kbArticlesShown: v.optional(v.array(v.string())),
+  /** Files uploaded via tickets.attachments.generateUploadUrl, attached to the opening message. */
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  attachments: v.optional(v.array(attachmentValidator)),
+};
+
+/** Arguments for the customer read receipt (markReadByCustomer). */
+export const markReadByCustomerArgs = {
+  ticketId: v.id("ticket_tickets"),
+};
+
+/** Arguments for the customer marking their own ticket resolved. */
+export const resolveByCustomerArgs = {
+  ticketId: v.id("ticket_tickets"),
+};
+
+/** Arguments for requesting an attachment upload URL (size/type validated first). */
+export const generateAttachmentUploadUrlArgs = {
+  name: v.string(),
+  mimeType: v.string(),
+  size: v.number(),
+};
+
+/** Arguments for the customer thread query (by human-readable ticket number). */
+export const getMyTicketThreadArgs = {
+  ticketNumber: v.string(),
+};
+
+/** Arguments for the customer overview query. */
+export const getMyTicketsOverviewArgs = {
+  limit: v.optional(v.number()),
 };
 
 /** Arguments for a user replying to their own ticket. */

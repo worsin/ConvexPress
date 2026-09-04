@@ -78,6 +78,7 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
 
   const hideHeader = overrides.hideHeader === true;
   const hideFooter = overrides.hideFooter === true;
+  const fullWidth = overrides.fullWidth === true;
 
   // Determine if this route is currently gated. Re-derive from client-side
   // Clerk state so the gate reflects the actual auth status after hydration
@@ -133,9 +134,13 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
           />
         )}
         <div className="flex flex-1 flex-col">
-          <ContentWrapper layoutConfig={layoutConfig}>
-            {pageContent}
-          </ContentWrapper>
+          {fullWidth ? (
+            pageContent
+          ) : (
+            <ContentWrapper layoutConfig={layoutConfig}>
+              {pageContent}
+            </ContentWrapper>
+          )}
         </div>
         {!hideFooter && <SiteFooter variant="full" />}
         <BackToTop />

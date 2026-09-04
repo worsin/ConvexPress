@@ -159,6 +159,7 @@ import { Route as AuthenticatedAdminMembershipRestrictionsIndexRouteImport } fro
 import { Route as AuthenticatedAdminMembershipGrantsIndexRouteImport } from './routes/_authenticated/_admin/membership/grants/index'
 import { Route as AuthenticatedAdminLmsCoursesIndexRouteImport } from './routes/_authenticated/_admin/lms/courses/index'
 import { Route as AuthenticatedAdminLmsCertificatesIndexRouteImport } from './routes/_authenticated/_admin/lms/certificates/index'
+import { Route as AuthenticatedAdminCustomerDashboardLayoutsIndexRouteImport } from './routes/_authenticated/_admin/customer-dashboard/layouts/index'
 import { Route as AuthenticatedAdminCommerceSubscriptionsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/index'
 import { Route as AuthenticatedAdminUsersUserIdEditRouteImport } from './routes/_authenticated/_admin/users/$userId/edit'
 import { Route as AuthenticatedAdminToolsRedirectsNewRouteImport } from './routes/_authenticated/_admin/tools/redirects/new'
@@ -1162,6 +1163,12 @@ const AuthenticatedAdminLmsCertificatesIndexRoute =
     path: '/certificates/',
     getParentRoute: () => AuthenticatedAdminLmsRoute,
   } as any)
+const AuthenticatedAdminCustomerDashboardLayoutsIndexRoute =
+  AuthenticatedAdminCustomerDashboardLayoutsIndexRouteImport.update({
+    id: '/customer-dashboard/layouts/',
+    path: '/customer-dashboard/layouts/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminCommerceSubscriptionsIndexRoute =
   AuthenticatedAdminCommerceSubscriptionsIndexRouteImport.update({
     id: '/',
@@ -2011,6 +2018,7 @@ export interface FileRoutesByFullPath {
   '/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
   '/commerce/subscriptions/': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
+  '/customer-dashboard/layouts/': typeof AuthenticatedAdminCustomerDashboardLayoutsIndexRoute
   '/lms/certificates/': typeof AuthenticatedAdminLmsCertificatesIndexRoute
   '/lms/courses/': typeof AuthenticatedAdminLmsCoursesIndexRoute
   '/membership/grants/': typeof AuthenticatedAdminMembershipGrantsIndexRoute
@@ -2249,6 +2257,7 @@ export interface FileRoutesByTo {
   '/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
   '/commerce/subscriptions': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
+  '/customer-dashboard/layouts': typeof AuthenticatedAdminCustomerDashboardLayoutsIndexRoute
   '/lms/certificates': typeof AuthenticatedAdminLmsCertificatesIndexRoute
   '/lms/courses': typeof AuthenticatedAdminLmsCoursesIndexRoute
   '/membership/grants': typeof AuthenticatedAdminMembershipGrantsIndexRoute
@@ -2503,6 +2512,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/_authenticated/_admin/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
   '/_authenticated/_admin/commerce/subscriptions/': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
+  '/_authenticated/_admin/customer-dashboard/layouts/': typeof AuthenticatedAdminCustomerDashboardLayoutsIndexRoute
   '/_authenticated/_admin/lms/certificates/': typeof AuthenticatedAdminLmsCertificatesIndexRoute
   '/_authenticated/_admin/lms/courses/': typeof AuthenticatedAdminLmsCoursesIndexRoute
   '/_authenticated/_admin/membership/grants/': typeof AuthenticatedAdminMembershipGrantsIndexRoute
@@ -2756,6 +2766,7 @@ export interface FileRouteTypes {
     | '/tools/redirects/new'
     | '/users/$userId/edit'
     | '/commerce/subscriptions/'
+    | '/customer-dashboard/layouts/'
     | '/lms/certificates/'
     | '/lms/courses/'
     | '/membership/grants/'
@@ -2994,6 +3005,7 @@ export interface FileRouteTypes {
     | '/tools/redirects/new'
     | '/users/$userId/edit'
     | '/commerce/subscriptions'
+    | '/customer-dashboard/layouts'
     | '/lms/certificates'
     | '/lms/courses'
     | '/membership/grants'
@@ -3247,6 +3259,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/tools/redirects/new'
     | '/_authenticated/_admin/users/$userId/edit'
     | '/_authenticated/_admin/commerce/subscriptions/'
+    | '/_authenticated/_admin/customer-dashboard/layouts/'
     | '/_authenticated/_admin/lms/certificates/'
     | '/_authenticated/_admin/lms/courses/'
     | '/_authenticated/_admin/membership/grants/'
@@ -4362,6 +4375,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/lms/certificates/'
       preLoaderRoute: typeof AuthenticatedAdminLmsCertificatesIndexRouteImport
       parentRoute: typeof AuthenticatedAdminLmsRoute
+    }
+    '/_authenticated/_admin/customer-dashboard/layouts/': {
+      id: '/_authenticated/_admin/customer-dashboard/layouts/'
+      path: '/customer-dashboard/layouts'
+      fullPath: '/customer-dashboard/layouts/'
+      preLoaderRoute: typeof AuthenticatedAdminCustomerDashboardLayoutsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/commerce/subscriptions/': {
       id: '/_authenticated/_admin/commerce/subscriptions/'
@@ -6014,6 +6034,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminMenusMenuIdEditRoute: typeof AuthenticatedAdminMenusMenuIdEditRoute
   AuthenticatedAdminRolesRoleIdEditRoute: typeof AuthenticatedAdminRolesRoleIdEditRoute
   AuthenticatedAdminUsersUserIdEditRoute: typeof AuthenticatedAdminUsersUserIdEditRoute
+  AuthenticatedAdminCustomerDashboardLayoutsIndexRoute: typeof AuthenticatedAdminCustomerDashboardLayoutsIndexRoute
   AuthenticatedAdminFormsFormIdEntriesEntryIdRoute: typeof AuthenticatedAdminFormsFormIdEntriesEntryIdRoute
   AuthenticatedAdminFormsFormIdAnalyticsIndexRoute: typeof AuthenticatedAdminFormsFormIdAnalyticsIndexRoute
   AuthenticatedAdminFormsFormIdEntriesIndexRoute: typeof AuthenticatedAdminFormsFormIdEntriesIndexRoute
@@ -6096,6 +6117,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminRolesRoleIdEditRoute,
   AuthenticatedAdminUsersUserIdEditRoute:
     AuthenticatedAdminUsersUserIdEditRoute,
+  AuthenticatedAdminCustomerDashboardLayoutsIndexRoute:
+    AuthenticatedAdminCustomerDashboardLayoutsIndexRoute,
   AuthenticatedAdminFormsFormIdEntriesEntryIdRoute:
     AuthenticatedAdminFormsFormIdEntriesEntryIdRoute,
   AuthenticatedAdminFormsFormIdAnalyticsIndexRoute:

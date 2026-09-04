@@ -33,6 +33,8 @@ export interface PageOverrides {
   hideHeader?: boolean;
   hideFooter?: boolean;
   layoutId?: string;
+  /** Skip the marketing content wrapper (max-width, padding, breadcrumbs). */
+  fullWidth?: boolean;
 }
 
 interface PageOverridesContextValue {

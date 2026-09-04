@@ -1175,7 +1175,6 @@ export const listAllArgs = {
  * Args for the listForCenter query (customer notification center).
  */
 export const listForCenterArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   view: v.optional(
     // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     v.union(

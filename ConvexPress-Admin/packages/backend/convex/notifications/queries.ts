@@ -37,12 +37,15 @@ import {
   CENTER_DEFAULT_LIMIT,
   CENTER_MAX_LIMIT,
   computeCounts,
+  EMPTY_COUNTS,
   filterForCenter,
   isCenterView,
   isSnoozed,
   toCenterItem,
   NOTIFICATION_KINDS,
+  type CenterCounts,
   type CenterItem,
+  type CenterSourceRow,
   type NotificationKind,
 } from "./center";
 import {
@@ -199,16 +202,25 @@ const CENTER_SCAN_LIMIT = 500;
  * Items use the public-safe shape from notifications/center.ts (no raw
  * metadata, no user ids).
  */
+export interface ListForCenterResult {
+  items: CenterItem[];
+  counts: CenterCounts;
+  /** Kinds present in the member's non-archived notifications (for filter chips). */
+  kinds: NotificationKind[];
+  /** Server clock the snooze/relative-time logic was evaluated against. */
+  now: number;
+}
+
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listForCenter = query({
   args: listForCenterArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<ListForCenterResult> => {
     const now = Date.now();
-    const empty = {
-      items: [] as CenterItem[],
-      counts: { inbox: 0, unread: 0, needs: 0, snoozed: 0, archived: 0 },
-      kinds: [] as NotificationKind[],
+    const empty: ListForCenterResult = {
+      items: [],
+      counts: { ...EMPTY_COUNTS },
+      kinds: [],
       now,
     };
 
@@ -222,26 +234,23 @@ export const listForCenter = query({
         : "all";
     const limit = Math.max(1, Math.min(args.limit ?? CENTER_DEFAULT_LIMIT, CENTER_MAX_LIMIT));
 
-    const rows = await ctx.db
+    const rows: CenterSourceRow[] = await ctx.db
       .query("siteNotifications")
       .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", getUserIdentifier(user)))
       .order("desc")
       .take(CENTER_SCAN_LIMIT);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-    const items: CenterItem[] = rows.map((row) => toCenterItem(row));
-    const counts = computeCounts(items, now);
+    const items: CenterItem[] = rows.map((row: CenterSourceRow) => toCenterItem(row));
+    const counts: CenterCounts = computeCounts(items, now);
     const kindsPresent = new Set<NotificationKind>();
     for (const item of items) {
       if (item.dismissedAt === undefined) kindsPresent.add(item.kind);
     }
+    const kinds: NotificationKind[] = NOTIFICATION_KINDS.filter((k: NotificationKind) => kindsPresent.has(k));
+    const filtered: CenterItem[] = filterForCenter(items, { view, kind, search: args.search, limit }, now);
 
-    return {
-      items: filterForCenter(items, { view, kind, search: args.search, limit }, now),
-      counts,
-      kinds: NOTIFICATION_KINDS.filter((k) => kindsPresent.has(k)),
-      now,
-    };
+    const result: ListForCenterResult = { items: filtered, counts, kinds, now };
+    return result;
   },
 });
 

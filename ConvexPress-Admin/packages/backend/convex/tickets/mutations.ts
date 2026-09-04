@@ -40,8 +40,15 @@ import { requireCan, requireAuth, getCurrentUser, currentUserCan } from "../help
 import { emitEvent } from "../helpers/events";
 import { TICKET_EVENTS, SYSTEM } from "../events/constants";
 import {
+  statusAfterAgentReply,
+  statusAfterCustomerReply,
+  validateAttachmentList,
+} from "./customer";
+import {
   createTicketArgs,
   replyTicketArgs,
+  markReadByCustomerArgs,
+  resolveByCustomerArgs,
   adminReplyArgs,
   updateStatusArgs,
   updatePriorityArgs,
@@ -125,6 +132,10 @@ export const create = mutation({
         code: "VALIDATION",
         message: `Maximum ${MAX_TAGS} tags allowed`,
       });
+    }
+    const attachmentProblem = validateAttachmentList(args.attachments);
+    if (attachmentProblem) {
+      throw new ConvexError({ code: "VALIDATION", message: attachmentProblem });
     }
     if (args.tags) {
       for (const tag of args.tags) {
@@ -210,6 +221,8 @@ export const create = mutation({
       kbArticlesShown: args.kbArticlesShown,
       messageCount: 1, // Initial description counts as first message
       lastMessageAt: now,
+      lastMessageSenderType: "user",
+      lastCustomerReadAt: now,
       createdAt: now,
       updatedAt: now,
     });
@@ -224,6 +237,7 @@ export const create = mutation({
       senderEmail: userEmailSnapshot,
       content: args.description.trim(),
       isInternal: false,
+      attachments: args.attachments && args.attachments.length > 0 ? args.attachments : undefined,
       createdAt: now,
     });
 
@@ -269,12 +283,8 @@ export const reply = mutation({
         message: "You can only reply to your own tickets",
       });
     }
-    if (ticket.status === "closed") {
-      throw new ConvexError({
-        code: "FORBIDDEN",
-        message: "Cannot reply to a closed ticket. Please reopen it first.",
-      });
-    }
+    // Replying to a resolved or closed ticket reopens it (handled below);
+    // the owner never has to reopen first.
 
     // ── Validate content ────────────────────────────────────────────────
     if (
@@ -291,6 +301,10 @@ export const reply = mutation({
         code: "VALIDATION",
         message: `Maximum ${MAX_ATTACHMENTS} attachments per message`,
       });
+    }
+    const attachmentProblem = validateAttachmentList(args.attachments);
+    if (attachmentProblem) {
+      throw new ConvexError({ code: "VALIDATION", message: attachmentProblem });
     }
 
     // ── Compute next sequence number ────────────────────────────────────
@@ -318,16 +332,48 @@ export const reply = mutation({
       createdAt: now,
     });
 
-    // ── Auto-transition: awaitingResponse -> open ───────────────────────
+    // ── Auto-transition: awaitingResponse/resolved/closed -> open ───────
+    const nextStatus = statusAfterCustomerReply(ticket.status);
+    const reopened = nextStatus !== ticket.status && (ticket.status === "resolved" || ticket.status === "closed");
     const updates: Record<string, unknown> = {
       messageCount: ticket.messageCount + 1,
       lastMessageAt: now,
+      lastMessageSenderType: "user",
+      // Replying means the customer has seen everything up to now.
+      lastCustomerReadAt: now,
       updatedAt: now,
     };
-    if (ticket.status === "awaitingResponse") {
-      updates.status = "open";
+    if (nextStatus !== ticket.status) {
+      updates.status = nextStatus;
+    }
+    if (reopened) {
+      updates.resolvedAt = undefined;
+      updates.closedAt = undefined;
     }
     await ctx.db.patch("ticket_tickets", args.ticketId, updates);
+
+    if (reopened) {
+      await ctx.db.insert("ticket_messages", {
+        ticketId: args.ticketId,
+        sequence: sequence + 1,
+        senderType: "system",
+        senderName: "System",
+        content: `${userNameSnapshot} reopened this ticket by replying.`,
+        isInternal: false,
+        createdAt: now,
+      });
+      await ctx.db.patch("ticket_tickets", args.ticketId, {
+        messageCount: ticket.messageCount + 2,
+      });
+      await emitEvent(ctx, TICKET_EVENTS.STATUS_CHANGED, SYSTEM.TICKET, {
+        ticketId: args.ticketId,
+        ticketNumber: ticket.ticketNumber,
+        previousStatus: ticket.status,
+        newStatus: nextStatus,
+        reopenedBy: user._id,
+        ticketOwnerId: ticket.userId,
+      });
+    }
 
     // ── Emit event ──────────────────────────────────────────────────────
     await emitEvent(ctx, TICKET_EVENTS.REPLIED, SYSTEM.TICKET, {
@@ -340,7 +386,7 @@ export const reply = mutation({
       assignedTo: ticket.assignedTo ?? null,
     });
 
-    return { messageId };
+    return { messageId, reopened };
   },
 });
 
@@ -423,9 +469,14 @@ export const adminReply = mutation({
       updatedAt: now,
     };
 
-    // Auto-transition: open -> awaitingResponse (only for non-internal replies)
-    if (!isInternal && ticket.status === "open") {
-      updates.status = "awaitingResponse";
+    // Auto-transition: open/inProgress -> awaitingResponse (only for non-internal replies)
+    if (!isInternal) {
+      const nextStatus = statusAfterAgentReply(ticket.status);
+      if (nextStatus !== ticket.status) updates.status = nextStatus;
+      // Customer-facing read state: a public agent reply is what the
+      // customer has not seen yet (drives the unread dot on the website).
+      updates.lastAgentMessageAt = now;
+      updates.lastMessageSenderType = "admin";
     }
 
     // Track first response time for SLA
@@ -856,5 +907,113 @@ export const removeTags = mutation({
       tags: filtered,
       updatedAt: Date.now(),
     });
+  },
+});
+
+// ─── Customer read receipt ──────────────────────────────────────────────────
+
+/**
+ * The ticket owner opened the thread. Records lastCustomerReadAt so the
+ * website's unread dot clears. Idempotent; owner only.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const markReadByCustomer = mutation({
+  args: markReadByCustomerArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
+    const user = await requireAuth(ctx);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
+    if (!ticket) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
+    }
+    if (ticket.userId !== user._id) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "You can only mark your own tickets as read",
+      });
+    }
+    const now = Date.now();
+    const agentAt = ticket.lastAgentMessageAt ?? 0;
+    const readAt = ticket.lastCustomerReadAt ?? 0;
+    // Only write when there is something new to acknowledge.
+    if (readAt >= agentAt && readAt > 0) return { updated: false };
+    await ctx.db.patch("ticket_tickets", args.ticketId, { lastCustomerReadAt: now });
+    return { updated: true };
+  },
+});
+
+// ─── Customer resolve ───────────────────────────────────────────────────────
+
+/**
+ * The ticket owner marks their own ticket resolved ("all sorted"). Adds a
+ * system message, records resolvedAt, and emits ticket.resolved so agents
+ * and analytics see it. Owner only; closed tickets cannot be resolved.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const resolveByCustomer = mutation({
+  args: resolveByCustomerArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requirePluginEnabled(ctx, "tickets");
+    const user = await requireAuth(ctx);
+    const ticket = await ctx.db.get("ticket_tickets", args.ticketId);
+    if (!ticket) {
+      throw new ConvexError({ code: "NOT_FOUND", message: "Ticket not found" });
+    }
+    if (ticket.userId !== user._id) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Only the ticket owner can mark it resolved",
+      });
+    }
+    if (ticket.status === "resolved") return { changed: false };
+    if (ticket.status === "closed") {
+      throw new ConvexError({
+        code: "VALIDATION",
+        message: "This ticket is closed. Open a new ticket if you still need help.",
+      });
+    }
+
+    const now = Date.now();
+    const lastMessage = await ctx.db
+      .query("ticket_messages")
+      .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", args.ticketId))
+      .order("desc")
+      .first();
+    const sequence = (lastMessage?.sequence ?? -1) + 1;
+    const name = getTicketUserSnapshotName(user);
+
+    await ctx.db.insert("ticket_messages", {
+      ticketId: args.ticketId,
+      sequence,
+      senderType: "system",
+      senderName: "System",
+      content: `${name} marked this ticket as resolved.`,
+      isInternal: false,
+      createdAt: now,
+    });
+
+    await ctx.db.patch("ticket_tickets", args.ticketId, {
+      status: "resolved",
+      resolvedAt: now,
+      messageCount: ticket.messageCount + 1,
+      lastMessageAt: now,
+      lastMessageSenderType: "system",
+      lastCustomerReadAt: now,
+      updatedAt: now,
+    });
+
+    await emitEvent(ctx, TICKET_EVENTS.RESOLVED, SYSTEM.TICKET, {
+      ticketId: args.ticketId,
+      ticketNumber: ticket.ticketNumber,
+      previousStatus: ticket.status,
+      newStatus: "resolved",
+      changedBy: user._id,
+      resolvedByCustomer: true,
+      ticketOwnerId: ticket.userId,
+    });
+
+    return { changed: true };
   },
 });
