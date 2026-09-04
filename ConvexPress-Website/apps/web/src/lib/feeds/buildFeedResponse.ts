@@ -38,13 +38,14 @@ import {
   getFeedUrl,
   generateETag,
 } from "./feedUtils";
+import { readServerSiteRuntime } from "@/lib/site-runtime";
 
 // ─── Convex Client Singleton ─────────────────────────────────────────────────
 
-const CONVEX_URL = process.env.VITE_CONVEX_URL;
+const CONVEX_URL = readServerSiteRuntime().convexUrl || undefined;
 if (!CONVEX_URL) {
   console.warn(
-    "[RSS/Feed System] VITE_CONVEX_URL is not set - all feed requests will fail",
+    "[RSS/Feed System] No Convex deployment configured (CONVEXPRESS_CONVEX_URL) - all feed requests will fail",
   );
 }
 

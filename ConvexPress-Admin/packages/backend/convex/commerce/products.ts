@@ -21,6 +21,7 @@ import {
   recomputeAllProductCategoryCounts,
 } from "./categories";
 import { requireCommerceEnabled } from "./helpers";
+import { syncProductSearch } from "../search/products";
 import {
   normalizeVariantSelections,
   buildSelectionKey,
@@ -755,6 +756,7 @@ export const create = mutation({
     });
 
     await recomputeCategoryCounts(ctx, categoryIds);
+    await syncProductSearch(ctx, productId);
     await emitEvent(ctx, PRODUCT_EVENTS.CREATED, SYSTEM.PRODUCT, {
       productId,
       title,
@@ -889,6 +891,7 @@ export const update = mutation({
       ...nextCategoryIds,
     ]);
     await recomputeCategoryCounts(ctx, affectedCategoryIds);
+    await syncProductSearch(ctx, args.productId);
 
     return args.productId;
   },
@@ -1792,6 +1795,7 @@ export const bulkUpdateStatus = mutation({
       }
 
       await ctx.db.patch(id, patch);
+      await syncProductSearch(ctx, id);
       await emitEvent(ctx, getProductStatusEvent(product.status, args.status), SYSTEM.PRODUCT, {
         productId: id,
         previousStatus: product.status,

@@ -101,6 +101,8 @@ const SECTION_CAPABILITY_MAP: Record<
   // Commerce / integrations
   "commerce.general": "manage_options",
   "commerce.payments": "manage_options",
+  "commerce.assistant": "manage_options",
+  brand: "manage_options",
   "commerce.subscriptions.counters": "manage_options",
   "integrations.shipping": "manage_options",
   "integrations.shipping.shipstation": "manage_options",

@@ -2,18 +2,20 @@ import { ConvexQueryClient } from "@convex-dev/react-query";
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
-import { env } from "@convexpress-website/env/web";
 
 import Loader from "./components/loader";
+import { getSiteRuntime } from "./lib/site-runtime";
 import { ErrorTemplate } from "./templates/ErrorTemplate";
 import { NotFoundTemplate } from "./templates/NotFoundTemplate";
 import "./index.css";
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter(): any {
-  const convexUrl = env.VITE_CONVEX_URL;
+  const { convexUrl } = getSiteRuntime();
   if (!convexUrl) {
-    throw new Error("VITE_CONVEX_URL is not set");
+    throw new Error(
+      "No Convex deployment configured. Set CONVEXPRESS_CONVEX_URL (or VITE_CONVEX_URL) for this storefront process.",
+    );
   }
 
   const convexQueryClient = new ConvexQueryClient(convexUrl);

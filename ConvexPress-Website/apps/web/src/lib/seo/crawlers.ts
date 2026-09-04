@@ -1,8 +1,6 @@
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convexpress-website/backend/generated/api";
-import { env } from "@convexpress-website/env/web";
-
-const CONVEX_URL = env.VITE_CONVEX_URL;
+import { readServerSiteRuntime } from "@/lib/site-runtime";
 
 export const VALID_SITEMAP_TYPES = new Set([
   "posts",
@@ -15,7 +13,11 @@ export const VALID_SITEMAP_TYPES = new Set([
 export type SitemapType = "posts" | "pages" | "categories" | "tags" | "authors";
 
 function getClient() {
-  return new ConvexHttpClient(CONVEX_URL);
+  const { convexUrl } = readServerSiteRuntime();
+  if (!convexUrl) {
+    throw new Error("No Convex deployment configured for this storefront process");
+  }
+  return new ConvexHttpClient(convexUrl);
 }
 
 export async function getRobotsTxtResponse() {

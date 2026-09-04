@@ -12,6 +12,7 @@ import { NotFoundTemplate } from "@/templates/NotFoundTemplate";
 import { ErrorTemplate } from "@/templates/ErrorTemplate";
 import { SupportWidget } from "@/components/support/widget/SupportWidget";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { getSiteRuntime, siteRuntimeBootstrapScript } from "@/lib/site-runtime";
 
 import appCss from "../index.css?url";
 
@@ -106,15 +107,22 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
 function RootDocument() {
   const { convexQueryClient } = Route.useRouteContext();
+  const siteRuntime = getSiteRuntime();
+  const clerkPublishableKey =
+    siteRuntime.clerkPublishableKey ?? import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
   return (
     <StrictMode>
-      <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+      <ClerkProvider publishableKey={clerkPublishableKey}>
         <ConvexProviderWithClerk
           client={convexQueryClient.convexClient}
           useAuth={useAuth}
         >
           <html lang="en" suppressHydrationWarning>
             <head>
+              {/* Site identity for this process; read by getSiteRuntime() on the client. */}
+              <script
+                dangerouslySetInnerHTML={{ __html: siteRuntimeBootstrapScript(siteRuntime) }}
+              />
               <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}})()` }} />
               <HeadContent />
             </head>

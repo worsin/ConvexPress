@@ -15,6 +15,10 @@ import {
   registerUpdaterHandlers,
   unregisterUpdaterHandlers,
 } from "./updater.js";
+import {
+  registerSiteRunnerHandlers,
+  unregisterSiteRunnerHandlers,
+} from "./siteRunner.js";
 
 const { ipcMain, app } = require("electron") as typeof import("electron");
 
@@ -27,6 +31,7 @@ export function registerAllIpcHandlers(): void {
   registerConnectionProvisionHandlers();
   registerAppUpdaterHandlers();
   registerUpdaterHandlers();
+  registerSiteRunnerHandlers();
 
   ipcMain.handle("app:get-version", () => {
     return app.getVersion();
@@ -54,6 +59,7 @@ export function unregisterAllIpcHandlers(): void {
   unregisterConnectionProvisionHandlers();
   unregisterAppUpdaterHandlers();
   unregisterUpdaterHandlers();
+  unregisterSiteRunnerHandlers();
 
   ipcMain.removeHandler("app:get-version");
   ipcMain.removeHandler("app:get-platform");

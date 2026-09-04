@@ -23,8 +23,8 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // electron/main.ts
-var import_node_path12 = __toESM(require("path"));
-var import_node_fs5 = require("fs");
+var import_node_path14 = __toESM(require("path"));
+var import_node_fs7 = require("fs");
 var import_node_url2 = require("url");
 
 // electron/ipc/window.ts
@@ -1775,8 +1775,587 @@ async function initUpdaterEvents() {
   });
 }
 
+// electron/ipc/siteRunner.ts
+var import_node_fs6 = require("fs");
+var import_node_path12 = __toESM(require("path"));
+
+// electron/siteRunner/manager.ts
+var import_node_child_process3 = require("child_process");
+var import_node_fs5 = require("fs");
+var import_node_http = __toESM(require("http"));
+var import_node_path11 = __toESM(require("path"));
+
+// electron/siteRunner/siteRunnerValidation.ts
+var SITE_RUNNER_PORT_RANGE = { start: 4200, end: 4399 };
+var LOOPBACK_HOSTS = /* @__PURE__ */ new Set(["127.0.0.1", "localhost", "[::1]", "::1", "0.0.0.0"]);
+function isLoopbackUrl(value) {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return LOOPBACK_HOSTS.has(url.hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+function parseLoopbackPort(value) {
+  if (!isLoopbackUrl(value)) return null;
+  try {
+    const url = new URL(value);
+    if (url.port) return Number(url.port);
+    return url.protocol === "https:" ? 443 : 80;
+  } catch {
+    return null;
+  }
+}
+function deriveConvexSiteUrl2(convexUrl) {
+  try {
+    const url = new URL(convexUrl);
+    if (url.hostname.endsWith(".convex.cloud")) {
+      url.hostname = url.hostname.replace(/\.convex\.cloud$/, ".convex.site");
+      return url.origin;
+    }
+    if (url.port) {
+      url.port = String(Number(url.port) + 1);
+      return url.origin;
+    }
+  } catch {
+    return void 0;
+  }
+  return void 0;
+}
+function assertHttpUrl(value, field) {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`${field} is required.`);
+  }
+  let url;
+  try {
+    url = new URL(value.trim());
+  } catch {
+    throw new Error(`${field} must be a valid URL.`);
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error(`${field} must use http or https.`);
+  }
+  return url.origin;
+}
+function optionalHttpUrl(value, field) {
+  if (value === void 0 || value === null || value === "") return void 0;
+  return assertHttpUrl(value, field);
+}
+var INSTANCE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9:._-]{0,199}$/;
+function assertSiteRunnerTarget(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new Error("Site runner target must be an object.");
+  }
+  const raw = input;
+  const instanceKey = typeof raw.instanceKey === "string" ? raw.instanceKey.trim() : "";
+  if (!INSTANCE_KEY_PATTERN.test(instanceKey)) {
+    throw new Error("instanceKey is required and may only contain letters, digits, ':', '.', '_' and '-'.");
+  }
+  const label = typeof raw.label === "string" && raw.label.trim() ? raw.label.trim().slice(0, 120) : instanceKey;
+  const mode = raw.mode === "preview" ? "preview" : "dev";
+  const convexUrl = assertHttpUrl(raw.convexUrl, "convexUrl");
+  const clerkPublishableKey = typeof raw.clerkPublishableKey === "string" && raw.clerkPublishableKey.trim() ? raw.clerkPublishableKey.trim() : void 0;
+  return {
+    instanceKey,
+    label,
+    mode,
+    convexUrl,
+    convexSiteUrl: optionalHttpUrl(raw.convexSiteUrl, "convexSiteUrl") ?? deriveConvexSiteUrl2(convexUrl),
+    siteUrl: optionalHttpUrl(raw.siteUrl, "siteUrl"),
+    adminAppUrl: optionalHttpUrl(raw.adminAppUrl, "adminAppUrl"),
+    clerkPublishableKey
+  };
+}
+function siteProcessKey(target) {
+  return target.mode === "preview" ? `${target.instanceKey}#preview` : target.instanceKey;
+}
+function choosePort(target, options) {
+  const taken = new Set(options.taken);
+  if (target.mode !== "preview") {
+    const fromAddress = parseLoopbackPort(target.siteUrl);
+    if (fromAddress && fromAddress > 0 && fromAddress < 65536) return fromAddress;
+  }
+  if (options.remembered && !taken.has(options.remembered)) return options.remembered;
+  for (let port = SITE_RUNNER_PORT_RANGE.start; port <= SITE_RUNNER_PORT_RANGE.end; port += 1) {
+    if (!taken.has(port)) return port;
+  }
+  throw new Error("No free port left for local storefronts (4200\u20134399).");
+}
+function localSiteUrl(port) {
+  return `http://127.0.0.1:${port}`;
+}
+function buildStorefrontEnv(target, port, extras) {
+  const siteUrl = localSiteUrl(port);
+  const convexSiteUrl = target.convexSiteUrl ?? deriveConvexSiteUrl2(target.convexUrl) ?? "";
+  const env = {
+    PORT: String(port),
+    CONVEXPRESS_PORT: String(port),
+    CONVEXPRESS_INSTANCE_KEY: target.instanceKey,
+    CONVEXPRESS_CONVEX_URL: target.convexUrl,
+    CONVEXPRESS_CONVEX_SITE_URL: convexSiteUrl,
+    CONVEXPRESS_SITE_URL: siteUrl,
+    CONVEXPRESS_VITE_CACHE_DIR: extras.cacheDir,
+    // VITE_* mirrors keep the dev server's build-time fallbacks consistent.
+    VITE_CONVEX_URL: target.convexUrl,
+    VITE_CONVEX_SITE_URL: convexSiteUrl,
+    VITE_APP_URL: siteUrl
+  };
+  const adminAppUrl = target.adminAppUrl ?? extras.adminAppUrl;
+  if (adminAppUrl) {
+    env.CONVEXPRESS_ADMIN_APP_URL = adminAppUrl;
+    env.VITE_ADMIN_APP_URL = adminAppUrl;
+  }
+  if (target.clerkPublishableKey) {
+    env.CONVEXPRESS_CLERK_PUBLISHABLE_KEY = target.clerkPublishableKey;
+    env.VITE_CLERK_PUBLISHABLE_KEY = target.clerkPublishableKey;
+  }
+  return env;
+}
+function cacheDirName(key) {
+  return key.replace(/[^A-Za-z0-9._-]+/g, "_");
+}
+function assertProcessKey(input) {
+  if (typeof input !== "string" || !input.trim() || input.length > 240) {
+    throw new Error("Process key is required.");
+  }
+  return input;
+}
+function assertWebsiteRepoPathInput(input) {
+  if (input === null || input === void 0 || input === "") return null;
+  if (typeof input !== "string" || input.length > 4096) {
+    throw new Error("websiteRepoPath must be a path string.");
+  }
+  return input.trim();
+}
+
+// electron/siteRunner/manager.ts
+var LOG_LINES = 300;
+var READY_TIMEOUT_MS = 18e4;
+var READY_POLL_MS = 500;
+var STOP_GRACE_MS = 6e3;
+function nowIso() {
+  return (/* @__PURE__ */ new Date()).toISOString().slice(11, 19);
+}
+function isAlive(child) {
+  return !!child && child.exitCode === null && child.signalCode === null;
+}
+function signalTree(child, signal) {
+  if (!child.pid) return;
+  if (process.platform !== "win32") {
+    try {
+      process.kill(-child.pid, signal);
+      return;
+    } catch (error) {
+      if (error.code !== "ESRCH") {
+      }
+    }
+  }
+  if (isAlive(child)) child.kill(signal);
+}
+function probe(url) {
+  return new Promise((resolve) => {
+    const request = import_node_http.default.get(url, { timeout: 4e3 }, (response) => {
+      response.resume();
+      resolve((response.statusCode ?? 500) < 500);
+    });
+    request.on("timeout", () => {
+      request.destroy();
+      resolve(false);
+    });
+    request.on("error", () => resolve(false));
+  });
+}
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+var SiteRunnerManager = class {
+  constructor(options) {
+    this.options = options;
+  }
+  processes = /* @__PURE__ */ new Map();
+  list() {
+    return [...this.processes.values()].map((entry) => ({ ...entry.state }));
+  }
+  get(key) {
+    const entry = this.processes.get(key);
+    return entry ? { ...entry.state } : null;
+  }
+  logs(key) {
+    return [...this.processes.get(key)?.logs ?? []];
+  }
+  takenPorts(exceptKey) {
+    return [...this.processes.values()].filter((entry) => entry.state.key !== exceptKey && entry.state.status !== "stopped" && entry.state.status !== "failed").map((entry) => entry.state.port);
+  }
+  emit(entry) {
+    this.options.onChange({ ...entry.state });
+  }
+  appendLog(entry, chunk) {
+    const lines = chunk.split(/\r?\n/).map((line) => line.replace(/\[[0-9;]*m/g, "").trimEnd()).filter(Boolean);
+    if (!lines.length) return;
+    for (const line of lines) {
+      entry.logs.push(`${nowIso()} ${line}`);
+    }
+    if (entry.logs.length > LOG_LINES) {
+      entry.logs.splice(0, entry.logs.length - LOG_LINES);
+    }
+    entry.state.lastLogLine = lines[lines.length - 1] ?? entry.state.lastLogLine;
+    this.emit(entry);
+  }
+  /**
+   * Start (or return) the process for a target and resolve once it answers
+   * HTTP. Rejects when the checkout is missing or the process dies early.
+   */
+  async ensureRunning(target) {
+    const key = siteProcessKey(target);
+    const existing = this.processes.get(key);
+    if (existing && (existing.state.status === "running" || existing.state.status === "starting")) {
+      if (existing.readyPromise) await existing.readyPromise;
+      return { ...existing.state };
+    }
+    const repo = this.options.websiteRepoPath();
+    if (!repo) {
+      throw new Error(
+        "The ConvexPress-Website checkout is not configured. Choose it under Local storefronts."
+      );
+    }
+    const appDir = import_node_path11.default.join(repo, "apps", "web");
+    if (!(0, import_node_fs5.existsSync)(import_node_path11.default.join(appDir, "package.json"))) {
+      throw new Error(`No storefront app found at ${appDir}.`);
+    }
+    const port = choosePort(target, {
+      remembered: this.options.rememberedPort(key),
+      taken: this.takenPorts(key)
+    });
+    const cacheDir = import_node_path11.default.join(this.options.cacheRoot(), cacheDirName(key));
+    (0, import_node_fs5.mkdirSync)(cacheDir, { recursive: true });
+    const entry = {
+      state: {
+        key,
+        instanceKey: target.instanceKey,
+        label: target.label,
+        mode: target.mode ?? "dev",
+        status: "starting",
+        port,
+        url: localSiteUrl(port),
+        convexUrl: target.convexUrl,
+        pid: null,
+        startedAt: Date.now(),
+        exitCode: null,
+        error: null,
+        lastLogLine: null
+      },
+      child: null,
+      logs: [],
+      readyPromise: null
+    };
+    this.processes.set(key, entry);
+    this.options.rememberPort(key, port);
+    const env = {
+      ...process.env,
+      ...buildStorefrontEnv(target, port, {
+        cacheDir,
+        adminAppUrl: this.options.adminAppUrl()
+      }),
+      FORCE_COLOR: "0",
+      CI: "1"
+    };
+    delete env.ELECTRON_RUN_AS_NODE;
+    const command = process.platform === "win32" ? "bun.exe" : "bun";
+    const args = ["run", "dev", "--host", "127.0.0.1", "--port", String(port)];
+    this.options.log(`[SiteRunner] start ${key} \u2192 ${entry.state.url} (${target.convexUrl})`);
+    this.appendLog(entry, `$ ${command} ${args.join(" ")}`);
+    let child;
+    try {
+      child = (0, import_node_child_process3.spawn)(command, args, {
+        cwd: appDir,
+        env,
+        stdio: ["ignore", "pipe", "pipe"],
+        detached: process.platform !== "win32",
+        windowsHide: true
+      });
+    } catch (error) {
+      entry.state.status = "failed";
+      entry.state.error = error instanceof Error ? error.message : String(error);
+      this.emit(entry);
+      throw error;
+    }
+    entry.child = child;
+    entry.state.pid = child.pid ?? null;
+    this.emit(entry);
+    child.stdout?.on("data", (data) => this.appendLog(entry, data.toString()));
+    child.stderr?.on("data", (data) => this.appendLog(entry, data.toString()));
+    child.on("error", (error) => {
+      entry.state.status = "failed";
+      entry.state.error = error.message;
+      this.appendLog(entry, `process error: ${error.message}`);
+    });
+    child.on("exit", (code, signal) => {
+      const stopping = entry.state.status === "stopping";
+      const wasReady = entry.state.status === "running";
+      entry.state.exitCode = code;
+      entry.state.pid = null;
+      entry.state.status = stopping || wasReady && code === 0 ? "stopped" : "failed";
+      if (!stopping && !(wasReady && code === 0)) {
+        const tail = entry.logs.slice(-3).map((line) => line.replace(/^\d\d:\d\d:\d\d /, "")).join(" \xB7 ");
+        entry.state.error = `Storefront exited with ${signal ?? `code ${code}`}${wasReady ? "" : " before it was ready"}.${tail ? ` Last output: ${tail}` : ""}`;
+      }
+      this.options.log(`[SiteRunner] exit ${key} code=${code} signal=${signal}`);
+      this.emit(entry);
+    });
+    entry.readyPromise = this.waitUntilReady(entry);
+    await entry.readyPromise;
+    return { ...entry.state };
+  }
+  async waitUntilReady(entry) {
+    const deadline = Date.now() + READY_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      if (!isAlive(entry.child)) {
+        throw new Error(entry.state.error ?? "Storefront process stopped before it was ready.");
+      }
+      if (await probe(entry.state.url)) {
+        entry.state.status = "running";
+        entry.state.error = null;
+        this.emit(entry);
+        return;
+      }
+      await sleep(READY_POLL_MS);
+    }
+    entry.state.status = "failed";
+    entry.state.error = "Storefront did not answer within three minutes.";
+    this.emit(entry);
+    signalTree(entry.child, "SIGTERM");
+    throw new Error(entry.state.error);
+  }
+  async stop(key) {
+    const entry = this.processes.get(key);
+    if (!entry) return null;
+    const child = entry.child;
+    if (!isAlive(child)) {
+      entry.state.status = "stopped";
+      this.emit(entry);
+      return { ...entry.state };
+    }
+    entry.state.status = "stopping";
+    this.emit(entry);
+    signalTree(child, "SIGTERM");
+    const deadline = Date.now() + STOP_GRACE_MS;
+    while (Date.now() < deadline && isAlive(child)) {
+      await sleep(50);
+    }
+    if (isAlive(child)) {
+      signalTree(child, "SIGKILL");
+      await sleep(200);
+    }
+    entry.state.status = "stopped";
+    entry.state.pid = null;
+    this.emit(entry);
+    return { ...entry.state };
+  }
+  async stopAll() {
+    await Promise.all([...this.processes.keys()].map((key) => this.stop(key).catch(() => null)));
+  }
+  /** Synchronous best-effort shutdown for `before-quit`. */
+  killAllSync() {
+    for (const entry of this.processes.values()) {
+      if (isAlive(entry.child)) {
+        entry.state.status = "stopping";
+        signalTree(entry.child, "SIGTERM");
+      }
+    }
+  }
+  forget(key) {
+    const entry = this.processes.get(key);
+    if (!entry || isAlive(entry.child)) return;
+    this.processes.delete(key);
+  }
+};
+
+// electron/ipc/siteRunner.ts
+var { app: app4, BrowserWindow: BrowserWindow5, dialog: dialog2, ipcMain: ipcMain9, shell: shell2 } = require("electron");
+var store2 = new JsonStore({
+  name: "convexpress-sites",
+  defaults: { websiteRepoPath: null, ports: {} }
+});
+function getRendererIndexPath5() {
+  return import_node_path12.default.join(__dirname, "..", "dist", "index.html");
+}
+function isRunnerAppSender(senderUrl) {
+  return isDev() ? isDevAppRendererSender(senderUrl) : isAppRendererSender(senderUrl, { rendererIndexPath: getRendererIndexPath5() });
+}
+function assertSender(event) {
+  if (!isRunnerAppSender(event.sender.getURL())) {
+    throw new Error("Local storefronts can only be controlled from the ConvexPress app.");
+  }
+}
+function looksLikeWebsiteRepo(candidate) {
+  return (0, import_node_fs6.existsSync)(import_node_path12.default.join(candidate, "apps", "web", "package.json"));
+}
+function defaultRepoCandidates() {
+  const appPath = app4.getAppPath();
+  return [
+    process.env.CONVEXPRESS_WEBSITE_REPO ?? "",
+    import_node_path12.default.resolve(appPath, "..", "..", "..", "ConvexPress-Website"),
+    import_node_path12.default.resolve(appPath, "..", "..", "ConvexPress-Website"),
+    import_node_path12.default.resolve(process.cwd(), "..", "..", "..", "ConvexPress-Website"),
+    import_node_path12.default.resolve(process.cwd(), "..", "ConvexPress-Website")
+  ].filter(Boolean);
+}
+function resolveWebsiteRepoPath() {
+  const configured = store2.get("websiteRepoPath");
+  if (configured && looksLikeWebsiteRepo(configured)) return { path: configured, source: "config" };
+  const fromEnv = process.env.CONVEXPRESS_WEBSITE_REPO;
+  if (fromEnv && looksLikeWebsiteRepo(fromEnv)) return { path: fromEnv, source: "env" };
+  for (const candidate of defaultRepoCandidates()) {
+    if (looksLikeWebsiteRepo(candidate)) return { path: candidate, source: "sibling" };
+  }
+  return { path: null, source: "none" };
+}
+function broadcast(state) {
+  for (const win of BrowserWindow5.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send("site-runner:changed", state);
+  }
+}
+var manager = null;
+var logSink = () => {
+};
+function mapDevelopmentOrigins(target) {
+  const raw = process.env.CONVEXPRESS_SITE_ORIGIN_MAP;
+  if (!raw) return target;
+  let map;
+  try {
+    map = JSON.parse(raw);
+  } catch {
+    return target;
+  }
+  const rewrite = (origin) => {
+    if (!origin) return origin;
+    const replacement = map[origin] ?? map[origin.replace(/\/$/, "")];
+    return typeof replacement === "string" && /^https?:\/\//.test(replacement) ? replacement : origin;
+  };
+  const mapped = { ...target, convexUrl: rewrite(target.convexUrl), convexSiteUrl: rewrite(target.convexSiteUrl) };
+  if (mapped.convexUrl !== target.convexUrl) {
+    logSink(`[SiteRunner] origin map ${target.convexUrl} \u2192 ${mapped.convexUrl}`);
+  }
+  return mapped;
+}
+function getSiteRunnerManager() {
+  manager ??= new SiteRunnerManager({
+    websiteRepoPath: () => resolveWebsiteRepoPath().path,
+    cacheRoot: () => import_node_path12.default.join(app4.getPath("userData"), "storefront-cache"),
+    adminAppUrl: () => isDev() ? getTrustedDevRendererOrigin() : store2.get("adminAppUrl"),
+    rememberedPort: (key) => {
+      const ports = store2.get("ports") ?? {};
+      return typeof ports[key] === "number" ? ports[key] : null;
+    },
+    rememberPort: (key, port) => {
+      const ports = { ...store2.get("ports") ?? {} };
+      ports[key] = port;
+      store2.set("ports", ports);
+    },
+    onChange: broadcast,
+    log: (line) => logSink(line)
+  });
+  return manager;
+}
+function setSiteRunnerLogger(sink) {
+  logSink = sink;
+}
+function registerSiteRunnerHandlers() {
+  ipcMain9.handle("site-runner:list", (event) => {
+    assertSender(event);
+    return getSiteRunnerManager().list();
+  });
+  ipcMain9.handle("site-runner:get-config", (event) => {
+    assertSender(event);
+    const resolved = resolveWebsiteRepoPath();
+    return {
+      websiteRepoPath: resolved.path,
+      source: resolved.source,
+      configuredPath: store2.get("websiteRepoPath") ?? null,
+      ports: store2.get("ports") ?? {}
+    };
+  });
+  ipcMain9.handle("site-runner:set-config", (event, input) => {
+    assertSender(event);
+    const raw = input && typeof input === "object" ? input : {};
+    if ("websiteRepoPath" in raw) {
+      const value = assertWebsiteRepoPathInput(raw.websiteRepoPath);
+      if (value && !looksLikeWebsiteRepo(value)) {
+        throw new Error("That folder does not contain a ConvexPress-Website checkout (apps/web/package.json).");
+      }
+      store2.set("websiteRepoPath", value);
+    }
+    return resolveWebsiteRepoPath();
+  });
+  ipcMain9.handle("site-runner:pick-repo", async (event) => {
+    assertSender(event);
+    const win = BrowserWindow5.fromWebContents(event.sender);
+    const dialogOptions = {
+      title: "Choose the ConvexPress-Website checkout",
+      properties: ["openDirectory"]
+    };
+    const result = win ? await dialog2.showOpenDialog(win, dialogOptions) : await dialog2.showOpenDialog(dialogOptions);
+    if (result.canceled || !result.filePaths[0]) return { cancelled: true };
+    const chosen = result.filePaths[0];
+    if (!looksLikeWebsiteRepo(chosen)) {
+      throw new Error("That folder does not contain a ConvexPress-Website checkout (apps/web/package.json).");
+    }
+    store2.set("websiteRepoPath", chosen);
+    return { cancelled: false, path: chosen };
+  });
+  ipcMain9.handle("site-runner:start", async (event, input) => {
+    assertSender(event);
+    const target = mapDevelopmentOrigins(assertSiteRunnerTarget(input));
+    return await getSiteRunnerManager().ensureRunning(target);
+  });
+  ipcMain9.handle("site-runner:stop", async (event, key) => {
+    assertSender(event);
+    return await getSiteRunnerManager().stop(assertProcessKey(key));
+  });
+  ipcMain9.handle("site-runner:restart", async (event, input) => {
+    assertSender(event);
+    const target = mapDevelopmentOrigins(assertSiteRunnerTarget(input));
+    const runner = getSiteRunnerManager();
+    await runner.stop(siteProcessKey(target));
+    return await runner.ensureRunning(target);
+  });
+  ipcMain9.handle("site-runner:forget", (event, key) => {
+    assertSender(event);
+    getSiteRunnerManager().forget(assertProcessKey(key));
+    return getSiteRunnerManager().list();
+  });
+  ipcMain9.handle("site-runner:logs", (event, key) => {
+    assertSender(event);
+    return getSiteRunnerManager().logs(assertProcessKey(key));
+  });
+  ipcMain9.handle("site-runner:open", async (event, input) => {
+    assertSender(event);
+    const target = mapDevelopmentOrigins(assertSiteRunnerTarget(input));
+    if (target.mode !== "preview" && !isLoopbackUrl(target.siteUrl)) {
+      const url = target.siteUrl;
+      if (!url) throw new Error("This environment has no site address yet.");
+      await shell2.openExternal(url);
+      return { launched: false, url };
+    }
+    const state = await getSiteRunnerManager().ensureRunning(target);
+    await shell2.openExternal(state.url);
+    return { launched: true, url: state.url, state };
+  });
+  ipcMain9.handle("site-runner:open-url", async (event, url) => {
+    assertSender(event);
+    if (typeof url !== "string" || !/^https?:\/\//.test(url)) {
+      throw new Error("Only http(s) URLs can be opened.");
+    }
+    await shell2.openExternal(url);
+  });
+}
+function shutdownSiteRunner() {
+  manager?.killAllSync();
+}
+
 // electron/ipc/index.ts
-var { ipcMain: ipcMain9, app: app4 } = require("electron");
+var { ipcMain: ipcMain10, app: app5 } = require("electron");
 function registerAllIpcHandlers() {
   registerWindowHandlers();
   registerConfigHandlers();
@@ -1786,18 +2365,19 @@ function registerAllIpcHandlers() {
   registerConnectionProvisionHandlers();
   registerAppUpdaterHandlers();
   registerUpdaterHandlers();
-  ipcMain9.handle("app:get-version", () => {
-    return app4.getVersion();
+  registerSiteRunnerHandlers();
+  ipcMain10.handle("app:get-version", () => {
+    return app5.getVersion();
   });
-  ipcMain9.handle("app:get-platform", () => {
+  ipcMain10.handle("app:get-platform", () => {
     return {
       os: process.platform,
       arch: process.arch,
       electron: process.versions.electron
     };
   });
-  ipcMain9.handle("app:quit", () => {
-    app4.quit();
+  ipcMain10.handle("app:quit", () => {
+    app5.quit();
   });
 }
 
@@ -1821,7 +2401,7 @@ var LOOPBACK_MEDIA_SOURCES = [
   "http://localhost:*",
   "http://127.0.0.1:*"
 ];
-function isLoopbackUrl(value) {
+function isLoopbackUrl2(value) {
   if (typeof value !== "string") return false;
   try {
     const parsed = new URL(value);
@@ -1850,7 +2430,7 @@ function exactNetworkOrigins(value) {
   }
 }
 function controllerConfigUsesLoopback(convexUrl, convexSiteUrl) {
-  return isLoopbackUrl(convexUrl) || isLoopbackUrl(convexSiteUrl);
+  return isLoopbackUrl2(convexUrl) || isLoopbackUrl2(convexSiteUrl);
 }
 function buildDesktopContentSecurityPolicy({
   development,
@@ -1900,11 +2480,11 @@ function buildDesktopContentSecurityPolicy({
 }
 
 // electron/tray.ts
-var import_node_path11 = __toESM(require("path"));
-var { app: app5, Menu, nativeImage, Tray } = require("electron");
+var import_node_path13 = __toESM(require("path"));
+var { app: app6, Menu, nativeImage, Tray } = require("electron");
 var tray = null;
 function loadTrayIcon() {
-  const iconPath = isDev() ? import_node_path11.default.join(__dirname, "../resources/iconTemplate.png") : import_node_path11.default.join(process.resourcesPath, "iconTemplate.png");
+  const iconPath = isDev() ? import_node_path13.default.join(__dirname, "../resources/iconTemplate.png") : import_node_path13.default.join(process.resourcesPath, "iconTemplate.png");
   const image = nativeImage.createFromPath(iconPath);
   image.setTemplateImage(false);
   return image;
@@ -1932,7 +2512,7 @@ function createTray(wm) {
       label: "Quit",
       click: () => {
         setQuitting(true);
-        app5.quit();
+        app6.quit();
       }
     }
   ]);
@@ -1954,9 +2534,9 @@ function createTray(wm) {
 
 // electron/main.ts
 var {
-  app: app6,
-  BrowserWindow: BrowserWindow5,
-  ipcMain: ipcMain10,
+  app: app7,
+  BrowserWindow: BrowserWindow6,
+  ipcMain: ipcMain11,
   nativeTheme,
   net: net3,
   protocol,
@@ -1974,22 +2554,22 @@ protocol.registerSchemesAsPrivileged([
     }
   }
 ]);
-app6.setName("ConvexPress");
+app7.setName("ConvexPress");
 if (isDev()) {
-  app6.setPath("userData", import_node_path12.default.join(app6.getPath("userData"), "-dev"));
+  app7.setPath("userData", import_node_path14.default.join(app7.getPath("userData"), "-dev"));
 }
-var LOG_FILE = import_node_path12.default.join(app6.getPath("userData"), "convexpress-debug.log");
+var LOG_FILE = import_node_path14.default.join(app7.getPath("userData"), "convexpress-debug.log");
 function fileLog(msg) {
   const line = `[${(/* @__PURE__ */ new Date()).toISOString()}] ${msg}
 `;
   try {
-    (0, import_node_fs5.appendFileSync)(LOG_FILE, line);
+    (0, import_node_fs7.appendFileSync)(LOG_FILE, line);
   } catch {
   }
   safeLog(msg);
 }
 try {
-  (0, import_node_fs5.writeFileSync)(
+  (0, import_node_fs7.writeFileSync)(
     LOG_FILE,
     `=== ConvexPress started ${(/* @__PURE__ */ new Date()).toISOString()} ===
 `
@@ -2015,7 +2595,7 @@ if (process.platform === "darwin") {
     process.env.PATH = [...missing, ...parts].join(":");
   }
 }
-var store2 = new JsonStore({ name: "convexpress-config" });
+var store3 = new JsonStore({ name: "convexpress-config" });
 process.on("uncaughtException", (error) => {
   safeError("[Main] Uncaught exception:", error);
 });
@@ -2023,34 +2603,34 @@ process.on("unhandledRejection", (reason) => {
   safeError("[Main] Unhandled rejection:", reason);
 });
 function isSetupComplete() {
-  const setupComplete = store2.get("setupComplete");
-  const convexUrl = store2.get("convexUrl");
+  const setupComplete = store3.get("setupComplete");
+  const convexUrl = store3.get("convexUrl");
   return !!(setupComplete && convexUrl);
 }
 function removeDeprecatedSecretsFromConfig() {
-  if (store2.get("adminKey") !== void 0) {
-    store2.delete("adminKey");
+  if (store3.get("adminKey") !== void 0) {
+    store3.delete("adminKey");
     fileLog("[Main] Removed deprecated deploy key from desktop config");
   }
 }
 function getInitialRouteForCurrentLaunch() {
-  const pendingAdminCredentials = store2.get("pendingAdminCredentials");
-  const pendingLoginCredentials = store2.get("pendingLoginCredentials");
+  const pendingAdminCredentials = store3.get("pendingAdminCredentials");
+  const pendingLoginCredentials = store3.get("pendingLoginCredentials");
   if (pendingAdminCredentials != null && !isPendingAdminHandoffUsable(pendingAdminCredentials)) {
-    store2.delete("pendingAdminCredentials");
+    store3.delete("pendingAdminCredentials");
     fileLog("[Main] Cleared expired first-admin setup handoff");
   }
   if (pendingLoginCredentials != null && !isPendingLoginHandoffUsable(pendingLoginCredentials)) {
-    store2.delete("pendingLoginCredentials");
+    store3.delete("pendingLoginCredentials");
     fileLog("[Main] Cleared expired setup login handoff");
   }
   return getInitialRouteForLaunch({
-    pendingAdminCredentials: store2.get("pendingAdminCredentials"),
-    pendingLoginCredentials: store2.get("pendingLoginCredentials")
+    pendingAdminCredentials: store3.get("pendingAdminCredentials"),
+    pendingLoginCredentials: store3.get("pendingLoginCredentials")
   });
 }
 function getWizardIndexPath3() {
-  return import_node_path12.default.join(__dirname, "wizard", "index.html");
+  return import_node_path14.default.join(__dirname, "wizard", "index.html");
 }
 function launchApp() {
   createTray(windowManager);
@@ -2064,8 +2644,8 @@ function launchApp() {
       win.webContents.send("theme:os-changed", theme);
     }
   });
-  if (app6.isPackaged && !isDev()) {
-    const installPath = import_node_path12.default.dirname(app6.getAppPath());
+  if (app7.isPackaged && !isDev()) {
+    const installPath = import_node_path14.default.dirname(app7.getAppPath());
     const manifest = readManifest(installPath);
     if (manifest) {
       fileLog(`[Main] App-content updater initialized at ${installPath}`);
@@ -2078,11 +2658,11 @@ function launchApp() {
     fileLog(`[Main] Shell auto-updater init failed: ${err}`);
   });
 }
-var gotTheLock = app6.requestSingleInstanceLock();
+var gotTheLock = app7.requestSingleInstanceLock();
 if (!gotTheLock) {
-  app6.quit();
+  app7.quit();
 } else {
-  app6.on("second-instance", () => {
+  app7.on("second-instance", () => {
     const win = windowManager.getMainWindow() ?? windowManager.getWizardWindow();
     if (!win) return;
     if (win.isMinimized()) win.restore();
@@ -2090,10 +2670,10 @@ if (!gotTheLock) {
     win.focus();
   });
 }
-app6.whenReady().then(async () => {
+app7.whenReady().then(async () => {
   fileLog("[Main] App ready");
   removeDeprecatedSecretsFromConfig();
-  const packagedRendererRoot = import_node_path12.default.join(__dirname, "..", "dist");
+  const packagedRendererRoot = import_node_path14.default.join(__dirname, "..", "dist");
   protocol.handle(PACKAGED_RENDERER_SCHEME, (request) => {
     try {
       const rendererPath = resolvePackagedRendererPath(
@@ -2110,12 +2690,12 @@ app6.whenReady().then(async () => {
     const csp = buildDesktopContentSecurityPolicy({
       development: isDev(),
       allowLoopback: controllerConfigUsesLoopback(
-        store2.get("convexUrl"),
-        store2.get("convexSiteUrl")
+        store3.get("convexUrl"),
+        store3.get("convexSiteUrl")
       ),
       additionalConnectOrigins: [
-        store2.get("convexUrl"),
-        store2.get("convexSiteUrl"),
+        store3.get("convexUrl"),
+        store3.get("convexSiteUrl"),
         process.env.CONVEXPRESS_ACCEPTANCE_CONTROL_ORIGIN,
         process.env.CONVEXPRESS_ACCEPTANCE_CONTROL_SITE_ORIGIN,
         process.env.CONVEXPRESS_ACCEPTANCE_SITE_ALPHA_ORIGIN,
@@ -2136,15 +2716,16 @@ app6.whenReady().then(async () => {
     });
   });
   registerAllIpcHandlers();
+  setSiteRunnerLogger(fileLog);
   let appLaunched = false;
-  ipcMain10.handle("app:reload-from-setup", (event) => {
+  ipcMain11.handle("app:reload-from-setup", (event) => {
     if (!isExactWizardSender(event.sender.getURL(), getWizardIndexPath3())) {
       throw new Error("Setup launch can only be requested from the setup wizard.");
     }
     if (appLaunched) return;
     appLaunched = true;
     fileLog("[Main] Setup complete \u2014 launching app");
-    for (const win of BrowserWindow5.getAllWindows()) {
+    for (const win of BrowserWindow6.getAllWindows()) {
       win.destroy();
     }
     launchApp();
@@ -2157,9 +2738,9 @@ app6.whenReady().then(async () => {
     windowManager.createWizardWindow();
   }
 });
-app6.on("window-all-closed", () => {
+app7.on("window-all-closed", () => {
 });
-app6.on("activate", () => {
+app7.on("activate", () => {
   if (isSetupComplete()) {
     windowManager.createMainWindow({
       initialRoute: getInitialRouteForCurrentLaunch()
@@ -2168,7 +2749,8 @@ app6.on("activate", () => {
     windowManager.createWizardWindow();
   }
 });
-app6.on("before-quit", () => {
+app7.on("before-quit", () => {
   fileLog("[Main] App quitting \u2014 cleaning up");
   setQuitting(true);
+  shutdownSiteRunner();
 });

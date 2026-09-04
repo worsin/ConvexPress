@@ -25,6 +25,7 @@
  * is disabled, or no cached data exists.
  */
 
+import { readServerSiteRuntime } from "@/lib/site-runtime";
 import { createFileRoute } from "@tanstack/react-router";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convexpress-website/backend/generated/api";
@@ -32,7 +33,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 /** Valid sitemap content types */
 type SitemapType = "posts" | "pages" | "courses" | "categories" | "tags" | "authors";
 
-const CONVEX_URL = process.env.VITE_CONVEX_URL || "";
+const CONVEX_URL = readServerSiteRuntime().convexUrl || "";
 
 const VALID_TYPES = new Set(["posts", "pages", "courses", "categories", "tags", "authors"]);
 

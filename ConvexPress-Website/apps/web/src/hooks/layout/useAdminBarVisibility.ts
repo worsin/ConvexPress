@@ -1,3 +1,4 @@
+import { getSiteRuntime } from "@/lib/site-runtime";
 import { useRouterState } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
@@ -25,9 +26,7 @@ export function useAdminBarVisibility(): {
   // Use the proper capability check from the Role & Capability System
   const isAdmin = useCan("manage_options");
   const routerState = useRouterState();
-  const adminBaseUrl =
-    (import.meta.env.VITE_ADMIN_APP_URL as string | undefined) ??
-    "http://localhost:4105";
+  const adminBaseUrl = getSiteRuntime().adminAppUrl ?? "http://localhost:4105";
   const dashboardUrl = `${adminBaseUrl}/dashboard`;
   const pathname = routerState.location.pathname;
 

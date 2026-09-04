@@ -61,6 +61,8 @@ export interface ConvexpressBridge {
       packageJson: string;
     }) => Promise<{ saved: boolean; filePath: string | null }>;
   };
+  /** Present in desktop builds that ship the local storefront runner. */
+  siteRunner?: ConvexpressSiteRunner;
   connections: {
     provision: (input: {
       instanceId: string;
@@ -77,6 +79,33 @@ export interface ConvexpressBridge {
         }
     >;
   };
+}
+
+/** Mirror of packages/desktop/electron/siteRunner/siteRunnerValidation.ts */
+export interface ConvexpressSiteRunner {
+  list: () => Promise<import("@/lib/site-runner").SiteProcessState[]>;
+  getConfig: () => Promise<import("@/lib/site-runner").SiteRunnerConfigView>;
+  setConfig: (input: { websiteRepoPath?: string | null }) => Promise<unknown>;
+  pickRepo: () => Promise<{ cancelled: true } | { cancelled: false; path: string }>;
+  start: (
+    target: import("@/lib/site-runner").SiteRunnerTarget,
+  ) => Promise<import("@/lib/site-runner").SiteProcessState>;
+  stop: (key: string) => Promise<import("@/lib/site-runner").SiteProcessState | null>;
+  restart: (
+    target: import("@/lib/site-runner").SiteRunnerTarget,
+  ) => Promise<import("@/lib/site-runner").SiteProcessState>;
+  forget: (key: string) => Promise<import("@/lib/site-runner").SiteProcessState[]>;
+  logs: (key: string) => Promise<string[]>;
+  open: (
+    target: import("@/lib/site-runner").SiteRunnerTarget,
+  ) => Promise<
+    | { launched: false; url: string }
+    | { launched: true; url: string; state: import("@/lib/site-runner").SiteProcessState }
+  >;
+  openUrl: (url: string) => Promise<void>;
+  onChanged: (
+    callback: (state: import("@/lib/site-runner").SiteProcessState) => void,
+  ) => () => void;
 }
 
 export interface ElectronAuthStorage {

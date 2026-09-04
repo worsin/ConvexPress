@@ -34,6 +34,18 @@ const ALLOWED_INVOKE_CHANNELS = new Set([
   "handoff:save-package",
   // Secure connection provisioning; the credential is collected elsewhere.
   "connections:provision",
+  // Local storefront processes (one ConvexPress-Website checkout, many sites)
+  "site-runner:list",
+  "site-runner:get-config",
+  "site-runner:set-config",
+  "site-runner:pick-repo",
+  "site-runner:start",
+  "site-runner:stop",
+  "site-runner:restart",
+  "site-runner:forget",
+  "site-runner:logs",
+  "site-runner:open",
+  "site-runner:open-url",
 ]);
 
 const ALLOWED_ON_CHANNELS = new Set([
@@ -54,6 +66,8 @@ const ALLOWED_ON_CHANNELS = new Set([
   "app:update-downloaded",
   "app:update-error",
   "app:checking-for-updates",
+  // Local storefront process state
+  "site-runner:changed",
 ]);
 
 // ---------- Allowed Auth Keys ----------
@@ -149,6 +163,27 @@ contextBridge.exposeInMainWorld("convexpress", {
         saved: boolean;
         filePath: string | null;
       }>,
+  },
+
+  siteRunner: {
+    list: () => ipcRenderer.invoke("site-runner:list"),
+    getConfig: () => ipcRenderer.invoke("site-runner:get-config"),
+    setConfig: (input: { websiteRepoPath?: string | null }) =>
+      ipcRenderer.invoke("site-runner:set-config", input),
+    pickRepo: () => ipcRenderer.invoke("site-runner:pick-repo"),
+    start: (target: unknown) => ipcRenderer.invoke("site-runner:start", target),
+    stop: (key: string) => ipcRenderer.invoke("site-runner:stop", key),
+    restart: (target: unknown) => ipcRenderer.invoke("site-runner:restart", target),
+    forget: (key: string) => ipcRenderer.invoke("site-runner:forget", key),
+    logs: (key: string) => ipcRenderer.invoke("site-runner:logs", key),
+    open: (target: unknown) => ipcRenderer.invoke("site-runner:open", target),
+    openUrl: (url: string) => ipcRenderer.invoke("site-runner:open-url", url),
+    onChanged: (callback: (state: unknown) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+        callback(payload);
+      ipcRenderer.on("site-runner:changed", handler);
+      return () => ipcRenderer.removeListener("site-runner:changed", handler);
+    },
   },
 
   connections: {

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
 import { Input } from "@/components/ui/input";
 import { SearchSuggestions } from "@/components/search/SearchSuggestions";
+import { useSettings } from "@/contexts/SettingsContext";
 
 /**
  * Full-width search input overlay that slides down from the header.
@@ -17,6 +18,9 @@ export function SearchOverlay() {
   const [suggestionsVisible, setSuggestionsVisible] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const settings = useSettings();
+  // Shops search the catalog first; the site-wide search stays a click away.
+  const searchTarget = settings?.plugins?.commerceEnabled === true ? "/products" : "/search";
 
   // Auto-focus input on open
   React.useEffect(() => {
@@ -49,7 +53,7 @@ export function SearchOverlay() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      navigate({ to: "/search", search: { q: query.trim() } } as any);
+      navigate({ to: searchTarget, search: { q: query.trim() } } as any);
       closeSearch();
       setQuery("");
       setSuggestionsVisible(false);

@@ -31,6 +31,7 @@ export const searchableContentTypeValidator = v.union(
   v.literal("media"),
   v.literal("comment"),
   v.literal("course"),
+  v.literal("product"),
 );
 
 export const searchSourceValidator = v.union(

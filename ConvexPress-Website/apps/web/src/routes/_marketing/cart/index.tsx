@@ -8,6 +8,8 @@ import { MediaImage } from "@/components/media/MediaImage";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
+import { RelatedProducts } from "@/components/shop/RelatedProducts";
+import { ShopShell } from "@/components/shop/ShopShell";
 import {
   getCartLineBundleSelections,
   getCartLineSku,
@@ -198,6 +200,7 @@ function CartPage() {
 
   return (
     <PublicPluginGate pluginId="commerce">
+    <ShopShell kind="cart">
       <div className="relative left-1/2 w-[calc(100vw-1rem)] -translate-x-1/2">
         <div className="mx-auto flex w-full max-w-[1760px] flex-col gap-8 px-4 py-10 md:px-6 lg:px-8 lg:py-12">
         <div className="space-y-2">
@@ -443,11 +446,23 @@ function CartPage() {
                   </button>
                 </div>
               </div>
+              <div className="mt-6 border-t border-border pt-5">
+                <RelatedProducts
+                  fromCart
+                  surface="cart_page"
+                  perGroup={2}
+                  limitGroups={2}
+                  layout="row"
+                  title="Goes with your cart"
+                  className="[&_h2]:text-base"
+                />
+              </div>
             </aside>
           </div>
         )}
         </div>
       </div>
+    </ShopShell>
     </PublicPluginGate>
   );
 }

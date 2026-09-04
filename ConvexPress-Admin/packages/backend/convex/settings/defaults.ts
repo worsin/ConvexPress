@@ -33,6 +33,8 @@ export type SettingsSection =
   | "search"
   | "commerce.general"
   | "commerce.payments"
+  | "commerce.assistant"
+  | "brand"
   | "integrations.shipping"
   | "integrations.shipping.shipstation"
   | "integrations.shipping.ups"
@@ -77,6 +79,8 @@ export const SECTION_NAMES: SettingsSection[] = [
   "search",
   "commerce.general",
   "commerce.payments",
+  "commerce.assistant",
+  "brand",
   "integrations.shipping",
   "integrations.shipping.shipstation",
   "integrations.shipping.ups",
@@ -254,6 +258,60 @@ export interface AISettings {
 export interface BlockSettings {
   /** Block names hidden from inserters and omitted from AI page generation. */
   disabledBlockNames: string[];
+}
+
+/**
+ * Storefront shopping assistant. Everything the public rail renders is
+ * driven by these values; nothing about its behaviour is hardcoded.
+ */
+export interface CommerceAssistantSettings {
+  enabled: boolean;
+  /** Name shown in the rail header, e.g. "Shop assistant". */
+  displayName: string;
+  /** Short line under the name. */
+  tagline: string;
+  placement: "left" | "right";
+  railWidthPx: number;
+  /** When the rail opens by itself on desktop. */
+  autoOpen: "firstSearch" | "always" | "never";
+  routes: {
+    search: boolean;
+    catalog: boolean;
+    product: boolean;
+    cart: boolean;
+    checkout: boolean;
+  };
+  mobileMode: "sheet" | "hidden";
+  /** Model override; empty uses Settings > AI default model. */
+  model: string;
+  /** Picks in an auto brief. */
+  maxPicks: number;
+  cardsPerGroup: number;
+  groups: {
+    accessory: boolean;
+    consumable: boolean;
+    maintenance: boolean;
+    upgrade: boolean;
+    similar: boolean;
+  };
+  promptChips: "auto" | "curated" | "off";
+  curatedPrompts: string[];
+  starterPrompts: string[];
+  proactiveTips: boolean;
+  tipCooldownMs: number;
+  memoryEnabled: boolean;
+  memoryRetentionDays: number;
+  disclosureText: string;
+  tone: string;
+  boostedProductIds: string[];
+  excludedCategoryIds: string[];
+  rateLimitPerMinute: number;
+  /** Show AI "narrow your search" chips on results. */
+  searchFacets: boolean;
+  /** Show the "goes with your cart" row in the cart drawer. */
+  drawerRecommendations: boolean;
+  /** Free-shipping progress bar threshold in minor units; 0 disables. */
+  freeShippingThresholdMinor: number;
 }
 
 export interface EmailSettings {
@@ -851,6 +909,71 @@ export const AI_DEFAULTS: AISettings = {
   tavilyApiKey: "",
 };
 
+/**
+ * Brand doc: the inputs the website design kit and the shopping assistant
+ * translate into visual and copy decisions. See ConvexPress-Website/design-kit/BRAND.md.
+ */
+export interface BrandSettings {
+  moodPrompt: string;
+  references: string[];
+  voice: string;
+  industry: string;
+  hardRules: string[];
+  typography: { display: string; body: string; scale: "compact" | "comfortable" | "spacious" };
+  density: "compact" | "comfortable" | "spacious";
+  radius: "sharp" | "subtle" | "rounded" | "pill";
+  logoUrl: string;
+  faviconUrl: string;
+}
+
+export const BRAND_DEFAULTS: BrandSettings = {
+  moodPrompt: "",
+  references: [],
+  voice: "",
+  industry: "",
+  hardRules: [],
+  typography: { display: "", body: "", scale: "comfortable" },
+  density: "comfortable",
+  radius: "rounded",
+  logoUrl: "",
+  faviconUrl: "",
+};
+
+export const COMMERCE_ASSISTANT_DEFAULTS: CommerceAssistantSettings = {
+  enabled: true,
+  displayName: "Shop assistant",
+  tagline: "Knows your cart. Suggests what fits.",
+  placement: "left",
+  railWidthPx: 320,
+  autoOpen: "firstSearch",
+  routes: { search: true, catalog: true, product: true, cart: true, checkout: false },
+  mobileMode: "sheet",
+  model: "",
+  maxPicks: 5,
+  cardsPerGroup: 2,
+  groups: { accessory: true, consumable: true, maintenance: true, upgrade: true, similar: true },
+  promptChips: "auto",
+  curatedPrompts: [],
+  starterPrompts: [
+    "Help me choose the right one",
+    "What goes with what's in my cart?",
+    "Show me the best value under $100",
+  ],
+  proactiveTips: true,
+  tipCooldownMs: 60_000,
+  memoryEnabled: true,
+  memoryRetentionDays: 90,
+  disclosureText:
+    "Suggestions are generated from your cart and your search. Prices and stock are live.",
+  tone: "warm, expert, concise; explains why each pick fits",
+  boostedProductIds: [],
+  excludedCategoryIds: [],
+  rateLimitPerMinute: 12,
+  searchFacets: true,
+  drawerRecommendations: true,
+  freeShippingThresholdMinor: 0,
+};
+
 export const BLOCK_DEFAULTS: BlockSettings = {
   disabledBlockNames: [],
 };
@@ -1124,6 +1247,8 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   search: SEARCH_DEFAULTS,
   "commerce.general": COMMERCE_GENERAL_DEFAULTS,
   "commerce.payments": COMMERCE_PAYMENTS_DEFAULTS,
+  "commerce.assistant": COMMERCE_ASSISTANT_DEFAULTS,
+  brand: BRAND_DEFAULTS,
   "commerce.subscriptions.counters": COMMERCE_SUBSCRIPTIONS_COUNTERS_DEFAULTS,
   "integrations.shipping": SHIPPING_INTEGRATION_DEFAULTS,
   "integrations.shipping.shipstation": {

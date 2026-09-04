@@ -192,6 +192,13 @@ export const commerceTables = {
     // Cross-selling
     upsellProductIds: v.optional(v.array(v.id("commerce_products"))),
     crossSellProductIds: v.optional(v.array(v.id("commerce_products"))),
+    // Shopping assistant / discovery
+    /** Denormalised text (title, excerpt, description, categories, attributes) for full-text search. */
+    searchText: v.optional(v.string()),
+    /** Structured facts the assistant reasons over (fit, dimensions, compatibility, care, use cases). */
+    conversationalAttributes: v.optional(v.any()),
+    /** One-line assistant summary shown under cards. */
+    assistantSummary: v.optional(v.string()),
     // Preserved source metadata for fields we don't have dedicated columns for
     rawSourceMeta: v.optional(v.string()),
     isDownloadable: v.boolean(),
@@ -238,6 +245,10 @@ export const commerceTables = {
     .searchIndex("search_commerce_products", {
       searchField: "title",
       filterFields: ["status", "authorId"],
+    })
+    .searchIndex("search_commerce_products_text", {
+      searchField: "searchText",
+      filterFields: ["status"],
     }),
 
   commerce_product_variants: defineTable({

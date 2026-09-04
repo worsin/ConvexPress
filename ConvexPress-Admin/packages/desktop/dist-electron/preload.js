@@ -33,7 +33,19 @@ var ALLOWED_INVOKE_CHANNELS = /* @__PURE__ */ new Set([
   // Portable website handoff
   "handoff:save-package",
   // Secure connection provisioning; the credential is collected elsewhere.
-  "connections:provision"
+  "connections:provision",
+  // Local storefront processes (one ConvexPress-Website checkout, many sites)
+  "site-runner:list",
+  "site-runner:get-config",
+  "site-runner:set-config",
+  "site-runner:pick-repo",
+  "site-runner:start",
+  "site-runner:stop",
+  "site-runner:restart",
+  "site-runner:forget",
+  "site-runner:logs",
+  "site-runner:open",
+  "site-runner:open-url"
 ]);
 var ALLOWED_ON_CHANNELS = /* @__PURE__ */ new Set([
   // Window events
@@ -52,7 +64,9 @@ var ALLOWED_ON_CHANNELS = /* @__PURE__ */ new Set([
   "app:update-available",
   "app:update-downloaded",
   "app:update-error",
-  "app:checking-for-updates"
+  "app:checking-for-updates",
+  // Local storefront process state
+  "site-runner:changed"
 ]);
 var AUTH_KEY_PREFIXES = ["__convexAuth", "convexAuth"];
 var AUTH_EXACT_KEYS = /* @__PURE__ */ new Set([
@@ -108,6 +122,24 @@ import_electron.contextBridge.exposeInMainWorld("convexpress", {
   },
   files: {
     saveHandoffPackage: (input) => import_electron.ipcRenderer.invoke("handoff:save-package", input)
+  },
+  siteRunner: {
+    list: () => import_electron.ipcRenderer.invoke("site-runner:list"),
+    getConfig: () => import_electron.ipcRenderer.invoke("site-runner:get-config"),
+    setConfig: (input) => import_electron.ipcRenderer.invoke("site-runner:set-config", input),
+    pickRepo: () => import_electron.ipcRenderer.invoke("site-runner:pick-repo"),
+    start: (target) => import_electron.ipcRenderer.invoke("site-runner:start", target),
+    stop: (key) => import_electron.ipcRenderer.invoke("site-runner:stop", key),
+    restart: (target) => import_electron.ipcRenderer.invoke("site-runner:restart", target),
+    forget: (key) => import_electron.ipcRenderer.invoke("site-runner:forget", key),
+    logs: (key) => import_electron.ipcRenderer.invoke("site-runner:logs", key),
+    open: (target) => import_electron.ipcRenderer.invoke("site-runner:open", target),
+    openUrl: (url) => import_electron.ipcRenderer.invoke("site-runner:open-url", url),
+    onChanged: (callback) => {
+      const handler = (_event, payload) => callback(payload);
+      import_electron.ipcRenderer.on("site-runner:changed", handler);
+      return () => import_electron.ipcRenderer.removeListener("site-runner:changed", handler);
+    }
   },
   connections: {
     provision: (input) => import_electron.ipcRenderer.invoke("connections:provision", input)

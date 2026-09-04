@@ -907,6 +907,10 @@ export function validateSectionValues(
       return validateSearch(values);
     case "commerce.general":
       return validateCommerceGeneral(values);
+    case "commerce.assistant":
+      return validateCommerceAssistant(values);
+    case "brand":
+      return []; // Free-form brand inputs; the design kit interprets them.
     case "commerce.payments":
       return validateCommercePayments(values);
     case "integrations.shipping":
@@ -940,4 +944,87 @@ export function validateSectionValues(
     default:
       return [];
   }
+}
+
+// ─── Commerce Assistant ──────────────────────────────────────────────────────
+
+function validateCommerceAssistant(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const bool = (field: string) => {
+    if (values[field] !== undefined && typeof values[field] !== "boolean") {
+      errors.push({ field, message: `${field} must be true or false.` });
+    }
+  };
+  const int = (field: string, min: number, max: number) => {
+    const value = values[field];
+    if (value === undefined) return;
+    if (typeof value !== "number" || !Number.isFinite(value) || value < min || value > max) {
+      errors.push({ field, message: `${field} must be a number between ${min} and ${max}.` });
+    }
+  };
+  const oneOf = (field: string, allowed: string[]) => {
+    const value = values[field];
+    if (value !== undefined && (typeof value !== "string" || !allowed.includes(value))) {
+      errors.push({ field, message: `${field} must be one of: ${allowed.join(", ")}.` });
+    }
+  };
+  const text = (field: string, max: number) => {
+    const value = values[field];
+    if (value !== undefined && (typeof value !== "string" || value.length > max)) {
+      errors.push({ field, message: `${field} must be text up to ${max} characters.` });
+    }
+  };
+  const stringList = (field: string, maxItems: number, maxLen: number) => {
+    const value = values[field];
+    if (value === undefined) return;
+    if (
+      !Array.isArray(value) ||
+      value.length > maxItems ||
+      value.some((entry) => typeof entry !== "string" || entry.length > maxLen)
+    ) {
+      errors.push({ field, message: `${field} must be a list of up to ${maxItems} short strings.` });
+    }
+  };
+  const flags = (field: string, keys: string[]) => {
+    const value = values[field];
+    if (value === undefined) return;
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      errors.push({ field, message: `${field} must be an object of booleans.` });
+      return;
+    }
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      if (!keys.includes(key) || typeof (value as Record<string, unknown>)[key] !== "boolean") {
+        errors.push({ field, message: `${field}.${key} must be a known boolean flag.` });
+      }
+    }
+  };
+
+  bool("enabled");
+  text("displayName", 60);
+  text("tagline", 120);
+  oneOf("placement", ["left", "right"]);
+  int("railWidthPx", 260, 480);
+  oneOf("autoOpen", ["firstSearch", "always", "never"]);
+  flags("routes", ["search", "catalog", "product", "cart", "checkout"]);
+  oneOf("mobileMode", ["sheet", "hidden"]);
+  text("model", 120);
+  int("maxPicks", 1, 12);
+  int("cardsPerGroup", 1, 6);
+  flags("groups", ["accessory", "consumable", "maintenance", "upgrade", "similar"]);
+  oneOf("promptChips", ["auto", "curated", "off"]);
+  stringList("curatedPrompts", 12, 120);
+  stringList("starterPrompts", 8, 120);
+  bool("proactiveTips");
+  int("tipCooldownMs", 0, 86_400_000);
+  bool("memoryEnabled");
+  int("memoryRetentionDays", 1, 3650);
+  text("disclosureText", 300);
+  text("tone", 200);
+  stringList("boostedProductIds", 50, 64);
+  stringList("excludedCategoryIds", 50, 64);
+  int("rateLimitPerMinute", 1, 120);
+  bool("searchFacets");
+  bool("drawerRecommendations");
+  int("freeShippingThresholdMinor", 0, 100_000_000);
+  return errors;
 }

@@ -10,6 +10,9 @@ import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { ProductReviews } from "@/components/commerce/ProductReviews";
 import { WishlistButton } from "@/components/commerce/WishlistButton";
 import { MediaImage } from "@/components/media/MediaImage";
+import { RelatedProducts } from "@/components/shop/RelatedProducts";
+import { ShopShell, useShopShell } from "@/components/shop/ShopShell";
+import { Sparkles } from "lucide-react";
 import { UpgradeCTA } from "@/components/membership/UpgradeCTA";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
@@ -235,13 +238,17 @@ function ProductDetailPage() {
 	}
 
 	return (
-		<div className="mx-auto flex w-full max-w-[1440px] flex-col gap-10 py-10 lg:py-12">
-			<div className="flex items-center gap-2 text-sm text-muted-foreground">
-				<Link to="/products" className="hover:text-foreground">
-					Products
-				</Link>
-				<span>/</span>
-				<span className="text-foreground">{product.title}</span>
+		<ShopShell kind="product" productId={product._id}>
+		<div className="mx-auto flex w-full max-w-[1440px] flex-col gap-10 py-6 lg:py-8">
+			<div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+				<div className="flex items-center gap-2">
+					<Link to="/products" className="hover:text-foreground">
+						Products
+					</Link>
+					<span>/</span>
+					<span className="text-foreground">{product.title}</span>
+				</div>
+				<AskAboutProduct title={product.title} />
 			</div>
 
 			<div className="grid gap-8 xl:grid-cols-[minmax(0,1.35fr)_minmax(420px,600px)] xl:items-start">
@@ -487,7 +494,29 @@ function ProductDetailPage() {
 				</section>
 			) : null}
 
+			<RelatedProducts
+				productIds={[product._id]}
+				surface="product_page"
+				title="Goes with this"
+			/>
+
 			<ProductReviews productId={product._id} />
 		</div>
+		</ShopShell>
+	);
+}
+
+function AskAboutProduct({ title }: { title: string }) {
+	const shell = useShopShell();
+	if (!shell || !shell.config.enabled) return null;
+	return (
+		<button
+			type="button"
+			onClick={() => shell.ask(`Is the ${title} right for me, and what do I need with it?`)}
+			className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/50 hover:text-primary"
+		>
+			<Sparkles className="size-3.5 text-primary" aria-hidden="true" />
+			Ask {shell.config.displayName} about this
+		</button>
 	);
 }

@@ -132,6 +132,9 @@ export interface PublicSettings {
     bestOptionBadgeLabel?: string;
     [key: string]: unknown;
   } | null;
+
+  // Shopping assistant rail configuration (Settings > Shop assistant).
+  assistantConfig?: Record<string, unknown> | null;
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────

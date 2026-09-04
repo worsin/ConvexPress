@@ -1,3 +1,4 @@
+import { getSiteRuntime } from "@/lib/site-runtime";
 import { buildJsonLdString } from "@/lib/seo/jsonld";
 
 const FALLBACK_SITE_NAME = "ConvexPress";
@@ -49,11 +50,7 @@ export function toAbsoluteUrl(path: string, siteUrl?: string | null): string | n
 }
 
 export function getRouteSiteUrl(): string {
-  return (
-    import.meta.env.VITE_APP_URL ||
-    import.meta.env.VITE_PUBLIC_APP_URL ||
-    DEFAULT_LOCAL_SITE_URL
-  );
+  return getSiteRuntime().siteUrl || DEFAULT_LOCAL_SITE_URL;
 }
 
 export function humanizeSlug(slug: string): string {

@@ -18,6 +18,7 @@
  */
 
 import { internalMutation, internalQuery } from "../_generated/server";
+import { syncProductSearch } from "./products";
 import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { v } from "convex/values";
@@ -507,10 +508,10 @@ export const reindexAll = internalMutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    const stats = { post: 0, page: 0, media: 0, comment: 0, course: 0, removed: 0, errors: 0 };
-    const contentTypes: Array<"post" | "page" | "media" | "comment" | "course"> = args.contentType
+    const stats = { post: 0, page: 0, media: 0, comment: 0, course: 0, product: 0, removed: 0, errors: 0 };
+    const contentTypes: Array<"post" | "page" | "media" | "comment" | "course" | "product"> = args.contentType
       ? [args.contentType]
-      : ["post", "page", "media", "comment", "course"];
+      : ["post", "page", "media", "comment", "course", "product"];
 
     for (const ct of contentTypes) {
       try {
@@ -570,6 +571,16 @@ export const reindexAll = internalMutation({
               stats.errors++;
             }
           }
+        } else if (ct === "product") {
+          const items = await ctx.db.query("commerce_products").take(500);
+          for (const item of items) {
+            try {
+              await syncProductSearch(ctx, item._id);
+              stats.product++;
+            } catch {
+              stats.errors++;
+            }
+          }
         }
       } catch {
         stats.errors++;
@@ -592,6 +603,8 @@ export const reindexAll = internalMutation({
           source = await ctx.db.get("comments", entry.contentId as Id<"comments">);
         } else if (entry.contentType === "course") {
           source = await ctx.db.get("lms_courses", entry.contentId as Id<"lms_courses">);
+        } else if (entry.contentType === "product") {
+          source = await ctx.db.get("commerce_products", entry.contentId as Id<"commerce_products">);
         }
         if (!source) {
           await ctx.db.delete("searchIndex", entry._id);
@@ -677,6 +690,8 @@ export const cleanupOrphanedIndex = internalMutation({
           source = await ctx.db.get("comments", entry.contentId as Id<"comments">);
         } else if (entry.contentType === "course") {
           source = await ctx.db.get("lms_courses", entry.contentId as Id<"lms_courses">);
+        } else if (entry.contentType === "product") {
+          source = await ctx.db.get("commerce_products", entry.contentId as Id<"commerce_products">);
         }
         if (!source) {
           await ctx.db.delete("searchIndex", entry._id);

@@ -14,6 +14,8 @@ import {
 import { MediaImage } from "@/components/media/MediaImage";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
+import { useAssistantConfig } from "@/hooks/useAssistantConfig";
+import { RelatedProducts } from "@/components/shop/RelatedProducts";
 import { cn } from "@/lib/utils";
 
 interface CartDrawerProps {
@@ -66,6 +68,10 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   const updateItemQuantity = useMutation(api.commerce.cart.updateItemQuantity);
   const removeItem = useMutation(api.commerce.cart.removeItem);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const assistantConfig = useAssistantConfig();
+  const freeShippingThreshold = assistantConfig.freeShippingThresholdMinor;
+  const freeShippingRemaining =
+    freeShippingThreshold > 0 ? Math.max(0, freeShippingThreshold - (cart?.subtotalAmount ?? 0)) : 0;
 
   async function handleQuantity(itemId: string, quantity: number) {
     if (!sessionToken) return;
@@ -245,7 +251,48 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
             )}
           </div>
 
+          {cart && cart.items.length > 0 && assistantConfig.drawerRecommendations && (
+            <div className="border-t border-border px-5 py-4">
+              <RelatedProducts
+                fromCart
+                surface="drawer"
+                perGroup={3}
+                limitGroups={1}
+                layout="row"
+                title="Goes with your cart"
+                onNavigate={() => onOpenChange(false)}
+                className="[&_h2]:text-sm"
+              />
+              {assistantConfig.enabled && (
+                <Link
+                  to="/cart"
+                  onClick={() => onOpenChange(false)}
+                  className="mt-3 inline-flex text-xs font-medium text-primary hover:underline"
+                >
+                  Ask {assistantConfig.displayName} what else you need
+                </Link>
+              )}
+            </div>
+          )}
+
           <div className="border-t border-border bg-card px-5 py-5">
+            {freeShippingThreshold > 0 && cart && cart.items.length > 0 && (
+              <div className="mb-4">
+                <div className="mb-1.5 flex items-center justify-between text-xs">
+                  <span className="font-medium text-foreground">
+                    {freeShippingRemaining > 0
+                      ? `${formatCurrency(freeShippingRemaining, currencyCode)} away from free shipping`
+                      : "You've unlocked free shipping"}
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.round(((cart?.subtotalAmount ?? 0) / freeShippingThreshold) * 100))}>
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width]"
+                    style={{ width: `${Math.min(100, ((cart?.subtotalAmount ?? 0) / freeShippingThreshold) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Subtotal</span>

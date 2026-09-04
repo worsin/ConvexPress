@@ -17,9 +17,9 @@ import {
   trackPageview,
   destroyAnalytics,
 } from "@/lib/analytics/tracker";
+import { getSiteRuntime } from "@/lib/site-runtime";
 
-const CONVEX_URL = import.meta.env.VITE_CONVEX_URL as string | undefined;
-const CONVEX_SITE_URL = import.meta.env.VITE_CONVEX_SITE_URL as string | undefined;
+const { convexUrl: CONVEX_URL, convexSiteUrl: CONVEX_SITE_URL } = getSiteRuntime();
 
 export function AnalyticsProvider() {
   const location = useLocation();

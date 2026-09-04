@@ -53,6 +53,8 @@ const SECTION_READ_CAPABILITY_MAP: Partial<Record<SettingsSection, Capability>> 
   "support.ai": "manage_options",
   "commerce.general": "manage_options",
   "commerce.payments": "manage_options",
+  "commerce.assistant": "manage_options",
+  brand: "manage_options",
   "commerce.subscriptions.counters": "manage_options",
   "integrations.shipping": "manage_options",
   "integrations.shipping.shipstation": "manage_options",
@@ -256,6 +258,7 @@ export const getPublic = query({
     const footer = sections.footer ?? {};
     const plugins = await getMergedSettingsSection(ctx, "plugins");
     const commerce = await getMergedSettingsSection(ctx, "commerce.general");
+    const assistant = await getMergedSettingsSection(ctx, "commerce.assistant");
     const shipping = await getMergedSettingsSection(ctx, "integrations.shipping");
     const blocks = await getMergedSettingsSection(ctx, "blocks");
     const activeTheme = await ctx.db
@@ -371,6 +374,10 @@ export const getPublic = query({
         fastestBadgeLabel: shipping.fastestBadgeLabel,
         bestOptionBadgeLabel: shipping.bestOptionBadgeLabel,
       },
+
+      // Shopping assistant rail. No secrets live in this section; the model
+      // key stays in Settings > AI.
+      assistantConfig: assistant,
     };
   },
 });

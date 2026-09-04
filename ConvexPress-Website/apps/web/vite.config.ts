@@ -31,6 +31,14 @@ function hasUsableClerkKey(value: string | undefined) {
   return Boolean(value && /^pk_(test|live)_/.test(value) && !value.includes("PLACEHOLDER"));
 }
 
+/**
+ * One checkout, many storefront processes: the site runner passes a port per
+ * site (PORT) and a private Vite cache directory so concurrent dev servers do
+ * not race on the shared dependency cache.
+ */
+const devPort = Number(process.env.PORT || process.env.CONVEXPRESS_PORT || 4106);
+const cacheDir = process.env.CONVEXPRESS_VITE_CACHE_DIR || undefined;
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const clerkPublishableKey = env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -63,15 +71,16 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias,
     },
+    cacheDir,
     server: {
-      port: 4106,
+      port: devPort,
       strictPort: true,
       fs: {
         allow: fsAllow,
       },
     },
     preview: {
-      port: 4106,
+      port: devPort,
       strictPort: true,
     },
     build: {

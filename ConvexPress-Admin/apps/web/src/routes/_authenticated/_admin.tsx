@@ -44,6 +44,10 @@ function AuthorizedAdminLayout() {
     generalSettings && typeof generalSettings === "object" && "siteTitle" in generalSettings
       ? String(generalSettings.siteTitle ?? "ConvexPress")
       : "ConvexPress";
+  const siteUrl =
+    generalSettings && typeof generalSettings === "object" && "siteUrl" in generalSettings
+      ? String(generalSettings.siteUrl ?? "")
+      : "";
   const hasRouteAccess = canAccessRoute(location.pathname);
 
   return (
@@ -66,7 +70,7 @@ function AuthorizedAdminLayout() {
         >
           <AdminSidebar />
           <div className="flex flex-1 min-h-0 min-w-0 flex-col">
-            <AdminBar siteTitle={siteTitle} />
+            <AdminBar siteTitle={siteTitle} siteUrl={siteUrl} />
             <PageTransitionIndicator />
             <main
               id="admin-content"

@@ -15,11 +15,12 @@
  * Performance: O(1) - single Convex query returning pre-generated XML.
  */
 
+import { readServerSiteRuntime } from "@/lib/site-runtime";
 import { createFileRoute } from "@tanstack/react-router";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convexpress-website/backend/generated/api";
 
-const CONVEX_URL = process.env.VITE_CONVEX_URL || "";
+const CONVEX_URL = readServerSiteRuntime().convexUrl || "";
 
 export const Route = createFileRoute("/api/sitemap/xml")({
   server: {

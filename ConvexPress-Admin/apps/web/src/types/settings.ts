@@ -43,6 +43,8 @@ export type SettingsSection =
   | "ticket.sla"
   | "support.widget"
   | "support.ai"
+  | "commerce.assistant"
+  | "brand"
   | "layout"
   | "header"
   | "footer";

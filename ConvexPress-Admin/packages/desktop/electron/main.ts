@@ -2,6 +2,7 @@ import path from "node:path";
 import { appendFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { registerAllIpcHandlers } from "./ipc/index.js";
+import { setSiteRunnerLogger, shutdownSiteRunner } from "./ipc/siteRunner.js";
 import { initAppUpdater } from "./ipc/app-updater.js";
 import { initUpdaterEvents } from "./ipc/updater.js";
 import { isExactWizardSender } from "./ipc/setupSender.js";
@@ -272,6 +273,7 @@ app.whenReady().then(async () => {
 
   // ---------- Register IPC Handlers ----------
   registerAllIpcHandlers();
+  setSiteRunnerLogger(fileLog);
 
   // ---------- Handle Wizard -> App Transition ----------
   let appLaunched = false;
@@ -322,4 +324,5 @@ app.on("activate", () => {
 app.on("before-quit", () => {
   fileLog("[Main] App quitting — cleaning up");
   setQuitting(true);
+  shutdownSiteRunner();
 });
