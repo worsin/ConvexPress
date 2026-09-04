@@ -140,39 +140,27 @@ export function AssistantBlocks({
           case "compare_table": {
             const rows = block.rows.filter((row) => cardById.has(row.productId));
             if (!rows.length) return null;
+            // Stacked spec cards: readable in a 320px rail, no horizontal scroll.
             return (
-              <div key={index} className="overflow-x-auto rounded-lg border border-border">
-                <table className="w-full min-w-[420px] text-left text-xs">
-                  <thead className="bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-2.5 py-2 font-semibold">Product</th>
-                      {block.columns.map((column) => (
-                        <th key={column} className="px-2.5 py-2 font-semibold">
-                          {column}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => {
-                      const card = cardById.get(row.productId)!;
-                      return (
-                        <tr key={row.productId} className="border-t border-border">
-                          <td className="px-2.5 py-2 font-medium text-foreground">
-                            <Link to="/products/$slug" params={{ slug: card.slug }} onClick={onNavigate} className="hover:text-primary">
-                              {card.title}
-                            </Link>
-                          </td>
-                          {row.values.map((value, valueIndex) => (
-                            <td key={valueIndex} className="px-2.5 py-2 text-muted-foreground">
-                              {value}
-                            </td>
-                          ))}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div key={index} className="grid gap-2">
+                {rows.map((row) => {
+                  const card = cardById.get(row.productId)!;
+                  return (
+                    <div key={row.productId} className="rounded-lg border border-border bg-background p-2.5">
+                      <Link to="/products/$slug" params={{ slug: card.slug }} onClick={onNavigate} className="text-[13px] font-semibold text-foreground hover:text-primary">
+                        {card.title}
+                      </Link>
+                      <dl className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-xs">
+                        {block.columns.map((column, columnIndex) => (
+                          <div key={column} className="contents">
+                            <dt className="text-muted-foreground">{column}</dt>
+                            <dd className="text-foreground">{row.values[columnIndex] ?? "—"}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  );
+                })}
               </div>
             );
           }

@@ -80,9 +80,11 @@ export function ShopShell({
     else if (stored === "closed") setRailOpen(false);
     else if (config.autoOpen === "always") setRailOpen(true);
     else if (config.autoOpen === "firstSearch" && (kind === "search" || (kind === "catalog" && query))) {
+      // Open once, then stay open until the shopper closes it.
       if (!readStored(RAIL_SEEN_KEY)) {
         setRailOpen(true);
         writeStored(RAIL_SEEN_KEY, "1");
+        writeStored(RAIL_STATE_KEY, "open");
       }
     }
     setHydrated(true);

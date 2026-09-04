@@ -10,6 +10,8 @@ import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { RelatedProducts } from "@/components/shop/RelatedProducts";
 import { ShopShell } from "@/components/shop/ShopShell";
+import { convexQuery } from "@convex-dev/react-query";
+import { buildSeoHead } from "@/lib/seo/head";
 import {
   getCartLineBundleSelections,
   getCartLineSku,
@@ -18,6 +20,18 @@ import {
 } from "@/components/commerce/cartLine";
 
 export const Route = createFileRoute("/_marketing/cart/")({
+  loader: async ({ context: { queryClient } }) => {
+    const publicSettings = (await queryClient.ensureQueryData(
+      convexQuery(api.settings.queries.getPublic, {}),
+    )) as { siteTitle?: string | null } | null;
+    return {
+      seoHead: buildSeoHead({
+        title: `Cart – ${publicSettings?.siteTitle || "Shop"}`,
+        robots: "noindex, follow",
+      }),
+    };
+  },
+  head: ({ loaderData }) => loaderData?.seoHead ?? {},
   component: CartPage,
 });
 
@@ -201,8 +215,7 @@ function CartPage() {
   return (
     <PublicPluginGate pluginId="commerce">
     <ShopShell kind="cart">
-      <div className="relative left-1/2 w-[calc(100vw-1rem)] -translate-x-1/2">
-        <div className="mx-auto flex w-full max-w-[1760px] flex-col gap-8 px-4 py-10 md:px-6 lg:px-8 lg:py-12">
+      <div className="flex w-full flex-col gap-8 py-6 lg:py-8">
         <div className="space-y-2">
           <h1 className="text-4xl font-semibold tracking-tight">Cart</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
@@ -460,7 +473,6 @@ function CartPage() {
             </aside>
           </div>
         )}
-        </div>
       </div>
     </ShopShell>
     </PublicPluginGate>

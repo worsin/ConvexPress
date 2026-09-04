@@ -32,10 +32,12 @@ export const Route = createFileRoute("/_marketing/products/$slug")({
 		const siteUrl = normalizeSiteUrl(
 			(publicSettings as { siteUrl?: string | null })?.siteUrl,
 		);
+		const siteTitle =
+			(publicSettings as { siteTitle?: string | null })?.siteTitle || "Shop";
 		if ((publicSettings as any)?.plugins?.commerceEnabled !== true) {
 			return {
 				seoHead: buildSeoHead({
-					title: "Product - ConvexPress",
+					title: `Product – ${siteTitle}`,
 					canonical: toAbsoluteUrl(`/products/${params.slug}`, siteUrl),
 				}),
 			};
@@ -49,10 +51,10 @@ export const Route = createFileRoute("/_marketing/products/$slug")({
 
 		return {
 			seoHead: buildSeoHead({
-				title: `${product?.title ?? params.slug} - Product - ConvexPress`,
+				title: `${product?.title ?? params.slug} – ${siteTitle}`,
 				description:
 					product?.excerpt ||
-					`Browse ${product?.title ?? params.slug} in the ConvexPress store.`,
+					`${product?.title ?? params.slug} at ${siteTitle}.`,
 				canonical: toAbsoluteUrl(`/products/${params.slug}`, siteUrl),
 			}),
 		};

@@ -249,7 +249,6 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                 ))}
               </ul>
             )}
-          </div>
 
           {cart && cart.items.length > 0 && assistantConfig.drawerRecommendations && (
             <div className="border-t border-border px-5 py-4">
@@ -274,6 +273,7 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
               )}
             </div>
           )}
+          </div>
 
           <div className="border-t border-border bg-card px-5 py-5">
             {freeShippingThreshold > 0 && cart && cart.items.length > 0 && (
