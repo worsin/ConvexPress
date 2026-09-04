@@ -39,6 +39,7 @@ import {
   EVENT_TO_NOTIFICATION_KEYS,
   type NotificationTypeConfig,
 } from "./validators";
+import { describeLogin, isKnownLogin } from "./loginContext";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -627,17 +628,53 @@ export const onEvent = internalMutation({
 
       if (filteredRecipients.length === 0) continue;
 
+      // ─── Per-type payload enrichment ─────────────────────────────────
+      // "Login from a new location" only fires for an address or device the
+      // member has not signed in from before, and names it instead of
+      // leaving the {location} placeholder unresolved.
+      let typePayload: Record<string, unknown> = payload;
+      if (notificationKey === "login_new_location") {
+        const current = {
+          ip: typeof payload.ip === "string" ? payload.ip : null,
+          userAgent: typeof payload.userAgent === "string" ? payload.userAgent : null,
+        };
+        const previous: Array<{ ip?: string | null; userAgent?: string | null }> = [];
+        if (event.actorId) {
+          const history = await ctx.db
+            .query("events")
+            .withIndex("by_code_and_actor", (q: ConvexQueryBuilder) =>
+              q.eq("code", "auth.login").eq("actorId", event.actorId!),
+            )
+            .order("desc")
+            .take(30);
+          for (const entry of history) {
+            if (String(entry._id) === String(args.eventId)) continue;
+            try {
+              const parsed = JSON.parse(entry.payload) as Record<string, unknown>;
+              previous.push({
+                ip: typeof parsed.ip === "string" ? parsed.ip : null,
+                userAgent: typeof parsed.userAgent === "string" ? parsed.userAgent : null,
+              });
+            } catch {
+              // ignore malformed history rows
+            }
+          }
+        }
+        if (isKnownLogin(previous, current)) continue;
+        typePayload = { ...payload, ...describeLogin(current) };
+      }
+
       // ─── Interpolate templates ───────────────────────────────────────
-      const title = interpolateTemplate(config.name, payload);
+      const title = interpolateTemplate(config.name, typePayload);
       const message = interpolateTemplate(
         config.messageTemplate,
-        payload,
+        typePayload,
       );
       const actionUrl = config.actionUrlTemplate
-        ? interpolateTemplate(config.actionUrlTemplate, payload)
+        ? interpolateTemplate(config.actionUrlTemplate, typePayload)
         : undefined;
       const groupKey = config.groupKeyTemplate
-        ? interpolateTemplate(config.groupKeyTemplate, payload)
+        ? interpolateTemplate(config.groupKeyTemplate, typePayload)
         : undefined;
 
       // ─── Send to each recipient ──────────────────────────────────────

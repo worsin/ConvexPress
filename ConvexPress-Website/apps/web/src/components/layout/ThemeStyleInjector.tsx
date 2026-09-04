@@ -46,7 +46,9 @@ export function colorSchemeFor(entries: PaletteEntry[] | undefined): "light" | "
   return luminance < 0.3 ? "dark" : "light";
 }
 
-function toCssVariables(entries: PaletteEntry[] | undefined): string {
+const DARK_PREFIX = "dark-";
+
+function toCssVariables(entries: PaletteEntry[] | undefined, mode: "light" | "dark" = "light"): string {
   if (!entries || entries.length === 0) return "";
 
   return entries
@@ -54,8 +56,12 @@ function toCssVariables(entries: PaletteEntry[] | undefined): string {
       if (typeof entry.slug !== "string" || typeof entry.color !== "string") {
         return null;
       }
-      const slug = entry.slug.trim();
+      let slug = entry.slug.trim();
       const color = entry.color.trim();
+      const isDarkEntry = slug.startsWith(DARK_PREFIX);
+      // `dark-<token>` entries only apply in dark mode, as `--<token>`.
+      if (mode === "dark" ? !isDarkEntry : isDarkEntry) return null;
+      if (isDarkEntry) slug = slug.slice(DARK_PREFIX.length);
       if (!TOKEN_NAME_PATTERN.test(slug) || !COLOR_VALUE_PATTERN.test(color)) {
         return null;
       }
@@ -63,6 +69,24 @@ function toCssVariables(entries: PaletteEntry[] | undefined): string {
     })
     .filter(Boolean)
     .join("\n");
+}
+
+/**
+ * Scope the brand palette so the built-in dark tokens still win when the
+ * visitor switches to dark mode. A light palette applies to `:root:not(.dark)`
+ * only; a palette that is itself dark applies everywhere; explicit
+ * `dark-<token>` entries apply under `.dark`.
+ */
+export function paletteStyleBlocks(entries: PaletteEntry[] | undefined): string {
+  const light = toCssVariables(entries, "light");
+  const dark = toCssVariables(entries, "dark");
+  const scheme = colorSchemeFor(entries);
+  const blocks: string[] = [];
+  if (light) {
+    blocks.push(scheme === "dark" ? `:root {\n${light}\n}` : `:root:not(.dark) {\n${light}\n}`);
+  }
+  if (dark) blocks.push(`.dark {\n${dark}\n}`);
+  return blocks.join("\n");
 }
 
 function cleanFont(value: unknown): string | null {
@@ -112,15 +136,15 @@ export function brandCss(brand: PublicSettings["brandConfig"] | undefined): { cs
 export function ThemeStyleInjector() {
   const publicSettings = useSettings();
   const paletteCss = useMemo(
-    () => toCssVariables((publicSettings as any)?.colorPalette as PaletteEntry[] | undefined),
+    () => paletteStyleBlocks((publicSettings as any)?.colorPalette as PaletteEntry[] | undefined),
     [publicSettings],
   );
   const brand = useMemo(() => brandCss(publicSettings?.brandConfig), [publicSettings]);
 
   const scheme = colorSchemeFor((publicSettings as any)?.colorPalette as PaletteEntry[] | undefined);
   const cssText = [
-    paletteCss ? `:root {\n${paletteCss}\n}` : "",
-    scheme ? `:root { color-scheme: ${scheme}; }` : "",
+    paletteCss,
+    scheme ? `:root:not(.dark) { color-scheme: ${scheme}; }\n.dark { color-scheme: dark; }` : "",
     brand.css,
   ]
     .filter(Boolean)

@@ -389,6 +389,7 @@ import type * as menus_validators from "../menus/validators.js";
 import type * as notificationEngine_registry from "../notificationEngine/registry.js";
 import type * as notifications_center from "../notifications/center.js";
 import type * as notifications_internals from "../notifications/internals.js";
+import type * as notifications_loginContext from "../notifications/loginContext.js";
 import type * as notifications_mutations from "../notifications/mutations.js";
 import type * as notifications_queries from "../notifications/queries.js";
 import type * as notifications_validators from "../notifications/validators.js";
@@ -1070,6 +1071,7 @@ declare const fullApi: ApiFromModules<{
   "notificationEngine/registry": typeof notificationEngine_registry;
   "notifications/center": typeof notifications_center;
   "notifications/internals": typeof notifications_internals;
+  "notifications/loginContext": typeof notifications_loginContext;
   "notifications/mutations": typeof notifications_mutations;
   "notifications/queries": typeof notifications_queries;
   "notifications/validators": typeof notifications_validators;
