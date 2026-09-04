@@ -58,6 +58,16 @@ brand-new empty deployment (delta) installed end to end from the desktop.
   stale pending connections superseded, wildcard selectors restricted, owner-only
   operator deactivation, org grants include children.
 
+### Secrets at rest (follow-up, same day)
+- Fresh deployments never received `SHIPPING_PROVIDER_ENCRYPTION_KEY` /
+  `WEBHOOK_SECRET_ENCRYPTION_KEY`, so every saved integration secret fell back to
+  reversible base64 and the Integrations hub warned "Secrets are not encrypted at
+  rest". The setup wizard and the desktop site initializer now generate both keys
+  (32 random bytes, hex) when missing and never rotate existing ones. Secrets saved
+  before a key existed are re-sealed in place by `settings/mutations:encryptStoredSecrets`
+  ("Encrypt saved secrets now" on the hub) or, for fleets,
+  `convex run settings/internals:encryptStoredSecrets`. Applied to alpha/beta/gamma/delta.
+
 ## Verification
 - Typecheck: backend, control plane, desktop (main + preload), admin web, website.
 - Tests: admin repo 2274+ (all pass), website 451 (all pass).

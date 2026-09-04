@@ -5,7 +5,7 @@
  */
 
 import { api } from "@backend/convex/_generated/api";
-import { useAction } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { AlertTriangle, Loader2, Plug, ShieldAlert } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
@@ -41,6 +41,8 @@ export function IntegrationsHub({ eyebrow = "Site readiness" }: { eyebrow?: stri
   const { isLoading } = useAuth();
   const canManage = useCan("manage_options");
   const overview = useQuery(api.integrations.queries.overview, !isLoading && canManage ? {} : "skip");
+  const encryptStoredSecrets = useMutation(api.settings.mutations.encryptStoredSecrets);
+  const [encrypting, setEncrypting] = useState(false);
   const verify = useAction(api.integrations.actions.verify);
 
   const [filter, setFilter] = useState<ProviderFilter>("all");
@@ -181,11 +183,43 @@ export function IntegrationsHub({ eyebrow = "Site readiness" }: { eyebrow?: stri
         >
           <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
           <span>
-            <span className="font-semibold">Secrets are not encrypted at rest.</span> Set{" "}
-            <span className="font-mono">SHIPPING_PROVIDER_ENCRYPTION_KEY</span> on the Convex deployment so saved API keys are
-            stored with AES-256-GCM instead of reversible encoding, then re-save each key.
+            <span className="font-semibold">This deployment has no encryption key.</span> Saved API keys are stored with
+            reversible encoding until <span className="font-mono">SHIPPING_PROVIDER_ENCRYPTION_KEY</span> (32 random bytes
+            as hex) is set on the Convex deployment. New installs from ConvexPress Desktop get one automatically; on an
+            existing deployment set it once, redeploy, and the button that appears here re-seals everything already saved.
           </span>
         </p>
+      )}
+
+      {overview.encryption === "aes-gcm" && (overview.legacySecrets ?? 0) > 0 && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center gap-3 rounded-xl border border-warning/40 bg-warning-soft px-4 py-3 text-[13px] leading-5 text-warning"
+        >
+          <AlertTriangle aria-hidden="true" className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="font-semibold">
+              {overview.legacySecrets} saved secret{overview.legacySecrets === 1 ? "" : "s"} still use reversible encoding.
+            </span>{" "}
+            They were saved before this deployment had an encryption key. Re-seal them with AES-256-GCM now; nothing
+            needs to be re-entered.
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={encrypting}
+            onClick={() => {
+              setEncrypting(true);
+              void encryptStoredSecrets({})
+                .then((result) => toast.success(`Encrypted ${result.upgraded} secret${result.upgraded === 1 ? "" : "s"}.`))
+                .catch((error: unknown) => toast.error(error instanceof Error ? error.message : "Encryption failed."))
+                .finally(() => setEncrypting(false));
+            }}
+          >
+            {encrypting ? <Loader2 data-icon="inline-start" className="animate-spin" aria-hidden="true" /> : null}
+            Encrypt saved secrets now
+          </Button>
+        </div>
       )}
 
       {grouped.length === 0 ? (

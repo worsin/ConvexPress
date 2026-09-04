@@ -92,6 +92,17 @@ export function resolveBackendRoot(): string {
   );
 }
 
+/** 32 random bytes as hex: the format `api/crypto_helpers` expects for AES-256-GCM keys. */
+export function generateEncryptionKeyHex(): string {
+  return randomBytes(32).toString("hex");
+}
+
+/** Env keys that protect secrets at rest; generated once, never rotated by setup. */
+export const AT_REST_ENCRYPTION_KEYS = [
+  "SHIPPING_PROVIDER_ENCRYPTION_KEY",
+  "WEBHOOK_SECRET_ENCRYPTION_KEY",
+] as const;
+
 export function generateAuthPrivateKey(): string {
   const { privateKey } = generateKeyPairSync("ec", {
     namedCurve: "P-256",
@@ -217,6 +228,16 @@ function createBackendEnvFile(
     envVars.AUTH_PRIVATE_KEY = configuredAuthPrivateKey
       ? validateAuthPrivateKey(configuredAuthPrivateKey)
       : generateAuthPrivateKey();
+  }
+
+  // Secrets at rest (integration API keys, shipping credentials, webhook
+  // signing secrets) are AES-256-GCM encrypted only when these keys exist.
+  // Without them the backend falls back to reversible base64, so a fresh
+  // install always gets keys. Like the signing key, they are never rotated
+  // here: rotating would make every stored secret undecryptable.
+  for (const name of AT_REST_ENCRYPTION_KEYS) {
+    if (existingNames.has(name)) continue;
+    envVars[name] = readSetupEnvValue(name, localEnv) ?? generateEncryptionKeyHex();
   }
 
   if (firstAdminSetupSecret) {

@@ -16,7 +16,12 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { generateAuthPrivateKey, resolveBackendRoot } from "./setup.js";
+import {
+  AT_REST_ENCRYPTION_KEYS,
+  generateAuthPrivateKey,
+  generateEncryptionKeyHex,
+  resolveBackendRoot,
+} from "./setup.js";
 import { requestDeploymentCredential } from "./connectionProvision.js";
 import { JsonStore } from "../utils/json-store.js";
 import { isDev } from "../utils/platform.js";
@@ -418,12 +423,16 @@ async function initializeSite(
     ["SITE_URL", request.siteOrigin],
   ];
   if (!presentNames.has("AUTH_PRIVATE_KEY")) wanted.unshift(["AUTH_PRIVATE_KEY", generateAuthPrivateKey()]);
+  // At-rest encryption keys for stored integration secrets (see setup.ts).
+  for (const name of AT_REST_ENCRYPTION_KEYS) {
+    if (!presentNames.has(name)) wanted.push([name, generateEncryptionKeyHex()]);
+  }
   for (const [name, value] of wanted) {
     if (presentNames.has(name) && name !== "SITE_URL" && name !== "AUTH_ISSUER_URL") {
       report("environment", `${name} already set, keeping it.`);
       continue;
     }
-    if (name === "AUTH_PRIVATE_KEY") secrets.push(value);
+    if (name === "AUTH_PRIVATE_KEY" || (AT_REST_ENCRYPTION_KEYS as readonly string[]).includes(name)) secrets.push(value);
     await setDeploymentEnv(name, value, targetArgs, {
       cwd: backendRoot,
       env,

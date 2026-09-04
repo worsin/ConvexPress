@@ -695,6 +695,13 @@ function resolveBackendRoot() {
     "Could not find the Convex backend source. Reinstall from a full ConvexPress checkout and try again."
   );
 }
+function generateEncryptionKeyHex() {
+  return (0, import_node_crypto2.randomBytes)(32).toString("hex");
+}
+var AT_REST_ENCRYPTION_KEYS = [
+  "SHIPPING_PROVIDER_ENCRYPTION_KEY",
+  "WEBHOOK_SECRET_ENCRYPTION_KEY"
+];
 function generateAuthPrivateKey() {
   const { privateKey } = (0, import_node_crypto2.generateKeyPairSync)("ec", {
     namedCurve: "P-256"
@@ -780,6 +787,10 @@ function createBackendEnvFile(convexSiteUrl, backendRoot, firstAdminSetupSecret,
   };
   if (!existingNames.has("AUTH_PRIVATE_KEY")) {
     envVars.AUTH_PRIVATE_KEY = configuredAuthPrivateKey ? validateAuthPrivateKey(configuredAuthPrivateKey) : generateAuthPrivateKey();
+  }
+  for (const name of AT_REST_ENCRYPTION_KEYS) {
+    if (existingNames.has(name)) continue;
+    envVars[name] = readSetupEnvValue(name, localEnv) ?? generateEncryptionKeyHex();
   }
   if (firstAdminSetupSecret) {
     envVars.FIRST_ADMIN_SETUP_SECRET = firstAdminSetupSecret;
@@ -2908,12 +2919,15 @@ async function initializeSite(request, adminKey, controlPlaneUrl, run) {
     ["SITE_URL", request.siteOrigin]
   ];
   if (!presentNames.has("AUTH_PRIVATE_KEY")) wanted.unshift(["AUTH_PRIVATE_KEY", generateAuthPrivateKey()]);
+  for (const name of AT_REST_ENCRYPTION_KEYS) {
+    if (!presentNames.has(name)) wanted.push([name, generateEncryptionKeyHex()]);
+  }
   for (const [name, value] of wanted) {
     if (presentNames.has(name) && name !== "SITE_URL" && name !== "AUTH_ISSUER_URL") {
       report("environment", `${name} already set, keeping it.`);
       continue;
     }
-    if (name === "AUTH_PRIVATE_KEY") secrets.push(value);
+    if (name === "AUTH_PRIVATE_KEY" || AT_REST_ENCRYPTION_KEYS.includes(name)) secrets.push(value);
     await setDeploymentEnv(name, value, targetArgs, {
       cwd: backendRoot,
       env,

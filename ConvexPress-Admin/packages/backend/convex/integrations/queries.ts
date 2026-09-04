@@ -15,6 +15,7 @@ import { SHIPPING_PROVIDERS } from "../shipping/helpers";
 import { getShippingProviderDescriptor } from "../shipping/providers";
 import { fingerprintConfiguration } from "./fingerprint";
 import { envPresence } from "./internals";
+import { collectLegacySecrets } from "../helpers/settingsSecretUpgrade";
 import { INTEGRATIONS, RUNTIME_ENVIRONMENT, type IntegrationField } from "./registry";
 
 /** Overview shapes (kept as types; validators here blow the TS instantiation budget). */
@@ -159,7 +160,13 @@ export const overview = query({
     const encryption: "aes-gcm" | "base64" = envPresence("SHIPPING_PROVIDER_ENCRYPTION_KEY")
       ? "aes-gcm"
       : "base64";
-    return { encryption, providers };
+    // Secrets saved before the key existed are still reversible until re-sealed.
+    const settingsDocs = await ctx.db.query("settings").collect();
+    const legacySecrets = settingsDocs.reduce(
+      (count: number, doc: any) => count + collectLegacySecrets(doc.values).length,
+      0,
+    );
+    return { encryption, legacySecrets, providers };
   },
 });
 

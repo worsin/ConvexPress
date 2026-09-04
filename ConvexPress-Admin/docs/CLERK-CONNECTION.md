@@ -138,8 +138,9 @@ desktop:
 
 1. lists the deployment's environment and fills only what is missing
    (`AUTH_ISSUER_URL`, `AUTH_ALLOWED_ORIGINS`, `AUTH_ALLOW_NULL_ORIGIN`,
-   `SITE_URL`, and `AUTH_PRIVATE_KEY` only when none exists; an existing
-   signing key is never rotated),
+   `SITE_URL`, the at-rest encryption keys `SHIPPING_PROVIDER_ENCRYPTION_KEY` and
+   `WEBHOOK_SECRET_ENCRYPTION_KEY`, and `AUTH_PRIVATE_KEY`, each only when none
+   exists; existing keys are never rotated),
 2. deploys the backend (typechecked; `auth.config.ts` tolerates a missing
    `CLERK_JWT_ISSUER_DOMAIN`, so Clerk is added later from Integrations),
 3. configures the site identity with the full management capability contract

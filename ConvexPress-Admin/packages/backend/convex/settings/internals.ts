@@ -22,7 +22,10 @@
  *   - Sitemap System: reads permalink structure
  */
 
-import { internalQuery } from "../_generated/server";
+import { ConvexError } from "convex/values";
+import { internalMutation, internalQuery } from "../_generated/server";
+import { decryptSettingSecret, encryptSettingSecret } from "../helpers/settingsSecret";
+import { collectLegacySecrets, withReplacedValues } from "../helpers/settingsSecretUpgrade";
 import { getInternalArgs } from "./validators";
 import { getDefaults, isValidSection, type SettingsSection } from "./defaults";
 import { requireCan } from "../helpers/permissions";
@@ -81,4 +84,46 @@ export const requireManageOptionsInternal = internalQuery({
     await requireCan(ctx, "manage_options");
     return true;
   },
+});
+
+// ─── Legacy secret upgrade ───────────────────────────────────────────────────
+
+/**
+ * Re-seal every reversible `b64:` secret as `enc:` now that the deployment has
+ * an at-rest encryption key. Idempotent; safe to run repeatedly.
+ */
+export async function upgradeLegacySettingSecrets(ctx: {
+  db: any;
+}): Promise<{ upgraded: number; sections: string[] }> {
+  if (!process.env.SHIPPING_PROVIDER_ENCRYPTION_KEY) {
+    throw new ConvexError({
+      code: "CONFIG_ERROR",
+      message: "SHIPPING_PROVIDER_ENCRYPTION_KEY is not set on this deployment; nothing can be encrypted yet.",
+    });
+  }
+  const docs = await ctx.db.query("settings").collect();
+  let upgraded = 0;
+  const sections: string[] = [];
+  for (const doc of docs) {
+    const legacy = collectLegacySecrets(doc.values);
+    if (legacy.length === 0) continue;
+    const replacements = [];
+    for (const entry of legacy) {
+      const plaintext = await decryptSettingSecret(entry.value);
+      replacements.push({ path: entry.path, value: await encryptSettingSecret(plaintext) });
+    }
+    await ctx.db.patch(doc._id, {
+      values: withReplacedValues(doc.values, replacements),
+      updatedAt: Date.now(),
+    });
+    upgraded += replacements.length;
+    sections.push(doc.section);
+  }
+  return { upgraded, sections };
+}
+
+/** Operator-run (admin key) variant for fleets: `convex run settings/internals:encryptStoredSecrets`. */
+export const encryptStoredSecrets = internalMutation({
+  args: {},
+  handler: async (ctx) => upgradeLegacySettingSecrets(ctx),
 });

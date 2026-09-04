@@ -280,6 +280,7 @@ import type * as helpers_sanitize from "../helpers/sanitize.js";
 import type * as helpers_seo from "../helpers/seo.js";
 import type * as helpers_serviceKeys from "../helpers/serviceKeys.js";
 import type * as helpers_settingsSecret from "../helpers/settingsSecret.js";
+import type * as helpers_settingsSecretUpgrade from "../helpers/settingsSecretUpgrade.js";
 import type * as helpers_sitemap from "../helpers/sitemap.js";
 import type * as helpers_slug from "../helpers/slug.js";
 import type * as helpers_taxonomy from "../helpers/taxonomy.js";
@@ -968,6 +969,7 @@ declare const fullApi: ApiFromModules<{
   "helpers/seo": typeof helpers_seo;
   "helpers/serviceKeys": typeof helpers_serviceKeys;
   "helpers/settingsSecret": typeof helpers_settingsSecret;
+  "helpers/settingsSecretUpgrade": typeof helpers_settingsSecretUpgrade;
   "helpers/sitemap": typeof helpers_sitemap;
   "helpers/slug": typeof helpers_slug;
   "helpers/taxonomy": typeof helpers_taxonomy;

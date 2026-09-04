@@ -422,3 +422,16 @@ export const importAll = mutation({
     return { imported, skipped };
   },
 });
+
+/**
+ * Re-seal legacy reversible secrets with the deployment's at-rest key.
+ * Surfaced as "Encrypt saved secrets now" on the Integrations hub.
+ */
+export const encryptStoredSecrets = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireCan(ctx, "manage_options");
+    const { upgradeLegacySettingSecrets } = await import("./internals");
+    return await upgradeLegacySettingSecrets(ctx);
+  },
+});
