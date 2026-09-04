@@ -91,3 +91,33 @@ Bugs found and fixed along the way (all real, all in the product):
 
 Evidence: `output/playwright/shopping-experience/{authoring,storefronts}/<site>/*.png`.
 Tests: admin 2178 pass, website 367 pass, desktop CSP/origins 7 pass; both apps typecheck.
+
+
+---
+
+## Update 2026-09-04 (night): layout presets, persistent cart, animated assistant
+
+**Settings › Shop layouts** (`/settings/shop-layout`, section `commerce.layout`, public `layoutConfig`):
+picks a **shop layout** (`boutique` | `marketplace`), a **product page layout** (`classic` | `marketplace` |
+`split` | `showcase` | `minimal`), cart mode (persistent column | drawer) and grid density. Each preset card has a
+token-drawn wireframe; the panel on the right shows the selected preset large with "best for" / "includes" and a
+**Preview on site** button that opens the storefront with `?layout=` / `?productLayout=` overrides (never persisted).
+Preset catalog: `ConvexPress-Admin/apps/web/src/lib/commerce/layout-presets.tsx`; ids validated in
+`settings/defaults.ts` (`SHOP_LAYOUT_IDS`, `PRODUCT_LAYOUT_IDS`).
+
+**Storefront** (`hooks/useShopLayout.ts`, `components/shop/ShopShell.tsx`, `components/shop/CartPanel.tsx`,
+`components/shop/product/{useProductPage,ProductParts,ProductLayouts}.tsx`):
+- Marketplace = edge-to-edge, assistant column left, dense grid (4–5 up) with a filter toolbar, cart pinned right.
+  Boutique = centred 1440px, filter rail, 3-up grid (2-up while both side columns are open), cart column right.
+- Assistant column stays mounted and animates width + flex gap (360 ms, eased); measured 0→207→295→327→337→340 px on
+  open and symmetric on close. Conversation survives close. Re-open pill fades in/out.
+- Persistent `CartPanel`: same reactive cart as steppers/drawer; quantity, free-shipping bar, subtotal, checkout.
+  Off on the cart page. Ends above the corner support button.
+- Scrollbars use tokens everywhere (`scrollbar-color` / webkit), and `ThemeStyleInjector` sets `color-scheme` from
+  the palette background so native UI is dark on dark sites.
+- Product page: one state hook, five layouts; gallery uses `galleryMediaIds`; add-to-cart stays on the page
+  (no redirect); descriptions render sanitized HTML (WooCommerce imports arrive as HTML).
+
+Chosen through the admin UI: Ridgeline = Marketplace + Marketplace product page, dense; Northstar = Boutique + Split.
+Evidence: `output/playwright/shopping-experience/layouts/<site>/` (settings page, rail closed/open, shop, every
+product layout). Probe: `probe-rail.mjs`. Tests: admin 2178, website 367; both typecheck.
