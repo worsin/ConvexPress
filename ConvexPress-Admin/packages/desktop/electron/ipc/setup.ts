@@ -47,7 +47,7 @@ function deriveDeployment(config: SetupConfig): {
   return validateProductionDeployKey(config.adminKey, config.convexUrl);
 }
 
-function resolveBackendRoot(): string {
+export function resolveBackendRoot(): string {
   const candidates = [
     path.resolve(__dirname, "../../backend"),
     path.resolve(process.cwd(), "../backend"),

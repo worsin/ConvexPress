@@ -430,8 +430,40 @@ export interface ClerkIntegrationSettings {
   clerkSecretKey: string;
   /** Clerk webhook signing secret (starts with whsec_). */
   clerkWebhookSecret: string;
-  /** Clerk JWT issuer domain (e.g. "clerk.yourdomain.com"). */
+  /** Clerk JWT issuer domain, i.e. the Frontend API URL (https://…clerk.accounts.dev). */
   clerkJwtIssuerDomain: string;
+  /** Clerk publishable key served to the website (pk_test_… / pk_live_…). */
+  clerkPublishableKey: string;
+  /** Frontend API origin, same value as the issuer; kept explicit for the website. */
+  clerkFrontendApi: string;
+  /** Instance environment: development or production. */
+  clerkEnvironmentType: "" | "development" | "production";
+  /** Clerk instance id (ins_…). */
+  clerkInstanceId: string;
+  /** How the connection was established. */
+  clerkConnectionMode: "" | "manual" | "secret_key" | "keyless";
+  /** Keyless only: one-time URL that moves the app into a Clerk workspace. */
+  clerkClaimUrl: string;
+  /** Clerk dashboard URL for this application's API keys page. */
+  clerkDashboardUrl: string;
+  /** Keyless only: when the app was claimed (null until then). */
+  clerkClaimedAt: number | null;
+  /** When the connection pipeline last completed. */
+  clerkConnectedAt: number | null;
+  /** Id of the "convex" JWT template the pipeline ensured. */
+  clerkJwtTemplateId: string;
+  /** Whether a Svix webhook app exists for this instance. */
+  clerkSvixConfigured: boolean;
+  /** Site origins registered with Clerk (allowed origins / redirect URLs). */
+  clerkSiteOrigins: string[];
+  /** Normalised Clerk environment document (AuthCapabilities) for the website. */
+  clerkCapabilities: Record<string, unknown> | null;
+  clerkCapabilitiesSyncedAt: number | null;
+  /** Last live verification results (see auth/clerkConnection.verify). */
+  clerkLastVerification: Record<string, unknown> | null;
+  clerkLastVerifiedAt: number | null;
+  /** Last time the Clerk webhook delivered a verified event. */
+  clerkWebhookLastReceivedAt: number | null;
 }
 
 /**
@@ -1075,6 +1107,23 @@ export const CLERK_INTEGRATION_DEFAULTS: ClerkIntegrationSettings = {
   clerkSecretKey: "",
   clerkWebhookSecret: "",
   clerkJwtIssuerDomain: "",
+  clerkPublishableKey: "",
+  clerkFrontendApi: "",
+  clerkEnvironmentType: "",
+  clerkInstanceId: "",
+  clerkConnectionMode: "",
+  clerkClaimUrl: "",
+  clerkDashboardUrl: "",
+  clerkClaimedAt: null,
+  clerkConnectedAt: null,
+  clerkJwtTemplateId: "",
+  clerkSvixConfigured: false,
+  clerkSiteOrigins: [],
+  clerkCapabilities: null,
+  clerkCapabilitiesSyncedAt: null,
+  clerkLastVerification: null,
+  clerkLastVerifiedAt: null,
+  clerkWebhookLastReceivedAt: null,
 };
 
 export const DASHBOARD_DEFAULTS: DashboardSettings = {

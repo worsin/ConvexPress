@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { createFileRoute, Link, ErrorComponent, useNavigate } from "@tanstack/react-router";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 

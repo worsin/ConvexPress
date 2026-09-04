@@ -40,6 +40,7 @@ const instanceResult = v.object({
   siteContractVersion: v.union(v.string(), v.null()),
   schemaVersion: v.union(v.string(), v.null()),
   engineVersion: v.union(v.string(), v.null()),
+  clerkPublishableKey: v.union(v.string(), v.null()),
   compatibility: v.union(
     v.literal("unknown"),
     v.literal("compatible"),
@@ -75,6 +76,7 @@ function summarize(instance: {
   siteContractVersion?: string;
   schemaVersion?: string;
   engineVersion?: string;
+  clerkPublishableKey?: string;
   compatibility: any;
   provisioning: any;
   health: any;
@@ -95,6 +97,7 @@ function summarize(instance: {
     siteContractVersion: instance.siteContractVersion ?? null,
     schemaVersion: instance.schemaVersion ?? null,
     engineVersion: instance.engineVersion ?? null,
+    clerkPublishableKey: instance.clerkPublishableKey ?? null,
     compatibility: instance.compatibility,
     provisioning: instance.provisioning,
     health: instance.health,
@@ -364,6 +367,7 @@ export const update = authenticatedMutation({
     siteContractVersion: v.optional(v.union(v.string(), v.null())),
     schemaVersion: v.optional(v.union(v.string(), v.null())),
     engineVersion: v.optional(v.union(v.string(), v.null())),
+    clerkPublishableKey: v.optional(v.union(v.string(), v.null())),
   },
   returns: instanceResult,
   handler: async (ctx, args) => {

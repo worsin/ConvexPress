@@ -7,6 +7,7 @@
  * shared component renders its site-only variant.
  */
 
+import type { ConvexReactClient } from "convex/react";
 import type { api as controlApi } from "@control/convex/_generated/api";
 import type { FunctionReturnType } from "convex/server";
 import { createContext, useContext, type ReactNode } from "react";
@@ -83,4 +84,29 @@ export function ControlShellProvider({
 /** Returns the control shell when running standalone, otherwise null. */
 export function useControlShell(): ControlShellValue | null {
   return useContext(ControlShellContext);
+}
+
+/**
+ * The control-plane Convex client. Site admin pages render inside the selected
+ * site's own Convex provider, so anything that must talk to the control plane
+ * (connections, environment records) reaches it through this context instead
+ * of the nearest provider.
+ */
+const ControlClientContext = createContext<ConvexReactClient | null>(null);
+
+export function ControlClientProvider({
+  client,
+  children,
+}: {
+  client: ConvexReactClient;
+  children: ReactNode;
+}) {
+  return (
+    <ControlClientContext.Provider value={client}>{children}</ControlClientContext.Provider>
+  );
+}
+
+/** Null outside the standalone control plane. */
+export function useControlClient(): ConvexReactClient | null {
+  return useContext(ControlClientContext);
 }

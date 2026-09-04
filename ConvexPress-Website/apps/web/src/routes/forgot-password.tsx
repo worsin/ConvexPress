@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
 import { useState } from "react";
 
 import { AuthPageLayout } from "@/components/auth/AuthPageLayout";

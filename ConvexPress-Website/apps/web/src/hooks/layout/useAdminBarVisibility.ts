@@ -2,7 +2,7 @@ import { getSiteRuntime } from "@/lib/site-runtime";
 import { useRouterState } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
 
 import { useCan } from "@/hooks/useCan";
 

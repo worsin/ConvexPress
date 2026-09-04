@@ -1,5 +1,5 @@
 import { createFileRoute, Link, ErrorComponent } from "@tanstack/react-router";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
 import { LifeBuoy, Loader2, MessageSquarePlus, List, Search } from "lucide-react";
 import { buildIndexablePageHead, siteTitled } from "@/lib/seo/head";
 import { useSettings } from "@/contexts/SettingsContext";

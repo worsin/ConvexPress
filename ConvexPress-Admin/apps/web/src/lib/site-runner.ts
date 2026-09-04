@@ -90,6 +90,8 @@ export function targetForEnvironment(
     convexSiteUrl: environment.managementOrigin,
     siteUrl: environment.siteOrigin,
     adminAppUrl: adminAppUrl(),
+    clerkPublishableKey:
+      (environment as { clerkPublishableKey?: string | null }).clerkPublishableKey ?? undefined,
     mode,
   };
 }
@@ -100,6 +102,7 @@ export function targetForSingleSite(input: {
   siteUrl: string | undefined;
   convexUrl: string;
   convexSiteUrl?: string;
+  clerkPublishableKey?: string | null;
   mode?: SiteRunnerMode;
 }): SiteRunnerTarget {
   return {
@@ -109,6 +112,7 @@ export function targetForSingleSite(input: {
     convexSiteUrl: input.convexSiteUrl,
     siteUrl: input.siteUrl,
     adminAppUrl: adminAppUrl(),
+    clerkPublishableKey: input.clerkPublishableKey ?? undefined,
     mode: input.mode ?? "dev",
   };
 }

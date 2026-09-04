@@ -48,6 +48,10 @@ const ALLOWED_INVOKE_CHANNELS = new Set([
   "site-runner:open-url",
   "security:register-deployment-origins",
   "security:list-deployment-origins",
+  // Apply site auth environment + redeploy a site's Convex backend
+  "site-deploy:run",
+  "site-deploy:status",
+  "site-deploy:bundled-credential",
 ]);
 
 const ALLOWED_ON_CHANNELS = new Set([
@@ -70,6 +74,8 @@ const ALLOWED_ON_CHANNELS = new Set([
   "app:checking-for-updates",
   // Local storefront process state
   "site-runner:changed",
+  // Site deploy progress
+  "site-deploy:progress",
 ]);
 
 // ---------- Allowed Auth Keys ----------
@@ -197,6 +203,18 @@ contextBridge.exposeInMainWorld("convexpress", {
       }>,
     listDeploymentOrigins: () =>
       ipcRenderer.invoke("security:list-deployment-origins") as Promise<string[]>,
+  },
+
+  siteDeploy: {
+    run: (input: unknown) => ipcRenderer.invoke("site-deploy:run", input),
+    status: () => ipcRenderer.invoke("site-deploy:status"),
+    bundledCredential: () => ipcRenderer.invoke("site-deploy:bundled-credential"),
+    onProgress: (callback: (event: unknown) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+        callback(payload);
+      ipcRenderer.on("site-deploy:progress", handler);
+      return () => ipcRenderer.removeListener("site-deploy:progress", handler);
+    },
   },
 
   connections: {

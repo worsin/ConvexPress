@@ -16,7 +16,7 @@
 
 import { useEffect, useRef } from "react";
 import { useMutation } from "convex/react";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
 import { api } from "@convexpress-website/backend/generated/api";
 
 const SESSION_KEY = "sh-login-tracked";

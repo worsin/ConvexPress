@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 const appDir = fileURLToPath(new URL(".", import.meta.url));
@@ -27,10 +27,6 @@ const fsAllow = Array.from(
   ]),
 );
 
-function hasUsableClerkKey(value: string | undefined) {
-  return Boolean(value && /^pk_(test|live)_/.test(value) && !value.includes("PLACEHOLDER"));
-}
-
 /**
  * One checkout, many storefront processes: the site runner passes a port per
  * site (PORT) and a private Vite cache directory so concurrent dev servers do
@@ -39,19 +35,10 @@ function hasUsableClerkKey(value: string | undefined) {
 const devPort = Number(process.env.PORT || process.env.CONVEXPRESS_PORT || 4106);
 const cacheDir = process.env.CONVEXPRESS_VITE_CACHE_DIR || undefined;
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-  const clerkPublishableKey = env.VITE_CLERK_PUBLISHABLE_KEY;
-  const useClerkShim = !hasUsableClerkKey(clerkPublishableKey);
-  const alias: Record<string, string> = useClerkShim
-    ? {
-        "@clerk/clerk-react": new URL(
-          "./src/lib/auth/clerk-shim.tsx",
-          import.meta.url,
-        ).pathname,
-      }
-    : {};
-
+export default defineConfig(() => {
+  // Clerk is switched at runtime (src/lib/auth/clerk.tsx): the publishable key
+  // comes from the site database, then process env, then VITE_ env. No
+  // build-time alias, so one build serves every site.
   return {
     plugins: [
       tsconfigPaths(),
@@ -68,9 +55,6 @@ export default defineConfig(({ mode }) => {
         },
       }),
     ],
-    resolve: {
-      alias,
-    },
     cacheDir,
     server: {
       port: devPort,

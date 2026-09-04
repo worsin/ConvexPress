@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useMutation } from "convex/react";
-import { useClerk } from "@clerk/clerk-react";
+import { useClerk } from "@/lib/auth/clerk";
 import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { AlertTriangle, Loader2 } from "lucide-react";

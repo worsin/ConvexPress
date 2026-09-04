@@ -491,8 +491,8 @@ export const SETTINGS_REGISTRY: SettingsSurfaceDefinition[] = [
   },
   {
     id: "clerk",
-    title: "Clerk",
-    description: "Authentication secret keys and webhook verification settings.",
+    title: "Clerk connection",
+    description: "Customer sign-in for the website: connect a Clerk app (or start keyless), readiness, deployment, webhook, sign-in options.",
     group: "integrations",
     icon: Shield,
     route: "/settings/integrations/clerk",

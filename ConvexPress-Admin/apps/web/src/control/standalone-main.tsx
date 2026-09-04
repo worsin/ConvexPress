@@ -14,6 +14,7 @@ import { routeTree } from "../routeTree.gen";
 import Loader from "../components/loader";
 import { ThemeProvider } from "../components/theme-provider";
 import { isElectron } from "../lib/electron";
+import { ControlClientProvider } from "./ControlShellContext";
 import { StandaloneApp } from "./StandaloneApp";
 import { createControlAuthClient } from "./auth-client";
 import { initializeControlAuthStorage } from "./auth-storage";
@@ -47,7 +48,9 @@ export async function bootstrapStandalone(input: {
         client={controlClient}
         authClient={authClient as unknown as AuthClient}
       >
-        <StandaloneApp authClient={authClient} router={router} />
+        <ControlClientProvider client={controlClient}>
+          <StandaloneApp authClient={authClient} router={router} />
+        </ControlClientProvider>
       </ConvexBetterAuthProvider>
     </ThemeProvider>,
   );

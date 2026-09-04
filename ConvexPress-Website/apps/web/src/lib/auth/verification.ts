@@ -12,6 +12,8 @@ export interface PendingVerificationContext {
   source?: PendingVerificationSource;
   offerId?: string;
   couponCode?: string;
+  /** How Clerk verifies the email for this sign-up. */
+  strategy?: "email_code" | "email_link";
 }
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;

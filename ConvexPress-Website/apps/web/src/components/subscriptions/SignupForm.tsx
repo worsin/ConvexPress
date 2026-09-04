@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { useAuth, useSignUp } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
+import { useSignUpFlow } from "@/hooks/useSignUpFlow";
+import { useAuthCapabilities } from "@/contexts/AuthConfigContext";
+import { passwordPolicyErrors } from "@/lib/auth/capabilities";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { Check, Eye, EyeOff, Loader2, Tag } from "lucide-react";
@@ -90,7 +93,9 @@ function trialCopy(offer: Offer): string | null {
 
 export function SignupForm({ offer, className }: SignupFormProps) {
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
-  const { signUp, setActive, isLoaded: signUpLoaded } = useSignUp();
+  const flow = useSignUpFlow();
+  const signUpLoaded = flow.isLoaded;
+  const capabilities = useAuthCapabilities();
 
   const createCheckoutIntent = useMutation(
     (api as any).commerceSubscriptions.checkout.createCheckoutIntent,
@@ -139,7 +144,7 @@ export function SignupForm({ offer, className }: SignupFormProps) {
     }
 
     // ── Anonymous path: Clerk signup → checkout → activate ────────────────
-    if (!signUpLoaded || !signUp) {
+    if (!signUpLoaded) {
       setError("Signup is not ready yet — please try again in a moment.");
       return;
     }
@@ -157,20 +162,27 @@ export function SignupForm({ offer, className }: SignupFormProps) {
       return;
     }
 
+    const passwordProblems = passwordPolicyErrors(password, capabilities.password);
+    if (capabilities.attributes.password.enabled && passwordProblems.length > 0) {
+      setError(passwordProblems.join(" "));
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const result = await signUp.create({
+      const next = await flow.create({
         emailAddress: email.trim(),
-        password,
+        password: capabilities.attributes.password.enabled ? password : undefined,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        legalAccepted: capabilities.signUp.legalConsentEnabled ? acceptTerms : undefined,
       });
 
-      if (result.status === "complete") {
+      if (next.kind === "complete") {
         // User is fully signed in — activate the subscription immediately.
-        await setActive({ session: result.createdSessionId });
+        await flow.complete(next.sessionId);
         await runCheckout({ forEmail: email.trim() });
-      } else if (result.status === "missing_requirements") {
+      } else if (next.kind === "verify_email") {
         // Email verification required. Create the intent so pricing and
         // coupon checks happen now, then redirect into the verification
         // screen. After verification we return the user to this same offer
@@ -186,6 +198,7 @@ export function SignupForm({ offer, className }: SignupFormProps) {
           source: "subscription",
           offerId: offer._id,
           couponCode: couponCode.trim() || undefined,
+          strategy: next.strategy,
         });
         if (typeof window !== "undefined") {
           window.sessionStorage.setItem(
@@ -193,14 +206,22 @@ export function SignupForm({ offer, className }: SignupFormProps) {
             String(intent.intentId),
           );
         }
-        await signUp.prepareEmailAddressVerification({
-          strategy: "email_code",
-        });
         if (typeof window !== "undefined") {
           const url = new URL("/verify-email", window.location.origin);
           url.searchParams.set("returnTo", `/signup/${offer._id}`);
           window.location.assign(url.toString());
         }
+      } else if (next.kind === "collect" || next.kind === "legal_consent" || next.kind === "verify_phone") {
+        // This site's Clerk needs more than this compact form collects
+        // (username, phone, consent…). Continue on the full registration
+        // page, then come back to the offer.
+        if (typeof window !== "undefined") {
+          const url = new URL("/register", window.location.origin);
+          url.searchParams.set("returnTo", `/signup/${offer._id}`);
+          window.location.assign(url.toString());
+        }
+      } else if (next.kind === "restricted") {
+        setError("Sign-ups are currently limited on this site. Ask the site owner for an invitation.");
       } else {
         setError("Signup requires additional steps. Please try again.");
       }

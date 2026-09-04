@@ -22,7 +22,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
 import { useAction, useMutation, useConvex } from "convex/react";
 import DOMPurify from "isomorphic-dompurify";
 import { CheckCircle2, Loader2 } from "lucide-react";

@@ -16,7 +16,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
 
 import { LoginTracker } from "@/components/auth/LoginTracker";
 import { LayoutShellProvider, getBackgroundInertProps } from "@/components/layout/LayoutShellProvider";
@@ -25,6 +25,9 @@ import { SkipToContent } from "@/components/layout/SkipToContent";
 import { ThemeStyleInjector } from "@/components/layout/ThemeStyleInjector";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
 import { useDashboardConfig, useDashboardEnabled, useDashboardPath } from "@/hooks/useDashboardConfig";
+import { useEnsureCustomerAccount } from "@/hooks/useEnsureCustomerAccount";
+import { useClerk } from "@/lib/auth/clerk";
+import { Button } from "@/components/ui/button";
 import { AccountLayout } from "./AccountLayout";
 import { DashboardShellContext, type DashboardShellValue } from "./shell/DashboardShellContext";
 import { MobileDrawer } from "./shell/MobileDrawer";
@@ -50,6 +53,10 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const enabled = useDashboardEnabled();
   const redirected = useRef(false);
+  // Make sure the signed-in Clerk identity has an account row on this site
+  // (created on first sign-in when no webhook is configured yet).
+  const account = useEnsureCustomerAccount();
+  const { signOut } = useClerk();
 
   useEffect(() => {
     // Redirect once; the pathname flips to /login before this tree unmounts,
@@ -60,13 +67,47 @@ export function DashboardShell({ children }: DashboardShellProps) {
     }
   }, [isLoaded, isSignedIn, navigate, pathname]);
 
-  if (!isLoaded || !isSignedIn || enabled === null) {
+  if (isLoaded && isSignedIn && account.status === "unavailable") {
+    const copy =
+      account.reason === "registration_closed"
+        ? "This site is not accepting new accounts right now. If you were invited, open the invitation link you received; otherwise contact the site owner."
+        : account.reason === "email_conflict"
+          ? "Your email address is already linked to a different sign-in on this site. Sign in with that account, or contact support to merge them."
+          : "We could not set up your account on this site. Please try again in a moment or contact support.";
+    return (
+      <div className="flex min-h-svh items-center justify-center bg-background px-4 text-center">
+        <div className="flex max-w-md flex-col items-center gap-4" role="alert">
+          <h1 className="text-lg font-semibold text-foreground">Your account is not available here</h1>
+          <p className="text-sm text-muted-foreground">{copy}</p>
+          {account.detail && account.reason === "error" && (
+            <p className="text-xs text-muted-foreground">{account.detail}</p>
+          )}
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={() => window.location.reload()}>
+              Try again
+            </Button>
+            <Button type="button" onClick={() => void signOut({ redirectUrl: "/" })}>
+              Sign out
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoaded || !isSignedIn || enabled === null || account.status === "loading" || account.status === "provisioning") {
     return (
       <div className="flex min-h-svh items-center justify-center bg-background px-4 text-center">
         <div className="flex max-w-sm flex-col items-center gap-3" role="status" aria-live="polite">
           <div className="size-5 animate-spin rounded-none border-2 border-muted border-t-primary" aria-hidden="true" />
           <p className="text-sm text-muted-foreground">
-            {!isLoaded || enabled === null ? "Loading your dashboard…" : "Redirecting to sign in…"}
+            {!isLoaded || enabled === null
+              ? "Loading your dashboard…"
+              : !isSignedIn
+                ? "Redirecting to sign in…"
+                : account.status === "provisioning"
+                  ? "Setting up your account…"
+                  : "Loading your dashboard…"}
           </p>
         </div>
       </div>

@@ -23,8 +23,8 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // electron/main.ts
-var import_node_path15 = __toESM(require("path"));
-var import_node_fs7 = require("fs");
+var import_node_path16 = __toESM(require("path"));
+var import_node_fs8 = require("fs");
 var import_node_url2 = require("url");
 
 // electron/ipc/window.ts
@@ -2417,8 +2417,278 @@ function registerSecurityHandlers() {
   });
 }
 
+// electron/ipc/siteDeploy.ts
+var import_node_child_process4 = require("child_process");
+var import_node_fs7 = require("fs");
+var import_node_path14 = __toESM(require("path"));
+
+// electron/ipc/siteDeployValidation.ts
+var ENV_NAMES = /* @__PURE__ */ new Set([
+  "CLERK_JWT_ISSUER_DOMAIN",
+  "CLERK_SECRET_KEY",
+  "CLERK_WEBHOOK_SECRET",
+  "CLERK_PUBLISHABLE_KEY",
+  "SITE_URL"
+]);
+var CONTROL_CHARS = /[\u0000-\u001f\u007f]/u;
+function isRecord(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+function cleanText(value, label, max) {
+  if (typeof value !== "string") throw new Error(`Missing ${label}`);
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > max || CONTROL_CHARS.test(trimmed)) {
+    throw new Error(`Invalid ${label}`);
+  }
+  return trimmed;
+}
+function parseDeploymentOrigin(value) {
+  const text = cleanText(value, "deployment origin", 300);
+  let url;
+  try {
+    url = new URL(text);
+  } catch {
+    throw new Error("Invalid deployment origin");
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Invalid deployment origin");
+  if (url.protocol === "http:") {
+    const host = url.hostname;
+    const privateHost = host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]" || /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    if (!privateHost) throw new Error("Plain-http deployments must be on a private network");
+  }
+  return url.origin;
+}
+function assertSiteDeployRequest(raw) {
+  if (!isRecord(raw)) throw new Error("Invalid deploy request");
+  const label = cleanText(raw.label, "label", 160);
+  if (!isRecord(raw.credential)) throw new Error("Missing deployment credential");
+  let credential;
+  if (raw.credential.kind === "admin-key") {
+    credential = {
+      kind: "admin-key",
+      deploymentOrigin: parseDeploymentOrigin(raw.credential.deploymentOrigin),
+      adminKey: cleanText(raw.credential.adminKey, "admin key", 16384)
+    };
+    if (credential.adminKey.length < 16) throw new Error("Invalid admin key");
+  } else if (raw.credential.kind === "bundled") {
+    credential = { kind: "bundled", convexUrl: parseDeploymentOrigin(raw.credential.convexUrl) };
+  } else if (raw.credential.kind === "deploy-key") {
+    credential = {
+      kind: "deploy-key",
+      deployKey: cleanText(raw.credential.deployKey, "deploy key", 4096),
+      deployment: cleanText(raw.credential.deployment, "deployment name", 200)
+    };
+  } else {
+    throw new Error("Unknown deployment credential kind");
+  }
+  const rawChanges = Array.isArray(raw.envChanges) ? raw.envChanges : [];
+  if (rawChanges.length > 8) throw new Error("Too many environment changes");
+  const seen = /* @__PURE__ */ new Set();
+  const envChanges = rawChanges.map((change) => {
+    if (!isRecord(change)) throw new Error("Invalid environment change");
+    const name = cleanText(change.name, "variable name", 64);
+    if (!ENV_NAMES.has(name)) throw new Error(`${name} is not a site auth variable`);
+    if (seen.has(name)) throw new Error(`${name} is listed twice`);
+    seen.add(name);
+    if (change.value === null) return { name, value: null };
+    return { name, value: cleanText(change.value, name, 8192) };
+  });
+  const envOnly = raw.envOnly === true;
+  if (envOnly && envChanges.length === 0) throw new Error("Nothing to apply");
+  return { label, credential, envChanges, envOnly };
+}
+function redactDeployLog(line, secrets) {
+  let out = line;
+  for (const secret of secrets) {
+    if (secret && secret.length >= 8) out = out.split(secret).join("\u2022\u2022\u2022\u2022");
+  }
+  return out.replace(/(sk_(?:test|live)_)[A-Za-z0-9]+/g, "$1\u2022\u2022\u2022\u2022").replace(/(whsec_)[A-Za-z0-9+/=_-]+/g, "$1\u2022\u2022\u2022\u2022");
+}
+
+// electron/ipc/siteDeploy.ts
+var { BrowserWindow: BrowserWindow6, ipcMain: ipcMain11 } = require("electron");
+var activeRun = null;
+var lastRun = null;
+function getRendererIndexPath6() {
+  return import_node_path14.default.join(__dirname, "..", "dist", "index.html");
+}
+function assertSender3(event) {
+  const url = event.sender.getURL();
+  const ok = isDev() ? isDevAppRendererSender(url) : isAppRendererSender(url, { rendererIndexPath: getRendererIndexPath6() });
+  if (!ok) throw new Error("Site deploys can only be started from the ConvexPress app.");
+}
+function broadcast2(event) {
+  for (const win of BrowserWindow6.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send("site-deploy:progress", event);
+  }
+}
+function runCommand2(command, args, options) {
+  return new Promise((resolve, reject) => {
+    const child = (0, import_node_child_process4.spawn)(command, args, {
+      cwd: options.cwd,
+      env: options.env,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    let stderr = "";
+    const forward = (chunk, isErr) => {
+      const text = chunk.toString();
+      if (isErr) stderr += text;
+      for (const line of text.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.includes("ExperimentalWarning") && !trimmed.includes("--trace-warnings")) {
+          options.onLine(trimmed);
+        }
+      }
+    };
+    child.stdout.on("data", (chunk) => forward(chunk, false));
+    child.stderr.on("data", (chunk) => forward(chunk, true));
+    child.on("error", reject);
+    child.on("exit", (code, signal) => {
+      if (code === 0) return resolve();
+      const tail = stderr.trim().split("\n").slice(-6).join("\n");
+      reject(
+        new Error(
+          `${command} ${args[0] ?? ""} ${args[1] ?? ""} failed ${signal ? `with signal ${signal}` : `with exit code ${code}`}${tail ? `: ${tail}` : ""}`
+        )
+      );
+    });
+  });
+}
+function readBundledDeployCredential() {
+  try {
+    const backendRoot = resolveBackendRoot();
+    const envPath = import_node_path14.default.join(backendRoot, ".env.local");
+    if (!(0, import_node_fs7.existsSync)(envPath)) return null;
+    const env = {};
+    for (const line of (0, import_node_fs7.readFileSync)(envPath, "utf8").split(/\r?\n/)) {
+      const match = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(line.trim());
+      if (!match) continue;
+      env[match[1]] = match[2].trim().replace(/^["']|["']$/g, "");
+    }
+    if (!env.CONVEX_DEPLOY_KEY || !env.CONVEX_DEPLOYMENT || !env.CONVEX_URL) return null;
+    return {
+      deployKey: env.CONVEX_DEPLOY_KEY,
+      deployment: env.CONVEX_DEPLOYMENT,
+      convexUrl: env.CONVEX_URL
+    };
+  } catch {
+    return null;
+  }
+}
+async function execute(request, run) {
+  const backendRoot = resolveBackendRoot();
+  const secrets = [];
+  const env = { ...process.env };
+  const targetArgs = [];
+  if (request.credential.kind === "bundled") {
+    const bundled = readBundledDeployCredential();
+    if (!bundled) throw new Error("This install has no bundled deploy key; connect the site through the control plane instead.");
+    if (bundled.convexUrl.replace(/\/+$/, "") !== request.credential.convexUrl) {
+      throw new Error("The bundled deploy key belongs to a different deployment.");
+    }
+    secrets.push(bundled.deployKey);
+    env.CONVEX_DEPLOYMENT = bundled.deployment;
+    env.CONVEX_DEPLOY_KEY = bundled.deployKey;
+  } else if (request.credential.kind === "admin-key") {
+    secrets.push(request.credential.adminKey);
+    targetArgs.push(
+      "--url",
+      request.credential.deploymentOrigin,
+      "--admin-key",
+      request.credential.adminKey
+    );
+  } else {
+    secrets.push(request.credential.deployKey);
+    env.CONVEX_DEPLOYMENT = request.credential.deployment;
+    env.CONVEX_DEPLOY_KEY = request.credential.deployKey;
+  }
+  for (const change of request.envChanges) if (change.value) secrets.push(change.value);
+  const report = (phase, message) => {
+    const safe = redactDeployLog(message, secrets);
+    run.phase = phase;
+    run.log.push(`[${(/* @__PURE__ */ new Date()).toISOString()}] ${phase}: ${safe}`);
+    if (run.log.length > 400) run.log.splice(0, run.log.length - 400);
+    console.log(`[Site deploy] ${run.label} \xB7 ${phase}: ${safe}`);
+    broadcast2({ runId: run.runId, phase, message: safe, at: Date.now() });
+  };
+  if (request.envChanges.length > 0) {
+    report("environment", `Writing ${request.envChanges.length} environment variable(s).`);
+    for (const change of request.envChanges) {
+      const args = change.value === null ? ["convex", "env", "remove", change.name, ...targetArgs] : ["convex", "env", "set", change.name, change.value, ...targetArgs];
+      await runCommand2("bunx", args, {
+        cwd: backendRoot,
+        env,
+        onLine: (line) => report("environment", line)
+      });
+      report("environment", `${change.name} ${change.value === null ? "removed" : "set"}.`);
+    }
+  }
+  if (request.envOnly) {
+    report("complete", "Environment applied.");
+    return;
+  }
+  report("codegen", "Regenerating extension index.");
+  await runCommand2("node", ["scripts/generate-extension-index.mjs"], {
+    cwd: backendRoot,
+    env,
+    onLine: (line) => report("codegen", line)
+  });
+  report("deploy", "Deploying the ConvexPress backend (this can take a minute).");
+  await runCommand2(
+    "bunx",
+    ["convex", "deploy", ...targetArgs, "--message", `ConvexPress: ${request.label}`],
+    { cwd: backendRoot, env, onLine: (line) => report("deploy", line) }
+  );
+  report("complete", "Deployed. The site now trusts the configured sign-in provider.");
+}
+function registerSiteDeployHandlers() {
+  ipcMain11.handle("site-deploy:status", (event) => {
+    assertSender3(event);
+    const run = activeRun ?? lastRun;
+    return run ? { ...run, log: run.log.slice(-60) } : null;
+  });
+  ipcMain11.handle("site-deploy:run", async (event, rawInput) => {
+    assertSender3(event);
+    if (activeRun) throw new Error(`A deploy is already running (${activeRun.label}).`);
+    const request = assertSiteDeployRequest(rawInput);
+    const run = {
+      runId: `deploy_${Date.now().toString(36)}`,
+      label: request.label,
+      startedAt: Date.now(),
+      finishedAt: null,
+      phase: "environment",
+      ok: null,
+      error: null,
+      log: []
+    };
+    activeRun = run;
+    try {
+      await execute(request, run);
+      run.ok = true;
+    } catch (error) {
+      run.ok = false;
+      run.phase = "failed";
+      run.error = redactDeployLog(error instanceof Error ? error.message : String(error), [
+        request.credential.kind === "admin-key" ? request.credential.adminKey : request.credential.kind === "deploy-key" ? request.credential.deployKey : readBundledDeployCredential()?.deployKey ?? "",
+        ...request.envChanges.map((change) => change.value ?? "")
+      ]);
+      broadcast2({ runId: run.runId, phase: "failed", message: run.error, at: Date.now() });
+    } finally {
+      run.finishedAt = Date.now();
+      lastRun = run;
+      activeRun = null;
+    }
+    return { runId: run.runId, ok: run.ok === true, error: run.error, log: run.log.slice(-60) };
+  });
+  ipcMain11.handle("site-deploy:bundled-credential", (event) => {
+    assertSender3(event);
+    const bundled = readBundledDeployCredential();
+    return bundled ? { available: true, convexUrl: bundled.convexUrl, deployment: bundled.deployment } : { available: false };
+  });
+}
+
 // electron/ipc/index.ts
-var { ipcMain: ipcMain11, app: app5 } = require("electron");
+var { ipcMain: ipcMain12, app: app5 } = require("electron");
 function registerAllIpcHandlers() {
   registerWindowHandlers();
   registerConfigHandlers();
@@ -2430,17 +2700,18 @@ function registerAllIpcHandlers() {
   registerUpdaterHandlers();
   registerSiteRunnerHandlers();
   registerSecurityHandlers();
-  ipcMain11.handle("app:get-version", () => {
+  registerSiteDeployHandlers();
+  ipcMain12.handle("app:get-version", () => {
     return app5.getVersion();
   });
-  ipcMain11.handle("app:get-platform", () => {
+  ipcMain12.handle("app:get-platform", () => {
     return {
       os: process.platform,
       arch: process.arch,
       electron: process.versions.electron
     };
   });
-  ipcMain11.handle("app:quit", () => {
+  ipcMain12.handle("app:quit", () => {
     app5.quit();
   });
 }
@@ -2554,11 +2825,11 @@ function buildDesktopContentSecurityPolicy({
 }
 
 // electron/tray.ts
-var import_node_path14 = __toESM(require("path"));
+var import_node_path15 = __toESM(require("path"));
 var { app: app6, Menu, nativeImage, Tray } = require("electron");
 var tray = null;
 function loadTrayIcon() {
-  const iconPath = isDev() ? import_node_path14.default.join(__dirname, "../resources/iconTemplate.png") : import_node_path14.default.join(process.resourcesPath, "iconTemplate.png");
+  const iconPath = isDev() ? import_node_path15.default.join(__dirname, "../resources/iconTemplate.png") : import_node_path15.default.join(process.resourcesPath, "iconTemplate.png");
   const image = nativeImage.createFromPath(iconPath);
   image.setTemplateImage(false);
   return image;
@@ -2609,8 +2880,8 @@ function createTray(wm) {
 // electron/main.ts
 var {
   app: app7,
-  BrowserWindow: BrowserWindow6,
-  ipcMain: ipcMain12,
+  BrowserWindow: BrowserWindow7,
+  ipcMain: ipcMain13,
   nativeTheme,
   net: net3,
   protocol,
@@ -2630,20 +2901,20 @@ protocol.registerSchemesAsPrivileged([
 ]);
 app7.setName("ConvexPress");
 if (isDev()) {
-  app7.setPath("userData", import_node_path15.default.join(app7.getPath("userData"), "-dev"));
+  app7.setPath("userData", import_node_path16.default.join(app7.getPath("userData"), "-dev"));
 }
-var LOG_FILE = import_node_path15.default.join(app7.getPath("userData"), "convexpress-debug.log");
+var LOG_FILE = import_node_path16.default.join(app7.getPath("userData"), "convexpress-debug.log");
 function fileLog(msg) {
   const line = `[${(/* @__PURE__ */ new Date()).toISOString()}] ${msg}
 `;
   try {
-    (0, import_node_fs7.appendFileSync)(LOG_FILE, line);
+    (0, import_node_fs8.appendFileSync)(LOG_FILE, line);
   } catch {
   }
   safeLog(msg);
 }
 try {
-  (0, import_node_fs7.writeFileSync)(
+  (0, import_node_fs8.writeFileSync)(
     LOG_FILE,
     `=== ConvexPress started ${(/* @__PURE__ */ new Date()).toISOString()} ===
 `
@@ -2704,7 +2975,7 @@ function getInitialRouteForCurrentLaunch() {
   });
 }
 function getWizardIndexPath3() {
-  return import_node_path15.default.join(__dirname, "wizard", "index.html");
+  return import_node_path16.default.join(__dirname, "wizard", "index.html");
 }
 function launchApp() {
   createTray(windowManager);
@@ -2719,7 +2990,7 @@ function launchApp() {
     }
   });
   if (app7.isPackaged && !isDev()) {
-    const installPath = import_node_path15.default.dirname(app7.getAppPath());
+    const installPath = import_node_path16.default.dirname(app7.getAppPath());
     const manifest = readManifest(installPath);
     if (manifest) {
       fileLog(`[Main] App-content updater initialized at ${installPath}`);
@@ -2747,7 +3018,7 @@ if (!gotTheLock) {
 app7.whenReady().then(async () => {
   fileLog("[Main] App ready");
   removeDeprecatedSecretsFromConfig();
-  const packagedRendererRoot = import_node_path15.default.join(__dirname, "..", "dist");
+  const packagedRendererRoot = import_node_path16.default.join(__dirname, "..", "dist");
   protocol.handle(PACKAGED_RENDERER_SCHEME, (request) => {
     try {
       const rendererPath = resolvePackagedRendererPath(
@@ -2794,14 +3065,14 @@ app7.whenReady().then(async () => {
   registerAllIpcHandlers();
   setSiteRunnerLogger(fileLog);
   let appLaunched = false;
-  ipcMain12.handle("app:reload-from-setup", (event) => {
+  ipcMain13.handle("app:reload-from-setup", (event) => {
     if (!isExactWizardSender(event.sender.getURL(), getWizardIndexPath3())) {
       throw new Error("Setup launch can only be requested from the setup wizard.");
     }
     if (appLaunched) return;
     appLaunched = true;
     fileLog("[Main] Setup complete \u2014 launching app");
-    for (const win of BrowserWindow6.getAllWindows()) {
+    for (const win of BrowserWindow7.getAllWindows()) {
       win.destroy();
     }
     launchApp();

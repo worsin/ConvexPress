@@ -13,6 +13,7 @@ export interface WebsiteInstanceVersionState {
   siteContractVersion?: string;
   schemaVersion?: string;
   engineVersion?: string;
+  clerkPublishableKey?: string;
 }
 
 export interface WebsiteInstanceUpdateInput {
@@ -25,6 +26,7 @@ export interface WebsiteInstanceUpdateInput {
   siteContractVersion?: string | null;
   schemaVersion?: string | null;
   engineVersion?: string | null;
+  clerkPublishableKey?: string | null;
 }
 
 export interface WebsiteInstancePatch {
@@ -38,6 +40,7 @@ export interface WebsiteInstancePatch {
   siteContractVersion?: string;
   schemaVersion?: string;
   engineVersion?: string;
+  clerkPublishableKey?: string;
   compatibility?: "unknown" | "compatible" | "incompatible";
   lastCompatibilityAt?: number;
   lastCompatibilityError?: string;
@@ -54,6 +57,7 @@ const editableFields = [
   "siteContractVersion",
   "schemaVersion",
   "engineVersion",
+  "clerkPublishableKey",
 ] as const;
 
 export function expectedWebsiteInstanceArchiveConfirmation(
@@ -134,6 +138,17 @@ export function buildWebsiteInstancePatch(input: {
     const siteOrigin = parseOrigin(input.input.siteOrigin!, "site");
     patch.siteOrigin = siteOrigin;
     patch.domain = new URL(siteOrigin).hostname;
+  }
+  if (owns(input.input, "clerkPublishableKey")) {
+    const key = cleanOptionalText(
+      input.input.clerkPublishableKey ?? null,
+      "Clerk publishable key",
+      400,
+    );
+    if (key !== undefined && !/^pk_(test|live)_[A-Za-z0-9+/=]+$/.test(key)) {
+      throw new Error("Invalid Clerk publishable key");
+    }
+    patch.clerkPublishableKey = key;
   }
 
   for (const field of [

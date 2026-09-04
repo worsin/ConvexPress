@@ -47,7 +47,11 @@ var ALLOWED_INVOKE_CHANNELS = /* @__PURE__ */ new Set([
   "site-runner:open",
   "site-runner:open-url",
   "security:register-deployment-origins",
-  "security:list-deployment-origins"
+  "security:list-deployment-origins",
+  // Apply site auth environment + redeploy a site's Convex backend
+  "site-deploy:run",
+  "site-deploy:status",
+  "site-deploy:bundled-credential"
 ]);
 var ALLOWED_ON_CHANNELS = /* @__PURE__ */ new Set([
   // Window events
@@ -68,7 +72,9 @@ var ALLOWED_ON_CHANNELS = /* @__PURE__ */ new Set([
   "app:update-error",
   "app:checking-for-updates",
   // Local storefront process state
-  "site-runner:changed"
+  "site-runner:changed",
+  // Site deploy progress
+  "site-deploy:progress"
 ]);
 var AUTH_KEY_PREFIXES = ["__convexAuth", "convexAuth"];
 var AUTH_EXACT_KEYS = /* @__PURE__ */ new Set([
@@ -147,6 +153,16 @@ import_electron.contextBridge.exposeInMainWorld("convexpress", {
     /** Allow the renderer to reach a site deployment; `added` lists origins new to the policy. */
     registerDeploymentOrigins: (origins) => import_electron.ipcRenderer.invoke("security:register-deployment-origins", origins),
     listDeploymentOrigins: () => import_electron.ipcRenderer.invoke("security:list-deployment-origins")
+  },
+  siteDeploy: {
+    run: (input) => import_electron.ipcRenderer.invoke("site-deploy:run", input),
+    status: () => import_electron.ipcRenderer.invoke("site-deploy:status"),
+    bundledCredential: () => import_electron.ipcRenderer.invoke("site-deploy:bundled-credential"),
+    onProgress: (callback) => {
+      const handler = (_event, payload) => callback(payload);
+      import_electron.ipcRenderer.on("site-deploy:progress", handler);
+      return () => import_electron.ipcRenderer.removeListener("site-deploy:progress", handler);
+    }
   },
   connections: {
     provision: (input) => import_electron.ipcRenderer.invoke("connections:provision", input)

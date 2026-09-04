@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
 import { z } from "zod";
 
 import { AuthPageLayout } from "@/components/auth/AuthPageLayout";
@@ -52,7 +52,7 @@ function RegisterComponent() {
       maxWidth="md"
     >
       <RegistrationGate token={token}>
-        <OAuthButtons mode="signup" />
+        <OAuthButtons mode="signup" returnTo={safeReturnTo} />
         <AuthDivider />
         <RegisterForm returnTo={safeReturnTo} />
       </RegistrationGate>

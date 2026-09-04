@@ -171,7 +171,8 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
     id: "clerk",
     title: "Clerk website auth",
     group: "essentials",
-    description: "Public sign-up and sign-in for website customers, JWT validation, user webhooks.",
+    description:
+      "Customer sign-up and sign-in for the website. Paste one secret key (or start keyless) and the connection page derives and configures the rest.",
     unlocks: ["Customer accounts", "Checkout sign-in", "Password sync"],
     storage: { kind: "settings", section: "integrations.clerk" },
     fields: [
@@ -182,6 +183,16 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
         required: true,
         env: "CLERK_SECRET_KEY",
         placeholder: "sk_live_… or sk_test_…",
+        help: "Everything else (publishable key, issuer, token template) is derived from this on the connection page.",
+      },
+      {
+        key: "clerkPublishableKey",
+        label: "Publishable key",
+        kind: "secret",
+        required: true,
+        env: "CLERK_PUBLISHABLE_KEY",
+        placeholder: "pk_live_… or pk_test_…",
+        help: "Served to the website. Derived automatically when you connect with a secret key.",
       },
       {
         key: "clerkJwtIssuerDomain",
@@ -190,7 +201,7 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
         required: true,
         env: "CLERK_JWT_ISSUER_DOMAIN",
         placeholder: "https://your-app.clerk.accounts.dev",
-        help: "Clerk → JWT templates → Convex. Used to validate customer tokens.",
+        help: "Clerk Frontend API URL. Must also be live on the deployment as CLERK_JWT_ISSUER_DOMAIN.",
       },
       {
         key: "clerkWebhookSecret",

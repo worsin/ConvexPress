@@ -18,7 +18,7 @@
  * Pages are fetched from the shared `posts` table with `type: "page"`.
  */
 
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";

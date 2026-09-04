@@ -5,7 +5,7 @@
  */
 
 import { Link } from "@tanstack/react-router";
-import { useClerk } from "@clerk/clerk-react";
+import { useClerk } from "@/lib/auth/clerk";
 import { ChevronDown, LogOut } from "lucide-react";
 
 import { AvatarDisplay } from "@/components/dashboard/profile/AvatarDisplay";

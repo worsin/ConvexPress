@@ -21,7 +21,8 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useAuth, useSignUp } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
+import { useSignUpFlow } from "@/hooks/useSignUpFlow";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import {
@@ -78,7 +79,8 @@ export function useFormSubscriptionPayment(
   enabled: boolean,
 ): UseFormSubscriptionPaymentResult {
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
-  const { signUp, setActive, isLoaded: signUpLoaded } = useSignUp();
+  const flow = useSignUpFlow();
+  const signUpLoaded = flow.isLoaded;
 
   const pendingRaw = useQuery(
     (api as any).extensions.forms.actions.getPendingPayment,
@@ -129,28 +131,29 @@ export function useFormSubscriptionPayment(
     lastName: string;
     returnTo: string;
   }): Promise<boolean> {
-    if (!signUpLoaded || !signUp) {
+    if (!signUpLoaded) {
       throw new Error("Signup is not ready yet — please try again in a moment.");
     }
-    const result = await signUp.create({
+    const next = await flow.create({
       emailAddress: input.email.trim(),
       password: input.password,
       firstName: input.firstName.trim(),
       lastName: input.lastName.trim(),
     });
 
-    if (result.status === "complete") {
-      await setActive({ session: result.createdSessionId });
+    if (next.kind === "complete") {
+      await flow.complete(next.sessionId);
       return true;
     }
 
-    if (result.status === "missing_requirements") {
+    if (next.kind === "verify_email") {
       // Email verification required. Persist the intentId so checkout resumes
       // after verification, mirroring SignupForm.tsx.
       writePendingVerificationContext({
         email: input.email.trim(),
         returnTo: input.returnTo,
         source: "subscription",
+        strategy: next.strategy,
       });
       if (typeof window !== "undefined" && pending?.intentId) {
         window.sessionStorage.setItem(
@@ -158,7 +161,6 @@ export function useFormSubscriptionPayment(
           String(pending.intentId),
         );
       }
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       if (typeof window !== "undefined") {
         const url = new URL("/verify-email", window.location.origin);
         url.searchParams.set("returnTo", input.returnTo);
@@ -167,6 +169,20 @@ export function useFormSubscriptionPayment(
       return false;
     }
 
+    if (next.kind === "collect" || next.kind === "legal_consent" || next.kind === "verify_phone") {
+      // Clerk needs more than this embedded form collects; finish on the
+      // full registration page and come back.
+      if (typeof window !== "undefined") {
+        const url = new URL("/register", window.location.origin);
+        url.searchParams.set("returnTo", input.returnTo);
+        window.location.assign(url.toString());
+      }
+      return false;
+    }
+
+    if (next.kind === "restricted") {
+      throw new Error("Sign-ups are currently limited on this site.");
+    }
     throw new Error("Signup requires additional steps. Please try again.");
   }
 

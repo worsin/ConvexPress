@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
 import { useMutation } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { z } from "zod";
@@ -101,7 +101,7 @@ function LoginComponent() {
           {errorMessage}
         </div>
       )}
-      <OAuthButtons mode="signin" />
+      <OAuthButtons mode="signin" returnTo={safeReturnTo} />
       <AuthDivider />
       <LoginForm returnTo={safeReturnTo} />
     </AuthPageLayout>

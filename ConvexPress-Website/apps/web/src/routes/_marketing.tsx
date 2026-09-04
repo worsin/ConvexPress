@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { convexQuery } from "@convex-dev/react-query";
-import { useUser } from "@clerk/clerk-react";
+import { useUser } from "@/lib/auth/clerk";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";

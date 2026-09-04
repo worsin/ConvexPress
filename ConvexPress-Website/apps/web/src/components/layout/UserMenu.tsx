@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useUser, useClerk } from "@/lib/auth/clerk";
 import { LogOut } from "lucide-react";
 
 import { cn } from "@/lib/utils";

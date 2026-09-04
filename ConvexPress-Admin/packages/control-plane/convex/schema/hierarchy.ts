@@ -192,6 +192,8 @@ export const hierarchyTables = {
       ),
     ),
     domain: v.optional(v.string()),
+    /** Clerk publishable key the storefront process for this environment loads. */
+    clerkPublishableKey: v.optional(v.string()),
     siteContractVersion: v.optional(v.string()),
     schemaVersion: v.optional(v.string()),
     engineVersion: v.optional(v.string()),

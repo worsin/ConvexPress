@@ -509,7 +509,54 @@ function validateClerkIntegration(values: Record<string, unknown>): ValidationEr
 
   optionalSecretString(values, "clerkSecretKey", 500, "Clerk secret key", errors);
   optionalSecretString(values, "clerkWebhookSecret", 500, "Clerk webhook secret", errors);
+  optionalSecretString(values, "clerkPublishableKey", 500, "Clerk publishable key", errors);
   optionalUrl(values, "clerkJwtIssuerDomain", "Clerk JWT issuer domain", errors);
+  optionalUrl(values, "clerkFrontendApi", "Clerk Frontend API", errors);
+  optionalUrl(values, "clerkClaimUrl", "Clerk claim URL", errors, 1000);
+  optionalUrl(values, "clerkDashboardUrl", "Clerk dashboard URL", errors, 1000);
+  optionalStringMax(values, "clerkInstanceId", 120, "Clerk instance id", errors);
+  optionalStringMax(values, "clerkJwtTemplateId", 120, "Clerk JWT template id", errors);
+
+  if (
+    values.clerkEnvironmentType !== undefined &&
+    !["", "development", "production"].includes(values.clerkEnvironmentType as string)
+  ) {
+    errors.push({ field: "clerkEnvironmentType", message: "Environment must be development or production." });
+  }
+  if (
+    values.clerkConnectionMode !== undefined &&
+    !["", "manual", "secret_key", "keyless"].includes(values.clerkConnectionMode as string)
+  ) {
+    errors.push({ field: "clerkConnectionMode", message: "Connection mode is not recognised." });
+  }
+  for (const field of [
+    "clerkClaimedAt",
+    "clerkConnectedAt",
+    "clerkCapabilitiesSyncedAt",
+    "clerkLastVerifiedAt",
+    "clerkWebhookLastReceivedAt",
+  ]) {
+    const value = values[field];
+    if (value !== undefined && value !== null && !isNumber(value)) {
+      errors.push({ field, message: `${field} must be a timestamp or null.` });
+    }
+  }
+  if (values.clerkSvixConfigured !== undefined && !isBoolean(values.clerkSvixConfigured)) {
+    errors.push({ field: "clerkSvixConfigured", message: "clerkSvixConfigured must be a boolean." });
+  }
+  if (
+    values.clerkSiteOrigins !== undefined &&
+    (!Array.isArray(values.clerkSiteOrigins) ||
+      values.clerkSiteOrigins.some((origin) => !isString(origin) || origin.length > 300))
+  ) {
+    errors.push({ field: "clerkSiteOrigins", message: "Site origins must be a list of URLs." });
+  }
+  for (const field of ["clerkCapabilities", "clerkLastVerification"]) {
+    const value = values[field];
+    if (value !== undefined && value !== null && (typeof value !== "object" || Array.isArray(value))) {
+      errors.push({ field, message: `${field} must be an object or null.` });
+    }
+  }
 
   return errors;
 }

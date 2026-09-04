@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useUser, useClerk, useAuth } from "@clerk/clerk-react";
+import { useUser, useClerk, useAuth } from "@/lib/auth/clerk";
 import { X } from "lucide-react";
 import * as React from "react";
 

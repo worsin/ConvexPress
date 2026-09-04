@@ -23,7 +23,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
 import { useAction, useConvex, useMutation } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 

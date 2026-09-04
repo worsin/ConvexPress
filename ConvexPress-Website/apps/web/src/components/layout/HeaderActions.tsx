@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { Search, ShoppingCart } from "lucide-react";

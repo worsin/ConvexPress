@@ -68,6 +68,8 @@ export interface ConvexpressBridge {
     registerDeploymentOrigins: (origins: string[]) => Promise<{ added: string[]; origins: string[] }>;
     listDeploymentOrigins: () => Promise<string[]>;
   };
+  /** Present in desktop builds that can apply site auth env vars and redeploy a site backend. */
+  siteDeploy?: ConvexpressSiteDeploy;
   connections: {
     provision: (input: {
       instanceId: string;
@@ -111,6 +113,57 @@ export interface ConvexpressSiteRunner {
   onChanged: (
     callback: (state: import("@/lib/site-runner").SiteProcessState) => void,
   ) => () => void;
+}
+
+/** Mirror of packages/desktop/electron/ipc/siteDeployValidation.ts */
+export interface SiteDeployEnvChange {
+  name: string;
+  value: string | null;
+}
+
+export type SiteDeployCredential =
+  | { kind: "admin-key"; deploymentOrigin: string; adminKey: string }
+  | { kind: "deploy-key"; deployKey: string; deployment: string }
+  | { kind: "bundled"; convexUrl: string };
+
+export interface SiteDeployRequest {
+  label: string;
+  credential: SiteDeployCredential;
+  envChanges: SiteDeployEnvChange[];
+  envOnly?: boolean;
+}
+
+export type SiteDeployPhase = "environment" | "codegen" | "deploy" | "complete" | "failed";
+
+export interface SiteDeployProgress {
+  runId: string;
+  phase: SiteDeployPhase;
+  message: string;
+  at: number;
+}
+
+export interface SiteDeployRunResult {
+  runId: string;
+  ok: boolean;
+  error: string | null;
+  log: string[];
+}
+
+export interface ConvexpressSiteDeploy {
+  run: (input: SiteDeployRequest) => Promise<SiteDeployRunResult>;
+  status: () => Promise<
+    | (SiteDeployRunResult & {
+        label: string;
+        startedAt: number;
+        finishedAt: number | null;
+        phase: SiteDeployPhase;
+      })
+    | null
+  >;
+  bundledCredential: () => Promise<
+    { available: true; convexUrl: string; deployment: string } | { available: false }
+  >;
+  onProgress: (callback: (event: SiteDeployProgress) => void) => () => void;
 }
 
 export interface ElectronAuthStorage {

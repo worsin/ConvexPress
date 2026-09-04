@@ -1,20 +1,29 @@
-import { useState } from "react";
-import { useSignUp } from "@clerk/clerk-react";
-import { Eye, EyeOff } from "lucide-react";
+/**
+ * RegisterForm — sign-up that follows the site's Clerk configuration.
+ *
+ * Fields, required flags, verification strategy, legal consent and bot
+ * protection all come from `useAuthCapabilities()`. After `signUp.create`,
+ * `useSignUpFlow` tells us the next step: complete, verify email (code or
+ * link), verify phone, collect missing fields (also how an OAuth transfer
+ * lands here), consent, or a restricted sign-up mode.
+ */
+
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useAuthCapabilities } from "@/contexts/AuthConfigContext";
+import { useSignUpFlow } from "@/hooks/useSignUpFlow";
+import { passwordPolicyErrors, type SignUpFieldName } from "@/lib/auth/capabilities";
+import type { SignUpNext } from "@/lib/auth/clerk-flow";
+import type { InvitationData } from "@/lib/auth/types";
+import { clearPendingVerificationContext, writePendingVerificationContext } from "@/lib/auth/verification";
+import { cn } from "@/lib/utils";
+
 import { AuthError } from "./AuthError";
 import { AuthLink } from "./AuthLink";
-import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
-import {
-  clearPendingVerificationContext,
-  writePendingVerificationContext,
-} from "@/lib/auth/verification";
-import { cn } from "@/lib/utils";
-import type { InvitationData } from "@/lib/auth/types";
+import { CodeInput } from "./CodeInput";
+import { LegalConsent } from "./LegalConsent";
+import { SignUpFields, emptySignUpValues, missingRequiredFields, type SignUpFieldValues } from "./SignUpFields";
 
 interface RegisterFormProps {
   invitation?: InvitationData;
@@ -22,280 +31,271 @@ interface RegisterFormProps {
   className?: string;
 }
 
-/**
- * Registration form component using Clerk's useSignUp hook.
- *
- * Handles email/password registration via signUp.create(). On success,
- * prepares email verification and navigates to the verify-email page.
- */
-export function RegisterForm({
-  invitation,
-  returnTo = "/dashboard",
-  className,
-}: RegisterFormProps) {
-  const { signUp, setActive, isLoaded } = useSignUp();
-  const [email, setEmail] = useState(invitation?.email ?? "");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [acceptTerms, setAcceptTerms] = useState(false);
+type Step =
+  | { kind: "form" }
+  | { kind: "collect"; fields: SignUpFieldName[]; consent: boolean }
+  | { kind: "verify_phone" }
+  | { kind: "restricted" };
+
+export function RegisterForm({ invitation, returnTo = "/dashboard", className }: RegisterFormProps) {
+  const capabilities = useAuthCapabilities();
+  const flow = useSignUpFlow();
+  const [values, setValues] = useState<SignUpFieldValues>(() => ({
+    ...emptySignUpValues(),
+    emailAddress: invitation?.email ?? "",
+  }));
+  const [legalAccepted, setLegalAccepted] = useState(false);
+  const [phoneCode, setPhoneCode] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [step, setStep] = useState<Step>({ kind: "form" });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const passwordEnabled = capabilities.attributes.password.enabled;
+  const consentRequired = capabilities.signUp.legalConsentEnabled;
+
+  // Resume a sign-up that Clerk already started (OAuth transfer, refreshed page).
+  useEffect(() => {
+    if (!flow.isLoaded) return;
+    const current = flow.current();
+    if (!current) return;
+    if (current.kind === "collect") setStep({ kind: "collect", fields: current.fields, consent: false });
+    else if (current.kind === "legal_consent") setStep({ kind: "collect", fields: [], consent: true });
+    else if (current.kind === "verify_phone") setStep({ kind: "verify_phone" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flow.isLoaded]);
+
+  const lockedFields = useMemo(
+    () => (invitation?.email ? { emailAddress: invitation.email } : undefined),
+    [invitation?.email],
+  );
+
+  const go = (url: string) => {
+    if (typeof window !== "undefined") window.location.assign(url);
+  };
+
+  const handleNext = async (next: SignUpNext) => {
+    switch (next.kind) {
+      case "complete":
+        clearPendingVerificationContext();
+        await flow.complete(next.sessionId);
+        go(returnTo);
+        return;
+      case "verify_email": {
+        writePendingVerificationContext({
+          email: values.emailAddress.trim() || invitation?.email,
+          returnTo,
+          source: "register",
+          strategy: next.strategy,
+        });
+        const url = new URL("/verify-email", window.location.origin);
+        url.searchParams.set("returnTo", returnTo);
+        go(url.toString());
+        return;
+      }
+      case "verify_phone":
+        setStep({ kind: "verify_phone" });
+        return;
+      case "collect":
+        setStep({ kind: "collect", fields: next.fields, consent: false });
+        if (next.unknown.length > 0) {
+          setError(`Clerk also requires: ${next.unknown.join(", ")}. Finish sign-up in your account portal or contact support.`);
+        }
+        return;
+      case "legal_consent":
+        setStep({ kind: "collect", fields: [], consent: true });
+        return;
+      case "captcha":
+        setError("Please complete the security check and try again.");
+        return;
+      case "restricted":
+        setStep({ kind: "restricted" });
+        return;
+      case "abandoned":
+        setError("This sign-up expired. Please start again.");
+        setStep({ kind: "form" });
+        return;
+      default:
+        setError("Registration requires an additional step we could not determine. Please try again.");
+    }
+  };
+
+  const submitForm = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError("");
+    if (!flow.isLoaded) return;
 
-    if (!isLoaded || !signUp) return;
-
-    // Basic client-side validation
-    if (!email || !firstName || !lastName) {
+    const missing = missingRequiredFields(capabilities, values);
+    if (missing.length > 0) {
       setError("Please fill in all required fields.");
       return;
     }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
+    if (passwordEnabled && (values.password || capabilities.attributes.password.required)) {
+      const problems = passwordPolicyErrors(values.password, capabilities.password);
+      if (problems.length > 0) {
+        setError(problems.join(" "));
+        return;
+      }
+      if (values.password !== values.confirmPassword) {
+        setError("Passwords don't match.");
+        return;
+      }
     }
-
-    if (password !== confirmPassword) {
-      setError("Passwords don't match.");
-      return;
-    }
-
-    if (!acceptTerms) {
+    if (consentRequired && !legalAccepted) {
       setError("You must accept the Terms of Service and Privacy Policy.");
       return;
     }
 
     setIsSubmitting(true);
-
     try {
-      const result = await signUp.create({
-        emailAddress: email.trim(),
-        password,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+      const next = await flow.create({
+        emailAddress: lockedFields?.emailAddress ?? values.emailAddress,
+        phoneNumber: values.phoneNumber,
+        username: values.username,
+        firstName: values.firstName,
+        lastName: values.lastName,
+        password: passwordEnabled ? values.password : undefined,
+        legalAccepted: consentRequired ? legalAccepted : undefined,
       });
-
-      if (result.status === "complete") {
-        // Registration complete (no email verification required)
-        clearPendingVerificationContext();
-        await setActive({ session: result.createdSessionId });
-        if (typeof window !== "undefined") {
-          window.location.assign(returnTo);
-        }
-      } else if (result.status === "missing_requirements") {
-        // Email verification needed - prepare the verification
-        await signUp.prepareEmailAddressVerification({
-          strategy: "email_code",
-        });
-        writePendingVerificationContext({
-          email: email.trim(),
-          returnTo,
-          source: "register",
-        });
-        if (typeof window !== "undefined") {
-          const url = new URL("/verify-email", window.location.origin);
-          url.searchParams.set("returnTo", returnTo);
-          window.location.assign(url.toString());
-        }
-      } else {
-        setError("Registration requires additional steps. Please try again.");
-      }
-    } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ message?: string; longMessage?: string }> };
-      const message =
-        clerkError?.errors?.[0]?.longMessage ??
-        clerkError?.errors?.[0]?.message ??
-        "Registration failed. Please try again.";
-      setError(message);
+      await handleNext(next);
+    } catch (cause) {
+      setError(flow.errorMessage(cause, "Registration failed. Please try again."));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <form
-      data-slot="register-form"
-      className={cn("flex flex-col gap-4", className)}
-      onSubmit={handleSubmit}
-      noValidate
-    >
-      {/* Invitation banner */}
-      {invitation?.message && (
-        <div
-          data-slot="invitation-banner"
-          className="rounded-none border border-primary/20 bg-primary/5 p-3 text-xs text-foreground"
+  const submitCollect = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (step.kind !== "collect") return;
+    setError("");
+    const missing = missingRequiredFields(capabilities, values, step.fields);
+    if (missing.length > 0) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+    if (step.fields.includes("password")) {
+      const problems = passwordPolicyErrors(values.password, capabilities.password);
+      if (problems.length > 0) return setError(problems.join(" "));
+      if (values.password !== values.confirmPassword) return setError("Passwords don't match.");
+    }
+    if ((step.consent || consentRequired) && !legalAccepted) {
+      setError("You must accept the Terms of Service and Privacy Policy.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const payload: Parameters<typeof flow.update>[0] = {};
+      for (const field of step.fields) payload[field] = values[field];
+      if (step.consent || consentRequired) payload.legalAccepted = legalAccepted;
+      await handleNext(await flow.update(payload));
+    } catch (cause) {
+      setError(flow.errorMessage(cause, "We could not finish your sign-up. Please try again."));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const submitPhoneCode = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
+    if (!phoneCode.trim()) return setError("Enter the code we texted you.");
+    setIsSubmitting(true);
+    try {
+      await handleNext(await flow.attemptPhoneCode(phoneCode));
+    } catch (cause) {
+      setError(flow.errorMessage(cause, "That code did not work. Please try again."));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (step.kind === "restricted") {
+    return (
+      <div data-slot="register-restricted" className={cn("flex flex-col gap-3 text-center", className)}>
+        <p className="text-sm text-foreground">Sign-ups are currently limited on this site.</p>
+        <p className="text-xs text-muted-foreground">
+          {capabilities.signUp.mode === "waitlist"
+            ? "Join the waitlist from the sign-in provider, or contact us for access."
+            : "Ask the site owner for an invitation, or sign in if you already have an account."}
+        </p>
+        <AuthLink to="/login">Sign in instead</AuthLink>
+      </div>
+    );
+  }
+
+  if (step.kind === "verify_phone") {
+    return (
+      <form data-slot="register-verify-phone" className={cn("flex flex-col gap-4", className)} onSubmit={submitPhoneCode} noValidate>
+        {error && <AuthError message={error} />}
+        <p className="text-xs text-muted-foreground">We texted a code to your phone. Enter it to continue.</p>
+        <CodeInput id="register-phone-code" value={phoneCode} onChange={setPhoneCode} />
+        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Verifying..." : "Verify phone"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          disabled={isSubmitting}
+          onClick={async () => {
+            setError("");
+            try {
+              await flow.resend();
+            } catch (cause) {
+              setError(flow.errorMessage(cause, "We could not resend the code."));
+            }
+          }}
         >
-          {invitation.inviterName && (
-            <p className="mb-1 font-medium">
-              Invited by {invitation.inviterName}
-            </p>
-          )}
+          Send a new code
+        </Button>
+      </form>
+    );
+  }
+
+  if (step.kind === "collect") {
+    return (
+      <form data-slot="register-continue" className={cn("flex flex-col gap-4", className)} onSubmit={submitCollect} noValidate>
+        <p className="text-xs text-muted-foreground">Almost there. A few more details are needed to finish your account.</p>
+        {error && <AuthError message={error} />}
+        {step.fields.length > 0 && (
+          <SignUpFields capabilities={capabilities} values={values} onChange={setValues} only={step.fields} idPrefix="register-continue" />
+        )}
+        {(step.consent || consentRequired) && (
+          <LegalConsent capabilities={capabilities} checked={legalAccepted} onChange={setLegalAccepted} />
+        )}
+        {capabilities.signUp.captchaEnabled && <div id="clerk-captcha" />}
+        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || !flow.isLoaded}>
+          {isSubmitting ? "Finishing..." : "Finish sign-up"}
+        </Button>
+      </form>
+    );
+  }
+
+  return (
+    <form data-slot="register-form" className={cn("flex flex-col gap-4", className)} onSubmit={submitForm} noValidate>
+      {invitation?.message && (
+        <div data-slot="invitation-banner" className="rounded-none border border-primary/20 bg-primary/5 p-3 text-xs text-foreground">
+          {invitation.inviterName && <p className="mb-1 font-medium">Invited by {invitation.inviterName}</p>}
           <p className="text-muted-foreground">{invitation.message}</p>
         </div>
       )}
 
       {error && <AuthError message={error} />}
 
-      {/* Name fields */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="register-first-name">First name</Label>
-          <Input
-            id="register-first-name"
-            type="text"
-            placeholder="Jane"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            autoComplete="given-name"
-            autoFocus
-            required
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="register-last-name">Last name</Label>
-          <Input
-            id="register-last-name"
-            type="text"
-            placeholder="Doe"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            autoComplete="family-name"
-            required
-          />
-        </div>
-      </div>
+      <SignUpFields capabilities={capabilities} values={values} onChange={setValues} locked={lockedFields} />
 
-      {/* Email */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="register-email">Email</Label>
-        <Input
-          id="register-email"
-          type="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
-          required
-          disabled={!!invitation?.email}
-          aria-describedby={
-            invitation?.email ? "register-email-note" : undefined
-          }
-        />
-        {invitation?.email && (
-          <p
-            id="register-email-note"
-            className="text-xs text-muted-foreground"
-          >
-            Email is pre-filled from your invitation.
-          </p>
-        )}
-      </div>
+      {consentRequired && <LegalConsent capabilities={capabilities} checked={legalAccepted} onChange={setLegalAccepted} />}
 
-      {/* Password */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="register-password">Password</Label>
-        <div className="relative">
-          <Input
-            id="register-password"
-            type={showPassword ? "text" : "password"}
-            placeholder="Create a password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-            required
-            className="pr-8"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? (
-              <EyeOff className="size-3.5" aria-hidden="true" />
-            ) : (
-              <Eye className="size-3.5" aria-hidden="true" />
-            )}
-          </button>
-        </div>
-        <PasswordStrengthIndicator password={password} />
-      </div>
+      {/* Clerk mounts its bot-protection widget here when it is enabled. */}
+      {capabilities.signUp.captchaEnabled && <div id="clerk-captcha" />}
 
-      {/* Confirm Password */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="register-confirm-password">Confirm password</Label>
-        <Input
-          id="register-confirm-password"
-          type={showPassword ? "text" : "password"}
-          placeholder="Confirm your password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          autoComplete="new-password"
-          required
-          aria-invalid={
-            confirmPassword.length > 0 && password !== confirmPassword
-              ? true
-              : undefined
-          }
-        />
-        {confirmPassword.length > 0 && password !== confirmPassword && (
-          <p className="text-xs text-destructive" aria-live="polite">
-            Passwords don't match
-          </p>
-        )}
-      </div>
-
-      {/* Terms of Service */}
-      <div className="flex items-start gap-2">
-        <Checkbox
-          id="register-terms"
-          checked={acceptTerms}
-          onCheckedChange={(checked) => setAcceptTerms(checked === true)}
-          className="mt-0.5"
-        />
-        <Label htmlFor="register-terms" className="cursor-pointer leading-normal">
-          I agree to the{" "}
-          <a
-            href="#"
-            className="text-primary hover:underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Terms of Service
-          </a>{" "}
-          and{" "}
-          <a
-            href="#"
-            className="text-primary hover:underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Privacy Policy
-          </a>
-        </Label>
-      </div>
-
-      {/* Submit */}
-      <Button
-        type="submit"
-        size="lg"
-        className="w-full"
-        disabled={isSubmitting || !isLoaded}
-      >
+      <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || !flow.isLoaded}>
         {isSubmitting ? "Creating account..." : "Create Account"}
       </Button>
 
-      {/* Login link */}
       <div className="text-center">
-        <span className="text-xs text-muted-foreground">
-          Already have an account?{" "}
-        </span>
+        <span className="text-xs text-muted-foreground">Already have an account? </span>
         <AuthLink to="/login">Sign in</AuthLink>
       </div>
     </form>

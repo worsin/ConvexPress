@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { createFileRoute, Link, ErrorComponent, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/auth/clerk";
 import { api } from "@convexpress-website/backend/generated/api";
 import { Loader2 } from "lucide-react";
 

@@ -3,8 +3,10 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { StrictMode } from "react";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
-import { ClerkProvider, useAuth } from "@clerk/clerk-react";
+import { ClerkProvider, useAuth } from "@/lib/auth/clerk";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { AuthConfigProvider } from "@/contexts/AuthConfigContext";
+import { coerceAuthConfig, defaultWebsiteAuthConfig, type WebsiteAuthConfig } from "@/lib/auth/capabilities";
 
 import { Toaster } from "@/components/ui/sonner";
 import { WebsiteNotificationToastProvider } from "@/components/notifications/WebsiteNotificationToastProvider";
@@ -26,8 +28,10 @@ export interface RouterAppContext {
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   notFoundComponent: NotFoundTemplate,
   errorComponent: ErrorTemplate,
-  // Learn the site's name before any route head is rendered on the server.
-  loader: async ({ context: { queryClient } }) => {
+  // Learn the site's name and its sign-in provider before anything renders on
+  // the server: the Clerk publishable key comes from the site database first,
+  // so one build serves every site (env vars stay as fallbacks).
+  loader: async ({ context: { queryClient } }): Promise<{ authConfig: WebsiteAuthConfig }> => {
     try {
       const settings = (await queryClient.ensureQueryData(
         convexQuery(api.settings.queries.getPublic, {}),
@@ -36,6 +40,17 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
     } catch {
       // Settings unavailable: titles fall back to the generic name.
     }
+    let authConfig = defaultWebsiteAuthConfig();
+    try {
+      authConfig = coerceAuthConfig(
+        await queryClient.ensureQueryData(
+          convexQuery((api as any).auth.clerkPublic.getWebsiteAuthConfig, {}),
+        ),
+      );
+    } catch {
+      // Older backends: fall back to environment-provided keys.
+    }
+    return { authConfig };
   },
   head: () => ({
     meta: [
@@ -120,12 +135,26 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
 function RootDocument() {
   const { convexQueryClient } = Route.useRouteContext();
-  const siteRuntime = getSiteRuntime();
+  const loaderData = Route.useLoaderData() as { authConfig?: WebsiteAuthConfig } | undefined;
+  const authConfig = loaderData?.authConfig ?? defaultWebsiteAuthConfig();
+  const processRuntime = getSiteRuntime();
+  // Site database → process env → build-time env.
   const clerkPublishableKey =
-    siteRuntime.clerkPublishableKey ?? import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+    authConfig.publishableKey ??
+    processRuntime.clerkPublishableKey ??
+    (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined);
+  const siteRuntime = { ...processRuntime, clerkPublishableKey };
   return (
     <StrictMode>
-      <ClerkProvider publishableKey={clerkPublishableKey}>
+      <ClerkProvider
+        publishableKey={clerkPublishableKey}
+        signInUrl="/login"
+        signUpUrl="/register"
+        signInFallbackRedirectUrl="/dashboard"
+        signUpFallbackRedirectUrl="/dashboard"
+        afterSignOutUrl="/"
+      >
+        <AuthConfigProvider value={authConfig}>
         <ConvexProviderWithClerk
           client={convexQueryClient.convexClient}
           useAuth={useAuth}
@@ -151,6 +180,7 @@ function RootDocument() {
             </body>
           </html>
         </ConvexProviderWithClerk>
+        </AuthConfigProvider>
       </ClerkProvider>
     </StrictMode>
   );

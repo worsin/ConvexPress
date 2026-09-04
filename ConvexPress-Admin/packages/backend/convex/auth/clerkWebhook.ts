@@ -55,6 +55,11 @@ export const clerkWebhookHandler = httpAction(async (ctx, request) => {
     return new Response("Invalid signature", { status: 401 });
   }
 
+  // Readiness ledger: a verified delivery proves the endpoint + secret pair.
+  await ctx.runMutation(internal.auth.clerkConnectionInternals.markWebhookReceived, {
+    at: Date.now(),
+  });
+
   switch (event.type) {
     case "user.created":
     case "user.updated": {
