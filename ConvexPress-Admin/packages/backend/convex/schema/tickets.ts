@@ -131,6 +131,14 @@ export const ticketTables = {
     // ── Denormalized Counts ───────────────────────────────────────────────
     messageCount: v.number(),
 
+    // ── Customer Read State ───────────────────────────────────────────────
+    /** Last time the ticket owner opened the thread (customer read receipt). */
+    lastCustomerReadAt: v.optional(v.number()),
+    /** Last time an agent posted a public (non-internal) reply. */
+    lastAgentMessageAt: v.optional(v.number()),
+    /** Who sent the most recent public message (for list previews). */
+    lastMessageSenderType: v.optional(messageSenderTypeValidator),
+
     // ── Lifecycle Timestamps ──────────────────────────────────────────────
     lastMessageAt: v.optional(v.number()),
     firstResponseAt: v.optional(v.number()),

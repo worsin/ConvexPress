@@ -163,18 +163,33 @@ export function moveItem(items: DashboardLayoutItem[], key: string, x: number, y
   return resolveCollisions(items, { ...item, ...rect });
 }
 
-/** Keyboard: shift one cell in a direction and let the grid flow around it. */
+function overlapsHorizontally(a: GridRect, b: GridRect): boolean {
+  return a.x < b.x + b.w && a.x + a.w > b.x;
+}
+
+/**
+ * Keyboard reordering. Left/right shift one column. Up/down swap the item
+ * with the nearest neighbour above or below it in the same columns, so a
+ * vertical stack reorders the way a list would.
+ */
 export function nudgeItem(items: DashboardLayoutItem[], key: string, direction: NudgeDirection): DashboardLayoutItem[] {
   const item = items.find((entry) => entry.key === key);
   if (!item) return items;
-  const delta = {
-    up: { x: 0, y: -1 },
-    down: { x: 0, y: 1 },
-    left: { x: -1, y: 0 },
-    right: { x: 1, y: 0 },
-  }[direction];
-  const moved = moveItem(items, key, item.x + delta.x, item.y + delta.y);
-  return direction === "up" || direction === "down" ? finalizeLayout(moved) : moved;
+  if (direction === "left" || direction === "right") {
+    return moveItem(items, key, item.x + (direction === "left" ? -1 : 1), item.y);
+  }
+  if (direction === "down") {
+    const below = items
+      .filter((other) => other.key !== key && overlapsHorizontally(item, other) && other.y >= item.y + item.h)
+      .sort((a, b) => a.y - b.y)[0];
+    if (!below) return items;
+    return finalizeLayout(moveItem(items, key, item.x, below.y + below.h));
+  }
+  const above = items
+    .filter((other) => other.key !== key && overlapsHorizontally(item, other) && other.y + other.h <= item.y)
+    .sort((a, b) => b.y + b.h - (a.y + a.h))[0];
+  if (!above) return finalizeLayout(items);
+  return finalizeLayout(moveItem(items, key, item.x, above.y));
 }
 
 // ─── Sizing ─────────────────────────────────────────────────────────────────

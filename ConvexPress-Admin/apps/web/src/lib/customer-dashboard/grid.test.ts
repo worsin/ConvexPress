@@ -94,6 +94,19 @@ describe("moving", () => {
     expect(byKey(nudged, "b").y).toBe(0);
     expect(byKey(nudged, "a").y).toBe(2);
     expect(findOverlaps(nudged)).toEqual([]);
+    const restored = nudgeItem(nudged, "a", "up");
+    expect(byKey(restored, "a").y).toBe(0);
+    expect(byKey(restored, "b").y).toBe(2);
+    expect(nudgeItem(restored, "a", "up")).toEqual(restored);
+    expect(nudgeItem(restored, "b", "down")).toBe(restored);
+  });
+
+  test("nudgeItem only swaps with items that share columns", () => {
+    const layout = [item("a", 0, 0, 6, 2), item("b", 6, 0, 6, 2), item("c", 0, 2, 6, 2)];
+    const nudged = nudgeItem(layout, "a", "down");
+    expect(byKey(nudged, "c").y).toBe(0);
+    expect(byKey(nudged, "a").y).toBe(2);
+    expect(byKey(nudged, "b")).toMatchObject({ x: 6, y: 0 });
   });
 
   test("nudgeItem right moves one column and stops at the edge", () => {

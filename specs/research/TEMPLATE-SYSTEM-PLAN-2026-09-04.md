@@ -294,6 +294,20 @@ Panel design (better than WordPress, not a copy):
 
 **Admin screen.** Appearance › Customize is a thin launcher (opens the site with `?customize=1`) plus a read-only summary of the saved values per environment, so the admin still shows what is set without duplicating the editor.
 
+**Global data vs template settings (the WordPress options / theme-mods split, done consistently).**
+
+| Tier | Lives in | Survives a template switch | Examples |
+|---|---|---|---|
+| **Site data** (global) | existing settings sections, content tables | Yes, always | Site title, tagline, logo, site icon, social profiles, contact details, the brand doc, the menus themselves, media, pages/posts/products, Reading settings, plugin toggles, commerce/shipping/payment settings, SEO |
+| **Template settings** (per template, per environment) | `appearance.template.settings[packId]` | Kept for that template; each template has its own set | Colours, typography, layout, header and footer configuration, **menu location assignments**, shop variants, the pack's custom groups |
+| **Presentation of global data** (per template, defaults from the global value) | template settings, `brandBound` fields | Falls back to the global value until overridden | How big the logo is, whether the tagline shows, which logo variant the dark header uses, primary colour (defaults from the brand doc) |
+
+Rules:
+1. Global data is edited once and every template shows it. The Customizer exposes a **Site Identity** group (title, tagline, logo, site icon, social links) that writes to the global sections and is badged "applies to all templates" so the operator can tell the tiers apart.
+2. A template never stores a copy of global data; it stores only how it presents it. Fields marked `brandBound` read the global value until the operator overrides them for this template, with a one-click "use brand value" reset.
+3. **Menu location assignments are per template, but never lost.** A pack declares its locations with a **role** (`primary`, `secondary`, `footer-1..n`, `dashboard`, `social`). On activation, assignments are copied from the previous template by role, so switching templates keeps Shop, Our Story and the footer links where they were; the operator adjusts only if the new template has locations the old one did not.
+4. Activating a template for the first time seeds its settings from the pack defaults plus the brand doc; switching back later restores that template's own saved settings untouched.
+
 **SDK.** `useTemplateSettings()` returns the typed values for the active pack (defaults merged); colour and font fields are also available as tokens so packs never read them by hand. `check:templates` validates the schema, that every field has a default, that colour fields map to real tokens, and that the pack reads only fields it declared.
 
 **AI.** When the `template-build` skill generates a pack it also generates the settings schema and presets from the brand doc, so a generated template arrives customizable, not frozen.

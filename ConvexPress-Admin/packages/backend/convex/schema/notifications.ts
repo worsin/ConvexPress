@@ -72,8 +72,26 @@ export const notificationTables = {
     /** Timestamp when marked as read (undefined = unread) */
     readAt: v.optional(v.number()),
 
-    /** Timestamp when dismissed (hidden from feed) */
+    /** Timestamp when dismissed (archived: hidden from the inbox, kept in "Archived") */
     dismissedAt: v.optional(v.number()),
+
+    /**
+     * Snoozed until this timestamp. While in the future the row is hidden from
+     * the inbox and listed under "Snoozed"; once it passes the row simply
+     * reappears in the inbox at query time (no cron needed).
+     */
+    snoozedUntil: v.optional(v.number()),
+
+    /** When the recipient followed the action link (clears "needs you"). */
+    actionedAt: v.optional(v.number()),
+
+    /**
+     * True when the notification asks the recipient to do something (reply to a
+     * ticket, fix a failed payment, review a security alert). Set at creation
+     * from the notification definition (see notifications/center.ts); rows
+     * created before this field existed derive it at read time.
+     */
+    needsAction: v.optional(v.boolean()),
 
     // --- Grouping ---
     /** Grouping key (e.g., "comment.created:post_123"), max 200 chars */
