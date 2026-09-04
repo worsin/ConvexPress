@@ -279,7 +279,20 @@ These are the `colors`, `typography` and `layout` modules from §13; a pack adds
 
 **Storage.** `appearance.template.settings[packId]` in the site settings, per environment, so switching packs keeps each pack's own tweaks and switching back restores them. Public via `templateConfig.settings`. Colours and fonts are emitted as CSS variables by the existing `ThemeStyleInjector` path (it already does palette, fonts, radius, colour-scheme), so a colour change is live on the site the moment it saves.
 
-**Admin screen.** Appearance › Customize: left column is the groups accordion rendered from the schema (the same field components as Settings); right column is a live preview iframe of the site with unsaved values applied through a preview parameter, with page switcher (home, a post, shop, product, cart) and device widths. "Reset group to template defaults" and "Reset to brand". Saving writes the section; "Promote to live" copies staging's values along with the pack choice.
+**Where it runs: on the site itself (the Customizer).** WordPress's Customizer is the right idea and this stack can do it better because nothing needs a reload: settings are already reactive and the token injector already re-paints on change. So the Customizer is a Website component, not an admin page. An operator signed in on the site (the site already knows this: `useCan("manage_options")` drives the admin bar) gets a **Customize** button in the admin bar; it opens a slide-in panel over the live page. Every change is applied instantly to the real DOM through a **draft layer**: `TemplateSettingsDraftProvider` overlays unsaved values on top of the saved section, and every SDK hook (`useTemplateSettings`, tokens, header/footer/shop modules) reads the merged value, so every surface re-renders as you type. Nothing persists until **Publish**, which writes `appearance.template.settings[packId]` through the site's Convex with the operator's own capability. The admin app's Appearance › Customize entry simply opens the running site with `?customize=1` (via the site runner when the site address is local), so the desktop flow and the on-site flow are the same feature.
+
+Panel design (better than WordPress, not a copy):
+- **Groups accordion** on the left of the panel rendered from the included modules and custom groups; search across fields.
+- **Context aware.** The registry knows which surface the current route renders. Each module field declares which surfaces consume it, and the SDK additionally records which fields were actually read during the last render of this page. The panel opens on the groups that affect the page you are looking at and greys out the rest ("used on 6 other pages"). Navigate to the shop and the Shop group comes forward.
+- **Click to edit.** SDK primitives stamp `data-customize="<field id>"` on the elements they style. Hovering an element outlines it and names its setting; clicking jumps the panel to that field. This is WordPress's pencil icons without the pencils.
+- **Template switcher at the top** (like WordPress), previewing another pack with its own saved settings before committing.
+- **Device widths.** Desktop edits happen on the live page. Tablet and phone modes render the same page in an inline iframe at that width; the draft is shared over `BroadcastChannel`, so it stays live.
+- **Presets** for the Colors module, brand reset, per-group reset, undo/redo of the draft, and a "changes" list before Publish.
+- **Staging first.** On a staging environment Publish writes staging; "Promote to live" copies the section. On live, Publish asks for confirmation.
+- **Concurrency.** Drafts are per operator (local); the saved section carries a version and the panel warns if it moved while a draft is open.
+- **Blocks are out of scope here.** The Customizer edits template settings (global data for the template). Page content stays in the block editor; the admin bar's "Edit this page" link sits next to Customize.
+
+**Admin screen.** Appearance › Customize is a thin launcher (opens the site with `?customize=1`) plus a read-only summary of the saved values per environment, so the admin still shows what is set without duplicating the editor.
 
 **SDK.** `useTemplateSettings()` returns the typed values for the active pack (defaults merged); colour and font fields are also available as tokens so packs never read them by hand. `check:templates` validates the schema, that every field has a default, that colour fields map to real tokens, and that the pack reads only fields it declared.
 
@@ -288,6 +301,6 @@ These are the `colors`, `typography` and `layout` modules from §13; a pack adds
 ## 15. Amendments to §10 and §11
 
 - Phase 1 adds: delete Themes, `layouts`, `templates/`, `template-parts/`; migrate the active palette into Core's template settings; page templates become `page` variants.
-- Phase 2 adds: Appearance › Customize rendering the included modules (header/footer/colors screens re-packaged as groups) with live preview.
+- Phase 2 adds: the on-site Customizer (draft layer, context awareness, click-to-edit, device iframe, publish/promote) with the included modules re-packaged as groups; the admin's Customize entry launches it.
 - Phases 3–4: Journal and Depot each ship two or three colour presets and their own option groups.
 - Decision 3 in §11 is settled: the builders move into templates as settings modules (§13); only Themes, `layouts`, `templates/` and `template-parts/` are deleted, in phase 1.

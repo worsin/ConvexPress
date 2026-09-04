@@ -360,3 +360,38 @@ export interface DashboardNavItem {
   /** Whether to match exact path only */
   exact?: boolean;
 }
+
+// ─── Dashboard Config (Dashboard extension, from admin settings) ────────────
+
+/**
+ * Customer dashboard shell configuration. Mirrors `DashboardSettings` in
+ * ConvexPress-Admin/packages/backend/convex/settings/defaults.ts and reaches
+ * the website as `dashboardConfig` on `api.settings.queries.getPublic`.
+ * Menus supply the navigation; these values shape the shell around it.
+ */
+export interface DashboardConfig {
+  /** Path the dashboard lives at. A menu item's path override wins per link. */
+  basePath: string;
+  /** Which navigation surfaces the shell renders. */
+  layout: "sidebar" | "topbar" | "both";
+  /** Menu locations feeding each surface (empty = generated from the page registry). */
+  sidebarLocation: string;
+  topbarLocation: string;
+  profileLocation: string;
+  /** Sidebar starts collapsed to icons on desktop. */
+  sidebarCollapsedByDefault: boolean;
+  sidebarWidth: number;
+  showThemeToggle: boolean;
+  showNotificationBell: boolean;
+  showSearch: boolean;
+  /** "site" reuses the site logo; "custom" uses customLogoUrl; "none" shows the name only. */
+  brandMark: "site" | "custom" | "none";
+  customLogoUrl: string;
+  /** Registry page id shown at the base path. */
+  landingPage: string;
+  footerVariant: "minimal" | "full" | "none";
+  /** Members may rearrange, resize, and hide widgets on their own home. */
+  membersCanEditHome: boolean;
+  /** Greeting line on the welcome widget; {name} is replaced. */
+  welcomeHeadline: string;
+}
