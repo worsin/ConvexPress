@@ -290,6 +290,10 @@ function deriveConvexSiteUrl(convexUrl) {
       url.hostname = url.hostname.replace(/\.convex\.cloud$/, ".convex.site");
       return cleanUrl(url.toString());
     }
+    if (url.port) {
+      url.port = String(Number(url.port) + 1);
+      return url.origin;
+    }
   } catch {
   }
   return cleaned;
@@ -300,21 +304,59 @@ function validateSetupMode(mode) {
   }
   return mode;
 }
-function normalizeConvexCloudUrl(value) {
+function isPrivateHost(host) {
+  return host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]" || !host.includes(".") || host.endsWith(".local") || host.endsWith(".internal") || /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+}
+function classifyDeploymentUrl(value) {
   const cleaned = requireTrimmed(value, "Convex URL", {
     maxLength: MAX_CONVEX_URL_LENGTH
   }).replace(/\/+$/, "");
-  if (!CONVEX_CLOUD_URL_RE.test(cleaned)) {
-    throw new Error(
-      "Convex URL must match https://your-app-123.convex.cloud."
-    );
+  if (CONVEX_CLOUD_URL_RE.test(cleaned)) return { url: cleaned, kind: "cloud" };
+  let parsed;
+  try {
+    parsed = new URL(cleaned);
+  } catch {
+    throw new Error("Convex URL must be https://your-app-123.convex.cloud or your self-hosted backend origin.");
   }
-  return cleaned;
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("Convex URL must start with http:// or https://.");
+  }
+  if (parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.username) {
+    throw new Error("Convex URL must be a bare origin (no path or query).");
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (host.endsWith(".convex.site")) {
+    throw new Error("That is the deployment's HTTP actions host. Enter the https://your-app-123.convex.cloud URL instead.");
+  }
+  if (host.endsWith(".convex.cloud") || host.includes(".convex.cloud.")) {
+    throw new Error("Convex URL must match https://your-app-123.convex.cloud.");
+  }
+  if (host.startsWith("169.254.") || host === "metadata.google.internal") {
+    throw new Error("Convex URL must not point at a link-local address.");
+  }
+  if (parsed.protocol === "http:" && !isPrivateHost(host)) {
+    throw new Error("Plain-http deployments are only accepted on private networks; use https for public hosts.");
+  }
+  return { url: parsed.origin, kind: "self-hosted" };
+}
+function normalizeConvexCloudUrl(value) {
+  return classifyDeploymentUrl(value).url;
 }
 function getDeploymentNameFromConvexUrl(convexUrl) {
   const normalizedUrl = normalizeConvexCloudUrl(convexUrl);
   const host = new URL(normalizedUrl).hostname;
   return host.replace(/\.convex\.cloud$/, "");
+}
+function validateDeploymentCredential(value, convexUrl) {
+  const target = classifyDeploymentUrl(convexUrl);
+  if (target.kind === "cloud") {
+    return { kind: "cloud", ...validateProductionDeployKey(value, target.url) };
+  }
+  const adminKey = requireTrimmed(value, "Admin key", { maxLength: 16384 });
+  if (adminKey.length < 16 || /\s/.test(adminKey)) {
+    throw new Error("Enter the deployment admin key (from generate_admin_key.sh) for a self-hosted backend.");
+  }
+  return { kind: "self-hosted", adminKey, convexUrl: target.url };
 }
 function validateProductionDeployKey(value, convexUrl) {
   const deployKey = requireTrimmed(value, "Deploy key", {
@@ -385,7 +427,7 @@ function validateSetupConfig(config) {
     config.convexSiteUrl
   );
   if (mode === "server") {
-    validateProductionDeployKey(config.adminKey, convexUrl);
+    validateDeploymentCredential(config.adminKey, convexUrl);
   }
   return {
     mode,
@@ -616,7 +658,27 @@ function getWizardIndexPath2() {
   return import_node_path5.default.join(__dirname, "wizard", "index.html");
 }
 function deriveDeployment(config) {
-  return validateProductionDeployKey(config.adminKey, config.convexUrl);
+  return validateDeploymentCredential(config.adminKey, config.convexUrl);
+}
+function listDeploymentEnvNames(backendRoot, env, targetArgs) {
+  return new Promise((resolve) => {
+    const child = (0, import_node_child_process.spawn)("bunx", ["convex", "env", "list", ...targetArgs], {
+      cwd: backendRoot,
+      env,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    let stdout = "";
+    child.stdout.on("data", (data) => stdout += data.toString());
+    child.on("error", () => resolve(/* @__PURE__ */ new Set()));
+    child.on("exit", () => {
+      const names = /* @__PURE__ */ new Set();
+      for (const line of stdout.split(/\r?\n/)) {
+        const match = /^([A-Z][A-Z0-9_]*)=/.exec(line.trim());
+        if (match) names.add(match[1]);
+      }
+      resolve(names);
+    });
+  });
 }
 function resolveBackendRoot() {
   const candidates = [
@@ -706,17 +768,19 @@ function inferClerkIssuerDomain(localEnv) {
     return void 0;
   }
 }
-function createBackendEnvFile(convexSiteUrl, backendRoot, firstAdminSetupSecret) {
+function createBackendEnvFile(convexSiteUrl, backendRoot, firstAdminSetupSecret, existingNames = /* @__PURE__ */ new Set()) {
   const localEnv = loadLocalEnv(backendRoot);
   const tempDir = (0, import_node_fs2.mkdtempSync)(import_node_path5.default.join((0, import_node_os.tmpdir)(), "convexpress-setup-"));
   const filePath = import_node_path5.default.join(tempDir, "convex-env.local");
   const configuredAuthPrivateKey = readSetupEnvValue("AUTH_PRIVATE_KEY", localEnv);
   const envVars = {
-    AUTH_PRIVATE_KEY: configuredAuthPrivateKey ? validateAuthPrivateKey(configuredAuthPrivateKey) : generateAuthPrivateKey(),
     AUTH_ISSUER_URL: convexSiteUrl,
     AUTH_ALLOWED_ORIGINS: readSetupEnvValue("AUTH_ALLOWED_ORIGINS", localEnv) ?? "http://localhost:4105,http://127.0.0.1:4105",
     AUTH_ALLOW_NULL_ORIGIN: readSetupEnvValue("AUTH_ALLOW_NULL_ORIGIN", localEnv) ?? "true"
   };
+  if (!existingNames.has("AUTH_PRIVATE_KEY")) {
+    envVars.AUTH_PRIVATE_KEY = configuredAuthPrivateKey ? validateAuthPrivateKey(configuredAuthPrivateKey) : generateAuthPrivateKey();
+  }
   if (firstAdminSetupSecret) {
     envVars.FIRST_ADMIN_SETUP_SECRET = firstAdminSetupSecret;
   }
@@ -769,24 +833,30 @@ function runCommand(command, args, options) {
   });
 }
 async function deployServerBackend(config, convexSiteUrl, firstAdminSetupSecret, sendProgress) {
-  const { deployKey, deployment } = deriveDeployment(config);
+  const credential = deriveDeployment(config);
   const backendRoot = resolveBackendRoot();
-  const env = {
-    ...process.env,
-    CONVEX_DEPLOYMENT: deployment,
-    CONVEX_DEPLOY_KEY: deployKey
-  };
+  const env = { ...process.env };
+  const targetArgs = [];
+  if (credential.kind === "cloud") {
+    env.CONVEX_DEPLOYMENT = credential.deployment;
+    env.CONVEX_DEPLOY_KEY = credential.deployKey;
+  } else {
+    targetArgs.push("--url", credential.convexUrl, "--admin-key", credential.adminKey);
+  }
+  sendProgress("environment", "Checking the deployment's existing environment.");
+  const existingNames = await listDeploymentEnvNames(backendRoot, env, targetArgs);
   sendProgress("environment", "Preparing backend environment.");
   const envFile = createBackendEnvFile(
     convexSiteUrl,
     backendRoot,
-    firstAdminSetupSecret
+    firstAdminSetupSecret,
+    existingNames
   );
   try {
     sendProgress("environment", "Syncing required backend environment variables.");
     await runCommand(
       "bunx",
-      ["convex", "env", "set", "--from-file", envFile.filePath, "--force"],
+      ["convex", "env", "set", "--from-file", envFile.filePath, "--force", ...targetArgs],
       {
         cwd: backendRoot,
         env,
@@ -802,14 +872,13 @@ async function deployServerBackend(config, convexSiteUrl, firstAdminSetupSecret,
     env,
     onOutput: (message) => console.log(`[Setup IPC] Codegen: ${message}`)
   });
-  sendProgress("deploy", "Deploying Convex backend code.");
+  sendProgress("deploy", "Deploying Convex backend code (typechecked).");
   await runCommand(
     "bunx",
     [
       "convex",
       "deploy",
-      "--typecheck",
-      "disable",
+      ...targetArgs,
       "--message",
       "ConvexPress desktop setup wizard"
     ],
@@ -2420,6 +2489,7 @@ function registerSecurityHandlers() {
 // electron/ipc/siteDeploy.ts
 var import_node_child_process4 = require("child_process");
 var import_node_fs7 = require("fs");
+var import_node_os3 = require("os");
 var import_node_path14 = __toESM(require("path"));
 
 // electron/ipc/siteDeployValidation.ts
@@ -2453,7 +2523,8 @@ function parseDeploymentOrigin(value) {
   if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Invalid deployment origin");
   if (url.protocol === "http:") {
     const host = url.hostname;
-    const privateHost = host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]" || /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    const privateHost = host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]" || !host.includes(".") || // single-label intranet names (docker / LAN aliases)
+    host.endsWith(".local") || host.endsWith(".internal") || /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
     if (!privateHost) throw new Error("Plain-http deployments must be on a private network");
   }
   return url.origin;
@@ -2472,6 +2543,16 @@ function assertSiteDeployRequest(raw) {
     if (credential.adminKey.length < 16) throw new Error("Invalid admin key");
   } else if (raw.credential.kind === "bundled") {
     credential = { kind: "bundled", convexUrl: parseDeploymentOrigin(raw.credential.convexUrl) };
+  } else if (raw.credential.kind === "prompt") {
+    credential = { kind: "prompt", deploymentOrigin: parseDeploymentOrigin(raw.credential.deploymentOrigin) };
+  } else if (raw.credential.kind === "control-plane") {
+    const authToken = cleanText(raw.credential.authToken, "operator token", 24e3);
+    if (authToken.length < 100 || authToken.split(".").length !== 3) throw new Error("Operator token is invalid");
+    credential = {
+      kind: "control-plane",
+      connectionId: cleanText(raw.credential.connectionId, "connection", 160),
+      authToken
+    };
   } else if (raw.credential.kind === "deploy-key") {
     credential = {
       kind: "deploy-key",
@@ -2500,13 +2581,57 @@ function assertSiteDeployRequest(raw) {
 function redactDeployLog(line, secrets) {
   let out = line;
   for (const secret of secrets) {
-    if (secret && secret.length >= 8) out = out.split(secret).join("\u2022\u2022\u2022\u2022");
+    if (!secret || secret.length < 8) continue;
+    out = out.split(secret).join("\u2022\u2022\u2022\u2022");
+    for (const fragment of secret.split(/\r?\n/)) {
+      const piece = fragment.trim();
+      if (piece.length >= 16) out = out.split(piece).join("\u2022\u2022\u2022\u2022");
+    }
   }
-  return out.replace(/(sk_(?:test|live)_)[A-Za-z0-9]+/g, "$1\u2022\u2022\u2022\u2022").replace(/(whsec_)[A-Za-z0-9+/=_-]+/g, "$1\u2022\u2022\u2022\u2022");
+  return out.replace(/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, "[private key redacted]").replace(/-----(?:BEGIN|END) [A-Z ]*PRIVATE KEY-----/g, "[private key redacted]").replace(/(sk_(?:test|live)_)[A-Za-z0-9]+/g, "$1\u2022\u2022\u2022\u2022").replace(/(whsec_)[A-Za-z0-9+/=_-]+/g, "$1\u2022\u2022\u2022\u2022");
+}
+var ENVIRONMENT_KINDS = /* @__PURE__ */ new Set([
+  "live",
+  "staging",
+  "beta",
+  "preview",
+  "development",
+  "local",
+  "custom"
+]);
+var PORTABLE_KEY = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/;
+function assertSiteInitializeRequest(raw) {
+  if (!isRecord(raw)) throw new Error("Invalid initialize request");
+  const websiteKey = cleanText(raw.websiteKey, "website key", 128);
+  const instanceKey = cleanText(raw.instanceKey, "environment key", 128);
+  if (!PORTABLE_KEY.test(websiteKey) || !PORTABLE_KEY.test(instanceKey)) {
+    throw new Error("Website and environment keys must be portable keys (8-128 chars: letters, digits, . _ : -)");
+  }
+  const environmentKind = String(raw.environmentKind ?? "");
+  if (!ENVIRONMENT_KINDS.has(environmentKind)) throw new Error("Unknown environment kind");
+  const authToken = cleanText(raw.authToken, "operator token", 24e3);
+  if (authToken.length < 100 || authToken.split(".").length !== 3) throw new Error("Operator token is invalid");
+  const adminOrigins = Array.isArray(raw.adminOrigins) ? raw.adminOrigins.map((origin) => parseDeploymentOrigin(origin)) : [];
+  if (adminOrigins.length > 8) throw new Error("Too many admin origins");
+  return {
+    instanceId: cleanText(raw.instanceId, "environment", 160),
+    websiteKey,
+    instanceKey,
+    environmentKind,
+    deploymentOrigin: parseDeploymentOrigin(raw.deploymentOrigin),
+    managementOrigin: parseDeploymentOrigin(raw.managementOrigin),
+    siteOrigin: parseDeploymentOrigin(raw.siteOrigin),
+    siteTitle: cleanText(raw.siteTitle, "site title", 160),
+    connectionName: cleanText(raw.connectionName, "connection name", 160),
+    ...typeof raw.accountLabel === "string" && raw.accountLabel.trim() ? { accountLabel: cleanText(raw.accountLabel, "account label", 160) } : {},
+    authToken,
+    adminOrigins
+  };
 }
 
 // electron/ipc/siteDeploy.ts
 var { BrowserWindow: BrowserWindow6, ipcMain: ipcMain11 } = require("electron");
+var configStore2 = new JsonStore({ name: "convexpress-config" });
 var activeRun = null;
 var lastRun = null;
 function getRendererIndexPath6() {
@@ -2521,6 +2646,34 @@ function broadcast2(event) {
   for (const win of BrowserWindow6.getAllWindows()) {
     if (!win.isDestroyed()) win.webContents.send("site-deploy:progress", event);
   }
+}
+async function setDeploymentEnv(name, value, targetArgs, options) {
+  const dir = (0, import_node_fs7.mkdtempSync)(import_node_path14.default.join((0, import_node_os3.tmpdir)(), "convexpress-env-"));
+  const file = import_node_path14.default.join(dir, "convex-env.local");
+  (0, import_node_fs7.writeFileSync)(file, `${name}=${JSON.stringify(value)}
+`, { mode: 384 });
+  try {
+    await runCommand2("bunx", ["convex", "env", "set", "--from-file", file, "--force", ...targetArgs], {
+      ...options,
+      onLine: () => {
+      }
+    });
+  } finally {
+    try {
+      (0, import_node_fs7.rmSync)(dir, { recursive: true, force: true });
+    } catch {
+    }
+  }
+}
+function describeFailure(error) {
+  const data = error?.data;
+  if (data && typeof data === "object" && typeof data.message === "string") {
+    return data.message;
+  }
+  if (typeof data === "string" && data.trim()) return data.trim();
+  const message = describeFailure(error);
+  const uncaught = /Uncaught (?:Convex)?Error: ([^\n]+)/u.exec(message);
+  return (uncaught?.[1] ?? message).trim();
 }
 function runCommand2(command, args, options) {
   return new Promise((resolve, reject) => {
@@ -2545,7 +2698,11 @@ function runCommand2(command, args, options) {
     child.on("error", reject);
     child.on("exit", (code, signal) => {
       if (code === 0) return resolve();
-      const tail = stderr.trim().split("\n").slice(-6).join("\n");
+      const lines = stderr.split(/\r?\n/).map((line) => line.trim()).filter(
+        (line) => line && !line.includes("ExperimentalWarning") && !line.includes("--trace-warnings") && !/^- Deploying to /.test(line)
+      );
+      const failures = lines.filter((line) => line.startsWith("\u2716") || /error/i.test(line));
+      const tail = (failures.length > 0 ? failures : lines).slice(-4).join("\n");
       reject(
         new Error(
           `${command} ${args[0] ?? ""} ${args[1] ?? ""} failed ${signal ? `with signal ${signal}` : `with exit code ${code}`}${tail ? `: ${tail}` : ""}`
@@ -2585,12 +2742,31 @@ function mapDeploymentOrigin(origin) {
   }
   return origin;
 }
-async function execute(request, run) {
+async function execute(request, run, promptedKey) {
   const backendRoot = resolveBackendRoot();
   const secrets = [];
   const env = { ...process.env };
   const targetArgs = [];
-  if (request.credential.kind === "bundled") {
+  if (request.credential.kind === "prompt") {
+    if (!promptedKey) throw new Error("No deployment key was entered.");
+    secrets.push(promptedKey);
+    targetArgs.push("--url", mapDeploymentOrigin(request.credential.deploymentOrigin), "--admin-key", promptedKey);
+  } else if (request.credential.kind === "control-plane") {
+    const controlPlaneUrl = configStore2.get("convexUrl");
+    if (typeof controlPlaneUrl !== "string" || !controlPlaneUrl.trim()) {
+      throw new Error("The ConvexPress control plane is not configured.");
+    }
+    const { ConvexHttpClient: ConvexHttpClient2 } = await import("convex/browser");
+    const { makeFunctionReference: makeFunctionReference2 } = await import("convex/server");
+    const client = new ConvexHttpClient2(mapDeploymentOrigin(controlPlaneUrl.trim()));
+    client.setAuth(request.credential.authToken);
+    const issued = await client.action(
+      makeFunctionReference2("connections/siteAuth:issueDeploymentCredential"),
+      { connectionId: request.credential.connectionId }
+    );
+    secrets.push(issued.deploymentAdminKey, request.credential.authToken);
+    targetArgs.push("--url", mapDeploymentOrigin(issued.deploymentOrigin), "--admin-key", issued.deploymentAdminKey);
+  } else if (request.credential.kind === "bundled") {
     const bundled = readBundledDeployCredential();
     if (!bundled) throw new Error("This install has no bundled deploy key; connect the site through the control plane instead.");
     if (bundled.convexUrl.replace(/\/+$/, "") !== request.credential.convexUrl) {
@@ -2624,12 +2800,16 @@ async function execute(request, run) {
   if (request.envChanges.length > 0) {
     report("environment", `Writing ${request.envChanges.length} environment variable(s).`);
     for (const change of request.envChanges) {
-      const args = change.value === null ? ["convex", "env", "remove", change.name, ...targetArgs] : ["convex", "env", "set", change.name, change.value, ...targetArgs];
-      await runCommand2("bunx", args, {
-        cwd: backendRoot,
-        env,
-        onLine: (line) => report("environment", line)
-      });
+      const onLine = (line) => report("environment", line);
+      if (change.value === null) {
+        await runCommand2("bunx", ["convex", "env", "remove", change.name, ...targetArgs], {
+          cwd: backendRoot,
+          env,
+          onLine
+        });
+      } else {
+        await setDeploymentEnv(change.name, change.value, targetArgs, { cwd: backendRoot, env, onLine });
+      }
       report("environment", `${change.name} ${change.value === null ? "removed" : "set"}.`);
     }
   }
@@ -2651,6 +2831,147 @@ async function execute(request, run) {
   );
   report("complete", "Deployed. The site now trusts the configured sign-in provider.");
 }
+var MANAGEMENT_CAPABILITIES = [
+  "health.read",
+  "compatibility.read",
+  "site.register",
+  "site.attach",
+  "site.deploy",
+  "site.select",
+  "session.exchange",
+  "backup.create",
+  "site.clone",
+  "site.promote",
+  "site.restore",
+  "credential.rotate",
+  "authority.grant",
+  "authority.revoke",
+  "operation.resume",
+  "handoff.export"
+];
+function runCapture(command, args, options) {
+  return new Promise((resolve, reject) => {
+    const child = (0, import_node_child_process4.spawn)(command, args, { cwd: options.cwd, env: options.env, stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => stdout += chunk.toString());
+    child.stderr.on("data", (chunk) => stderr += chunk.toString());
+    child.on("error", reject);
+    child.on("exit", (code) => resolve({ code: code ?? 1, stdout, stderr }));
+  });
+}
+async function fetchJson(url, init = {}, timeoutMs = 15e3) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    const text = await response.text();
+    let json = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
+    return { ok: response.ok, status: response.status, json };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+async function initializeSite(request, adminKey, controlPlaneUrl, run) {
+  const backendRoot = resolveBackendRoot();
+  const deployOrigin = mapDeploymentOrigin(request.deploymentOrigin);
+  const secrets = [adminKey, request.authToken];
+  const env = { ...process.env };
+  const targetArgs = ["--url", deployOrigin, "--admin-key", adminKey];
+  const report = (phase, message) => {
+    const safe = redactDeployLog(message, secrets);
+    run.phase = phase;
+    run.log.push(`[${(/* @__PURE__ */ new Date()).toISOString()}] ${phase}: ${safe}`);
+    if (run.log.length > 400) run.log.splice(0, run.log.length - 400);
+    console.log(`[Site init] ${run.label} \xB7 ${phase}: ${safe}`);
+    broadcast2({ runId: run.runId, phase, message: safe, at: Date.now() });
+  };
+  report("environment", `Checking the deployment at ${deployOrigin}.`);
+  const existing = await runCapture("bunx", ["convex", "env", "list", ...targetArgs], { cwd: backendRoot, env });
+  if (existing.code !== 0) {
+    const tail = existing.stderr.trim().split("\n").slice(-4).join(" ");
+    throw new Error(`The deployment rejected the admin key or is unreachable: ${tail}`);
+  }
+  const presentNames = new Set(
+    existing.stdout.split(/\r?\n/).map((line) => /^([A-Z][A-Z0-9_]*)=/.exec(line.trim())?.[1]).filter((name) => Boolean(name))
+  );
+  const adminOrigins = Array.from(/* @__PURE__ */ new Set(["http://localhost:4105", "http://127.0.0.1:4105", ...request.adminOrigins]));
+  const wanted = [
+    ["AUTH_ISSUER_URL", request.managementOrigin],
+    ["AUTH_ALLOWED_ORIGINS", adminOrigins.join(",")],
+    ["AUTH_ALLOW_NULL_ORIGIN", "true"],
+    ["SITE_URL", request.siteOrigin]
+  ];
+  if (!presentNames.has("AUTH_PRIVATE_KEY")) wanted.unshift(["AUTH_PRIVATE_KEY", generateAuthPrivateKey()]);
+  for (const [name, value] of wanted) {
+    if (presentNames.has(name) && name !== "SITE_URL" && name !== "AUTH_ISSUER_URL") {
+      report("environment", `${name} already set, keeping it.`);
+      continue;
+    }
+    if (name === "AUTH_PRIVATE_KEY") secrets.push(value);
+    await setDeploymentEnv(name, value, targetArgs, {
+      cwd: backendRoot,
+      env,
+      onLine: (line) => report("environment", line)
+    });
+    report("environment", `${name} set.`);
+  }
+  report("codegen", "Regenerating extension index.");
+  await runCommand2("node", ["scripts/generate-extension-index.mjs"], { cwd: backendRoot, env, onLine: (line) => report("codegen", line) });
+  report("deploy", "Deploying the ConvexPress backend (this can take a minute).");
+  await runCommand2("bunx", ["convex", "deploy", ...targetArgs, "--message", `ConvexPress: initialize ${request.websiteKey}/${request.instanceKey}`], {
+    cwd: backendRoot,
+    env,
+    onLine: (line) => report("deploy", line)
+  });
+  report("identity", "Writing the site identity and seeding roles.");
+  const identity = {
+    websiteKey: request.websiteKey,
+    instanceKey: request.instanceKey,
+    environmentKind: request.environmentKind,
+    deploymentOrigin: request.deploymentOrigin,
+    managementOrigin: request.managementOrigin,
+    siteOrigin: request.siteOrigin,
+    siteContractVersion: "1.0.0",
+    schemaVersion: "2026.9.0",
+    engineVersion: "1.0.0",
+    managementCapabilities: MANAGEMENT_CAPABILITIES
+  };
+  await runCommand2("bunx", ["convex", "run", "management/bootstrap:configureIdentity", JSON.stringify(identity), ...targetArgs], {
+    cwd: backendRoot,
+    env,
+    onLine: (line) => report("identity", line)
+  });
+  await runCommand2("bunx", ["convex", "run", "roles/internals:seedRoles", "{}", ...targetArgs], {
+    cwd: backendRoot,
+    env,
+    onLine: (line) => report("identity", line)
+  });
+  const healthOrigin = mapDeploymentOrigin(request.managementOrigin);
+  const health = await fetchJson(`${healthOrigin}/api/convexpress/management/health`);
+  if (!health.ok || health.json?.websiteKey !== request.websiteKey || health.json?.instanceKey !== request.instanceKey) {
+    throw new Error(`The site answered its health check with an unexpected identity (HTTP ${health.status}).`);
+  }
+  report("identity", "Site identity confirmed by the health endpoint.");
+  report("connect", "Enrolling the controller connection.");
+  const { ConvexHttpClient: ConvexHttpClient2 } = await import("convex/browser");
+  const { makeFunctionReference: makeFunctionReference2 } = await import("convex/server");
+  const client = new ConvexHttpClient2(mapDeploymentOrigin(controlPlaneUrl));
+  client.setAuth(request.authToken);
+  const created = await client.action(makeFunctionReference2("connections/actions:create"), {
+    instanceId: request.instanceId,
+    name: request.connectionName,
+    ...request.accountLabel ? { accountLabel: request.accountLabel } : {},
+    deploymentAdminKey: adminKey
+  });
+  report("complete", `Connected (${created.status}). The site is ready.`);
+  return String(created.connectionId);
+}
 function registerSiteDeployHandlers() {
   ipcMain11.handle("site-deploy:status", (event) => {
     assertSender3(event);
@@ -2661,6 +2982,11 @@ function registerSiteDeployHandlers() {
     assertSender3(event);
     if (activeRun) throw new Error(`A deploy is already running (${activeRun.label}).`);
     const request = assertSiteDeployRequest(rawInput);
+    let promptedKey = null;
+    if (request.credential.kind === "prompt") {
+      promptedKey = await requestDeploymentCredential(BrowserWindow6.fromWebContents(event.sender));
+      if (!promptedKey) return { runId: null, ok: false, cancelled: true, error: null, log: [] };
+    }
     const run = {
       runId: `deploy_${Date.now().toString(36)}`,
       label: request.label,
@@ -2673,13 +2999,13 @@ function registerSiteDeployHandlers() {
     };
     activeRun = run;
     try {
-      await execute(request, run);
+      await execute(request, run, promptedKey);
       run.ok = true;
     } catch (error) {
       run.ok = false;
       run.phase = "failed";
-      run.error = redactDeployLog(error instanceof Error ? error.message : String(error), [
-        request.credential.kind === "admin-key" ? request.credential.adminKey : request.credential.kind === "deploy-key" ? request.credential.deployKey : readBundledDeployCredential()?.deployKey ?? "",
+      run.error = redactDeployLog(describeFailure(error), [
+        request.credential.kind === "admin-key" ? request.credential.adminKey : request.credential.kind === "deploy-key" ? request.credential.deployKey : request.credential.kind === "prompt" ? promptedKey ?? "" : request.credential.kind === "control-plane" ? request.credential.authToken : readBundledDeployCredential()?.deployKey ?? "",
         ...request.envChanges.map((change) => change.value ?? "")
       ]);
       broadcast2({ runId: run.runId, phase: "failed", message: run.error, at: Date.now() });
@@ -2687,8 +3013,47 @@ function registerSiteDeployHandlers() {
       run.finishedAt = Date.now();
       lastRun = run;
       activeRun = null;
+      promptedKey = null;
     }
-    return { runId: run.runId, ok: run.ok === true, error: run.error, log: run.log.slice(-60) };
+    return { runId: run.runId, ok: run.ok === true, cancelled: false, error: run.error, log: run.log.slice(-60) };
+  });
+  ipcMain11.handle("site-deploy:initialize", async (event, rawInput) => {
+    assertSender3(event);
+    if (activeRun) throw new Error(`A deploy is already running (${activeRun.label}).`);
+    const request = assertSiteInitializeRequest(rawInput);
+    const controlPlaneUrl = configStore2.get("convexUrl");
+    if (typeof controlPlaneUrl !== "string" || !controlPlaneUrl.trim()) {
+      throw new Error("The ConvexPress control plane is not configured.");
+    }
+    let adminKey = await requestDeploymentCredential(BrowserWindow6.fromWebContents(event.sender));
+    if (!adminKey) return { runId: null, ok: false, cancelled: true, error: null, log: [], connectionId: null };
+    const run = {
+      runId: `init_${Date.now().toString(36)}`,
+      label: `Initialize ${request.siteTitle}`,
+      startedAt: Date.now(),
+      finishedAt: null,
+      phase: "environment",
+      ok: null,
+      error: null,
+      log: []
+    };
+    activeRun = run;
+    let connectionId = null;
+    try {
+      connectionId = await initializeSite(request, adminKey, controlPlaneUrl.trim(), run);
+      run.ok = true;
+    } catch (error) {
+      run.ok = false;
+      run.phase = "failed";
+      run.error = redactDeployLog(describeFailure(error), [adminKey]);
+      broadcast2({ runId: run.runId, phase: "failed", message: run.error, at: Date.now() });
+    } finally {
+      run.finishedAt = Date.now();
+      lastRun = run;
+      activeRun = null;
+      adminKey = null;
+    }
+    return { runId: run.runId, ok: run.ok === true, cancelled: false, error: run.error, log: run.log.slice(-60), connectionId };
   });
   ipcMain11.handle("site-deploy:bundled-credential", (event) => {
     assertSender3(event);

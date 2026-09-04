@@ -17,8 +17,16 @@ function requireKey(value: string): AuthStorageKey {
   return value as AuthStorageKey;
 }
 
+// Browser builds keep the operator session across tab and browser restarts,
+// matching Better Auth's own cross-domain default (localStorage). Electron
+// never reaches this path: it stores the session in OS-encrypted safeStorage.
 function browserStorage() {
-  return typeof window === "undefined" ? null : window.sessionStorage;
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
 }
 
 export async function initializeControlAuthStorage(): Promise<void> {

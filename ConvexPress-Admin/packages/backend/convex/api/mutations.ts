@@ -161,6 +161,9 @@ export const createKey = mutation({
 
     // 8. Insert the API key record
     const now = Date.now();
+    if (args.expiresAt !== undefined && args.expiresAt <= now) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "expiresAt must be in the future" });
+    }
     const keyId = await ctx.db.insert("apiKeys", {
       name,
       keyPrefix,

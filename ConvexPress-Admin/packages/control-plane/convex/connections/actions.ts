@@ -9,9 +9,10 @@ import {
 import { generateManagementKeyPair } from "@convexpress/site-contract/node";
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 
 import { internal } from "../_generated/api";
+import { operatorAction } from "../rbac/functions";
 import { action } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import {
@@ -145,7 +146,25 @@ function activeKeys() {
   });
 }
 
-export const create = action({
+/**
+ * Secret-free, bounded description of why a connect/rotate attempt failed.
+ * The admin key is scrubbed defensively even though no code path echoes it.
+ */
+function describeConnectionFailure(cause: unknown, adminKey: string): string {
+  const raw =
+    cause instanceof ConvexError
+      ? typeof cause.data === "object" && cause.data && "message" in cause.data
+        ? String((cause.data as { message: unknown }).message)
+        : String(cause.data)
+      : cause instanceof Error
+        ? cause.message
+        : String(cause);
+  const scrubbed = raw.split(adminKey).join("••••").replace(/\s+/g, " ").trim();
+  const stripped = scrubbed.replace(/^\[Request ID: [^\]]+\]\s*/u, "");
+  return (stripped || "unknown error").slice(0, 200);
+}
+
+export const create = operatorAction({
   args: {
     instanceId: v.id("overseer_websiteInstances"),
     name: v.string(),
@@ -213,7 +232,7 @@ export const create = action({
         status: "connected" as const,
         credentialVersion: envelope.version,
       };
-    } catch {
+    } catch (cause) {
       if (enrolled) {
         try {
           await enrolled.client.mutation(revokeAuthority, {
@@ -225,18 +244,23 @@ export const create = action({
           // public-key authority with the supplied site admin credential.
         }
       }
+      const reason = describeConnectionFailure(cause, args.deploymentAdminKey);
       if (connectionId) {
-        await ctx.runMutation(internal.connections.mutations.markError, {
-          connectionId,
-          errorCode: "CONNECTION_CREATE_FAILED",
-        });
+        try {
+          await ctx.runMutation(internal.connections.mutations.markError, {
+            connectionId,
+            errorCode: `CONNECTION_CREATE_FAILED: ${reason}`,
+          });
+        } catch {
+          // Recording the failure must not mask the failure itself.
+        }
       }
-      throw new Error("Connection could not be created or verified");
+      throw new Error(`Connection could not be created or verified (${reason})`);
     }
   },
 });
 
-export const rotate = action({
+export const rotate = operatorAction({
   args: {
     connectionId: v.id("overseer_connections"),
     deploymentAdminKey: v.optional(v.string()),
@@ -388,15 +412,28 @@ export const test = action({
   },
 });
 
-export const revoke = action({
-  args: { connectionId: v.id("overseer_connections") },
+export const revoke = operatorAction({
+  args: {
+    connectionId: v.id("overseer_connections"),
+    /**
+     * Clear the local credential even when the site cannot be reached to
+     * revoke the controller authority remotely (deleted or dead deployment).
+     */
+    force: v.optional(v.boolean()),
+  },
   returns: actionResult,
   handler: async (ctx, args): Promise<ConnectionActionResult> => {
     const target: ConnectionActionTarget = await ctx.runQuery(
       internal.connections.mutations.prepare,
       { connectionId: args.connectionId },
     );
-    if (!target.credentials) throw new Error("Connection could not be revoked");
+    if (!target.credentials) {
+      // Nothing sealed locally (stale pending row): just retire it.
+      await ctx.runMutation(internal.connections.mutations.revoke, {
+        connectionId: args.connectionId,
+      });
+      return { connectionId: args.connectionId, status: "revoked" as const, credentialVersion: null };
+    }
     try {
       const key = parseEnvelopeKey(
         process.env.CONVEXPRESS_CONNECTION_ENVELOPE_KEYS,
@@ -418,7 +455,17 @@ export const revoke = action({
         keyId: credential.keyId,
       });
     } catch {
-      throw new Error("Connection could not be revoked");
+      if (!args.force) {
+        throw new Error(
+          "The site could not be reached to revoke the controller authority. Retry, or force-revoke to clear the local credential.",
+        );
+      }
+      await ctx.runMutation(internal.connections.mutations.recordHealth, {
+        connectionId: args.connectionId,
+        status: "unreachable",
+        latencyMs: 0,
+        errorCode: "FORCE_REVOKED_UNREACHABLE",
+      });
     }
     await ctx.runMutation(internal.connections.mutations.revoke, {
       connectionId: args.connectionId,

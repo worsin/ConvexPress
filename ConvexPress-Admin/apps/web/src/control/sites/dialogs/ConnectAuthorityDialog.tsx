@@ -23,8 +23,9 @@ import { useControlShell } from "@/control/ControlShellContext";
 import { getElectronBridge } from "@/lib/electron";
 import type { WorkspaceApi } from "../SitesWorkspace";
 import { Notice, TextField } from "../forms";
-import type { TreeEnvironment } from "../sites-model";
+import { findWebsite, type TreeEnvironment } from "../sites-model";
 import { friendlyError } from "../useWorkspaceActions";
+import { InitializeDeploymentPanel, canInitializeDeployments } from "./InitializeDeploymentPanel";
 
 export const DEFAULT_CONNECTION_NAME = "Standalone ConvexPress controller";
 
@@ -53,6 +54,7 @@ export async function provisionThroughElectron(input: {
 
 export function ConnectAuthorityDialog({
   api,
+  websiteId,
   environment,
 }: {
   api: WorkspaceApi;
@@ -60,14 +62,17 @@ export function ConnectAuthorityDialog({
   environment: TreeEnvironment;
 }) {
   const shell = useControlShell()!;
+  const website = findWebsite(api.tree, websiteId)?.website ?? null;
   const [name, setName] = useState(DEFAULT_CONNECTION_NAME);
   const [accountLabel, setAccountLabel] = useState("");
   const [busy, setBusy] = useState(false);
+  const [installing, setInstalling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const desktop = Boolean(getElectronBridge());
+  const locked = busy || installing;
 
   return (
-    <Dialog open onOpenChange={(open) => !open && !busy && api.closeDialog()}>
+    <Dialog open onOpenChange={(open) => !open && !locked && api.closeDialog()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-serif text-[26px] font-normal leading-none tracking-[-0.01em]">
@@ -105,14 +110,42 @@ export function ConnectAuthorityDialog({
               collects deployment credentials.
             </Notice>
           )}
+          {desktop && canInitializeDeployments() && (
+            <div className="rounded-lg border border-dashed border-border p-3.5">
+              <p className="text-[13px] font-medium text-foreground">Brand-new deployment?</p>
+              <p className="mt-1 text-[12.5px] leading-5 text-ink-2">
+                If the health check fails because ConvexPress was never deployed here, install it
+                first; the connection is enrolled at the end with the same key.
+              </p>
+              <div className="mt-3">
+                <InitializeDeploymentPanel
+                  target={{
+                    instanceId: environment.instanceId,
+                    websiteKey: website?.websiteKey ?? "",
+                    instanceKey: environment.instanceKey,
+                    environmentKind: environment.kind as never,
+                    deploymentOrigin: environment.deploymentOrigin,
+                    managementOrigin: environment.managementOrigin,
+                    siteOrigin: environment.siteOrigin,
+                    siteTitle: website?.title ?? environment.instanceKey,
+                  }}
+                  connectionName={name}
+                  accountLabel={accountLabel}
+                  disabled={busy}
+                  onDone={() => api.closeDialog()}
+                  onRunningChange={setInstalling}
+                />
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
-          <Button type="button" variant="ghost" disabled={busy} onClick={api.closeDialog}>
+          <Button type="button" variant="ghost" disabled={locked} onClick={api.closeDialog}>
             Cancel
           </Button>
           <Button
             type="button"
-            disabled={busy || !name.trim() || !desktop}
+            disabled={locked || !name.trim() || !desktop}
             onClick={() => {
               setBusy(true);
               setError(null);

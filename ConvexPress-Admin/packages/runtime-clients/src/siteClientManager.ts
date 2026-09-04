@@ -1,7 +1,9 @@
 import { ConvexReactClient } from "convex/react";
 
 export interface SiteClientLike {
-  setAuth(fetchToken: () => Promise<string | null>): void;
+  setAuth(
+    fetchToken: (args?: { forceRefreshToken?: boolean }) => Promise<string | null>,
+  ): void;
   close(): void | Promise<void>;
 }
 
@@ -34,6 +36,9 @@ export class SiteClientManager<
   private pendingSelection: Promise<void> | null = null;
   private activeClient: TClient | null = null;
   private activeToken: SiteSession | null = null;
+  private activeTarget: SiteClientTarget | null = null;
+  private activeExchange: ((target: SiteClientTarget) => Promise<SiteSession>) | null = null;
+  private refreshing: Promise<string | null> | null = null;
   private listeners = new Set<() => void>();
   private snapshot: SiteClientSnapshot<TClient> = {
     status: "idle",
@@ -50,15 +55,44 @@ export class SiteClientManager<
 
   getSnapshot = () => this.snapshot;
 
-  fetchAccessToken = async (): Promise<string | null> => {
-    if (
-      !this.activeToken ||
-      Date.now() >= this.activeToken.expiresAt - TOKEN_EXPIRY_MARGIN_MS
-    ) {
-      return null;
-    }
-    return this.activeToken.token;
+  /**
+   * Token for the active site. When the session is about to expire (or Convex
+   * asks for a forced refresh) the operator session is exchanged again for the
+   * same target, so a long-lived admin tab does not silently lose auth.
+   */
+  fetchAccessToken = async (args?: { forceRefreshToken?: boolean }): Promise<string | null> => {
+    const fresh =
+      this.activeToken !== null &&
+      Date.now() < this.activeToken.expiresAt - TOKEN_EXPIRY_MARGIN_MS;
+    if (fresh && !args?.forceRefreshToken) return this.activeToken!.token;
+    return this.refreshToken();
   };
+
+  private refreshToken(): Promise<string | null> {
+    if (this.refreshing) return this.refreshing;
+    const generation = this.generation;
+    const target = this.activeTarget;
+    const exchange = this.activeExchange;
+    if (!target || !exchange) return Promise.resolve(null);
+    this.refreshing = exchange(target)
+      .then((session) => {
+        if (generation !== this.generation) return null;
+        if (
+          !session.token ||
+          !Number.isSafeInteger(session.expiresAt) ||
+          session.expiresAt <= Date.now() + TOKEN_EXPIRY_MARGIN_MS
+        ) {
+          return null;
+        }
+        this.activeToken = { token: session.token, expiresAt: session.expiresAt };
+        return session.token;
+      })
+      .catch(() => null)
+      .finally(() => {
+        this.refreshing = null;
+      });
+    return this.refreshing;
+  }
 
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -115,15 +149,15 @@ export class SiteClientManager<
       const token = session.token;
       const expiresAt = session.expiresAt;
       const client = this.createClient(target.deploymentOrigin);
-      client.setAuth(async () =>
-        Date.now() < expiresAt - TOKEN_EXPIRY_MARGIN_MS ? token : null,
-      );
       if (selection !== this.generation) {
         void client.close();
         return;
       }
       this.activeClient = client;
       this.activeToken = { token, expiresAt };
+      this.activeTarget = target;
+      this.activeExchange = exchangeSession;
+      client.setAuth(this.fetchAccessToken);
       this.setSnapshot({
         status: "ready",
         instanceKey: target.instanceKey,
@@ -159,6 +193,10 @@ export class SiteClientManager<
     const active = this.activeClient;
     this.activeClient = null;
     this.activeToken = null;
+    // A retired site must never be refreshed again.
+    this.activeTarget = null;
+    this.activeExchange = null;
+    this.refreshing = null;
     if (active) {
       // React providers still run passive cleanup against the previous client
       // after the external-store snapshot changes, and development/HMR may

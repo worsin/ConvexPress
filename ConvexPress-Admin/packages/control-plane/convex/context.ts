@@ -154,9 +154,20 @@ async function reachableDocs(
         )
         .take(1000),
     ]);
-    const directBusinesses = await Promise.all(
-      businessAccess.map((grant) => ctx.db.get(grant.businessId)),
+    // An organization grant reaches every business under it (see
+    // rbac/runtime: organization assignments include children).
+    const organizationBusinesses = await Promise.all(
+      organizationAccess.map((grant) =>
+        ctx.db
+          .query("overseer_businesses")
+          .withIndex("by_organization", (q) => q.eq("organizationId", grant.organizationId))
+          .take(200),
+      ),
     );
+    const directBusinesses = uniqueDocs([
+      ...(await Promise.all(businessAccess.map((grant) => ctx.db.get(grant.businessId)))),
+      ...organizationBusinesses.flat(),
+    ]);
     const directWebsites = await Promise.all(
       websiteAccess.map((grant) => ctx.db.get(grant.websiteId)),
     );

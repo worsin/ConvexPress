@@ -35,6 +35,12 @@ interface SiteRuntimeProviderProps {
   onSignOut: () => Promise<void>;
   runtimeRevision?: number;
   /**
+   * True while an environment is selected but its session role / connection
+   * is still being resolved, so the shell shows progress instead of the
+   * "choose an environment" prompt.
+   */
+  resolving?: boolean;
+  /**
    * Wraps the idle / switching / error states so they render inside the same
    * shell chrome as the site admin. Defaults to a bare centered layout.
    */
@@ -60,6 +66,7 @@ export function SiteRuntimeProvider({
   operator,
   onSignOut,
   runtimeRevision = 0,
+  resolving = false,
   renderState,
   children,
 }: SiteRuntimeProviderProps) {
@@ -142,6 +149,15 @@ export function SiteRuntimeProvider({
     </main>
   ));
 
+  if (!target && resolving) {
+    return frame(
+      <RuntimeState
+        busy
+        title="Opening isolated site"
+        detail="Checking your access to this environment."
+      />,
+    );
+  }
   if (!target) {
     return frame(
       <RuntimeState

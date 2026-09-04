@@ -18,11 +18,11 @@
  * All write operations emit events via the Event Dispatcher System.
  */
 
-import { mutation } from "../_generated/server";
+import { internalMutation, mutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { ConvexError } from "convex/values";
 import type { Id } from "../_generated/dataModel";
-import { requireCan, resolveUserRole } from "../helpers/permissions";
+import { getCurrentUser, requireCan, resolveUserRole } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { countActiveAdmins } from "../helpers/profile";
 import { PROFILE_EVENTS, SYSTEM } from "../events/constants";
@@ -332,9 +332,23 @@ export const updateUser = mutation({
       }
     }
 
-    // Admin-only fields
+    // Admin-only fields. Role and status changes carry the same guards as
+    // roles.assign / deactivate: never on yourself, never the last admin.
+    const isSelf = targetUser._id === currentUser._id;
+    const targetIsAdmin = async () => {
+      if (!targetUser.roleId) return false;
+      const role = await ctx.db.get("roles", targetUser.roleId);
+      return Boolean(role && role.level >= 100 && targetUser.status === "active");
+    };
+
     if (args.status !== undefined) {
       if (args.status !== targetUser.status) {
+        if (isSelf && args.status !== "active") {
+          throw new ConvexError({ code: "FORBIDDEN", message: "You cannot deactivate your own account" });
+        }
+        if (args.status !== "active" && (await targetIsAdmin()) && (await countActiveAdmins(ctx)) <= 1) {
+          throw new ConvexError({ code: "FORBIDDEN", message: "Cannot deactivate the last Administrator" });
+        }
         patch.status = args.status;
         changes.push("status");
       }
@@ -350,17 +364,32 @@ export const updateUser = mutation({
             message: "Target role not found or inactive",
           });
         }
+        if (isSelf) {
+          throw new ConvexError({ code: "FORBIDDEN", message: "Use Roles to change your own role" });
+        }
+        if (targetRole.level < 100 && (await targetIsAdmin()) && (await countActiveAdmins(ctx)) <= 1) {
+          throw new ConvexError({ code: "FORBIDDEN", message: "Cannot demote the last Administrator" });
+        }
         patch.roleId = args.roleId;
         changes.push("roleId");
+        await ctx.db.insert("roleChanges", {
+          userId: targetUser._id,
+          oldRoleId: targetUser.roleId,
+          newRoleId: args.roleId,
+          changedBy: currentUser._id,
+          reason: "profile_update",
+          timestamp: Date.now(),
+        });
       }
     }
 
     if (args.email !== undefined) {
-      if (args.email !== targetUser.email) {
+      const nextEmail = args.email.trim().toLowerCase();
+      if (nextEmail !== targetUser.email) {
         // Check email uniqueness
         const existingByEmail = await ctx.db
           .query("users")
-          .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", args.email!))
+          .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", nextEmail))
           .unique();
         if (existingByEmail && existingByEmail._id !== args.userId) {
           throw new ConvexError({
@@ -368,7 +397,7 @@ export const updateUser = mutation({
             message: "A user with this email already exists",
           });
         }
-        patch.email = args.email;
+        patch.email = nextEmail;
         changes.push("email");
       }
     }
@@ -422,10 +451,11 @@ export const createUser = mutation({
     // 1. Auth + admin check
     const currentUser = await requireCan(ctx, "profile.deactivate");
 
-    // 2. Check email uniqueness
+    // 2. Check email uniqueness (emails are stored normalised)
+    const email = args.email.trim().toLowerCase();
     const existingByEmail = await ctx.db
       .query("users")
-      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", args.email))
+      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email))
       .unique();
     if (existingByEmail) {
       throw new ConvexError({
@@ -437,7 +467,7 @@ export const createUser = mutation({
     // 3. Generate display name
     const displayName =
       args.displayName ??
-      generateDisplayName(args.firstName, args.lastName, args.email);
+      generateDisplayName(args.firstName, args.lastName, email);
 
     // 4. Generate unique slug
     const slug = await ensureUniqueSlug(ctx, generateSlug(displayName));
@@ -459,7 +489,7 @@ export const createUser = mutation({
     const now = Date.now();
     const userId = await ctx.db.insert("users", {
       authSource: "local",
-      email: args.email,
+      email,
       emailVerified: false,
       firstName: args.firstName,
       lastName: args.lastName,
@@ -477,7 +507,7 @@ export const createUser = mutation({
     await ctx.scheduler.runAfter(0, internal.auth.clerkManagement.ensureUserInClerk, {
       userId,
       source: "admin_manual",
-      email: args.email,
+      email,
       firstName: args.firstName,
       lastName: args.lastName,
       displayName,
@@ -1027,5 +1057,48 @@ export const removeAvatar = mutation({
       userId: targetUserId,
       avatarUrl: fallbackUrl,
     });
+  },
+});
+
+
+// ─── closeOwnAccount (internal) ─────────────────────────────────────────────
+
+/**
+ * Close the caller's own customer account: deactivate it, detach the Clerk
+ * identity and scrub direct contact details, keeping authored content
+ * attributed. Invoked by `profiles.actions.deleteOwnAccount`, which also
+ * deletes the Clerk user so the credential cannot be reused.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const closeOwnAccount = internalMutation({
+  args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
+    if (user.authSource !== "clerk" || !user.clerkUserId) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Administrator accounts are closed from the admin, not the website.",
+      });
+    }
+    const now = Date.now();
+    const clerkUserId = user.clerkUserId;
+    await ctx.db.patch("users", user._id, {
+      status: "inactive",
+      deactivatedAt: now,
+      clerkUserId: undefined,
+      email: `closed+${String(user._id)}@accounts.invalid`,
+      firstName: undefined,
+      lastName: undefined,
+      displayName: "Closed account",
+      profilePictureUrl: undefined,
+      updatedAt: now,
+    });
+    await emitEvent(ctx, PROFILE_EVENTS.DEACTIVATED, SYSTEM.PROFILE, {
+      userId: user._id,
+      reason: "self_closed",
+    });
+    return { userId: user._id, clerkUserId };
   },
 });

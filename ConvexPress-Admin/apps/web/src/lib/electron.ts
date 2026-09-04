@@ -124,7 +124,9 @@ export interface SiteDeployEnvChange {
 export type SiteDeployCredential =
   | { kind: "admin-key"; deploymentOrigin: string; adminKey: string }
   | { kind: "deploy-key"; deployKey: string; deployment: string }
-  | { kind: "bundled"; convexUrl: string };
+  | { kind: "bundled"; convexUrl: string }
+  | { kind: "prompt"; deploymentOrigin: string }
+  | { kind: "control-plane"; connectionId: string; authToken: string };
 
 export interface SiteDeployRequest {
   label: string;
@@ -133,7 +135,7 @@ export interface SiteDeployRequest {
   envOnly?: boolean;
 }
 
-export type SiteDeployPhase = "environment" | "codegen" | "deploy" | "complete" | "failed";
+export type SiteDeployPhase = "environment" | "codegen" | "deploy" | "identity" | "connect" | "complete" | "failed";
 
 export interface SiteDeployProgress {
   runId: string;
@@ -143,10 +145,27 @@ export interface SiteDeployProgress {
 }
 
 export interface SiteDeployRunResult {
-  runId: string;
+  runId: string | null;
   ok: boolean;
+  /** The operator closed the protected credential window. */
+  cancelled?: boolean;
   error: string | null;
   log: string[];
+}
+
+export interface SiteInitializeRequest {
+  instanceId: string;
+  websiteKey: string;
+  instanceKey: string;
+  environmentKind: "live" | "staging" | "beta" | "preview" | "development" | "local" | "custom";
+  deploymentOrigin: string;
+  managementOrigin: string;
+  siteOrigin: string;
+  siteTitle: string;
+  connectionName: string;
+  accountLabel?: string;
+  authToken: string;
+  adminOrigins: string[];
 }
 
 export interface ConvexpressSiteDeploy {
@@ -163,6 +182,8 @@ export interface ConvexpressSiteDeploy {
   bundledCredential: () => Promise<
     { available: true; convexUrl: string; deployment: string } | { available: false }
   >;
+  /** Empty deployment → ConvexPress site + controller connection, one credential prompt. */
+  initialize: (input: SiteInitializeRequest) => Promise<SiteDeployRunResult & { connectionId: string | null }>;
   onProgress: (callback: (event: SiteDeployProgress) => void) => () => void;
 }
 

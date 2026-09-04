@@ -107,6 +107,25 @@ async function requireWebsiteAccess(
       websiteId: String(website._id),
     },
   });
+  // A package describes every environment, live ones included: reading it
+  // needs the same live gate export needs.
+  const liveEnvironments = (
+    await ctx.db
+      .query("overseer_websiteInstances")
+      .withIndex("by_website", (query) => query.eq("website_id", website._id))
+      .take(100)
+  ).filter((environment) => environment.status === "active" && environment.kind === "live");
+  for (const environment of liveEnvironments) {
+    await assertStoredAccess(ctx, operator, {
+      selector: { type: "capability", code: "environment.live.operate" },
+      target: {
+        organizationId: String(website.organization_id),
+        businessId: String(website.business_id),
+        websiteId: String(website._id),
+        instanceId: String(environment._id),
+      },
+    });
+  }
   return website;
 }
 
@@ -497,6 +516,16 @@ export const importPackage = authenticatedMutation({
       bundle: args.packageJson,
       now: Date.now(),
     });
+    // Importing a live environment is creating one: same gate as `attach`.
+    if (plan.environments.some((environment) => environment.kind === "live")) {
+      await assertStoredAccess(ctx, ctx.operator, {
+        selector: { type: "capability", code: "environment.live.operate" },
+        target: {
+          organizationId: String(organization._id),
+          businessId: String(business._id),
+        },
+      });
+    }
     const primaryDomain = normalizeDomain(plan.website.primaryDomain);
     const websiteMatches = await ctx.db
       .query("overseer_websites")
@@ -544,7 +573,13 @@ export const importPackage = authenticatedMutation({
         title: plan.website.title,
         primaryDomain,
         status: "active",
-        isDefault: false,
+        // First active website of the business becomes its default.
+        isDefault: !(
+          await ctx.db
+            .query("overseer_websites")
+            .withIndex("by_business", (q) => q.eq("business_id", business._id))
+            .take(100)
+        ).some((row) => row.status === "active" && row.isDefault),
         createdAt: now,
         updatedAt: now,
       });
@@ -638,14 +673,33 @@ export const importPackage = authenticatedMutation({
         lastCompatibilityAt: now,
         provisioning: "unprovisioned",
         health: "unknown",
-        isDefault:
-          environment.kind === "live" ||
-          (index === 0 && !plan.environments.some((item) => item.kind === "live")),
+        isDefault: false,
         status: "active",
         createdAt: now,
         updatedAt: now,
       });
       instanceIds.push(instanceId);
+      // Exactly one default per website: prefer a live environment, else the
+      // first imported one, and never leave two defaults behind.
+      const siblings = (
+        await ctx.db
+          .query("overseer_websiteInstances")
+          .withIndex("by_website", (q) => q.eq("website_id", website._id))
+          .take(100)
+      ).filter((row) => row.status === "active");
+      const hasDefault = siblings.some((row) => row.isDefault && row._id !== instanceId);
+      const shouldDefault =
+        environment.kind === "live" ||
+        (!hasDefault && !plan.environments.some((item) => item.kind === "live")) ||
+        (!hasDefault && index === plan.environments.length - 1);
+      if (shouldDefault) {
+        for (const row of siblings) {
+          if (row._id !== instanceId && row.isDefault) {
+            await ctx.db.patch(row._id, { isDefault: false, updatedAt: now });
+          }
+        }
+        await ctx.db.patch(instanceId, { isDefault: true, updatedAt: now });
+      }
       idempotent = false;
     }
 

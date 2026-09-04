@@ -74,3 +74,43 @@ describe("redactDeployLog", () => {
     expect(out).toContain("whsec_••••");
   });
 });
+
+describe("assertSiteInitializeRequest", () => {
+  const token = `${"a".repeat(40)}.${"b".repeat(40)}.${"c".repeat(40)}`;
+  const base = {
+    instanceId: "ins_1",
+    websiteKey: "northstar-shop",
+    instanceKey: "northstar-shop-live",
+    environmentKind: "live",
+    deploymentOrigin: "http://127.0.0.1:14820",
+    managementOrigin: "http://127.0.0.1:14821",
+    siteOrigin: "https://shop.example.com",
+    siteTitle: "Northstar Shop",
+    connectionName: "Controller",
+    authToken: token,
+    adminOrigins: ["http://127.0.0.1:4105"],
+  };
+  test("accepts a complete request", async () => {
+    const { assertSiteInitializeRequest } = await import("./siteDeployValidation");
+    const parsed = assertSiteInitializeRequest(base);
+    expect(parsed.environmentKind).toBe("live");
+    expect(parsed.adminOrigins).toEqual(["http://127.0.0.1:4105"]);
+    expect(parsed.accountLabel).toBeUndefined();
+  });
+  test("rejects bad keys, kinds and tokens", async () => {
+    const { assertSiteInitializeRequest } = await import("./siteDeployValidation");
+    expect(() => assertSiteInitializeRequest({ ...base, websiteKey: "Bad Key!" })).toThrow();
+    expect(() => assertSiteInitializeRequest({ ...base, environmentKind: "prod" })).toThrow();
+    expect(() => assertSiteInitializeRequest({ ...base, authToken: "short" })).toThrow();
+    expect(() => assertSiteInitializeRequest({ ...base, siteOrigin: "ftp://x" })).toThrow();
+  });
+});
+
+describe("redactDeployLog multi-line secrets", () => {
+  test("scrubs every line of a multi-line secret and PEM markers", () => {
+    const key = "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg5dFr3YRLEGhhA5KR\n-----END PRIVATE KEY-----";
+    expect(redactDeployLog("error: unknown option '-----BEGIN PRIVATE KEY-----", [key])).not.toContain("BEGIN PRIVATE KEY");
+    expect(redactDeployLog("MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg5dFr3YRLEGhhA5KR", [key])).toBe("••••");
+    expect(redactDeployLog(`failed: ${key}`, [])).toBe("failed: [private key redacted]");
+  });
+});

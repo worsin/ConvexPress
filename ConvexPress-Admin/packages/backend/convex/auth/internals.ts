@@ -159,6 +159,53 @@ export const createRefreshToken = internalMutation({
 });
 
 /**
+ * Atomic rotation: revoke the presented token and issue its successor in one
+ * transaction, so a failure can never leave the user without a valid token.
+ * Presenting an already-revoked token is treated as reuse of a stolen cookie:
+ * every refresh token of that user is revoked.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const rotateRefreshToken = internalMutation({
+  args: {
+    tokenHash: v.string(),
+    nextTokenHash: v.string(),
+    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+    userId: v.id("users"),
+    expiresAt: v.number(),
+  },
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const token = await ctx.db
+      .query("refreshTokens")
+      .withIndex("by_tokenHash", (q: ConvexQueryBuilder) => q.eq("tokenHash", args.tokenHash))
+      .first();
+    if (!token || token.userId !== args.userId) return { rotated: false as const, reason: "missing" as const };
+    if (token.revokedAt) {
+      // Reuse detected: revoke the whole family.
+      const family = await ctx.db
+        .query("refreshTokens")
+        .withIndex("by_userId", (q: ConvexQueryBuilder) => q.eq("userId", args.userId))
+        .collect();
+      for (const row of family) {
+        if (!row.revokedAt) await ctx.db.patch("refreshTokens", row._id, { revokedAt: now });
+      }
+      console.warn(`[auth] refresh token reuse detected for user ${args.userId}; family revoked`);
+      return { rotated: false as const, reason: "reused" as const };
+    }
+    if (token.expiresAt < now) return { rotated: false as const, reason: "expired" as const };
+    await ctx.db.patch("refreshTokens", token._id, { revokedAt: now });
+    await ctx.db.insert("refreshTokens", {
+      tokenHash: args.nextTokenHash,
+      userId: args.userId,
+      expiresAt: args.expiresAt,
+      createdAt: now,
+    });
+    return { rotated: true as const };
+  },
+});
+
+/**
  * Find a refresh token by its SHA-256 hash.
  */
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
@@ -294,6 +341,12 @@ export const createAdminUser = internalMutation({
       (!existing || existingUsername._id !== existing._id)
     ) {
       throw new Error("Username is already in use");
+    }
+
+    if (existing && (existing.clerkUserId || existing.authSource === "clerk")) {
+      throw new Error(
+        "That email belongs to a website customer account. Use a different email for the administrator.",
+      );
     }
 
     if (existing) {

@@ -26,7 +26,7 @@ export async function signAccessToken(payload: {
   email: string;
   name: string;
 }): Promise<string> {
-  const privateKeyPem = process.env.AUTH_PRIVATE_KEY!;
+  const privateKeyPem = requireAuthPrivateKey();
   const privateKey = await importPKCS8(privateKeyPem, ALG);
 
   return new SignJWT({
@@ -68,8 +68,18 @@ export async function signManagementAccessToken(payload: {
 
 // ─── JWKS (Public Key Set) ────────────────────────────────────────────────────
 
+function requireAuthPrivateKey(): string {
+  const pem = process.env.AUTH_PRIVATE_KEY?.trim();
+  if (!pem || !pem.includes("BEGIN PRIVATE KEY")) {
+    throw new Error(
+      "AUTH_PRIVATE_KEY is not configured on this deployment. Run the desktop setup or set the environment variable.",
+    );
+  }
+  return pem;
+}
+
 export async function getJWKS(): Promise<{ keys: object[] }> {
-  const privateKeyPem = process.env.AUTH_PRIVATE_KEY!;
+  const privateKeyPem = requireAuthPrivateKey();
   // Must pass { extractable: true } so exportJWK can read the key material.
   // jose v6+ defaults to non-extractable keys.
   const privateKey = await importPKCS8(privateKeyPem, ALG, { extractable: true });

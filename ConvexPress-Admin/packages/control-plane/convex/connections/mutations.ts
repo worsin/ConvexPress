@@ -51,7 +51,7 @@ async function requireConnectionTarget(
   const website = await ctx.db.get(instance.website_id);
   if (
     !website ||
-    website.status !== "active" ||
+    website.status === "archived" ||
     !website.organization_id ||
     !website.business_id ||
     instance.organization_id !== website.organization_id ||
@@ -97,11 +97,23 @@ export const createPending = internalMutation({
       .withIndex("by_instance", (q) =>
         q.eq("instance_id", instance._id).eq("isActive", true),
       )
-      .take(2);
-    if (existing.length > 0) {
+      .take(5);
+    const now = Date.now();
+    // A `pending` row is a connect attempt whose action never finished
+    // (killed before the envelope was sealed). Retire stale ones so the
+    // operator can try again instead of being locked out forever.
+    const STALE_PENDING_MS = 10 * 60 * 1000;
+    const live = [];
+    for (const row of existing) {
+      if (row.status === "pending" && !row.credentials && now - row.updatedAt > STALE_PENDING_MS) {
+        await ctx.db.patch(row._id, { isActive: false, status: "revoked", updatedAt: now });
+        continue;
+      }
+      live.push(row);
+    }
+    if (live.length > 0) {
       throw new Error("This environment already has an active connection");
     }
-    const now = Date.now();
     const connectionId = await ctx.db.insert("overseer_connections", {
       organization_id: website.organization_id,
       business_id: website.business_id,

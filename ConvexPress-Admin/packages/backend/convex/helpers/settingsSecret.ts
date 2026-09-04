@@ -33,7 +33,11 @@ const SENTINEL = "__set__";
 const SECRET_KEY_PATTERN = /(secret|key|token|password|credentials?)/i;
 const SECRET_NAME_PARTS = ["serviceaccountjson", "keyfile", "privatekey"];
 
+/** Keys that contain "key" but are public by design (client-side identifiers). */
+const PUBLIC_KEY_PATTERN = /publishable/i;
+
 export function isSecretFieldName(name: string): boolean {
+  if (PUBLIC_KEY_PATTERN.test(name)) return false;
   if (SECRET_KEY_PATTERN.test(name)) return true;
   const normalized = name.replace(/[^a-z0-9]/gi, "").toLowerCase();
   return SECRET_NAME_PARTS.some((part) => normalized.includes(part));

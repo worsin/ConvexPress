@@ -124,12 +124,24 @@ export const upsertPermission = platformRbacMutation({
   handler: async (ctx, args) => {
     const subjectId = cleanCode(args.subjectId, "permission subject");
     const selectorCode = cleanCode(args.selectorCode, "permission selector");
+    // Role permissions are looked up by exact action code, so a wildcard other
+    // than the global "*" would be stored but never evaluated.
+    if (selectorCode.includes("*") && selectorCode !== "*") {
+      throw new Error('Permission selectors must be exact codes or "*"');
+    }
     if (args.subjectType === "user") {
       const userId = ctx.db.normalizeId("overseer_users", subjectId);
-      if (!userId || !(await ctx.db.get(userId))) {
+      const subjectUser = userId ? await ctx.db.get(userId) : null;
+      if (!subjectUser) {
         throw new Error("Permission subject user does not exist");
       }
+      if (args.effect === "deny" && subjectUser.role === "owner" && ctx.operator.role !== "owner") {
+        throw new Error("Only an owner can restrict another owner");
+      }
     } else {
+      if (args.effect === "deny" && subjectId === "owner" && ctx.operator.role !== "owner") {
+        throw new Error("Only an owner can restrict the owner role");
+      }
       const roles = await ctx.db
         .query("overseer_roles")
         .withIndex("by_slug", (q) => q.eq("slug", subjectId))

@@ -1,3 +1,4 @@
+import { AUTH_ALLOWED_HEADERS } from "./refreshTransport";
 const LOCAL_DEV_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
 function normalizeOrigin(value: string | undefined): string | null {
@@ -6,7 +7,14 @@ function normalizeOrigin(value: string | undefined): string | null {
   if (trimmed === "null") return "null";
 
   try {
-    return new URL(trimmed).origin;
+    const url = new URL(trimmed);
+    // Custom app schemes (the packaged desktop renderer runs on
+    // convexpress-app://shell) serialize to the opaque origin "null" in
+    // WHATWG URL; compare them as raw scheme://host strings instead.
+    if (url.origin === "null" && url.protocol !== "http:" && url.protocol !== "https:") {
+      return `${url.protocol}//${url.host}`.replace(/\/+$/, "");
+    }
+    return url.origin;
   } catch {
     return null;
   }
@@ -120,7 +128,7 @@ export function authPreflightResponse(request: Request) {
 
   const headers = new Headers({
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    "Access-Control-Allow-Headers": AUTH_ALLOWED_HEADERS,
     "Access-Control-Max-Age": "86400",
     "Vary": "Origin",
   });

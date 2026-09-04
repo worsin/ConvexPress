@@ -52,6 +52,7 @@ const ALLOWED_INVOKE_CHANNELS = new Set([
   "site-deploy:run",
   "site-deploy:status",
   "site-deploy:bundled-credential",
+  "site-deploy:initialize",
 ]);
 
 const ALLOWED_ON_CHANNELS = new Set([
@@ -209,6 +210,7 @@ contextBridge.exposeInMainWorld("convexpress", {
     run: (input: unknown) => ipcRenderer.invoke("site-deploy:run", input),
     status: () => ipcRenderer.invoke("site-deploy:status"),
     bundledCredential: () => ipcRenderer.invoke("site-deploy:bundled-credential"),
+    initialize: (input: unknown) => ipcRenderer.invoke("site-deploy:initialize", input),
     onProgress: (callback: (event: unknown) => void): (() => void) => {
       const handler = (_event: Electron.IpcRendererEvent, payload: unknown) =>
         callback(payload);

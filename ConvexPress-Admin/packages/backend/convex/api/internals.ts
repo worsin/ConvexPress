@@ -22,7 +22,8 @@
  *     records older than 30 days.
  *
  * Usage (from other Convex functions):
- *   import { lookupUserByIdentifier } from "../helpers/permissions";
+ *   import { currentUserCan, getCurrentUser } from "../helpers/permissions";
+import { lookupUserByIdentifier } from "../helpers/permissions";
 import { internal } from "../_generated/api";
  *
  *   // In an HTTP action handler:
@@ -58,7 +59,7 @@ import {
   decryptSecret,
   computeHmacSignature,
 } from "./crypto_helpers";
-import { lookupUserByIdentifier } from "../helpers/permissions";
+import { lookupUserByIdentifier, currentUserCan, getCurrentUser } from "../helpers/permissions";
 
 // ─── authenticateRequest ────────────────────────────────────────────────────
 
@@ -734,8 +735,9 @@ export const verifyWebhookTestPermission = internalMutation({
       };
     }
 
-    // Look up user by identifier
-    const user = await lookupUserByIdentifier(ctx, identity.subject);
+    // Resolve the caller exactly like every other mutation (issuer rules,
+    // auth source, management sessions), then check the capability.
+    const user = await getCurrentUser(ctx);
 
     if (!user || user.status !== "active") {
       return {
@@ -745,16 +747,7 @@ export const verifyWebhookTestPermission = internalMutation({
       };
     }
 
-    // Check capability via role
-    let capabilities: string[] = [];
-    if (user.roleId) {
-      const role = await ctx.db.get("roles", user.roleId);
-      if (role && role.status === "active") {
-        capabilities = role.capabilities;
-      }
-    }
-
-    if (!capabilities.includes("api.create_webhook")) {
+    if (!(await currentUserCan(ctx, "api.create_webhook"))) {
       console.warn(
         `Webhook test access denied: user=${user._id} capability=api.create_webhook`,
       );

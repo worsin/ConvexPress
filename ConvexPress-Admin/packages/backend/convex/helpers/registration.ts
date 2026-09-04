@@ -110,7 +110,6 @@ export async function findPendingInvitation(
   const normalizedEmail = normalizeRegistrationEmail(email);
   if (!normalizedEmail) return null;
 
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   const invitations = await ctx.db
     .query("invitations")
     .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", normalizedEmail))
@@ -336,6 +335,7 @@ export async function getRegistrationSettings(ctx: ReadCtx) {
  */
 export async function getDefaultRoleDoc(ctx: ReadCtx) {
   // First try: role marked as default
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   const defaultRole = await ctx.db
     .query("roles")
     .withIndex("by_isDefault", (q: ConvexQueryBuilder) => q.eq("isDefault", true))

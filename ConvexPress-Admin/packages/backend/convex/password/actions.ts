@@ -258,7 +258,7 @@ export const completePasswordReset = action({
           Authorization: `Bearer ${clerkSecretKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ password: newPassword }),
+        body: JSON.stringify({ password: newPassword, sign_out_of_other_sessions: true }),
       },
     );
 

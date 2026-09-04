@@ -56,8 +56,10 @@ export const recordResetRequest = internalMutation({
       .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
       .unique();
 
-    if (!user) {
-      // Silent return -- email enumeration prevention
+    if (!user || !user.clerkUserId) {
+      // Silent return -- email enumeration prevention. Accounts without a
+      // Clerk identity (local admins) cannot complete this flow, so no token
+      // or email is issued for them either.
       return;
     }
 

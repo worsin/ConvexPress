@@ -147,6 +147,7 @@
       "name": "@convexpress/desktop",
       "version": "0.1.0",
       "dependencies": {
+        "@convexpress/site-contract": "workspace:*",
         "convex": "catalog:",
         "electron-updater": "^6.3.0",
         "fix-path": "3",

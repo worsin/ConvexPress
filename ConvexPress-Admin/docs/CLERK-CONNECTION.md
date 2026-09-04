@@ -126,3 +126,56 @@ bunx convex deploy --url <deployment> --admin-key <key>
   or through Clerk's Platform API once beta access is granted.
 - Clerk has no OAuth flow for workspace access; keyless + claim is the
   sign-in-to-Clerk moment.
+
+## Fresh deployments: install from the desktop
+
+A brand-new Convex deployment (cloud project or self-hosted backend) has no
+ConvexPress code, so the controller's health probe fails and "Connect" cannot
+succeed. In ConvexPress Desktop, both the **Add website** flow and the
+environment's **Connect** dialog offer **Install ConvexPress and connect**.
+With the deployment admin key entered once in the protected window, the
+desktop:
+
+1. lists the deployment's environment and fills only what is missing
+   (`AUTH_ISSUER_URL`, `AUTH_ALLOWED_ORIGINS`, `AUTH_ALLOW_NULL_ORIGIN`,
+   `SITE_URL`, and `AUTH_PRIVATE_KEY` only when none exists; an existing
+   signing key is never rotated),
+2. deploys the backend (typechecked; `auth.config.ts` tolerates a missing
+   `CLERK_JWT_ISSUER_DOMAIN`, so Clerk is added later from Integrations),
+3. configures the site identity with the full management capability contract
+   (`@convexpress/site-contract` `MANAGEMENT_CAPABILITY_CODES`; the desktop's
+   copy is pinned by a unit test), seeds the built-in roles,
+4. verifies the health endpoint, and
+5. enrolls the controller connection with the same key.
+
+Values never travel on the command line: environment variables are written
+through a 0600 temp file (`convex env set --from-file`), and PEM fragments are
+scrubbed from the install log. Failures show the deployment's real reason
+(control-plane domain errors are surfaced as `ConvexError`, so "Deployment
+origin is already attached to another environment" reads as such instead of
+"Server Error").
+
+## Self-hosted deployments in the setup wizard
+
+The desktop setup wizard accepts a Convex Cloud URL (`https://name.convex.cloud`
+with a `prod:` deploy key) **or** a self-hosted backend origin (`https://…`
+anywhere, plain `http://` on private networks such as `127.0.0.1:3210` or a LAN
+worker) with the admin key from `generate_admin_key.sh`. HTTP actions for
+self-hosted backends are derived as port + 1. `*.convex.site` and link-local
+addresses are rejected with a specific message.
+
+## Desktop sessions survive relaunches
+
+* **Control plane (Better Auth):** the operator session is kept by the
+  cross-domain client in Electron's OS-encrypted `safeStorage`; browser builds
+  use `localStorage` (Better Auth's default), so a tab or browser restart no
+  longer signs the operator out.
+* **Site mode (local admin auth):** browsers keep the HttpOnly
+  `convexpress_refresh` cookie. That cookie cannot work for the desktop
+  against a plain-http (LAN / self-hosted) deployment: cross-site fetches never
+  send a `SameSite=Lax` cookie and `SameSite=None` requires `Secure`. The
+  desktop therefore opts into a header transport (`X-ConvexPress-Session:
+  token`): `/auth/login` and `/auth/refresh` also return the refresh token in
+  the body, the renderer keeps it in `safeStorage` (main process, never in the
+  page), and presents it on `X-ConvexPress-Refresh`; `/auth/logout` revokes it.
+  See `convex/auth/refreshTransport.ts`.

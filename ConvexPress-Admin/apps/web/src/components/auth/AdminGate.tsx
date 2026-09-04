@@ -303,8 +303,13 @@ function AdminCreationForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // The desktop hands the token over automatically for an hour; after that
+  // (or in a browser install) the operator can paste it from the setup output.
+  const [manualToken, setManualToken] = useState("");
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [loading, setLoading] = useState(false);
+  const effectiveToken = setupToken || manualToken.trim() || undefined;
+  const needsTokenField = !setupToken || /token/i.test(error ?? "");
 
   useEffect(() => {
     setError(initialError ?? null);
@@ -332,7 +337,7 @@ function AdminCreationForm({
       await completeFirstAdminSetup({
         credentials: {
           ...validation.credentials,
-          setupToken,
+          setupToken: effectiveToken,
         },
         createFirstAdmin,
         login,
@@ -452,6 +457,27 @@ function AdminCreationForm({
               className="h-10"
             />
           </div>
+
+          {needsTokenField ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="admin-setup-token">Setup token</Label>
+              <Input
+                id="admin-setup-token"
+                name="setupToken"
+                type="password"
+                placeholder="Paste the FIRST_ADMIN_SETUP_SECRET from the deployment"
+                value={manualToken}
+                onChange={(e) => setManualToken(e.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+                className="h-10"
+              />
+              <p className="text-[12px] leading-relaxed text-muted-foreground">
+                The token is issued once when the backend is deployed and expires after
+                use. If it was lost, run the desktop setup again to issue a new one.
+              </p>
+            </div>
+          ) : null}
         </div>
 
         <Button type="submit" disabled={loading} className="mt-6 h-10 w-full text-[13.5px]">

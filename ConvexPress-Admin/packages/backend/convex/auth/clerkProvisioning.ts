@@ -31,6 +31,42 @@ export const provisionClerkUser = mutation({
   args: {},
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
+    const userId = await provisionClerkIdentity(ctx);
+    return userId;
+  },
+});
+
+/**
+ * Same as `provisionClerkUser` but reports why an account was not created,
+ * so the website can show the right message instead of a generic one.
+ */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const ensureClerkUser = mutation({
+  args: {},
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return { ok: false as const, reason: "unauthenticated" as const };
+    const outcome = { reason: "unknown" as ProvisionDecline };
+    const userId = await provisionClerkIdentity(ctx, outcome);
+    if (userId) return { ok: true as const, userId };
+    return { ok: false as const, reason: outcome.reason };
+  },
+});
+
+type ProvisionDecline =
+  | "unknown"
+  | "no_email"
+  | "email_unverified"
+  | "email_conflict"
+  | "local_account"
+  | "registration_closed";
+
+async function provisionClerkIdentity(
+  ctx: any,
+  decline: { reason: ProvisionDecline } = { reason: "unknown" },
+): Promise<Id<"users"> | null> {
+  {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
 
@@ -76,7 +112,19 @@ export const provisionClerkUser = mutation({
 
       if (byEmail) {
         if (!byEmail.clerkUserId) {
-          if (!emailVerified) return null;
+          if (!emailVerified) {
+            decline.reason = "email_unverified";
+            return null;
+          }
+          // Never absorb a local admin/operator account into a customer
+          // identity: that would lock the admin out of the control panel.
+          if (byEmail.passwordHash || byEmail.authSource === "management" || byEmail.adminLoginAllowed) {
+            console.warn(
+              `[ClerkProvisioning] Email ${normalizedEmail} belongs to a local account; not linking to Clerk user ${clerkUserId}.`,
+            );
+            decline.reason = "local_account";
+            return null;
+          }
 
           // Link the imported user to this Clerk identity
           const patch: Record<string, unknown> = {
@@ -104,16 +152,23 @@ export const provisionClerkUser = mutation({
             `[ClerkProvisioning] Email ${normalizedEmail} is already linked to a different ` +
               `Clerk user. Existing: ${byEmail.clerkUserId}, incoming: ${clerkUserId}.`
           );
+          decline.reason = "email_conflict";
           return null;
         }
       }
     }
 
-    if (!normalizedEmail) return null;
+    if (!normalizedEmail) {
+      decline.reason = "no_email";
+      return null;
+    }
 
     const invitation = await findPendingInvitation(ctx, normalizedEmail);
     const settings = await getRegistrationSettings(ctx);
-    if (!invitation && !settings.anyoneCanRegister) return null;
+    if (!invitation && !settings.anyoneCanRegister) {
+      decline.reason = "registration_closed";
+      return null;
+    }
 
     const defaultRole = await getDefaultRoleDoc(ctx);
     let roleId: Id<"roles"> | undefined = defaultRole?._id;
@@ -124,7 +179,13 @@ export const provisionClerkUser = mutation({
           q.eq("slug", invitation.role),
         )
         .unique();
-      if (invitedRole?.status === "active") roleId = invitedRole._id;
+      // Clerk identities can only hold customer-tier roles (see
+      // helpers/permissions canUseRoleForAuthSource); an invitation for an
+      // internal role falls back to the default customer role.
+      if (invitedRole?.status === "active" && invitedRole.type === "customer") roleId = invitedRole._id;
+      else if (invitedRole) {
+        console.warn(`[Clerk session] invitation role ${invitation.role} is internal; assigning the default customer role instead.`);
+      }
     }
 
     const userId = await ctx.db.insert("users", {
@@ -162,5 +223,5 @@ export const provisionClerkUser = mutation({
     }
 
     return userId;
-  },
-});
+  }
+}

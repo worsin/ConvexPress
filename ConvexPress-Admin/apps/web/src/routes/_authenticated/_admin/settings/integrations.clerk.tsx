@@ -420,24 +420,34 @@ function ClerkConnectionPage() {
     try {
       if (!bridge?.siteDeploy) throw new Error("Applying to the deployment needs the ConvexPress desktop app.");
       let credential:
-        | { kind: "admin-key"; deploymentOrigin: string; adminKey: string }
-        | { kind: "bundled"; convexUrl: string };
+        | { kind: "control-plane"; connectionId: string; authToken: string }
+        | { kind: "bundled"; convexUrl: string }
+        | { kind: "prompt"; deploymentOrigin: string };
       if (shell && controlClient && environment) {
         const connectionId = await resolveFleetConnectionId();
         if (!connectionId) throw new Error("This environment has no active connection. Connect it in Sites first.");
-        const issued = (await controlClient.action(controlApi.connections.siteAuth.issueDeploymentCredential, {
-          connectionId: connectionId as never,
-        })) as { deploymentOrigin: string; deploymentAdminKey: string };
-        credential = { kind: "admin-key", deploymentOrigin: issued.deploymentOrigin, adminKey: issued.deploymentAdminKey };
+        // The desktop main process fetches the sealed key itself; it never
+        // passes through this page.
+        const authToken = await shell.getControlToken();
+        if (!authToken) throw new Error("Your protected operator session must be refreshed before deploying.");
+        credential = { kind: "control-plane", connectionId, authToken };
       } else {
         const bundled = await bridge.siteDeploy.bundledCredential();
-        if (!bundled.available) throw new Error("No deploy key is available on this install.");
-        if (status.deployment.origin && bundled.convexUrl.replace(/\/+$/, "") !== status.deployment.origin.replace(/\/+$/, "")) {
-          throw new Error("The desktop deploy key belongs to a different deployment than this site.");
+        const origin = status.deployment.origin?.replace(/\/+$/, "") ?? "";
+        if (bundled.available && (!origin || bundled.convexUrl.replace(/\/+$/, "") === origin)) {
+          credential = { kind: "bundled", convexUrl: bundled.convexUrl };
+        } else {
+          // Single-site install without a bundled key: ask for the deploy key
+          // once in the protected window (it is never handed to this page).
+          if (!origin) throw new Error("This site does not report its deployment address yet.");
+          credential = { kind: "prompt", deploymentOrigin: origin };
         }
-        credential = { kind: "bundled", convexUrl: bundled.convexUrl };
       }
       const result = await bridge.siteDeploy.run({ label: `Clerk connection · ${label}`, credential, envChanges });
+      if (result.cancelled) {
+        setDeployPhase(null);
+        return;
+      }
       if (!result.ok) throw new Error(result.error ?? "Deploy failed.");
       toast.success("Deployment updated. Verifying…");
       await verify({});

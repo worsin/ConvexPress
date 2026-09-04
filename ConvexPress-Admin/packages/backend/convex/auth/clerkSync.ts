@@ -71,8 +71,20 @@ export const upsertClerkUser = internalMutation({
       .unique();
 
     if (byClerkId) {
+      const emailOwner =
+        byClerkId.email === normalizedEmail
+          ? null
+          : await ctx.db
+              .query("users")
+              .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", normalizedEmail))
+              .unique();
+      if (emailOwner && emailOwner._id !== byClerkId._id) {
+        console.warn(
+          `[ClerkSync] Clerk user ${clerkUserId} changed email to ${normalizedEmail}, which belongs to another account; keeping the previous email.`,
+        );
+      }
       await ctx.db.patch(byClerkId._id, {
-        email: normalizedEmail,
+        email: emailOwner && emailOwner._id !== byClerkId._id ? byClerkId.email : normalizedEmail,
         firstName,
         lastName,
         profilePictureUrl,
@@ -94,6 +106,12 @@ export const upsertClerkUser = internalMutation({
 
     if (byEmail) {
       if (!byEmail.clerkUserId) {
+        if (byEmail.passwordHash || byEmail.authSource === "management" || byEmail.adminLoginAllowed) {
+          console.warn(
+            `[ClerkSync] Email ${normalizedEmail} belongs to a local account; skipping link for Clerk user ${clerkUserId}.`,
+          );
+          return;
+        }
         // Link the existing imported user to this Clerk identity
         const patch: Record<string, unknown> = {
           clerkUserId,
@@ -142,7 +160,13 @@ export const upsertClerkUser = internalMutation({
           q.eq("slug", invitation.role),
         )
         .unique();
-      if (invitedRole?.status === "active") roleId = invitedRole._id;
+      // Clerk identities can only hold customer-tier roles (see
+      // helpers/permissions canUseRoleForAuthSource); an invitation for an
+      // internal role falls back to the default customer role.
+      if (invitedRole?.status === "active" && invitedRole.type === "customer") roleId = invitedRole._id;
+      else if (invitedRole) {
+        console.warn(`[Clerk webhook] invitation role ${invitation.role} is internal; assigning the default customer role instead.`);
+      }
     }
 
     const userId = await ctx.db.insert("users", {

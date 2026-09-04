@@ -102,10 +102,11 @@ export function OAuthButtons({ mode, returnTo = "/dashboard", disabled = false, 
     } catch {
       // storage unavailable
     }
+    const safeReturn = returnTo.startsWith("/") && !/^\/[\\/]/.test(returnTo) ? returnTo : "/dashboard";
     const options = {
       strategy: strategy as never,
       redirectUrl: `${origin}/api/auth/callback`,
-      redirectUrlComplete: `${origin}${returnTo.startsWith("/") ? returnTo : `/${returnTo}`}`,
+      redirectUrlComplete: `${origin}${safeReturn}`,
     };
     setPending(strategy);
     try {

@@ -291,8 +291,19 @@ export function EnvironmentCard({
                       ariaLabel: "Connection revocation confirmation",
                       confirmLabel: "Revoke authority",
                       onConfirm: async () => {
-                        await revokeConnection({ connectionId: activeConnection.connectionId });
-                        return "Controller authority revoked.";
+                        try {
+                          await revokeConnection({ connectionId: activeConnection.connectionId });
+                          return "Controller authority revoked.";
+                        } catch (cause) {
+                          const message = cause instanceof Error ? cause.message : String(cause);
+                          if (!/could not be reached|force-revoke/i.test(message)) throw cause;
+                          const force = window.confirm(
+                            "The site could not be reached to revoke the controller authority (deleted or offline deployment?). Clear the stored credential anyway?",
+                          );
+                          if (!force) return "";
+                          await revokeConnection({ connectionId: activeConnection.connectionId, force: true });
+                          return "Stored credential cleared. The site itself could not be reached.";
+                        }
                       },
                     },
                   })

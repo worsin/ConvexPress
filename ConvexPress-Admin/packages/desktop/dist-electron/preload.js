@@ -51,7 +51,8 @@ var ALLOWED_INVOKE_CHANNELS = /* @__PURE__ */ new Set([
   // Apply site auth environment + redeploy a site's Convex backend
   "site-deploy:run",
   "site-deploy:status",
-  "site-deploy:bundled-credential"
+  "site-deploy:bundled-credential",
+  "site-deploy:initialize"
 ]);
 var ALLOWED_ON_CHANNELS = /* @__PURE__ */ new Set([
   // Window events
@@ -158,6 +159,7 @@ import_electron.contextBridge.exposeInMainWorld("convexpress", {
     run: (input) => import_electron.ipcRenderer.invoke("site-deploy:run", input),
     status: () => import_electron.ipcRenderer.invoke("site-deploy:status"),
     bundledCredential: () => import_electron.ipcRenderer.invoke("site-deploy:bundled-credential"),
+    initialize: (input) => import_electron.ipcRenderer.invoke("site-deploy:initialize", input),
     onProgress: (callback) => {
       const handler = (_event, payload) => callback(payload);
       import_electron.ipcRenderer.on("site-deploy:progress", handler);

@@ -63,15 +63,16 @@ export function sanitizeRedirectUrl(
   const trimmed = redirectUrl.trim();
   if (!trimmed) return fallbackPath;
 
-  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
+  // Relative paths only: "//host" and "/\host" are protocol-relative to browsers.
+  if (trimmed.startsWith("/") && !/^\/[\\/]/.test(trimmed)) {
     return trimmed;
   }
 
+  const baseOrigin =
+    options.baseOrigin ||
+    (typeof window !== "undefined" ? window.location.origin : undefined);
   try {
-    const url = new URL(
-      trimmed,
-      options.baseOrigin || "https://convexpress.com",
-    );
+    const url = new URL(trimmed, baseOrigin || "https://convexpress.com");
 
     if (!SAFE_PROTOCOLS.has(url.protocol)) {
       return fallbackPath;
@@ -82,8 +83,8 @@ export function sanitizeRedirectUrl(
       return fallbackPath;
     }
 
-    if (options.baseOrigin) {
-      const base = new URL(options.baseOrigin);
+    if (baseOrigin) {
+      const base = new URL(baseOrigin);
       if (url.origin === base.origin) {
         return `${url.pathname}${url.search}${url.hash}`;
       }

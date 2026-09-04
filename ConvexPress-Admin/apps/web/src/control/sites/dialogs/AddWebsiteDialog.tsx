@@ -33,6 +33,7 @@ import { findBusiness } from "../sites-model";
 import { friendlyError } from "../useWorkspaceActions";
 import { DEFAULT_CONNECTION_NAME, provisionThroughElectron } from "./ConnectAuthorityDialog";
 import { DeploymentFields, emptyDeploymentDraft } from "./DeploymentFields";
+import { InitializeDeploymentPanel, canInitializeDeployments } from "./InitializeDeploymentPanel";
 
 const STEPS = ["Where", "Website", "Deployment", "Connect", "Done"] as const;
 type Step = 0 | 1 | 2 | 3 | 4;
@@ -544,6 +545,37 @@ export function AddWebsiteDialog({
                   <Notice tone="info">
                     Deployment keys are entered from ConvexPress Desktop. You can skip this now and connect later from the website page.
                   </Notice>
+                )}
+                {desktop && canInitializeDeployments() && created?.instanceId && (
+                  <div className="rounded-lg border border-dashed border-border p-3.5">
+                    <p className="text-[13px] font-medium text-foreground">Brand-new deployment?</p>
+                    <p className="mt-1 text-[12.5px] leading-5 text-ink-2">
+                      If this Convex deployment has never run ConvexPress, install it first. One key, one
+                      protected window; the connection is enrolled at the end.
+                    </p>
+                    <div className="mt-3">
+                      <InitializeDeploymentPanel
+                        target={{
+                          instanceId: created.instanceId,
+                          websiteKey: created.websiteKey,
+                          instanceKey: deployment.instanceKey || suggestedEnvironmentKey,
+                          environmentKind: deployment.kind,
+                          deploymentOrigin: deployment.deploymentOrigin,
+                          managementOrigin: deployment.managementOrigin || deployment.deploymentOrigin,
+                          siteOrigin: deployment.siteOrigin,
+                          siteTitle: created.websiteTitle,
+                        }}
+                        connectionName={connectionName}
+                        accountLabel={accountLabel}
+                        disabled={busy}
+                        onRunningChange={setBusy}
+                        onDone={() => {
+                          setCreated({ ...created, connected: true });
+                          setStep(4);
+                        }}
+                      />
+                    </div>
+                  </div>
                 )}
                 <Footer
                   busy={busy}

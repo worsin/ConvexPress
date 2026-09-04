@@ -233,7 +233,9 @@ export async function resolveStoredAccess(
       ),
       status: "active" as const,
       target: { type: "organization" as const, id: String(grant.organizationId) },
-      includeChildren: false,
+      // An organization grant is meant to cover the businesses, websites and
+      // environments underneath it; without children it matches nothing.
+      includeChildren: true,
     })),
     ...businessGrants.map((grant) => ({
       assignmentId: `business-access:${String(grant._id)}`,

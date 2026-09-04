@@ -9,6 +9,7 @@
  */
 
 import { httpAction } from "../_generated/server";
+import { wantsRefreshTokenInBody } from "./refreshTransport";
 import { internal } from "../_generated/api";
 import {
   signAccessToken,
@@ -111,6 +112,12 @@ export const loginHandler = httpAction(async (ctx, request) => {
 
   // ─── Account status check ─────────────────────────────────────────────────
   if (user.status !== "active") {
+    await ctx.runMutation(internal.authTracking.internals.recordFailedAttempt, {
+      identifier,
+      ip,
+      reason: "account_deactivated",
+      app: "admin",
+    });
     return authJsonResponse({ error: "Account is not active" }, 403, allowedOrigin);
   }
 
@@ -171,6 +178,11 @@ export const loginHandler = httpAction(async (ctx, request) => {
     {
       accessToken,
       expiresIn: 900, // 15 minutes in seconds
+      // Desktop transport (see refreshTransport.ts): the token also travels in
+      // the body so Electron can keep it in OS-encrypted storage.
+      ...(wantsRefreshTokenInBody(request.headers)
+        ? { refreshToken: rawRefreshToken, refreshExpiresIn: 7 * 24 * 60 * 60 }
+        : {}),
       user: {
         id: user._id,
         email: user.email,

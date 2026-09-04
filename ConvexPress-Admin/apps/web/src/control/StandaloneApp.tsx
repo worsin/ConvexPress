@@ -349,6 +349,12 @@ function ControlPlaneShell({
         <div className="relative min-h-0 flex-1 overflow-hidden">
           <SiteRuntimeProvider
             target={target}
+            resolving={Boolean(
+              selectedEnvironment &&
+                activeConnection &&
+                !siteRole &&
+                selectedEnvironment.compatibility !== "incompatible",
+            )}
             exchangeSession={exchangeSession}
             operator={operatorIdentity}
             onSignOut={signOut}

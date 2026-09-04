@@ -307,6 +307,9 @@ export const setActive = authorizedMutation(manageOperatorsRequest)({
     if (target._id === ctx.operator._id && !args.isActive) {
       throw new Error("An operator cannot deactivate their own account");
     }
+    if (!args.isActive && target.role === "owner" && ctx.operator.role !== "owner") {
+      throw new Error("Only an owner can deactivate an owner");
+    }
     await ctx.db.patch(args.userId, {
       isActive: args.isActive,
       updatedAt: Date.now(),

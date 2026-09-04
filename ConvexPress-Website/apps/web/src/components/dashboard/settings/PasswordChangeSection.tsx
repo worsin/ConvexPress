@@ -1,4 +1,5 @@
-import { ExternalLink, KeyRound, Info } from "lucide-react";
+import { KeyRound, Info } from "lucide-react";
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 
@@ -7,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardCard } from "../DashboardCard";
 import { PasswordLastChanged } from "../../password/PasswordLastChanged";
+import { ChangePasswordDialog } from "./ChangePasswordDialog";
+import { useUser } from "@/lib/auth/clerk";
 
 interface PasswordChangeSectionProps {
   user: UserProfile;
@@ -24,12 +27,8 @@ interface PasswordChangeSectionProps {
  */
 export function PasswordChangeSection(_props: PasswordChangeSectionProps) {
   const passwordStatus = useQuery(api.password.queries.getPasswordStatus, {});
-
-  const handleChangePassword = () => {
-    // Redirect to the forgot-password flow for password management.
-    // Clerk handles the password reset flow securely.
-    window.location.href = "/forgot-password";
-  };
+  const { user: clerkUser } = useUser();
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Determine if this is an OAuth-only user (no password set).
   //
@@ -43,11 +42,17 @@ export function PasswordChangeSection(_props: PasswordChangeSectionProps) {
   //
   // Future improvement: Use a direct password_enabled check
   // from the user profile data when available.
+  // Clerk knows definitively whether a password is set; fall back to the
+  // activity heuristic only while the Clerk user is still loading.
   const isOAuthOnly =
-    passwordStatus &&
-    passwordStatus.lastPasswordChangedAt === null &&
-    passwordStatus.passwordResetRequestedAt === null &&
-    passwordStatus.passwordResetCount === 0;
+    clerkUser
+      ? clerkUser.passwordEnabled === false
+      : Boolean(
+          passwordStatus &&
+            passwordStatus.lastPasswordChangedAt === null &&
+            passwordStatus.passwordResetRequestedAt === null &&
+            passwordStatus.passwordResetCount === 0,
+        );
 
   return (
     <DashboardCard title="Password">
@@ -77,11 +82,11 @@ export function PasswordChangeSection(_props: PasswordChangeSectionProps) {
         )}
 
         {/* Change / Add Password Button */}
-        <Button variant="outline" size="sm" onClick={handleChangePassword}>
+        <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
           <KeyRound className="size-3.5" />
           <span>{isOAuthOnly ? "Add Password" : "Change Password"}</span>
-          <ExternalLink className="size-3" />
         </Button>
+        <ChangePasswordDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </div>
     </DashboardCard>
   );

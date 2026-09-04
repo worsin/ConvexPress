@@ -228,7 +228,11 @@ describe("Clerk session provisioning", () => {
       return { user, invitation };
     });
 
-    expect(snapshot.user?.roleId).toBe(fixture.editorRoleId);
+    // An invitation for an internal role cannot be honored for a Clerk identity:
+    // helpers/permissions denies internal roles to non-local auth sources, so the
+    // account is created with the default customer role instead of a dead role.
+    expect(snapshot.user?.roleId).not.toBe(fixture.editorRoleId);
+    expect(snapshot.user?.roleId).toBeDefined();
     expect(snapshot.user?.registrationMethod).toBe("invite");
     expect(snapshot.invitation?.status).toBe("accepted");
     expect(snapshot.invitation?.acceptedBy).toBe(snapshot.user?._id);

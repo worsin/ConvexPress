@@ -858,6 +858,9 @@ export async function requireMinimumRoleLevel(
     });
   }
 
+  if (user.status !== "active") {
+    throw new ConvexError({ code: "FORBIDDEN", message: "Account is not active" });
+  }
   const role = await resolveUserRole(ctx, user);
   const level = await getCurrentRoleLevel(ctx);
 

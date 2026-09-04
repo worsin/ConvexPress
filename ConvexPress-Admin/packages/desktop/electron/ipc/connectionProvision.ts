@@ -45,7 +45,7 @@ function isTrustedAppSender(senderUrl: string): boolean {
   });
 }
 
-async function requestDeploymentCredential(
+export async function requestDeploymentCredential(
   owner: import("electron").BrowserWindow | null,
 ): Promise<string | null> {
   if (activePrompt) {

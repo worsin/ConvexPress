@@ -31,10 +31,16 @@ function AuthenticatedLayout() {
     isAuthenticated ? {} : "skip",
   );
 
+  // A fresh token is confirmed by the Convex websocket asynchronously; in
+  // that gap `useConvexAuth()` still reports unauthenticated. Only treat the
+  // session as broken when the gap persists (a rejected token stays false).
   useEffect(() => {
     if (authLoading || convexLoading || !hasToken || isAuthenticated) return;
-    setSessionError("Your session could not be verified. Sign in again.");
-    void logout();
+    const timer = setTimeout(() => {
+      setSessionError("Your session could not be verified. Sign in again.");
+      void logout();
+    }, 8_000);
+    return () => clearTimeout(timer);
   }, [authLoading, convexLoading, hasToken, isAuthenticated, logout]);
 
   if (authLoading || convexLoading) {

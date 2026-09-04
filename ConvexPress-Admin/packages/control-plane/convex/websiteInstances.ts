@@ -16,6 +16,7 @@ import { resolveStoredAccess } from "./rbac/runtime";
 import {
   assertWebsiteInstanceArchiveConfirmation,
   buildWebsiteInstancePatch,
+  cleanOptionalInstanceText,
 } from "./websiteInstancePolicy";
 
 const environmentKind = v.union(
@@ -221,10 +222,12 @@ export const attach = authenticatedMutation({
       throw new Error("Site origin is already attached to another environment");
     }
 
-    const existing = await ctx.db
-      .query("overseer_websiteInstances")
-      .withIndex("by_website", (q) => q.eq("website_id", website._id))
-      .take(1);
+    const existing = (
+      await ctx.db
+        .query("overseer_websiteInstances")
+        .withIndex("by_website", (q) => q.eq("website_id", website._id))
+        .take(100)
+    ).filter((row) => row.status === "active");
     const makeDefault = args.makeDefault ?? existing.length === 0;
     if (makeDefault) await clearWebsiteDefault(ctx, website._id);
     const hasVersions =
@@ -246,12 +249,12 @@ export const attach = authenticatedMutation({
       website_id: website._id,
       instanceKey,
       kind,
-      label: args.label?.trim() || undefined,
+      label: cleanOptionalInstanceText(args.label ?? null, "environment label", 160),
       deploymentOrigin,
       managementOrigin,
       siteOrigin,
-      deploymentName: args.deploymentName?.trim() || undefined,
-      projectRef: args.projectRef?.trim() || undefined,
+      deploymentName: cleanOptionalInstanceText(args.deploymentName ?? null, "deployment name", 160),
+      projectRef: cleanOptionalInstanceText(args.projectRef ?? null, "project reference", 240),
       domain: new URL(siteOrigin).hostname,
       siteContractVersion: args.siteContractVersion,
       schemaVersion: args.schemaVersion,
@@ -483,10 +486,11 @@ export const archive = authenticatedMutation({
       throw new Error("Environment not found");
     }
     const website = await ctx.db.get(instance.website_id);
+    // Inactive websites may still be cleaned up; only archived ones are frozen.
     if (
       !website?.organization_id ||
       !website.business_id ||
-      website.status !== "active"
+      website.status === "archived"
     ) {
       throw new Error("Website not found");
     }

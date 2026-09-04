@@ -41,15 +41,23 @@ function NewRolePage() {
   // React 19: useTransition for async create (replaces manual isSaving state)
   const [isSaving, startCreateTransition] = useTransition();
 
-  // Auto-generate slug from name
-  const handleNameChange = useCallback((value: string) => {
-    setName(value);
-    // Only auto-generate slug if the user hasn't manually edited it
-    const autoSlug = value
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-    setSlug(autoSlug);
+  // Auto-generate slug from name until the operator edits the slug by hand.
+  const [slugTouched, setSlugTouched] = useState(false);
+  const handleNameChange = useCallback(
+    (value: string) => {
+      setName(value);
+      if (slugTouched) return;
+      const autoSlug = value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      setSlug(autoSlug);
+    },
+    [slugTouched],
+  );
+  const handleSlugChange = useCallback((value: string) => {
+    setSlugTouched(value.trim().length > 0);
+    setSlug(value);
   }, []);
 
   const handleCreate = useCallback(() => {
@@ -160,7 +168,7 @@ function NewRolePage() {
               id="role-slug"
               type="text"
               value={slug}
-              onChange={(e) => setSlug(e.target.value)}
+              onChange={(e) => handleSlugChange(e.target.value)}
               placeholder="e.g., moderator"
               className="h-8 w-full border border-border bg-background px-2.5 text-xs text-foreground focus:border-ring focus:outline-hidden focus:ring-1 focus:ring-ring/50"
             />

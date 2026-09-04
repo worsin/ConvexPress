@@ -23,7 +23,7 @@ import {
   authNoContentResponse,
   getAllowedAuthOrigin,
 } from "./httpSecurity";
-import { isRefreshTokenShape, parseCookieValue } from "./inputLimits";
+import { readRefreshToken, wantsRefreshTokenInBody } from "./refreshTransport";
 
 export const refreshHandler = httpAction(async (ctx, request) => {
   const allowedOrigin = getAllowedAuthOrigin(request.headers.get("origin"));
@@ -31,14 +31,14 @@ export const refreshHandler = httpAction(async (ctx, request) => {
     return authJsonResponse({ error: "Origin not allowed" }, 403, "");
   }
 
-  // ─── Extract refresh token from cookie ───────────────────────────────────
-  const cookieHeader = request.headers.get("cookie") ?? "";
-  const refreshToken = parseCookieValue(cookieHeader, "convexpress_refresh");
+  // ─── Extract refresh token (desktop header first, then browser cookie) ───
+  const presented = readRefreshToken(request.headers);
+  const refreshToken = presented.token;
 
   if (!refreshToken) {
     return authNoContentResponse(allowedOrigin);
   }
-  if (!isRefreshTokenShape(refreshToken)) {
+  if ("invalid" in presented) {
     return authJsonResponse(
       { error: "Invalid or expired refresh token" },
       401,
@@ -53,6 +53,15 @@ export const refreshHandler = httpAction(async (ctx, request) => {
     { tokenHash },
   );
 
+  if (tokenRecord?.revokedAt) {
+    // A rotated token presented again: revoke the whole family (reuse).
+    await ctx.runMutation(internal.auth.internals.rotateRefreshToken, {
+      tokenHash,
+      nextTokenHash: `reuse:${tokenHash}`,
+      userId: tokenRecord.userId,
+      expiresAt: 0,
+    });
+  }
   if (
     !tokenRecord ||
     tokenRecord.revokedAt ||
@@ -81,25 +90,29 @@ export const refreshHandler = httpAction(async (ctx, request) => {
     );
   }
 
-  // ─── Rotate token (revoke old, issue new) ─────────────────────────────────
-  await ctx.runMutation(internal.auth.internals.revokeRefreshToken, {
+  // ─── Rotate token atomically (revoke old, issue new; reuse → family revoke)
+  const newRawToken = generateRefreshToken();
+  const newTokenHash = await hashRefreshToken(newRawToken);
+  const refreshExpiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
+
+  const rotation = await ctx.runMutation(internal.auth.internals.rotateRefreshToken, {
     tokenHash,
+    nextTokenHash: newTokenHash,
+    userId: user._id,
+    expiresAt: refreshExpiresAt,
   });
+  if (!rotation.rotated) {
+    return authJsonResponse(
+      { error: "Invalid or expired refresh token" },
+      401,
+      allowedOrigin,
+    );
+  }
 
   const accessToken = await signAccessToken({
     userId: user._id,
     email: user.email,
     name: user.displayName ?? user.username ?? user.email,
-  });
-
-  const newRawToken = generateRefreshToken();
-  const newTokenHash = await hashRefreshToken(newRawToken);
-  const refreshExpiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
-
-  await ctx.runMutation(internal.auth.internals.createRefreshToken, {
-    tokenHash: newTokenHash,
-    userId: user._id,
-    expiresAt: refreshExpiresAt,
   });
 
   // ─── Build cookie ─────────────────────────────────────────────────────────
@@ -114,7 +127,13 @@ export const refreshHandler = httpAction(async (ctx, request) => {
   ].join("; ");
 
   return authJsonResponse(
-    { accessToken, expiresIn: 900 },
+    {
+      accessToken,
+      expiresIn: 900,
+      ...(wantsRefreshTokenInBody(request.headers)
+        ? { refreshToken: newRawToken, refreshExpiresIn: 7 * 24 * 60 * 60 }
+        : {}),
+    },
     200,
     allowedOrigin,
     { "Set-Cookie": cookieFlags },

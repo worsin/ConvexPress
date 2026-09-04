@@ -51,6 +51,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const { isSignedIn, isLoaded } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const searchStr = useRouterState({ select: (state) => state.location.searchStr });
   const enabled = useDashboardEnabled();
   const redirected = useRef(false);
   // Make sure the signed-in Clerk identity has an account row on this site
@@ -63,7 +64,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
     // so a second run would overwrite returnTo with the login path itself.
     if (isLoaded && !isSignedIn && !redirected.current && !pathname.startsWith("/login")) {
       redirected.current = true;
-      navigate({ to: "/login", search: { returnTo: pathname } } as never);
+      navigate({ to: "/login", search: { returnTo: `${pathname}${searchStr ?? ""}` } } as never);
     }
   }, [isLoaded, isSignedIn, navigate, pathname]);
 
@@ -73,7 +74,11 @@ export function DashboardShell({ children }: DashboardShellProps) {
         ? "This site is not accepting new accounts right now. If you were invited, open the invitation link you received; otherwise contact the site owner."
         : account.reason === "email_conflict"
           ? "Your email address is already linked to a different sign-in on this site. Sign in with that account, or contact support to merge them."
-          : "We could not set up your account on this site. Please try again in a moment or contact support.";
+          : account.reason === "email_unverified"
+            ? "Verify your email address with your sign-in provider, then reload this page."
+            : account.reason === "local_account"
+              ? "This email belongs to a site administrator account. Sign in to the admin instead, or use a different email for your customer account."
+              : "We could not set up your account on this site. Please try again in a moment or contact support.";
     return (
       <div className="flex min-h-svh items-center justify-center bg-background px-4 text-center">
         <div className="flex max-w-md flex-col items-center gap-4" role="alert">

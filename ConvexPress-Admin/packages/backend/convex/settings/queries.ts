@@ -24,6 +24,7 @@
  *   const publicSettings = useQuery(api.settings.queries.getPublic);
  */
 
+import { ConvexError } from "convex/values";
 import { query, type QueryCtx } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { redactSettingSecrets } from "../helpers/settingsSecret";
@@ -75,8 +76,14 @@ async function requireSettingsReadAccess(ctx: QueryCtx, section: SettingsSection
     return await requireCan(ctx, capability);
   }
 
+  // Unmapped sections are still operator surfaces: any internal role may read
+  // them, website customers (Clerk identities) may not.
   const user = await getCurrentUser(ctx);
-  return user?.status === "active" ? user : null;
+  if (!user || user.status !== "active") return null;
+  if (user.authSource === "clerk") {
+    throw new ConvexError({ code: "FORBIDDEN", message: "Insufficient permissions" });
+  }
+  return user;
 }
 
 async function getMergedSettingsSection(
@@ -220,14 +227,24 @@ export const getAutoloaded = query({
         .withIndex("by_section", (q) => q.eq("section", section))
         .unique();
 
-      result[section] = doc
+      const merged: Record<string, unknown> = doc
         ? { ...defaults, ...(doc.values as Record<string, unknown>) }
         : { ...defaults };
+      // Public query: drop operator-only values (the same ones getPublic omits).
+      for (const key of AUTOLOAD_PRIVATE_KEYS) delete merged[key];
+      result[section] = redactSettingSecrets(merged) as Record<string, unknown>;
     }
 
     return result;
   },
 });
+
+const AUTOLOAD_PRIVATE_KEYS = [
+  "adminEmail",
+  "moderationWordList",
+  "disallowedWordList",
+  "commentBlocklist",
+];
 
 // ─── getPublic ───────────────────────────────────────────────────────────────
 

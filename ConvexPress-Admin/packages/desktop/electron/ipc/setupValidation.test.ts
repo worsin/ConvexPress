@@ -4,9 +4,11 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import {
+  classifyDeploymentUrl,
   deriveConvexSiteUrl,
   normalizeConvexCloudUrl,
   validateAuthPrivateKey,
+  validateDeploymentCredential,
   validateProductionDeployKey,
   validateSetupConfig,
 } from "./setupValidation";
@@ -32,17 +34,30 @@ describe("setup validation", () => {
       normalizeConvexCloudUrl(" https://affable-herring-441.convex.cloud/ "),
     ).toBe("https://affable-herring-441.convex.cloud");
 
-    expect(() =>
-      normalizeConvexCloudUrl("http://127.0.0.1:4105"),
-    ).toThrow("Convex URL must match https://your-app-123.convex.cloud.");
+    // Self-hosted backends are first-class: private http origins and any https origin.
+    expect(normalizeConvexCloudUrl("http://127.0.0.1:4105/")).toBe("http://127.0.0.1:4105");
+    expect(normalizeConvexCloudUrl("http://192.168.1.246:4820")).toBe("http://192.168.1.246:4820");
+    expect(normalizeConvexCloudUrl("https://convex.example.com")).toBe("https://convex.example.com");
+    expect(classifyDeploymentUrl("http://worsin-worker.local:4820").kind).toBe("self-hosted");
+    expect(classifyDeploymentUrl("https://affable-herring-441.convex.cloud").kind).toBe("cloud");
+
+    expect(() => normalizeConvexCloudUrl("http://203.0.113.9:4820")).toThrow(
+      "Plain-http deployments are only accepted on private networks",
+    );
     expect(() =>
       normalizeConvexCloudUrl("https://169.254.169.254/latest/meta-data"),
-    ).toThrow("Convex URL must match https://your-app-123.convex.cloud.");
+    ).toThrow("Convex URL must be a bare origin");
+    expect(() => normalizeConvexCloudUrl("https://169.254.169.254")).toThrow(
+      "link-local",
+    );
     expect(() =>
       normalizeConvexCloudUrl(
         "https://affable-herring-441.convex.cloud.evil.example.com",
       ),
     ).toThrow("Convex URL must match https://your-app-123.convex.cloud.");
+    expect(() => normalizeConvexCloudUrl("ftp://convex.example.com")).toThrow(
+      "must start with http:// or https://",
+    );
   });
 
   test("requires the production deploy key to match the Convex URL", () => {
@@ -158,7 +173,22 @@ describe("setup validation", () => {
         mode: "server",
         convexUrl: "https://affable-herring-441.convex.site",
       }),
-    ).toThrow("Convex URL must match https://your-app-123.convex.cloud.");
+    ).toThrow("HTTP actions host");
+    // Self-hosted: any opaque admin key works; the deploy-key format is not required.
+    expect(
+      validateDeploymentCredential(
+        "convexpress-site-alpha|0123456789abcdef0123456789abcdef",
+        "http://127.0.0.1:4820",
+      ),
+    ).toMatchObject({ kind: "self-hosted", convexUrl: "http://127.0.0.1:4820" });
+    expect(deriveConvexSiteUrl("http://127.0.0.1:4820")).toBe("http://127.0.0.1:4821");
+    expect(() => validateDeploymentCredential("short", "http://127.0.0.1:4820")).toThrow(
+      "Enter the deployment admin key",
+    );
+    expect(validateDeploymentCredential(DEPLOY_KEY, "https://affable-herring-441.convex.cloud")).toMatchObject({
+      kind: "cloud",
+      deployment: "prod:affable-herring-441",
+    });
     expect(() =>
       validateSetupConfig({
         mode: "server",

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { getElectronAuth } from "@/lib/electron";
+
 interface AuthState {
   accessToken: string | null;
   expiresAt: number | null;
@@ -23,6 +25,51 @@ let _siteUrl: string = import.meta.env.VITE_CONVEX_SITE_URL ?? "";
 /** Set the Convex site URL used by useLocalAuth. Call before rendering. */
 export function setConvexSiteUrl(url: string) {
   _siteUrl = url;
+}
+
+/**
+ * Desktop session transport. The refresh cookie cannot survive a cross-site
+ * fetch against a plain-http (LAN / self-hosted) deployment, so in Electron
+ * the refresh token is returned in the body, kept in OS-encrypted
+ * safeStorage (main process, never in the page), and presented on a header.
+ * Browser builds keep using the HttpOnly cookie.
+ */
+const REFRESH_STORAGE_PREFIX = "convexAuth.refreshToken:";
+
+function refreshStorageKey(siteUrl: string): string {
+  return `${REFRESH_STORAGE_PREFIX}${siteUrl.replace(/\/+$/, "")}`;
+}
+
+async function loadStoredRefreshToken(siteUrl: string): Promise<string | null> {
+  const storage = getElectronAuth();
+  if (!storage) return null;
+  try {
+    return (await storage.getItem(refreshStorageKey(siteUrl))) || null;
+  } catch {
+    return null;
+  }
+}
+
+async function storeRefreshToken(siteUrl: string, token: string | null): Promise<void> {
+  const storage = getElectronAuth();
+  if (!storage) return;
+  try {
+    if (token) await storage.setItem(refreshStorageKey(siteUrl), token);
+    else await storage.removeItem(refreshStorageKey(siteUrl));
+  } catch {
+    // Protected storage unavailable: the session simply lasts until quit.
+  }
+}
+
+/** Headers that switch the auth endpoints to the desktop token transport. */
+async function sessionHeaders(siteUrl: string, includeToken: boolean): Promise<Record<string, string>> {
+  if (!getElectronAuth()) return {};
+  const headers: Record<string, string> = { "X-ConvexPress-Session": "token" };
+  if (includeToken) {
+    const token = await loadStoredRefreshToken(siteUrl);
+    if (token) headers["X-ConvexPress-Refresh"] = token;
+  }
+  return headers;
 }
 
 export function decodeAccessTokenPayload(accessToken: string): AccessTokenPayload {
@@ -103,14 +150,18 @@ export function useLocalAuth() {
       const response = await fetch(`${CONVEX_SITE_URL}/auth/refresh`, {
         method: "POST",
         credentials: "include",
+        headers: await sessionHeaders(CONVEX_SITE_URL, true),
       });
 
       if (response.status === 204) {
         clearAuthState();
       } else if (response.ok) {
         const data = await response.json();
+        if (typeof data.refreshToken === "string") await storeRefreshToken(CONVEX_SITE_URL, data.refreshToken);
         setTokens(data.accessToken, data.expiresIn);
       } else {
+        // 401: the stored token was revoked or expired; forget it.
+        if (response.status === 401) await storeRefreshToken(CONVEX_SITE_URL, null);
         clearAuthState();
       }
     } catch {
@@ -143,7 +194,7 @@ export function useLocalAuth() {
 
     const response = await fetch(`${CONVEX_SITE_URL}/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(await sessionHeaders(CONVEX_SITE_URL, false)) },
       credentials: "include",
       body: JSON.stringify(body),
     });
@@ -154,6 +205,7 @@ export function useLocalAuth() {
     }
 
     const data = await response.json();
+    if (typeof data.refreshToken === "string") await storeRefreshToken(CONVEX_SITE_URL, data.refreshToken);
     setTokens(data.accessToken, data.expiresIn);
     return data.user;
   }, [CONVEX_SITE_URL, setTokens]);
@@ -163,9 +215,12 @@ export function useLocalAuth() {
     if (!CONVEX_SITE_URL) return;
 
     try {
+      const headers = await sessionHeaders(CONVEX_SITE_URL, true);
+      await storeRefreshToken(CONVEX_SITE_URL, null);
       await fetch(`${CONVEX_SITE_URL}/auth/logout`, {
         method: "POST",
         credentials: "include",
+        headers,
       });
     } catch {
       // Best-effort

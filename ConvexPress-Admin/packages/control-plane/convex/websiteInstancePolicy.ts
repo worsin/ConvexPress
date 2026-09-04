@@ -79,6 +79,15 @@ function owns(value: object, key: PropertyKey) {
   return Object.prototype.hasOwnProperty.call(value, key);
 }
 
+/** Shared with `attach` so create and update apply identical text rules. */
+export function cleanOptionalInstanceText(
+  value: string | null,
+  label: string,
+  maxLength: number,
+) {
+  return cleanOptionalText(value, label, maxLength);
+}
+
 function cleanOptionalText(
   value: string | null,
   label: string,

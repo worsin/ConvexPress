@@ -1,8 +1,7 @@
 import { useCallback, useState } from "react";
-import { useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { useClerk } from "@/lib/auth/clerk";
 import { api } from "@convexpress-website/backend/generated/api";
-import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -54,20 +53,17 @@ export function DeleteAccountDialog({
   const emailMatches =
     confirmEmail.toLowerCase() === user.email.toLowerCase();
 
-  const deleteUser = useMutation(api.profiles.mutations.deleteUser);
+  const deleteOwnAccount = useAction((api as any).profiles.actions.deleteOwnAccount);
 
   const handleDelete = useCallback(async () => {
     if (!emailMatches) return;
 
     setIsDeleting(true);
     try {
-      // Delete the user account, reassigning content to admin
-      await deleteUser({
-        userId: user._id as Id<"users">,
-        deleteContent: false,
-      });
+      // Close the account on this site and remove the sign-in identity.
+      await deleteOwnAccount({});
 
-      toast.success("Account deleted successfully");
+      toast.success("Your account has been closed");
       onOpenChange(false);
 
       // Properly invalidate the Clerk session before redirect
@@ -82,7 +78,7 @@ export function DeleteAccountDialog({
     } finally {
       setIsDeleting(false);
     }
-  }, [emailMatches, onOpenChange, deleteUser, user._id, signOut]);
+  }, [emailMatches, onOpenChange, deleteOwnAccount, signOut]);
 
   const handleClose = useCallback(() => {
     if (!isDeleting) {

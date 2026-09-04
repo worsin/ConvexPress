@@ -149,10 +149,12 @@ export const create = authenticatedMutation({
     const domain = normalizeDomain(args.primaryDomain);
     await assertUniqueWebsiteKey(ctx, websiteKey);
     await assertUniqueBusinessDomain(ctx, business._id, domain);
-    const existing = await ctx.db
-      .query("overseer_websites")
-      .withIndex("by_business", (q) => q.eq("business_id", business._id))
-      .take(1);
+    const existing = (
+      await ctx.db
+        .query("overseer_websites")
+        .withIndex("by_business", (q) => q.eq("business_id", business._id))
+        .take(100)
+    ).filter((row) => row.status === "active");
     const makeDefault = args.makeDefault ?? existing.length === 0;
     if (makeDefault) await clearBusinessDefault(ctx, business._id);
     const now = Date.now();
@@ -180,9 +182,7 @@ export const update = authenticatedMutation({
     title: v.optional(v.string()),
     description: v.optional(v.string()),
     primaryDomain: v.optional(v.string()),
-    status: v.optional(
-      v.union(v.literal("active"), v.literal("inactive"), v.literal("archived")),
-    ),
+    status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
     makeDefault: v.optional(v.boolean()),
   },
   returns: websiteResult,
@@ -190,6 +190,9 @@ export const update = authenticatedMutation({
     const website = await ctx.db.get(args.websiteId);
     if (!website?.organization_id || !website.business_id) {
       throw new Error("Website not found");
+    }
+    if (website.status === "archived") {
+      throw new Error("Archived websites cannot be edited");
     }
     await assertStoredAccess(ctx, ctx.operator, {
       selector: { type: "capability", code: "website.update" },

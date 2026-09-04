@@ -17,7 +17,7 @@ import {
   createAuthHeaders,
   getAllowedAuthOrigin,
 } from "./httpSecurity";
-import { isRefreshTokenShape, parseCookieValue } from "./inputLimits";
+import { readRefreshToken } from "./refreshTransport";
 
 export const logoutHandler = httpAction(async (ctx, request) => {
   const allowedOrigin = getAllowedAuthOrigin(request.headers.get("origin"));
@@ -28,10 +28,9 @@ export const logoutHandler = httpAction(async (ctx, request) => {
   const isProduction =
     process.env.AUTH_ISSUER_URL?.startsWith("https://") ?? false;
 
-  const cookieHeader = request.headers.get("cookie") ?? "";
-  const refreshToken = parseCookieValue(cookieHeader, "convexpress_refresh");
-  if (refreshToken && isRefreshTokenShape(refreshToken)) {
-    const tokenHash = await hashRefreshToken(refreshToken);
+  const presented = readRefreshToken(request.headers);
+  if (presented.token && !("invalid" in presented)) {
+    const tokenHash = await hashRefreshToken(presented.token);
     await ctx.runMutation(internal.auth.internals.revokeRefreshToken, {
       tokenHash,
     });

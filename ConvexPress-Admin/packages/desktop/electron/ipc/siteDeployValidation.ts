@@ -11,7 +11,11 @@ export type SiteDeployCredential =
   | { kind: "admin-key"; deploymentOrigin: string; adminKey: string }
   | { kind: "deploy-key"; deployKey: string; deployment: string }
   /** Single-site desktop installs: the bundled backend's own deploy key, read by the main process. */
-  | { kind: "bundled"; convexUrl: string };
+  | { kind: "bundled"; convexUrl: string }
+  /** Ask the operator for the deployment key in the protected credential window. */
+  | { kind: "prompt"; deploymentOrigin: string }
+  /** Fleet site: the main process fetches the sealed admin key from the control plane. */
+  | { kind: "control-plane"; connectionId: string; authToken: string };
 
 export interface SiteDeployRequest {
   /** Human label shown in progress + logs. */
@@ -62,6 +66,9 @@ export function parseDeploymentOrigin(value: unknown): string {
       host === "127.0.0.1" ||
       host === "::1" ||
       host === "[::1]" ||
+      !host.includes(".") || // single-label intranet names (docker / LAN aliases)
+      host.endsWith(".local") ||
+      host.endsWith(".internal") ||
       /^10\./.test(host) ||
       /^192\.168\./.test(host) ||
       /^172\.(1[6-9]|2\d|3[01])\./.test(host);
@@ -84,6 +91,16 @@ export function assertSiteDeployRequest(raw: unknown): SiteDeployRequest {
     if (credential.adminKey.length < 16) throw new Error("Invalid admin key");
   } else if (raw.credential.kind === "bundled") {
     credential = { kind: "bundled", convexUrl: parseDeploymentOrigin(raw.credential.convexUrl) };
+  } else if (raw.credential.kind === "prompt") {
+    credential = { kind: "prompt", deploymentOrigin: parseDeploymentOrigin(raw.credential.deploymentOrigin) };
+  } else if (raw.credential.kind === "control-plane") {
+    const authToken = cleanText(raw.credential.authToken, "operator token", 24_000);
+    if (authToken.length < 100 || authToken.split(".").length !== 3) throw new Error("Operator token is invalid");
+    credential = {
+      kind: "control-plane",
+      connectionId: cleanText(raw.credential.connectionId, "connection", 160),
+      authToken,
+    };
   } else if (raw.credential.kind === "deploy-key") {
     credential = {
       kind: "deploy-key",
@@ -114,9 +131,94 @@ export function assertSiteDeployRequest(raw: unknown): SiteDeployRequest {
 export function redactDeployLog(line: string, secrets: string[]): string {
   let out = line;
   for (const secret of secrets) {
-    if (secret && secret.length >= 8) out = out.split(secret).join("••••");
+    if (!secret || secret.length < 8) continue;
+    out = out.split(secret).join("••••");
+    // Multi-line secrets (PEM keys) can be echoed one line at a time by a
+    // child process; scrub every fragment, not only the whole value.
+    for (const fragment of secret.split(/\r?\n/)) {
+      const piece = fragment.trim();
+      if (piece.length >= 16) out = out.split(piece).join("••••");
+    }
   }
   return out
+    .replace(/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, "[private key redacted]")
+    .replace(/-----(?:BEGIN|END) [A-Z ]*PRIVATE KEY-----/g, "[private key redacted]")
     .replace(/(sk_(?:test|live)_)[A-Za-z0-9]+/g, "$1••••")
     .replace(/(whsec_)[A-Za-z0-9+/=_-]+/g, "$1••••");
+}
+
+// ─── Initialize a fresh deployment as a ConvexPress site ────────────────────
+
+export type SiteEnvironmentKind =
+  | "live"
+  | "staging"
+  | "beta"
+  | "preview"
+  | "development"
+  | "local"
+  | "custom";
+
+const ENVIRONMENT_KINDS = new Set<SiteEnvironmentKind>([
+  "live",
+  "staging",
+  "beta",
+  "preview",
+  "development",
+  "local",
+  "custom",
+]);
+
+export interface SiteInitializeRequest {
+  /** Control-plane environment record to connect once the site is initialized. */
+  instanceId: string;
+  websiteKey: string;
+  instanceKey: string;
+  environmentKind: SiteEnvironmentKind;
+  deploymentOrigin: string;
+  managementOrigin: string;
+  siteOrigin: string;
+  siteTitle: string;
+  connectionName: string;
+  accountLabel?: string;
+  /** Operator token for the control-plane connection call. */
+  authToken: string;
+  /** Extra browser origins allowed to call the site's local admin auth routes. */
+  adminOrigins: string[];
+}
+
+// Mirrors @convexpress/site-contract portableKeySchema (8–128 chars, letters,
+// digits, dot, underscore, colon, dash; e.g. "business:site:live").
+const PORTABLE_KEY = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/;
+
+export function assertSiteInitializeRequest(raw: unknown): SiteInitializeRequest {
+  if (!isRecord(raw)) throw new Error("Invalid initialize request");
+  const websiteKey = cleanText(raw.websiteKey, "website key", 128);
+  const instanceKey = cleanText(raw.instanceKey, "environment key", 128);
+  if (!PORTABLE_KEY.test(websiteKey) || !PORTABLE_KEY.test(instanceKey)) {
+    throw new Error("Website and environment keys must be portable keys (8-128 chars: letters, digits, . _ : -)");
+  }
+  const environmentKind = String(raw.environmentKind ?? "") as SiteEnvironmentKind;
+  if (!ENVIRONMENT_KINDS.has(environmentKind)) throw new Error("Unknown environment kind");
+  const authToken = cleanText(raw.authToken, "operator token", 24_000);
+  if (authToken.length < 100 || authToken.split(".").length !== 3) throw new Error("Operator token is invalid");
+  const adminOrigins = Array.isArray(raw.adminOrigins)
+    ? raw.adminOrigins.map((origin) => parseDeploymentOrigin(origin))
+    : [];
+  if (adminOrigins.length > 8) throw new Error("Too many admin origins");
+  return {
+    instanceId: cleanText(raw.instanceId, "environment", 160),
+    websiteKey,
+    instanceKey,
+    environmentKind,
+    deploymentOrigin: parseDeploymentOrigin(raw.deploymentOrigin),
+    managementOrigin: parseDeploymentOrigin(raw.managementOrigin),
+    siteOrigin: parseDeploymentOrigin(raw.siteOrigin),
+    siteTitle: cleanText(raw.siteTitle, "site title", 160),
+    connectionName: cleanText(raw.connectionName, "connection name", 160),
+    ...(typeof raw.accountLabel === "string" && raw.accountLabel.trim()
+      ? { accountLabel: cleanText(raw.accountLabel, "account label", 160) }
+      : {}),
+    authToken,
+    adminOrigins,
+  };
 }

@@ -12,9 +12,10 @@ import path from "node:path";
 import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { SETUP_CREDENTIAL_HANDOFF_TTL_MS } from "../launchRoute.js";
 import {
-  validateProductionDeployKey,
+  validateDeploymentCredential,
   validateAuthPrivateKey,
   validateSetupConfig,
+  type DeploymentCredential,
 } from "./setupValidation.js";
 import { isExactWizardSender } from "./setupSender.js";
 import type { SetupValidationConfig } from "./setupValidation.js";
@@ -40,11 +41,34 @@ function getWizardIndexPath(): string {
   return path.join(__dirname, "wizard", "index.html");
 }
 
-function deriveDeployment(config: SetupConfig): {
-  deployKey: string;
-  deployment: string;
-} {
-  return validateProductionDeployKey(config.adminKey, config.convexUrl);
+function deriveDeployment(config: SetupConfig): DeploymentCredential {
+  return validateDeploymentCredential(config.adminKey, config.convexUrl);
+}
+
+/** Names of env vars already present on the deployment (values never read). */
+function listDeploymentEnvNames(
+  backendRoot: string,
+  env: NodeJS.ProcessEnv,
+  targetArgs: string[],
+): Promise<Set<string>> {
+  return new Promise((resolve) => {
+    const child = spawn("bunx", ["convex", "env", "list", ...targetArgs], {
+      cwd: backendRoot,
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    child.stdout.on("data", (data: Buffer) => (stdout += data.toString()));
+    child.on("error", () => resolve(new Set()));
+    child.on("exit", () => {
+      const names = new Set<string>();
+      for (const line of stdout.split(/\r?\n/)) {
+        const match = /^([A-Z][A-Z0-9_]*)=/.exec(line.trim());
+        if (match) names.add(match[1]);
+      }
+      resolve(names);
+    });
+  });
 }
 
 export function resolveBackendRoot(): string {
@@ -68,7 +92,7 @@ export function resolveBackendRoot(): string {
   );
 }
 
-function generateAuthPrivateKey(): string {
+export function generateAuthPrivateKey(): string {
   const { privateKey } = generateKeyPairSync("ec", {
     namedCurve: "P-256",
   });
@@ -168,6 +192,7 @@ function createBackendEnvFile(
   convexSiteUrl: string,
   backendRoot: string,
   firstAdminSetupSecret?: string,
+  existingNames: Set<string> = new Set(),
 ): {
   filePath: string;
   cleanup: () => void;
@@ -177,9 +202,6 @@ function createBackendEnvFile(
   const filePath = path.join(tempDir, "convex-env.local");
   const configuredAuthPrivateKey = readSetupEnvValue("AUTH_PRIVATE_KEY", localEnv);
   const envVars: Record<string, string> = {
-    AUTH_PRIVATE_KEY: configuredAuthPrivateKey
-      ? validateAuthPrivateKey(configuredAuthPrivateKey)
-      : generateAuthPrivateKey(),
     AUTH_ISSUER_URL: convexSiteUrl,
     AUTH_ALLOWED_ORIGINS:
       readSetupEnvValue("AUTH_ALLOWED_ORIGINS", localEnv) ??
@@ -187,6 +209,15 @@ function createBackendEnvFile(
     AUTH_ALLOW_NULL_ORIGIN:
       readSetupEnvValue("AUTH_ALLOW_NULL_ORIGIN", localEnv) ?? "true",
   };
+
+  // Re-running setup must never rotate a deployment's signing key: that
+  // would invalidate every admin session and break website JWT checks for
+  // the JWKS cache lifetime. Only set it when the deployment has none.
+  if (!existingNames.has("AUTH_PRIVATE_KEY")) {
+    envVars.AUTH_PRIVATE_KEY = configuredAuthPrivateKey
+      ? validateAuthPrivateKey(configuredAuthPrivateKey)
+      : generateAuthPrivateKey();
+  }
 
   if (firstAdminSetupSecret) {
     envVars.FIRST_ADMIN_SETUP_SECRET = firstAdminSetupSecret;
@@ -267,26 +298,33 @@ async function deployServerBackend(
   firstAdminSetupSecret: string,
   sendProgress: (phase: ProgressPhase, message: string) => void,
 ): Promise<void> {
-  const { deployKey, deployment } = deriveDeployment(config);
+  const credential = deriveDeployment(config);
   const backendRoot = resolveBackendRoot();
-  const env = {
-    ...process.env,
-    CONVEX_DEPLOYMENT: deployment,
-    CONVEX_DEPLOY_KEY: deployKey,
-  };
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  const targetArgs: string[] = [];
+  if (credential.kind === "cloud") {
+    env.CONVEX_DEPLOYMENT = credential.deployment;
+    env.CONVEX_DEPLOY_KEY = credential.deployKey;
+  } else {
+    targetArgs.push("--url", credential.convexUrl, "--admin-key", credential.adminKey);
+  }
+
+  sendProgress("environment", "Checking the deployment's existing environment.");
+  const existingNames = await listDeploymentEnvNames(backendRoot, env, targetArgs);
 
   sendProgress("environment", "Preparing backend environment.");
   const envFile = createBackendEnvFile(
     convexSiteUrl,
     backendRoot,
     firstAdminSetupSecret,
+    existingNames,
   );
 
   try {
     sendProgress("environment", "Syncing required backend environment variables.");
     await runCommand(
       "bunx",
-      ["convex", "env", "set", "--from-file", envFile.filePath, "--force"],
+      ["convex", "env", "set", "--from-file", envFile.filePath, "--force", ...targetArgs],
       {
         cwd: backendRoot,
         env,
@@ -305,14 +343,13 @@ async function deployServerBackend(
     onOutput: (message) => console.log(`[Setup IPC] Codegen: ${message}`),
   });
 
-  sendProgress("deploy", "Deploying Convex backend code.");
+  sendProgress("deploy", "Deploying Convex backend code (typechecked).");
   await runCommand(
     "bunx",
     [
       "convex",
       "deploy",
-      "--typecheck",
-      "disable",
+      ...targetArgs,
       "--message",
       "ConvexPress desktop setup wizard",
     ],

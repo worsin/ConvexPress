@@ -332,10 +332,16 @@ export const importAll = mutation({
 
       // Get defaults and merge
       const defaults = getDefaults(sectionName);
-      const newValues: Record<string, unknown> = {
-        ...defaults,
-        ...stripSettingsDocumentMetadata(sectionValues as Record<string, unknown>),
-      };
+      const incoming = stripSettingsDocumentMetadata(sectionValues as Record<string, unknown>);
+      const validationErrors = validateSectionValues(sectionName, incoming);
+      if (validationErrors.length > 0) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: `Import failed for ${sectionName} settings`,
+          errors: validationErrors.map((error) => ({ field: error.field, message: error.message })),
+        });
+      }
+      const newValues: Record<string, unknown> = { ...defaults, ...incoming };
 
       // Get current stored values
       const existingDoc = await ctx.db
@@ -347,8 +353,22 @@ export const importAll = mutation({
         ? { ...defaults, ...(existingDoc.values as Record<string, unknown>) }
         : { ...defaults };
 
-      // Compute changes
-      const changes = computeChanges(oldValues, newValues);
+      // Exports are redacted (secrets come back as the sentinel): keep the
+      // stored secret for a sentinel, encrypt any new plaintext.
+      for (const [k, v] of Object.entries(newValues)) {
+        if (!isSecretFieldName(k)) continue;
+        if (v === SECRET_SENTINEL) {
+          newValues[k] = (existingDoc?.values as any)?.[k] ?? "";
+        } else if (typeof v === "string" && v.length > 0 && !v.startsWith("enc:") && !v.startsWith("b64:")) {
+          newValues[k] = await encryptSettingSecret(v);
+        }
+      }
+
+      // Compute changes (redacted view: no plaintext in events)
+      const changes = computeChanges(
+        redactSettingSecrets(oldValues) as any,
+        redactSettingSecrets(newValues) as any,
+      );
 
       // Skip if no actual changes
       if (changes.length === 0) {

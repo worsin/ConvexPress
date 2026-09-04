@@ -1219,7 +1219,9 @@ describe("createFirstAdmin", () => {
     expect(ai?.apiKey).toBe("__set__");
     expect(ai?.tavilyApiKey).toBe("__set__");
     expect(ai?.imageApiKey).toBe("__set__");
-    expect(payments?.stripePublishableKey).toBe("__set__");
+    // Publishable keys are public by design (they ship to browsers), so the
+    // admin can read them back verbatim; only secret keys are masked.
+    expect(payments?.stripePublishableKey).toBe("pk_test_public");
     expect(payments?.stripeSecretKey).toBe("__set__");
     expect(payments?.stripeWebhookSecret).toBe("__set__");
     expect(payments?.paypalClientSecret).toBe("__set__");

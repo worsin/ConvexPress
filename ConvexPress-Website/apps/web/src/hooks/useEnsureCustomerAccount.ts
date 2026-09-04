@@ -19,12 +19,16 @@ export type CustomerAccountState =
   | { status: "anonymous" }
   | { status: "ready" }
   | { status: "provisioning" }
-  | { status: "unavailable"; reason: "registration_closed" | "email_conflict" | "error"; detail?: string };
+  | {
+      status: "unavailable";
+      reason: "registration_closed" | "email_conflict" | "email_unverified" | "local_account" | "error";
+      detail?: string;
+    };
 
 export function useEnsureCustomerAccount(): CustomerAccountState {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const profile = useQuery(api.profiles.queries.getProfile, isAuthenticated ? {} : "skip");
-  const provision = useMutation((api as any).auth.clerkProvisioning.provisionClerkUser);
+  const provision = useMutation((api as any).auth.clerkProvisioning.ensureClerkUser);
   const attempted = useRef(false);
   const [outcome, setOutcome] = useState<CustomerAccountState | null>(null);
 
@@ -40,12 +44,25 @@ export function useEnsureCustomerAccount(): CustomerAccountState {
     attempted.current = true;
     setOutcome({ status: "provisioning" });
     void provision({})
-      .then((userId: unknown) => {
-        if (userId) {
+      .then((result: { ok: boolean; reason?: string } | null) => {
+        if (result?.ok) {
           setOutcome(null); // profile query will refresh reactively
-        } else {
-          setOutcome({ status: "unavailable", reason: "registration_closed" });
+          return;
         }
+        const reason = result?.reason;
+        setOutcome({
+          status: "unavailable",
+          reason:
+            reason === "email_conflict"
+              ? "email_conflict"
+              : reason === "email_unverified"
+                ? "email_unverified"
+                : reason === "local_account"
+                  ? "local_account"
+                  : reason === "registration_closed" || reason === "no_email"
+                    ? "registration_closed"
+                    : "error",
+        });
       })
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);

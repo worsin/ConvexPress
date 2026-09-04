@@ -64,10 +64,10 @@ export const clerkWebhookHandler = httpAction(async (ctx, request) => {
     case "user.created":
     case "user.updated": {
       const clerkUserId = normalizeClerkUserId(event.data.id);
-      const email = normalizeEmail(
-        (event.data.email_addresses as Array<{ email_address?: unknown }>)?.[0]
-          ?.email_address,
-      );
+      const addresses = (event.data.email_addresses as Array<{ id?: unknown; email_address?: unknown }>) ?? [];
+      const primary =
+        addresses.find((entry) => entry?.id === event.data.primary_email_address_id) ?? addresses[0];
+      const email = normalizeEmail(primary?.email_address);
       if (!clerkUserId || !email) {
         return new Response("Invalid Clerk user payload", { status: 400 });
       }

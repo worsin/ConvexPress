@@ -79,10 +79,15 @@ export function normalizeLoginCredentials(body: unknown):
   return { ok: true, email, username, password, identifier };
 }
 
+/**
+ * The client can put anything at the front of X-Forwarded-For; the last entry
+ * is appended by the edge proxy and is the only trustworthy hop.
+ */
 export function normalizeRequestIp(value: string | null): string {
-  const first = value?.split(",")[0]?.trim();
-  if (!first) return "unknown";
-  return first.length <= MAX_IP_LENGTH ? first : first.slice(0, MAX_IP_LENGTH);
+  const hops = (value ?? "").split(",").map((hop) => hop.trim()).filter(Boolean);
+  const last = hops[hops.length - 1];
+  if (!last) return "unknown";
+  return last.length <= MAX_IP_LENGTH ? last : last.slice(0, MAX_IP_LENGTH);
 }
 
 export function parseCookieValue(header: string, name: string): string | null {
