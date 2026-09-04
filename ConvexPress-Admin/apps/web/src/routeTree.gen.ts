@@ -196,6 +196,7 @@ import { Route as AuthenticatedAdminFormsFormIdNotificationsRouteImport } from '
 import { Route as AuthenticatedAdminFormsFormIdEditRouteImport } from './routes/_authenticated/_admin/forms/$formId/edit'
 import { Route as AuthenticatedAdminFormsFormIdConfirmationsRouteImport } from './routes/_authenticated/_admin/forms/$formId/confirmations'
 import { Route as AuthenticatedAdminFormsFormIdActionsRouteImport } from './routes/_authenticated/_admin/forms/$formId/actions'
+import { Route as AuthenticatedAdminCustomerDashboardLayoutsScopeRouteImport } from './routes/_authenticated/_admin/customer-dashboard/layouts/$scope'
 import { Route as AuthenticatedAdminCustomFieldsGroupIdEditRouteImport } from './routes/_authenticated/_admin/custom-fields/$groupId/edit'
 import { Route as AuthenticatedAdminCommerceSubscriptionsPricingCardsRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/pricing-cards'
 import { Route as AuthenticatedAdminCommerceSubscriptionsDunningRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/dunning'
@@ -1421,6 +1422,12 @@ const AuthenticatedAdminFormsFormIdActionsRoute =
     path: '/forms/$formId/actions',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminCustomerDashboardLayoutsScopeRoute =
+  AuthenticatedAdminCustomerDashboardLayoutsScopeRouteImport.update({
+    id: '/customer-dashboard/layouts/$scope',
+    path: '/customer-dashboard/layouts/$scope',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminCustomFieldsGroupIdEditRoute =
   AuthenticatedAdminCustomFieldsGroupIdEditRouteImport.update({
     id: '/$groupId/edit',
@@ -1982,6 +1989,7 @@ export interface FileRoutesByFullPath {
   '/commerce/subscriptions/dunning': typeof AuthenticatedAdminCommerceSubscriptionsDunningRoute
   '/commerce/subscriptions/pricing-cards': typeof AuthenticatedAdminCommerceSubscriptionsPricingCardsRoute
   '/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
+  '/customer-dashboard/layouts/$scope': typeof AuthenticatedAdminCustomerDashboardLayoutsScopeRoute
   '/forms/$formId/actions': typeof AuthenticatedAdminFormsFormIdActionsRoute
   '/forms/$formId/confirmations': typeof AuthenticatedAdminFormsFormIdConfirmationsRoute
   '/forms/$formId/edit': typeof AuthenticatedAdminFormsFormIdEditRoute
@@ -2221,6 +2229,7 @@ export interface FileRoutesByTo {
   '/commerce/subscriptions/dunning': typeof AuthenticatedAdminCommerceSubscriptionsDunningRoute
   '/commerce/subscriptions/pricing-cards': typeof AuthenticatedAdminCommerceSubscriptionsPricingCardsRoute
   '/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
+  '/customer-dashboard/layouts/$scope': typeof AuthenticatedAdminCustomerDashboardLayoutsScopeRoute
   '/forms/$formId/actions': typeof AuthenticatedAdminFormsFormIdActionsRoute
   '/forms/$formId/confirmations': typeof AuthenticatedAdminFormsFormIdConfirmationsRoute
   '/forms/$formId/edit': typeof AuthenticatedAdminFormsFormIdEditRoute
@@ -2476,6 +2485,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/commerce/subscriptions/dunning': typeof AuthenticatedAdminCommerceSubscriptionsDunningRoute
   '/_authenticated/_admin/commerce/subscriptions/pricing-cards': typeof AuthenticatedAdminCommerceSubscriptionsPricingCardsRoute
   '/_authenticated/_admin/custom-fields/$groupId/edit': typeof AuthenticatedAdminCustomFieldsGroupIdEditRoute
+  '/_authenticated/_admin/customer-dashboard/layouts/$scope': typeof AuthenticatedAdminCustomerDashboardLayoutsScopeRoute
   '/_authenticated/_admin/forms/$formId/actions': typeof AuthenticatedAdminFormsFormIdActionsRoute
   '/_authenticated/_admin/forms/$formId/confirmations': typeof AuthenticatedAdminFormsFormIdConfirmationsRoute
   '/_authenticated/_admin/forms/$formId/edit': typeof AuthenticatedAdminFormsFormIdEditRoute
@@ -2730,6 +2740,7 @@ export interface FileRouteTypes {
     | '/commerce/subscriptions/dunning'
     | '/commerce/subscriptions/pricing-cards'
     | '/custom-fields/$groupId/edit'
+    | '/customer-dashboard/layouts/$scope'
     | '/forms/$formId/actions'
     | '/forms/$formId/confirmations'
     | '/forms/$formId/edit'
@@ -2969,6 +2980,7 @@ export interface FileRouteTypes {
     | '/commerce/subscriptions/dunning'
     | '/commerce/subscriptions/pricing-cards'
     | '/custom-fields/$groupId/edit'
+    | '/customer-dashboard/layouts/$scope'
     | '/forms/$formId/actions'
     | '/forms/$formId/confirmations'
     | '/forms/$formId/edit'
@@ -3223,6 +3235,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/commerce/subscriptions/dunning'
     | '/_authenticated/_admin/commerce/subscriptions/pricing-cards'
     | '/_authenticated/_admin/custom-fields/$groupId/edit'
+    | '/_authenticated/_admin/customer-dashboard/layouts/$scope'
     | '/_authenticated/_admin/forms/$formId/actions'
     | '/_authenticated/_admin/forms/$formId/confirmations'
     | '/_authenticated/_admin/forms/$formId/edit'
@@ -4635,6 +4648,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFormsFormIdActionsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/customer-dashboard/layouts/$scope': {
+      id: '/_authenticated/_admin/customer-dashboard/layouts/$scope'
+      path: '/customer-dashboard/layouts/$scope'
+      fullPath: '/customer-dashboard/layouts/$scope'
+      preLoaderRoute: typeof AuthenticatedAdminCustomerDashboardLayoutsScopeRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/_admin/custom-fields/$groupId/edit': {
       id: '/_authenticated/_admin/custom-fields/$groupId/edit'
       path: '/$groupId/edit'
@@ -6025,6 +6045,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminUsersIndexRoute: typeof AuthenticatedAdminUsersIndexRoute
   AuthenticatedAdminWebhooksIndexRoute: typeof AuthenticatedAdminWebhooksIndexRoute
   AuthenticatedAdminCommentsCommentIdEditRoute: typeof AuthenticatedAdminCommentsCommentIdEditRoute
+  AuthenticatedAdminCustomerDashboardLayoutsScopeRoute: typeof AuthenticatedAdminCustomerDashboardLayoutsScopeRoute
   AuthenticatedAdminFormsFormIdActionsRoute: typeof AuthenticatedAdminFormsFormIdActionsRoute
   AuthenticatedAdminFormsFormIdConfirmationsRoute: typeof AuthenticatedAdminFormsFormIdConfirmationsRoute
   AuthenticatedAdminFormsFormIdEditRoute: typeof AuthenticatedAdminFormsFormIdEditRoute
@@ -6099,6 +6120,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminWebhooksIndexRoute: AuthenticatedAdminWebhooksIndexRoute,
   AuthenticatedAdminCommentsCommentIdEditRoute:
     AuthenticatedAdminCommentsCommentIdEditRoute,
+  AuthenticatedAdminCustomerDashboardLayoutsScopeRoute:
+    AuthenticatedAdminCustomerDashboardLayoutsScopeRoute,
   AuthenticatedAdminFormsFormIdActionsRoute:
     AuthenticatedAdminFormsFormIdActionsRoute,
   AuthenticatedAdminFormsFormIdConfirmationsRoute:
