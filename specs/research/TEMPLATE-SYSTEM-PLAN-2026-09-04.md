@@ -238,3 +238,51 @@ Contracts between kits (what makes a whole site composable):
 Orchestration skill (after the kits): `site-build` runs brand discovery → choose or generate a template → enable plugins → author pages, menus, media and shop through the admin API (the same steps the Playwright driver performed by hand this week) → screenshot audit. That is the "whip up an entire site" path; it composes the kits, it does not bypass them.
 
 Sequencing relative to §10: the Plugin Template lands with phase 0 (the Dashboard plugin is built from it, so the template is proven on a real plugin first), the reference blocks with phase 1, template-kit with phase 5, `site-build` after phase 5.
+
+
+## 13. Disposition of the earlier appearance systems
+
+The earlier attempt (preset theme builder, section-enum layouts, global header/footer builders, a colours page bound to a `themes` row) tried to make the site changeable through presets. Full templates that own all of it replace that idea. Decision per area (owner's discretion granted 2026-09-04):
+
+| Area today | Decision | How |
+|---|---|---|
+| Appearance › Themes (`themes` table, `ThemeGallery`, frozen) | **Delete** | Removed in phase 1. The colour palette it stored moves to template settings (§14) with a migration that copies the active palette. |
+| `layouts` table + `layoutAssignments` (section enum, frozen) | **Delete** | Phase 1. Nothing reads it on the Website except the hard-coded shell width, which becomes a template option. |
+| `templates/` (14 page templates) and `template-parts/` (7) on the Website | **Delete** | Phase 1, after Core pack extraction. Page "templates" (default, full-width, landing…) survive as **variants of the `page` surface**, chosen per page in the editor as now. |
+| Appearance › Header (`header` section, `HeaderComposer`) | **Deprecate as a global builder; keep as data** | Core keeps reading it so nothing breaks. New packs declare their own header options (§14), typically a small subset (sticky, CTA, search style). The composer screen hides when the active pack does not opt into it. |
+| Appearance › Footer (rows builder + legacy composer, `footer` section) | **Same as header** | Rows are the useful part (menus per column); packs keep reading rows through the SDK. The legacy "Sections" tab goes. |
+| Appearance › Colors (`themes.colorPalette`) | **Re-home** | Becomes the Colors group inside Customize (§14). Same tokens, same live CSS variables, but per template and with pack-supplied presets. |
+| Settings › Brand (fonts, radius, density, industry) | **Keep** | Brand stays the AI's source of truth for generating a pack and the default for template settings. |
+| Menus and Menu Locations | **Keep** | Content, not appearance. Packs declare which locations they render (e.g. `header`, `footer-1`, `footer-2`, `dashboard`). |
+| Settings › Reading (front page, posts page) | **Keep** | |
+| Shop layouts (`commerce.layout`) | **Fold** | Becomes variants of `shop.catalog` / `shop.product` inside each pack; the picker moves to Customize. |
+| Website `useLayoutConfig` (hard-coded shell width) | **Delete** | Template option. |
+
+Net effect on the admin sidebar: Appearance becomes **Templates**, **Customize <active template>**, **Menus**, **Menu Locations**. Header and Footer entries show only when the active pack requests the legacy builders (Core does).
+
+## 14. Template settings ("Customize"), the WordPress theme-options equivalent
+
+People pick a template that looks right and then want to change colours, maybe a font, a header style. That must be first class: every pack registers a settings section, and the admin renders it without pack-specific admin code.
+
+**Declaration.** `template.json` carries a `settings` schema: ordered groups, each with typed fields. Field types: `color` (bound to a site token), `font` (Google Fonts name), `select`, `toggle`, `text`, `number`, `image` (media id), `menuLocation`, `range`. Every field has a default; a pack may mark a field `brandBound` so its default comes from the brand doc (primary colour, display font) until the operator overrides it.
+
+Standard groups every pack gets for free, in this order:
+1. **Colors** — the site tokens (`background`, `foreground`, `primary`, `primary-foreground`, `secondary`, `accent`, `muted`, `card`, `border`, `ring`, `destructive`) with the pack's own **presets** (a pack ships two or three named palettes it was designed against) plus free editing per token, light and dark.
+2. **Typography** — display and body font, scale.
+3. **Layout** — content width, radius, density (the values a pack actually consumes).
+Then the pack's own groups, e.g. Journal: "Header" (sticky, show tagline, CTA label/URL), "Blog" (card style, show excerpts), "Shop" (catalog variant, product variant, cart mode), "Footer" (columns, newsletter, social).
+
+**Storage.** `appearance.template.settings[packId]` in the site settings, per environment, so switching packs keeps each pack's own tweaks and switching back restores them. Public via `templateConfig.settings`. Colours and fonts are emitted as CSS variables by the existing `ThemeStyleInjector` path (it already does palette, fonts, radius, colour-scheme), so a colour change is live on the site the moment it saves.
+
+**Admin screen.** Appearance › Customize: left column is the groups accordion rendered from the schema (the same field components as Settings); right column is a live preview iframe of the site with unsaved values applied through a preview parameter, with page switcher (home, a post, shop, product, cart) and device widths. "Reset group to template defaults" and "Reset to brand". Saving writes the section; "Promote to live" copies staging's values along with the pack choice.
+
+**SDK.** `useTemplateSettings()` returns the typed values for the active pack (defaults merged); colour and font fields are also available as tokens so packs never read them by hand. `check:templates` validates the schema, that every field has a default, that colour fields map to real tokens, and that the pack reads only fields it declared.
+
+**AI.** When the `template-build` skill generates a pack it also generates the settings schema and presets from the brand doc, so a generated template arrives customizable, not frozen.
+
+## 15. Amendments to §10 and §11
+
+- Phase 1 adds: delete Themes, `layouts`, `templates/`, `template-parts/`; migrate the active palette into Core's template settings; page templates become `page` variants.
+- Phase 2 adds: Appearance › Customize with the standard groups and live preview; Header/Footer screens become opt-in per pack.
+- Phases 3–4: Journal and Depot each ship two or three colour presets and their own option groups.
+- Decision 3 in §11 is settled: delete the legacy systems in phase 1. Header/footer data stays and is read through the SDK.
