@@ -65,6 +65,7 @@ const SECTION_READ_CAPABILITY_MAP: Partial<Record<SettingsSection, Capability>> 
   "integrations.shipping.dhl": "manage_options",
   "integrations.clerk": "manage_options",
   "integrations.google": "manage_options",
+  dashboard: "manage_options",
   "analytics.ga4": "manage_options",
 };
 
@@ -264,6 +265,7 @@ export const getPublic = query({
     const brand = await getMergedSettingsSection(ctx, "brand");
     const shipping = await getMergedSettingsSection(ctx, "integrations.shipping");
     const blocks = await getMergedSettingsSection(ctx, "blocks");
+    const dashboard = await getMergedSettingsSection(ctx, "dashboard");
     const activeTheme = await ctx.db
       .query("themes")
       .withIndex("by_active", (q) => q.eq("isActive", true))
@@ -327,24 +329,18 @@ export const getPublic = query({
           ? (activeTheme as any).colorPalette
           : [],
 
-      // Public plugin flags. These are feature visibility controls, not secrets.
-      plugins: {
-        commerceEnabled: plugins.commerceEnabled,
-        commerceSubscriptionsEnabled: plugins.commerceSubscriptionsEnabled,
-        commerceDigitalEnabled: plugins.commerceDigitalEnabled,
-        commerceReviewsEnabled: plugins.commerceReviewsEnabled,
-        commerceWishlistsEnabled: plugins.commerceWishlistsEnabled,
-        commerceBundlesEnabled: plugins.commerceBundlesEnabled,
-        commerceReturnsEnabled: plugins.commerceReturnsEnabled,
-        membershipEnabled: plugins.membershipEnabled,
-        knowledgeBaseEnabled: plugins.knowledgeBaseEnabled,
-        ticketsEnabled: plugins.ticketsEnabled,
-        customFieldsEnabled: plugins.customFieldsEnabled,
-        recipesEnabled: plugins.recipesEnabled,
-        galleryEnabled: plugins.galleryEnabled,
-        lmsEnabled: plugins.lmsEnabled,
-        formsEnabled: plugins.formsEnabled,
-      },
+      // Public plugin flags. These are feature visibility controls, not
+      // secrets. Every `<id>Enabled` boolean is projected so new extensions
+      // reach the website without editing this file.
+      plugins: Object.fromEntries(
+        Object.entries(plugins).filter(
+          ([key, value]) =>
+            /^[A-Za-z][A-Za-z0-9]*Enabled$/u.test(key) && typeof value === "boolean",
+        ),
+      ),
+
+      // Customer dashboard shell configuration (Dashboard extension).
+      dashboardConfig: dashboard,
 
       // Block editor runtime config. Public so the front-end renderer can
       // suppress blocks that have been disabled in admin settings.

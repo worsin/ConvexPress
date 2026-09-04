@@ -29,6 +29,18 @@ export const menuItemTypeValidator = v.union(
   v.literal("category"),
   v.literal("tag"),
   v.literal("custom"),
+  /** A customer dashboard page from the dashboard registry (objectId = page id). */
+  v.literal("dashboard"),
+  /** Non-link section label (sidebars, dropdowns). */
+  v.literal("heading"),
+  /** Visual divider. */
+  v.literal("separator"),
+);
+
+export const menuVisibilityValidator = v.union(
+  v.literal("everyone"),
+  v.literal("signedIn"),
+  v.literal("signedOut"),
 );
 
 export const menuItemTargetValidator = v.union(
@@ -110,6 +122,17 @@ export const menuTables = {
     target: v.optional(menuItemTargetValidator),
     cssClasses: v.optional(v.string()), // Space-separated CSS class names
     linkRel: v.optional(v.string()), // Link relationship (rel attribute, e.g., "nofollow")
+
+    // === Presentation ===
+    icon: v.optional(v.string()), // Lucide icon name (kebab-case), used by dashboard and app-style menus
+    badge: v.optional(v.string()), // Live counter source, e.g. "notifications.unread"
+    pathOverride: v.optional(v.string()), // Dashboard items: replaces the configured base path
+
+    // === Visibility ===
+    visibility: v.optional(menuVisibilityValidator), // Default "everyone"
+    roles: v.optional(v.array(v.string())), // Website role slugs allowed to see the item
+    membershipPlans: v.optional(v.array(v.string())), // Membership plan slugs allowed to see the item
+    capability: v.optional(v.string()), // Website capability the viewer must hold
 
     // === Status ===
     isOrphaned: v.optional(v.boolean()), // True if the linked object has been deleted

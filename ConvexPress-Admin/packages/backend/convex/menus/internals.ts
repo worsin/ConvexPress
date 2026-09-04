@@ -18,6 +18,7 @@ import type { QueryCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
 import { v } from "convex/values";
 import { DEFAULT_MENU_LOCATIONS, MAX_DEPTH } from "./validators";
+import { getDashboardPage } from "../extensions/dashboard/registry";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -30,8 +31,15 @@ type MenuItemType = "page" | "post" | "category" | "tag" | "custom";
 export interface MenuItemTreeNode {
   _id: string;
   menuId: string;
-  itemType: "page" | "post" | "category" | "tag" | "custom";
+  itemType: "page" | "post" | "category" | "tag" | "custom" | "dashboard" | "heading" | "separator";
   objectId?: string;
+  icon?: string;
+  badge?: string;
+  pathOverride?: string;
+  visibility?: "everyone" | "signedIn" | "signedOut";
+  roles?: string[];
+  membershipPlans?: string[];
+  capability?: string;
   label: string;
   title?: string;
   description?: string;
@@ -79,6 +87,13 @@ export function buildMenuItemTree(items: Doc<"menuItems">[]): MenuItemTreeNode[]
       target: item.target,
       cssClasses: item.cssClasses,
       linkRel: item.linkRel,
+      icon: item.icon,
+      badge: item.badge,
+      pathOverride: item.pathOverride,
+      visibility: item.visibility,
+      roles: item.roles,
+      membershipPlans: item.membershipPlans,
+      capability: item.capability,
       isOrphaned: item.isOrphaned,
       children: [],
     };
@@ -151,6 +166,10 @@ export async function validateMenuItemObject(
     if (post.status === "trash") {
       throw new Error(`Referenced ${itemType} is in trash`);
     }
+  } else if (itemType === "dashboard") {
+    if (!getDashboardPage(objectId)) {
+      throw new Error("Referenced dashboard page is not registered");
+    }
   } else if (itemType === "category" || itemType === "tag") {
     const term = await ctx.db.get("terms", objectId as Id<"terms">);
     if (!term) {
@@ -181,8 +200,16 @@ export async function resolveMenuItemUrl(
   ctx: ReadCtx,
   itemType: string,
   objectId: string,
+  options: { dashboardBasePath?: string; pathOverride?: string } = {},
 ): Promise<string | undefined> {
-  if (itemType === "custom") return undefined;
+  if (itemType === "custom" || itemType === "heading" || itemType === "separator") return undefined;
+
+  if (itemType === "dashboard") {
+    const page = getDashboardPage(objectId);
+    if (!page) return undefined;
+    const base = (options.pathOverride?.trim() || options.dashboardBasePath || "/dashboard").replace(/\/$/u, "");
+    return `${base}${page.path}` || "/";
+  }
 
   if (itemType === "page" || itemType === "post") {
     const post = await ctx.db.get("posts", objectId as Id<"posts">);

@@ -375,6 +375,8 @@ export const addMenuItem = mutation({
           message: "URL is required for custom links",
         });
       }
+    } else if (args.itemType === "heading" || args.itemType === "separator") {
+      // Structural rows carry no link target.
     } else {
       // Content-linked items require objectId
       if (!args.objectId) {

@@ -113,6 +113,7 @@ const SECTION_CAPABILITY_MAP: Record<
   "integrations.shipping.dhl": "manage_options",
   "integrations.clerk": "manage_options",
   "integrations.google": "manage_options",
+  dashboard: "manage_options",
   "analytics.ga4": "manage_options",
 };
 

@@ -12,6 +12,7 @@ import { v } from "convex/values";
 import {
   menuItemTypeValidator,
   menuItemTargetValidator,
+  menuVisibilityValidator,
 } from "../schema/menus";
 
 // ─── Re-exports for convenience ──────────────────────────────────────────────
@@ -92,7 +93,33 @@ export const DEFAULT_MENU_LOCATIONS = [
     name: "Social Links Menu",
     description: "Social media icon links (detects URLs to render icons)",
   },
+  {
+    slug: "dashboard-sidebar",
+    name: "Dashboard Sidebar",
+    description: "Customer dashboard sidebar (falls back to the page registry when unset)",
+  },
+  {
+    slug: "dashboard-topbar",
+    name: "Dashboard Top Bar",
+    description: "Links across the top of the customer dashboard",
+  },
+  {
+    slug: "dashboard-profile",
+    name: "Profile Menu",
+    description: "The signed-in avatar dropdown, in the site header and the dashboard",
+  },
 ] as const;
+
+/** Fields shared by add and update: presentation and visibility rules. */
+export const menuItemPresentationArgs = {
+  icon: v.optional(v.string()),
+  badge: v.optional(v.string()),
+  pathOverride: v.optional(v.string()),
+  visibility: v.optional(menuVisibilityValidator),
+  roles: v.optional(v.array(v.string())),
+  membershipPlans: v.optional(v.array(v.string())),
+  capability: v.optional(v.string()),
+};
 
 // ─── Mutation Args ──────────────────────────────────────────────────────────
 
@@ -140,6 +167,7 @@ export const addMenuItemArgs = {
   target: v.optional(menuItemTargetValidator),
   cssClasses: v.optional(v.string()),
   linkRel: v.optional(v.string()),
+  ...menuItemPresentationArgs,
 };
 
 /**
@@ -154,6 +182,7 @@ export const updateMenuItemArgs = {
   target: v.optional(menuItemTargetValidator),
   cssClasses: v.optional(v.string()),
   linkRel: v.optional(v.string()),
+  ...menuItemPresentationArgs,
 };
 
 /**
@@ -218,6 +247,7 @@ export const getLinkableContentArgs = {
     v.literal("post"),
     v.literal("category"),
     v.literal("tag"),
+    v.literal("dashboard"),
   ),
   search: v.optional(v.string()),
   limit: v.optional(v.number()),

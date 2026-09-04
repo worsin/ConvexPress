@@ -44,6 +44,7 @@ export type SettingsSection =
   | "integrations.shipping.dhl"
   | "integrations.clerk"
   | "integrations.google"
+  | "dashboard"
   | "analytics.ga4"
   // Knowledge Base System sections
   | "kb.general"
@@ -91,6 +92,7 @@ export const SECTION_NAMES: SettingsSection[] = [
   "integrations.shipping.dhl",
   "integrations.clerk",
   "integrations.google",
+  "dashboard",
   "analytics.ga4",
   // Knowledge Base System sections
   "kb.general",
@@ -199,6 +201,7 @@ export interface DiscussionSettings {
 }
 
 export interface PluginsSettings {
+  dashboardEnabled: boolean;
   commerceEnabled: boolean;
   commerceSubscriptionsEnabled: boolean;
   commerceDigitalEnabled: boolean;
@@ -429,6 +432,37 @@ export interface ClerkIntegrationSettings {
   clerkWebhookSecret: string;
   /** Clerk JWT issuer domain (e.g. "clerk.yourdomain.com"). */
   clerkJwtIssuerDomain: string;
+}
+
+/**
+ * Customer dashboard (Dashboard extension). Menus supply the navigation;
+ * these values shape the shell around it.
+ */
+export interface DashboardSettings {
+  /** Path the dashboard lives at. A menu item's path override wins per link. */
+  basePath: string;
+  /** Which navigation surfaces the shell renders. */
+  layout: "sidebar" | "topbar" | "both";
+  /** Menu locations feeding each surface (empty = generated from the page registry). */
+  sidebarLocation: string;
+  topbarLocation: string;
+  profileLocation: string;
+  /** Sidebar starts collapsed to icons on desktop. */
+  sidebarCollapsedByDefault: boolean;
+  sidebarWidth: number;
+  showThemeToggle: boolean;
+  showNotificationBell: boolean;
+  showSearch: boolean;
+  /** "site" reuses the site logo; "custom" uses customLogoUrl; "none" shows the name only. */
+  brandMark: "site" | "custom" | "none";
+  customLogoUrl: string;
+  /** Registry page id shown at the base path. */
+  landingPage: string;
+  footerVariant: "minimal" | "full" | "none";
+  /** Members may rearrange, resize, and hide widgets on their own home. */
+  membersCanEditHome: boolean;
+  /** Greeting line on the welcome widget; {name} is replaced. */
+  welcomeHeadline: string;
 }
 
 export interface GoogleIntegrationSettings {
@@ -1043,6 +1077,25 @@ export const CLERK_INTEGRATION_DEFAULTS: ClerkIntegrationSettings = {
   clerkJwtIssuerDomain: "",
 };
 
+export const DASHBOARD_DEFAULTS: DashboardSettings = {
+  basePath: "/dashboard",
+  layout: "sidebar",
+  sidebarLocation: "dashboard-sidebar",
+  topbarLocation: "dashboard-topbar",
+  profileLocation: "dashboard-profile",
+  sidebarCollapsedByDefault: false,
+  sidebarWidth: 264,
+  showThemeToggle: true,
+  showNotificationBell: true,
+  showSearch: false,
+  brandMark: "site",
+  customLogoUrl: "",
+  landingPage: "home",
+  footerVariant: "minimal",
+  membersCanEditHome: true,
+  welcomeHeadline: "Welcome back, {name}",
+};
+
 export const GOOGLE_INTEGRATION_DEFAULTS: GoogleIntegrationSettings = {
   placesApiKey: "",
   geocodeApiKey: "",
@@ -1204,6 +1257,7 @@ export const TICKET_SLA_DEFAULTS: TicketSlaSettings = {
 };
 
 export const PLUGINS_DEFAULTS: PluginsSettings = {
+  dashboardEnabled: true,
   commerceEnabled: false,
   commerceSubscriptionsEnabled: false,
   commerceDigitalEnabled: false,
@@ -1314,6 +1368,7 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   },
   "integrations.clerk": CLERK_INTEGRATION_DEFAULTS,
   "integrations.google": GOOGLE_INTEGRATION_DEFAULTS,
+  dashboard: DASHBOARD_DEFAULTS,
   "analytics.ga4": ANALYTICS_GA4_DEFAULTS,
   // Knowledge Base System sections
   "kb.general": KB_GENERAL_DEFAULTS,

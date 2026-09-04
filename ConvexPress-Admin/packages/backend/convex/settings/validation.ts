@@ -660,6 +660,42 @@ function validateShippingIntegration(values: Record<string, unknown>): Validatio
   return errors;
 }
 
+function validateDashboard(values: Record<string, unknown>): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const basePath = values.basePath;
+  if (basePath !== undefined) {
+    if (!isString(basePath) || !/^\/[a-z0-9-]+(?:\/[a-z0-9-]+)*$/u.test(basePath)) {
+      errors.push({ field: "basePath", message: "Base path must look like /dashboard or /members/area (lowercase, no trailing slash)." });
+    }
+  }
+  if (values.layout !== undefined && !["sidebar", "topbar", "both"].includes(String(values.layout))) {
+    errors.push({ field: "layout", message: "Layout must be sidebar, topbar, or both." });
+  }
+  for (const key of ["sidebarLocation", "topbarLocation", "profileLocation", "landingPage", "customLogoUrl", "welcomeHeadline"]) {
+    if (values[key] !== undefined && !isString(values[key])) {
+      errors.push({ field: key, message: `${key} must be text.` });
+    }
+  }
+  if (values.sidebarWidth !== undefined) {
+    const width = Number(values.sidebarWidth);
+    if (!Number.isFinite(width) || width < 200 || width > 360) {
+      errors.push({ field: "sidebarWidth", message: "Sidebar width must be between 200 and 360 pixels." });
+    }
+  }
+  if (values.brandMark !== undefined && !["site", "custom", "none"].includes(String(values.brandMark))) {
+    errors.push({ field: "brandMark", message: "Brand mark must be site, custom, or none." });
+  }
+  if (values.footerVariant !== undefined && !["minimal", "full", "none"].includes(String(values.footerVariant))) {
+    errors.push({ field: "footerVariant", message: "Footer must be minimal, full, or none." });
+  }
+  for (const key of ["sidebarCollapsedByDefault", "showThemeToggle", "showNotificationBell", "showSearch", "membersCanEditHome"]) {
+    if (values[key] !== undefined && typeof values[key] !== "boolean") {
+      errors.push({ field: key, message: `${key} must be on or off.` });
+    }
+  }
+  return errors;
+}
+
 function validateGoogleIntegration(values: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
 
@@ -922,6 +958,8 @@ export function validateSectionValues(
       return validateClerkIntegration(values);
     case "integrations.google":
       return validateGoogleIntegration(values);
+    case "dashboard":
+      return validateDashboard(values);
     case "analytics.ga4":
       return validateAnalyticsGa4(values);
     // Knowledge Base System sections
