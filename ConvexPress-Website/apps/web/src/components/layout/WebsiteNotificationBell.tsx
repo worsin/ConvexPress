@@ -103,7 +103,7 @@ export function WebsiteNotificationBell() {
                       onOpen={() => {
                         if (typeof n.readAt !== "number") void actions.markRead(n.id);
                         setOpen(false);
-                        void navigate({ to: `${inboxHref}?id=${encodeURIComponent(n.id)}` as "/" });
+                        void navigate({ to: `${inboxHref}?id=${encodeURIComponent(n.id)}` } as never);
                       }}
                     />
                   ))}

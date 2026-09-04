@@ -42,7 +42,7 @@ function MyTicketsPage() {
 
   const shouldRedirect = isLoaded && isSignedIn && dashboardEnabled === true;
   useEffect(() => {
-    if (shouldRedirect) void navigate({ to: to("/tickets") as "/", replace: true });
+    if (shouldRedirect) void navigate({ to: to("/tickets"), replace: true } as never);
   }, [shouldRedirect, navigate, to]);
 
   const data = useQuery(api.tickets.queries.getMyTicketsOverview, isLoaded && isSignedIn && dashboardEnabled === false ? {} : "skip") as TicketOverviewResult | undefined;

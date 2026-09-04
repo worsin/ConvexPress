@@ -59,6 +59,7 @@ export const sectionValidator = v.union(
   v.literal("integrations.shipping.dhl"),
   v.literal("integrations.clerk"),
   v.literal("integrations.google"),
+  v.literal("dashboard"),
   v.literal("analytics.ga4"),
 );
 

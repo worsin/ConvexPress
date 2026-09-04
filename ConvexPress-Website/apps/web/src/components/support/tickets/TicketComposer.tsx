@@ -108,7 +108,7 @@ export interface TicketComposerProps {
  */
 export function TicketComposer({ onSend, busy = false, disabled = false, placeholder = "Write a reply", hint, minLength = 10, maxLength = DESCRIPTION_MAX, autoFocus = false, error }: TicketComposerProps) {
   const [text, setText] = useState("");
-  const { files, setFiles, problem, setProblem, add, reset } = useAttachmentSelection();
+  const { files, setFiles, problem, add, reset } = useAttachmentSelection();
   const areaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {

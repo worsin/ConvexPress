@@ -46,7 +46,7 @@ function CreateTicketPage() {
     if (search.category) params.set("category", search.category);
     if (search.context) params.set("context", search.context);
     const qs = params.toString();
-    void navigate({ to: to(`/tickets/new${qs ? `?${qs}` : ""}`) as "/", replace: true });
+    void navigate({ to: to(`/tickets/new${qs ? `?${qs}` : ""}`), replace: true } as never);
   }, [shouldRedirect, navigate, to, search.subject, search.category, search.context]);
 
   if (!isLoaded || dashboardEnabled === null || shouldRedirect) {

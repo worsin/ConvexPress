@@ -40,7 +40,7 @@ function TicketThreadPage() {
 
   const shouldRedirect = isLoaded && isSignedIn && dashboardEnabled === true && Boolean(ticketNumber);
   useEffect(() => {
-    if (shouldRedirect && ticketNumber) void navigate({ to: to(`/tickets/${ticketNumber}`) as "/", replace: true });
+    if (shouldRedirect && ticketNumber) void navigate({ to: to(`/tickets/${ticketNumber}`), replace: true } as never);
   }, [shouldRedirect, ticketNumber, navigate, to]);
 
   if (!isLoaded || dashboardEnabled === null) {
