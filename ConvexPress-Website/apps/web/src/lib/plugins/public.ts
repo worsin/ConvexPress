@@ -12,7 +12,8 @@ export type PublicPluginId =
   | "gallery"
   | "membership"
   | "lms"
-  | "forms";
+  | "forms"
+  | "dashboard";
 
 export type PublicPluginSettings = {
   plugins?: {
@@ -31,6 +32,7 @@ export type PublicPluginSettings = {
     membershipEnabled?: boolean;
     lmsEnabled?: boolean;
     formsEnabled?: boolean;
+    dashboardEnabled?: boolean;
   };
 } | null | undefined;
 
@@ -77,6 +79,10 @@ export function isPublicPluginEnabled(
       return settings.plugins?.lmsEnabled !== false;
     case "forms":
       return settings.plugins?.formsEnabled === true;
+    case "dashboard":
+      // The Dashboard extension ships enabled; only an explicit false turns the
+      // shell off (the compact account layout renders instead).
+      return settings.plugins?.dashboardEnabled !== false;
     default:
       return false;
   }

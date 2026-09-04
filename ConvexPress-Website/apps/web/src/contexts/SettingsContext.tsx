@@ -30,6 +30,7 @@ import { convexQuery } from "@convex-dev/react-query";
 import { rememberSiteName } from "@/lib/seo/head";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@convexpress-website/backend/generated/api";
+import type { DashboardConfig } from "@/lib/layout/types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -103,7 +104,13 @@ export interface PublicSettings {
     galleryEnabled?: boolean;
     lmsEnabled?: boolean;
     formsEnabled?: boolean;
+    dashboardEnabled?: boolean;
+    [key: string]: boolean | undefined;
   };
+
+  // Customer dashboard shell configuration (Dashboard extension). Partial on
+  // the wire; `useDashboardConfig()` merges it over the defaults.
+  dashboardConfig?: Partial<DashboardConfig> | null;
 
   // Block editor runtime config. The front-end renderer uses this to
   // suppress blocks that an admin has disabled in Settings -> Blocks.
