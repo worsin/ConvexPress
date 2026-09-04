@@ -16,7 +16,7 @@ import { v } from "convex/values";
 
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { resolveServiceKey } from "../helpers/serviceKeys";
+import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
 
 export type StripeTaxLine = {
   amount: number;
@@ -109,7 +109,7 @@ async function getStripeSecretKey(ctx: any): Promise<string | undefined> {
     | Record<string, unknown>
     | null
     | undefined;
-  return resolveServiceKey(values, "stripeSecretKey", "STRIPE_SECRET_KEY");
+  return await resolveServiceKeyAsync(values, "stripeSecretKey", "STRIPE_SECRET_KEY");
 }
 
 async function isStripeTaxMode(ctx: any): Promise<boolean> {

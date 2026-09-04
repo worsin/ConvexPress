@@ -3,7 +3,7 @@
 import { ConvexError } from "convex/values";
 import { action } from "../_generated/server";
 import { api, internal } from "../_generated/api";
-import { resolveServiceKey } from "../helpers/serviceKeys";
+import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
 import { extractRecipeFromImageArgs } from "./validators";
 import { requirePluginEnabled } from "../helpers/plugins";
 
@@ -35,7 +35,7 @@ async function resolveAiSettings(ctx: {
   return {
     provider,
     envVarName,
-    apiKey: resolveServiceKey(settings, "apiKey", envVarName) ?? "",
+    apiKey: await resolveServiceKeyAsync(settings, "apiKey", envVarName) ?? "",
     defaultModel: (settings?.defaultModel as string) || fallbackModel,
   };
 }

@@ -23,7 +23,7 @@
 
 import { httpAction } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { resolveServiceKey } from "../helpers/serviceKeys";
+import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
 
 export const resendWebhookHandler = httpAction(async (ctx, request) => {
   // 1. Parse the request body
@@ -47,7 +47,7 @@ export const resendWebhookHandler = httpAction(async (ctx, request) => {
     { section: "email" },
   ) as Record<string, unknown> | null;
 
-  const webhookSecret = resolveServiceKey(emailSettings, "webhookSecret", "RESEND_WEBHOOK_SECRET");
+  const webhookSecret = await resolveServiceKeyAsync(emailSettings, "webhookSecret", "RESEND_WEBHOOK_SECRET");
   if (webhookSecret) {
     const svixId = request.headers.get("svix-id");
     const svixTimestamp = request.headers.get("svix-timestamp");

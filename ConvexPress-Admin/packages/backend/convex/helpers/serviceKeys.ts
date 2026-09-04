@@ -107,6 +107,29 @@ export function resolveServiceKey(
 }
 
 /**
+ * Async variant of `resolveServiceKey` for action and HTTP-action handlers
+ * that already hold a settings object. Transparently decrypts stored
+ * ciphertext (`enc:` / `b64:`) and falls back to the environment variable.
+ *
+ * Prefer this over `resolveServiceKey` everywhere a value is sent to a
+ * provider: the synchronous variant hands back ciphertext untouched, which
+ * made Stripe, PayPal, and Resend fail whenever the key had been saved
+ * through Settings instead of an environment variable.
+ */
+export async function resolveServiceKeyAsync(
+  settingsValues: Record<string, unknown> | null | undefined,
+  settingsKey: string,
+  envVarName: string,
+): Promise<string | undefined> {
+  const raw = resolveServiceKey(settingsValues, settingsKey, envVarName);
+  if (!raw) return undefined;
+  if (raw.startsWith("enc:") || raw.startsWith("b64:")) {
+    return (await decryptSettingSecret(raw)) || undefined;
+  }
+  return raw;
+}
+
+/**
  * Async variant for action contexts: fetches settings internally,
  * transparently decrypts stored ciphertext, falls back to env.
  *

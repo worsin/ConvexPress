@@ -17,7 +17,7 @@ import { ConvexError, v } from "convex/values";
 
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { resolveServiceKey } from "../helpers/serviceKeys";
+import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
 import { getPayPalBaseUrl } from "./paypalMode";
 
 // ─── Stripe Key Resolution ──────────────────────────────────────────────────
@@ -29,7 +29,7 @@ async function getStripeSecretKey(ctx: any): Promise<string> {
     { section: "commerce.payments" },
   );
 
-  const key = resolveServiceKey(
+  const key = await resolveServiceKeyAsync(
     settings,
     "stripeSecretKey",
     "STRIPE_SECRET_KEY",
@@ -337,18 +337,18 @@ async function getPayPalCredentials(ctx: any): Promise<{
     { section: "commerce.payments" },
   );
 
-  const clientId = resolveServiceKey(
+  const clientId = await resolveServiceKeyAsync(
     settings,
     "paypalClientId",
     "PAYPAL_CLIENT_ID",
   );
-  const clientSecret = resolveServiceKey(
+  const clientSecret = await resolveServiceKeyAsync(
     settings,
     "paypalClientSecret",
     "PAYPAL_CLIENT_SECRET",
   );
   const mode =
-    resolveServiceKey(settings, "paypalMode", "PAYPAL_MODE") || "sandbox";
+    await resolveServiceKeyAsync(settings, "paypalMode", "PAYPAL_MODE") || "sandbox";
 
   if (!clientId || !clientSecret) {
     throw new ConvexError({

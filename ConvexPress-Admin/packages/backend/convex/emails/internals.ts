@@ -40,7 +40,7 @@ import {
   EMAIL_TEMPLATES,
 } from "../helpers/email";
 import { getUserIdentifier, lookupUserByIdentifier } from "../helpers/permissions";
-import { resolveServiceKey } from "../helpers/serviceKeys";
+import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
 import {
   queueEmailInternalArgs,
   sendEmailArgs,
@@ -526,7 +526,7 @@ export const sendEmail = internalAction({
       { section: "email" },
     ) as Record<string, unknown> | null;
 
-    const apiKey = resolveServiceKey(emailSettings, "resendApiKey", "RESEND_API_KEY");
+    const apiKey = await resolveServiceKeyAsync(emailSettings, "resendApiKey", "RESEND_API_KEY");
     if (!apiKey) {
       await ctx.runMutation(internal.emails.internals.handleSendFailure, {
         queueId: args.queueId,

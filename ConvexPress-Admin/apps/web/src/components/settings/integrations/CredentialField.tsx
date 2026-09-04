@@ -46,6 +46,8 @@ export interface CredentialFieldProps {
   /** Use `password` for true secrets, `text` for values that are only
    * sensitive-ish (client IDs). Default `password`. */
   inputType?: "password" | "text";
+  /** Offer a "Remove" action on a stored secret: emits "" so a save clears it. */
+  allowClear?: boolean;
 }
 
 export function CredentialField({
@@ -58,6 +60,7 @@ export function CredentialField({
   error,
   disabled,
   inputType = "password",
+  allowClear = false,
 }: CredentialFieldProps) {
   const isMaskedStored = value === SECRET_SENTINEL;
   const [editing, setEditing] = useState(!isMaskedStored && value !== undefined);
@@ -74,6 +77,12 @@ export function CredentialField({
     setVisible(false);
     // Restore the masked state on the parent side.
     onChange(SECRET_SENTINEL as any);
+  }
+
+  function clearStored() {
+    setEditing(true);
+    // Empty string means "remove the stored secret" on save.
+    onChange("");
   }
 
   return (
@@ -98,6 +107,18 @@ export function CredentialField({
             <Pencil className="mr-1.5 h-3.5 w-3.5" />
             Replace
           </Button>
+          {allowClear && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={clearStored}
+              disabled={disabled}
+              aria-label={`Remove ${label}`}
+            >
+              Remove
+            </Button>
+          )}
         </div>
       ) : (
         <div className="relative flex items-center gap-2">

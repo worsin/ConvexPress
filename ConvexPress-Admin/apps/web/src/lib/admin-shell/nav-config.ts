@@ -55,7 +55,7 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
   },
   {
     id: "setup",
-    label: "Setup",
+    label: "Integrations",
     to: "/setup",
     icon: KeyRound,
     capability: "manage_options",

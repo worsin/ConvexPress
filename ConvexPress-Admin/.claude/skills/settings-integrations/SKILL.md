@@ -18,6 +18,38 @@ often feed both Admin and Website behavior.
 - Website consumers: brand/site identity, theme/layout rendering, auth/payment
   callbacks, analytics, media constraints.
 
+## Integrations hub (readiness)
+
+`/setup` and `/settings/integrations` render one component,
+`apps/web/src/components/integrations/hub/IntegrationsHub.tsx`. It is driven by:
+
+- Registry: `packages/backend/convex/integrations/registry.ts` — the single list
+  of providers, their fields (kind, required, env fallback), storage kind
+  (`settings` section / `shipping` carrier store / `env` only / `link`), docs
+  and console URLs. The web app imports it directly; never duplicate provider
+  lists in the UI.
+- Overview: `integrations/queries.overview` — per provider: field state
+  (`set` / `env` / `empty`, values only for non-secrets), configured/missing,
+  last check with `stale` (config fingerprint changed), shipping connection
+  summary, and the encryption mode (`aes-gcm` vs `base64` fallback).
+- Verification: `integrations/actions.verify({ providerId })` (node) makes a
+  real read-only call to the provider, stores a safe summary in
+  `integration_checks`, and returns it. Add a provider by adding a registry
+  entry plus a `verifyX` function in `integrations/actions.ts`.
+- Configure dialog saves settings providers through `settings.mutations.updateSection`
+  with the FULL section (that mutation replaces the document with
+  defaults + incoming; untouched secrets are sent as `__set__`).
+
+Rules learned the hard way:
+
+- In actions, resolve keys with `getServiceKeyFromAction` or
+  `resolveServiceKeyAsync`; the sync `resolveServiceKey` returns ciphertext.
+- Do not add large `returns` validators to functions in `integrations/*`;
+  they exhaust the TypeScript instantiation budget (TS2589).
+- `packages/backend/.env.local` targets the production deployment. Deploy or
+  codegen against the test fleet with `--url http://127.0.0.1:148x0 --admin-key`
+  only; never run bare `convex deploy` / `convex codegen` in that package.
+
 ## Workflow
 
 1. Identify settings section: general, writing, reading, discussion, privacy,

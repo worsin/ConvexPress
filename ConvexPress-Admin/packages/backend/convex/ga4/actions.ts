@@ -70,7 +70,10 @@ function getAnalyticsClient(serviceAccountJson: string) {
 export const testConnection = action({
   args: testConnectionArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    // Only operators who manage settings may probe GA4 with arbitrary
+    // service-account material.
+    await ctx.runQuery(internal.settings.internals.requireManageOptionsInternal, {});
     // Validate service account JSON structure
     let credentials: Record<string, unknown>;
     try {

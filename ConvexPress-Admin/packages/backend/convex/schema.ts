@@ -62,6 +62,7 @@ import { commerceReturnsTables } from "./schema/commerceReturns";
 import { productAttributesTables } from "./schema/productAttributes";
 import { lmsTables } from "./schema/lms";
 import { managementTables } from "./schema/management";
+import { integrationsTables } from "./schema/integrations";
 
 // ─── Compose Schema ──────────────────────────────────────────────────────────
 export default defineSchema({
@@ -69,6 +70,7 @@ export default defineSchema({
   ...rolesTables,
   ...eventsTables,
   ...settingsTables,
+  ...integrationsTables,
   ...mediaTables,
   ...taxonomyTables,
   ...customFieldTables,
