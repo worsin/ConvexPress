@@ -104,7 +104,7 @@ Derived from the route sweep of 2026-09-04 (116 route files). API handlers, redi
 | Auth | 7 | 0 |
 | **Total** | **82** | **34** |
 
-Coverage areas shown in the admin (16): Chrome, Pages, Blog, Search, Shop, Cart & Checkout, Bundles, Wishlist & Sharing, Subscriptions & Pricing, Courses & Certificates, Help Center, Support, Gallery, Recipes, Forms, Account Dashboard, Auth. An area is "covered" when every surface in it is implemented by the pack, "partial" when some fall back to Core, "system" when the area is not templatable.
+Coverage areas shown in the admin (16): Chrome, Pages, Blog, Search, Shop, Cart & Checkout, Bundles, Wishlist & Sharing, Subscriptions & Pricing, Courses & Certificates, Help Center, Support, Gallery, Recipes, Forms, Account Dashboard, Auth. An area is "covered" when every surface in it is implemented by the pack, "partial" when some fall back to Core, "system" when the area is not templatable, and "not enabled" when its plugin is switched off in `/plugins` (still shown, not counted).
 
 ## 4. The SDK (`@convexpress/storefront-sdk`)
 
@@ -169,9 +169,17 @@ Replaces the frozen Themes screen.
 4. **Variants** tab: the shop and product pickers move here, generalised to any surface that declares variants.
 5. **Generate with AI**: wizard collecting brand doc confirmation, references, industry, and which areas to cover; launches the `template-build` skill through the site runner, shows progress, produces a new pack in the gallery with its screenshots.
 
-## 8. Plugin ↔ template contract (why the Dashboard plugin goes first)
+## 8. Plugin ↔ template contract (built on the existing plugin enabler)
 
-Each Website plugin ships `surfaces.ts`: the surface ids it owns, their view-model types, default (Core) implementations, dashboard nav entries, and coverage area name. The registry merges plugin declarations into the surface catalog; packs implement against them; the coverage matrix is computed, never hand-written. The Dashboard plugin is the first plugin built to this contract, so its 22 surfaces and nav come from the declaration, which also fixes the current sidebar that is not plugin-aware.
+The admin already has the WordPress-style enabler: `/plugins` toggles write the `plugins` settings section; every plugin is an `AdminPluginDefinition` (`settingsKey: "<id>Enabled"`, `navSectionIds` that auto-hide sidebar sections, `adminAccessPrefixes` guarded by `PluginGuard`, public `routePrefixes`); platform plugins are hand-listed and v2 extensions are discovered from `extensions/<id>/manifest.ts`. The Website mirrors the on/off state through `isPublicPluginEnabled` and `PublicPluginGate`. The template system extends that contract rather than adding a second one:
+
+1. **Website-side manifest per plugin.** `ConvexPress-Website/apps/web/src/extensions/<id>/manifest.ts` (platform plugins get the same file under `plugins/<id>/`) declares, next to the id and `settingsKey` it shares with the admin definition: `routePrefixes`, `surfaces[]` (id, title, coverage area, view-model type, gate), `parts[]`, `dashboardNav[]` (label, path, icon, which sub-plugin gates it) and `chromeParts[]` (e.g. the support widget, the cart drawer). Discovered with `import.meta.glob`, like blocks and the admin scanner.
+2. **One source of truth for "enabled".** `isPublicPluginEnabled` is rewritten to read the manifests' `settingsKey` (this also retires the hand-written switch with the `kb`/`knowledgeBase` alias). Parent dependencies (commerce sub-plugins) come from a `parent` field, matching the admin's `getPluginParent`.
+3. **Surface catalog = core surfaces + surfaces of every plugin**, enabled or not. The registry knows all of them; the site only *renders* the enabled ones because the route gate runs first, exactly as today.
+4. **Coverage follows the enabler.** The Appearance › Templates matrix counts only enabled plugins' areas toward a pack's coverage. Disabled areas show as "Not enabled — 5 surfaces ready" so the operator knows that switching a plugin on later will not leave a hole, and each disabled area links to `/plugins`. Enabling a plugin re-computes coverage immediately (same settings query).
+5. **Sidebar and nav follow the enabler too.** Appearance › Templates is core and always visible. Plugin-specific template settings (variant pickers such as Shop layouts) carry `pluginId` and live inside that plugin's nav section, so they appear and disappear with the plugin — the existing behaviour for Shop assistant and Shop layouts.
+6. **Dashboard plugin first.** It becomes a platform plugin definition (`navSectionIds: ["dashboard"]`, `routePrefixes: ["/dashboard"]`) whose Website manifest declares `dashboard.shell` and the 21 pages, plus `dashboardNav` entries that other plugins contribute to (commerce adds Orders/Addresses, commerceReturns adds Returns, lms adds Courses, and so on). The customer sidebar is then built from the enabled plugins' entries, which fixes today's hard-coded 8-item list.
+7. **AI generation scope.** The Generate wizard proposes the enabled plugins' surfaces by default and lets the operator include disabled ones so the pack is complete before a plugin is switched on.
 
 ## 9. Validation
 
