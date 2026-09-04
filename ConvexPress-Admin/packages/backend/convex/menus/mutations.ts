@@ -353,6 +353,55 @@ export const deleteMenu = mutation({
  *
  * @returns Id<"menuItems">
  */
+const MENU_BADGE_PATTERN = /^[a-z]+\.[A-Za-z]+$/u;
+const MENU_ICON_PATTERN = /^[a-z0-9-]{1,64}$/u;
+
+/**
+ * Normalize the presentation / visibility fields shared by add and update.
+ * Undefined fields are left untouched; empty strings clear a value.
+ */
+function presentationPatch(args: {
+  icon?: string;
+  badge?: string;
+  pathOverride?: string;
+  visibility?: "everyone" | "signedIn" | "signedOut";
+  roles?: string[];
+  membershipPlans?: string[];
+  capability?: string;
+}): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  if (args.icon !== undefined) {
+    const icon = args.icon.trim();
+    if (icon && !MENU_ICON_PATTERN.test(icon)) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Icon must be a lucide icon name such as shopping-bag" });
+    }
+    patch.icon = icon || undefined;
+  }
+  if (args.badge !== undefined) {
+    const badge = args.badge.trim();
+    if (badge && !MENU_BADGE_PATTERN.test(badge)) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Badge source must look like notifications.unread" });
+    }
+    patch.badge = badge || undefined;
+  }
+  if (args.pathOverride !== undefined) {
+    const path = args.pathOverride.trim();
+    if (path && !/^\/[a-z0-9-]+(?:\/[a-z0-9-]+)*$/u.test(path)) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Path override must look like /account (lowercase, no trailing slash)" });
+    }
+    patch.pathOverride = path || undefined;
+  }
+  if (args.visibility !== undefined) patch.visibility = args.visibility;
+  if (args.roles !== undefined) {
+    patch.roles = args.roles.map((role) => role.trim()).filter(Boolean);
+  }
+  if (args.membershipPlans !== undefined) {
+    patch.membershipPlans = args.membershipPlans.map((plan) => plan.trim()).filter(Boolean);
+  }
+  if (args.capability !== undefined) patch.capability = args.capability.trim() || undefined;
+  return patch;
+}
+
 export const addMenuItem = mutation({
   args: addMenuItemArgs,
   handler: async (ctx, args) => {
@@ -476,11 +525,13 @@ export const addMenuItem = mutation({
         ctx,
         args.itemType,
         args.objectId,
+        { pathOverride: args.pathOverride },
       );
       if (contentUrl) {
         resolvedUrl = contentUrl;
       }
     }
+    const presentation = presentationPatch(args);
 
     // ── Insert menu item ────────────────────────────────────────────────
     const now = Date.now();
@@ -498,6 +549,7 @@ export const addMenuItem = mutation({
       target: args.target,
       cssClasses: args.cssClasses?.trim(),
       linkRel: args.linkRel?.trim(),
+      ...presentation,
       createdAt: now,
       updatedAt: now,
     });
@@ -543,7 +595,7 @@ export const updateMenuItem = mutation({
       cssClasses: string;
       linkRel: string;
       updatedAt: number;
-    }> = {};
+    }> & Record<string, unknown> = {};
 
     // ── Validate label ──────────────────────────────────────────────────
     if (args.label !== undefined) {
@@ -583,6 +635,14 @@ export const updateMenuItem = mutation({
     if (args.target !== undefined) patch.target = args.target;
     if (args.cssClasses !== undefined) patch.cssClasses = args.cssClasses.trim();
     if (args.linkRel !== undefined) patch.linkRel = args.linkRel.trim();
+    Object.assign(patch, presentationPatch(args));
+    // A dashboard item's stored url follows its path override.
+    if (item.itemType === "dashboard" && args.pathOverride !== undefined && item.objectId) {
+      const nextUrl = await resolveMenuItemUrl(ctx, "dashboard", item.objectId, {
+        pathOverride: args.pathOverride,
+      });
+      if (nextUrl) patch.url = nextUrl;
+    }
 
     // ── Apply patch ─────────────────────────────────────────────────────
     if (Object.keys(patch).length > 0) {

@@ -26,6 +26,49 @@ import {
   DEFAULT_MENU_LOCATIONS,
 } from "./validators";
 import { buildMenuItemTree, resolveMenuItemUrl } from "./internals";
+import { DASHBOARD_PAGES, getDashboardPage, pluginIsEnabled } from "../extensions/dashboard/registry";
+import { menuItemVisibleFor, type MenuViewer } from "../extensions/dashboard/visibility";
+import { getDefaults, type SettingsSection } from "../settings/defaults";
+import { resolveUserRole } from "../helpers/permissions";
+
+const DASHBOARD_DEFAULT_BASE = "/dashboard";
+
+/** Merged settings section (defaults + stored) without auth; public-safe fields only. */
+async function getMergedSettingsSection(ctx: any, section: SettingsSection): Promise<Record<string, unknown>> {
+  const doc = await ctx.db
+    .query("settings")
+    .withIndex("by_section", (q: any) => q.eq("section", section))
+    .unique();
+  return { ...getDefaults(section), ...((doc?.values as Record<string, unknown>) ?? {}) };
+}
+
+/** Who is looking at the menu: signed-in state, role, membership plans, capabilities. */
+export async function resolveMenuViewer(ctx: any): Promise<MenuViewer> {
+  const user = await getCurrentUser(ctx).catch(() => null);
+  if (!user || user.status !== "active") {
+    return { signedIn: false, roleSlug: null, planSlugs: [], capabilities: [] };
+  }
+  const role = await resolveUserRole(ctx, user).catch(() => null);
+  const planSlugs: string[] = [];
+  try {
+    const grants = await ctx.db
+      .query("membership_grants")
+      .withIndex("by_user_status", (q: any) => q.eq("userId", user._id).eq("status", "active"))
+      .take(20);
+    for (const grant of grants) {
+      const plan = grant.planId ? await ctx.db.get(grant.planId) : null;
+      if (plan?.slug) planSlugs.push(String(plan.slug));
+    }
+  } catch {
+    // Membership tables absent or plugin off: no plans.
+  }
+  return {
+    signedIn: true,
+    roleSlug: role?.slug ?? null,
+    planSlugs,
+    capabilities: role?.capabilities ?? [],
+  };
+}
 
 // ─── List Menus (Admin) ─────────────────────────────────────────────────────
 
@@ -217,14 +260,47 @@ export const getMenuForLocation = query({
     // ── Filter out orphaned items ───────────────────────────────────────
     const activeItems = allItems.filter((item) => item.isOrphaned !== true);
 
+    // ── Hide items the viewer may not see (and their children) ──────────
+    const viewer = await resolveMenuViewer(ctx);
+    const pluginFlags = await getMergedSettingsSection(ctx, "plugins");
+    const dashboardSettings = await getMergedSettingsSection(ctx, "dashboard");
+    const dashboardBasePath = String(dashboardSettings.basePath ?? "/dashboard");
+    const hiddenIds = new Set<string>();
+    for (const item of activeItems) {
+      let visible = menuItemVisibleFor(item, viewer);
+      if (visible && item.itemType === "dashboard" && item.objectId) {
+        const page = getDashboardPage(item.objectId);
+        visible = Boolean(
+          page &&
+            pluginIsEnabled(page.pluginId, pluginFlags) &&
+            (!page.capability || viewer.capabilities.includes(page.capability)),
+        );
+      }
+      if (!visible) hiddenIds.add(item._id.toString());
+    }
+    const visibleItems = activeItems.filter((item) => {
+      // Walk up: any hidden ancestor hides the item.
+      let cursor = item;
+      const byId = new Map(activeItems.map((entry) => [entry._id.toString(), entry]));
+      for (let hops = 0; hops < 10; hops += 1) {
+        if (hiddenIds.has(cursor._id.toString())) return false;
+        if (!cursor.parentItemId) return true;
+        const parent = byId.get(cursor.parentItemId.toString());
+        if (!parent) return true;
+        cursor = parent;
+      }
+      return true;
+    });
+
     // ── Resolve current URLs for content-linked items ───────────────────
     const resolvedItems = await Promise.all(
-      activeItems.map(async (item) => {
+      visibleItems.map(async (item) => {
         if (item.itemType !== "custom" && item.objectId) {
           const currentUrl = await resolveMenuItemUrl(
             ctx,
             item.itemType,
             item.objectId,
+            { dashboardBasePath, pathOverride: item.pathOverride },
           );
           return {
             ...item,
@@ -334,6 +410,28 @@ export const getLinkableContent = query({
 
     const limit = Math.min(args.limit ?? 20, 100);
     const searchLower = args.search?.trim().toLowerCase();
+
+    if (args.type === "dashboard") {
+      // ── Dashboard pages from the registry ─────────────────────────────
+      const pluginFlags = await getMergedSettingsSection(ctx, "plugins");
+      return DASHBOARD_PAGES.filter(
+        (page) =>
+          pluginIsEnabled(page.pluginId, pluginFlags) &&
+          (!searchLower || page.title.toLowerCase().includes(searchLower)),
+      )
+        .slice(0, limit)
+        .map((page) => ({
+          id: page.id,
+          title: page.title,
+          slug: page.id,
+          url: `${DASHBOARD_DEFAULT_BASE}${page.path}`,
+          type: "dashboard" as const,
+          icon: page.icon,
+          group: page.group,
+          pluginId: page.pluginId,
+          description: page.description,
+        }));
+    }
 
     if (args.type === "page" || args.type === "post") {
       // ── Pages / Posts ─────────────────────────────────────────────────

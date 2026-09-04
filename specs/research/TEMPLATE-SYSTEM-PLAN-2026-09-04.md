@@ -208,3 +208,32 @@ Rough sizing at agent pace: phase 1 is the large one (touches ~90 route files) a
 5. **`useLayoutConfig` shell hard-coding**: fold into the pack (content max-width becomes a pack decision).
 6. **Consent banner**: none exists; add as `chrome.consent` surface in phase 1 so packs style it from day one.
 7. **Surface-level override granularity**: allow per-surface, not per-part, in the admin (parts follow their pack) to keep the UI understandable.
+
+
+## 12. The extension SDK: three kits, one contract style
+
+Goal (2026-09-04): AI can build a whole site in a short time and nothing is hardcoded unless the AI wrote a block, a plugin or a template. The SDK is therefore three kits with the same anatomy, and the contracts between them.
+
+| Kit | Exists today | Adds | Produces |
+|---|---|---|---|
+| **block-kit** (`block-build`, `block-add-feature`, `block-audit`) | Yes: contract, references, scaffold, `check:blocks`, skill | Two reference blocks that exercise every field type and a live-data block (the commerce blocks from tonight are the model) | `apps/web/src/blocks/<id>/` in both apps |
+| **extension-kit** (`extension-build`, `extension-add-feature`, `extension-audit`) | Yes for the admin side (manifest, nav, guard, settings) | The **Plugin Template**: a complete reference plugin (`events`) with backend schema + functions, admin screens, the Website manifest from §8 (public surfaces, dashboard nav entries, chrome parts), Core-pack surfaces for its public routes, tests, and screenshots. Scaffold `bun run create:extension` copies it | admin `extensions/<id>/`, website `extensions/<id>/`, backend `convex/extensions/<id>/` |
+| **template-kit** (new: `template-build`, `template-add-surface`, `template-audit`) | No; replaces the route-writing `design-*` skills | Contract (SDK rules from §4), reference pack (`core` itself plus an annotated mini-pack), scaffold `bun run create:template`, `check:templates`, screenshot gallery | `apps/web/src/templates/packs/<id>/` |
+
+Shared anatomy every kit must have (the `block-build` shape, kept identical so agents transfer between kits):
+1. `README.md` — what the thing is, when to use which skill.
+2. `CONTRACT.md` — hard requirements, machine-checked where possible.
+3. `references/` — real, working examples that pass the checks.
+4. `scaffold/` — the starting files the create command copies.
+5. `check:<kind>` — one command, exit code is the verdict, prints what to fix.
+6. `SKILL.md` — reads 1–4, writes files, runs 5, reports.
+7. `DATA-API.md` — the verified callable surface (queries, mutations, view models) for that kind. For templates this is the storefront SDK types; for plugins it is the backend helper API; for blocks it is the settings and media queries a renderer may call.
+
+Contracts between kits (what makes a whole site composable):
+- A **plugin** declares surfaces; a **template** implements them; the admin computes coverage (§8).
+- A **plugin** may ship blocks; blocks render inside any template because they use tokens and SDK primitives only.
+- A **template** never contains data or content; content comes from the block editor, menus, settings and plugin data.
+
+Orchestration skill (after the kits): `site-build` runs brand discovery → choose or generate a template → enable plugins → author pages, menus, media and shop through the admin API (the same steps the Playwright driver performed by hand this week) → screenshot audit. That is the "whip up an entire site" path; it composes the kits, it does not bypass them.
+
+Sequencing relative to §10: the Plugin Template lands with phase 0 (the Dashboard plugin is built from it, so the template is proven on a real plugin first), the reference blocks with phase 1, template-kit with phase 5, `site-build` after phase 5.
