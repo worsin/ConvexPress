@@ -22,7 +22,7 @@ describe("scanModules", () => {
       { "./pages.local/orders/manifest.tsx": { default: { id: "orders", label: "local" } } },
     );
     expect(result.modules.get("orders")?.source).toBe("local");
-    expect((result.modules.get("orders")?.module as { label?: string }).label).toBe("local");
+    expect((result.modules.get("orders")!.module as { label?: string }).label).toBe("local");
     expect(result.modules.get("profile")?.source).toBe("official");
     expect(result.warnings).toContain('Local module "orders" overrides the official module');
   });

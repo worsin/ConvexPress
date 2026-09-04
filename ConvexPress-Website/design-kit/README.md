@@ -17,6 +17,7 @@ design-kit/
 ├── WORKFLOW.md         ← end-to-end sequence for a new site
 ├── TROUBLESHOOTING.md  ← failure modes + fixes
 ├── EXTENDING.md        ← the four content patterns + which skill to use for each
+├── DASHBOARD.md        ← the customer dashboard module system (pages, widgets, shell)
 └── references/         ← real, working example templates (read these to learn patterns)
     ├── homepage.example.tsx
     ├── single-post.example.tsx
@@ -75,6 +76,12 @@ leaks, and what to do when no skill matches a request.
 
 See **`WORKFLOW.md`**. The order is: prerequisites → brand discovery →
 chrome (header/footer) → core body templates → commerce → audit.
+
+## The signed-in dashboard
+
+See **`DASHBOARD.md`**. The member area is assembled from settings, menus,
+the backend registry, and website page/widget modules; `design:dashboard`
+restyles its shell within that contract.
 
 ## Which skill for which content shape?
 

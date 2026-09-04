@@ -14,7 +14,7 @@
  * Navigation never comes from hardcoded routes: menus first, registry second.
  */
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@clerk/clerk-react";
 
@@ -49,9 +49,13 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const enabled = useDashboardEnabled();
+  const redirected = useRef(false);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
+    // Redirect once; the pathname flips to /login before this tree unmounts,
+    // so a second run would overwrite returnTo with the login path itself.
+    if (isLoaded && !isSignedIn && !redirected.current && !pathname.startsWith("/login")) {
+      redirected.current = true;
       navigate({ to: "/login", search: { returnTo: pathname } } as never);
     }
   }, [isLoaded, isSignedIn, navigate, pathname]);

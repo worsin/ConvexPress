@@ -27,6 +27,7 @@ import {
 /**
  * Attachment limits for the website's file picker (mirrors customer.ts).
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getAttachmentLimits = query({
   args: {},
   handler: async () => ({
@@ -41,8 +42,10 @@ export const getAttachmentLimits = query({
  * upload (the ticket system is customer-facing); the metadata is validated
  * here so oversize or disallowed files are rejected before any bytes move.
  */
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const generateUploadUrl = mutation({
   args: generateAttachmentUploadUrlArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     await requireAuth(ctx);

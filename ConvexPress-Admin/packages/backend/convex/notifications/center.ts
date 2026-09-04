@@ -255,7 +255,23 @@ export function computeCounts(rows: CenterStateInput[], now: number): CenterCoun
   const counts: CenterCounts = { ...EMPTY_COUNTS };
   for (const row of rows) {
     for (const view of viewsOf(row, now)) {
-      counts[view] = counts[view] + 1;
+      switch (view) {
+        case "inbox":
+          counts.inbox += 1;
+          break;
+        case "unread":
+          counts.unread += 1;
+          break;
+        case "needs":
+          counts.needs += 1;
+          break;
+        case "snoozed":
+          counts.snoozed += 1;
+          break;
+        case "archived":
+          counts.archived += 1;
+          break;
+      }
     }
   }
   return counts;

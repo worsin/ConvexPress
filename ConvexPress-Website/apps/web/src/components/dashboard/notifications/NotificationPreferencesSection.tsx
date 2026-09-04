@@ -34,8 +34,8 @@ const CATEGORY_ORDER = [
 /**
  * Auth context is resolved internally by the query -- no userId prop needed.
  */
-export function NotificationPreferencesSection() {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function NotificationPreferencesSection({ defaultExpanded = false }: { defaultExpanded?: boolean } = {}) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [saving, setSaving] = useState(false);
   const [localChanges, setLocalChanges] = useState<
     Map<string, { siteEnabled: boolean; toastEnabled: boolean }>

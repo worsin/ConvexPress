@@ -1,36 +1,38 @@
 import { useState } from "react";
 import {
   ChevronDownIcon,
-  GripVerticalIcon,
+  Eye,
   FileTextIcon,
-  PenToolIcon,
   FolderIcon,
-  TagIcon,
-  LinkIcon,
-  IndentIncreaseIcon,
+  GripVerticalIcon,
+  Heading as HeadingIcon,
   IndentDecreaseIcon,
+  IndentIncreaseIcon,
+  LayoutPanelLeft,
+  LinkIcon,
+  Minus,
+  PenToolIcon,
+  TagIcon,
 } from "lucide-react";
 
+import { getDashboardPage } from "@backend/convex/extensions/dashboard/registry";
+import { LucideDynamicIcon } from "@/components/icons/LucideDynamicIcon";
+import { badgeSourceLabel, hasVisibilityRules, MENU_ITEM_TYPE_LABELS, visibilitySummary } from "@/lib/menus/item-editor-model";
 import { cn } from "@/lib/utils";
 import { MenuItemEditor } from "./MenuItemEditor";
 import { MenuOrphanedBadge } from "./MenuOrphanedBadge";
 import type { Id } from "@backend/convex/_generated/dataModel";
-import type { MenuItem } from "./types";
+import type { MenuItem, MenuItemType } from "./types";
 
-const TYPE_ICONS: Record<string, typeof FileTextIcon> = {
+const TYPE_ICONS: Record<MenuItemType, typeof FileTextIcon> = {
   page: FileTextIcon,
   post: PenToolIcon,
   category: FolderIcon,
   tag: TagIcon,
   custom: LinkIcon,
-};
-
-const TYPE_LABELS: Record<string, string> = {
-  page: "Page",
-  post: "Post",
-  category: "Category",
-  tag: "Tag",
-  custom: "Custom Link",
+  dashboard: LayoutPanelLeft,
+  heading: HeadingIcon,
+  separator: Minus,
 };
 
 interface MenuItemCardProps {
@@ -47,55 +49,81 @@ interface MenuItemCardProps {
 
 /**
  * Individual menu item card, showing collapsed and expanded states.
- * Collapsed: drag handle, label, type badge, expand arrow.
- * Expanded: full edit form via MenuItemEditor.
+ * Collapsed: drag handle, icon, label, badge chip, visibility eye, type chip, expand arrow.
+ * Headings render as section labels; separators as a rule. Both stay draggable and editable.
  */
-export function MenuItemCard({
-  item,
-  onRemove,
-  onIndent,
-  onOutdent,
-  canIndent,
-  canOutdent,
-  dragHandleProps,
-  isDragging,
-}: MenuItemCardProps) {
+export function MenuItemCard({ item, onRemove, onIndent, onOutdent, canIndent, canOutdent, dragHandleProps, isDragging }: MenuItemCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const TypeIcon = TYPE_ICONS[item.itemType] ?? LinkIcon;
-  const typeLabel = TYPE_LABELS[item.itemType] ?? "Link";
+  const typeLabel = MENU_ITEM_TYPE_LABELS[item.itemType] ?? "Link";
   const depth = item.depth ?? 0;
+  const isHeading = item.itemType === "heading";
+  const isSeparator = item.itemType === "separator";
+  const registryPage = item.itemType === "dashboard" ? getDashboardPage(item.objectId ?? "") : undefined;
+  const icon = item.icon || registryPage?.icon;
+  const badge = item.badge || registryPage?.badge;
+  const rules = hasVisibilityRules(item);
 
   return (
     <div
       className={cn(
         "border bg-card transition-colors",
-        item.isOrphaned
-          ? "border-warning/40 bg-warning/5"
-          : "border-border",
+        item.isOrphaned ? "border-warning/40 bg-warning/5" : "border-border",
+        isHeading && "border-dashed bg-surface-2/60",
+        isSeparator && "border-dashed bg-transparent",
         isDragging && "opacity-50 shadow-lg",
       )}
       style={{ marginLeft: `${depth * 24}px` }}
+      data-item-type={item.itemType}
     >
-      {/* Collapsed header */}
-      <div className="flex items-center gap-2 px-3 py-2">
-        {/* Drag handle */}
+      <div className={cn("flex items-center gap-2 px-3", isSeparator ? "py-1.5" : "py-2")}>
         <button
           type="button"
-          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0"
+          className="shrink-0 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
           aria-label="Drag to reorder"
           {...dragHandleProps}
         >
           <GripVerticalIcon className="size-3.5" />
         </button>
 
-        {/* Label */}
-        <span className="text-xs font-medium text-foreground flex-1 truncate">
-          {item.label}
-        </span>
+        {/* Item icon (dashboard-style menus) */}
+        {!isSeparator && icon && (
+          <LucideDynamicIcon name={icon} className="size-3.5 shrink-0 text-ink-2" />
+        )}
 
-        {/* Orphaned badge */}
+        {/* Label */}
+        {isSeparator ? (
+          <span className="flex flex-1 items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            <span className="h-px flex-1 bg-line-strong" aria-hidden="true" />
+            Separator
+            <span className="h-px flex-1 bg-line-strong" aria-hidden="true" />
+          </span>
+        ) : isHeading ? (
+          <span className="flex-1 truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-2">{item.label}</span>
+        ) : (
+          <span className="flex-1 truncate text-xs font-medium text-foreground">{item.label}</span>
+        )}
+
         {item.isOrphaned && <MenuOrphanedBadge />}
+
+        {/* Badge chip */}
+        {badge && !isSeparator && (
+          <span
+            title={`Badge: ${badgeSourceLabel(badge)}`}
+            className="inline-flex h-4 shrink-0 items-center gap-1 rounded-full bg-primary-soft px-1.5 text-[10px] font-medium text-primary"
+          >
+            <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
+            {badgeSourceLabel(badge)}
+          </span>
+        )}
+
+        {/* Visibility indicator */}
+        {rules && (
+          <span title={visibilitySummary(item)} aria-label={`Visibility rules: ${visibilitySummary(item)}`} className="inline-flex shrink-0 text-warning">
+            <Eye className="size-3.5" />
+          </span>
+        )}
 
         <button
           type="button"
@@ -117,37 +145,24 @@ export function MenuItemCard({
           <IndentIncreaseIcon className="size-3.5" />
         </button>
 
-        {/* Type badge */}
-        <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 shrink-0">
+        {/* Type chip */}
+        <span className="inline-flex shrink-0 items-center gap-1 bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
           <TypeIcon className="size-2.5" />
           {typeLabel}
         </span>
 
-        {/* Expand toggle */}
         <button
           type="button"
           onClick={() => setIsExpanded((prev) => !prev)}
-          className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+          className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
           aria-expanded={isExpanded}
           aria-label={isExpanded ? "Collapse" : "Expand"}
         >
-          <ChevronDownIcon
-            className={cn(
-              "size-3.5 transition-transform",
-              isExpanded && "rotate-180",
-            )}
-          />
+          <ChevronDownIcon className={cn("size-3.5 transition-transform", isExpanded && "rotate-180")} />
         </button>
       </div>
 
-      {/* Expanded editor */}
-      {isExpanded && (
-        <MenuItemEditor
-          item={item}
-          onClose={() => setIsExpanded(false)}
-          onRemove={onRemove}
-        />
-      )}
+      {isExpanded && <MenuItemEditor item={item} onClose={() => setIsExpanded(false)} onRemove={onRemove} />}
     </div>
   );
 }

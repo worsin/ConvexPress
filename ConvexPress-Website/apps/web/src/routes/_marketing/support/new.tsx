@@ -1,54 +1,67 @@
-import { createFileRoute, useNavigate, Link, ErrorComponent } from "@tanstack/react-router";
-import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useEffect } from "react";
+import { createFileRoute, Link, ErrorComponent, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@clerk/clerk-react";
-import { api } from "@convexpress-website/backend/generated/api";
-import { toast } from "sonner";
-import { ArrowLeft, Loader2, Send } from "lucide-react";
-import { buildSeoHead } from "@/lib/seo/head";
+import { z } from "zod";
+import { Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/_marketing/support/new")({
-  component: CreateTicketPage,
-  errorComponent: ErrorComponent,
-  head: () => buildSeoHead({
-    title: "New Ticket - Support",
-    robots: "noindex, nofollow",
-  }),
+import { buildSeoHead } from "@/lib/seo/head";
+import { useDashboardEnabled, useDashboardPath } from "@/hooks/useDashboardConfig";
+import { NewTicketForm } from "@/components/support/tickets/NewTicketForm";
+
+/** Other pages (notification "Ask about this", a closed ticket) can pre-fill via search params. */
+const newTicketSearchSchema = z.object({
+  subject: z.string().max(200).optional(),
+  category: z.string().max(50).optional(),
+  context: z.string().max(2000).optional(),
 });
 
-const CATEGORIES = [
-  { value: "billing", label: "Billing" },
-  { value: "technical", label: "Technical" },
-  { value: "account", label: "Account" },
-  { value: "featureRequest", label: "Feature Request" },
-  { value: "general", label: "General" },
-  { value: "other", label: "Other" },
-];
+export const Route = createFileRoute("/_marketing/support/new")({
+  validateSearch: newTicketSearchSchema,
+  component: CreateTicketPage,
+  errorComponent: ErrorComponent,
+  head: () =>
+    buildSeoHead({
+      title: "New Ticket - Support",
+      robots: "noindex, nofollow",
+    }),
+});
 
+/**
+ * Public new-ticket route. Signed-in members with the dashboard enabled are
+ * sent to the dashboard's form (same component, configured base path);
+ * otherwise the form renders here.
+ */
 function CreateTicketPage() {
   const { isSignedIn, isLoaded } = useAuth();
+  const search = Route.useSearch();
   const navigate = useNavigate();
+  const dashboardEnabled = useDashboardEnabled();
+  const { to } = useDashboardPath();
 
-  const [subject, setSubject] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("general");
-  const [submitting, setSubmitting] = useState(false);
+  const shouldRedirect = isLoaded && isSignedIn && dashboardEnabled === true;
+  useEffect(() => {
+    if (!shouldRedirect) return;
+    const params = new URLSearchParams();
+    if (search.subject) params.set("subject", search.subject);
+    if (search.category) params.set("category", search.category);
+    if (search.context) params.set("context", search.context);
+    const qs = params.toString();
+    void navigate({ to: to(`/tickets/new${qs ? `?${qs}` : ""}`) as "/", replace: true });
+  }, [shouldRedirect, navigate, to, search.subject, search.category, search.context]);
 
-  const createTicket = useMutation(api.tickets.mutations.create);
-
-  if (!isLoaded) {
+  if (!isLoaded || dashboardEnabled === null || shouldRedirect) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Loading" />
       </div>
     );
   }
 
   if (!isSignedIn) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-12 text-center space-y-4">
-        <h1 className="text-2xl font-bold">Submit a Ticket</h1>
-        <p className="text-foreground/60">
+      <div className="mx-auto max-w-2xl space-y-4 px-4 py-12 text-center">
+        <h1 className="text-2xl font-bold text-foreground">Submit a Ticket</h1>
+        <p className="text-muted-foreground">
           Please{" "}
           <Link to="/login" className="text-primary hover:underline">
             sign in
@@ -59,123 +72,13 @@ function CreateTicketPage() {
     );
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!subject.trim() || !description.trim()) return;
-
-    setSubmitting(true);
-    try {
-      const result = await createTicket({
-        subject: subject.trim(),
-        description: description.trim(),
-        category: category as "billing" | "technical" | "account" | "featureRequest" | "general" | "other",
-        source: "dashboard",
-      });
-      toast.success(`Ticket ${result.ticketNumber} created`);
-      navigate({
-        to: "/support/tickets/$ticketId",
-        params: { ticketId: result.ticketId },
-      } as any);
-    } catch (error: unknown) {
-      toast.error((error as { data?: { message?: string } })?.data?.message ?? "Failed to create ticket");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-      <div>
-        <Link
-          to="/support"
-          className="inline-flex items-center gap-1 text-sm text-primary hover:underline mb-3"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Support
-        </Link>
-        <h1 className="text-2xl font-bold">Submit a Ticket</h1>
-        <p className="text-sm text-foreground/50 mt-1">
-          Describe your issue and our support team will get back to you as soon
-          as possible.
-        </p>
-      </div>
-
-      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
-        {/* Category */}
-        <div>
-          <label htmlFor="ticket-category" className="block text-sm font-medium text-foreground/70 mb-1">
-            Category
-          </label>
-          <select
-            id="ticket-category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card"
-          >
-            {CATEGORIES.map((cat) => (
-              <option key={cat.value} value={cat.value}>
-                {cat.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Subject */}
-        <div>
-          <label htmlFor="ticket-subject" className="block text-sm font-medium text-foreground/70 mb-1">
-            Subject
-          </label>
-          <input
-            id="ticket-subject"
-            type="text"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Brief summary of your issue"
-            maxLength={200}
-            className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card focus:outline-hidden focus:ring-2 focus:ring-primary/30"
-          />
-          <p className="text-xs text-foreground/30 mt-1">
-            {subject.length}/200 characters
-          </p>
-        </div>
-
-        {/* Description */}
-        <div>
-          <label htmlFor="ticket-description" className="block text-sm font-medium text-foreground/70 mb-1">
-            Description
-          </label>
-          <textarea
-            id="ticket-description"
-            aria-label="Describe your issue"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Please describe your issue in detail. Include any steps to reproduce, expected behavior, and screenshots if applicable."
-            rows={8}
-            maxLength={10000}
-            className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card resize-y focus:outline-hidden focus:ring-2 focus:ring-primary/30"
-          />
-          <p className="text-xs text-foreground/30 mt-1">
-            {description.length}/10000 characters
-          </p>
-        </div>
-
-        {/* Submit */}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={
-              !subject.trim() ||
-              subject.trim().length < 5 ||
-              !description.trim() ||
-              description.trim().length < 10 ||
-              submitting
-            }
-            className="flex items-center gap-2 px-6 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-          >
-            <Send className="h-4 w-4" />
-            {submitting ? "Submitting..." : "Submit Ticket"}
-          </button>
-        </div>
-      </form>
+    <div className="mx-auto max-w-5xl px-4 py-8">
+      <NewTicketForm
+        prefill={{ subject: search.subject, category: search.category, context: search.context }}
+        backHref="/support"
+        ticketHref={(ticketNumber) => `/support/tickets/${ticketNumber}`}
+      />
     </div>
   );
 }

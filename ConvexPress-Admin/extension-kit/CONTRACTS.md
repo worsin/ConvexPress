@@ -164,3 +164,43 @@ After generating an extension, the skill writes a report covering:
   `packages/backend/convex/`
 - ❌ Don't commit anything inside `extensions.local/`. Per-folder
   `.gitignore` prevents this, but be aware
+
+---
+
+## 11. Dashboard contributions (optional)
+
+Only when the extension adds customer-dashboard pages or widgets:
+
+- [ ] File at `packages/backend/convex/extensions[.local]/<id>/dashboard.ts`
+  exists and exports `pages` and/or `widgets` (named exports — the
+  codegen scanner uses these names). Pure TypeScript: no Convex imports.
+- [ ] Every entry's `id` is globally unique across
+  `DASHBOARD_PAGES` / `DASHBOARD_WIDGETS` (grep `registry.ts` and every
+  other `dashboard.ts`). Ids are stable — menus and saved layouts key on them.
+- [ ] `pluginId` is the extension id (so `pluginIsEnabled` hides the
+  entries when the extension is off); `icon` is a lucide kebab-case name.
+- [ ] Pages: `path` is unique under the dashboard base path, `group` is
+  one of overview/activity/commerce/learning/support/account,
+  `defaultInSidebar` is set; `badge` (if any) is one of `BADGE_SOURCES`.
+- [ ] Widgets: `sizes` lists only sizes the widget renders well at,
+  `defaultSize` is in `sizes`, `defaultInHome` is set, `category` is
+  set; every `settings` entry has `key`, `label`, `kind`, `defaultValue`
+  (and `min`/`max` for numbers, `options` for selects).
+- [ ] `bun run codegen:extensions` regenerates
+  `convex/schema/_dashboardIndex.generated.ts` and lists the extension.
+- [ ] The website has a matching module per id at
+  `ConvexPress-Website/apps/web/src/dashboard/{pages|widgets}/<id>/manifest.tsx`
+  following `apps/web/src/dashboard/contracts.ts` — or the report says
+  the website half is still pending.
+- [ ] You did NOT edit `registry.ts` or the generated dashboard index.
+
+### Menu items that point at the dashboard
+
+- [ ] Dashboard menu items use `itemType: "dashboard"` with `objectId` =
+  page id; never hard-code `/dashboard/...` URLs (the base path is a
+  setting and `pathOverride` can replace it per item).
+- [ ] `badge` values come from `BADGE_SOURCES`; `icon` matches
+  `^[a-z0-9-]{1,64}$`; `pathOverride` matches
+  `^\/[a-z0-9-]+(?:\/[a-z0-9-]+)*$`.
+- [ ] Visibility is expressed with `visibility` / `roles` /
+  `membershipPlans` / `capability`, never by duplicating menus per role.

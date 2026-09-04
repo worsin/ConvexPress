@@ -19,7 +19,7 @@ export function isLucideIconName(name: string | undefined | null): name is IconN
   return typeof name === "string" && ICON_NAME_SET.has(name);
 }
 
-interface LucideDynamicIconProps extends Omit<LucideProps, "ref"> {
+interface LucideDynamicIconProps extends Omit<LucideProps, "ref" | "name"> {
   /** Kebab-case lucide name; unknown names render the fallback. */
   name: string | undefined | null;
   /** Rendered when `name` is empty or unknown. Defaults to a dashed circle. */

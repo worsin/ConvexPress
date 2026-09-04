@@ -197,3 +197,82 @@ on the builtins, open record for extension settings keys.
 `DEFAULT_PLUGIN_SETTINGS` is built at module load: starts from the
 platform defaults, then merges each v2 extension's
 `defaultEnabled` (defaulting to `false` if omitted).
+
+---
+
+## Dashboard extension — contributing pages and widgets
+
+The customer dashboard (website member area) is assembled from two
+registries owned by the official `dashboard` extension:
+
+```
+packages/backend/convex/extensions/dashboard/
+├── registry.ts     DASHBOARD_PAGES, DASHBOARD_WIDGETS, DASHBOARD_GRID,
+│                   BADGE_SOURCES, buildDefaultLayoutItems, pluginIsEnabled
+├── schema.ts       dashboard_layouts (per scope) + dashboard_user_layouts
+├── queries.ts      registry, myLayout, myBadges, defaultLayouts,
+│                   defaultLayout, scopeOptions
+├── mutations.ts    saveDefaultLayout, deleteDefaultLayout,
+│                   saveMyLayout, resetMyLayout
+└── visibility.ts   menuItemVisibleFor (shared with menus/queries)
+```
+
+Any v2 extension can add its own pages and widgets **without editing the
+registry** by exporting them from an optional sixth backend file:
+
+```
+packages/backend/convex/extensions[.local]/<id>/dashboard.ts
+  export const pages:   DashboardPageDefinition[]   = [...]
+  export const widgets: DashboardWidgetDefinition[] = [...]
+```
+
+`bun run codegen:extensions` (the same predev/predeploy hook that builds
+the schema index) scans both roots for `dashboard.ts`, and writes
+`convex/schema/_dashboardIndex.generated.ts`. `registry.ts` spreads those
+contributions after the core entries, so `DASHBOARD_PAGES` /
+`DASHBOARD_WIDGETS` always contain core + every enabled-root extension.
+
+Gating is by `pluginId`: a page or widget is only offered when
+`pluginIsEnabled(pluginId, pluginFlags)` is true, i.e. the `plugins`
+settings section has `<pluginId>Enabled === true` (commerce sub-plugins
+also need `commerceEnabled`). Use your extension id as `pluginId` so the
+entries disappear with the extension.
+
+The admin never needs per-extension UI for this: the layout editor
+(`/customer-dashboard/layouts`), the menu builder's "Dashboard pages"
+tab, and the settings landing-page picker all read the merged registry
+directly (`import { DASHBOARD_PAGES } from
+"@backend/convex/extensions/dashboard/registry"`).
+
+The **website** must add a matching render module per id:
+
+```
+ConvexPress-Website/apps/web/src/dashboard/pages/<pageId>/manifest.tsx
+ConvexPress-Website/apps/web/src/dashboard/widgets/<widgetId>/manifest.tsx
+```
+
+following `ConvexPress-Website/apps/web/src/dashboard/contracts.ts`
+(`DashboardPageModule` / `DashboardWidgetModule`). The registry owns
+title, icon, plugin gate, capability, and allowed sizes; the module only
+renders. Skills `dashboard-add-page` and `dashboard-add-widget` walk
+through both halves.
+
+### Menus and the dashboard
+
+The menu system carries the dashboard's navigation. Three item types and
+several fields exist for it (see `convex/schema/menus.ts`):
+
+| Item type    | `objectId`        | Renders as                                   |
+|--------------|-------------------|----------------------------------------------|
+| `dashboard`  | registry page id  | link to `<basePath or pathOverride><page.path>` |
+| `heading`    | —                 | section label (not a link)                   |
+| `separator`  | —                 | divider                                      |
+
+Presentation / visibility fields on every item: `icon` (lucide
+kebab-case), `badge` (one of `BADGE_SOURCES`), `pathOverride` (dashboard
+items only), `visibility` (`everyone | signedIn | signedOut`), `roles`
+(website role slugs), `membershipPlans` (plan slugs), `capability`.
+`getMenuForLocation` filters by the viewer; `getLinkableContent({ type:
+"dashboard" })` lists registry pages for the builder. Locations
+`dashboard-sidebar`, `dashboard-topbar`, `dashboard-profile` feed the
+shell; an unassigned location is generated from the registry.

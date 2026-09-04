@@ -159,3 +159,13 @@ Is the request about content visible to public visitors?
 
 This doc only answers the question "which skill do I use for this
 content shape?"
+
+---
+
+## Not a content pattern: dashboard pages and widgets
+
+The signed-in customer dashboard is not authored per route. Pages and widgets
+are **modules** keyed by ids from the backend registry, discovered by
+`import.meta.glob`, and framed by a settings-driven shell. See `DASHBOARD.md`
+for the contract, the folder layout, and how to add a module; use
+`design:dashboard` to restyle the shell.

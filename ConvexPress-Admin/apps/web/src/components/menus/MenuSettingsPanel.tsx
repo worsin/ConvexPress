@@ -1,4 +1,4 @@
-import { useTransition } from "react";
+import { Fragment, useTransition } from "react";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
@@ -99,7 +99,10 @@ export function MenuSettingsPanel({
           <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
             Display location
           </p>
-          {locations.map((location) => {
+          {locations.map((location, index) => {
+            const isDashboard = location.slug.startsWith("dashboard-");
+            const startsDashboardGroup =
+              isDashboard && !(locations[index - 1]?.slug.startsWith("dashboard-") ?? false);
             const isAssignedToThisMenu =
               location.menuId &&
               (location.menuId as string) === (menuId as string);
@@ -107,8 +110,11 @@ export function MenuSettingsPanel({
               location.menuId && !isAssignedToThisMenu;
 
             return (
+              <Fragment key={location._id}>
+                {startsDashboardGroup && (
+                  <p className="eyebrow pt-2">Customer dashboard</p>
+                )}
               <label
-                key={location._id}
                 className="flex items-start gap-2 cursor-pointer"
               >
                 <Checkbox
@@ -130,6 +136,7 @@ export function MenuSettingsPanel({
                   )}
                 </span>
               </label>
+              </Fragment>
             );
           })}
         </div>

@@ -36,7 +36,7 @@ const navSection: AdminNavSection = {
       id: "customer-dashboard-menus",
       label: "Menus",
       to: "/menus",
-      capability: "menu.view",
+      capability: "menu.update",
     },
   ],
 };

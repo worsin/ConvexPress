@@ -17,6 +17,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as MarketingRouteImport } from './routes/_marketing'
+import { Route as SplatRouteImport } from './routes/$'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
 import { Route as SignupOfferIdRouteImport } from './routes/signup.$offerId'
@@ -164,6 +165,11 @@ const DashboardRoute = DashboardRouteImport.update({
 } as any)
 const MarketingRoute = MarketingRouteImport.update({
   id: '/_marketing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
@@ -738,6 +744,7 @@ const MarketingBlogYearMonthDaySlugRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/$': typeof SplatRoute
   '/': typeof MarketingIndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
@@ -856,6 +863,7 @@ export interface FileRoutesByFullPath {
   '/blog/$year/$month/$day/$slug': typeof MarketingBlogYearMonthDaySlugRoute
 }
 export interface FileRoutesByTo {
+  '/$': typeof SplatRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/logout': typeof LogoutRoute
@@ -963,6 +971,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/$': typeof SplatRoute
   '/_marketing': typeof MarketingRouteWithChildren
   '/dashboard': typeof DashboardRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
@@ -1084,6 +1093,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/$'
     | '/'
     | '/dashboard'
     | '/forgot-password'
@@ -1202,6 +1212,7 @@ export interface FileRouteTypes {
     | '/blog/$year/$month/$day/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/$'
     | '/forgot-password'
     | '/login'
     | '/logout'
@@ -1308,6 +1319,7 @@ export interface FileRouteTypes {
     | '/blog/$year/$month/$day/$slug'
   id:
     | '__root__'
+    | '/$'
     | '/_marketing'
     | '/dashboard'
     | '/forgot-password'
@@ -1428,6 +1440,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  SplatRoute: typeof SplatRoute
   MarketingRoute: typeof MarketingRouteWithChildren
   DashboardRoute: typeof DashboardRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -1515,6 +1528,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof MarketingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/': {
@@ -2660,6 +2680,7 @@ const AccountCoursesRouteWithChildren = AccountCoursesRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  SplatRoute: SplatRoute,
   MarketingRoute: MarketingRouteWithChildren,
   DashboardRoute: DashboardRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,

@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { Fragment, useState, useCallback, useEffect, useRef } from "react";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { toast } from "sonner";
-import { LoaderIcon } from "lucide-react";
+import { LayoutPanelLeft, LoaderIcon } from "lucide-react";
 import type { Id } from "@backend/convex/_generated/dataModel";
 
 interface MenuLocationRow {
@@ -145,20 +145,48 @@ export function MenuLocationTable() {
             </tr>
           </thead>
           <tbody>
-            {locations.map((location) => {
+            {locations.map((location, index) => {
               const selectedMenuId = getMenuIdForLocation(
                 location.slug,
                 location.menuId ? (location.menuId as string) : "",
               );
               const status = rowStatus[location.slug] ?? "idle";
+              const isDashboard = location.slug.startsWith("dashboard-");
+              const previous = locations[index - 1];
+              const startsGroup =
+                index === 0 || isDashboard !== previous.slug.startsWith("dashboard-");
 
               return (
+                <Fragment key={location._id}>
+                  {startsGroup && (
+                    <tr className="bg-surface-2/70">
+                      <th
+                        colSpan={4}
+                        scope="colgroup"
+                        className="eyebrow px-3 py-1.5 text-left"
+                      >
+                        {isDashboard ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <LayoutPanelLeft className="size-3" aria-hidden="true" />
+                            Customer dashboard
+                            <span className="normal-case tracking-normal text-muted-foreground">
+                              — unset locations are generated from the page registry
+                            </span>
+                          </span>
+                        ) : (
+                          "Site"
+                        )}
+                      </th>
+                    </tr>
+                  )}
                 <tr
-                  key={location._id}
                   className="border-b border-border"
                 >
                   <td className="px-3 py-3 text-xs font-medium text-foreground">
                     {location.name}
+                    <span className="mt-0.5 block font-mono text-[10px] font-normal text-muted-foreground">
+                      {location.slug}
+                    </span>
                   </td>
                   <td className="px-3 py-3 text-xs text-muted-foreground">
                     {location.description ?? "--"}
@@ -194,6 +222,7 @@ export function MenuLocationTable() {
                     {status === "idle" && "Saved"}
                   </td>
                 </tr>
+                </Fragment>
               );
             })}
           </tbody>
