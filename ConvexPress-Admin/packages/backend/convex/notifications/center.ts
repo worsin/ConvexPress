@@ -122,9 +122,11 @@ export function kindOf(n: {
  * false = purely informational even when persistent/warning
  */
 export const NEEDS_ACTION_OVERRIDES: Record<string, boolean> = {
-  ticket_reply_agent: true, // support replied, your turn
+  // Registry naming: ticket_reply_customer is sent TO the customer when an
+  // agent replies ("your turn"); ticket_reply_agent is sent TO the agent.
+  ticket_reply_customer: true,
+  ticket_reply_agent: true,
   ticket_resolved: false, // informational; rating is optional
-  ticket_reply_customer: false, // admin-side FYI
   purchase_payment_failed: true,
   subscription_past_due: true,
   subscription_trial_ending: true,

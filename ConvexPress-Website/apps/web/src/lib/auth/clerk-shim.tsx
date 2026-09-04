@@ -91,7 +91,44 @@ export function ClerkProvider({
   return <>{children}</>;
 }
 
+/**
+ * Local dev session bridge.
+ *
+ * Fleet/test sites run without Clerk keys, which makes every member surface
+ * unreachable in a browser. In dev builds only, a site-issued access token
+ * stored under `convexpress:dev-session` (JSON: { token, userId? }) is
+ * presented to Convex as the member's auth token so the dashboard, tickets,
+ * and notifications can be driven end to end. Production builds strip this
+ * entirely (`import.meta.env.DEV` is a compile-time constant).
+ */
+const DEV_SESSION_KEY = "convexpress:dev-session";
+
+type DevSession = { token: string; userId?: string };
+
+function readDevSession(): DevSession | null {
+  if (!import.meta.env.DEV || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(DEV_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<DevSession>;
+    if (typeof parsed.token !== "string" || parsed.token.length === 0) return null;
+    return { token: parsed.token, userId: typeof parsed.userId === "string" ? parsed.userId : undefined };
+  } catch {
+    return null;
+  }
+}
+
 export function useAuth() {
+  const dev = readDevSession();
+  if (dev) {
+    return {
+      isLoaded: true,
+      isSignedIn: true,
+      userId: (dev.userId ?? "dev-session") as string | null,
+      sessionId: "dev-session" as string | null,
+      getToken: async () => dev.token as string | null,
+    };
+  }
   return {
     isLoaded: true,
     isSignedIn: false,

@@ -80,7 +80,7 @@ export function MenuAddDashboardPanel({ menuId }: MenuAddDashboardPanelProps) {
   };
 
   return (
-    <div className="space-y-2">
+    <section aria-label="Dashboard pages" className="space-y-2">
       <div className="flex items-center gap-2 text-xs font-medium text-foreground">
         <LayoutPanelLeft className="size-3" />
         Dashboard pages
@@ -137,6 +137,6 @@ export function MenuAddDashboardPanel({ menuId }: MenuAddDashboardPanelProps) {
           Add to Menu
         </Button>
       </div>
-    </div>
+    </section>
   );
 }

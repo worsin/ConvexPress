@@ -257,7 +257,7 @@ function CustomerDashboardSettings() {
           <span key="layout">{draft.layout === "both" ? "Sidebar + top bar" : draft.layout === "sidebar" ? "Sidebar layout" : "Top bar layout"}</span>,
         ]}
         actions={
-          <Button variant="outline" size="sm" render={<Link to="/customer-dashboard/layouts" />}>
+          <Button variant="outline" size="sm" nativeButton={false} render={<Link to="/customer-dashboard/layouts" />}>
             <PanelsTopLeft data-icon="inline-start" />
             Home layouts
           </Button>

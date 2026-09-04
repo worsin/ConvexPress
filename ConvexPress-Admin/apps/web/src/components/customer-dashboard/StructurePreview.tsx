@@ -100,7 +100,7 @@ export function StructurePreview({
   const showSidebar = draft.layout !== "topbar";
   const showTopbar = draft.layout !== "sidebar";
   const collapsed = draft.sidebarCollapsedByDefault;
-  const sidebarWidth = collapsed ? 56 : Math.round(draft.sidebarWidth * 0.62);
+  const sidebarWidth = collapsed ? 56 : Math.round(draft.sidebarWidth * 0.55);
 
   return (
     <div className="flex flex-col gap-3">
@@ -195,7 +195,7 @@ export function StructurePreview({
           </main>
 
           {/* Profile dropdown, drawn as a detached card */}
-          <div className="w-40 shrink-0 self-start p-3">
+          <div className="w-36 shrink-0 self-start py-3 pr-3">
             <div className="rounded-xl border border-line-strong bg-popover p-1.5 shadow-float">
               <div className="mb-1 flex items-center gap-2 px-2 py-1.5">
                 <span className="size-6 rounded-full bg-primary-soft" />

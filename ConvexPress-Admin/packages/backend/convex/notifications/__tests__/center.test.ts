@@ -86,7 +86,7 @@ describe("deriveNeedsAction", () => {
   });
 
   test("registry-driven derivation matches expectations for the customer-facing keys", () => {
-    const expectTrue = ["ticket_reply_agent", "purchase_payment_failed", "subscription_past_due", "subscription_trial_ending", "comment_reply"];
+    const expectTrue = ["ticket_reply_customer", "ticket_reply_agent", "purchase_payment_failed", "subscription_past_due", "subscription_trial_ending", "comment_reply"];
     const expectFalse = ["purchase_created", "post_published", "lms_course_completed", "lms_certificate_issued", "ticket_resolved", "subscription_renewed"];
     for (const key of expectTrue) {
       const config = NOTIFICATION_TYPES[key as keyof typeof NOTIFICATION_TYPES];

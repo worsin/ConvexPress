@@ -68,6 +68,7 @@ import { Route as MarketingCategoriesIndexRouteImport } from './routes/_marketin
 import { Route as MarketingCartIndexRouteImport } from './routes/_marketing/cart/index'
 import { Route as MarketingBundlesIndexRouteImport } from './routes/_marketing/bundles/index'
 import { Route as MarketingBlogIndexRouteImport } from './routes/_marketing/blog/index'
+import { Route as DashboardTicketsSplatRouteImport } from './routes/dashboard/tickets_.$'
 import { Route as DashboardSubscriptionsSubscriptionIdRouteImport } from './routes/dashboard/subscriptions.$subscriptionId'
 import { Route as DashboardReturnsReturnIdRouteImport } from './routes/dashboard/returns.$returnId'
 import { Route as DashboardOrdersOrderIdRouteImport } from './routes/dashboard/orders.$orderId'
@@ -422,6 +423,11 @@ const MarketingBlogIndexRoute = MarketingBlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
   getParentRoute: () => MarketingRoute,
+} as any)
+const DashboardTicketsSplatRoute = DashboardTicketsSplatRouteImport.update({
+  id: '/tickets_/$',
+  path: '/tickets/$',
+  getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardSubscriptionsSubscriptionIdRoute =
   DashboardSubscriptionsSubscriptionIdRouteImport.update({
@@ -823,6 +829,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/orders/$orderId': typeof DashboardOrdersOrderIdRouteWithChildren
   '/dashboard/returns/$returnId': typeof DashboardReturnsReturnIdRoute
   '/dashboard/subscriptions/$subscriptionId': typeof DashboardSubscriptionsSubscriptionIdRoute
+  '/dashboard/tickets/$': typeof DashboardTicketsSplatRoute
   '/blog/': typeof MarketingBlogIndexRoute
   '/bundles/': typeof MarketingBundlesIndexRoute
   '/cart/': typeof MarketingCartIndexRoute
@@ -930,6 +937,7 @@ export interface FileRoutesByTo {
   '/dashboard/orders/$orderId': typeof DashboardOrdersOrderIdRouteWithChildren
   '/dashboard/returns/$returnId': typeof DashboardReturnsReturnIdRoute
   '/dashboard/subscriptions/$subscriptionId': typeof DashboardSubscriptionsSubscriptionIdRoute
+  '/dashboard/tickets/$': typeof DashboardTicketsSplatRoute
   '/blog': typeof MarketingBlogIndexRoute
   '/bundles': typeof MarketingBundlesIndexRoute
   '/cart': typeof MarketingCartIndexRoute
@@ -1051,6 +1059,7 @@ export interface FileRoutesById {
   '/dashboard/orders/$orderId': typeof DashboardOrdersOrderIdRouteWithChildren
   '/dashboard/returns/$returnId': typeof DashboardReturnsReturnIdRoute
   '/dashboard/subscriptions/$subscriptionId': typeof DashboardSubscriptionsSubscriptionIdRoute
+  '/dashboard/tickets_/$': typeof DashboardTicketsSplatRoute
   '/_marketing/blog/': typeof MarketingBlogIndexRoute
   '/_marketing/bundles/': typeof MarketingBundlesIndexRoute
   '/_marketing/cart/': typeof MarketingCartIndexRoute
@@ -1172,6 +1181,7 @@ export interface FileRouteTypes {
     | '/dashboard/orders/$orderId'
     | '/dashboard/returns/$returnId'
     | '/dashboard/subscriptions/$subscriptionId'
+    | '/dashboard/tickets/$'
     | '/blog/'
     | '/bundles/'
     | '/cart/'
@@ -1279,6 +1289,7 @@ export interface FileRouteTypes {
     | '/dashboard/orders/$orderId'
     | '/dashboard/returns/$returnId'
     | '/dashboard/subscriptions/$subscriptionId'
+    | '/dashboard/tickets/$'
     | '/blog'
     | '/bundles'
     | '/cart'
@@ -1399,6 +1410,7 @@ export interface FileRouteTypes {
     | '/dashboard/orders/$orderId'
     | '/dashboard/returns/$returnId'
     | '/dashboard/subscriptions/$subscriptionId'
+    | '/dashboard/tickets_/$'
     | '/_marketing/blog/'
     | '/_marketing/bundles/'
     | '/_marketing/cart/'
@@ -1886,6 +1898,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/blog/'
       preLoaderRoute: typeof MarketingBlogIndexRouteImport
       parentRoute: typeof MarketingRoute
+    }
+    '/dashboard/tickets_/$': {
+      id: '/dashboard/tickets_/$'
+      path: '/tickets/$'
+      fullPath: '/dashboard/tickets/$'
+      preLoaderRoute: typeof DashboardTicketsSplatRouteImport
+      parentRoute: typeof DashboardRoute
     }
     '/dashboard/subscriptions/$subscriptionId': {
       id: '/dashboard/subscriptions/$subscriptionId'
@@ -2638,6 +2657,7 @@ interface DashboardRouteChildren {
   DashboardTicketsRoute: typeof DashboardTicketsRoute
   DashboardWishlistRoute: typeof DashboardWishlistRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardTicketsSplatRoute: typeof DashboardTicketsSplatRoute
   DashboardCoursesSlugNodeIdRoute: typeof DashboardCoursesSlugNodeIdRoute
 }
 
@@ -2660,6 +2680,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardTicketsRoute: DashboardTicketsRoute,
   DashboardWishlistRoute: DashboardWishlistRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardTicketsSplatRoute: DashboardTicketsSplatRoute,
   DashboardCoursesSlugNodeIdRoute: DashboardCoursesSlugNodeIdRoute,
 }
 

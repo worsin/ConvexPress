@@ -188,7 +188,10 @@ export async function emitEvent(
   const activeListeners = await ctx.db
     .query("eventListeners")
     .withIndex("by_active", (q) => q.eq("isActive", true))
-    .take(100);
+    // Every active listener must be considered: sites register well over 100
+    // (155 on the test fleet), and a lower cap silently dropped the
+    // notification-engine listeners that sort after the first page.
+    .take(1000);
 
   // Filter to those whose eventCode pattern matches this event code
   const matchedListeners = activeListeners

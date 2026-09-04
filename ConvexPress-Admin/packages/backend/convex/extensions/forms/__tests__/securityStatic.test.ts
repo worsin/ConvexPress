@@ -163,7 +163,13 @@ describe("Forms static production security/design guards", () => {
     expect(settingsDefaults.includes("formsEnabled: boolean")).toBe(true);
     expect(settingsDefaults.includes("formsEnabled: false")).toBe(true);
     expect(settingsValidators.includes("formsEnabled: v.boolean()")).toBe(true);
-    expect(publicSettingsQuery.includes("formsEnabled: plugins.formsEnabled")).toBe(true);
+    // getPublic either lists the flag explicitly or projects every `<id>Enabled`
+    // boolean from the plugins section (the projection was introduced with the
+    // Dashboard extension so new plugins reach the website automatically).
+    expect(
+      publicSettingsQuery.includes("formsEnabled: plugins.formsEnabled") ||
+        publicSettingsQuery.includes("Enabled$/u.test(key)"),
+    ).toBe(true);
     expect(
       publicSettingsHttpInternal.includes("formsEnabled: plugins.formsEnabled"),
     ).toBe(true);
