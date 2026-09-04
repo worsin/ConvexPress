@@ -38,6 +38,7 @@ export function DashboardPageHeader({
   title,
   description,
   aside,
+  meta,
   back,
   className,
 }: {
@@ -45,6 +46,8 @@ export function DashboardPageHeader({
   title: ReactNode;
   description?: ReactNode;
   aside?: ReactNode;
+  /** Small tabular text on the right (counts, dates). */
+  meta?: ReactNode;
   /** Link (`to`) or button (`onClick`) rendered above the title. */
   back?: { label: string; to?: string; onClick?: () => void };
   className?: string;
@@ -58,7 +61,12 @@ export function DashboardPageHeader({
           <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{title}</h1>
           {description ? <p className="max-w-3xl text-[13px] leading-5 text-muted-foreground">{description}</p> : null}
         </div>
-        {aside ? <div className="flex shrink-0 flex-wrap items-center gap-2">{aside}</div> : null}
+        {aside || meta ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {meta ? <span className="text-[13px] tabular-nums text-muted-foreground">{meta}</span> : null}
+            {aside}
+          </div>
+        ) : null}
       </div>
     </div>
   );
