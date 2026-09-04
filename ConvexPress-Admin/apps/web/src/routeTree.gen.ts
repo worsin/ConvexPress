@@ -70,6 +70,7 @@ import { Route as AuthenticatedAdminSupportSettingsRouteImport } from './routes/
 import { Route as AuthenticatedAdminSupportAnalyticsRouteImport } from './routes/_authenticated/_admin/support/analytics'
 import { Route as AuthenticatedAdminSettingsWritingRouteImport } from './routes/_authenticated/_admin/settings/writing'
 import { Route as AuthenticatedAdminSettingsToolsRouteImport } from './routes/_authenticated/_admin/settings/tools'
+import { Route as AuthenticatedAdminSettingsShopLayoutRouteImport } from './routes/_authenticated/_admin/settings/shop-layout'
 import { Route as AuthenticatedAdminSettingsShopAssistantRouteImport } from './routes/_authenticated/_admin/settings/shop-assistant'
 import { Route as AuthenticatedAdminSettingsSearchRouteImport } from './routes/_authenticated/_admin/settings/search'
 import { Route as AuthenticatedAdminSettingsReadingRouteImport } from './routes/_authenticated/_admin/settings/reading'
@@ -617,6 +618,12 @@ const AuthenticatedAdminSettingsToolsRoute =
   AuthenticatedAdminSettingsToolsRouteImport.update({
     id: '/tools',
     path: '/tools',
+    getParentRoute: () => AuthenticatedAdminSettingsRoute,
+  } as any)
+const AuthenticatedAdminSettingsShopLayoutRoute =
+  AuthenticatedAdminSettingsShopLayoutRouteImport.update({
+    id: '/shop-layout',
+    path: '/shop-layout',
     getParentRoute: () => AuthenticatedAdminSettingsRoute,
   } as any)
 const AuthenticatedAdminSettingsShopAssistantRoute =
@@ -1903,6 +1910,7 @@ export interface FileRoutesByFullPath {
   '/settings/reading': typeof AuthenticatedAdminSettingsReadingRoute
   '/settings/search': typeof AuthenticatedAdminSettingsSearchRoute
   '/settings/shop-assistant': typeof AuthenticatedAdminSettingsShopAssistantRoute
+  '/settings/shop-layout': typeof AuthenticatedAdminSettingsShopLayoutRoute
   '/settings/tools': typeof AuthenticatedAdminSettingsToolsRoute
   '/settings/writing': typeof AuthenticatedAdminSettingsWritingRoute
   '/support/analytics': typeof AuthenticatedAdminSupportAnalyticsRoute
@@ -2139,6 +2147,7 @@ export interface FileRoutesByTo {
   '/settings/reading': typeof AuthenticatedAdminSettingsReadingRoute
   '/settings/search': typeof AuthenticatedAdminSettingsSearchRoute
   '/settings/shop-assistant': typeof AuthenticatedAdminSettingsShopAssistantRoute
+  '/settings/shop-layout': typeof AuthenticatedAdminSettingsShopLayoutRoute
   '/settings/tools': typeof AuthenticatedAdminSettingsToolsRoute
   '/settings/writing': typeof AuthenticatedAdminSettingsWritingRoute
   '/support/analytics': typeof AuthenticatedAdminSupportAnalyticsRoute
@@ -2391,6 +2400,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/settings/reading': typeof AuthenticatedAdminSettingsReadingRoute
   '/_authenticated/_admin/settings/search': typeof AuthenticatedAdminSettingsSearchRoute
   '/_authenticated/_admin/settings/shop-assistant': typeof AuthenticatedAdminSettingsShopAssistantRoute
+  '/_authenticated/_admin/settings/shop-layout': typeof AuthenticatedAdminSettingsShopLayoutRoute
   '/_authenticated/_admin/settings/tools': typeof AuthenticatedAdminSettingsToolsRoute
   '/_authenticated/_admin/settings/writing': typeof AuthenticatedAdminSettingsWritingRoute
   '/_authenticated/_admin/support/analytics': typeof AuthenticatedAdminSupportAnalyticsRoute
@@ -2642,6 +2652,7 @@ export interface FileRouteTypes {
     | '/settings/reading'
     | '/settings/search'
     | '/settings/shop-assistant'
+    | '/settings/shop-layout'
     | '/settings/tools'
     | '/settings/writing'
     | '/support/analytics'
@@ -2878,6 +2889,7 @@ export interface FileRouteTypes {
     | '/settings/reading'
     | '/settings/search'
     | '/settings/shop-assistant'
+    | '/settings/shop-layout'
     | '/settings/tools'
     | '/settings/writing'
     | '/support/analytics'
@@ -3129,6 +3141,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/settings/reading'
     | '/_authenticated/_admin/settings/search'
     | '/_authenticated/_admin/settings/shop-assistant'
+    | '/_authenticated/_admin/settings/shop-layout'
     | '/_authenticated/_admin/settings/tools'
     | '/_authenticated/_admin/settings/writing'
     | '/_authenticated/_admin/support/analytics'
@@ -3712,6 +3725,13 @@ declare module '@tanstack/react-router' {
       path: '/tools'
       fullPath: '/settings/tools'
       preLoaderRoute: typeof AuthenticatedAdminSettingsToolsRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsRoute
+    }
+    '/_authenticated/_admin/settings/shop-layout': {
+      id: '/_authenticated/_admin/settings/shop-layout'
+      path: '/shop-layout'
+      fullPath: '/settings/shop-layout'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsShopLayoutRouteImport
       parentRoute: typeof AuthenticatedAdminSettingsRoute
     }
     '/_authenticated/_admin/settings/shop-assistant': {
@@ -5708,6 +5728,7 @@ interface AuthenticatedAdminSettingsRouteChildren {
   AuthenticatedAdminSettingsReadingRoute: typeof AuthenticatedAdminSettingsReadingRoute
   AuthenticatedAdminSettingsSearchRoute: typeof AuthenticatedAdminSettingsSearchRoute
   AuthenticatedAdminSettingsShopAssistantRoute: typeof AuthenticatedAdminSettingsShopAssistantRoute
+  AuthenticatedAdminSettingsShopLayoutRoute: typeof AuthenticatedAdminSettingsShopLayoutRoute
   AuthenticatedAdminSettingsToolsRoute: typeof AuthenticatedAdminSettingsToolsRoute
   AuthenticatedAdminSettingsWritingRoute: typeof AuthenticatedAdminSettingsWritingRoute
   AuthenticatedAdminSettingsIndexRoute: typeof AuthenticatedAdminSettingsIndexRoute
@@ -5740,6 +5761,8 @@ const AuthenticatedAdminSettingsRouteChildren: AuthenticatedAdminSettingsRouteCh
       AuthenticatedAdminSettingsSearchRoute,
     AuthenticatedAdminSettingsShopAssistantRoute:
       AuthenticatedAdminSettingsShopAssistantRoute,
+    AuthenticatedAdminSettingsShopLayoutRoute:
+      AuthenticatedAdminSettingsShopLayoutRoute,
     AuthenticatedAdminSettingsToolsRoute: AuthenticatedAdminSettingsToolsRoute,
     AuthenticatedAdminSettingsWritingRoute:
       AuthenticatedAdminSettingsWritingRoute,

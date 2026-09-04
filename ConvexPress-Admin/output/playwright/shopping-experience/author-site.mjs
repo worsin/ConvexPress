@@ -31,6 +31,7 @@ const SHOPS = {
     imagesDir: join(imagesRoot, "northstar-coffee/site"),
     email: "hello@northstar.coffee",
     slugs: { Help: "faq" },
+    layouts: { shop: "Boutique", product: "Split" },
     pages: [
       {
         title: "Home",
@@ -123,6 +124,7 @@ const SHOPS = {
     imagesDir: join(imagesRoot, "ridgeline-cycles/site"),
     email: "shop@ridgeline.bike",
     slugs: { Help: "faq" },
+    layouts: { shop: "Marketplace", product: "Marketplace", density: "Dense" },
     pages: [
       {
         title: "Home",
@@ -429,6 +431,30 @@ async function fixSlug(page, title, slug) {
   log(`page "${title}" now at /${slug}`);
 }
 
+// ───────────────────────────── layouts ─────────────────────────────
+// Settings › Shop layouts: pick the shop and product page presets, save.
+async function chooseLayouts(page, layouts) {
+  await goHash(page, "#/settings/shop-layout", 3500);
+  await page.getByRole("heading", { name: "Shop layouts" }).waitFor({ timeout: 20_000 });
+  const pick = async (group, name) => {
+    const radio = page.getByRole("radiogroup", { name: group }).getByRole("radio", { name: new RegExp(`^${name}\\b`) }).first();
+    await radio.waitFor({ state: "visible", timeout: 10_000 });
+    if ((await radio.getAttribute("aria-checked")) !== "true") await radio.click();
+  };
+  await pick("Shop page", layouts.shop);
+  await pick("Product page", layouts.product);
+  if (layouts.density) await pick("Grid density", layouts.density);
+  await settle(page, 600);
+  await shot(page, "settings-shop-layout");
+  const save = page.getByRole("button", { name: /Save layouts|Saved/ });
+  if (await save.isEnabled().catch(() => false)) {
+    await save.click();
+    await page.getByText(/Shop layouts saved/).waitFor({ state: "visible", timeout: 15_000 }).catch(() => {});
+  }
+  await settle(page, 800);
+  log(`layouts: shop=${layouts.shop} product=${layouts.product}${layouts.density ? ` density=${layouts.density}` : ""}`);
+}
+
 // ───────────────────────────── reading ─────────────────────────────
 async function setStaticFrontPage(page) {
   await goHash(page, "#/settings/reading", 3000);
@@ -540,6 +566,7 @@ try {
 
   if (only.has("media")) await uploadMedia(page);
   if (only.has("pages")) for (const def of shop.pages) { if (!pageFilter || pageFilter.has(def.title)) await buildPage(page, def); }
+  if (only.has("layout") && shop.layouts) await chooseLayouts(page, shop.layouts);
   if (only.has("slug")) for (const [title, slug] of Object.entries(shop.slugs ?? {})) await fixSlug(page, title, slug);
   if (only.has("reading")) await setStaticFrontPage(page);
   if (only.has("menus")) for (const def of shop.menus) await buildMenu(page, def);

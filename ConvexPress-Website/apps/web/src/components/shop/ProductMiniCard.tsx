@@ -89,7 +89,7 @@ export function CartStepper({
         });
       }}
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50",
+        "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-primary px-3 font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50",
         h,
         text,
         className,

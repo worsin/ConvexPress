@@ -452,6 +452,13 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
         capability: "settings.update_reading",
       },
       {
+        id: "settings-shop-layout",
+        label: "Shop layouts",
+        to: "/settings/shop-layout",
+        capability: "manage_options",
+        pluginId: "commerce",
+      },
+      {
         id: "settings-shop-assistant",
         label: "Shop assistant",
         to: "/settings/shop-assistant",

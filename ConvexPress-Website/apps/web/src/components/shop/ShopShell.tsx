@@ -227,7 +227,8 @@ export function ShopShell({
               aria-label="Your cart"
               className={cn("hidden shrink-0 self-start xl:sticky xl:top-24 xl:block", marketplace ? "w-[300px]" : "w-[280px]")}
             >
-              <CartPanel className="h-[calc(100svh-7rem)]" compact={!marketplace} />
+              {/* Ends above the corner support button so the checkout row is never covered. */}
+              <CartPanel className="h-[calc(100svh-12rem)]" compact={!marketplace} />
             </aside>
           )}
         </div>

@@ -7,6 +7,8 @@
  * the admin preset catalog.
  */
 
+import type { ReactElement } from "react";
+
 import { ProductReviews } from "@/components/commerce/ProductReviews";
 import { MediaImage } from "@/components/media/MediaImage";
 import { RelatedProducts } from "@/components/shop/RelatedProducts";
@@ -171,7 +173,7 @@ function MinimalLayout({ product, state }: PartProps) {
   );
 }
 
-export const PRODUCT_LAYOUTS: Record<ProductLayoutId, (props: PartProps) => JSX.Element> = {
+export const PRODUCT_LAYOUTS: Record<ProductLayoutId, (props: PartProps) => ReactElement> = {
   classic: ClassicLayout,
   marketplace: MarketplaceLayout,
   split: SplitLayout,

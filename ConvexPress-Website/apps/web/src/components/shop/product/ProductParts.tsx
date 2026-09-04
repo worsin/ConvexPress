@@ -4,6 +4,7 @@
  */
 
 import { Link } from "@tanstack/react-router";
+import DOMPurify from "isomorphic-dompurify";
 import { Check, Minus, Plus, Sparkles, Truck } from "lucide-react";
 import { useState } from "react";
 
@@ -260,7 +261,7 @@ export function QuantityStepper({ state, className }: Pick<PartProps, "state" | 
   );
 }
 
-export function AddToCartButton({ product, state, className, size = "lg" }: PartProps & { size?: "lg" | "md" }) {
+export function AddToCartButton({ state, className, size = "lg" }: PartProps & { size?: "lg" | "md" }) {
   const [justAdded, setJustAdded] = useState(false);
   const label = state.requiresSelection ? "Select options" : state.outOfStock ? "Out of stock" : justAdded ? "Added" : "Add to cart";
   return (
@@ -275,8 +276,8 @@ export function AddToCartButton({ product, state, className, size = "lg" }: Part
       }}
       disabled={state.busy || state.outOfStock || state.requiresSelection}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md bg-primary font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50",
-        size === "lg" ? "h-11 px-6 text-sm" : "h-10 px-4 text-sm",
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50",
+        size === "lg" ? "h-11 min-w-[9rem] px-6 text-sm" : "h-10 px-4 text-sm",
         className,
       )}
     >
@@ -335,12 +336,24 @@ export function ProductBuyBox({ product, state, className, showPrice = true, fra
 
 /* ───────────────────────── details ───────────────────────── */
 
+const DESCRIPTION_TAGS = ["p", "br", "strong", "b", "em", "i", "u", "ul", "ol", "li", "a", "h3", "h4", "blockquote", "table", "thead", "tbody", "tr", "th", "td"];
+
 export function ProductDescription({ product, className, heading = true }: Pick<PartProps, "product" | "className"> & { heading?: boolean }) {
-  if (!product.description) return null;
+  const raw = product.description?.trim();
+  if (!raw) return null;
+  // Descriptions imported from WooCommerce arrive as HTML; hand-typed ones are plain text.
+  const isHtml = /<\/?[a-z][^>]*>/i.test(raw);
   return (
     <section className={cn("space-y-3", className)}>
       {heading && <h2 className="text-xl font-semibold tracking-tight text-foreground">About this product</h2>}
-      <p className="whitespace-pre-wrap text-base leading-8 text-muted-foreground">{product.description}</p>
+      {isHtml ? (
+        <div
+          className="prose prose-neutral max-w-none text-base leading-8 text-muted-foreground [&_a]:text-primary [&_li]:my-1 [&_p]:my-3 [&_strong]:text-foreground"
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(raw, { ALLOWED_TAGS: DESCRIPTION_TAGS, ALLOWED_ATTR: ["href", "rel", "target"] }) }}
+        />
+      ) : (
+        <p className="whitespace-pre-wrap text-base leading-8 text-muted-foreground">{raw}</p>
+      )}
     </section>
   );
 }
