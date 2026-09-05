@@ -267,6 +267,8 @@ Rewrite `block-kit` to match the system above, on the standard kit scaffold, and
 
 ## 4. Library target inventory
 
+**Tracked in MagicTables**: base `ORM-APP-ConvexPress Standalone Roadmap` (`p5771rm40m4pjw4q4t4x9kdbb18dnm0b`), table **Blocks** `q97ft31dnn52vbeha9fdd3zfg98dv4sq` (125 rows loaded 2026-09-05). The table is the live inventory; this section is the snapshot it was seeded from.
+
 Current: 38 core plus 13 portable plus one local sample. Target: about 120 Library blocks, all schema-first, each with a default renderer, at least one Journal and one Depot treatment for the flagship set, tests and thumbnails.
 
 | Category | Blocks (new in bold) | Count |

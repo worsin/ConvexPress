@@ -176,7 +176,37 @@ Do not: add blocks to the current registries; add design controls to the admin; 
 - `bun run check:blocks` (extended per phase), `bun test` in both repos and the backend, `bun run check-types` in both apps, `bun run check:templates` and `sync:templates` when the pack manifest changes.
 - Screenshot matrix: every block under every first-party pack, stored under `ConvexPress-Admin/output/playwright/blocks/<pack>/<block>.png`; diff against the previous run.
 - Fleet: deploy to alpha and gamma with `bunx convex deploy --url http://127.0.0.1:148x0 --admin-key … --yes`, then verify Northstar (Journal) and Ridgeline (Depot) through the Electron admin (`packages/desktop/scripts/dev.mjs`, standalone env is default) and the storefronts via View website. Owner rule: Electron for the admin, always.
-- Evidence and notes: append a dated section to `specs/research/BLOCK-SYSTEM-ANALYSIS-2026-09-05.md` per phase, and keep §9 below current.
+- Evidence and notes: append a dated section to `specs/research/BLOCK-SYSTEM-ANALYSIS-2026-09-05.md` per phase, keep §9 below current, and keep the MagicTables Blocks table (§6a) current per block.
+
+## 6a. MagicTables: the block tracker (source of truth for the inventory)
+
+The block inventory lives in MagicTables, not in this file. Analysis §4 is a snapshot; the table is what you keep current.
+
+| Item | Value |
+|---|---|
+| Base | `ORM-APP-ConvexPress Standalone Roadmap`, base id `p5771rm40m4pjw4q4t4x9kdbb18dnm0b` |
+| Table | **Blocks**, table id **`q97ft31dnn52vbeha9fdd3zfg98dv4sq`** |
+| Rows at handoff | 125 blocks: 51 that exist today (38 core registry entries + 13 portable), 74 planned, 15 flagship (`Priority = P0 Flagship`) |
+| Owner note | There is also the VO base `ORM-APP-ConvexPress (APP-CVPR)` (`p574t1p1xvkpsrgjk2v6zma8an89tr11`). The tracker lives in the Standalone Roadmap base; do not fork it into the VO base unless the owner asks. |
+
+Columns and what they mean: `Name` (spec name, e.g. `core/feature-grid`, the upsert key), `Title`, `Category` (inserter category), `Tier` (Library / Pack / Plugin / Composed), `Role` (hero, opener, content, cta, aside, utility), `Status` (Planned → Spec written → In progress → Built → Verified; Verified means tests green and a screenshot under every first-party pack), `Phase` (from §4), `Priority`, `Exists Today`, `Current Location`, `Spec Path` (target `blocks/<ns>/<name>/block.json`), `Description`, `Key Fields`, `Dynamic` + `Data Resolver`, `Supports Children`, `Layout Intents`, `Treatment: Journal` / `Treatment: Depot` (Baseline / Named style / Owned renderer / Missing; set on flagships as the target, blank elsewhere until Phase 3), `Named Styles`, `Tests`, `Screenshots`, `Plugin`, `Migrates From`, `Owner`, `Notes`.
+
+Rules:
+1. **Before building or migrating a block, its row must exist.** Add a row for any block you introduce (pack signature blocks, plugin blocks, promoted composed blocks) with `Name`, `Category`, `Tier`, `Role`, `Phase`, `Spec Path`, `Description`, `Key Fields`.
+2. **Update `Status` as you go**, and tick `Tests` and `Screenshots` only when they exist in the repo. Fill `Treatment: Journal` / `Treatment: Depot` for every row during Phase 3 (Baseline is a valid, expected value for most).
+3. **`sync:blocks` must reconcile against this table**: the generator reads the repo's `block.json` files; extend `check:blocks` with a `--tracker` mode that pulls the table (`mt table records q97ft31dnn52vbeha9fdd3zfg98dv4sq --fields Name,Status,Spec Path --format compact`) and fails on a block that exists in the repo but not in the table, or is `Verified` in the table without tests and screenshots in the repo.
+4. **Renames** (for example the client-derived `blocks/grade-gallery`) are a row update plus `Migrates From`, never a second row.
+5. Do not edit the table schema without recording it here.
+
+CLI (account `master` is already signed in on this Mac):
+```
+mt table schema q97ft31dnn52vbeha9fdd3zfg98dv4sq
+mt table records q97ft31dnn52vbeha9fdd3zfg98dv4sq --fields Name,Status,Phase,Priority --where Phase="Phase 1"
+mt row create-record q97ft31dnn52vbeha9fdd3zfg98dv4sq --set Name=journal/editorial-spread --set Tier=Pack --set Category=Marketing --set Status=Planned
+mt row patch q97ft31dnn52vbeha9fdd3zfg98dv4sq --where Name=core/hero --set Status="In progress"
+mt populate rows q97ft31dnn52vbeha9fdd3zfg98dv4sq --file rows.json --upsert-by Name --dry-run   # bulk, then --yes
+```
+The generator script that produced the initial rows is kept at `ConvexPress-Admin/output/blocks-tracker/gen_rows.py` with its `rows.json`; re-running it with `--upsert-by Name` is safe.
 
 ## 7. Coordination rules (unchanged from the template handoff)
 
