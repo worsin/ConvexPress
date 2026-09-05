@@ -1,6 +1,6 @@
 # Block system: state analysis and target design (2026-09-05)
 
-Analysis only. No code was changed. Astra is active in `templates/packs/*`; nothing here has been started.
+Analysis only. No code was changed. Build spec for Astra: `specs/handoffs/HANDOFF-ASTRA-BLOCKS-2026-09-05.md`. Astra is active in `templates/packs/*`; nothing here has been started.
 
 Goal restated by the owner: a hybrid. A large library of pre-built blocks with real functionality, visible and editable as data in the admin, rendered and styled by the active template on the front, plus the freedom for AI to build bespoke elements on the fly. "No amount of change is too much."
 
