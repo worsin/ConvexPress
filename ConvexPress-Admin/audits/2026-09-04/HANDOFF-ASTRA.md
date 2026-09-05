@@ -48,6 +48,6 @@ Plus: **Astra's own audit list** — queue and work it alongside Phase A; record
 - **Reserved storefront routes** (`/help`, `/support`, `/shop`, `/products`, `/blog`, …) collide with page slugs; no admin warning yet (worth adding).
 - **Auto-commits**: the repo commits every few minutes; check `git log --stat -3` before editing shared areas.
 
-## 4. Running right now (leave or stop deliberately)
+## 4. Running right now
 
-- Electron admin (throwaway profile, signed in as `claude.owner@convexpress.local`) kept open by the showcase driver; storefronts 4201 (Northstar/Journal) and 4203 (Ridgeline/Depot) launched by the admin's site runner; admin renderer dev server on 4105; SSH tunnel. Closing the Electron window stops the runner's storefronts.
+- The showcase Electron admin and the admin renderer dev server (4105) were stopped when the Claude session ended; the storefronts it launched (4201/4203) stop with it. The SSH tunnel may still be up (`pgrep -fl "ssh -fN"`). To relaunch the showcase: start the renderer with `packages/desktop/scripts/dev.mjs` (standalone env is the default), then run `output/playwright/shopping-experience/author-site.mjs --keep` or open the Electron app against the fleet and use View website on Northstar and Ridgeline.
