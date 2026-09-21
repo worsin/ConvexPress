@@ -185,5 +185,15 @@
       ],
       "format": "prose"
     }
+  ],
+  "authoringActions": [
+    {
+      "path": [
+        "items",
+        "*"
+      ],
+      "href": "ctaUrl",
+      "label": "ctaLabel"
+    }
   ]
 }

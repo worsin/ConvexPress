@@ -7,7 +7,7 @@
 .cp-editorial-banner .cp-image {margin:0;}
 .cp-editorial-banner .cp-image img {inline-size:100%;aspect-ratio:16/7;object-fit:cover;}
 .cp-editorial-detail-list {display:grid;gap:1rem 2rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));margin:0;padding-block:1.5rem;border-block:1px solid var(--border);inline-size:100%;}
-.cp-editorial-detail-list dt {font-family:var(--font-sans);font-size:.75rem;color:var(--muted-foreground);margin-block-end:.4rem;}
+.cp-editorial-detail-list dt {font-family:var(--font-sans);font-size:.75rem;color:var(--muted-foreground);margin-block-end:.4rem;overflow-wrap:anywhere;}
 .cp-editorial-detail-list dd {margin:0;font-family:var(--font-sans);line-height:1.6;overflow-wrap:anywhere;}
 .cp-editorial-rows {inline-size:100%;display:grid;gap:2.5rem;list-style:none;margin:0;padding:0;}
 .cp-editorial-rows > li,.cp-editorial-rows > article {min-inline-size:0;border-block-start:1px solid var(--border);padding-block-start:2rem;}

@@ -287,6 +287,88 @@ export function validateBlockAttrs(name: string, attrs: unknown) {
 
 import { validateAuthoringActions, type AuthoringAction } from "./spec_runtime.mjs";
 const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
+  "blocks/media-mentions": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": [
+        "items",
+        "*"
+      ]
+    }
+  ],
+  "blocks/page-banner": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": []
+    }
+  ],
+  "blocks/product-collection": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": [],
+      "protocols": [
+        "http",
+        "https",
+        "relative",
+        "anchor"
+      ]
+    },
+    {
+      "href": "href",
+      "label": "title",
+      "path": [
+        "products",
+        "*"
+      ],
+      "protocols": [
+        "http",
+        "https",
+        "relative",
+        "anchor"
+      ]
+    },
+    {
+      "href": "href",
+      "label": "title",
+      "path": [
+        "groups",
+        "*",
+        "products",
+        "*"
+      ],
+      "protocols": [
+        "http",
+        "https",
+        "relative",
+        "anchor"
+      ]
+    }
+  ],
+  "blocks/promo-band": [
+    {
+      "href": "primaryCtaUrl",
+      "label": "primaryCtaLabel",
+      "path": []
+    },
+    {
+      "href": "secondaryCtaUrl",
+      "label": "secondaryCtaLabel",
+      "path": []
+    }
+  ],
+  "blocks/story-timeline": [
+    {
+      "href": "linkUrl",
+      "label": "linkLabel",
+      "path": [
+        "items",
+        "*"
+      ]
+    }
+  ],
   "blocks/tabbed-content": [
     {
       "href": "ctaUrl",
@@ -295,6 +377,40 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
         "tabs",
         "*"
       ]
+    }
+  ],
+  "commerce/assistant-band": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": []
+    }
+  ],
+  "commerce/category-tiles": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": []
+    }
+  ],
+  "commerce/product-showcase": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": [],
+      "protocols": [
+        "http",
+        "https",
+        "relative",
+        "anchor"
+      ]
+    }
+  ],
+  "local/sample-alert": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": []
     }
   ]
 }

@@ -173,5 +173,18 @@
     "capabilities": [
       "reference.targetResolution"
     ]
-  }
+  },
+  "authoringActions": [
+    {
+      "path": [],
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "protocols": [
+        "http",
+        "https",
+        "relative",
+        "anchor"
+      ]
+    }
+  ]
 }

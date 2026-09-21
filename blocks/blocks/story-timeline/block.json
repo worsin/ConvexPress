@@ -190,5 +190,15 @@
       ],
       "format": "prose"
     }
+  ],
+  "authoringActions": [
+    {
+      "path": [
+        "items",
+        "*"
+      ],
+      "href": "linkUrl",
+      "label": "linkLabel"
+    }
   ]
 }

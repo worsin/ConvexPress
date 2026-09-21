@@ -6,6 +6,35 @@ import { parseCanonicalDocumentRead } from "../foundation/documentContracts";
 const reference = (name: string, kind: "query" | "mutation" = "query") =>
 	makeFunctionReference<any, any, any>(`canonicalDocuments:${name}`);
 
+test("CTA family writes reject unusable actions without changing content or history", async () => {
+  const cases = [
+    ["blocks/media-mentions", 1, { items: [{ ctaUrl: "javascript:alert(1)", ctaLabel: "Read" }] }],
+    ["blocks/page-banner", 1, { ctaUrl: "javascript:alert(1)", ctaLabel: "Read" }],
+    ["blocks/product-collection", 2, { ctaUrl: "mailto:hello@example.com", ctaLabel: "Read" }],
+    ["blocks/product-collection", 2, { products: [{ href: "/study", title: " " }] }],
+    ["blocks/product-collection", 2, { groups: [{ products: [{ href: "javascript:alert(1)", title: "Read" }] }] }],
+    ["commerce/assistant-band", 1, { ctaUrl: "javascript:alert(1)", ctaLabel: "Read" }],
+    ["commerce/category-tiles", 2, { ctaUrl: "/study", ctaLabel: " " }],
+    ["commerce/product-showcase", 2, { ctaUrl: "tel:+18005550100", ctaLabel: "Read" }],
+    ["blocks/promo-band", 1, { primaryCtaUrl: "javascript:alert(1)", primaryCtaLabel: "Read" }],
+    ["blocks/promo-band", 1, { secondaryCtaUrl: "/study", secondaryCtaLabel: " " }],
+    ["blocks/story-timeline", 2, { items: [{ linkUrl: "/study", linkLabel: " " }] }],
+    ["local/sample-alert", 1, { ctaUrl: "javascript:alert(1)", ctaLabel: "Read" }],
+  ] as const;
+  const f = await fixture();
+  await initialize(f);
+  const opened = await f.client.query(reference("get"), { postId: f.ids.post });
+  const before = await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }));
+  for (const [name, version, attrs] of cases) {
+    const args = { postId: f.ids.post, expectedRevision: opened.document.revision, title: opened.document.title, blocks: [{ id: "action", name, version, attrs }] };
+    for (const operation of [() => f.client.mutation(reference("save", "mutation"), args), () => f.client.query(reference("previewDraft"), args)]) {
+      // Check the action diagnostic, not an unrelated version or plugin failure.
+      await expect(operation()).rejects.toThrow(/visible action label|Use an HTTP/);
+      expect(await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }))).toEqual(before);
+    }
+  }
+});
+
 test("CTA authoring rejects save, preview and publication atomically while legacy repair and recovery stay available", async () => {
   const f = await fixture();
   await initialize(f);

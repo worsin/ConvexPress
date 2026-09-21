@@ -39,6 +39,10 @@
               "minimum": 0,
               "type": "integer"
             },
+            "multiline": {
+              "const": true,
+              "type": "boolean"
+            },
             "nullable": {
               "type": "boolean"
             },
@@ -1153,6 +1157,22 @@
               ]
             },
             "maxItems": 16,
+            "type": "array"
+          },
+          "protocols": {
+            "items": {
+              "enum": [
+                "http",
+                "https",
+                "relative",
+                "anchor",
+                "mailto",
+                "tel"
+              ],
+              "type": "string"
+            },
+            "maxItems": 6,
+            "minItems": 1,
             "type": "array"
           }
         },

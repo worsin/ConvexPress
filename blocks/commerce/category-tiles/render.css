@@ -16,7 +16,7 @@
 .cp-category-count { font-size:.7rem; color:var(--muted-foreground); white-space:nowrap; font-variant-numeric:tabular-nums; }
 .cp-category-tile > p { margin:0; max-width:44ch; overflow-wrap:anywhere; }
 .cp-category-footer { border-block-start:1px solid var(--border); padding-block-start:1rem; margin-block-start:2.5rem; }
-.cp-category-footer a,.cp-category-empty a { display:inline-flex; min-height:44px; align-items:center; }
+.cp-category-footer a,.cp-category-empty a { display:inline-flex; min-width:0; max-width:100%; overflow-wrap:anywhere; min-height:44px; align-items:center; }
 .cp-category-empty { padding-block:2rem; border-block:1px solid var(--border); }
 .cp-category-empty .cp-heading { margin-block:0 .75rem; }
 .cp-category-tile:focus-visible { outline:2px solid currentColor; outline-offset:6px; }

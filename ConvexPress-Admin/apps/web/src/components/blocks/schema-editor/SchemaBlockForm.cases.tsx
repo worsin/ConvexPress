@@ -273,6 +273,17 @@ test("code source preserves newlines when opened, edited and committed through g
 		expect(writes[0].attrs.language).toBe("typescript");
 		expect(writes[0].attrs.filename).toBe("note.ts");
 	}));
+test("short prose fields allow authoring new line breaks before any multiline value exists", async () =>
+  domTest(async (host, render, win) => {
+    const writes: any[] = [];
+    await render({ name: "blocks/page-banner", version: 1, value: { subtitle: "" }, revision: "r1", scope, onCommit: async (value: any) => writes.push(value) });
+    const label = Array.from(host.querySelectorAll("label")).find(item => item.textContent === "Subtitle")!;
+    const source = host.querySelector(`#${label.htmlFor}`) as HTMLTextAreaElement;
+    expect(source.tagName).toBe("TEXTAREA");
+    await change(win, source, "First line.\nSecond line.");
+    await act(async () => button(host, "Save content").click());
+    expect(writes[0].attrs.subtitle).toBe("First line.\nSecond line.");
+  }));
 test("unavailable and stale cross-environment resource pickers cannot introduce IDs", async () =>
 	domTest(async (host, render) => {
 		const writes: any[] = [];

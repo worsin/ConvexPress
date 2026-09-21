@@ -27,7 +27,7 @@ export default defineBlock("blocks/promo-band", ({ attrs, resources }) => (
 			)}
 			<P.Stack direction="horizontal" gap="md">
 				<Action label={attrs.primaryCtaLabel} href={attrs.primaryCtaUrl} />
-				<Action label={attrs.secondaryCtaLabel} href={attrs.secondaryCtaUrl} />
+				<Action label={attrs.secondaryCtaLabel} href={attrs.secondaryCtaUrl} variant="secondary" />
 			</P.Stack>
 		</P.Stack>
 		{attrs.mediaId && (

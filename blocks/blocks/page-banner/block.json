@@ -33,6 +33,7 @@
       "id": "subtitle",
       "default": "",
       "type": "text",
+      "multiline": true,
       "max": 500
     },
     {
@@ -125,6 +126,13 @@
         "subtitle"
       ],
       "format": "prose"
+    }
+  ],
+  "authoringActions": [
+    {
+      "path": [],
+      "href": "ctaUrl",
+      "label": "ctaLabel"
     }
   ]
 }

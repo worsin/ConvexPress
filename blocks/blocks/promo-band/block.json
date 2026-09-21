@@ -176,5 +176,17 @@
       "*",
       "value"
     ]
+  ],
+  "authoringActions": [
+    {
+      "path": [],
+      "href": "primaryCtaUrl",
+      "label": "primaryCtaLabel"
+    },
+    {
+      "path": [],
+      "href": "secondaryCtaUrl",
+      "label": "secondaryCtaLabel"
+    }
   ]
 }

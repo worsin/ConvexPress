@@ -10,7 +10,7 @@ export type FieldConstraint =
   | { kind: "at-most-one"; fields: string[] };
 export type ReferenceKind = "product" | "productCategory" | "productTag" | "post" | "page" | "category" | "course" | "event" | "eventCategory" | "tag" | "user" | "bundle" | "membershipPlan" | "recipe" | "album" | "syncedBlock" | "mailingList" | "poll" | "instructor" | "kbCategory";
 export type BlockField = CommonField & (
-  | { type: "text"; min?: number; max?: number; format?: "timezone" | "anchor" | "resource-id"; domId?: true }
+  | { type: "text"; min?: number; max?: number; multiline?: true; format?: "timezone" | "anchor" | "resource-id"; domId?: true }
   | { type: "richtext"; max?: number; inline?: boolean }
   | { type: "number"; integer?: boolean; min?: number; max?: number }
   | { type: "select"; options: (string | number)[] }
@@ -43,7 +43,7 @@ export type BlockSpec = {
     | { kind: "text-to-richtext"; path: string[]; mode: "plain-prose" | "markdown-prose" | "plain-inline" | "markdown-inline" }
   )[] };
 };
-export interface AuthoringAction { path: readonly string[]; href: string; label: string }
+export interface AuthoringAction { path: readonly string[]; href: string; label: string; protocols?: readonly ("http" | "https" | "relative" | "anchor" | "mailto" | "tel")[] }
 export function validateAuthoringActions<T>(zod: typeof z, attrs: T, actions?: readonly AuthoringAction[]): T;
 export function copyBlockSpecJson(input: unknown): SpecJson;
 export function createBlockSpecCompiler(zod: typeof z): {

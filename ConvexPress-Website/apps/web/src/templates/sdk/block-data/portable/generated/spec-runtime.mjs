@@ -48,7 +48,7 @@ export function createBlockSpecCompiler(z) {
   ]);
   const constraints = z.array(constraintSchema).max(20).optional();
   const variants = [
-    z.object({ ...common, type: z.literal("text"), min: size.optional(), max: size.optional(), format: z.enum(["timezone", "anchor", "resource-id"]).optional(), domId: z.literal(true).optional() }).strict(),
+    z.object({ ...common, type: z.literal("text"), min: size.optional(), max: size.optional(), multiline: z.literal(true).optional(), format: z.enum(["timezone", "anchor", "resource-id"]).optional(), domId: z.literal(true).optional() }).strict(),
     z.object({ ...common, type: z.literal("richtext"), max: size.optional(), inline: z.boolean().optional() }).strict(),
     z.object({ ...common, type: z.literal("number"), integer: z.boolean().optional(), min: z.number().optional(), max: z.number().optional() }).strict(),
     z.object({ ...common, type: z.literal("select"), options: z.array(z.union([z.string().min(1).max(100), z.number()])).min(1).max(100) }).strict(),
@@ -76,7 +76,7 @@ export function createBlockSpecCompiler(z) {
     fields: z.array(fieldSchema).max(100), constraints,
     // Write-time rules are separate from the stored shape: old values must
     // remain readable so an operator can repair them or recover a draft.
-    authoringActions: z.array(z.object({ path: z.array(z.union([id, z.literal("*")])).max(16), href: id, label: id }).strict()).max(20).optional(),
+    authoringActions: z.array(z.object({ path: z.array(z.union([id, z.literal("*")])).max(16), href: id, label: id, protocols: z.array(z.enum(["http", "https", "relative", "anchor", "mailto", "tel"])).min(1).max(6).optional() }).strict()).max(20).optional(),
     // Editorial text only. This declaration is not permission to disclose it.
     searchText: z.array(z.union([searchPath, z.object({ path: searchPath, format: z.literal("prose") }).strict()])).max(100).optional(),
     treatments: z.array(z.object({ name: id, title: z.string().min(1).max(160), axes: z.array(treatmentAxisSchema).min(1).max(8) }).strict()).max(8).optional(),
@@ -229,6 +229,7 @@ export function createBlockSpecCompiler(z) {
 function checkAuthoringActions(fields, actions = []) {
   const seen = new Set();
   for (const action of actions) {
+    if (action.protocols && new Set(action.protocols).size !== action.protocols.length) throw Error("Duplicate authoring action protocols");
     let siblings = fields;
     for (let i = 0; i < action.path.length; i++) {
       const field = siblings.find(item => item.id === action.path[i]);
@@ -248,8 +249,9 @@ function checkAuthoringActions(fields, actions = []) {
  * normalizes or rewrites the supplied attrs, including invalid legacy text. */
 export function validateAuthoringActions(z, attrs, actions = []) {
   if (!actions.length) return attrs;
-  const hrefSchema = safeLinkSchema(z), issues = [];
+  const issues = [];
   for (const action of actions) {
+    const hrefSchema = safeLinkSchema(z, action.protocols);
     function visit(value, offset, path) {
       if (value == null) return;
       if (offset < action.path.length) {

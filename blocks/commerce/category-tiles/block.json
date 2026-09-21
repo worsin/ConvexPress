@@ -145,5 +145,12 @@
     "capabilities": [
       "viewer.authorization"
     ]
-  }
+  },
+  "authoringActions": [
+    {
+      "path": [],
+      "href": "ctaUrl",
+      "label": "ctaLabel"
+    }
+  ]
 }

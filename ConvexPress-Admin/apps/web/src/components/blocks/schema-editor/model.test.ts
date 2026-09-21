@@ -25,6 +25,27 @@ test("tabbed CTA drafts retain invalid text and expose the exact destination or 
   for (const [ctaUrl, ctaLabel] of [["", ""], ["", "Text only"], ["/page/example/", "Open"], ["#study", "Study"], ["https://example.com", "Visit"]])
     expect(validateDraft("blocks/tabbed-content", { tabs: [{ ctaUrl, ctaLabel }] }).ok).toBe(true);
 });
+test("all remaining declared CTA fields reject unusable links while retaining repairable drafts", () => {
+  const cases = [
+    ["blocks/media-mentions", { items: [{ ctaUrl: "javascript:alert(1)", ctaLabel: "Read" }] }],
+    ["blocks/page-banner", { ctaUrl: "javascript:alert(1)", ctaLabel: "Read" }],
+    ["blocks/product-collection", { ctaUrl: "mailto:hello@example.com", ctaLabel: "Read" }],
+    ["blocks/product-collection", { products: [{ href: "/study", title: " " }] }],
+    ["blocks/product-collection", { groups: [{ products: [{ href: "javascript:alert(1)", title: "Read" }] }] }],
+    ["commerce/assistant-band", { ctaUrl: "javascript:alert(1)", ctaLabel: "Read" }],
+    ["commerce/category-tiles", { ctaUrl: "/study", ctaLabel: " " }],
+    ["commerce/product-showcase", { ctaUrl: "tel:+18005550100", ctaLabel: "Read" }],
+    ["blocks/promo-band", { primaryCtaUrl: "javascript:alert(1)", primaryCtaLabel: "Read" }],
+    ["blocks/promo-band", { secondaryCtaUrl: "/study", secondaryCtaLabel: " " }],
+    ["blocks/story-timeline", { items: [{ linkUrl: "/study", linkLabel: " " }] }],
+    ["local/sample-alert", { ctaUrl: "javascript:alert(1)", ctaLabel: "Read" }],
+  ] as const;
+  for (const [name, value] of cases) {
+    const before = JSON.stringify(value);
+    expect(validateDraft(name, value).ok).toBe(false);
+    expect(JSON.stringify(value)).toBe(before);
+  }
+});
 
 test("immutable drafts preserve unknown fields, explicit null, empty number input and array order", () => {
 	const original = {

@@ -87,5 +87,12 @@
       "ctaLabel": "Read the studies",
       "ctaUrl": "#studies"
     }
+  ],
+  "authoringActions": [
+    {
+      "path": [],
+      "href": "ctaUrl",
+      "label": "ctaLabel"
+    }
   ]
 }

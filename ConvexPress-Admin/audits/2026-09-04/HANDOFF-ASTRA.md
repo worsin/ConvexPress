@@ -51,3 +51,8 @@ Plus: **Astra's own audit list** — queue and work it alongside Phase A; record
 ## 4. Running right now
 
 - The showcase Electron admin and the admin renderer dev server (4105) were stopped when the Claude session ended; the storefronts it launched (4201/4203) stop with it. The SSH tunnel may still be up (`pgrep -fl "ssh -fN"`). To relaunch the showcase: start the renderer with `packages/desktop/scripts/dev.mjs` (standalone env is the default), then run `output/playwright/shopping-experience/author-site.mjs --keep` or open the Electron app against the fleet and use View website on Northstar and Ridgeline.
+
+
+## September21 CTA/editorial family checkpoint
+
+Four more canonical blocks accepted: Page Banner, Promo Band, Media Mentions and Story Timeline. Total19/137 verified,118 pending; original audit8accepted/16open. Nine-block action rules, Banner multiline control and shared maximum-text wrapping repaired; native/public/recovery and deployed refusal/positive-preview evidence retained. Installed reference plugin preserved by both strict pushes. Continue remaining variant/dynamic/host gates; do not infer full commerce acceptance from CTA checks. See [cta-family-20260921.md](cta-family-20260921.md).

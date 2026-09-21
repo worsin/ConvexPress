@@ -120,5 +120,12 @@
       "commerce"
     ],
     "capabilities": []
-  }
+  },
+  "authoringActions": [
+    {
+      "path": [],
+      "href": "ctaUrl",
+      "label": "ctaLabel"
+    }
+  ]
 }

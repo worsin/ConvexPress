@@ -413,5 +413,48 @@
         }
       ]
     }
+  ],
+  "authoringActions": [
+    {
+      "path": [],
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "protocols": [
+        "http",
+        "https",
+        "relative",
+        "anchor"
+      ]
+    },
+    {
+      "path": [
+        "products",
+        "*"
+      ],
+      "href": "href",
+      "label": "title",
+      "protocols": [
+        "http",
+        "https",
+        "relative",
+        "anchor"
+      ]
+    },
+    {
+      "path": [
+        "groups",
+        "*",
+        "products",
+        "*"
+      ],
+      "href": "href",
+      "label": "title",
+      "protocols": [
+        "http",
+        "https",
+        "relative",
+        "anchor"
+      ]
+    }
   ]
 }

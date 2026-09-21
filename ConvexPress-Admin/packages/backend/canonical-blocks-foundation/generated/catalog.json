@@ -460,6 +460,16 @@
       "avoid": "testimonials or customer project showcases",
       "useFor": "press pages, external articles, PDF downloads, interviews, and feature videos"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": [
+          "items",
+          "*"
+        ]
+      }
+    ],
     "category": "marketing",
     "constraints": [],
     "data": null,
@@ -624,6 +634,13 @@
       "avoid": "small inline headings inside long-form content",
       "useFor": "top sections on story, history, policies, media, and informational pages"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": []
+      }
+    ],
     "category": "marketing",
     "constraints": [],
     "data": null,
@@ -677,6 +694,7 @@
         "default": "",
         "id": "subtitle",
         "max": 500,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -749,6 +767,49 @@
       "avoid": "single product pages or non-commerce story sections",
       "useFor": "featured products, recently viewed products, sale items, category collections, and manual product carousels"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": [],
+        "protocols": [
+          "http",
+          "https",
+          "relative",
+          "anchor"
+        ]
+      },
+      {
+        "href": "href",
+        "label": "title",
+        "path": [
+          "products",
+          "*"
+        ],
+        "protocols": [
+          "http",
+          "https",
+          "relative",
+          "anchor"
+        ]
+      },
+      {
+        "href": "href",
+        "label": "title",
+        "path": [
+          "groups",
+          "*",
+          "products",
+          "*"
+        ],
+        "protocols": [
+          "http",
+          "https",
+          "relative",
+          "anchor"
+        ]
+      }
+    ],
     "category": "commerce",
     "constraints": [],
     "data": {
@@ -1157,6 +1218,18 @@
       "avoid": "generic page banners or detailed product collections",
       "useFor": "campaign cross-promotions and reusable marketing callouts"
     },
+    "authoringActions": [
+      {
+        "href": "primaryCtaUrl",
+        "label": "primaryCtaLabel",
+        "path": []
+      },
+      {
+        "href": "secondaryCtaUrl",
+        "label": "secondaryCtaLabel",
+        "path": []
+      }
+    ],
     "category": "marketing",
     "constraints": [],
     "data": null,
@@ -1458,6 +1531,16 @@
       "avoid": "unordered feature lists or grade comparisons",
       "useFor": "company history, origin stories, founder timeline, or multi-year milestones"
     },
+    "authoringActions": [
+      {
+        "href": "linkUrl",
+        "label": "linkLabel",
+        "path": [
+          "items",
+          "*"
+        ]
+      }
+    ],
     "category": "marketing",
     "constraints": [],
     "data": null,
@@ -2587,6 +2670,13 @@
       "avoid": "plain calls to action without a question (use CTA Band)",
       "useFor": "homepage or landing sections that hand the visitor to the shopping assistant with a starting question"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": []
+      }
+    ],
     "category": "commerce",
     "constraints": [],
     "data": null,
@@ -2927,6 +3017,13 @@
       "avoid": "product lists (use Product Showcase) or editorial image grids",
       "useFor": "homepage 'shop by category' sections and department landing pages"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": []
+      }
+    ],
     "category": "commerce",
     "constraints": [],
     "data": {
@@ -3322,6 +3419,19 @@
       "avoid": "manual product cards with typed prices (use Product Collection) or a single product page",
       "useFor": "homepage featured products, category landing sections, sale sections, and hand-picked bundles that must show live prices and stock"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": [],
+        "protocols": [
+          "http",
+          "https",
+          "relative",
+          "anchor"
+        ]
+      }
+    ],
     "category": "commerce",
     "constraints": [],
     "data": {
@@ -13336,6 +13446,13 @@
       "avoid": "long-form prose or major marketing sections",
       "useFor": "site-specific notices, warnings, updates, or compact callouts"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": []
+      }
+    ],
     "category": "site",
     "constraints": [],
     "data": null,

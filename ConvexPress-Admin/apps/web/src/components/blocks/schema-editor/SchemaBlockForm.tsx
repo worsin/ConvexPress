@@ -404,7 +404,7 @@ function Field(props: FieldProps) {
 			(field.type === "link" && field.storage === "href")
 		)
 			return field.type === "text" &&
-				(field.max === undefined ||
+				(field.multiline || field.max === undefined ||
 					field.max > 500 ||
 					(typeof value === "string" && /[\r\n]/.test(value))) ? (
 				<textarea

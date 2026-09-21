@@ -37,6 +37,26 @@ test("authoring action declarations bind real sibling fields and preserve read c
   expect(() => validateAuthoringActions(z, nestedSchema.parse({ panel: { tabs: [{ ctaUrl: "/valid", ctaLabel: "" }] } }), nested.authoringActions)).toThrow();
 });
 
+test("action protocol restrictions match web-only renderers without invalidating stored links", () => {
+  const action = { path: ["tabs", "*"], href: "ctaUrl", label: "ctaLabel", protocols: ["http", "https", "relative", "anchor"] };
+  const spec = runtime.parseBlockSpec({ ...tabbedSpec, authoringActions: [action] });
+  const schema = runtime.attrsSchema(spec.fields, spec.constraints);
+  for (const ctaUrl of ["mailto:hello@example.com", "tel:+18005550100"]) {
+    const stored = schema.parse({ tabs: [{ ctaUrl, ctaLabel: "Open" }] });
+    const before = JSON.stringify(stored);
+    expect(() => validateAuthoringActions(z, stored, spec.authoringActions)).toThrow();
+    expect(JSON.stringify(stored)).toBe(before);
+    expect(validateAuthoringActions(z, stored, tabbedSpec.authoringActions)).toBe(stored);
+  }
+  for (const ctaUrl of ["", "/page/example/", "#study", "https://example.com", "http://example.com"]) {
+    const stored = schema.parse({ tabs: [{ ctaUrl, ctaLabel: "Open" }] });
+    expect(validateAuthoringActions(z, stored, spec.authoringActions)).toBe(stored);
+  }
+  for (const protocols of [[], ["https", "https"], ["javascript"], ["ftp"]])
+    expect(() => runtime.parseBlockSpec({ ...tabbedSpec, authoringActions: [{ ...action, protocols }] })).toThrow();
+  expect(() => runtime.parseBlockSpec({ ...spec, examples: [{ tabs: [{ ctaUrl: "tel:+18005550100", ctaLabel: "Call" }] }] })).toThrow();
+});
+
 test("runtime compilation matches shipped generated validators for every example and invalid field", async () => {
 	const { blocks } = await discoverBlocks(root);
 	expect(blocks).toHaveLength(137);
