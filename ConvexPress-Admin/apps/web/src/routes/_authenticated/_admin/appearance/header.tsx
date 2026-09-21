@@ -1,19 +1,5 @@
-/**
- * Appearance > Header — dynamic header composer.
- *
- * Writes to the `header` settings section via Convex. The public Website reads
- * the same section through `useHeaderConfig` and renders `<SiteHeader />` from
- * the live values, so changes here take effect site-wide without a deploy.
- */
-import { createFileRoute } from "@tanstack/react-router";
-import { HeaderComposer } from "@/components/appearance/HeaderComposer";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute(
-  "/_authenticated/_admin/appearance/header",
-)({
-  component: HeaderBuilderPage,
+export const Route = createFileRoute("/_authenticated/_admin/appearance/header")({
+  beforeLoad: () => { throw redirect({ to: "/appearance/customize", replace: true }); },
 });
-
-function HeaderBuilderPage() {
-  return <HeaderComposer />;
-}

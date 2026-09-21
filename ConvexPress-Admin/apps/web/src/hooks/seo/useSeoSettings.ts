@@ -11,7 +11,8 @@ import { api } from "@backend/convex/_generated/api";
  * Fetch a single SEO settings key.
  */
 export function useSeoSetting(key: "titles" | "social" | "robots" | "schema" | "breadcrumbs" | "verification" | "advanced") {
-  return useQuery(api.seo.queries.getSettings, { key });
+  const result = useQuery(api.seo.queries.getSettings, { key });
+  return result === undefined ? undefined : result && "value" in result ? result : null;
 }
 
 /**

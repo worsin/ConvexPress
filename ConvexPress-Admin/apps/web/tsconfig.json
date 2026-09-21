@@ -12,6 +12,7 @@
     "rootDirs": ["."],
     "baseUrl": ".",
     "paths": {
+      "zod": ["../../node_modules/zod"],
       "@backend/convex/_generated/api": [
         "./src/test-types/convex-api-shim.d.ts"
       ],

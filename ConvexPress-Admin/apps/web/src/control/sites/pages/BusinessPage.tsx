@@ -1,3 +1,4 @@
+import { HostingAccountsPanel } from "../../components/HostingAccountsPanel";
 import { api as controlApi } from "@control/convex/_generated/api";
 import type { Id } from "@control/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
@@ -88,6 +89,8 @@ export function BusinessPage({ api, businessId }: { api: WorkspaceApi; businessI
       {detail?.description && (
         <p className="max-w-2xl text-[13.5px] leading-6 text-ink-2">{detail.description}</p>
       )}
+
+      <HostingAccountsPanel organizationId={organization.organizationId} businessId={businessId} />
 
       <section aria-label="Websites" className="space-y-3">
         <h2 className="text-[15px] font-semibold">Websites</h2>

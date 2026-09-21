@@ -1,14 +1,20 @@
 import { getElectronAuth, isElectron } from "@/lib/electron";
 
-const AUTH_STORAGE_KEYS = [
-  "better-auth_cookie",
-  "better-auth_session_data",
-] as const;
+const AUTH_STORAGE_KEYS = ["better-auth_cookie", "better-auth_session_data"] as const;
 
 type AuthStorageKey = (typeof AUTH_STORAGE_KEYS)[number];
 const cache: Partial<Record<AuthStorageKey, string>> = {};
 let initialized = false;
 let writeQueue = Promise.resolve();
+let writeErrors: unknown[] = [];
+
+function enqueueWrite(write: () => Promise<void>): void {
+  // The sequencing tail always settles successfully so a transient failure
+  // cannot prevent a later logout from deleting the persisted session.
+  writeQueue = writeQueue.then(write).catch((error: unknown) => {
+    writeErrors.push(error);
+  });
+}
 
 function requireKey(value: string): AuthStorageKey {
   if (!AUTH_STORAGE_KEYS.includes(value as AuthStorageKey)) {
@@ -61,7 +67,7 @@ export const controlAuthStorage = {
     if (isElectron()) {
       const bridge = getElectronAuth();
       if (!bridge) throw new Error("CONTROL_AUTH_STORAGE_BRIDGE_UNAVAILABLE");
-      writeQueue = writeQueue.then(() => bridge.setItem(key, value));
+      enqueueWrite(() => bridge.setItem(key, value));
     } else {
       browserStorage()?.setItem(key, value);
     }
@@ -74,7 +80,7 @@ export const controlAuthStorage = {
     if (isElectron()) {
       const bridge = getElectronAuth();
       if (!bridge) throw new Error("CONTROL_AUTH_STORAGE_BRIDGE_UNAVAILABLE");
-      writeQueue = writeQueue.then(() => bridge.removeItem(key));
+      enqueueWrite(() => bridge.removeItem(key));
     } else {
       browserStorage()?.removeItem(key);
     }
@@ -83,4 +89,8 @@ export const controlAuthStorage = {
 
 export async function flushControlAuthStorage(): Promise<void> {
   await writeQueue;
+  const errors = writeErrors;
+  writeErrors = [];
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1) throw new AggregateError(errors, "Authentication storage writes failed");
 }

@@ -1,5 +1,7 @@
 "use node";
 
+import { createHash } from "node:crypto";
+
 import { siteHealthResponseSchema } from "@convexpress/site-contract";
 import { v } from "convex/values";
 
@@ -12,13 +14,16 @@ import {
   parseEnvelopeKey,
 } from "../connections/crypto";
 import type { BackupPurpose } from "./backups";
-import { exportConvexSnapshot } from "./snapshotApi";
+import { exportConvexSnapshotStream } from "./snapshotApi";
+import { snapshotReadable } from "./snapshotStreams";
 import { importConvexSnapshot } from "./snapshotImportApi";
 import {
-  inspectConvexSnapshot,
-  verifyConvexSnapshotChecksum,
-} from "./snapshotArchive";
-import { prepareTargetBoundSnapshot } from "./snapshotRestoreArchive";
+  inspectRemoteConvexSnapshot,
+  verifyRemoteSnapshotChecksum,
+  prepareRemoteTargetBoundSnapshot,
+} from "./remoteSnapshotArchive";
+
+import { assertFullSnapshotOperationAllowed, assertSameEnvironmentRestore } from "./replacementSafety";
 
 const backupPurpose = v.union(
   v.literal("manual"),
@@ -98,6 +103,8 @@ interface PreparedRestore {
   operationId: Id<"overseer_siteOperations">;
   source: {
     backupId: Id<"overseer_siteBackups">;
+    websiteId: Id<"overseer_websites">;
+    instanceId: Id<"overseer_websiteInstances">;
     snapshotId: string;
     artifactStorageId: Id<"_storage">;
     checksumSha256: string;
@@ -188,12 +195,9 @@ export const exportSnapshotArtifact = internalAction({
       purpose: args.purpose,
     }) as PreparedSnapshotTarget;
     if (target.existing) {
-      const blob = await ctx.storage.get(target.existing.artifactStorageId);
-      if (!blob) throw new Error("Stored snapshot artifact is unavailable");
-      verifyConvexSnapshotChecksum(
-        new Uint8Array(await blob.arrayBuffer()),
-        target.existing.checksumSha256,
-      );
+      const url = await ctx.storage.getUrl(target.existing.artifactStorageId);
+      if (!url) throw new Error("Stored snapshot artifact is unavailable");
+      await verifyRemoteSnapshotChecksum({ url, expectedChecksumSha256: target.existing.checksumSha256, immutableStorage: true });
       return {
         artifactStorageId: target.existing.artifactStorageId,
         snapshotId: target.snapshotId,
@@ -213,18 +217,23 @@ export const exportSnapshotArtifact = internalAction({
         aad: credentialAad(target),
       }),
     );
-    const exported = await exportConvexSnapshot({
+    const exported = await exportConvexSnapshotStream({
       deploymentOrigin: target.deploymentOrigin,
       deploymentAdminKey: credential.deploymentAdminKey,
       includeStorage: true,
     });
-    const snapshotBuffer = exported.bytes.buffer.slice(
-      exported.bytes.byteOffset,
-      exported.bytes.byteOffset + exported.bytes.byteLength,
-    ) as ArrayBuffer;
-    const artifactStorageId = await ctx.storage.store(
-      new Blob([snapshotBuffer], { type: "application/zip" }),
-    );
+    const uploadUrl = await ctx.storage.generateUploadUrl();
+    const upload = await fetch(uploadUrl, {
+      method: "POST", headers: { "Content-Type": "application/zip" },
+      body: snapshotReadable(exported.stream), duplex: "half",
+      signal: AbortSignal.timeout(4 * 60_000),
+    } as RequestInit & { duplex: "half" });
+    if (!upload.ok) throw new Error("Snapshot artifact upload failed safely");
+    const uploaded: unknown = await upload.json();
+    if (!uploaded || typeof uploaded !== "object" || !("storageId" in uploaded) || typeof uploaded.storageId !== "string") {
+      throw new Error("Snapshot artifact upload returned an invalid receipt");
+    }
+    const artifactStorageId = uploaded.storageId as Id<"_storage">;
     return {
       artifactStorageId,
       snapshotId: target.snapshotId,
@@ -256,10 +265,10 @@ export const verifySnapshotArtifact = internalAction({
     if (target.snapshotId !== args.snapshotId) {
       throw new Error("Snapshot artifact identity is inconsistent");
     }
-    const blob = await ctx.storage.get(args.artifactStorageId);
-    if (!blob) throw new Error("Snapshot artifact is unavailable");
-    const inspected = await inspectConvexSnapshot({
-      bytes: new Uint8Array(await blob.arrayBuffer()),
+    const url = await ctx.storage.getUrl(args.artifactStorageId);
+    if (!url) throw new Error("Snapshot artifact is unavailable");
+    const inspected = await inspectRemoteConvexSnapshot({
+      url, immutableStorage: true,
       snapshotId: target.snapshotId,
       expectedWebsiteKey: target.websiteKey,
       expectedInstanceKey: target.instanceKey,
@@ -314,6 +323,7 @@ async function importTargetBoundSnapshot(
   target: PreparedSnapshotTarget,
   replacement: PreparedRestore,
 ): Promise<ImportedSnapshot> {
+    assertSameEnvironmentRestore(replacement.source, target);
     if (
       !target.existing ||
       target.existing.backupId !== replacement.preBackup.backupId ||
@@ -322,31 +332,27 @@ async function importTargetBoundSnapshot(
     ) {
       throw new Error("Replacement pre-backup is not attached to the target");
     }
-    const [sourceBlob, preBackupBlob] = await Promise.all([
-      ctx.storage.get(replacement.source.artifactStorageId),
-      ctx.storage.get(replacement.preBackup.artifactStorageId),
+    const [sourceUrl, preBackupUrl] = await Promise.all([
+      ctx.storage.getUrl(replacement.source.artifactStorageId),
+      ctx.storage.getUrl(replacement.preBackup.artifactStorageId),
     ]);
-    if (!sourceBlob || !preBackupBlob) {
-      throw new Error("Replacement snapshot artifact is unavailable");
-    }
-    const prepared = await prepareTargetBoundSnapshot({
-      sourceBytes: new Uint8Array(await sourceBlob.arrayBuffer()),
-      sourceChecksumSha256: replacement.source.checksumSha256,
-      sourceSnapshotId: replacement.source.snapshotId,
-      sourceIdentity: {
-        websiteKey: replacement.source.websiteKey,
-        instanceKey: replacement.source.instanceKey,
-        environmentKind: replacement.source.environmentKind,
+    if (!sourceUrl || !preBackupUrl) throw new Error("Replacement snapshot artifact is unavailable");
+    const prepared = await prepareRemoteTargetBoundSnapshot({
+      source: {
+        url: sourceUrl, immutableStorage: true,
+        checksumSha256: replacement.source.checksumSha256, snapshotId: replacement.source.snapshotId,
+        identity: { websiteKey: replacement.source.websiteKey, instanceKey: replacement.source.instanceKey, environmentKind: replacement.source.environmentKind },
       },
-      targetPreBackupBytes: new Uint8Array(await preBackupBlob.arrayBuffer()),
-      targetPreBackupChecksumSha256: replacement.preBackup.checksumSha256,
-      targetPreBackupSnapshotId: replacement.preBackup.snapshotId,
-      targetIdentity: {
-        websiteKey: target.websiteKey,
-        instanceKey: target.instanceKey,
-        environmentKind: target.environmentKind,
+      targetPreBackup: {
+        url: preBackupUrl, immutableStorage: true,
+        checksumSha256: replacement.preBackup.checksumSha256, snapshotId: replacement.preBackup.snapshotId,
+        identity: { websiteKey: target.websiteKey, instanceKey: target.instanceKey, environmentKind: target.environmentKind },
       },
     });
+    const preparedHash = createHash("sha256");
+    const stream = (async function* () {
+      for await (const chunk of prepared.stream) { preparedHash.update(chunk); yield chunk; }
+    })();
     const key = parseEnvelopeKey(
       process.env.CONVEXPRESS_CONNECTION_ENVELOPE_KEYS,
       target.credentials.version,
@@ -358,18 +364,21 @@ async function importTargetBoundSnapshot(
         aad: credentialAad(target),
       }),
     );
+    assertSameEnvironmentRestore(replacement.source, target);
     const imported = await importConvexSnapshot({
       deploymentOrigin: target.deploymentOrigin,
       deploymentAdminKey: credential.deploymentAdminKey,
-      bytes: prepared.bytes,
+      stream,
       approvedReplaceAll: true,
+      importKey: createHash("sha256").update([target.websiteKey, target.instanceKey, replacement.source.checksumSha256, replacement.preBackup.checksumSha256].join("|")).digest("hex").slice(0, 24),
     });
+    if (imported.recovered) { for await (const _chunk of stream) { /* Verify the same bounded prepared archive hash on known-ID recovery. */ } }
     await revalidateManagementIdentity(target);
     return {
       importId: imported.importId,
       rowsWritten: imported.rowsWritten,
       sourceSnapshotId: replacement.source.snapshotId,
-      preparedChecksumSha256: prepared.checksumSha256,
+      preparedChecksumSha256: preparedHash.digest("hex"),
       preservedManagementTableCount: prepared.preservedTables.length,
     };
 }
@@ -395,6 +404,7 @@ export const importReplacementSnapshot = internalAction({
   args: { operationId: v.id("overseer_siteOperations") },
   returns: importedSnapshot,
   handler: async (ctx, args): Promise<ImportedSnapshot> => {
+    assertFullSnapshotOperationAllowed("site.promote");
     const replacement = (await ctx.runQuery(
       internal.operations.internal.prepareReplacement,
       { operationId: args.operationId },

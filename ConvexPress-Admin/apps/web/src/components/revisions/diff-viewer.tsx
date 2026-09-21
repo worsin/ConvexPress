@@ -21,12 +21,14 @@ interface DiffViewerProps {
     title: string;
     content: string;
     excerpt?: string;
+    details?: string;
   };
   /** Right (newer) revision data. */
   right: {
     title: string;
     content: string;
     excerpt?: string;
+    details?: string;
   };
 }
 
@@ -101,6 +103,13 @@ export function DiffViewer({ left, right }: DiffViewerProps) {
         diffs={contentDiff.diffs}
         isIdentical={contentDiff.isIdentical}
       />
+      {(left.details !== undefined || right.details !== undefined) && (
+        <TwoColumnDiffPane
+          label="Layout and structured content"
+          diffs={computeDiff(left.details ?? "{}", right.details ?? "{}")}
+          isIdentical={areEqual(left.details ?? "{}", right.details ?? "{}")}
+        />
+      )}
       <TwoColumnDiffPane
         label="Excerpt"
         diffs={excerptDiff.diffs}

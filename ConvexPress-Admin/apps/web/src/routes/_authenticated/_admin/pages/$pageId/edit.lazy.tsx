@@ -7,6 +7,7 @@
 
 import { createLazyFileRoute, Link, useParams } from "@tanstack/react-router";
 import { EditorLayout } from "@/components/editor/EditorLayout";
+import { CanonicalEditorEntry } from "@/components/blocks/canonical-editor/NativeCanonicalEditor";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePage } from "@/hooks/pages/usePage";
 import { usePageMutations } from "@/hooks/pages/usePageMutations";
@@ -21,6 +22,7 @@ export const Route = createLazyFileRoute(
 });
 
 function EditPagePage() {
+  const { editor } = Route.useSearch();
   const { pageId } = useParams({
     from: "/_authenticated/_admin/pages/$pageId/edit",
   });
@@ -108,12 +110,12 @@ function EditPagePage() {
     excerpt: page.excerpt ?? "",
     status: page.status ?? "draft",
     visibility: page.visibility ?? "public",
-    password: page.password ?? "",
+    password: ("password" in page ? page.password : undefined) ?? "",
     commentStatus: (page.commentStatus as "open" | "closed") ?? "closed",
     isSticky: false, // Pages don't support sticky (post-only feature)
     featuredImageId: page.featuredImageId ?? null,
     authorId: page.authorId ?? "",
-    scheduledFor: page.scheduledAt ? new Date(page.scheduledAt) : null,
+    scheduledFor: "scheduledAt" in page && typeof page.scheduledAt === "number" ? new Date(page.scheduledAt) : null,
     categoryIds: [] as string[],
     tagIds: [] as string[],
     menuOrder: page.menuOrder ?? 0,
@@ -160,6 +162,7 @@ function EditPagePage() {
   };
 
   return (
+    <CanonicalEditorEntry key={pageId} initialOpen={editor === "blocks"} postId={pageId as Id<"posts">} canonical={"blocksVersion" in page && page.blocksVersion === 2} draft={page.status === "draft"}>
     <EditorLayout
       contentType="page"
       mode="edit"
@@ -167,5 +170,6 @@ function EditPagePage() {
       initialData={initialData}
       publishedAt={(page as { publishedAt?: number }).publishedAt ?? null}
     />
+    </CanonicalEditorEntry>
   );
 }

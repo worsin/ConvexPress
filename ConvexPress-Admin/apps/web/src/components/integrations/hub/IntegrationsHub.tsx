@@ -1,3 +1,4 @@
+import {Link} from "@tanstack/react-router";
 /**
  * Integrations hub — every third-party connection for this website on one
  * screen: configured or not, verified against the real API or not, and the
@@ -144,6 +145,8 @@ export function IntegrationsHub({ eyebrow = "Site readiness" }: { eyebrow?: stri
           </Button>
         }
       />
+
+      <Link to="/settings/integrations/social" className="inline-flex min-h-11 items-center text-sm underline underline-offset-4">Manage social feed accounts →</Link>
 
       <section
         aria-label="Launch readiness"

@@ -1,3 +1,4 @@
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { api } from "@backend/convex/_generated/api";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
@@ -62,10 +63,10 @@ function parseOptionalDate(value: string) {
 	return value.trim() ? new Date(value).getTime() : null;
 }
 
-function parseIdList(value: string) {
+function parseIdList<Table extends "commerce_products" | "commerce_product_categories">(value: string) {
 	return value
 		.split(",")
-		.map((item) => item.trim())
+		.map((item) => item.trim() as Id<Table>)
 		.filter(Boolean);
 }
 
@@ -151,10 +152,10 @@ function CommerceDiscountsPage() {
 				startsAt: parseOptionalDate(startsAt),
 				endsAt: parseOptionalDate(endsAt),
 				applicability,
-				productIds: parseIdList(productIds),
-				categoryIds: parseIdList(categoryIds),
-				excludedProductIds: parseIdList(excludedProductIds),
-				excludedCategoryIds: parseIdList(excludedCategoryIds),
+				productIds: parseIdList<"commerce_products">(productIds),
+				categoryIds: parseIdList<"commerce_product_categories">(categoryIds),
+				excludedProductIds: parseIdList<"commerce_products">(excludedProductIds),
+				excludedCategoryIds: parseIdList<"commerce_product_categories">(excludedCategoryIds),
 				tiers: parsedTiers,
 			});
 			resetForm();

@@ -14,11 +14,11 @@ export function FieldPostObject({ field, value, onChange, labelPlacement, instru
   }, [value, multiple]);
 
   // Fetch posts for selection
-  const posts = useQuery(api.posts.queries.list, { status: "publish", limit: 100 });
+  const posts = useQuery(api.posts.queries.list, { status: "publish", perPage: 100 });
 
   const filteredPosts = useMemo(() => {
     if (!posts?.posts) return [];
-    return posts.posts.filter((p: { postType?: string }) => postTypes.includes(p.postType ?? "post"));
+    return posts.posts.filter(p => "_id" in p && "title" in p && "type" in p).filter(p => postTypes.includes(p.type));
   }, [posts, postTypes]);
 
   const handleChange = (postId: string) => {
@@ -47,7 +47,7 @@ export function FieldPostObject({ field, value, onChange, labelPlacement, instru
         style={multiple ? { height: "auto", minHeight: "6rem" } : undefined}
       >
         {!multiple && <option value="">- Select Post -</option>}
-        {filteredPosts.map((p: { _id: string; title: string }) => (
+        {filteredPosts.map((p) => (
           <option key={p._id} value={p._id}>{p.title}</option>
         ))}
       </select>

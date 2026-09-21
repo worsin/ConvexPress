@@ -313,7 +313,7 @@ function AnalyticsSettingsPage() {
       </div>
 
       {/* Connection Status Section */}
-      {isConnected ? (
+      {isConnected && connectionStatus ? (
         <div className="space-y-6">
           {/* Connected State */}
           <div className="rounded-lg border border-border bg-card p-6">

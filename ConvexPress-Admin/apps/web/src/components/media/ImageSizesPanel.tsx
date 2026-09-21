@@ -46,7 +46,7 @@ export function ImageSizesPanel({ sizes }: ImageSizesPanelProps) {
           Image Sizes
         </h3>
         <p className="text-xs text-muted-foreground">
-          No generated sizes available. Thumbnail generation is pending.
+          No additional image sizes are available.
         </p>
       </div>
     );

@@ -170,25 +170,25 @@ function TicketAnalyticsPage() {
         {rateLimitStats && (
           <div className="rounded-lg border border-border p-4">
             <h2 className="text-sm font-semibold text-foreground/70 mb-3">
-              Rate Limiting (All Time)
+              Rate Limiting (Last Hour)
             </h2>
             <div className="grid grid-cols-3 gap-3 text-sm">
               <div>
                 <span className="text-muted-foreground">AI Queries:</span>{" "}
                 <span className="font-medium">
-                  {(rateLimitStats as Record<string, number>)?.aiQueryCount ?? 0}
+                  {rateLimitStats.aiQuery?.count ?? 0}
                 </span>
               </div>
               <div>
                 <span className="text-muted-foreground">Ticket Creations:</span>{" "}
                 <span className="font-medium">
-                  {(rateLimitStats as Record<string, number>)?.ticketCreateCount ?? 0}
+                  {rateLimitStats.ticketCreate?.count ?? 0}
                 </span>
               </div>
               <div>
                 <span className="text-muted-foreground">Searches:</span>{" "}
                 <span className="font-medium">
-                  {(rateLimitStats as Record<string, number>)?.searchCount ?? 0}
+                  {rateLimitStats.search?.count ?? 0}
                 </span>
               </div>
             </div>

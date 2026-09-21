@@ -9,6 +9,7 @@ import {
   type RoleDefinition,
 } from "./decision";
 import { directAccessRoleSlug } from "./directAccessRole";
+import { assertActiveSiteTarget } from "./target";
 
 type ReadCtx = Pick<QueryCtx, "db"> | Pick<MutationCtx, "db">;
 
@@ -28,16 +29,14 @@ function storedTarget(row: {
       : {};
   const instanceId =
     typeof constraints.instanceId === "string" ? constraints.instanceId : undefined;
-  const websiteId =
-    typeof constraints.websiteId === "string" ? constraints.websiteId : undefined;
+  const websiteId = typeof constraints.websiteId === "string" ? constraints.websiteId : undefined;
   const businessId =
     (typeof constraints.businessId === "string" ? constraints.businessId : undefined) ??
     row.businessId ??
     row.business_id;
   const organizationId =
-    (typeof constraints.organizationId === "string"
-      ? constraints.organizationId
-      : undefined) ?? row.organization_id;
+    (typeof constraints.organizationId === "string" ? constraints.organizationId : undefined) ??
+    row.organization_id;
 
   if (instanceId) {
     return {
@@ -103,13 +102,14 @@ function mapPermission(
       : request.selector.type === "route" && storedCode.startsWith("route:")
         ? ({ type: "route", code: storedCode.slice(6) } as const)
         : ({ type: request.selector.type, code: storedCode } as const);
-  const subject: PermissionGrant["subject"] = row.subjectType && row.subjectId
-    ? row.subjectType === "role"
-      ? { type: "role", id: row.subjectId }
-      : { type: "user", id: row.subjectId }
-    : row.roleSlug
-      ? { type: "role", id: row.roleSlug }
-      : { type: "all" };
+  const subject: PermissionGrant["subject"] =
+    row.subjectType && row.subjectId
+      ? row.subjectType === "role"
+        ? { type: "role", id: row.subjectId }
+        : { type: "user", id: row.subjectId }
+      : row.roleSlug
+        ? { type: "role", id: row.roleSlug }
+        : { type: "all" };
 
   return {
     permissionId: String(row._id),
@@ -126,16 +126,45 @@ function mapPermission(
 
 function requestedStoredCodes(request: AccessDecisionInput["request"]): string[] {
   const code = request.selector.code;
-  return request.selector.type === "route"
-    ? [`route:${code}`, "*"]
-    : [code, "*"];
+  return request.selector.type === "route" ? [`route:${code}`, "*"] : [code, "*"];
 }
 
-export async function resolveStoredAccess(
+type ReadOnce = <T>(key: string, load: () => Promise<T>) => Promise<T>;
+
+/** One read-only request, one operator. Never retain this across writes/requests. */
+export function createStoredAccessResolver(ctx: ReadCtx, operator: Doc<"overseer_users">) {
+  const reads = new Map<string, Promise<unknown>>();
+  const readOnce: ReadOnce = <T>(key: string, load: () => Promise<T>) => {
+    let result = reads.get(key);
+    if (!result) {
+      result = load();
+      reads.set(key, result);
+    }
+    return result as Promise<T>;
+  };
+  return (request: AccessDecisionInput["request"]) =>
+    resolveWithReads(ctx, operator, request, readOnce);
+}
+
+export function resolveStoredAccess(
   ctx: ReadCtx,
   operator: Doc<"overseer_users">,
   request: AccessDecisionInput["request"],
 ) {
+  return resolveWithReads(ctx, operator, request, (_key, load) => load());
+}
+
+async function resolveWithReads(
+  ctx: ReadCtx,
+  operator: Doc<"overseer_users">,
+  request: AccessDecisionInput["request"],
+  readOnce: ReadOnce,
+) {
+  // Lifecycle authorization must be able to reactivate a website, while still
+  // evaluating the exact stored website grants/denies and active parents.
+  const websiteLifecycle = request.selector.type === "capability" &&
+    request.selector.code === "website.update" && !request.target.instanceId;
+  await assertActiveSiteTarget(ctx, request.target, readOnce, websiteLifecycle);
   const userId = operator._id;
   const [
     directAssignments,
@@ -145,65 +174,86 @@ export async function resolveStoredAccess(
     businessGrants,
     websiteGrants,
     ...actionGroups
-  ] =
-    await Promise.all([
+  ] = await Promise.all([
+    readOnce("directAssignments", () =>
       ctx.db
         .query("overseer_roleAssignments")
         .withIndex("by_user", (q) => q.eq("userId", userId))
-        .take(200),
+        .take(201),
+    ),
+    readOnce("subjectAssignments", () =>
       ctx.db
         .query("overseer_roleAssignments")
-        .withIndex("by_subject", (q) =>
-          q.eq("subjectType", "user").eq("subjectId", String(userId)),
-        )
-        .take(200),
+        .withIndex("by_subject", (q) => q.eq("subjectType", "user").eq("subjectId", String(userId)))
+        .take(201),
+    ),
+    readOnce("directPermissions", () =>
       ctx.db
         .query("overseer_permissions")
-        .withIndex("by_subject", (q) =>
-          q.eq("subjectType", "user").eq("subjectId", String(userId)),
-        )
-        .take(500),
+        .withIndex("by_subject", (q) => q.eq("subjectType", "user").eq("subjectId", String(userId)))
+        .take(501),
+    ),
+    readOnce("organizationGrants", () =>
       ctx.db
         .query("overseer_organizationAccess")
-        .withIndex("by_subject", (q) =>
-          q.eq("subjectType", "user").eq("subjectId", String(userId)),
-        )
-        .take(200),
+        .withIndex("by_subject", (q) => q.eq("subjectType", "user").eq("subjectId", String(userId)))
+        .take(201),
+    ),
+    readOnce("businessGrants", () =>
       ctx.db
         .query("overseer_businessAccess")
-        .withIndex("by_subject", (q) =>
-          q.eq("subjectType", "user").eq("subjectId", String(userId)),
-        )
-        .take(200),
+        .withIndex("by_subject", (q) => q.eq("subjectType", "user").eq("subjectId", String(userId)))
+        .take(201),
+    ),
+    readOnce("websiteGrants", () =>
       ctx.db
         .query("overseer_websiteAccess")
-        .withIndex("by_subject", (q) =>
-          q.eq("subjectType", "user").eq("subjectId", String(userId)),
-        )
-        .take(500),
-      ...requestedStoredCodes(request).map((actionCode) =>
+        .withIndex("by_subject", (q) => q.eq("subjectType", "user").eq("subjectId", String(userId)))
+        .take(501),
+    ),
+    ...requestedStoredCodes(request).map((actionCode) =>
+      readOnce(`action:${actionCode}`, () =>
         ctx.db
           .query("overseer_permissions")
           .withIndex("by_action", (q) => q.eq("actionCode", actionCode))
-          .take(500),
+          .take(501),
       ),
-    ]);
-
-  const assignmentRows = uniqueById([
-    ...directAssignments,
-    ...subjectAssignments,
+    ),
   ]);
+
+  // Never authorize with a partial rule set: an omitted rule may be a deny.
+  if (
+    directAssignments.length > 200 ||
+    subjectAssignments.length > 200 ||
+    directPermissions.length > 500 ||
+    organizationGrants.length > 200 ||
+    businessGrants.length > 200 ||
+    websiteGrants.length > 500 ||
+    actionGroups.some((rows) => rows.length > 500)
+  ) {
+    throw new Error(
+      "Authorization rule limit exceeded; narrow the operator's grants or permission catalog",
+    );
+  }
+
+  const assignmentRows = uniqueById([...directAssignments, ...subjectAssignments]);
   const [assignedRoleRows, ...directAccessRoleGroups] = await Promise.all([
     Promise.all(
-      uniqueById(
-        assignmentRows.map((assignment) => ({ _id: assignment.roleId })),
-      ).map(({ _id }) => ctx.db.get(_id)),
+      uniqueById(assignmentRows.map((assignment) => ({ _id: assignment.roleId }))).map(({ _id }) =>
+        readOnce(`role:${String(_id)}`, () => ctx.db.get(_id)),
+      ),
     ),
-    ...["business-manager", "site-operator", "member", "viewer"].map((slug) =>
-      ctx.db
-        .query("overseer_roles")
-        .withIndex("by_slug", (q) => q.eq("slug", slug))
-        .take(2),
+    ...[...new Set([
+      ...organizationGrants.map(grant => directAccessRoleSlug(operator.role, "organization", grant.level)),
+      ...businessGrants.map(grant => directAccessRoleSlug(operator.role, "business", grant.level)),
+      ...websiteGrants.map(grant => directAccessRoleSlug(operator.role, "website", grant.level)),
+    ])].map((slug) =>
+      readOnce(`role-slug:${slug}`, () =>
+        ctx.db
+          .query("overseer_roles")
+          .withIndex("by_slug", (q) => q.eq("slug", slug))
+          .take(2),
+      ),
     ),
   ]);
   const roleRows = uniqueById(
@@ -226,11 +276,7 @@ export async function resolveStoredAccess(
     ...organizationGrants.map((grant) => ({
       assignmentId: `organization-access:${String(grant._id)}`,
       userId: String(userId),
-      roleSlug: directAccessRoleSlug(
-        operator.role,
-        "organization",
-        grant.level,
-      ),
+      roleSlug: directAccessRoleSlug(operator.role, "organization", grant.level),
       status: "active" as const,
       target: { type: "organization" as const, id: String(grant.organizationId) },
       // An organization grant is meant to cover the businesses, websites and
@@ -254,10 +300,9 @@ export async function resolveStoredAccess(
       includeChildren: grant.includeEnvironments === true,
     })),
   );
-  const permissions = uniqueById([
-    ...directPermissions,
-    ...actionGroups.flat(),
-  ]).map((permission) => mapPermission(permission, request));
+  const permissions = uniqueById([...directPermissions, ...actionGroups.flat()]).map((permission) =>
+    mapPermission(permission, request),
+  );
 
   return resolveAccessDecision({
     now: Date.now(),

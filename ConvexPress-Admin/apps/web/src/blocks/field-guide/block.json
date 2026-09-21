@@ -1,0 +1,16 @@
+{
+  "name": "reference/field-guide",
+  "title": "Field Guide",
+  "description": "A portable block reference covering each editor control and JSON-safe attribute type.",
+  "category": "site",
+  "keywords": [
+    "reference",
+    "fields"
+  ],
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": true
+  },
+  "rendererStatus": "ready"
+}

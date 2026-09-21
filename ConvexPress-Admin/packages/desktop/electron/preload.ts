@@ -201,14 +201,30 @@ contextBridge.exposeInMainWorld("convexpress", {
       ipcRenderer.invoke("security:register-deployment-origins", origins) as Promise<{
         added: string[];
         origins: string[];
+        reloadRequired: boolean;
       }>,
     listDeploymentOrigins: () =>
       ipcRenderer.invoke("security:list-deployment-origins") as Promise<string[]>,
   },
 
+  hosting: {
+    connectCloudflareOAuth: (input: unknown) => ipcRenderer.invoke("hosting:cloudflare-oauth", input),
+    cancelCloudflareOAuth: () => ipcRenderer.invoke("hosting:cloudflare-oauth-cancel"),
+  },
+  websitePublish: {
+    run: (input: unknown) => ipcRenderer.invoke("website-publish:run", input),
+    cancel: (instanceId: string) => ipcRenderer.invoke("website-publish:cancel", instanceId),
+    onProgress: (callback: (event: { instanceId: string; message: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: { instanceId: string; message: string }) => callback(payload);
+      ipcRenderer.on("website-publish:progress", handler);
+      return () => ipcRenderer.removeListener("website-publish:progress", handler);
+    },
+  },
   siteDeploy: {
     run: (input: unknown) => ipcRenderer.invoke("site-deploy:run", input),
-    status: () => ipcRenderer.invoke("site-deploy:status"),
+    status: (input?: { deploymentOrigin?: string }) => ipcRenderer.invoke("site-deploy:status", input),
+    history: () => ipcRenderer.invoke("site-deploy:history"),
+    cancel: (runId: string) => ipcRenderer.invoke("site-deploy:cancel", runId),
     bundledCredential: () => ipcRenderer.invoke("site-deploy:bundled-credential"),
     initialize: (input: unknown) => ipcRenderer.invoke("site-deploy:initialize", input),
     onProgress: (callback: (event: unknown) => void): (() => void) => {

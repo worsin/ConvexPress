@@ -6,6 +6,21 @@ import {
 } from "./cspPolicy";
 
 describe("desktop CSP policy", () => {
+  test.each([true, false])("permits Clerk avatars only as images (development=%s)", (development) => {
+    const directives = Object.fromEntries(
+      buildDesktopContentSecurityPolicy({ development, allowLoopback: false })
+        .split("; ").map((directive) => {
+          const [name, ...sources] = directive.split(" ");
+          return [name, sources];
+        }),
+    );
+    expect(directives["img-src"]).toContain("https://img.clerk.com");
+    for (const [name, sources] of Object.entries(directives)) {
+      if (name !== "img-src") expect(sources).not.toContain("https://img.clerk.com");
+      expect(sources).not.toContain("https://*.clerk.com");
+    }
+  });
+
   test("recognizes only exact loopback controller hosts", () => {
     expect(
       controllerConfigUsesLoopback(
@@ -98,4 +113,12 @@ describe("desktop CSP policy", () => {
     const policy = buildDesktopContentSecurityPolicy({ development: true, allowLoopback: false });
     expect(policy).toMatch(/frame-src [^;]*http:\/\/127\.0\.0\.1:\*/);
   });
+});
+
+test("development permits Vite reconnect blob workers without broadening packaged worker policy",()=>{
+ const dev=buildDesktopContentSecurityPolicy({development:true,allowLoopback:false});
+ const packaged=buildDesktopContentSecurityPolicy({development:false,allowLoopback:false});
+ expect(dev.split("; ")).toContain("worker-src 'self' blob:");
+ expect(packaged.split("; ").some(directive=>directive.startsWith("worker-src"))).toBe(false);
+ expect(dev.split("; ").find(d=>d.startsWith("script-src"))).not.toContain("blob:");
 });

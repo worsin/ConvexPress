@@ -88,8 +88,9 @@ function checkWebApiShimIsExplicit() {
     fail(`${shimPath} must exist`);
     return;
   }
-  expectIncludes(shimPath, "export declare const api: any;", "Convex API shim must expose api");
-  expectIncludes(shimPath, "export declare const internal: any;", "Convex API shim must expose internal");
+  expectIncludes(shimPath, "export declare const api: PublicApi;", "Convex API shim must expose terminal public contracts");
+  expectIncludes(shimPath, "export declare const internal: InternalApi;", "Convex API shim must expose terminal internal contracts");
+  if (/export declare const (api|internal): (any|AnyApi)/.test(read(shimPath)) || /ApiFromModules|FilterApi/.test(read(shimPath))) fail("Consumer API contracts must not erase types or import the full backend graph");
 }
 
 function checkCommerceEventCatalog() {

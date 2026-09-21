@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export const Route = createFileRoute(
   "/_authenticated/_admin/posts/$postId/edit",
 )({
+  validateSearch: (search: Record<string, unknown>): { editor?: "blocks" } => search.editor === "blocks" ? { editor: "blocks" } : {},
   pendingComponent: EditorSkeleton,
 });
 

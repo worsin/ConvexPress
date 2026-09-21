@@ -676,3 +676,10 @@ export function FooterComposer() {
     </div>
   );
 }
+
+/** Existing footer section/column controls reuse the active template draft. */
+export function FooterSettingsEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
+  const config = deepMerge(FOOTER_DEFAULTS, value as unknown as Partial<FooterConfig>);
+  const setField = (sectionId: string, fieldId: string, next: unknown) => onChange({ ...value, [sectionId]: { ...(config[sectionId as keyof FooterConfig] as Record<string, unknown>), [fieldId]: next } });
+  return <div className="space-y-2">{FOOTER_SECTIONS.map(section => <SectionPanel key={section.id} section={section} config={config} onToggle={(id, enabled) => setField(id, "enabled", enabled)} onFieldChange={setField} onNavColumnsChange={columns => setField("navColumns", "columns", columns)} />)}</div>;
+}

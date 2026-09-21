@@ -10,8 +10,8 @@ import { useState, useCallback } from "react";
 import { Link } from "@tanstack/react-router";
 import { ExternalLinkIcon, PencilIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useMutation } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
+import { useMutation, usePaginatedQuery } from "convex/react";
+import { MediaContinuation, MediaReadBoundary } from "./MediaPagination";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 
@@ -20,12 +20,12 @@ import { Button } from "@/components/ui/button";
 /**
  * Shows recently uploaded media with inline editing for title/alt text.
  */
-export function UploadProgress() {
-  const recentMedia = useQuery(api.media.queries.list, {
-    paginationOpts: { numItems: 10, cursor: null },
-  });
+export function UploadProgress() { return <MediaReadBoundary><UploadProgressContent /></MediaReadBoundary>; }
 
-  if (recentMedia === undefined) {
+function UploadProgressContent() {
+  const recentMedia = usePaginatedQuery(api.media.queries.list, {}, { initialNumItems: 10 });
+
+  if (recentMedia.status === "LoadingFirstPage") {
     return (
       <div className="space-y-2">
         <h2 className="text-lg font-semibold text-foreground">
@@ -43,9 +43,9 @@ export function UploadProgress() {
     );
   }
 
-  const items = recentMedia.page ?? [];
+  const items = recentMedia.results;
 
-  if (items.length === 0) {
+  if (items.length === 0 && recentMedia.status === "Exhausted") {
     return (
       <div>
         <h2 className="text-lg font-semibold text-foreground">
@@ -69,6 +69,7 @@ export function UploadProgress() {
           <RecentMediaItem key={item._id} item={item} />
         ))}
       </div>
+      <MediaContinuation status={recentMedia.status} count={items.length} loadMore={recentMedia.loadMore} pageSize={10} />
     </div>
   );
 }

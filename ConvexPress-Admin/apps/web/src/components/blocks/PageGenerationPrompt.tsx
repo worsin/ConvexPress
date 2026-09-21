@@ -9,7 +9,8 @@
  */
 
 import { Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@/lib/auth-context";
 import { useAction, useMutation } from "convex/react";
 import { toast } from "sonner";
 
@@ -34,6 +35,9 @@ export function PageGenerationPrompt({
   expectedRevision,
   existingBlockCount,
 }: PageGenerationPromptProps) {
+  const { can } = useAuth();
+  const allowed = can("blocks.ai"), allowedRef = useRef(allowed);
+  allowedRef.current = allowed;
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [expanded, setExpanded] = useState(existingBlockCount === 0);
@@ -44,8 +48,10 @@ export function PageGenerationPrompt({
   const replaceBlocks = useMutation(api.blocks.mutations.replaceBlocks);
 
   const isReplace = existingBlockCount > 0;
+  useEffect(() => { if (!allowed) setDraftBlocks(null); }, [allowed]);
 
   const handleGenerate = async () => {
+    if (!allowedRef.current) return;
     const trimmed = prompt.trim();
     if (!trimmed) {
       toast.error("Enter a prompt describing the page you want.");
@@ -59,6 +65,7 @@ export function PageGenerationPrompt({
           prompt: trimmed,
           pageType,
         });
+        if (!allowedRef.current) return;
         setDraftBlocks(result.blocks as ConvexPressBlock[]);
         toast.success(`Generated ${result.blocksGenerated} draft blocks for preview.`);
       } catch (err) {
@@ -89,7 +96,7 @@ export function PageGenerationPrompt({
   };
 
   const handleApplyDraft = async () => {
-    if (!draftBlocks) return;
+    if (!draftBlocks || !allowedRef.current) return;
     setIsGenerating(true);
     try {
       await replaceBlocks({
@@ -110,6 +117,8 @@ export function PageGenerationPrompt({
   };
 
   // Compact button when collapsed.
+  if (!allowed) return null;
+
   if (!expanded) {
     return (
       <div className="flex items-center justify-between border border-border bg-card px-3 py-2">

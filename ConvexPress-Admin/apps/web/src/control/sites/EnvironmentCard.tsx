@@ -1,3 +1,4 @@
+import { WebsitePublishingPanel } from "../components/WebsitePublishingPanel";
 /**
  * Environment card — one isolated deployment of a website.
  *
@@ -78,7 +79,7 @@ export function EnvironmentCard({
   const revokeConnection = useAction(controlApi.connections.actions.revoke);
 
   const activeConnection = connections.find(
-    (entry) => entry.isActive && entry.status === "connected" && entry.hasCredentials,
+    (entry) => entry.isActive && (entry.status === "connected" || entry.status === "error") && entry.hasCredentials,
   );
   const lastCheck = activeConnection?.latestHealth ?? null;
   const treeEnvironment = {
@@ -123,8 +124,8 @@ export function EnvironmentCard({
         <Button
           size="sm"
           variant="outline"
-          disabled={!activeConnection}
-          title={activeConnection ? undefined : "Connect the controller to open this environment"}
+          disabled={activeConnection?.status !== "connected"}
+          title={activeConnection?.status === "connected" ? undefined : "Verify the controller connection to open this environment"}
           onClick={() => api.openInShell(websiteId, instanceId)}
         >
           Open
@@ -226,7 +227,7 @@ export function EnvironmentCard({
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-[13px] font-semibold text-foreground">
-                Connected · {activeConnection.name}
+                {activeConnection.status === "connected" ? "Connected" : "Connection needs attention"} · {activeConnection.name}
               </span>
               <span className="block truncate text-[12px] text-muted-foreground">
                 {activeConnection.accountLabel ? `${activeConnection.accountLabel} · ` : ""}
@@ -343,6 +344,7 @@ export function EnvironmentCard({
           </>
         )}
       </footer>
+      <WebsitePublishingPanel organizationId={organizationId} businessId={businessId} websiteId={websiteId} instanceId={instanceId} kind={environment.kind} siteOrigin={environment.siteOrigin} />
     </article>
   );
 }

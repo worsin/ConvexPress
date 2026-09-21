@@ -1,3 +1,4 @@
+import { adminResultUrl } from "@/lib/search/admin-result-url";
 /**
  * Admin Search Overlay (Command Palette)
  *
@@ -35,16 +36,19 @@ interface AdminSearchOverlayProps {
 
 // ─── Group Results ──────────────────────────────────────────────────────────
 
-type ContentType = "post" | "page" | "media" | "comment";
+type ContentType = AdminSearchResultData["contentType"];
 
 const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
   post: "Posts",
   page: "Pages",
   media: "Media",
   comment: "Comments",
+  course: "Courses",
+  product: "Products",
+  event: "Events",
 };
 
-const CONTENT_TYPE_ORDER: ContentType[] = ["post", "page", "media", "comment"];
+const CONTENT_TYPE_ORDER: ContentType[] = ["post", "page", "media", "comment", "course", "product", "event"];
 
 function groupByContentType(
   results: AdminSearchResultData[],
@@ -136,25 +140,7 @@ export function AdminSearchOverlay({ isOpen, onClose }: AdminSearchOverlayProps)
           e.preventDefault();
           if (flatResults[activeIndex]) {
             const result = flatResults[activeIndex];
-            // Navigate to the edit page
-            let editUrl: string;
-            switch (result.contentType) {
-              case "post":
-                editUrl = `/admin/posts/${result.contentId}/edit`;
-                break;
-              case "page":
-                editUrl = `/admin/pages/${result.contentId}/edit`;
-                break;
-              case "media":
-                editUrl = `/admin/media/${result.contentId}`;
-                break;
-              case "comment":
-                editUrl = `/admin/comments`;
-                break;
-              default:
-                editUrl = `/admin`;
-            }
-            navigate({ to: editUrl });
+            navigate({ to: adminResultUrl(result) });
             onClose();
           }
           break;

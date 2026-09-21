@@ -22,6 +22,7 @@ interface TagData {
   name: string;
   slug: string;
   count: number;
+  countReady?: boolean;
 }
 
 interface TagInputProps {
@@ -66,11 +67,12 @@ export function TagInput({
       ?.filter(
         (t: { _id: string }) => !selectedTags.some((st) => st._id === t._id),
       )
-      ?.map((t: { _id: string; name: string; slug: string; count: number }) => ({
+      ?.map((t: { _id: string; name: string; slug: string; count: number; countReady?: boolean }) => ({
         _id: t._id,
         name: t.name,
         slug: t.slug,
         count: t.count,
+        countReady: t.countReady,
       })) ?? [];
 
   useEffect(() => {
@@ -208,7 +210,7 @@ export function TagInput({
               >
                 {tag.name}
                 <span className="text-muted-foreground ml-1">
-                  ({tag.count})
+                  ({tag.countReady === true ? tag.count : "updating…"})
                 </span>
               </button>
             ))}

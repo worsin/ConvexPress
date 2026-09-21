@@ -31,6 +31,7 @@ import type { Id } from "@backend/convex/_generated/dataModel";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import {MediaShowcaseApproval} from "@/components/media/MediaShowcaseApproval";
 import { MediaDetails } from "@/components/media/MediaDetails";
 import { ExifPanel } from "@/components/media/ExifPanel";
 import { ImageSizesPanel } from "@/components/media/ImageSizesPanel";
@@ -375,6 +376,7 @@ function EditMediaPage() {
 
           {/* File Details Panel */}
           <MediaDetails media={media} />
+          <MediaShowcaseApproval media={media} />
 
           {/* Delete */}
           <div className="border border-destructive/20 bg-card p-4">

@@ -6,7 +6,7 @@
  * Wired to Convex post mutations for create, update, publish, trash, etc.
  */
 
-import { useCallback, useMemo, useTransition } from "react";
+import { useCallback, useMemo, useRef, useTransition } from "react";
 import { useForm, useStore } from "@tanstack/react-form";
 import { useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
@@ -184,6 +184,8 @@ export function useEditorForm(options: UseEditorFormOptions) {
     [contentType, initialData, defaultCommentStatus],
   );
 
+  const savedBaseline = useRef<{ postId: string | undefined; values: EditorFormValues } | null>(null);
+
   const form = useForm<
     EditorFormValues,
     undefined,
@@ -198,7 +200,7 @@ export function useEditorForm(options: UseEditorFormOptions) {
     undefined,
     unknown
   >({
-    defaultValues,
+    defaultValues: savedBaseline.current && savedBaseline.current.postId === postId ? savedBaseline.current.values : defaultValues,
   });
 
   const isDirty = useStore(form.store, (state) => state.isDirty);
@@ -304,32 +306,49 @@ export function useEditorForm(options: UseEditorFormOptions) {
     [contentType, updatePage, updatePost],
   );
 
+  // A successful write accepts exactly the values sent. Edits made while the
+  // request was in flight remain in the form and keep the navigation warning.
+  const acceptSavedValues = useCallback((submitted: EditorFormValues, overrides?: Partial<EditorFormValues>) => {
+    const current = form.state.values;
+    const saved = structuredClone({ ...submitted, ...overrides });
+    savedBaseline.current = { postId, values: saved };
+    form.reset(saved);
+    for (const key of Object.keys(current) as (keyof EditorFormValues)[]) {
+      if (JSON.stringify(current[key]) !== JSON.stringify(submitted[key])) {
+        form.setFieldValue(key, current[key]);
+      }
+    }
+  }, [form, postId]);
+
   const handleSaveDraft = useCallback(() => {
     if (!postId) return;
     startTransition(async () => {
       try {
+        const submitted = structuredClone(form.state.values);
         await runUpdate(buildUpdateArgs({ status: "draft" }));
-        form.setFieldValue("status", "draft");
+        acceptSavedValues(submitted, { status: "draft" });
         toast.success("Draft saved.");
       } catch (error: unknown) {
         toast.error("Failed to save draft.");
         console.error("Save draft error:", error);
       }
     });
-  }, [form, postId, runUpdate, buildUpdateArgs, startTransition]);
+  }, [form, postId, runUpdate, buildUpdateArgs, acceptSavedValues, startTransition]);
 
   const handlePublish = useCallback(() => {
     if (!postId) return;
     startTransition(async () => {
       try {
-        // First update with latest form values, then publish
+        // First update with latest form values, then publish.
+        const submitted = structuredClone(form.state.values);
         await runUpdate(buildUpdateArgs());
+        acceptSavedValues(submitted);
         if (contentType === "page") {
           await publishPage({ pageId: postId as Id<"posts"> });
         } else {
           await publishPost({ postId: postId as Id<"posts"> });
         }
-        form.setFieldValue("status", "publish");
+        acceptSavedValues(submitted, { status: "publish" });
         toast.success(
           contentType === "post" ? "Post published." : "Page published.",
         );
@@ -338,13 +357,15 @@ export function useEditorForm(options: UseEditorFormOptions) {
         console.error("Publish error:", error);
       }
     });
-  }, [form, contentType, postId, runUpdate, publishPage, publishPost, buildUpdateArgs, startTransition]);
+  }, [form, contentType, postId, runUpdate, publishPage, publishPost, buildUpdateArgs, acceptSavedValues, startTransition]);
 
   const handleUpdate = useCallback(() => {
     if (!postId) return;
     startTransition(async () => {
       try {
+        const submitted = structuredClone(form.state.values);
         await runUpdate(buildUpdateArgs());
+        acceptSavedValues(submitted);
         toast.success(
           contentType === "post" ? "Post updated." : "Page updated.",
         );
@@ -353,35 +374,36 @@ export function useEditorForm(options: UseEditorFormOptions) {
         console.error("Update error:", error);
       }
     });
-  }, [contentType, postId, runUpdate, buildUpdateArgs, startTransition]);
+  }, [form, contentType, postId, runUpdate, buildUpdateArgs, acceptSavedValues, startTransition]);
 
   const handleSubmitForReview = useCallback(() => {
     if (!postId) return;
     startTransition(async () => {
       try {
+        const submitted = structuredClone(form.state.values);
         await runUpdate(buildUpdateArgs({ status: "pending" }));
-        form.setFieldValue("status", "pending");
+        acceptSavedValues(submitted, { status: "pending" });
         toast.success("Submitted for review.");
       } catch (error: unknown) {
         toast.error("Failed to submit for review.");
         console.error("Submit for review error:", error);
       }
     });
-  }, [form, postId, runUpdate, buildUpdateArgs, startTransition]);
+  }, [form, postId, runUpdate, buildUpdateArgs, acceptSavedValues, startTransition]);
 
   const handleSchedule = useCallback(
     (date: Date) => {
       if (!postId) return;
       startTransition(async () => {
         try {
+          const submitted = structuredClone(form.state.values);
           await runUpdate(
             buildUpdateArgs({
               status: "future",
               scheduledFor: date,
             }),
           );
-          form.setFieldValue("status", "future");
-          form.setFieldValue("scheduledFor", date);
+          acceptSavedValues(submitted, { status: "future", scheduledFor: date });
           toast.success("Post scheduled.");
         } catch (error: unknown) {
           toast.error("Failed to schedule.");
@@ -389,7 +411,7 @@ export function useEditorForm(options: UseEditorFormOptions) {
         }
       });
     },
-    [form, postId, runUpdate, buildUpdateArgs, startTransition],
+    [form, postId, runUpdate, buildUpdateArgs, acceptSavedValues, startTransition],
   );
 
   const handleTrash = useCallback(() => {
@@ -416,9 +438,10 @@ export function useEditorForm(options: UseEditorFormOptions) {
 
   const resetForm = useCallback(
     (data: EditorFormValues) => {
+      savedBaseline.current = { postId, values: data };
       form.reset(data);
     },
-    [form],
+    [form, postId],
   );
 
   return {

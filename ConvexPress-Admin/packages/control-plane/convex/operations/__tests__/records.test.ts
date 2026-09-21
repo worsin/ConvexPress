@@ -200,56 +200,17 @@ describe("durable lifecycle operation records", () => {
     expect(next.idempotent).toBe(false);
   });
 
-  test("creates complete durable replacement checkpoints for clone and promotion", async () => {
-    const expectedSteps = [
-      "source.revalidate",
-      "target.revalidate",
-      "source.snapshot.export",
-      "source.snapshot.verify",
-      "target.prebackup.export",
-      "target.prebackup.verify",
-      "target.snapshot.import",
-      "target.verify",
-      "operation.finalize",
-    ];
-
+  test("refuses full clone and promotion record creation before allocating checkpoints", async () => {
     for (const operationCode of ["site.clone", "site.promote"] as const) {
-      const t = createHarness();
-      const target = await seedTarget(t);
-      const instanceId =
-        operationCode === "site.clone"
-          ? target.stagingInstanceId
-          : target.liveInstanceId;
-      const sourceInstanceId =
-        operationCode === "site.clone"
-          ? target.liveInstanceId
-          : target.stagingInstanceId;
-      const created = await t.run((ctx) =>
-        createOperationRecord(ctx, {
-          operationCode,
-          idempotencyKey: `idempotency_${operationCode}`,
-          websiteId: target.websiteId,
-          instanceId,
-          sourceInstanceId,
-          requestedByUserId: target.userId,
-          provider: "manual",
-          confirmation:
-            operationCode === "site.promote"
-              ? "PROMOTE TO instance_northstar_live"
-              : undefined,
-        }),
-      );
-      const stored = await t.run(async (ctx) => ({
-        operation: await ctx.db.get(created.operationId),
-        steps: await ctx.db
-          .query("overseer_operationSteps")
-          .withIndex("by_operation_sequence", (q) =>
-            q.eq("operationId", created.operationId),
-          )
-          .take(20),
-      }));
-      expect(stored.operation?.sourceInstanceId).toBe(sourceInstanceId);
-      expect(stored.steps.map((step) => step.stepKey)).toEqual(expectedSteps);
+      const t = createHarness(); const target = await seedTarget(t);
+      await expect(t.run(ctx => createOperationRecord(ctx, {
+        operationCode, idempotencyKey: "blocked-replacement", websiteId: target.websiteId,
+        instanceId: operationCode === "site.clone" ? target.stagingInstanceId : target.liveInstanceId,
+        sourceInstanceId: operationCode === "site.clone" ? target.liveInstanceId : target.stagingInstanceId,
+        requestedByUserId: target.userId, provider: "manual", confirmation: "PROMOTE TO instance_northstar_live",
+      }))).rejects.toThrow("Full snapshot replacement between environments is disabled");
+      expect(await t.run(ctx => ctx.db.query("overseer_siteOperations").collect())).toHaveLength(0);
+      expect(await t.run(ctx => ctx.db.query("overseer_operationSteps").collect())).toHaveLength(0);
     }
   });
 

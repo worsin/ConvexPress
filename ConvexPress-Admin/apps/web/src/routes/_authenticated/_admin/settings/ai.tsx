@@ -17,6 +17,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
+import { aiFailureMessage } from "@backend/lib/aiFailure";
 import {
   Brain,
   CheckCircle2,
@@ -165,7 +166,7 @@ function AISettingsPage() {
   });
   const updateSection = useMutation(api.settings.mutations.updateSection);
   const testProviderConnection = useAction(
-    (api as any).ai.actions.testProviderConnection,
+    api.ai.actions.testProviderConnection,
   );
   const testTavilyConnection = useAction(
     (api as any).ai.actions.testTavilyConnection,
@@ -261,7 +262,7 @@ function AISettingsPage() {
   const imageModel = draft?.imageModel ?? "gpt-image-1";
   const tavilyApiKey = draft?.tavilyApiKey ?? "";
 
-  // Reset model when provider changes
+  // A provider's saved key must never be reused for a different service.
   const handleProviderChange = useCallback(
     (newProvider: AIProvider) => {
       setDraft((current) =>
@@ -269,6 +270,7 @@ function AISettingsPage() {
           ? {
               ...current,
               provider: newProvider,
+              apiKey: current.provider === newProvider ? current.apiKey : "",
               defaultModel: defaultModelForProvider(newProvider),
               pageGenerationModel: defaultModelForProvider(newProvider),
               blockEditingModel: defaultModelForProvider(newProvider),
@@ -285,10 +287,6 @@ function AISettingsPage() {
   // ─── Test AI Connection ───────────────────────────────────────────────────
 
   const handleTestConnection = useCallback(async () => {
-    if (!apiKey.trim()) {
-      setTestResult({ success: false, message: "Please enter an API key." });
-      return;
-    }
     if (isDirty) {
       setTestResult({
         success: false,
@@ -306,13 +304,12 @@ function AISettingsPage() {
     } catch (err) {
       setTestResult({
         success: false,
-        message:
-          err instanceof Error ? err.message : "Connection test failed.",
+        message: aiFailureMessage(err, "Connection test failed. Check your access and provider configuration."),
       });
     } finally {
       setIsTesting(false);
     }
-  }, [apiKey, isDirty, testProviderConnection]);
+  }, [isDirty, testProviderConnection]);
 
   // ─── Test Tavily Connection ───────────────────────────────────────────────
 
@@ -655,10 +652,13 @@ function AISettingsPage() {
             )}
 
             {/* Test Connection Button */}
+            <p className="text-sm text-muted-foreground">
+              Tests the saved key or the deployment’s environment key.
+            </p>
             <button
               type="button"
               onClick={handleTestConnection}
-              disabled={isTesting || !apiKey.trim() || isDirty}
+              disabled={isTesting || isDirty}
               className={cn(
                 "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",
                 "border border-border bg-background text-foreground hover:bg-muted",

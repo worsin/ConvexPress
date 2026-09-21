@@ -1,3 +1,5 @@
+import { assertFullSnapshotOperationAllowed, assertSameEnvironmentRestore } from "./replacementSafety";
+import { policyAccess } from "../fleet/policy";
 import { OPERATION_CODES, sha256Hex } from "@convexpress/site-contract";
 import { vResultValidator, vWorkflowId } from "@convex-dev/workflow";
 import { v } from "convex/values";
@@ -78,6 +80,8 @@ const preparedRestore = v.object({
   operationId: v.id("overseer_siteOperations"),
   source: v.object({
     backupId: v.id("overseer_siteBackups"),
+    websiteId: v.id("overseer_websites"),
+    instanceId: v.id("overseer_websiteInstances"),
     snapshotId: v.string(),
     artifactStorageId: v.id("_storage"),
     checksumSha256: v.string(),
@@ -178,12 +182,18 @@ export const prepareSnapshot = internalQuery({
   returns: preparedSnapshot,
   handler: async (ctx, args) => {
     const operation = await ctx.db.get(args.operationId);
+    if (operation) assertFullSnapshotOperationAllowed(operation.operationCode);
     if (
       !operation ||
       operation.operationCode !== expectedOperation(args.purpose) ||
       (operation.state !== "running" && operation.state !== "resuming")
     ) {
       throw new Error("Lifecycle snapshot operation is not ready");
+    }
+    if (operation.schedulePolicyId) {
+      const policy = await ctx.db.get(operation.schedulePolicyId);
+      if (!policy?.enabled || !policy.backupEnabled || policy.instanceId !== operation.instanceId) throw new Error("Scheduled backup policy is no longer active");
+      await policyAccess(ctx, policy);
     }
     const user = await ctx.db.get(operation.requestedByUserId);
     if (!user || user.isActive === false) {
@@ -209,6 +219,11 @@ export const prepareSnapshot = internalQuery({
       !instance.engineVersion
     ) {
       throw new Error("Lifecycle snapshot target identity is inconsistent");
+    }
+    if (operation.operationCode === OPERATION_CODES.restore) {
+      const sources = operation.snapshotId ? await ctx.db.query("overseer_siteBackups").withIndex("by_snapshot_id", q => q.eq("snapshotId", operation.snapshotId!)).take(2) : [];
+      if (sources.length !== 1 || sources[0]!.verificationStatus !== "verified") throw Error("Restore requires a verified snapshot from the same environment");
+      assertSameEnvironmentRestore(sources[0]!, { websiteId: website._id, instanceId: instance._id, websiteKey: website.websiteKey, instanceKey: instance.instanceKey, environmentKind: instance.kind });
     }
     const connection = await ctx.db.get(instance.connection_id);
     if (
@@ -326,6 +341,8 @@ export const prepareRestore = internalQuery({
     ) {
       throw new Error("Restore snapshot evidence does not match the target");
     }
+    const website = await ctx.db.get(operation.websiteId);
+    assertSameEnvironmentRestore(source, { websiteId: target.website_id, instanceId: target._id, websiteKey: website?.websiteKey, instanceKey: target.instanceKey, environmentKind: target.kind });
     assertSnapshotCompatibleForTarget({
       source: {
         siteContractVersion: source.siteContractVersion,
@@ -342,6 +359,8 @@ export const prepareRestore = internalQuery({
       operationId: operation._id,
       source: {
         backupId: source._id,
+        websiteId: source.websiteId,
+        instanceId: source.instanceId,
         snapshotId: source.snapshotId,
         artifactStorageId: source.artifactStorageId,
         checksumSha256: source.checksumSha256,
@@ -367,6 +386,7 @@ export const prepareReplacement = internalQuery({
   returns: preparedReplacement,
   handler: async (ctx, args) => {
     const operation = await ctx.db.get(args.operationId);
+    if (operation) assertFullSnapshotOperationAllowed(operation.operationCode);
     if (
       !operation ||
       (operation.operationCode !== OPERATION_CODES.clone &&
@@ -449,6 +469,8 @@ export const prepareReplacement = internalQuery({
       targetPurpose,
       source: {
         backupId: source._id,
+        websiteId: source.websiteId,
+        instanceId: source.instanceId,
         snapshotId: source.snapshotId,
         artifactStorageId: source.artifactStorageId,
         checksumSha256: source.checksumSha256,

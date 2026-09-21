@@ -1,3 +1,4 @@
+import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { v } from "convex/values";
 
 import type { Doc } from "../_generated/dataModel";
@@ -312,5 +313,34 @@ export const listBackupsForWebsite = authenticatedQuery({
         verificationStatus: "verified" as const,
         createdAt: backup.createdAt,
       }));
+  },
+});
+
+export const pageForInstance = authenticatedQuery({
+  args: { instanceId: v.id("overseer_websiteInstances"), paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(operationSummary),
+  handler: async (ctx, args) => {
+    const instance = await ctx.db.get(args.instanceId);
+    if (!instance) throw new Error("Lifecycle environment not found");
+    await authorizeOperation(ctx, { websiteId: instance.website_id, instanceId: instance._id });
+    if (!Number.isSafeInteger(args.paginationOpts.numItems) || args.paginationOpts.numItems < 1 || args.paginationOpts.numItems > 100) throw new Error("History page size must be between 1 and 100");
+    const page = await ctx.db.query("overseer_siteOperations").withIndex("by_instance_created", q => q.eq("instanceId", instance._id)).order("desc").paginate(args.paginationOpts);
+    const summaries = [];
+    for (const operation of page.page) {
+      const backup = operation.preBackupId ? await ctx.db.get(operation.preBackupId) : null;
+      summaries.push(summarizeOperation(operation, backup?.snapshotId ?? null));
+    }
+    return { ...page, page: summaries };
+  },
+});
+export const pageBackupsForInstance = authenticatedQuery({
+  args: { instanceId: v.id("overseer_websiteInstances"), paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(v.object({backupId:v.id("overseer_siteBackups"),snapshotId:v.string(),purpose:v.string(),checksumSha256:v.string(),sizeBytes:v.number(),tableCount:v.number(),storageObjectCount:v.number(),verificationStatus:v.string(),createdAt:v.number()})),
+  handler: async(ctx,args)=>{
+    const instance=await ctx.db.get(args.instanceId);if(!instance)throw new Error("Lifecycle environment not found");
+    await authorizeOperation(ctx,{websiteId:instance.website_id,instanceId:instance._id});
+    if(!Number.isSafeInteger(args.paginationOpts.numItems)||args.paginationOpts.numItems<1||args.paginationOpts.numItems>100)throw new Error("History page size must be between 1 and 100");
+    const result=await ctx.db.query("overseer_siteBackups").withIndex("by_instance_created",q=>q.eq("instanceId",instance._id)).order("desc").paginate(args.paginationOpts);
+    return {...result,page:result.page.map(backup=>({backupId:backup._id,snapshotId:backup.snapshotId,purpose:backup.purpose,checksumSha256:backup.checksumSha256,sizeBytes:backup.sizeBytes,tableCount:backup.tableCount,storageObjectCount:backup.storageObjectCount,verificationStatus:backup.verificationStatus,createdAt:backup.createdAt}))};
   },
 });

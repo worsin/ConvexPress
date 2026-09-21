@@ -97,9 +97,10 @@ export function ResourcePicker({
               aria-selected={active}
               disabled={disabled}
               onClick={() => {
-                if (disabled) return;
+                if (disabled || active) return;
+                // The parent changes type and clears the selection atomically.
+                // A second onChange would overwrite that update with stale props.
                 onResourceTypeChange(tab.id);
-                onChange("", "");
               }}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition-colors",
@@ -224,7 +225,7 @@ function CourseSearch({
         <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary/5 px-3.5 py-2.5">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
-              {selected?.title ?? displayLabel ?? value}
+              {selected?.title || displayLabel || value}
             </p>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
               Course selected
@@ -346,7 +347,7 @@ function ContentSearch({
         <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary/5 px-3.5 py-2.5">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
-              {displayLabel ?? value}
+              {displayLabel || result?.posts.find(item => item._id === value)?.title || value}
             </p>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
               {contentType === "post" ? "Post" : "Page"} selected
@@ -475,7 +476,7 @@ function ProductSearch({
         <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary/5 px-3.5 py-2.5">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
-              {displayLabel ?? value}
+              {displayLabel || allProducts?.find(item => item._id === value)?.title || value}
             </p>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
               Product selected

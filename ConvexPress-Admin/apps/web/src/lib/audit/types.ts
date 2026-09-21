@@ -33,7 +33,7 @@ export type AuditObjectType =
 
 export interface AuditEntryListItem {
   _id: string;
-  eventId: string;
+  eventId?: string;
   eventCode: string;
   action: string;
   description: string;

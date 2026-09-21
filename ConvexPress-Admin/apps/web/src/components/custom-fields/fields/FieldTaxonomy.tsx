@@ -7,12 +7,12 @@ import { cn } from "@/lib/utils";
 
 export function FieldTaxonomy({ field, value, onChange, labelPlacement, instructionPlacement }: FieldRendererProps) {
   const settings = useMemo(() => { try { return JSON.parse(field.settings); } catch { return {}; } }, [field.settings]);
-  const taxonomy: string = settings.taxonomy ?? "category";
+  const taxonomy = settings.taxonomy === "post_tag" ? "post_tag" : "category";
   const fieldType = settings.fieldType ?? "checkbox"; // checkbox, select, multi_select, radio
   const selectedIds: string[] = useMemo(() => { try { return JSON.parse(value || "[]"); } catch { return []; } }, [value]);
 
   // Fetch terms for the taxonomy
-  const terms = useQuery(api.taxonomies.queries.listTerms, { taxonomy, limit: 200 });
+  const terms = useQuery(api.taxonomies.queries.list, { taxonomy, perPage: 200 });
 
   const toggleTerm = (termId: string) => {
     const next = selectedIds.includes(termId) ? selectedIds.filter((id) => id !== termId) : [...selectedIds, termId];

@@ -88,17 +88,17 @@ class WindowManager {
     // Log renderer console output to main process stdout
     win.webContents.on("console-message", (_event, level, message, line, sourceId) => {
       const prefix = ["LOG", "WARN", "ERROR"][level] || "LOG";
-      console.log(`[Renderer ${prefix}] ${message} (${sourceId}:${line})`);
+      safeLog(`[Renderer ${prefix}] ${message} (${sourceId}:${line})`);
     });
 
     win.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
-      console.error(
+      safeError(
         `[Renderer LOAD FAIL] ${errorCode}: ${errorDescription} URL: ${validatedURL}`,
       );
     });
 
     win.webContents.on("render-process-gone", (_event, details) => {
-      console.error("[Renderer CRASHED]", details);
+      safeError("[Renderer CRASHED]", details);
     });
 
     // Open `target="_blank"` and window.open() in the user's default browser
@@ -234,3 +234,4 @@ export function getMainWindow(): ElectronBrowserWindow | null {
 export function getWizardWindow(): ElectronBrowserWindow | null {
   return windowManager.getWizardWindow();
 }
+import { safeError, safeLog } from "./utils/safe-log.js";

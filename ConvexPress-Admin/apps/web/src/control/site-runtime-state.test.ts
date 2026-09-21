@@ -1,8 +1,18 @@
 import { describe, expect, test } from "bun:test";
 
-import { isSiteRuntimeSwitching } from "./SiteRuntimeProvider";
+import { isSiteRuntimeSwitching, siteRuntimeSelectionKey } from "./SiteRuntimeProvider";
 
 describe("site runtime render isolation", () => {
+  test("selection identity includes same-instance connection, origin, operator and retry changes", () => {
+    const target = { connectionId: "a", instanceKey: "staging", deploymentOrigin: "https://one.convex.cloud", siteOrigin: "https://one.example" };
+    const key = siteRuntimeSelectionKey(target, "operator", 1, 0);
+    for (const next of [{...target,connectionId:"b"},{...target,deploymentOrigin:"https://two.convex.cloud"},{...target,siteOrigin:"https://two.example"}]) expect(siteRuntimeSelectionKey(next,"operator",1,0)).not.toBe(key);
+    expect(siteRuntimeSelectionKey(target,"other",1,0)).not.toBe(key);
+    expect(siteRuntimeSelectionKey(target,"operator",2,0)).not.toBe(key);
+    expect(siteRuntimeSelectionKey(target,"operator",1,1)).not.toBe(key);
+    expect(siteRuntimeSelectionKey({...target,sessionRoleKey:"subscriber"},"operator",1,0)).not.toBe(key);
+    expect(siteRuntimeSelectionKey(null,"operator",1,0)).not.toBe(key);
+  });
   test("fails closed during the render before a new target effect runs", () => {
     const target = {
       connectionId: "connection-b",

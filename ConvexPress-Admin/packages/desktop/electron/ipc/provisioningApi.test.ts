@@ -1,0 +1,23 @@
+import { afterEach, expect, test } from "bun:test";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+const fixtures: string[] = [];
+afterEach(() => { for (const fixture of fixtures.splice(0)) rmSync(fixture, { recursive: true, force: true }); });
+test("offline production API discovery rejects test-directory helpers that Convex would deploy", () => {
+ const backend = path.resolve(import.meta.dir, "../../../backend");
+ const fixture = mkdtempSync(path.join(tmpdir(), "convexpress-api-boundary-")); fixtures.push(fixture);
+ mkdirSync(path.join(fixture, "scripts")); mkdirSync(path.join(fixture, "convex/_generated"), { recursive: true }); mkdirSync(path.join(fixture, "convex/__tests__"));
+ writeFileSync(path.join(fixture, "package.json"), "{}");
+ symlinkSync(path.join(backend, "node_modules"), path.join(fixture, "node_modules"), "dir");
+ copyFileSync(path.join(backend, "scripts/generate-local-api.mjs"), path.join(fixture, "scripts/generate-local-api.mjs"));
+ writeFileSync(path.join(fixture, "convex/queries.ts"), "export const production = 1;");
+ const helper = path.join(fixture, "convex/__tests__/helper.ts"); writeFileSync(helper, "export const testOnly = 1;");
+ const run = () => spawnSync(process.execPath, [path.join(fixture, "scripts/generate-local-api.mjs")], { encoding: "utf8" });
+ const failed = run(); expect(failed.status).not.toBe(0); expect(failed.stderr).toContain("Test helpers would be shipped");
+ renameSync(helper, helper.replace(".ts", ".test-support.ts"));
+ const passed = run(); expect(passed.status).toBe(0);
+ const declaration = readFileSync(path.join(fixture, "convex/_generated/api.d.ts"), "utf8");
+ expect(declaration).toContain('"../queries.js"'); expect(declaration).not.toContain("__tests__"); expect(declaration).not.toMatch(/[ \t]+$/m);
+});

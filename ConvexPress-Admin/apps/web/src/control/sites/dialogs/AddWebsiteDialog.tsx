@@ -492,9 +492,19 @@ export function AddWebsiteDialog({
                 <header>
                   <h2 className="font-serif text-[26px] leading-none tracking-[-0.01em]">Its deployment</h2>
                   <p className="mt-2 text-[13.5px] leading-6 text-ink-2">
-                    Every environment is an isolated Convex database. Give ConvexPress the addresses of the one you already run; it never creates infrastructure for you.
+                    Every environment has its own Convex database. Enter an existing deployment below, or continue to the website page to create production and staging with a connected Convex account.
                   </p>
                 </header>
+                {["owner", "admin"].includes(shell.operator.role) && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-2/60 p-3.5">
+                    <p className="text-[13px] leading-5 text-ink-2">
+                      Your website is registered. Continue to Cloud environments to create or adopt its databases.
+                    </p>
+                    <Button type="button" variant="outline" disabled={busy} onClick={finish}>
+                      Set up cloud environments
+                    </Button>
+                  </div>
+                )}
                 <DeploymentFields
                   draft={deployment}
                   onChange={setDeployment}
@@ -603,7 +613,7 @@ export function AddWebsiteDialog({
                       ? `${created.websiteTitle} is registered and this controller holds encrypted authority over its ${created.environmentLabel} environment.`
                       : created.instanceId
                         ? `${created.websiteTitle} and its ${created.environmentLabel} environment are registered. Connect the controller from the website page when you have the admin key.`
-                        : `${created.websiteTitle} is registered. Attach its deployment from the website page whenever you are ready.`}
+                        : `${created.websiteTitle} is registered. Set up cloud environments or attach an existing deployment from its website page.`}
                   </p>
                 </header>
                 <div className="flex flex-wrap justify-end gap-2">

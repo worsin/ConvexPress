@@ -15,6 +15,7 @@ function EntryDetailRoute() {
   return (
     <PluginGuard pluginId="forms">
       <FormEntryDetail
+        key={`${formId}:${entryId}`}
         formId={formId as Id<"forms">}
         entryId={entryId as Id<"form_submissions">}
       />

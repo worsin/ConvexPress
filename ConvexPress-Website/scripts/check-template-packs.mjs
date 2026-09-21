@@ -10,6 +10,7 @@
  *   - the admin's mirrored catalog lists the same surface ids, when present
  * Exit code is the verdict.
  */
+import { validateTemplateContract } from "./template-contract.mjs";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,7 +21,7 @@ const packsDir = join(root, "apps/web/src/templates/packs");
 const catalogFile = join(root, "apps/web/src/templates/sdk/catalog.ts");
 const adminCatalog = resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/catalog.ts");
 
-const ids = (source) => [...source.matchAll(/S\("([a-zA-Z0-9.]+)",/g)].map((m) => m[1]);
+const ids = (source) => [...source.matchAll(/S\("([a-zA-Z0-9.-]+)",/g)].map((m) => m[1]);
 const catalog = new Set(ids(readFileSync(catalogFile, "utf8")));
 const problems = [];
 const slug = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -39,6 +40,7 @@ for (const id of packs) {
   if (!existsSync(manifestPath)) { problems.push(`${id}: missing template.json`); continue; }
   let manifest;
   try { manifest = JSON.parse(readFileSync(manifestPath, "utf8")); } catch (error) { problems.push(`${id}: template.json is not valid JSON (${error.message})`); continue; }
+  problems.push(...validateTemplateContract(dir, manifest, catalog).map(problem => `${id}: ${problem}`));
   for (const field of ["id", "name", "version", "sdk", "tagline", "description", "surfaces"]) {
     if (manifest[field] === undefined) problems.push(`${id}: template.json is missing "${field}"`);
   }
@@ -66,4 +68,11 @@ if (problems.length) {
   console.error(`Template pack check failed:\n${problems.map((p) => `  - ${p}`).join("\n")}`);
   process.exit(1);
 }
+
+for (const module of ["draftModel", "chromeDefinitions"]) {
+  const source = join(root, `apps/web/src/templates/sdk/${module}.ts`);
+  const mirror = resolve(root, `../ConvexPress-Admin/apps/web/src/lib/templates/${module}.ts`);
+  if (existsSync(source) && (!existsSync(mirror) || readFileSync(source, "utf8") !== readFileSync(mirror, "utf8"))) throw new Error(`${module}: Admin mirror is stale; run sync:templates`);
+}
+
 console.log(`Template pack check passed (${packs.length} pack${packs.length === 1 ? "" : "s"}, ${catalog.size} catalog surfaces).`);

@@ -1,6 +1,6 @@
 import { api as controlApi } from "@control/convex/_generated/api";
 import type { Id } from "@control/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, usePaginatedQuery } from "convex/react";
 import {
   Archive,
   Check,
@@ -10,12 +10,12 @@ import {
   FileWarning,
   GitBranch,
   Loader2,
-  Rocket,
   RotateCcw,
   Square,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
+import { LifecyclePanelBoundary } from "./LifecyclePanelBoundary";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,21 +23,20 @@ import {
   canResumeOperation,
   formatByteCount,
   expectedRestoreConfirmation,
-  expectedPromotionConfirmation,
-  isPromotionConfirmationReady,
   isRestoreConfirmationReady,
   operationProgress,
   operationStateLabel,
   type LifecycleOperationState,
 } from "./lifecycle-view";
 
+import { FleetPolicyPanel } from "./FleetPolicyPanel";
+
 type InstanceId = Id<"overseer_websiteInstances">;
 type OperationId = Id<"overseer_siteOperations">;
 
-export function LifecyclePanel({
+function LifecyclePanelContent({
   open,
   instance,
-  environments,
   onClose,
   onEnvironmentReplaced,
 }: {
@@ -57,25 +56,13 @@ export function LifecyclePanel({
   onClose: () => void;
   onEnvironmentReplaced: () => void;
 }) {
-  const operations = useQuery(
-    controlApi.operations.queries.listForInstance,
-    open && instance ? { instanceId: instance.instanceId, limit: 25 } : "skip",
-  );
-  const backups = useQuery(
-    controlApi.operations.queries.listBackupsForInstance,
-    open && instance ? { instanceId: instance.instanceId, limit: 25 } : "skip",
-  );
-  const websiteBackups = useQuery(
-    controlApi.operations.queries.listBackupsForWebsite,
-    open && instance
-      ? { targetInstanceId: instance.instanceId, limit: 100 }
-      : "skip",
-  );
+  const operationPages = usePaginatedQuery(controlApi.operations.queries.pageForInstance,
+    open && instance ? { instanceId: instance.instanceId } : "skip", { initialNumItems: 25 });
+  const backupPages = usePaginatedQuery(controlApi.operations.queries.pageBackupsForInstance,
+    open && instance && operationPages.status !== "LoadingFirstPage" ? { instanceId: instance.instanceId } : "skip", { initialNumItems: 25 });
+  const operations = operationPages.results;
+  const backups = backupPages.status === "LoadingFirstPage" ? undefined : backupPages.results;
   const startBackup = useMutation(controlApi.operations.mutations.startBackup);
-  const startClone = useMutation(controlApi.operations.mutations.startClone);
-  const startPromotion = useMutation(
-    controlApi.operations.mutations.startPromotion,
-  );
   const startRestore = useMutation(controlApi.operations.mutations.startRestore);
   const cancelOperation = useMutation(
     controlApi.operations.mutations.cancelOperation,
@@ -92,8 +79,6 @@ export function LifecyclePanel({
     useState<OperationId | null>(null);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState("");
   const [restoreConfirmation, setRestoreConfirmation] = useState("");
-  const [sourceInstanceId, setSourceInstanceId] = useState("");
-  const [promotionConfirmation, setPromotionConfirmation] = useState("");
   const pendingBackupKey = useRef<string | null>(null);
   const refreshedOperation = useRef<string | null>(null);
 
@@ -103,8 +88,6 @@ export function LifecyclePanel({
     setConfirmCancelId(null);
     setSelectedSnapshotId("");
     setRestoreConfirmation("");
-    setSourceInstanceId("");
-    setPromotionConfirmation("");
     pendingBackupKey.current = null;
     refreshedOperation.current = null;
   }, [instance?.instanceId]);
@@ -112,7 +95,7 @@ export function LifecyclePanel({
   const effectiveOperationId = selectedOperationId ?? operations?.[0]?.operationId;
   const detail = useQuery(
     controlApi.operations.queries.get,
-    open && effectiveOperationId
+    open && effectiveOperationId && backupPages.status !== "LoadingFirstPage"
       ? { operationId: effectiveOperationId }
       : "skip",
   );
@@ -190,36 +173,6 @@ export function LifecyclePanel({
     });
   };
 
-  const cloneEnvironment = () => {
-    if (!instance || !sourceInstanceId) return;
-    const idempotencyKey = `desktop-clone-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
-    void runAction("clone", async () => {
-      const result = await startClone({
-        instanceId: instance.instanceId,
-        sourceInstanceId: sourceInstanceId as InstanceId,
-        idempotencyKey,
-        provider: "manual",
-      });
-      setSelectedOperationId(result.operationId);
-    });
-  };
-
-  const promoteEnvironment = () => {
-    if (!instance || !sourceInstanceId) return;
-    const idempotencyKey = `desktop-promote-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
-    void runAction("promote", async () => {
-      const result = await startPromotion({
-        instanceId: instance.instanceId,
-        sourceInstanceId: sourceInstanceId as InstanceId,
-        confirmation: promotionConfirmation,
-        idempotencyKey,
-        provider: "manual",
-      });
-      setSelectedOperationId(result.operationId);
-      setPromotionConfirmation("");
-    });
-  };
-
   return (
     <aside
       aria-label="Site operations"
@@ -285,105 +238,15 @@ export function LifecyclePanel({
         </section>
 
         <section aria-labelledby="copy-heading" className="border-b border-border bg-card p-5">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <GitBranch className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
             <div>
-              <h3 id="copy-heading" className="font-semibold text-foreground">
-                {instance?.kind === "live"
-                  ? "Promote into live"
-                  : "Clone into this environment"}
-              </h3>
+              <h3 id="copy-heading" className="font-semibold text-foreground">Content promotion</h3>
               <p className="mt-1 text-sm leading-5 text-ink-2">
-                Copies a sibling environment from this website into the selected database. A verified target backup is created first, while this environment keeps its own identity and management authorities.
+                Open this website in Sites to preview selected staging content, review incoming values, and explicitly confirm eligible changes to production. Blocked reviews must be resolved first. Cross-environment database replacement remains unavailable.
               </p>
             </div>
-            {instance?.kind === "live" ? (
-              <Rocket className="mt-0.5 size-5 shrink-0 text-destructive" />
-            ) : (
-              <GitBranch className="mt-0.5 size-5 shrink-0 text-primary" />
-            )}
           </div>
-          {instance?.kind === "live" ? (
-            <p className="mt-4 border-l-4 border-destructive bg-live-soft px-3 py-2 text-xs font-semibold text-destructive">
-              Live promotion. Separate production authority and exact confirmation are enforced by the backend.
-            </p>
-          ) : null}
-          <label className="mt-4 block eyebrow" htmlFor="copy-source-environment">
-            Source environment
-          </label>
-          <select
-            id="copy-source-environment"
-            className="mt-2 w-full border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-            value={sourceInstanceId}
-            onChange={(event) => {
-              setSourceInstanceId(event.target.value);
-              setPromotionConfirmation("");
-              setActionError(null);
-            }}
-          >
-            <option value="">Choose a different environment</option>
-            {environments
-              .filter(
-                (environment) =>
-                  environment.instanceId !== instance?.instanceId,
-              )
-              .map((environment) => (
-                <option
-                  key={environment.instanceId}
-                  value={environment.instanceId}
-                >
-                  {environment.label || environment.kind} · {environment.instanceKey}
-                </option>
-              ))}
-          </select>
-          {sourceInstanceId && instance?.kind === "live" ? (
-            <>
-              <label className="mt-4 block eyebrow" htmlFor="promotion-confirmation">
-                Type <code className="normal-case text-destructive">{expectedPromotionConfirmation(instance.instanceKey)}</code>
-              </label>
-              <input
-                id="promotion-confirmation"
-                autoComplete="off"
-                className="mt-2 w-full border border-border bg-card px-3 py-2.5 font-mono text-sm outline-none focus:border-destructive focus:ring-2 focus:ring-destructive/30"
-                spellCheck={false}
-                value={promotionConfirmation}
-                onChange={(event) => setPromotionConfirmation(event.target.value)}
-              />
-            </>
-          ) : null}
-          <Button
-            className={`mt-4 w-full text-primary-foreground ${
-              instance?.kind === "live"
-                ? "bg-destructive hover:bg-destructive/90"
-                : "bg-primary hover:bg-primary/90"
-            }`}
-            disabled={
-              !instance ||
-              !sourceInstanceId ||
-              (instance.kind === "live" &&
-                !isPromotionConfirmationReady(
-                  instance.instanceKey,
-                  promotionConfirmation,
-                )) ||
-              Boolean(blockingOperation) ||
-              submitting !== null
-            }
-            onClick={
-              instance?.kind === "live"
-                ? promoteEnvironment
-                : cloneEnvironment
-            }
-          >
-            {submitting === "clone" || submitting === "promote" ? (
-              <Loader2 className="mr-2 size-4 animate-spin" />
-            ) : instance?.kind === "live" ? (
-              <Rocket className="mr-2 size-4" />
-            ) : (
-              <GitBranch className="mr-2 size-4" />
-            )}
-            {instance?.kind === "live"
-              ? "Create pre-backup and promote"
-              : "Create pre-backup and clone"}
-          </Button>
         </section>
 
         <section aria-labelledby="restore-heading" className="border-b border-border bg-card p-5">
@@ -393,7 +256,7 @@ export function LifecyclePanel({
                 Restore verified snapshot
               </h3>
               <p className="mt-1 text-sm leading-5 text-ink-2">
-                Creates and verifies a fresh target backup before replacing this database. Target identity and management authorities stay bound to this environment.
+                Restores a verified backup from this environment only. Creates and verifies a fresh backup first. Restoring replaces the database, including content, users, and transactions, with the saved state.
               </p>
             </div>
             <FileWarning className="mt-0.5 size-5 shrink-0 text-destructive" />
@@ -417,9 +280,9 @@ export function LifecyclePanel({
             }}
           >
             <option value="">Choose a verified snapshot</option>
-            {websiteBackups?.map((backup) => (
+            {backups?.filter((backup) => backup.verificationStatus === "verified").map((backup) => (
               <option key={backup.backupId} value={backup.snapshotId}>
-                {backup.environmentKind} · {backup.purpose} · {formatTimestamp(backup.createdAt)} · {backup.tableCount} tables
+                {instance?.label || instance?.kind} · {backup.purpose} · {formatTimestamp(backup.createdAt)} · {backup.tableCount} tables
               </option>
             ))}
           </select>
@@ -567,8 +430,10 @@ export function LifecyclePanel({
           )}
         </section>
 
+        {instance && backupPages.status !== "LoadingFirstPage" && (!effectiveOperationId || detail !== undefined) && <FleetPolicyPanel key={instance.instanceId} instanceId={instance.instanceId} />}
+
         <section aria-labelledby="backup-history-heading" className="border-b border-border bg-card p-5">
-          <h3 id="backup-history-heading" className="font-semibold">Verified backups</h3>
+          <h3 id="backup-history-heading" className="font-semibold">Backup history</h3>
           {backups === undefined ? (
             <p className="mt-3 text-sm text-muted-foreground">Loading backups</p>
           ) : backups.length === 0 ? (
@@ -579,7 +444,7 @@ export function LifecyclePanel({
                 <li key={backup.backupId} className="rounded-xl border border-border p-3 text-xs">
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-semibold">{formatTimestamp(backup.createdAt)}</span>
-                    <span className="inline-flex items-center gap-1 font-semibold text-success"><Check className="size-3.5" /> {backup.verificationStatus}</span>
+                    <span className={`inline-flex items-center gap-1 font-semibold ${backup.verificationStatus === "verified" ? "text-success" : "text-muted-foreground"}`}>{backup.verificationStatus === "verified" && <Check className="size-3.5" />} {backup.verificationStatus}</span>
                   </div>
                   <p className="mt-2 font-mono text-[10px] text-muted-foreground">{backup.snapshotId}</p>
                   <p className="mt-2 text-ink-2">{backup.tableCount} tables · {backup.storageObjectCount} stored files · {formatByteCount(backup.sizeBytes)}</p>
@@ -588,6 +453,8 @@ export function LifecyclePanel({
             </ul>
           )}
         </section>
+
+        {backupPages.status === "CanLoadMore" && <Button variant="ghost" onClick={() => backupPages.loadMore(25)}>Load older backups</Button>}
 
         <section aria-labelledby="operation-history-heading" className="p-5">
           <h3 id="operation-history-heading" className="font-semibold">Operation history</h3>
@@ -613,6 +480,7 @@ export function LifecyclePanel({
               ))}
             </ul>
           ) : null}
+          {operationPages.status === "CanLoadMore" && <Button variant="ghost" onClick={() => operationPages.loadMore(25)}>Load older operations</Button>}
         </section>
       </div>
     </aside>
@@ -673,4 +541,11 @@ function friendlyLifecycleError(error: unknown) {
     return "The environment changed before the operation started. Review the selected target and try again.";
   }
   return "The operation could not be started. The target was not changed.";
+}
+
+export function LifecyclePanel(props: ComponentProps<typeof LifecyclePanelContent>) {
+  if (!props.open) return null;
+  return <LifecyclePanelBoundary key={props.instance?.instanceId ?? "none"} onClose={props.onClose}>
+    <LifecyclePanelContent {...props} />
+  </LifecyclePanelBoundary>;
 }

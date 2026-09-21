@@ -1,0 +1,9 @@
+{
+	"extends": "./tsconfig.json",
+	"include": [
+		"src/components/blocks/schema-editor/model.ts",
+		"src/components/blocks/schema-editor/RichTextField.tsx",
+		"src/components/blocks/schema-editor/SchemaBlockForm.tsx"
+	],
+	"exclude": ["node_modules"]
+}

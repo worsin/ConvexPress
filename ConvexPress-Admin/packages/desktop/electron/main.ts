@@ -11,6 +11,7 @@ import {
   controllerConfigUsesLoopback,
 } from "./cspPolicy.js";
 import { listRegisteredDeploymentOrigins } from "./deploymentOrigins.js";
+import { recordDocumentDeploymentPolicy, forgetDocumentDeploymentPolicy } from "./documentDeploymentPolicy.js";
 import {
   getInitialRouteForLaunch,
   isPendingAdminHandoffUsable,
@@ -206,6 +207,10 @@ function launchApp(): void {
 // ---------- Single Instance Lock ----------
 
 const gotTheLock = app.requestSingleInstanceLock();
+app.on('web-contents-created', (_event, contents) => {
+  const id = contents.id;
+  contents.once('destroyed', () => forgetDocumentDeploymentPolicy(id));
+});
 
 if (!gotTheLock) {
   app.quit();
@@ -249,7 +254,7 @@ app.whenReady().then(async () => {
       callback({ responseHeaders: details.responseHeaders });
       return;
     }
-    const csp = buildDesktopContentSecurityPolicy({
+    const policyInput = {
       development: isDev(),
       allowLoopback: controllerConfigUsesLoopback(
         store.get("convexUrl"),
@@ -271,7 +276,9 @@ app.whenReady().then(async () => {
         // Site deployments the renderer has connected to (control plane assigns them).
         ...listRegisteredDeploymentOrigins(),
       ],
-    });
+    };
+    const csp = buildDesktopContentSecurityPolicy(policyInput);
+    if (details.webContentsId !== undefined) recordDocumentDeploymentPolicy(details.webContentsId, policyInput.additionalConnectOrigins);
 
     callback({
       responseHeaders: {

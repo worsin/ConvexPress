@@ -12,25 +12,25 @@ export function FieldRelationship({ field, value, onChange, labelPlacement, inst
   const max = settings.max ?? 0;
   const selectedIds: string[] = useMemo(() => { try { return JSON.parse(value || "[]"); } catch { return []; } }, [value]);
   const [search, setSearch] = useState("");
-  type RelationshipPost = { _id: string; postType?: string; title: string };
 
   // Fetch posts for selection
-  const posts = useQuery(api.posts.queries.list, { status: "publish", limit: 100 });
+  const posts = useQuery(api.posts.queries.list, { status: "publish", perPage: 100 });
 
+  const selectablePosts = useMemo(() => posts?.posts.filter(p => "_id" in p && "title" in p && "type" in p) ?? [], [posts]);
   const filteredPosts = useMemo(() => {
     if (!posts?.posts) return [];
-    return (posts.posts as RelationshipPost[]).filter((p) => {
-      if (!postTypes.includes(p.postType ?? "post")) return false;
+    return selectablePosts.filter((p) => {
+      if (!postTypes.includes(p.type ?? "post")) return false;
       if (selectedIds.includes(p._id)) return false;
       if (search && !p.title.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [posts, postTypes, selectedIds, search]);
+  }, [posts, selectablePosts, postTypes, selectedIds, search]);
 
   const selectedPosts = useMemo(() => {
     if (!posts?.posts) return [];
-    return selectedIds.map((id) => (posts.posts as RelationshipPost[]).find((p) => p._id === id)).filter(Boolean);
-  }, [posts, selectedIds]);
+    return selectedIds.map((id) => selectablePosts.find((p) => p._id === id)).filter(Boolean);
+  }, [posts, selectablePosts, selectedIds]);
 
   const addPost = (postId: string) => {
     if (max > 0 && selectedIds.length >= max) return;

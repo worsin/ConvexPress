@@ -1,9 +1,10 @@
+// Generated from Website SDK catalog by sync:templates. Do not edit.
 /**
  * Surface catalog — every customer-facing screen or region a template pack
  * can implement, grouped into the coverage areas the admin shows.
  *
- * MIRROR of ConvexPress-Website/apps/web/src/templates/sdk/catalog.ts — the
- * Website owns the ids; the Website's `check:templates` verifies this copy agrees.
+ * Source of truth for ids. The admin mirrors this list in
+ * `lib/templates/catalog.ts`; `check:templates` verifies both agree.
  * Plan: specs/research/TEMPLATE-SYSTEM-PLAN-2026-09-04.md §3.
  */
 
@@ -32,6 +33,7 @@ export const COVERAGE_AREAS: CoverageArea[] = [
   { id: "gallery", title: "Gallery", plugin: "gallery" },
   { id: "recipes", title: "Recipes", plugin: "recipes" },
   { id: "forms", title: "Forms", plugin: "forms" },
+  { id: "events", title: "Events", plugin: "events" },
   { id: "dashboard", title: "Account dashboard" },
   { id: "auth", title: "Sign in & sign up" },
 ];
@@ -74,6 +76,7 @@ export const SURFACE_CATALOG: SurfaceDefinition[] = [
   // Shop
   S("shop.catalog", "Catalog & search", "shop", { variants: ["boutique", "marketplace"] }),
   S("shop.product", "Product page", "shop", { variants: ["classic", "marketplace", "split", "showcase", "minimal"] }),
+  S("shop.brand", "Brand collection", "shop"),
   S("shop.categories", "Category directory", "shop"),
   S("shop.category", "Category archive", "shop"),
   // Cart & checkout
@@ -140,6 +143,9 @@ export const SURFACE_CATALOG: SurfaceDefinition[] = [
   S("dashboard.wishlist", "Wishlist", "dashboard", { plugin: "commerceWishlists" }),
   S("dashboard.addresses", "Addresses", "dashboard", { plugin: "commerce" }),
   S("dashboard.membership", "Membership", "dashboard", { plugin: "membership" }),
+  S("events.index", "Upcoming events", "events", { plugin: "events" }),
+  S("events.detail", "Event details", "events", { plugin: "events" }),
+  S("dashboard.events", "Events", "dashboard", { plugin: "events" }),
   // Auth
   S("auth.shell", "Auth frame", "auth"),
   S("auth.login", "Sign in", "auth"),

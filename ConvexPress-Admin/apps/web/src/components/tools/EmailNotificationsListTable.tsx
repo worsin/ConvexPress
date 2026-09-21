@@ -137,7 +137,7 @@ export function EmailNotificationsListTable() {
     if (templates === undefined) return undefined;
     const items = Array.isArray(templates) ? templates : [];
     return {
-      items: items as EmailRow[],
+      items,
       total: items.length,
       page: 1,
       perPage: 200,

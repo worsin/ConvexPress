@@ -49,7 +49,7 @@ export function WordPressSyncDashboard() {
   const [isAddingNew, setIsAddingNew] = useState(false);
 
   // Fetch sites and overview data (real-time via Convex subscriptions)
-  const sites = useQuery(api.wordpressSync.queries.listSites) as
+  const sites = useQuery(api.wordpressSync.queries.listSites, {}) as
     | SiteSummary[]
     | undefined;
   const overview = useQuery(api.wordpressSync.queries.getOverview);

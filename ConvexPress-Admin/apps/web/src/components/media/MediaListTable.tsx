@@ -6,7 +6,7 @@
  * No mock data. No trash (media deletion is permanent).
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   FileIcon,
@@ -17,7 +17,7 @@ import {
   VideoIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useMutation } from "convex/react";
+import { useMutation, usePaginatedQuery } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
@@ -27,7 +27,8 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ListTable } from "@/components/shared/ListTable";
 import { ListTableToolbar } from "@/components/shared/ListTableToolbar";
-import { Pagination } from "@/components/shared/Pagination";
+import { MediaContinuation, MediaReadBoundary } from "./MediaPagination";
+import { summarizeMediaCounts, uniqueMedia } from "./media-pagination";
 import { ScreenOptions } from "@/components/shared/ScreenOptions";
 import { SearchBox } from "@/components/shared/SearchBox";
 import { StatusTabs } from "@/components/shared/StatusTabs";
@@ -250,6 +251,12 @@ const mediaListConfig: ListTableConfig<MediaItem> = {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function MediaListTable() {
+  const user = useQuery(api.users.getCurrentUser);
+  if (!user) return <p role="status">Loading media session…</p>;
+  return <MediaReadBoundary key={String(user._id)}><MediaListTableContent /></MediaReadBoundary>;
+}
+
+function MediaListTableContent() {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -274,100 +281,26 @@ export function MediaListTable() {
   const activeStatusFromUrl = searchParams.status as string | undefined;
   const searchFromUrl = (searchParams.search as string) || "";
 
-  // ── Convex Queries ──────────────────────────────────────────────────────
-  const counts = useQuery(api.media.queries.counts);
   const currentUser = useQuery(api.users.getCurrentUser);
-
-  // Map counts to the shape expected by useListTable
-  const countsMap = useMemo(() => {
-    if (!counts) return undefined;
-    return {
-      all: counts.all,
-      images: counts.images,
-      audio: counts.audio,
-      video: counts.video,
-      documents: counts.documents,
-      mine: counts.mine,
-      unattached: counts.unattached,
-    };
-  }, [counts]);
-
-  // ── Derive Convex query params from URL state ─────────────────────────
+  const countPages = usePaginatedQuery(api.media.queries.countDocuments, {}, { initialNumItems: 100 });
+  const countSummary = summarizeMediaCounts(countPages.results, countPages.status);
+  const countsMap = countSummary.complete ? countSummary.counts : undefined;
   const mediaTypeFilter = getMediaTypeFilter(activeStatusFromUrl);
-  const numItems = viewMode === "grid" ? 40 : 20;
-
-  // Track pagination cursors: page number -> cursor string
-  // Convex uses cursor-based pagination; we map page numbers to cursors.
-  const [cursorMap, setCursorMap] = useState<Record<number, string>>({});
-  const currentPage = (searchParams.page as number) || 1;
-  const currentCursor = currentPage === 1 ? null : (cursorMap[currentPage] ?? null);
-
-  // For "mine" tab, pass the current user's ID as uploadedBy filter
-  const uploadedByFilter = activeStatusFromUrl === "mine" && currentUser
-    ? (currentUser._id as Id<"users">)
-    : undefined;
-
-  // H4/M8: For "unattached" tab, pass the unattached filter
-  const unattachedFilter = activeStatusFromUrl === "unattached" ? true : undefined;
-
-  // Wire search, filter, and pagination into the Convex query
-  const mediaResult = useQuery(api.media.queries.list, {
-    mediaType: mediaTypeFilter,
-    uploadedBy: uploadedByFilter,
-    unattached: unattachedFilter,
-    search: searchFromUrl || undefined,
-    paginationOpts: {
-      numItems,
-      cursor: currentCursor,
-    },
-  });
-
-  // Store the continueCursor for the next page when results arrive
-  useEffect(() => {
-    if (mediaResult && mediaResult.continueCursor && !mediaResult.isDone) {
-      const nextPage = currentPage + 1;
-      setCursorMap((prev) => {
-        if (prev[nextPage] === mediaResult.continueCursor) return prev;
-        return { ...prev, [nextPage]: mediaResult.continueCursor };
-      });
-    }
-  }, [mediaResult, currentPage]);
-
-  // Reset cursor map when filters/search change (go back to page 1)
-  const prevFilterKey = useRef(`${activeStatusFromUrl}|${searchFromUrl}`);
-  useEffect(() => {
-    const key = `${activeStatusFromUrl}|${searchFromUrl}`;
-    if (key !== prevFilterKey.current) {
-      prevFilterKey.current = key;
-      setCursorMap({});
-    }
-  }, [activeStatusFromUrl, searchFromUrl]);
-
-  // ── Resolve uploader names for visible media items ────────────────────
-  // M7 fix: The backend list query now denormalizes uploader names directly.
-  // We use backend-provided uploaderName, falling back to current user info.
-  const enrichedItems = useMemo<MediaItem[]>(() => {
-    if (!mediaResult) return [];
-    const items = (mediaResult.page ?? []) as MediaItem[];
-
-    return items.map((item) => ({
-      ...item,
-      // Use backend-provided uploaderName (from M7 enrichment in queries.ts)
-      uploaderName: item.uploaderName || "Unknown",
-    }));
-  }, [mediaResult]);
-
-  // Transform Convex result to PaginatedResult
-  const data = useMemo<PaginatedResult<MediaItem> | undefined>(() => {
-    if (mediaResult === undefined) return undefined;
-    return {
-      items: enrichedItems,
-      total: enrichedItems.length + (mediaResult.isDone ? 0 : numItems),
-      page: currentPage,
-      perPage: numItems,
-      totalPages: mediaResult.isDone ? currentPage : currentPage + 1,
-    };
-  }, [mediaResult, enrichedItems, numItems, currentPage]);
+  const requestedSize = Number(searchParams.perPage);
+  const numItems = Number.isSafeInteger(requestedSize) && requestedSize >= 1 && requestedSize <= 100 ? requestedSize : viewMode === "grid" ? 40 : 20;
+  const mediaPages = usePaginatedQuery(api.media.queries.list,
+    activeStatusFromUrl === "mine" && !currentUser ? "skip" : {
+      mediaType: mediaTypeFilter,
+      uploadedBy: activeStatusFromUrl === "mine" ? currentUser?._id as Id<"users"> : undefined,
+      unattached: activeStatusFromUrl === "unattached" ? true : undefined,
+      search: searchFromUrl || undefined,
+    }, { initialNumItems: numItems });
+  const enrichedItems = useMemo(() => uniqueMedia(mediaPages.results) as MediaItem[], [mediaPages.results]);
+  // Shared table state still owns selection/columns/search. Loaded rows are not
+  // presented as an invented library total or a numbered result page.
+  const data: PaginatedResult<MediaItem> | undefined = mediaPages.status === "LoadingFirstPage" ? undefined : {
+    items: enrichedItems, total: enrichedItems.length, page: 1, perPage: numItems, totalPages: 1,
+  };
 
   const table = useListTable({
     config: mediaListConfig,
@@ -377,7 +310,7 @@ export function MediaListTable() {
 
   // ── Mutations ───────────────────────────────────────────────────────────
   const deleteMedia = useMutation(api.media.mutations.remove);
-  const bulkDeleteMedia = useMutation(api.media.mutations.bulkDelete);
+  const bulkDeleteMedia = useMutation(api.media.mutations.bulkPermanentlyDelete);
 
   // ── Row Actions with Handlers ───────────────────────────────────────────
   const rowActionsWithHandlers = useMemo<RowAction<MediaItem>[]>(
@@ -478,7 +411,10 @@ export function MediaListTable() {
       <ScreenOptions
         columns={mediaListConfig.columns}
         state={table.screenOptions}
-        onChange={table.setScreenOptions}
+        onChange={(options) => {
+          table.setScreenOptions(options);
+          if (options.perPage !== numItems) table.setPerPage(options.perPage);
+        }}
         perPageOptions={mediaListConfig.perPageOptions}
         entityName="media"
       />
@@ -509,6 +445,8 @@ export function MediaListTable() {
           </Button>
         </div>
       </div>
+
+      <MediaContinuation counting status={countPages.status} count={countSummary.counted} loadMore={countPages.loadMore} pageSize={100} />
 
       <ListTableToolbar
         bulkActionsSlot={
@@ -545,15 +483,15 @@ export function MediaListTable() {
           getRowLabel={(row) => row.title || row.fileName}
           emptyState={
             <EmptyState
-              title="No media found."
+              title={mediaPages.status === "Exhausted" ? "No media found." : "No matches in the loaded pages."}
               description={
-                table.search
+                mediaPages.status !== "Exhausted" ? "Continue loading to check the remaining media." : table.search
                   ? "Try adjusting your search or filters."
                   : "Upload your first media file to get started."
               }
               isFiltered={!!table.search || !!table.activeStatus}
               action={
-                !table.search && !table.activeStatus ? (
+                !table.search && !table.activeStatus && mediaPages.status === "Exhausted" ? (
                   <Link
                     to="/media/upload"
                     activeProps={{}}
@@ -565,6 +503,8 @@ export function MediaListTable() {
             />
           }
         />
+      ) : enrichedItems.length === 0 && mediaPages.status !== "LoadingFirstPage" && mediaPages.status !== "Exhausted" ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">No matches in the loaded pages. Continue loading to check more media.</p>
       ) : (
         <MediaGrid
           items={table.rows as MediaItem[]}
@@ -580,18 +520,7 @@ export function MediaListTable() {
         />
       )}
 
-      <div className="mt-4">
-        <Pagination
-          total={table.total}
-          page={table.pagination.page}
-          perPage={table.pagination.perPage}
-          totalPages={table.totalPages}
-          onPageChange={table.setPage}
-          onPerPageChange={table.setPerPage}
-          perPageOptions={mediaListConfig.perPageOptions}
-          entityNamePlural="media items"
-        />
-      </div>
+      <MediaContinuation status={mediaPages.status} count={enrichedItems.length} loadMore={mediaPages.loadMore} pageSize={numItems} />
 
       <ConfirmDialog
         open={confirmDialog.open}

@@ -3,11 +3,16 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { authenticatedMutation, authenticatedQuery } from "./rbac/functions";
-import { resolveStoredAccess } from "./rbac/runtime";
+import { createStoredAccessResolver } from "./rbac/runtime";
 
 type ReadCtx = Pick<QueryCtx, "db"> | Pick<MutationCtx, "db">;
 
 const contextResult = v.object({
+  operator: v.object({
+    userId: v.id("overseer_users"), email: v.union(v.string(), v.null()),
+    name: v.union(v.string(), v.null()),
+    role: v.union(v.literal("owner"), v.literal("admin"), v.literal("manager"), v.literal("member"), v.literal("viewer")),
+  }),
   organizations: v.array(
     v.object({
       organizationId: v.id("overseer_organizations"),
@@ -107,6 +112,7 @@ async function reachableDocs(
   ctx: ReadCtx,
   operator: Doc<"overseer_users">,
 ) {
+  const resolveAccess = createStoredAccessResolver(ctx, operator);
   const isAdmin = operator.role === "owner" || operator.role === "admin";
   let organizations: Doc<"overseer_organizations">[];
   let businesses: Doc<"overseer_businesses">[];
@@ -245,7 +251,7 @@ async function reachableDocs(
   );
   const visibleWebsites = [];
   for (const website of websites) {
-    const decision = await resolveStoredAccess(ctx, operator, {
+    const decision = await resolveAccess({
       selector: { type: "capability", code: "website.read" },
       target: {
         organizationId: String(website.organization_id),
@@ -261,7 +267,7 @@ async function reachableDocs(
   for (const instance of environments) {
     if (!activeWebsiteIds.has(String(instance.website_id))) continue;
     const website = websites.find((row) => row._id === instance.website_id)!;
-    const decision = await resolveStoredAccess(ctx, operator, {
+    const decision = await resolveAccess({
       selector: { type: "capability", code: "environment.read" },
       target: {
         organizationId: String(website.organization_id),
@@ -295,8 +301,12 @@ async function reachableDocs(
   };
 }
 
-async function buildContext(ctx: ReadCtx, operator: Doc<"overseer_users">) {
-  const docs = await reachableDocs(ctx, operator);
+async function buildContext(
+  ctx: ReadCtx, operator: Doc<"overseer_users">,
+  // setActive changes only the caller profile, never hierarchy or access rules.
+  reachable?: Awaited<ReturnType<typeof reachableDocs>>,
+) {
+  const docs = reachable ?? await reachableDocs(ctx, operator);
   const profile = await profileForUser(ctx, operator._id);
   const organization =
     docs.organizations.find((row) => row._id === profile?.activeOrganizationId) ??
@@ -330,6 +340,7 @@ async function buildContext(ctx: ReadCtx, operator: Doc<"overseer_users">) {
     null;
 
   return {
+    operator: { userId: operator._id, email: operator.email ?? null, name: operator.name ?? null, role: operator.role },
     organizations: docs.organizations.map((row) => ({
       organizationId: row._id,
       name: row.name,
@@ -453,6 +464,6 @@ export const setActive = authenticatedMutation({
         updatedAt: now,
       });
     }
-    return await buildContext(ctx, ctx.operator);
+    return await buildContext(ctx, ctx.operator, docs);
   },
 });

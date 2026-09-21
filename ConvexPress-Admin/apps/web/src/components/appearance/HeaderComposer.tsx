@@ -578,3 +578,10 @@ export function HeaderComposer() {
     </div>
   );
 }
+
+/** Existing section controls bound to the Customizer's draft, with no independent save. */
+export function HeaderSettingsEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
+  const config = deepMerge(HEADER_DEFAULTS, value as unknown as Partial<HeaderConfig>);
+  const setField = (sectionId: string, fieldId: string, next: unknown) => onChange({ ...value, [sectionId]: { ...(config[sectionId as keyof HeaderConfig] as Record<string, unknown>), [fieldId]: next } });
+  return <div className="space-y-2">{HEADER_SECTIONS.map(section => <SectionPanel key={section.id} section={section} config={config} onToggle={(id, enabled) => setField(id, "enabled", enabled)} onFieldChange={setField} />)}</div>;
+}

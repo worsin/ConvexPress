@@ -7,8 +7,8 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useMutation } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
+import { useMutation, usePaginatedQuery } from "convex/react";
+import { MediaContinuation, MediaReadBoundary } from "../media/MediaPagination";
 import { api } from "@backend/convex/_generated/api";
 import { Check, Loader2, Search, Upload, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -23,21 +23,9 @@ interface MediaPickerProps {
   filterType?: "image" | "video" | "audio" | "document";
 }
 
-interface MediaListItem {
-  _id: string;
-  url?: string;
-  thumbnailUrl?: string;
-  title?: string;
-  filename?: string;
-  altText?: string;
-  mimeType?: string;
-}
+export function MediaPicker(props: MediaPickerProps) { return <MediaReadBoundary><MediaPickerContent {...props} /></MediaReadBoundary>; }
 
-interface MediaListResult {
-  page: MediaListItem[];
-}
-
-export function MediaPicker({
+function MediaPickerContent({
   onSelect,
   onClose,
   selectedId,
@@ -49,24 +37,22 @@ export function MediaPicker({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch media from Convex with optional search and type filter
-  const mediaResult = useQuery(api.media.queries.list, {
+  const mediaPages = usePaginatedQuery(api.media.queries.list, {
     mediaType: filterType,
     search: search.trim() || undefined,
-    paginationOpts: { numItems: 24, cursor: null },
-  }) as MediaListResult | undefined;
+  }, { initialNumItems: 24 });
 
   // Map Convex media records to our display format
   const filteredMedia = useMemo(() => {
-    if (!mediaResult?.page) return [];
-    return mediaResult.page.map((item) => ({
+    return mediaPages.results.map((item) => ({
       id: item._id,
       url: item.url ?? "",
-      thumbnailUrl: item.thumbnailUrl ?? item.url ?? "",
-      title: item.title ?? item.filename ?? "Untitled",
+      thumbnailUrl: item.url ?? "",
+      title: item.title ?? item.fileName ?? "Untitled",
       altText: item.altText ?? "",
       mimeType: item.mimeType ?? "",
     }));
-  }, [mediaResult]);
+  }, [mediaPages.results]);
 
   // Convex mutations for file upload
   const generateUploadUrl = useMutation(api.media.mutations.generateUploadUrl);
@@ -102,7 +88,7 @@ export function MediaPicker({
         // Step 3: Create media record
         const mediaId = await createMedia({
           storageId,
-          filename: file.name,
+          fileName: file.name,
           mimeType: file.type,
           fileSize: file.size,
           title: file.name.replace(/\.[^.]+$/, ""),
@@ -220,9 +206,10 @@ export function MediaPicker({
         })}
       </div>
 
+      <MediaContinuation status={mediaPages.status} count={filteredMedia.length} loadMore={mediaPages.loadMore} pageSize={24} />
       {filteredMedia.length === 0 && (
         <div className="px-2.5 pb-2.5 text-xs text-muted-foreground text-center py-6">
-          No media items found.
+          {mediaPages.status === "Exhausted" ? "No media items found." : "No matches in the loaded pages."}
         </div>
       )}
     </div>

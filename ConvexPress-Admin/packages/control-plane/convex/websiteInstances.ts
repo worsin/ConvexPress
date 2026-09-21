@@ -4,7 +4,9 @@ import {
   environmentKindSchema,
   portableKeySchema,
 } from "@convexpress/site-contract";
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
+import type { MutationCtx } from "./_generated/server";
+import type { requireAuth } from "./helpers/auth";
 
 import { requireActiveParent } from "./hierarchyPolicy";
 import {
@@ -134,8 +136,7 @@ async function clearWebsiteDefault(ctx: { db: any }, websiteId: any, exceptId?: 
   }
 }
 
-export const attach = authenticatedMutation({
-  args: {
+const attachArgs = v.object({
     websiteId: v.id("overseer_websites"),
     instanceKey: v.string(),
     kind: environmentKind,
@@ -149,9 +150,11 @@ export const attach = authenticatedMutation({
     schemaVersion: v.optional(v.string()),
     engineVersion: v.optional(v.string()),
     makeDefault: v.optional(v.boolean()),
-  },
-  returns: instanceResult,
-  handler: async (ctx, args) => {
+  });
+export async function attachWebsiteInstance(
+ ctx: MutationCtx & {operator:Awaited<ReturnType<typeof requireAuth>>},
+ args: Infer<typeof attachArgs>,
+) {
     const website = await ctx.db.get(args.websiteId);
     if (!website?.organization_id || !website.business_id || website.status !== "active") {
       throw new Error("Website is not active");
@@ -268,8 +271,9 @@ export const attach = authenticatedMutation({
       updatedAt: now,
     });
     return summarize((await ctx.db.get(instanceId))!);
-  },
-});
+}
+export { instanceResult as websiteInstanceResult, summarize as summarizeWebsiteInstance };
+export const attach = authenticatedMutation({args:attachArgs.fields,returns:instanceResult,handler:attachWebsiteInstance});
 
 export const list = authenticatedQuery({
   args: {
@@ -411,6 +415,15 @@ export const update = authenticatedMutation({
       input: editable,
       now: Date.now(),
     });
+    const providerIdentityChanged = (["deploymentOrigin", "managementOrigin", "deploymentName", "projectRef"] as const)
+      .some(field => Object.prototype.hasOwnProperty.call(patch, field) && patch[field] !== instance[field]);
+    if (providerIdentityChanged) {
+      const hostingAttachment = await ctx.db.query("overseer_hostingAttachments")
+        .withIndex("by_production", q => q.eq("productionInstanceId", instance._id)).first()
+        ?? await ctx.db.query("overseer_hostingAttachments")
+          .withIndex("by_staging", q => q.eq("stagingInstanceId", instance._id)).first();
+      if (hostingAttachment) throw new Error("Cloud resource identity is bound to its confirmed hosting receipt and cannot be changed");
+    }
     const originsChanged =
       (patch.deploymentOrigin !== undefined &&
         patch.deploymentOrigin !== instance.deploymentOrigin) ||

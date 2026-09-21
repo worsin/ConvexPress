@@ -149,7 +149,7 @@ function CourseSettingsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (course) {
+    if (course && "_creationTime" in course) {
       setForm({
         title: course.title,
         slug: course.slug,

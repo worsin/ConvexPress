@@ -6,10 +6,11 @@
  * Used in AddCategoryForm and CategoriesMetabox inline add.
  */
 
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { useMemo } from "react";
 
 interface CategoryTreeNode {
-  _id: string;
+  _id: Id<"terms">;
   name: string;
   slug: string;
   count: number;
@@ -19,7 +20,7 @@ interface CategoryTreeNode {
 }
 
 interface FlatOption {
-  id: string;
+  id: Id<"terms">;
   name: string;
   depth: number;
 }
@@ -28,7 +29,7 @@ interface ParentCategorySelectProps {
   /** Currently selected parent ID (empty string for "None"/root). */
   value: string;
   /** Change handler. */
-  onChange: (value: string) => void;
+  onChange: (value: Id<"terms"> | "") => void;
   /** The category tree data from getCategoryTree query. */
   categoryTree: CategoryTreeNode[] | undefined;
   /** Optional: term ID to exclude from the list (to prevent self-parenting). */
@@ -73,7 +74,7 @@ export function ParentCategorySelect({
   return (
     <select
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => onChange(flatOptions.find((option) => option.id === e.target.value)?.id ?? "")}
       aria-label={ariaLabel}
       className={
         className ??

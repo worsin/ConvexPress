@@ -429,7 +429,7 @@ function WebsiteImportSiteDetail() {
             <Button
               variant="destructive"
               onClick={() => setShowDelete(true)}
-              disabled={hasActiveJob}
+              disabled={!!hasActiveJob}
             >
               <TrashIcon className="h-4 w-4 mr-2" />
               Remove Site

@@ -1,3 +1,4 @@
+import { adminResultUrl } from "@/lib/search/admin-result-url";
 /**
  * Admin Search Result Row
  *
@@ -6,14 +7,14 @@
  */
 
 import { Link } from "@tanstack/react-router";
-import { FileText, Image, MessageSquare, Newspaper } from "lucide-react";
+import { FileText, Image, MessageSquare, Newspaper, CalendarDays } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface AdminSearchResultData {
-  contentType: "post" | "page" | "media" | "comment";
+  contentType: "post" | "page" | "media" | "comment" | "course" | "product" | "event";
   contentId: string;
   title: string;
   excerpt: string;
@@ -67,24 +68,10 @@ const CONTENT_TYPE_ICONS: Record<string, typeof Newspaper> = {
   page: FileText,
   media: Image,
   comment: MessageSquare,
+  event: CalendarDays,
 };
 
 // ─── Admin Edit URL ─────────────────────────────────────────────────────────
-
-function getEditUrl(result: AdminSearchResultData): string {
-  switch (result.contentType) {
-    case "post":
-      return `/admin/posts/${result.contentId}/edit`;
-    case "page":
-      return `/admin/pages/${result.contentId}/edit`;
-    case "media":
-      return `/admin/media/${result.contentId}`;
-    case "comment":
-      return `/admin/comments`;
-    default:
-      return `/admin`;
-  }
-}
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -95,7 +82,7 @@ export function AdminSearchResult({
   className,
 }: AdminSearchResultProps) {
   const Icon = CONTENT_TYPE_ICONS[result.contentType] ?? FileText;
-  const editUrl = getEditUrl(result);
+  const editUrl = adminResultUrl(result);
 
   return (
     <Link

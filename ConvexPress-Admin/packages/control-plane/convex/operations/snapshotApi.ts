@@ -4,6 +4,7 @@ import { deploymentOriginSchema } from "@convexpress/site-contract";
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
 
+import { boundedResponseStream, MAX_STREAMED_SNAPSHOT_BYTES } from "./snapshotStreams";
 const MAX_DOWNLOAD_BYTES = 512 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 30_000;
 
@@ -68,7 +69,7 @@ function timestamp(value: bigint | number | string): string {
   return serialized;
 }
 
-export async function exportConvexSnapshot(input: {
+export async function exportConvexSnapshotStream(input: {
   deploymentOrigin: string;
   deploymentAdminKey: string;
   includeStorage: boolean;
@@ -76,7 +77,7 @@ export async function exportConvexSnapshot(input: {
   readLatest?: () => Promise<SnapshotExportState>;
   pollIntervalMs?: number;
   maxPollAttempts?: number;
-}): Promise<{ bytes: Uint8Array; exportTimestamp: string }> {
+}): Promise<{ stream: AsyncIterable<Uint8Array>; exportTimestamp: string }> {
   const deploymentOrigin = deploymentOriginSchema.parse(input.deploymentOrigin);
   if (
     input.deploymentAdminKey.length < 16 ||
@@ -142,16 +143,28 @@ export async function exportConvexSnapshot(input: {
   if (!response.ok) {
     throw new Error("Snapshot export download failed safely");
   }
-  const declaredSize = Number(response.headers.get("content-length") ?? "0");
-  if (
-    Number.isFinite(declaredSize) &&
-    declaredSize > MAX_DOWNLOAD_BYTES
-  ) {
-    throw new Error("Snapshot export is too large for this controller");
+  const declared = response.headers.get("content-length");
+  const declaredSize = declared === null ? undefined : Number(declared);
+  if (declaredSize !== undefined && (!Number.isSafeInteger(declaredSize) || declaredSize <= 0 || declaredSize > MAX_STREAMED_SNAPSHOT_BYTES)) {
+    void response.body?.cancel();
+    throw new Error("Snapshot export is too large for this controller or has an invalid size");
   }
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength === 0 || bytes.byteLength > MAX_DOWNLOAD_BYTES) {
-    throw new Error("Snapshot export download size is invalid");
+  if (!response.body) throw new Error("Snapshot export download is empty");
+  return { stream: boundedResponseStream(response.body, { expectedBytes: declaredSize }), exportTimestamp };
+}
+
+/** Compatibility adapter for small callers; lifecycle actions use the stream. */
+export async function exportConvexSnapshot(input: Parameters<typeof exportConvexSnapshotStream>[0]): Promise<{ bytes: Uint8Array; exportTimestamp: string }> {
+  const exported = await exportConvexSnapshotStream(input);
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for await (const chunk of exported.stream) {
+    size += chunk.length;
+    if (size > MAX_DOWNLOAD_BYTES) throw new Error("Snapshot export is too large for the legacy byte interface");
+    chunks.push(chunk);
   }
-  return { bytes, exportTimestamp };
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+  return { bytes, exportTimestamp: exported.exportTimestamp };
 }

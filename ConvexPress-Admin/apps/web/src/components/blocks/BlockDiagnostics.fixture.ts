@@ -1,0 +1,1 @@
+export { BlockDiagnosticsView } from "./BlockDiagnosticsView";

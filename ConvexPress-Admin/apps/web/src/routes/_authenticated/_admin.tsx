@@ -3,6 +3,7 @@ import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { ShieldAlert } from "lucide-react";
 
+import { MediaIndexAutoMaintenance } from "@/components/media/MediaIndexAutoMaintenance";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { AdminShellProvider } from "@/components/layout/AdminShellProvider";
 import { AdminShellErrorBoundary } from "@/components/layout/AdminShellErrorBoundary";
@@ -78,6 +79,7 @@ function AuthorizedAdminLayout() {
               className="flex-1 min-h-0 overflow-auto p-6"
             >
               <Breadcrumbs />
+              <MediaIndexAutoMaintenance />
               <AdminContentErrorBoundary routeKey={location.pathname}>
                 {isLoading ? (
                   <Loader />

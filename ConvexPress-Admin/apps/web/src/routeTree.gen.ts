@@ -15,6 +15,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAdminUpdatesRouteImport } from './routes/_authenticated/_admin/updates'
 import { Route as AuthenticatedAdminToolsRouteImport } from './routes/_authenticated/_admin/tools'
 import { Route as AuthenticatedAdminTicketsRouteImport } from './routes/_authenticated/_admin/tickets'
+import { Route as AuthenticatedAdminSyncedContentRouteImport } from './routes/_authenticated/_admin/synced-content'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/_admin/support'
 import { Route as AuthenticatedAdminSetupRouteImport } from './routes/_authenticated/_admin/setup'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/_admin/settings'
@@ -34,6 +35,7 @@ import { Route as AuthenticatedAdminWebhooksIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_authenticated/_admin/users/index'
 import { Route as AuthenticatedAdminToolsIndexRouteImport } from './routes/_authenticated/_admin/tools/index'
 import { Route as AuthenticatedAdminTicketsIndexRouteImport } from './routes/_authenticated/_admin/tickets/index'
+import { Route as AuthenticatedAdminSupportIndexRouteImport } from './routes/_authenticated/_admin/support.index'
 import { Route as AuthenticatedAdminSettingsIndexRouteImport } from './routes/_authenticated/_admin/settings/index'
 import { Route as AuthenticatedAdminSeoIndexRouteImport } from './routes/_authenticated/_admin/seo/index'
 import { Route as AuthenticatedAdminRolesIndexRouteImport } from './routes/_authenticated/_admin/roles/index'
@@ -48,6 +50,7 @@ import { Route as AuthenticatedAdminLayoutsIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminKbIndexRouteImport } from './routes/_authenticated/_admin/kb/index'
 import { Route as AuthenticatedAdminGalleryIndexRouteImport } from './routes/_authenticated/_admin/gallery/index'
 import { Route as AuthenticatedAdminFormsIndexRouteImport } from './routes/_authenticated/_admin/forms/index'
+import { Route as AuthenticatedAdminEventsIndexRouteImport } from './routes/_authenticated/_admin/events/index'
 import { Route as AuthenticatedAdminCustomerDashboardIndexRouteImport } from './routes/_authenticated/_admin/customer-dashboard/index'
 import { Route as AuthenticatedAdminCustomFieldsIndexRouteImport } from './routes/_authenticated/_admin/custom-fields/index'
 import { Route as AuthenticatedAdminCommerceIndexRouteImport } from './routes/_authenticated/_admin/commerce/index'
@@ -58,6 +61,7 @@ import { Route as AuthenticatedAdminUsersNewRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminToolsSiteNotificationsRouteImport } from './routes/_authenticated/_admin/tools/site-notifications'
 import { Route as AuthenticatedAdminToolsRoutesRouteImport } from './routes/_authenticated/_admin/tools/routes'
 import { Route as AuthenticatedAdminToolsRolesRouteImport } from './routes/_authenticated/_admin/tools/roles'
+import { Route as AuthenticatedAdminToolsMailingListsRouteImport } from './routes/_authenticated/_admin/tools/mailing-lists'
 import { Route as AuthenticatedAdminToolsEventsRouteImport } from './routes/_authenticated/_admin/tools/events'
 import { Route as AuthenticatedAdminToolsEmailNotificationsRouteImport } from './routes/_authenticated/_admin/tools/email-notifications'
 import { Route as AuthenticatedAdminToolsCapabilitiesRouteImport } from './routes/_authenticated/_admin/tools/capabilities'
@@ -79,6 +83,7 @@ import { Route as AuthenticatedAdminSettingsPrivacyRouteImport } from './routes/
 import { Route as AuthenticatedAdminSettingsPermalinksRouteImport } from './routes/_authenticated/_admin/settings/permalinks'
 import { Route as AuthenticatedAdminSettingsNotificationsRouteImport } from './routes/_authenticated/_admin/settings/notifications'
 import { Route as AuthenticatedAdminSettingsMediaRouteImport } from './routes/_authenticated/_admin/settings/media'
+import { Route as AuthenticatedAdminSettingsLanguagesRouteImport } from './routes/_authenticated/_admin/settings/languages'
 import { Route as AuthenticatedAdminSettingsIntegrationsRouteImport } from './routes/_authenticated/_admin/settings/integrations'
 import { Route as AuthenticatedAdminSettingsGeneralRouteImport } from './routes/_authenticated/_admin/settings/general'
 import { Route as AuthenticatedAdminSettingsEmailRouteImport } from './routes/_authenticated/_admin/settings/email'
@@ -95,7 +100,9 @@ import { Route as AuthenticatedAdminPostsNewRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminPostsCategoriesRouteImport } from './routes/_authenticated/_admin/posts/categories'
 import { Route as AuthenticatedAdminPostsPostIdRouteImport } from './routes/_authenticated/_admin/posts/$postId'
 import { Route as AuthenticatedAdminPagesNewRouteImport } from './routes/_authenticated/_admin/pages/new'
+import { Route as AuthenticatedAdminPagesCustomBlocksRouteImport } from './routes/_authenticated/_admin/pages/custom-blocks'
 import { Route as AuthenticatedAdminPagesBlocksRouteImport } from './routes/_authenticated/_admin/pages/blocks'
+import { Route as AuthenticatedAdminPagesBlockDiagnosticsRouteImport } from './routes/_authenticated/_admin/pages/block-diagnostics'
 import { Route as AuthenticatedAdminPagesPageIdRouteImport } from './routes/_authenticated/_admin/pages/$pageId'
 import { Route as AuthenticatedAdminMenusLocationsRouteImport } from './routes/_authenticated/_admin/menus/locations'
 import { Route as AuthenticatedAdminMembershipSettingsRouteImport } from './routes/_authenticated/_admin/membership/settings'
@@ -123,6 +130,9 @@ import { Route as AuthenticatedAdminGalleryNewRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminGalleryCategoriesRouteImport } from './routes/_authenticated/_admin/gallery/categories'
 import { Route as AuthenticatedAdminFormsSettingsRouteImport } from './routes/_authenticated/_admin/forms/settings'
 import { Route as AuthenticatedAdminFormsNewRouteImport } from './routes/_authenticated/_admin/forms/new'
+import { Route as AuthenticatedAdminEventsNewRouteImport } from './routes/_authenticated/_admin/events/new'
+import { Route as AuthenticatedAdminEventsCategoriesRouteImport } from './routes/_authenticated/_admin/events/categories'
+import { Route as AuthenticatedAdminEventsEventIdRouteImport } from './routes/_authenticated/_admin/events/$eventId'
 import { Route as AuthenticatedAdminCustomFieldsNewRouteImport } from './routes/_authenticated/_admin/custom-fields/new'
 import { Route as AuthenticatedAdminCommerceWorkflowsRouteImport } from './routes/_authenticated/_admin/commerce/workflows'
 import { Route as AuthenticatedAdminCommerceWishlistsRouteImport } from './routes/_authenticated/_admin/commerce/wishlists'
@@ -145,6 +155,7 @@ import { Route as AuthenticatedAdminCommerceCustomersRouteImport } from './route
 import { Route as AuthenticatedAdminCommerceCustomerGroupsRouteImport } from './routes/_authenticated/_admin/commerce/customer-groups'
 import { Route as AuthenticatedAdminCommerceCategoriesRouteImport } from './routes/_authenticated/_admin/commerce/categories'
 import { Route as AuthenticatedAdminCommerceBundlesRouteImport } from './routes/_authenticated/_admin/commerce/bundles'
+import { Route as AuthenticatedAdminCommerceBrandsRouteImport } from './routes/_authenticated/_admin/commerce/brands'
 import { Route as AuthenticatedAdminCommerceAttributesRouteImport } from './routes/_authenticated/_admin/commerce/attributes'
 import { Route as AuthenticatedAdminCommentsPendingRouteImport } from './routes/_authenticated/_admin/comments/pending'
 import { Route as AuthenticatedAdminAppearanceThemesRouteImport } from './routes/_authenticated/_admin/appearance/themes'
@@ -158,15 +169,22 @@ import { Route as AuthenticatedAdminToolsWebsiteImportIndexRouteImport } from '.
 import { Route as AuthenticatedAdminToolsRedirectsIndexRouteImport } from './routes/_authenticated/_admin/tools/redirects/index'
 import { Route as AuthenticatedAdminToolsAuditLogIndexRouteImport } from './routes/_authenticated/_admin/tools/audit-log/index'
 import { Route as AuthenticatedAdminMembershipRestrictionsIndexRouteImport } from './routes/_authenticated/_admin/membership/restrictions/index'
+import { Route as AuthenticatedAdminMembershipPlansIndexRouteImport } from './routes/_authenticated/_admin/membership/plans.index'
 import { Route as AuthenticatedAdminMembershipGrantsIndexRouteImport } from './routes/_authenticated/_admin/membership/grants/index'
 import { Route as AuthenticatedAdminLmsCoursesIndexRouteImport } from './routes/_authenticated/_admin/lms/courses/index'
 import { Route as AuthenticatedAdminLmsCertificatesIndexRouteImport } from './routes/_authenticated/_admin/lms/certificates/index'
 import { Route as AuthenticatedAdminCustomerDashboardLayoutsIndexRouteImport } from './routes/_authenticated/_admin/customer-dashboard/layouts/index'
 import { Route as AuthenticatedAdminCommerceSubscriptionsIndexRouteImport } from './routes/_authenticated/_admin/commerce/subscriptions/index'
+import { Route as AuthenticatedAdminCommerceReturnsIndexRouteImport } from './routes/_authenticated/_admin/commerce/returns.index'
+import { Route as AuthenticatedAdminCommerceProductsIndexRouteImport } from './routes/_authenticated/_admin/commerce/products.index'
+import { Route as AuthenticatedAdminCommerceOrdersIndexRouteImport } from './routes/_authenticated/_admin/commerce/orders.index'
+import { Route as AuthenticatedAdminCommerceCustomersIndexRouteImport } from './routes/_authenticated/_admin/commerce/customers.index'
+import { Route as AuthenticatedAdminCommerceAttributesIndexRouteImport } from './routes/_authenticated/_admin/commerce/attributes.index'
 import { Route as AuthenticatedAdminUsersUserIdEditRouteImport } from './routes/_authenticated/_admin/users/$userId/edit'
 import { Route as AuthenticatedAdminToolsRedirectsNewRouteImport } from './routes/_authenticated/_admin/tools/redirects/new'
 import { Route as AuthenticatedAdminToolsAuditLogEntryIdRouteImport } from './routes/_authenticated/_admin/tools/audit-log/$entryId'
 import { Route as AuthenticatedAdminSettingsIntegrationsStripeRouteImport } from './routes/_authenticated/_admin/settings/integrations.stripe'
+import { Route as AuthenticatedAdminSettingsIntegrationsSocialRouteImport } from './routes/_authenticated/_admin/settings/integrations.social'
 import { Route as AuthenticatedAdminSettingsIntegrationsShippingRouteImport } from './routes/_authenticated/_admin/settings/integrations.shipping'
 import { Route as AuthenticatedAdminSettingsIntegrationsPaypalRouteImport } from './routes/_authenticated/_admin/settings/integrations.paypal'
 import { Route as AuthenticatedAdminSettingsIntegrationsGoogleRouteImport } from './routes/_authenticated/_admin/settings/integrations.google'
@@ -295,6 +313,12 @@ const AuthenticatedAdminTicketsRoute =
     path: '/tickets',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminSyncedContentRoute =
+  AuthenticatedAdminSyncedContentRouteImport.update({
+    id: '/synced-content',
+    path: '/synced-content',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminSupportRoute =
   AuthenticatedAdminSupportRouteImport.update({
     id: '/support',
@@ -409,6 +433,12 @@ const AuthenticatedAdminTicketsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminTicketsRoute,
   } as any)
+const AuthenticatedAdminSupportIndexRoute =
+  AuthenticatedAdminSupportIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminSupportRoute,
+  } as any)
 const AuthenticatedAdminSettingsIndexRoute =
   AuthenticatedAdminSettingsIndexRouteImport.update({
     id: '/',
@@ -493,6 +523,12 @@ const AuthenticatedAdminFormsIndexRoute =
     path: '/forms/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminEventsIndexRoute =
+  AuthenticatedAdminEventsIndexRouteImport.update({
+    id: '/events/',
+    path: '/events/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminCustomerDashboardIndexRoute =
   AuthenticatedAdminCustomerDashboardIndexRouteImport.update({
     id: '/customer-dashboard/',
@@ -551,6 +587,12 @@ const AuthenticatedAdminToolsRolesRoute =
   AuthenticatedAdminToolsRolesRouteImport.update({
     id: '/roles',
     path: '/roles',
+    getParentRoute: () => AuthenticatedAdminToolsRoute,
+  } as any)
+const AuthenticatedAdminToolsMailingListsRoute =
+  AuthenticatedAdminToolsMailingListsRouteImport.update({
+    id: '/mailing-lists',
+    path: '/mailing-lists',
     getParentRoute: () => AuthenticatedAdminToolsRoute,
   } as any)
 const AuthenticatedAdminToolsEventsRoute =
@@ -679,6 +721,12 @@ const AuthenticatedAdminSettingsMediaRoute =
     path: '/media',
     getParentRoute: () => AuthenticatedAdminSettingsRoute,
   } as any)
+const AuthenticatedAdminSettingsLanguagesRoute =
+  AuthenticatedAdminSettingsLanguagesRouteImport.update({
+    id: '/languages',
+    path: '/languages',
+    getParentRoute: () => AuthenticatedAdminSettingsRoute,
+  } as any)
 const AuthenticatedAdminSettingsIntegrationsRoute =
   AuthenticatedAdminSettingsIntegrationsRouteImport.update({
     id: '/integrations',
@@ -783,10 +831,22 @@ const AuthenticatedAdminPagesNewRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedAdminPagesCustomBlocksRoute =
+  AuthenticatedAdminPagesCustomBlocksRouteImport.update({
+    id: '/pages/custom-blocks',
+    path: '/pages/custom-blocks',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminPagesBlocksRoute =
   AuthenticatedAdminPagesBlocksRouteImport.update({
     id: '/pages/blocks',
     path: '/pages/blocks',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPagesBlockDiagnosticsRoute =
+  AuthenticatedAdminPagesBlockDiagnosticsRouteImport.update({
+    id: '/pages/block-diagnostics',
+    path: '/pages/block-diagnostics',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminPagesPageIdRoute =
@@ -950,6 +1010,24 @@ const AuthenticatedAdminFormsNewRoute =
     path: '/forms/new',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminEventsNewRoute =
+  AuthenticatedAdminEventsNewRouteImport.update({
+    id: '/events/new',
+    path: '/events/new',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminEventsCategoriesRoute =
+  AuthenticatedAdminEventsCategoriesRouteImport.update({
+    id: '/events/categories',
+    path: '/events/categories',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminEventsEventIdRoute =
+  AuthenticatedAdminEventsEventIdRouteImport.update({
+    id: '/events/$eventId',
+    path: '/events/$eventId',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminCustomFieldsNewRoute =
   AuthenticatedAdminCustomFieldsNewRouteImport.update({
     id: '/new',
@@ -1082,6 +1160,12 @@ const AuthenticatedAdminCommerceBundlesRoute =
     path: '/bundles',
     getParentRoute: () => AuthenticatedAdminCommerceRoute,
   } as any)
+const AuthenticatedAdminCommerceBrandsRoute =
+  AuthenticatedAdminCommerceBrandsRouteImport.update({
+    id: '/brands',
+    path: '/brands',
+    getParentRoute: () => AuthenticatedAdminCommerceRoute,
+  } as any)
 const AuthenticatedAdminCommerceAttributesRoute =
   AuthenticatedAdminCommerceAttributesRouteImport.update({
     id: '/attributes',
@@ -1160,6 +1244,12 @@ const AuthenticatedAdminMembershipRestrictionsIndexRoute =
     path: '/restrictions/',
     getParentRoute: () => AuthenticatedAdminMembershipRoute,
   } as any)
+const AuthenticatedAdminMembershipPlansIndexRoute =
+  AuthenticatedAdminMembershipPlansIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminMembershipPlansRoute,
+  } as any)
 const AuthenticatedAdminMembershipGrantsIndexRoute =
   AuthenticatedAdminMembershipGrantsIndexRouteImport.update({
     id: '/grants/',
@@ -1190,6 +1280,36 @@ const AuthenticatedAdminCommerceSubscriptionsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminCommerceSubscriptionsRoute,
   } as any)
+const AuthenticatedAdminCommerceReturnsIndexRoute =
+  AuthenticatedAdminCommerceReturnsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminCommerceReturnsRoute,
+  } as any)
+const AuthenticatedAdminCommerceProductsIndexRoute =
+  AuthenticatedAdminCommerceProductsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminCommerceProductsRoute,
+  } as any)
+const AuthenticatedAdminCommerceOrdersIndexRoute =
+  AuthenticatedAdminCommerceOrdersIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminCommerceOrdersRoute,
+  } as any)
+const AuthenticatedAdminCommerceCustomersIndexRoute =
+  AuthenticatedAdminCommerceCustomersIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminCommerceCustomersRoute,
+  } as any)
+const AuthenticatedAdminCommerceAttributesIndexRoute =
+  AuthenticatedAdminCommerceAttributesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminCommerceAttributesRoute,
+  } as any)
 const AuthenticatedAdminUsersUserIdEditRoute =
   AuthenticatedAdminUsersUserIdEditRouteImport.update({
     id: '/users/$userId/edit',
@@ -1212,6 +1332,12 @@ const AuthenticatedAdminSettingsIntegrationsStripeRoute =
   AuthenticatedAdminSettingsIntegrationsStripeRouteImport.update({
     id: '/stripe',
     path: '/stripe',
+    getParentRoute: () => AuthenticatedAdminSettingsIntegrationsRoute,
+  } as any)
+const AuthenticatedAdminSettingsIntegrationsSocialRoute =
+  AuthenticatedAdminSettingsIntegrationsSocialRouteImport.update({
+    id: '/social',
+    path: '/social',
     getParentRoute: () => AuthenticatedAdminSettingsIntegrationsRoute,
   } as any)
 const AuthenticatedAdminSettingsIntegrationsShippingRoute =
@@ -1863,6 +1989,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedAdminSettingsRouteWithChildren
   '/setup': typeof AuthenticatedAdminSetupRoute
   '/support': typeof AuthenticatedAdminSupportRouteWithChildren
+  '/synced-content': typeof AuthenticatedAdminSyncedContentRoute
   '/tickets': typeof AuthenticatedAdminTicketsRouteWithChildren
   '/tools': typeof AuthenticatedAdminToolsRouteWithChildren
   '/updates': typeof AuthenticatedAdminUpdatesRoute
@@ -1874,6 +2001,7 @@ export interface FileRoutesByFullPath {
   '/appearance/themes': typeof AuthenticatedAdminAppearanceThemesRoute
   '/comments/pending': typeof AuthenticatedAdminCommentsPendingRoute
   '/commerce/attributes': typeof AuthenticatedAdminCommerceAttributesRouteWithChildren
+  '/commerce/brands': typeof AuthenticatedAdminCommerceBrandsRoute
   '/commerce/bundles': typeof AuthenticatedAdminCommerceBundlesRoute
   '/commerce/categories': typeof AuthenticatedAdminCommerceCategoriesRoute
   '/commerce/customer-groups': typeof AuthenticatedAdminCommerceCustomerGroupsRoute
@@ -1896,6 +2024,9 @@ export interface FileRoutesByFullPath {
   '/commerce/wishlists': typeof AuthenticatedAdminCommerceWishlistsRoute
   '/commerce/workflows': typeof AuthenticatedAdminCommerceWorkflowsRoute
   '/custom-fields/new': typeof AuthenticatedAdminCustomFieldsNewRoute
+  '/events/$eventId': typeof AuthenticatedAdminEventsEventIdRoute
+  '/events/categories': typeof AuthenticatedAdminEventsCategoriesRoute
+  '/events/new': typeof AuthenticatedAdminEventsNewRoute
   '/forms/new': typeof AuthenticatedAdminFormsNewRoute
   '/forms/settings': typeof AuthenticatedAdminFormsSettingsRoute
   '/gallery/categories': typeof AuthenticatedAdminGalleryCategoriesRoute
@@ -1923,7 +2054,9 @@ export interface FileRoutesByFullPath {
   '/membership/settings': typeof AuthenticatedAdminMembershipSettingsRoute
   '/menus/locations': typeof AuthenticatedAdminMenusLocationsRoute
   '/pages/$pageId': typeof AuthenticatedAdminPagesPageIdRouteWithChildren
+  '/pages/block-diagnostics': typeof AuthenticatedAdminPagesBlockDiagnosticsRoute
   '/pages/blocks': typeof AuthenticatedAdminPagesBlocksRoute
+  '/pages/custom-blocks': typeof AuthenticatedAdminPagesCustomBlocksRoute
   '/pages/new': typeof AuthenticatedAdminPagesNewRoute
   '/posts/$postId': typeof AuthenticatedAdminPostsPostIdRouteWithChildren
   '/posts/categories': typeof AuthenticatedAdminPostsCategoriesRoute
@@ -1940,6 +2073,7 @@ export interface FileRoutesByFullPath {
   '/settings/email': typeof AuthenticatedAdminSettingsEmailRoute
   '/settings/general': typeof AuthenticatedAdminSettingsGeneralRoute
   '/settings/integrations': typeof AuthenticatedAdminSettingsIntegrationsRouteWithChildren
+  '/settings/languages': typeof AuthenticatedAdminSettingsLanguagesRoute
   '/settings/media': typeof AuthenticatedAdminSettingsMediaRoute
   '/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/settings/permalinks': typeof AuthenticatedAdminSettingsPermalinksRoute
@@ -1961,6 +2095,7 @@ export interface FileRoutesByFullPath {
   '/tools/capabilities': typeof AuthenticatedAdminToolsCapabilitiesRoute
   '/tools/email-notifications': typeof AuthenticatedAdminToolsEmailNotificationsRoute
   '/tools/events': typeof AuthenticatedAdminToolsEventsRoute
+  '/tools/mailing-lists': typeof AuthenticatedAdminToolsMailingListsRoute
   '/tools/roles': typeof AuthenticatedAdminToolsRolesRoute
   '/tools/routes': typeof AuthenticatedAdminToolsRoutesRoute
   '/tools/site-notifications': typeof AuthenticatedAdminToolsSiteNotificationsRoute
@@ -1971,6 +2106,7 @@ export interface FileRoutesByFullPath {
   '/commerce/': typeof AuthenticatedAdminCommerceIndexRoute
   '/custom-fields/': typeof AuthenticatedAdminCustomFieldsIndexRoute
   '/customer-dashboard/': typeof AuthenticatedAdminCustomerDashboardIndexRoute
+  '/events/': typeof AuthenticatedAdminEventsIndexRoute
   '/forms/': typeof AuthenticatedAdminFormsIndexRoute
   '/gallery/': typeof AuthenticatedAdminGalleryIndexRoute
   '/kb/': typeof AuthenticatedAdminKbIndexRoute
@@ -1985,6 +2121,7 @@ export interface FileRoutesByFullPath {
   '/roles/': typeof AuthenticatedAdminRolesIndexRoute
   '/seo/': typeof AuthenticatedAdminSeoIndexRoute
   '/settings/': typeof AuthenticatedAdminSettingsIndexRoute
+  '/support/': typeof AuthenticatedAdminSupportIndexRoute
   '/tickets/': typeof AuthenticatedAdminTicketsIndexRoute
   '/tools/': typeof AuthenticatedAdminToolsIndexRoute
   '/users/': typeof AuthenticatedAdminUsersIndexRoute
@@ -2037,15 +2174,22 @@ export interface FileRoutesByFullPath {
   '/settings/integrations/google': typeof AuthenticatedAdminSettingsIntegrationsGoogleRoute
   '/settings/integrations/paypal': typeof AuthenticatedAdminSettingsIntegrationsPaypalRoute
   '/settings/integrations/shipping': typeof AuthenticatedAdminSettingsIntegrationsShippingRouteWithChildren
+  '/settings/integrations/social': typeof AuthenticatedAdminSettingsIntegrationsSocialRoute
   '/settings/integrations/stripe': typeof AuthenticatedAdminSettingsIntegrationsStripeRoute
   '/tools/audit-log/$entryId': typeof AuthenticatedAdminToolsAuditLogEntryIdRoute
   '/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
+  '/commerce/attributes/': typeof AuthenticatedAdminCommerceAttributesIndexRoute
+  '/commerce/customers/': typeof AuthenticatedAdminCommerceCustomersIndexRoute
+  '/commerce/orders/': typeof AuthenticatedAdminCommerceOrdersIndexRoute
+  '/commerce/products/': typeof AuthenticatedAdminCommerceProductsIndexRoute
+  '/commerce/returns/': typeof AuthenticatedAdminCommerceReturnsIndexRoute
   '/commerce/subscriptions/': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
   '/customer-dashboard/layouts/': typeof AuthenticatedAdminCustomerDashboardLayoutsIndexRoute
   '/lms/certificates/': typeof AuthenticatedAdminLmsCertificatesIndexRoute
   '/lms/courses/': typeof AuthenticatedAdminLmsCoursesIndexRoute
   '/membership/grants/': typeof AuthenticatedAdminMembershipGrantsIndexRoute
+  '/membership/plans/': typeof AuthenticatedAdminMembershipPlansIndexRoute
   '/membership/restrictions/': typeof AuthenticatedAdminMembershipRestrictionsIndexRoute
   '/tools/audit-log/': typeof AuthenticatedAdminToolsAuditLogIndexRoute
   '/tools/redirects/': typeof AuthenticatedAdminToolsRedirectsIndexRoute
@@ -2107,7 +2251,7 @@ export interface FileRoutesByTo {
   '/plugins': typeof AuthenticatedAdminPluginsRoute
   '/profile': typeof AuthenticatedAdminProfileRoute
   '/setup': typeof AuthenticatedAdminSetupRoute
-  '/support': typeof AuthenticatedAdminSupportRouteWithChildren
+  '/synced-content': typeof AuthenticatedAdminSyncedContentRoute
   '/updates': typeof AuthenticatedAdminUpdatesRoute
   '/appearance/colors': typeof AuthenticatedAdminAppearanceColorsRoute
   '/appearance/customize': typeof AuthenticatedAdminAppearanceCustomizeRoute
@@ -2116,28 +2260,27 @@ export interface FileRoutesByTo {
   '/appearance/templates': typeof AuthenticatedAdminAppearanceTemplatesRoute
   '/appearance/themes': typeof AuthenticatedAdminAppearanceThemesRoute
   '/comments/pending': typeof AuthenticatedAdminCommentsPendingRoute
-  '/commerce/attributes': typeof AuthenticatedAdminCommerceAttributesRouteWithChildren
+  '/commerce/brands': typeof AuthenticatedAdminCommerceBrandsRoute
   '/commerce/bundles': typeof AuthenticatedAdminCommerceBundlesRoute
   '/commerce/categories': typeof AuthenticatedAdminCommerceCategoriesRoute
   '/commerce/customer-groups': typeof AuthenticatedAdminCommerceCustomerGroupsRoute
-  '/commerce/customers': typeof AuthenticatedAdminCommerceCustomersRouteWithChildren
   '/commerce/digital': typeof AuthenticatedAdminCommerceDigitalRoute
   '/commerce/discounts': typeof AuthenticatedAdminCommerceDiscountsRoute
   '/commerce/draft-orders': typeof AuthenticatedAdminCommerceDraftOrdersRoute
   '/commerce/order-changes': typeof AuthenticatedAdminCommerceOrderChangesRoute
-  '/commerce/orders': typeof AuthenticatedAdminCommerceOrdersRouteWithChildren
   '/commerce/payment-collections': typeof AuthenticatedAdminCommercePaymentCollectionsRoute
   '/commerce/payments': typeof AuthenticatedAdminCommercePaymentsRoute
   '/commerce/pricing': typeof AuthenticatedAdminCommercePricingRoute
-  '/commerce/products': typeof AuthenticatedAdminCommerceProductsRouteWithChildren
   '/commerce/regions': typeof AuthenticatedAdminCommerceRegionsRoute
-  '/commerce/returns': typeof AuthenticatedAdminCommerceReturnsRouteWithChildren
   '/commerce/reviews': typeof AuthenticatedAdminCommerceReviewsRoute
   '/commerce/sales-channels': typeof AuthenticatedAdminCommerceSalesChannelsRoute
   '/commerce/settings': typeof AuthenticatedAdminCommerceSettingsRouteWithChildren
   '/commerce/wishlists': typeof AuthenticatedAdminCommerceWishlistsRoute
   '/commerce/workflows': typeof AuthenticatedAdminCommerceWorkflowsRoute
   '/custom-fields/new': typeof AuthenticatedAdminCustomFieldsNewRoute
+  '/events/$eventId': typeof AuthenticatedAdminEventsEventIdRoute
+  '/events/categories': typeof AuthenticatedAdminEventsCategoriesRoute
+  '/events/new': typeof AuthenticatedAdminEventsNewRoute
   '/forms/new': typeof AuthenticatedAdminFormsNewRoute
   '/forms/settings': typeof AuthenticatedAdminFormsSettingsRoute
   '/gallery/categories': typeof AuthenticatedAdminGalleryCategoriesRoute
@@ -2161,11 +2304,12 @@ export interface FileRoutesByTo {
   '/lms/settings': typeof AuthenticatedAdminLmsSettingsRoute
   '/lms/verify': typeof AuthenticatedAdminLmsVerifyRoute
   '/media/upload': typeof AuthenticatedAdminMediaUploadRoute
-  '/membership/plans': typeof AuthenticatedAdminMembershipPlansRouteWithChildren
   '/membership/settings': typeof AuthenticatedAdminMembershipSettingsRoute
   '/menus/locations': typeof AuthenticatedAdminMenusLocationsRoute
   '/pages/$pageId': typeof AuthenticatedAdminPagesPageIdRouteWithChildren
+  '/pages/block-diagnostics': typeof AuthenticatedAdminPagesBlockDiagnosticsRoute
   '/pages/blocks': typeof AuthenticatedAdminPagesBlocksRoute
+  '/pages/custom-blocks': typeof AuthenticatedAdminPagesCustomBlocksRoute
   '/pages/new': typeof AuthenticatedAdminPagesNewRoute
   '/posts/$postId': typeof AuthenticatedAdminPostsPostIdRouteWithChildren
   '/posts/categories': typeof AuthenticatedAdminPostsCategoriesRoute
@@ -2182,6 +2326,7 @@ export interface FileRoutesByTo {
   '/settings/email': typeof AuthenticatedAdminSettingsEmailRoute
   '/settings/general': typeof AuthenticatedAdminSettingsGeneralRoute
   '/settings/integrations': typeof AuthenticatedAdminSettingsIntegrationsRouteWithChildren
+  '/settings/languages': typeof AuthenticatedAdminSettingsLanguagesRoute
   '/settings/media': typeof AuthenticatedAdminSettingsMediaRoute
   '/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/settings/permalinks': typeof AuthenticatedAdminSettingsPermalinksRoute
@@ -2203,6 +2348,7 @@ export interface FileRoutesByTo {
   '/tools/capabilities': typeof AuthenticatedAdminToolsCapabilitiesRoute
   '/tools/email-notifications': typeof AuthenticatedAdminToolsEmailNotificationsRoute
   '/tools/events': typeof AuthenticatedAdminToolsEventsRoute
+  '/tools/mailing-lists': typeof AuthenticatedAdminToolsMailingListsRoute
   '/tools/roles': typeof AuthenticatedAdminToolsRolesRoute
   '/tools/routes': typeof AuthenticatedAdminToolsRoutesRoute
   '/tools/site-notifications': typeof AuthenticatedAdminToolsSiteNotificationsRoute
@@ -2213,6 +2359,7 @@ export interface FileRoutesByTo {
   '/commerce': typeof AuthenticatedAdminCommerceIndexRoute
   '/custom-fields': typeof AuthenticatedAdminCustomFieldsIndexRoute
   '/customer-dashboard': typeof AuthenticatedAdminCustomerDashboardIndexRoute
+  '/events': typeof AuthenticatedAdminEventsIndexRoute
   '/forms': typeof AuthenticatedAdminFormsIndexRoute
   '/gallery': typeof AuthenticatedAdminGalleryIndexRoute
   '/kb': typeof AuthenticatedAdminKbIndexRoute
@@ -2227,6 +2374,7 @@ export interface FileRoutesByTo {
   '/roles': typeof AuthenticatedAdminRolesIndexRoute
   '/seo': typeof AuthenticatedAdminSeoIndexRoute
   '/settings': typeof AuthenticatedAdminSettingsIndexRoute
+  '/support': typeof AuthenticatedAdminSupportIndexRoute
   '/tickets': typeof AuthenticatedAdminTicketsIndexRoute
   '/tools': typeof AuthenticatedAdminToolsIndexRoute
   '/users': typeof AuthenticatedAdminUsersIndexRoute
@@ -2279,15 +2427,22 @@ export interface FileRoutesByTo {
   '/settings/integrations/google': typeof AuthenticatedAdminSettingsIntegrationsGoogleRoute
   '/settings/integrations/paypal': typeof AuthenticatedAdminSettingsIntegrationsPaypalRoute
   '/settings/integrations/shipping': typeof AuthenticatedAdminSettingsIntegrationsShippingRouteWithChildren
+  '/settings/integrations/social': typeof AuthenticatedAdminSettingsIntegrationsSocialRoute
   '/settings/integrations/stripe': typeof AuthenticatedAdminSettingsIntegrationsStripeRoute
   '/tools/audit-log/$entryId': typeof AuthenticatedAdminToolsAuditLogEntryIdRoute
   '/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
+  '/commerce/attributes': typeof AuthenticatedAdminCommerceAttributesIndexRoute
+  '/commerce/customers': typeof AuthenticatedAdminCommerceCustomersIndexRoute
+  '/commerce/orders': typeof AuthenticatedAdminCommerceOrdersIndexRoute
+  '/commerce/products': typeof AuthenticatedAdminCommerceProductsIndexRoute
+  '/commerce/returns': typeof AuthenticatedAdminCommerceReturnsIndexRoute
   '/commerce/subscriptions': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
   '/customer-dashboard/layouts': typeof AuthenticatedAdminCustomerDashboardLayoutsIndexRoute
   '/lms/certificates': typeof AuthenticatedAdminLmsCertificatesIndexRoute
   '/lms/courses': typeof AuthenticatedAdminLmsCoursesIndexRoute
   '/membership/grants': typeof AuthenticatedAdminMembershipGrantsIndexRoute
+  '/membership/plans': typeof AuthenticatedAdminMembershipPlansIndexRoute
   '/membership/restrictions': typeof AuthenticatedAdminMembershipRestrictionsIndexRoute
   '/tools/audit-log': typeof AuthenticatedAdminToolsAuditLogIndexRoute
   '/tools/redirects': typeof AuthenticatedAdminToolsRedirectsIndexRoute
@@ -2363,6 +2518,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/settings': typeof AuthenticatedAdminSettingsRouteWithChildren
   '/_authenticated/_admin/setup': typeof AuthenticatedAdminSetupRoute
   '/_authenticated/_admin/support': typeof AuthenticatedAdminSupportRouteWithChildren
+  '/_authenticated/_admin/synced-content': typeof AuthenticatedAdminSyncedContentRoute
   '/_authenticated/_admin/tickets': typeof AuthenticatedAdminTicketsRouteWithChildren
   '/_authenticated/_admin/tools': typeof AuthenticatedAdminToolsRouteWithChildren
   '/_authenticated/_admin/updates': typeof AuthenticatedAdminUpdatesRoute
@@ -2374,6 +2530,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/appearance/themes': typeof AuthenticatedAdminAppearanceThemesRoute
   '/_authenticated/_admin/comments/pending': typeof AuthenticatedAdminCommentsPendingRoute
   '/_authenticated/_admin/commerce/attributes': typeof AuthenticatedAdminCommerceAttributesRouteWithChildren
+  '/_authenticated/_admin/commerce/brands': typeof AuthenticatedAdminCommerceBrandsRoute
   '/_authenticated/_admin/commerce/bundles': typeof AuthenticatedAdminCommerceBundlesRoute
   '/_authenticated/_admin/commerce/categories': typeof AuthenticatedAdminCommerceCategoriesRoute
   '/_authenticated/_admin/commerce/customer-groups': typeof AuthenticatedAdminCommerceCustomerGroupsRoute
@@ -2396,6 +2553,9 @@ export interface FileRoutesById {
   '/_authenticated/_admin/commerce/wishlists': typeof AuthenticatedAdminCommerceWishlistsRoute
   '/_authenticated/_admin/commerce/workflows': typeof AuthenticatedAdminCommerceWorkflowsRoute
   '/_authenticated/_admin/custom-fields/new': typeof AuthenticatedAdminCustomFieldsNewRoute
+  '/_authenticated/_admin/events/$eventId': typeof AuthenticatedAdminEventsEventIdRoute
+  '/_authenticated/_admin/events/categories': typeof AuthenticatedAdminEventsCategoriesRoute
+  '/_authenticated/_admin/events/new': typeof AuthenticatedAdminEventsNewRoute
   '/_authenticated/_admin/forms/new': typeof AuthenticatedAdminFormsNewRoute
   '/_authenticated/_admin/forms/settings': typeof AuthenticatedAdminFormsSettingsRoute
   '/_authenticated/_admin/gallery/categories': typeof AuthenticatedAdminGalleryCategoriesRoute
@@ -2423,7 +2583,9 @@ export interface FileRoutesById {
   '/_authenticated/_admin/membership/settings': typeof AuthenticatedAdminMembershipSettingsRoute
   '/_authenticated/_admin/menus/locations': typeof AuthenticatedAdminMenusLocationsRoute
   '/_authenticated/_admin/pages/$pageId': typeof AuthenticatedAdminPagesPageIdRouteWithChildren
+  '/_authenticated/_admin/pages/block-diagnostics': typeof AuthenticatedAdminPagesBlockDiagnosticsRoute
   '/_authenticated/_admin/pages/blocks': typeof AuthenticatedAdminPagesBlocksRoute
+  '/_authenticated/_admin/pages/custom-blocks': typeof AuthenticatedAdminPagesCustomBlocksRoute
   '/_authenticated/_admin/pages/new': typeof AuthenticatedAdminPagesNewRoute
   '/_authenticated/_admin/posts/$postId': typeof AuthenticatedAdminPostsPostIdRouteWithChildren
   '/_authenticated/_admin/posts/categories': typeof AuthenticatedAdminPostsCategoriesRoute
@@ -2440,6 +2602,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/settings/email': typeof AuthenticatedAdminSettingsEmailRoute
   '/_authenticated/_admin/settings/general': typeof AuthenticatedAdminSettingsGeneralRoute
   '/_authenticated/_admin/settings/integrations': typeof AuthenticatedAdminSettingsIntegrationsRouteWithChildren
+  '/_authenticated/_admin/settings/languages': typeof AuthenticatedAdminSettingsLanguagesRoute
   '/_authenticated/_admin/settings/media': typeof AuthenticatedAdminSettingsMediaRoute
   '/_authenticated/_admin/settings/notifications': typeof AuthenticatedAdminSettingsNotificationsRoute
   '/_authenticated/_admin/settings/permalinks': typeof AuthenticatedAdminSettingsPermalinksRoute
@@ -2461,6 +2624,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/tools/capabilities': typeof AuthenticatedAdminToolsCapabilitiesRoute
   '/_authenticated/_admin/tools/email-notifications': typeof AuthenticatedAdminToolsEmailNotificationsRoute
   '/_authenticated/_admin/tools/events': typeof AuthenticatedAdminToolsEventsRoute
+  '/_authenticated/_admin/tools/mailing-lists': typeof AuthenticatedAdminToolsMailingListsRoute
   '/_authenticated/_admin/tools/roles': typeof AuthenticatedAdminToolsRolesRoute
   '/_authenticated/_admin/tools/routes': typeof AuthenticatedAdminToolsRoutesRoute
   '/_authenticated/_admin/tools/site-notifications': typeof AuthenticatedAdminToolsSiteNotificationsRoute
@@ -2471,6 +2635,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/commerce/': typeof AuthenticatedAdminCommerceIndexRoute
   '/_authenticated/_admin/custom-fields/': typeof AuthenticatedAdminCustomFieldsIndexRoute
   '/_authenticated/_admin/customer-dashboard/': typeof AuthenticatedAdminCustomerDashboardIndexRoute
+  '/_authenticated/_admin/events/': typeof AuthenticatedAdminEventsIndexRoute
   '/_authenticated/_admin/forms/': typeof AuthenticatedAdminFormsIndexRoute
   '/_authenticated/_admin/gallery/': typeof AuthenticatedAdminGalleryIndexRoute
   '/_authenticated/_admin/kb/': typeof AuthenticatedAdminKbIndexRoute
@@ -2485,6 +2650,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/roles/': typeof AuthenticatedAdminRolesIndexRoute
   '/_authenticated/_admin/seo/': typeof AuthenticatedAdminSeoIndexRoute
   '/_authenticated/_admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
+  '/_authenticated/_admin/support/': typeof AuthenticatedAdminSupportIndexRoute
   '/_authenticated/_admin/tickets/': typeof AuthenticatedAdminTicketsIndexRoute
   '/_authenticated/_admin/tools/': typeof AuthenticatedAdminToolsIndexRoute
   '/_authenticated/_admin/users/': typeof AuthenticatedAdminUsersIndexRoute
@@ -2537,15 +2703,22 @@ export interface FileRoutesById {
   '/_authenticated/_admin/settings/integrations/google': typeof AuthenticatedAdminSettingsIntegrationsGoogleRoute
   '/_authenticated/_admin/settings/integrations/paypal': typeof AuthenticatedAdminSettingsIntegrationsPaypalRoute
   '/_authenticated/_admin/settings/integrations/shipping': typeof AuthenticatedAdminSettingsIntegrationsShippingRouteWithChildren
+  '/_authenticated/_admin/settings/integrations/social': typeof AuthenticatedAdminSettingsIntegrationsSocialRoute
   '/_authenticated/_admin/settings/integrations/stripe': typeof AuthenticatedAdminSettingsIntegrationsStripeRoute
   '/_authenticated/_admin/tools/audit-log/$entryId': typeof AuthenticatedAdminToolsAuditLogEntryIdRoute
   '/_authenticated/_admin/tools/redirects/new': typeof AuthenticatedAdminToolsRedirectsNewRoute
   '/_authenticated/_admin/users/$userId/edit': typeof AuthenticatedAdminUsersUserIdEditRoute
+  '/_authenticated/_admin/commerce/attributes/': typeof AuthenticatedAdminCommerceAttributesIndexRoute
+  '/_authenticated/_admin/commerce/customers/': typeof AuthenticatedAdminCommerceCustomersIndexRoute
+  '/_authenticated/_admin/commerce/orders/': typeof AuthenticatedAdminCommerceOrdersIndexRoute
+  '/_authenticated/_admin/commerce/products/': typeof AuthenticatedAdminCommerceProductsIndexRoute
+  '/_authenticated/_admin/commerce/returns/': typeof AuthenticatedAdminCommerceReturnsIndexRoute
   '/_authenticated/_admin/commerce/subscriptions/': typeof AuthenticatedAdminCommerceSubscriptionsIndexRoute
   '/_authenticated/_admin/customer-dashboard/layouts/': typeof AuthenticatedAdminCustomerDashboardLayoutsIndexRoute
   '/_authenticated/_admin/lms/certificates/': typeof AuthenticatedAdminLmsCertificatesIndexRoute
   '/_authenticated/_admin/lms/courses/': typeof AuthenticatedAdminLmsCoursesIndexRoute
   '/_authenticated/_admin/membership/grants/': typeof AuthenticatedAdminMembershipGrantsIndexRoute
+  '/_authenticated/_admin/membership/plans/': typeof AuthenticatedAdminMembershipPlansIndexRoute
   '/_authenticated/_admin/membership/restrictions/': typeof AuthenticatedAdminMembershipRestrictionsIndexRoute
   '/_authenticated/_admin/tools/audit-log/': typeof AuthenticatedAdminToolsAuditLogIndexRoute
   '/_authenticated/_admin/tools/redirects/': typeof AuthenticatedAdminToolsRedirectsIndexRoute
@@ -2620,6 +2793,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/setup'
     | '/support'
+    | '/synced-content'
     | '/tickets'
     | '/tools'
     | '/updates'
@@ -2631,6 +2805,7 @@ export interface FileRouteTypes {
     | '/appearance/themes'
     | '/comments/pending'
     | '/commerce/attributes'
+    | '/commerce/brands'
     | '/commerce/bundles'
     | '/commerce/categories'
     | '/commerce/customer-groups'
@@ -2653,6 +2828,9 @@ export interface FileRouteTypes {
     | '/commerce/wishlists'
     | '/commerce/workflows'
     | '/custom-fields/new'
+    | '/events/$eventId'
+    | '/events/categories'
+    | '/events/new'
     | '/forms/new'
     | '/forms/settings'
     | '/gallery/categories'
@@ -2680,7 +2858,9 @@ export interface FileRouteTypes {
     | '/membership/settings'
     | '/menus/locations'
     | '/pages/$pageId'
+    | '/pages/block-diagnostics'
     | '/pages/blocks'
+    | '/pages/custom-blocks'
     | '/pages/new'
     | '/posts/$postId'
     | '/posts/categories'
@@ -2697,6 +2877,7 @@ export interface FileRouteTypes {
     | '/settings/email'
     | '/settings/general'
     | '/settings/integrations'
+    | '/settings/languages'
     | '/settings/media'
     | '/settings/notifications'
     | '/settings/permalinks'
@@ -2718,6 +2899,7 @@ export interface FileRouteTypes {
     | '/tools/capabilities'
     | '/tools/email-notifications'
     | '/tools/events'
+    | '/tools/mailing-lists'
     | '/tools/roles'
     | '/tools/routes'
     | '/tools/site-notifications'
@@ -2728,6 +2910,7 @@ export interface FileRouteTypes {
     | '/commerce/'
     | '/custom-fields/'
     | '/customer-dashboard/'
+    | '/events/'
     | '/forms/'
     | '/gallery/'
     | '/kb/'
@@ -2742,6 +2925,7 @@ export interface FileRouteTypes {
     | '/roles/'
     | '/seo/'
     | '/settings/'
+    | '/support/'
     | '/tickets/'
     | '/tools/'
     | '/users/'
@@ -2794,15 +2978,22 @@ export interface FileRouteTypes {
     | '/settings/integrations/google'
     | '/settings/integrations/paypal'
     | '/settings/integrations/shipping'
+    | '/settings/integrations/social'
     | '/settings/integrations/stripe'
     | '/tools/audit-log/$entryId'
     | '/tools/redirects/new'
     | '/users/$userId/edit'
+    | '/commerce/attributes/'
+    | '/commerce/customers/'
+    | '/commerce/orders/'
+    | '/commerce/products/'
+    | '/commerce/returns/'
     | '/commerce/subscriptions/'
     | '/customer-dashboard/layouts/'
     | '/lms/certificates/'
     | '/lms/courses/'
     | '/membership/grants/'
+    | '/membership/plans/'
     | '/membership/restrictions/'
     | '/tools/audit-log/'
     | '/tools/redirects/'
@@ -2864,7 +3055,7 @@ export interface FileRouteTypes {
     | '/plugins'
     | '/profile'
     | '/setup'
-    | '/support'
+    | '/synced-content'
     | '/updates'
     | '/appearance/colors'
     | '/appearance/customize'
@@ -2873,28 +3064,27 @@ export interface FileRouteTypes {
     | '/appearance/templates'
     | '/appearance/themes'
     | '/comments/pending'
-    | '/commerce/attributes'
+    | '/commerce/brands'
     | '/commerce/bundles'
     | '/commerce/categories'
     | '/commerce/customer-groups'
-    | '/commerce/customers'
     | '/commerce/digital'
     | '/commerce/discounts'
     | '/commerce/draft-orders'
     | '/commerce/order-changes'
-    | '/commerce/orders'
     | '/commerce/payment-collections'
     | '/commerce/payments'
     | '/commerce/pricing'
-    | '/commerce/products'
     | '/commerce/regions'
-    | '/commerce/returns'
     | '/commerce/reviews'
     | '/commerce/sales-channels'
     | '/commerce/settings'
     | '/commerce/wishlists'
     | '/commerce/workflows'
     | '/custom-fields/new'
+    | '/events/$eventId'
+    | '/events/categories'
+    | '/events/new'
     | '/forms/new'
     | '/forms/settings'
     | '/gallery/categories'
@@ -2918,11 +3108,12 @@ export interface FileRouteTypes {
     | '/lms/settings'
     | '/lms/verify'
     | '/media/upload'
-    | '/membership/plans'
     | '/membership/settings'
     | '/menus/locations'
     | '/pages/$pageId'
+    | '/pages/block-diagnostics'
     | '/pages/blocks'
+    | '/pages/custom-blocks'
     | '/pages/new'
     | '/posts/$postId'
     | '/posts/categories'
@@ -2939,6 +3130,7 @@ export interface FileRouteTypes {
     | '/settings/email'
     | '/settings/general'
     | '/settings/integrations'
+    | '/settings/languages'
     | '/settings/media'
     | '/settings/notifications'
     | '/settings/permalinks'
@@ -2960,6 +3152,7 @@ export interface FileRouteTypes {
     | '/tools/capabilities'
     | '/tools/email-notifications'
     | '/tools/events'
+    | '/tools/mailing-lists'
     | '/tools/roles'
     | '/tools/routes'
     | '/tools/site-notifications'
@@ -2970,6 +3163,7 @@ export interface FileRouteTypes {
     | '/commerce'
     | '/custom-fields'
     | '/customer-dashboard'
+    | '/events'
     | '/forms'
     | '/gallery'
     | '/kb'
@@ -2984,6 +3178,7 @@ export interface FileRouteTypes {
     | '/roles'
     | '/seo'
     | '/settings'
+    | '/support'
     | '/tickets'
     | '/tools'
     | '/users'
@@ -3036,15 +3231,22 @@ export interface FileRouteTypes {
     | '/settings/integrations/google'
     | '/settings/integrations/paypal'
     | '/settings/integrations/shipping'
+    | '/settings/integrations/social'
     | '/settings/integrations/stripe'
     | '/tools/audit-log/$entryId'
     | '/tools/redirects/new'
     | '/users/$userId/edit'
+    | '/commerce/attributes'
+    | '/commerce/customers'
+    | '/commerce/orders'
+    | '/commerce/products'
+    | '/commerce/returns'
     | '/commerce/subscriptions'
     | '/customer-dashboard/layouts'
     | '/lms/certificates'
     | '/lms/courses'
     | '/membership/grants'
+    | '/membership/plans'
     | '/membership/restrictions'
     | '/tools/audit-log'
     | '/tools/redirects'
@@ -3119,6 +3321,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/settings'
     | '/_authenticated/_admin/setup'
     | '/_authenticated/_admin/support'
+    | '/_authenticated/_admin/synced-content'
     | '/_authenticated/_admin/tickets'
     | '/_authenticated/_admin/tools'
     | '/_authenticated/_admin/updates'
@@ -3130,6 +3333,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/appearance/themes'
     | '/_authenticated/_admin/comments/pending'
     | '/_authenticated/_admin/commerce/attributes'
+    | '/_authenticated/_admin/commerce/brands'
     | '/_authenticated/_admin/commerce/bundles'
     | '/_authenticated/_admin/commerce/categories'
     | '/_authenticated/_admin/commerce/customer-groups'
@@ -3152,6 +3356,9 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/commerce/wishlists'
     | '/_authenticated/_admin/commerce/workflows'
     | '/_authenticated/_admin/custom-fields/new'
+    | '/_authenticated/_admin/events/$eventId'
+    | '/_authenticated/_admin/events/categories'
+    | '/_authenticated/_admin/events/new'
     | '/_authenticated/_admin/forms/new'
     | '/_authenticated/_admin/forms/settings'
     | '/_authenticated/_admin/gallery/categories'
@@ -3179,7 +3386,9 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/membership/settings'
     | '/_authenticated/_admin/menus/locations'
     | '/_authenticated/_admin/pages/$pageId'
+    | '/_authenticated/_admin/pages/block-diagnostics'
     | '/_authenticated/_admin/pages/blocks'
+    | '/_authenticated/_admin/pages/custom-blocks'
     | '/_authenticated/_admin/pages/new'
     | '/_authenticated/_admin/posts/$postId'
     | '/_authenticated/_admin/posts/categories'
@@ -3196,6 +3405,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/settings/email'
     | '/_authenticated/_admin/settings/general'
     | '/_authenticated/_admin/settings/integrations'
+    | '/_authenticated/_admin/settings/languages'
     | '/_authenticated/_admin/settings/media'
     | '/_authenticated/_admin/settings/notifications'
     | '/_authenticated/_admin/settings/permalinks'
@@ -3217,6 +3427,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/tools/capabilities'
     | '/_authenticated/_admin/tools/email-notifications'
     | '/_authenticated/_admin/tools/events'
+    | '/_authenticated/_admin/tools/mailing-lists'
     | '/_authenticated/_admin/tools/roles'
     | '/_authenticated/_admin/tools/routes'
     | '/_authenticated/_admin/tools/site-notifications'
@@ -3227,6 +3438,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/commerce/'
     | '/_authenticated/_admin/custom-fields/'
     | '/_authenticated/_admin/customer-dashboard/'
+    | '/_authenticated/_admin/events/'
     | '/_authenticated/_admin/forms/'
     | '/_authenticated/_admin/gallery/'
     | '/_authenticated/_admin/kb/'
@@ -3241,6 +3453,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/roles/'
     | '/_authenticated/_admin/seo/'
     | '/_authenticated/_admin/settings/'
+    | '/_authenticated/_admin/support/'
     | '/_authenticated/_admin/tickets/'
     | '/_authenticated/_admin/tools/'
     | '/_authenticated/_admin/users/'
@@ -3293,15 +3506,22 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/settings/integrations/google'
     | '/_authenticated/_admin/settings/integrations/paypal'
     | '/_authenticated/_admin/settings/integrations/shipping'
+    | '/_authenticated/_admin/settings/integrations/social'
     | '/_authenticated/_admin/settings/integrations/stripe'
     | '/_authenticated/_admin/tools/audit-log/$entryId'
     | '/_authenticated/_admin/tools/redirects/new'
     | '/_authenticated/_admin/users/$userId/edit'
+    | '/_authenticated/_admin/commerce/attributes/'
+    | '/_authenticated/_admin/commerce/customers/'
+    | '/_authenticated/_admin/commerce/orders/'
+    | '/_authenticated/_admin/commerce/products/'
+    | '/_authenticated/_admin/commerce/returns/'
     | '/_authenticated/_admin/commerce/subscriptions/'
     | '/_authenticated/_admin/customer-dashboard/layouts/'
     | '/_authenticated/_admin/lms/certificates/'
     | '/_authenticated/_admin/lms/courses/'
     | '/_authenticated/_admin/membership/grants/'
+    | '/_authenticated/_admin/membership/plans/'
     | '/_authenticated/_admin/membership/restrictions/'
     | '/_authenticated/_admin/tools/audit-log/'
     | '/_authenticated/_admin/tools/redirects/'
@@ -3405,6 +3625,13 @@ declare module '@tanstack/react-router' {
       path: '/tickets'
       fullPath: '/tickets'
       preLoaderRoute: typeof AuthenticatedAdminTicketsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/synced-content': {
+      id: '/_authenticated/_admin/synced-content'
+      path: '/synced-content'
+      fullPath: '/synced-content'
+      preLoaderRoute: typeof AuthenticatedAdminSyncedContentRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/support': {
@@ -3540,6 +3767,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminTicketsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminTicketsRoute
     }
+    '/_authenticated/_admin/support/': {
+      id: '/_authenticated/_admin/support/'
+      path: '/'
+      fullPath: '/support/'
+      preLoaderRoute: typeof AuthenticatedAdminSupportIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminSupportRoute
+    }
     '/_authenticated/_admin/settings/': {
       id: '/_authenticated/_admin/settings/'
       path: '/'
@@ -3638,6 +3872,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFormsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/events/': {
+      id: '/_authenticated/_admin/events/'
+      path: '/events'
+      fullPath: '/events/'
+      preLoaderRoute: typeof AuthenticatedAdminEventsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/_admin/customer-dashboard/': {
       id: '/_authenticated/_admin/customer-dashboard/'
       path: '/customer-dashboard'
@@ -3706,6 +3947,13 @@ declare module '@tanstack/react-router' {
       path: '/roles'
       fullPath: '/tools/roles'
       preLoaderRoute: typeof AuthenticatedAdminToolsRolesRouteImport
+      parentRoute: typeof AuthenticatedAdminToolsRoute
+    }
+    '/_authenticated/_admin/tools/mailing-lists': {
+      id: '/_authenticated/_admin/tools/mailing-lists'
+      path: '/mailing-lists'
+      fullPath: '/tools/mailing-lists'
+      preLoaderRoute: typeof AuthenticatedAdminToolsMailingListsRouteImport
       parentRoute: typeof AuthenticatedAdminToolsRoute
     }
     '/_authenticated/_admin/tools/events': {
@@ -3855,6 +4103,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsMediaRouteImport
       parentRoute: typeof AuthenticatedAdminSettingsRoute
     }
+    '/_authenticated/_admin/settings/languages': {
+      id: '/_authenticated/_admin/settings/languages'
+      path: '/languages'
+      fullPath: '/settings/languages'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsLanguagesRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsRoute
+    }
     '/_authenticated/_admin/settings/integrations': {
       id: '/_authenticated/_admin/settings/integrations'
       path: '/integrations'
@@ -3967,11 +4222,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPagesNewRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/pages/custom-blocks': {
+      id: '/_authenticated/_admin/pages/custom-blocks'
+      path: '/pages/custom-blocks'
+      fullPath: '/pages/custom-blocks'
+      preLoaderRoute: typeof AuthenticatedAdminPagesCustomBlocksRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/_admin/pages/blocks': {
       id: '/_authenticated/_admin/pages/blocks'
       path: '/pages/blocks'
       fullPath: '/pages/blocks'
       preLoaderRoute: typeof AuthenticatedAdminPagesBlocksRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/pages/block-diagnostics': {
+      id: '/_authenticated/_admin/pages/block-diagnostics'
+      path: '/pages/block-diagnostics'
+      fullPath: '/pages/block-diagnostics'
+      preLoaderRoute: typeof AuthenticatedAdminPagesBlockDiagnosticsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/pages/$pageId': {
@@ -4163,6 +4432,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFormsNewRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/_admin/events/new': {
+      id: '/_authenticated/_admin/events/new'
+      path: '/events/new'
+      fullPath: '/events/new'
+      preLoaderRoute: typeof AuthenticatedAdminEventsNewRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/events/categories': {
+      id: '/_authenticated/_admin/events/categories'
+      path: '/events/categories'
+      fullPath: '/events/categories'
+      preLoaderRoute: typeof AuthenticatedAdminEventsCategoriesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/_admin/events/$eventId': {
+      id: '/_authenticated/_admin/events/$eventId'
+      path: '/events/$eventId'
+      fullPath: '/events/$eventId'
+      preLoaderRoute: typeof AuthenticatedAdminEventsEventIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/_admin/custom-fields/new': {
       id: '/_authenticated/_admin/custom-fields/new'
       path: '/new'
@@ -4317,6 +4607,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCommerceBundlesRouteImport
       parentRoute: typeof AuthenticatedAdminCommerceRoute
     }
+    '/_authenticated/_admin/commerce/brands': {
+      id: '/_authenticated/_admin/commerce/brands'
+      path: '/brands'
+      fullPath: '/commerce/brands'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceBrandsRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceRoute
+    }
     '/_authenticated/_admin/commerce/attributes': {
       id: '/_authenticated/_admin/commerce/attributes'
       path: '/attributes'
@@ -4408,6 +4705,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMembershipRestrictionsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminMembershipRoute
     }
+    '/_authenticated/_admin/membership/plans/': {
+      id: '/_authenticated/_admin/membership/plans/'
+      path: '/'
+      fullPath: '/membership/plans/'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipPlansIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminMembershipPlansRoute
+    }
     '/_authenticated/_admin/membership/grants/': {
       id: '/_authenticated/_admin/membership/grants/'
       path: '/grants'
@@ -4443,6 +4747,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCommerceSubscriptionsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminCommerceSubscriptionsRoute
     }
+    '/_authenticated/_admin/commerce/returns/': {
+      id: '/_authenticated/_admin/commerce/returns/'
+      path: '/'
+      fullPath: '/commerce/returns/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceReturnsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceReturnsRoute
+    }
+    '/_authenticated/_admin/commerce/products/': {
+      id: '/_authenticated/_admin/commerce/products/'
+      path: '/'
+      fullPath: '/commerce/products/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceProductsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceProductsRoute
+    }
+    '/_authenticated/_admin/commerce/orders/': {
+      id: '/_authenticated/_admin/commerce/orders/'
+      path: '/'
+      fullPath: '/commerce/orders/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceOrdersIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceOrdersRoute
+    }
+    '/_authenticated/_admin/commerce/customers/': {
+      id: '/_authenticated/_admin/commerce/customers/'
+      path: '/'
+      fullPath: '/commerce/customers/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceCustomersIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceCustomersRoute
+    }
+    '/_authenticated/_admin/commerce/attributes/': {
+      id: '/_authenticated/_admin/commerce/attributes/'
+      path: '/'
+      fullPath: '/commerce/attributes/'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceAttributesIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommerceAttributesRoute
+    }
     '/_authenticated/_admin/users/$userId/edit': {
       id: '/_authenticated/_admin/users/$userId/edit'
       path: '/users/$userId/edit'
@@ -4469,6 +4808,13 @@ declare module '@tanstack/react-router' {
       path: '/stripe'
       fullPath: '/settings/integrations/stripe'
       preLoaderRoute: typeof AuthenticatedAdminSettingsIntegrationsStripeRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsIntegrationsRoute
+    }
+    '/_authenticated/_admin/settings/integrations/social': {
+      id: '/_authenticated/_admin/settings/integrations/social'
+      path: '/social'
+      fullPath: '/settings/integrations/social'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsIntegrationsSocialRouteImport
       parentRoute: typeof AuthenticatedAdminSettingsIntegrationsRoute
     }
     '/_authenticated/_admin/settings/integrations/shipping': {
@@ -5188,12 +5534,15 @@ const AuthenticatedAdminAppearanceRouteWithChildren =
 
 interface AuthenticatedAdminCommerceAttributesRouteChildren {
   AuthenticatedAdminCommerceAttributesAttributeIdRoute: typeof AuthenticatedAdminCommerceAttributesAttributeIdRoute
+  AuthenticatedAdminCommerceAttributesIndexRoute: typeof AuthenticatedAdminCommerceAttributesIndexRoute
 }
 
 const AuthenticatedAdminCommerceAttributesRouteChildren: AuthenticatedAdminCommerceAttributesRouteChildren =
   {
     AuthenticatedAdminCommerceAttributesAttributeIdRoute:
       AuthenticatedAdminCommerceAttributesAttributeIdRoute,
+    AuthenticatedAdminCommerceAttributesIndexRoute:
+      AuthenticatedAdminCommerceAttributesIndexRoute,
   }
 
 const AuthenticatedAdminCommerceAttributesRouteWithChildren =
@@ -5202,11 +5551,14 @@ const AuthenticatedAdminCommerceAttributesRouteWithChildren =
   )
 
 interface AuthenticatedAdminCommerceCustomersRouteChildren {
+  AuthenticatedAdminCommerceCustomersIndexRoute: typeof AuthenticatedAdminCommerceCustomersIndexRoute
   AuthenticatedAdminCommerceCustomersUserIdStoreCreditRoute: typeof AuthenticatedAdminCommerceCustomersUserIdStoreCreditRoute
 }
 
 const AuthenticatedAdminCommerceCustomersRouteChildren: AuthenticatedAdminCommerceCustomersRouteChildren =
   {
+    AuthenticatedAdminCommerceCustomersIndexRoute:
+      AuthenticatedAdminCommerceCustomersIndexRoute,
     AuthenticatedAdminCommerceCustomersUserIdStoreCreditRoute:
       AuthenticatedAdminCommerceCustomersUserIdStoreCreditRoute,
   }
@@ -5219,6 +5571,7 @@ const AuthenticatedAdminCommerceCustomersRouteWithChildren =
 interface AuthenticatedAdminCommerceOrdersRouteChildren {
   AuthenticatedAdminCommerceOrdersOrderIdRoute: typeof AuthenticatedAdminCommerceOrdersOrderIdRoute
   AuthenticatedAdminCommerceOrdersAbandonedRoute: typeof AuthenticatedAdminCommerceOrdersAbandonedRoute
+  AuthenticatedAdminCommerceOrdersIndexRoute: typeof AuthenticatedAdminCommerceOrdersIndexRoute
 }
 
 const AuthenticatedAdminCommerceOrdersRouteChildren: AuthenticatedAdminCommerceOrdersRouteChildren =
@@ -5227,6 +5580,8 @@ const AuthenticatedAdminCommerceOrdersRouteChildren: AuthenticatedAdminCommerceO
       AuthenticatedAdminCommerceOrdersOrderIdRoute,
     AuthenticatedAdminCommerceOrdersAbandonedRoute:
       AuthenticatedAdminCommerceOrdersAbandonedRoute,
+    AuthenticatedAdminCommerceOrdersIndexRoute:
+      AuthenticatedAdminCommerceOrdersIndexRoute,
   }
 
 const AuthenticatedAdminCommerceOrdersRouteWithChildren =
@@ -5237,6 +5592,7 @@ const AuthenticatedAdminCommerceOrdersRouteWithChildren =
 interface AuthenticatedAdminCommerceProductsRouteChildren {
   AuthenticatedAdminCommerceProductsProductIdRoute: typeof AuthenticatedAdminCommerceProductsProductIdRoute
   AuthenticatedAdminCommerceProductsNewRoute: typeof AuthenticatedAdminCommerceProductsNewRoute
+  AuthenticatedAdminCommerceProductsIndexRoute: typeof AuthenticatedAdminCommerceProductsIndexRoute
 }
 
 const AuthenticatedAdminCommerceProductsRouteChildren: AuthenticatedAdminCommerceProductsRouteChildren =
@@ -5245,6 +5601,8 @@ const AuthenticatedAdminCommerceProductsRouteChildren: AuthenticatedAdminCommerc
       AuthenticatedAdminCommerceProductsProductIdRoute,
     AuthenticatedAdminCommerceProductsNewRoute:
       AuthenticatedAdminCommerceProductsNewRoute,
+    AuthenticatedAdminCommerceProductsIndexRoute:
+      AuthenticatedAdminCommerceProductsIndexRoute,
   }
 
 const AuthenticatedAdminCommerceProductsRouteWithChildren =
@@ -5256,6 +5614,7 @@ interface AuthenticatedAdminCommerceReturnsRouteChildren {
   AuthenticatedAdminCommerceReturnsReturnIdRoute: typeof AuthenticatedAdminCommerceReturnsReturnIdRoute
   AuthenticatedAdminCommerceReturnsReasonsRoute: typeof AuthenticatedAdminCommerceReturnsReasonsRoute
   AuthenticatedAdminCommerceReturnsSettingsRoute: typeof AuthenticatedAdminCommerceReturnsSettingsRoute
+  AuthenticatedAdminCommerceReturnsIndexRoute: typeof AuthenticatedAdminCommerceReturnsIndexRoute
 }
 
 const AuthenticatedAdminCommerceReturnsRouteChildren: AuthenticatedAdminCommerceReturnsRouteChildren =
@@ -5266,6 +5625,8 @@ const AuthenticatedAdminCommerceReturnsRouteChildren: AuthenticatedAdminCommerce
       AuthenticatedAdminCommerceReturnsReasonsRoute,
     AuthenticatedAdminCommerceReturnsSettingsRoute:
       AuthenticatedAdminCommerceReturnsSettingsRoute,
+    AuthenticatedAdminCommerceReturnsIndexRoute:
+      AuthenticatedAdminCommerceReturnsIndexRoute,
   }
 
 const AuthenticatedAdminCommerceReturnsRouteWithChildren =
@@ -5431,6 +5792,7 @@ const AuthenticatedAdminCommerceSubscriptionsRouteWithChildren =
 
 interface AuthenticatedAdminCommerceRouteChildren {
   AuthenticatedAdminCommerceAttributesRoute: typeof AuthenticatedAdminCommerceAttributesRouteWithChildren
+  AuthenticatedAdminCommerceBrandsRoute: typeof AuthenticatedAdminCommerceBrandsRoute
   AuthenticatedAdminCommerceBundlesRoute: typeof AuthenticatedAdminCommerceBundlesRoute
   AuthenticatedAdminCommerceCategoriesRoute: typeof AuthenticatedAdminCommerceCategoriesRoute
   AuthenticatedAdminCommerceCustomerGroupsRoute: typeof AuthenticatedAdminCommerceCustomerGroupsRoute
@@ -5461,6 +5823,8 @@ const AuthenticatedAdminCommerceRouteChildren: AuthenticatedAdminCommerceRouteCh
   {
     AuthenticatedAdminCommerceAttributesRoute:
       AuthenticatedAdminCommerceAttributesRouteWithChildren,
+    AuthenticatedAdminCommerceBrandsRoute:
+      AuthenticatedAdminCommerceBrandsRoute,
     AuthenticatedAdminCommerceBundlesRoute:
       AuthenticatedAdminCommerceBundlesRoute,
     AuthenticatedAdminCommerceCategoriesRoute:
@@ -5659,11 +6023,14 @@ const AuthenticatedAdminLmsRouteWithChildren =
   )
 
 interface AuthenticatedAdminMembershipPlansRouteChildren {
+  AuthenticatedAdminMembershipPlansIndexRoute: typeof AuthenticatedAdminMembershipPlansIndexRoute
   AuthenticatedAdminMembershipPlansPlanIdEditRoute: typeof AuthenticatedAdminMembershipPlansPlanIdEditRoute
 }
 
 const AuthenticatedAdminMembershipPlansRouteChildren: AuthenticatedAdminMembershipPlansRouteChildren =
   {
+    AuthenticatedAdminMembershipPlansIndexRoute:
+      AuthenticatedAdminMembershipPlansIndexRoute,
     AuthenticatedAdminMembershipPlansPlanIdEditRoute:
       AuthenticatedAdminMembershipPlansPlanIdEditRoute,
   }
@@ -5798,6 +6165,7 @@ interface AuthenticatedAdminSettingsIntegrationsRouteChildren {
   AuthenticatedAdminSettingsIntegrationsGoogleRoute: typeof AuthenticatedAdminSettingsIntegrationsGoogleRoute
   AuthenticatedAdminSettingsIntegrationsPaypalRoute: typeof AuthenticatedAdminSettingsIntegrationsPaypalRoute
   AuthenticatedAdminSettingsIntegrationsShippingRoute: typeof AuthenticatedAdminSettingsIntegrationsShippingRouteWithChildren
+  AuthenticatedAdminSettingsIntegrationsSocialRoute: typeof AuthenticatedAdminSettingsIntegrationsSocialRoute
   AuthenticatedAdminSettingsIntegrationsStripeRoute: typeof AuthenticatedAdminSettingsIntegrationsStripeRoute
 }
 
@@ -5811,6 +6179,8 @@ const AuthenticatedAdminSettingsIntegrationsRouteChildren: AuthenticatedAdminSet
       AuthenticatedAdminSettingsIntegrationsPaypalRoute,
     AuthenticatedAdminSettingsIntegrationsShippingRoute:
       AuthenticatedAdminSettingsIntegrationsShippingRouteWithChildren,
+    AuthenticatedAdminSettingsIntegrationsSocialRoute:
+      AuthenticatedAdminSettingsIntegrationsSocialRoute,
     AuthenticatedAdminSettingsIntegrationsStripeRoute:
       AuthenticatedAdminSettingsIntegrationsStripeRoute,
   }
@@ -5827,6 +6197,7 @@ interface AuthenticatedAdminSettingsRouteChildren {
   AuthenticatedAdminSettingsEmailRoute: typeof AuthenticatedAdminSettingsEmailRoute
   AuthenticatedAdminSettingsGeneralRoute: typeof AuthenticatedAdminSettingsGeneralRoute
   AuthenticatedAdminSettingsIntegrationsRoute: typeof AuthenticatedAdminSettingsIntegrationsRouteWithChildren
+  AuthenticatedAdminSettingsLanguagesRoute: typeof AuthenticatedAdminSettingsLanguagesRoute
   AuthenticatedAdminSettingsMediaRoute: typeof AuthenticatedAdminSettingsMediaRoute
   AuthenticatedAdminSettingsNotificationsRoute: typeof AuthenticatedAdminSettingsNotificationsRoute
   AuthenticatedAdminSettingsPermalinksRoute: typeof AuthenticatedAdminSettingsPermalinksRoute
@@ -5854,6 +6225,8 @@ const AuthenticatedAdminSettingsRouteChildren: AuthenticatedAdminSettingsRouteCh
       AuthenticatedAdminSettingsGeneralRoute,
     AuthenticatedAdminSettingsIntegrationsRoute:
       AuthenticatedAdminSettingsIntegrationsRouteWithChildren,
+    AuthenticatedAdminSettingsLanguagesRoute:
+      AuthenticatedAdminSettingsLanguagesRoute,
     AuthenticatedAdminSettingsMediaRoute: AuthenticatedAdminSettingsMediaRoute,
     AuthenticatedAdminSettingsNotificationsRoute:
       AuthenticatedAdminSettingsNotificationsRoute,
@@ -5887,6 +6260,7 @@ const AuthenticatedAdminSettingsRouteWithChildren =
 interface AuthenticatedAdminSupportRouteChildren {
   AuthenticatedAdminSupportAnalyticsRoute: typeof AuthenticatedAdminSupportAnalyticsRoute
   AuthenticatedAdminSupportSettingsRoute: typeof AuthenticatedAdminSupportSettingsRoute
+  AuthenticatedAdminSupportIndexRoute: typeof AuthenticatedAdminSupportIndexRoute
 }
 
 const AuthenticatedAdminSupportRouteChildren: AuthenticatedAdminSupportRouteChildren =
@@ -5895,6 +6269,7 @@ const AuthenticatedAdminSupportRouteChildren: AuthenticatedAdminSupportRouteChil
       AuthenticatedAdminSupportAnalyticsRoute,
     AuthenticatedAdminSupportSettingsRoute:
       AuthenticatedAdminSupportSettingsRoute,
+    AuthenticatedAdminSupportIndexRoute: AuthenticatedAdminSupportIndexRoute,
   }
 
 const AuthenticatedAdminSupportRouteWithChildren =
@@ -5934,6 +6309,7 @@ interface AuthenticatedAdminToolsRouteChildren {
   AuthenticatedAdminToolsCapabilitiesRoute: typeof AuthenticatedAdminToolsCapabilitiesRoute
   AuthenticatedAdminToolsEmailNotificationsRoute: typeof AuthenticatedAdminToolsEmailNotificationsRoute
   AuthenticatedAdminToolsEventsRoute: typeof AuthenticatedAdminToolsEventsRoute
+  AuthenticatedAdminToolsMailingListsRoute: typeof AuthenticatedAdminToolsMailingListsRoute
   AuthenticatedAdminToolsRolesRoute: typeof AuthenticatedAdminToolsRolesRoute
   AuthenticatedAdminToolsRoutesRoute: typeof AuthenticatedAdminToolsRoutesRoute
   AuthenticatedAdminToolsSiteNotificationsRoute: typeof AuthenticatedAdminToolsSiteNotificationsRoute
@@ -5958,6 +6334,8 @@ const AuthenticatedAdminToolsRouteChildren: AuthenticatedAdminToolsRouteChildren
     AuthenticatedAdminToolsEmailNotificationsRoute:
       AuthenticatedAdminToolsEmailNotificationsRoute,
     AuthenticatedAdminToolsEventsRoute: AuthenticatedAdminToolsEventsRoute,
+    AuthenticatedAdminToolsMailingListsRoute:
+      AuthenticatedAdminToolsMailingListsRoute,
     AuthenticatedAdminToolsRolesRoute: AuthenticatedAdminToolsRolesRoute,
     AuthenticatedAdminToolsRoutesRoute: AuthenticatedAdminToolsRoutesRoute,
     AuthenticatedAdminToolsSiteNotificationsRoute:
@@ -6058,10 +6436,14 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRouteWithChildren
   AuthenticatedAdminSetupRoute: typeof AuthenticatedAdminSetupRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRouteWithChildren
+  AuthenticatedAdminSyncedContentRoute: typeof AuthenticatedAdminSyncedContentRoute
   AuthenticatedAdminTicketsRoute: typeof AuthenticatedAdminTicketsRouteWithChildren
   AuthenticatedAdminToolsRoute: typeof AuthenticatedAdminToolsRouteWithChildren
   AuthenticatedAdminUpdatesRoute: typeof AuthenticatedAdminUpdatesRoute
   AuthenticatedAdminCommentsPendingRoute: typeof AuthenticatedAdminCommentsPendingRoute
+  AuthenticatedAdminEventsEventIdRoute: typeof AuthenticatedAdminEventsEventIdRoute
+  AuthenticatedAdminEventsCategoriesRoute: typeof AuthenticatedAdminEventsCategoriesRoute
+  AuthenticatedAdminEventsNewRoute: typeof AuthenticatedAdminEventsNewRoute
   AuthenticatedAdminFormsNewRoute: typeof AuthenticatedAdminFormsNewRoute
   AuthenticatedAdminFormsSettingsRoute: typeof AuthenticatedAdminFormsSettingsRoute
   AuthenticatedAdminLayoutsLayoutIdRoute: typeof AuthenticatedAdminLayoutsLayoutIdRoute
@@ -6070,7 +6452,9 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminMediaUploadRoute: typeof AuthenticatedAdminMediaUploadRoute
   AuthenticatedAdminMenusLocationsRoute: typeof AuthenticatedAdminMenusLocationsRoute
   AuthenticatedAdminPagesPageIdRoute: typeof AuthenticatedAdminPagesPageIdRouteWithChildren
+  AuthenticatedAdminPagesBlockDiagnosticsRoute: typeof AuthenticatedAdminPagesBlockDiagnosticsRoute
   AuthenticatedAdminPagesBlocksRoute: typeof AuthenticatedAdminPagesBlocksRoute
+  AuthenticatedAdminPagesCustomBlocksRoute: typeof AuthenticatedAdminPagesCustomBlocksRoute
   AuthenticatedAdminPagesNewRoute: typeof AuthenticatedAdminPagesNewRoute
   AuthenticatedAdminPostsPostIdRoute: typeof AuthenticatedAdminPostsPostIdRouteWithChildren
   AuthenticatedAdminPostsCategoriesRoute: typeof AuthenticatedAdminPostsCategoriesRoute
@@ -6081,6 +6465,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminApiKeysIndexRoute: typeof AuthenticatedAdminApiKeysIndexRoute
   AuthenticatedAdminCommentsIndexRoute: typeof AuthenticatedAdminCommentsIndexRoute
   AuthenticatedAdminCustomerDashboardIndexRoute: typeof AuthenticatedAdminCustomerDashboardIndexRoute
+  AuthenticatedAdminEventsIndexRoute: typeof AuthenticatedAdminEventsIndexRoute
   AuthenticatedAdminFormsIndexRoute: typeof AuthenticatedAdminFormsIndexRoute
   AuthenticatedAdminLayoutsIndexRoute: typeof AuthenticatedAdminLayoutsIndexRoute
   AuthenticatedAdminMediaIndexRoute: typeof AuthenticatedAdminMediaIndexRoute
@@ -6126,11 +6511,16 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRouteWithChildren,
   AuthenticatedAdminSetupRoute: AuthenticatedAdminSetupRoute,
   AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRouteWithChildren,
+  AuthenticatedAdminSyncedContentRoute: AuthenticatedAdminSyncedContentRoute,
   AuthenticatedAdminTicketsRoute: AuthenticatedAdminTicketsRouteWithChildren,
   AuthenticatedAdminToolsRoute: AuthenticatedAdminToolsRouteWithChildren,
   AuthenticatedAdminUpdatesRoute: AuthenticatedAdminUpdatesRoute,
   AuthenticatedAdminCommentsPendingRoute:
     AuthenticatedAdminCommentsPendingRoute,
+  AuthenticatedAdminEventsEventIdRoute: AuthenticatedAdminEventsEventIdRoute,
+  AuthenticatedAdminEventsCategoriesRoute:
+    AuthenticatedAdminEventsCategoriesRoute,
+  AuthenticatedAdminEventsNewRoute: AuthenticatedAdminEventsNewRoute,
   AuthenticatedAdminFormsNewRoute: AuthenticatedAdminFormsNewRoute,
   AuthenticatedAdminFormsSettingsRoute: AuthenticatedAdminFormsSettingsRoute,
   AuthenticatedAdminLayoutsLayoutIdRoute:
@@ -6141,7 +6531,11 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminMenusLocationsRoute: AuthenticatedAdminMenusLocationsRoute,
   AuthenticatedAdminPagesPageIdRoute:
     AuthenticatedAdminPagesPageIdRouteWithChildren,
+  AuthenticatedAdminPagesBlockDiagnosticsRoute:
+    AuthenticatedAdminPagesBlockDiagnosticsRoute,
   AuthenticatedAdminPagesBlocksRoute: AuthenticatedAdminPagesBlocksRoute,
+  AuthenticatedAdminPagesCustomBlocksRoute:
+    AuthenticatedAdminPagesCustomBlocksRoute,
   AuthenticatedAdminPagesNewRoute: AuthenticatedAdminPagesNewRoute,
   AuthenticatedAdminPostsPostIdRoute:
     AuthenticatedAdminPostsPostIdRouteWithChildren,
@@ -6155,6 +6549,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminCommentsIndexRoute: AuthenticatedAdminCommentsIndexRoute,
   AuthenticatedAdminCustomerDashboardIndexRoute:
     AuthenticatedAdminCustomerDashboardIndexRoute,
+  AuthenticatedAdminEventsIndexRoute: AuthenticatedAdminEventsIndexRoute,
   AuthenticatedAdminFormsIndexRoute: AuthenticatedAdminFormsIndexRoute,
   AuthenticatedAdminLayoutsIndexRoute: AuthenticatedAdminLayoutsIndexRoute,
   AuthenticatedAdminMediaIndexRoute: AuthenticatedAdminMediaIndexRoute,

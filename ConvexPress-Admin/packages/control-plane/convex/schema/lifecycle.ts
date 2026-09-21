@@ -54,6 +54,7 @@ export const lifecycleTables = {
     sourceInstanceId: v.optional(v.id("overseer_websiteInstances")),
     sourceInstanceKey: v.optional(v.string()),
     snapshotId: v.optional(v.string()),
+    schedulePolicyId: v.optional(v.id("overseer_fleetPolicies")),
     requestedByUserId: v.id("overseer_users"),
     provider: v.union(v.literal("manual"), v.literal("magicdb")),
     workflowId: v.optional(v.string()),
@@ -74,11 +75,14 @@ export const lifecycleTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+    .index("by_snapshot_reference", ["snapshotId"])
+    .index("by_prebackup_reference", ["preBackupId"])
     .index("by_operation_key", ["operationKey"])
     .index("by_idempotency", ["idempotencyKey"])
     .index("by_instance_created", ["instanceId", "createdAt"])
     .index("by_instance_exclusive", ["instanceId", "exclusiveTargetLock"])
     .index("by_instance_state", ["instanceId", "state"])
+    .index("by_website_exclusive", ["websiteId", "exclusiveTargetLock"])
     .index("by_website_created", ["websiteId", "createdAt"])
     .index("by_requested_by", ["requestedByUserId", "createdAt"])
     .index("by_state_updated", ["state", "updatedAt"]),
@@ -108,6 +112,7 @@ export const lifecycleTables = {
   overseer_siteBackups: defineTable({
     snapshotId: v.string(),
     sourceOperationId: v.id("overseer_siteOperations"),
+    schedulePolicyId: v.optional(v.id("overseer_fleetPolicies")),
     purpose: v.union(
       v.literal("manual"),
       v.literal("pre-clone"),
@@ -143,6 +148,8 @@ export const lifecycleTables = {
     verifiedAt: v.optional(v.number()),
     createdAt: v.number(),
   })
+    .index("by_policy_verified", ["schedulePolicyId", "verificationStatus", "createdAt"])
+    .index("by_storage", ["artifactStorageId"])
     .index("by_snapshot_id", ["snapshotId"])
     .index("by_operation", ["sourceOperationId", "createdAt"])
     .index("by_instance_created", ["instanceId", "createdAt"])
@@ -169,6 +176,7 @@ export const lifecycleTables = {
     completedAt: v.optional(v.number()),
     createdAt: v.number(),
   })
+    .index("by_snapshot_reference", ["preBackupSnapshotId"])
     .index("by_receipt_id", ["receiptId"])
     .index("by_operation", ["operationId", "createdAt"])
     .index("by_instance", ["instanceKey", "createdAt"]),
@@ -190,6 +198,7 @@ export const lifecycleTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+    .index("by_website_expiry", ["websiteId", "expiresAt"])
     .index("by_handoff_id", ["handoffId"])
     .index("by_website", ["websiteId", "createdAt"])
     .index("by_status", ["status", "updatedAt"]),

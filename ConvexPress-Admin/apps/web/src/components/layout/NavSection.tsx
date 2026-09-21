@@ -1,3 +1,4 @@
+import { useId, useLayoutEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,15 +20,21 @@ export function NavSection({
   onToggle,
   isActive,
 }: NavSectionProps) {
+  const childrenId = useId();
+  const childrenRef = useRef<HTMLUListElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  useLayoutEffect(() => {
+    if (!isExpanded && childrenRef.current?.contains(document.activeElement)) {
+      toggleRef.current?.focus();
+    }
+  }, [isExpanded]);
   const hasChildren = section.children && section.children.length > 0;
   const Icon = section.icon;
 
   return (
     <li>
       {/* Separator line */}
-      {section.separator && (
-        <div className="mx-2.5 my-2 border-t border-sidebar-border" />
-      )}
+      {section.separator && <div className="mx-2.5 my-2 border-t border-sidebar-border" />}
 
       {/* Collapsed mode: wrap in hover group for flyout */}
       {collapsed && hasChildren ? (
@@ -39,7 +46,8 @@ export function NavSection({
             className={cn(
               NAV_ROW_CLASS,
               "h-8 w-full justify-center px-0",
-              isActive && "bg-sidebar-accent text-sidebar-accent-foreground shadow-soft [&_svg]:text-primary",
+              isActive &&
+                "bg-sidebar-accent text-sidebar-accent-foreground shadow-soft [&_svg]:text-primary",
             )}
             title={section.label}
           >
@@ -58,12 +66,7 @@ export function NavSection({
             </div>
             <ul role="list">
               {section.children!.map((item) => (
-                <NavItem
-                  key={item.id}
-                  item={item}
-                  collapsed={false}
-                  depth={1}
-                />
+                <NavItem key={item.id} item={item} collapsed={false} depth={1} />
               ))}
             </ul>
           </div>
@@ -87,14 +90,17 @@ export function NavSection({
             type="button"
             onClick={onToggle}
             aria-expanded={isExpanded}
-            aria-controls={`section-${section.id}-children`}
+            aria-controls={childrenId}
+            ref={toggleRef}
             className={cn(
               NAV_ROW_CLASS,
               "h-8 w-full px-2.5",
               isActive &&
                 !isExpanded &&
                 "bg-sidebar-accent text-sidebar-accent-foreground shadow-soft [&_svg]:text-primary",
-              isActive && isExpanded && "text-sidebar-accent-foreground [&>svg:first-child]:text-primary",
+              isActive &&
+                isExpanded &&
+                "text-sidebar-accent-foreground [&>svg:first-child]:text-primary",
             )}
           >
             <Icon />
@@ -114,7 +120,14 @@ export function NavSection({
 
           {/* Collapsible children list */}
           <ul
-            id={`section-${section.id}-children`}
+            id={childrenId}
+            ref={childrenRef}
+            aria-hidden={!isExpanded}
+            inert={!isExpanded}
+            style={{
+              visibility: isExpanded ? "visible" : "hidden",
+              pointerEvents: isExpanded ? undefined : "none",
+            }}
             role="list"
             className={cn(
               "overflow-hidden transition-all duration-200",
@@ -122,21 +135,13 @@ export function NavSection({
             )}
           >
             {section.children!.map((item) => (
-              <NavItem
-                key={item.id}
-                item={item}
-                collapsed={false}
-                depth={1}
-              />
+              <NavItem key={item.id} item={item} collapsed={false} depth={1} />
             ))}
           </ul>
         </>
       ) : (
         /* Expanded mode, no children: direct link */
-        <Link
-          to={section.to}
-          className={cn(NAV_ROW_CLASS, NAV_ROW_ACTIVE_CLASS, "h-8 px-2.5")}
-        >
+        <Link to={section.to} className={cn(NAV_ROW_CLASS, NAV_ROW_ACTIVE_CLASS, "h-8 px-2.5")}>
           <Icon />
           <span className="truncate">{section.label}</span>
           {section.badge !== undefined && section.badge > 0 && (

@@ -17,6 +17,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
+import { AUTHORING_FIELDS } from "@backend/convex/helpers/authoringFields";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { ArrowLeft, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,8 @@ interface RevisionRow {
   title: string;
   content: string;
   excerpt?: string;
+  details?: string;
+  snapshotVersion?: 1 | 2;
 }
 
 interface RevisionListResult {
@@ -114,8 +117,6 @@ export function RevisionComparison({
   canRestore,
 }: RevisionComparisonProps) {
   const label = contentType === "post" ? "Post" : "Page";
-  const pluralPath = contentType === "post" ? "posts" : "pages";
-  const idParam = contentType === "post" ? "postId" : "pageId";
 
   // ─── Data ──────────────────────────────────────────────────────────────
   const post = useQuery(api.posts.queries.get, {
@@ -160,7 +161,7 @@ export function RevisionComparison({
   const rightRevision = sortedRevisions[selectedIndex] ?? null;
   const leftRevision = compareMode
     ? sortedRevisions[leftIndex] ?? null
-    : sortedRevisions[Math.max(0, selectedIndex - 1)] ?? null;
+    : null;
 
   const compareData = useQuery(
     api.revisions.queries.compare,
@@ -180,7 +181,7 @@ export function RevisionComparison({
       }
       return !prev;
     });
-  }, [selectedIndex]);
+  }, [selectedIndex, setLeftIndex]);
 
   const handleSelectLeftIndex = useCallback(
     (idx: number) => {
@@ -188,7 +189,7 @@ export function RevisionComparison({
         setLeftIndex(idx);
       }
     },
-    [selectedIndex],
+    [selectedIndex, setLeftIndex],
   );
 
   const handleRestored = useCallback(() => {
@@ -239,32 +240,6 @@ export function RevisionComparison({
     );
   }
 
-  // Single revision
-  if (sortedRevisions.length === 1) {
-    return (
-      <div className="space-y-6">
-        <ComparisonHeader
-          contentType={contentType}
-          contentId={contentId}
-          contentTitle={post.title}
-        />
-        <div className="py-12 text-center border border-border bg-card">
-          <p className="text-sm text-muted-foreground mb-3">
-            Only one revision exists. Save the {contentType} again to create another
-            revision for comparison.
-          </p>
-          <BackToEditorLink
-            contentType={contentType}
-            contentId={contentId}
-            className="text-sm text-primary hover:underline"
-          >
-            Back to editor
-          </BackToEditorLink>
-        </div>
-      </div>
-    );
-  }
-
   const isSameRevision =
     leftRevision && rightRevision && leftRevision._id === rightRevision._id;
 
@@ -277,7 +252,7 @@ export function RevisionComparison({
           contentId={contentId}
           contentTitle={post.title}
         />
-        {canRestore && rightRevision && !isSameRevision && (
+        {canRestore && rightRevision && (
           <Button
             onClick={() => setRestoreDialogOpen(true)}
             className="shrink-0"
@@ -288,8 +263,12 @@ export function RevisionComparison({
         )}
       </div>
 
+      {rightRevision && rightRevision.snapshotVersion !== 2 && (
+        <p className="text-xs text-muted-foreground">Layout selection and AI prompt were not recorded in this revision.</p>
+      )}
+
       {/* ─── Compare Mode Toggle ──────────────────────────────────────── */}
-      <div className="flex items-center gap-2">
+      {sortedRevisions.length > 1 && <div className="flex items-center gap-2">
         <label className="flex items-center gap-2 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -301,17 +280,27 @@ export function RevisionComparison({
             Compare any two revisions
           </span>
         </label>
-      </div>
+      </div>}
 
       {/* ─── Revision Slider ──────────────────────────────────────────── */}
-      <RevisionSlider
+      {sortedRevisions.length > 1 && <RevisionSlider
         revisions={sortedRevisions}
         selectedIndex={selectedIndex}
         onSelectIndex={setSelectedIndex}
         compareMode={compareMode}
         leftIndex={compareMode ? leftIndex : undefined}
         onSelectLeftIndex={compareMode ? handleSelectLeftIndex : undefined}
-      />
+      />}
+
+      {!compareMode && rightRevision && (
+        <div className="grid grid-cols-2">
+          <div className="border border-border p-4 text-sm">
+            <p className="font-semibold">Current saved content</p>
+            <p className="text-muted-foreground">Compare it with the selected revision before restoring.</p>
+          </div>
+          <RevisionMeta {...rightRevision} side="right" />
+        </div>
+      )}
 
       {/* ─── Revision Metadata (Two Columns) ──────────────────────────── */}
       {leftRevision && rightRevision && !isSameRevision && (
@@ -338,7 +327,18 @@ export function RevisionComparison({
       )}
 
       {/* ─── Diff Viewer ──────────────────────────────────────────────── */}
-      {isSameRevision ? (
+      {!compareMode && rightRevision ? (
+        <DiffViewer
+          left={{
+            title: post.title, content: post.content ?? "", excerpt: post.excerpt,
+            details: JSON.stringify(Object.fromEntries(AUTHORING_FIELDS
+              .filter(field => !["title", "content", "excerpt", "blocksRevision"].includes(field))
+              .filter(field => rightRevision.snapshotVersion === 2 || !["layoutId", "pagePrompt"].includes(field))
+              .map(field => [field, post[field as keyof typeof post]])), null, 2),
+          }}
+          right={rightRevision}
+        />
+      ) : isSameRevision ? (
         <div className="py-8 text-center border border-border bg-card">
           <p className="text-sm text-muted-foreground">
             Select two different revisions to compare.
@@ -349,11 +349,13 @@ export function RevisionComparison({
           left={{
             title: compareData.left.title,
             content: compareData.left.content,
+            details: compareData.left.details,
             excerpt: compareData.left.excerpt,
           }}
           right={{
             title: compareData.right.title,
             content: compareData.right.content,
+            details: compareData.right.details,
             excerpt: compareData.right.excerpt,
           }}
         />
@@ -362,11 +364,13 @@ export function RevisionComparison({
           left={{
             title: leftRevision.title,
             content: leftRevision.content,
+            details: leftRevision.details,
             excerpt: leftRevision.excerpt,
           }}
           right={{
             title: rightRevision.title,
             content: rightRevision.content,
+            details: rightRevision.details,
             excerpt: rightRevision.excerpt,
           }}
         />

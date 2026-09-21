@@ -20,6 +20,7 @@ interface TagData {
   name: string;
   slug: string;
   count: number;
+  countReady?: boolean;
 }
 
 interface TagsMetaboxProps {
@@ -58,11 +59,13 @@ export function TagsMetabox({
             name: string;
             slug: string;
             count: number;
+  countReady?: boolean;
           }) => ({
             _id: t._id,
             name: t.name,
             slug: t.slug,
             count: t.count,
+        countReady: t.countReady,
           }),
         ),
     [mostUsedResult, selectedTags],

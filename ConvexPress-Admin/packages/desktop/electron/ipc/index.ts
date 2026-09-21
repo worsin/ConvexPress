@@ -1,3 +1,5 @@
+import { registerWebsitePublishHandlers, unregisterWebsitePublishHandlers } from "./websitePublish.js";
+import { registerCloudflareOAuthHandlers, unregisterCloudflareOAuthHandlers } from "./cloudflareOAuth.js";
 import { registerWindowHandlers, unregisterWindowHandlers } from "./window.js";
 import { registerConfigHandlers, unregisterConfigHandlers } from "./config.js";
 import { registerAuthHandlers, unregisterAuthHandlers } from "./auth.js";
@@ -42,6 +44,8 @@ export function registerAllIpcHandlers(): void {
   registerSiteRunnerHandlers();
   registerSecurityHandlers();
   registerSiteDeployHandlers();
+  registerWebsitePublishHandlers();
+  registerCloudflareOAuthHandlers();
 
   ipcMain.handle("app:get-version", () => {
     return app.getVersion();
@@ -72,6 +76,8 @@ export function unregisterAllIpcHandlers(): void {
   unregisterSiteRunnerHandlers();
   unregisterSecurityHandlers();
   unregisterSiteDeployHandlers();
+  unregisterWebsitePublishHandlers();
+  unregisterCloudflareOAuthHandlers();
 
   ipcMain.removeHandler("app:get-version");
   ipcMain.removeHandler("app:get-platform");

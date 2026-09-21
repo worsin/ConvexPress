@@ -10,12 +10,12 @@ export function FieldUser({ field, value, onChange, labelPlacement, instructionP
   const roles: string[] = settings.roles ?? [];
 
   // Fetch users
-  const users = useQuery(api.users.queries.list, { limit: 200 });
+  const users = useQuery(api.profiles.queries.listUsers, { perPage: 200 });
 
   const filteredUsers = useMemo(() => {
     if (!users?.users) return [];
     if (roles.length === 0) return users.users;
-    return users.users.filter((u: { role?: string }) => roles.includes(u.role ?? "subscriber"));
+    return users.users.filter((u: { roleName?: string }) => roles.some(role => role.toLowerCase() === (u.roleName ?? "subscriber").toLowerCase()));
   }, [users, roles]);
 
   return (

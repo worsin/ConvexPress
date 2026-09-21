@@ -56,6 +56,7 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
   const authorsResult = useQuery(api.profiles.queries.listUsers, {
     page: 1,
     perPage: 100,
+    status: "active",
     orderBy: "displayName",
     orderDir: "asc",
   }) as AuthorListResult | undefined;
@@ -190,16 +191,20 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
         {/* Author row */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">
+            <label htmlFor={`quick-edit-author-${post._id}`} className="text-xs text-muted-foreground mb-1 block">
               Author
             </label>
             <select
+              id={`quick-edit-author-${post._id}`}
               value={authorId}
               onChange={(e) => setAuthorId(e.target.value)}
               className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
             >
               {!authorsResult && (
                 <option value="">Loading...</option>
+              )}
+              {authorsResult && authorId && !authors.some((author) => author._id === authorId) && (
+                <option value={authorId} disabled>Current author (unchanged)</option>
               )}
               {authors.map((author) => (
                 <option key={author._id} value={author._id}>

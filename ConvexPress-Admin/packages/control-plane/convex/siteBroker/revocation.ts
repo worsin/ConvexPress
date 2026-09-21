@@ -94,6 +94,9 @@ export const propagate = internalAction({
   args: {
     scope: v.union(v.literal("operator"), v.literal("controller")),
     controllerSubjectId: v.optional(v.string()),
+    targetOrganizationId: v.optional(v.id("overseer_organizations")),
+    targetBusinessId: v.optional(v.id("overseer_businesses")),
+    targetWebsiteId: v.optional(v.id("overseer_websites")),
     attempt: v.optional(v.number()),
   },
   returns: v.object({
@@ -122,7 +125,7 @@ export const propagate = internalAction({
         : { scope: "controller" };
     const targets = (await ctx.runQuery(
       (internal as any).siteBroker.revocationInternal.listTargets,
-      {},
+      { organizationId: args.targetOrganizationId, businessId: args.targetBusinessId, websiteId: args.targetWebsiteId },
     )) as RevocationTarget[];
     const results = await Promise.allSettled(
       targets.map((target) => revokeTarget(target, body)),
@@ -136,6 +139,9 @@ export const propagate = internalAction({
         {
           scope: args.scope,
           controllerSubjectId: args.controllerSubjectId,
+          targetOrganizationId: args.targetOrganizationId,
+          targetBusinessId: args.targetBusinessId,
+          targetWebsiteId: args.targetWebsiteId,
           attempt: attempt + 1,
         },
       );

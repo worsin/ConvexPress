@@ -105,6 +105,7 @@ export function buildDesktopContentSecurityPolicy({
     "https://*.convex.site",
     "https://convex.cloud",
     "https://secure.gravatar.com",
+    "https://img.clerk.com",
   ];
   const mediaSources = [
     "'self'",
@@ -128,6 +129,9 @@ export function buildDesktopContentSecurityPolicy({
     development
       ? "style-src 'self' 'unsafe-inline'"
       : "style-src 'self' file: 'unsafe-inline'",
+    // Vite reconnects after optimizer/server restarts through a local blob
+    // SharedWorker. Blocking it leaves old and new React module graphs mixed.
+    ...(development ? ["worker-src 'self' blob:"] : []),
     `connect-src ${connectSources.join(" ")}`,
     `img-src ${imageSources.join(" ")}`,
     `media-src ${mediaSources.join(" ")}`,

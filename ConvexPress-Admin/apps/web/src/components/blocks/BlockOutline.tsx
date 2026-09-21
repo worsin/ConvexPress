@@ -1,3 +1,4 @@
+import { useAuth } from "@/lib/auth-context";
 /**
  * BlockOutline — the new admin-side editor for blocks.
  *
@@ -687,6 +688,8 @@ export function BlockOutline({
   disabled,
   label = "Page Blocks",
 }: BlockOutlineProps) {
+  const { can } = useAuth();
+  const canUseAi = can("blocks.ai");
   const [blocks, setBlocks] = useState<ConvexPressBlock[]>(value);
   const [currentRevision, setCurrentRevision] = useState(revision);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
@@ -1127,12 +1130,10 @@ export function BlockOutline({
                       onAttrsChange={(attrs) => handleAttrsChange(block.id, attrs)}
                       onDuplicate={() => handleDuplicate(block.id)}
                       onRemove={() => handleRemove(block.id)}
-                      onRegenerate={(refinement) =>
-                        void handleRegenerate(block.id, refinement)
-                      }
-                      onImprove={(preset) => void handleImprove(block.id, preset)}
-                      onVariants={() => void handleVariants(block.id)}
-                      onSwap={() => setSwapModal({ blockId: block.id })}
+                      onRegenerate={canUseAi ? (refinement) => void handleRegenerate(block.id, refinement) : undefined}
+                      onImprove={canUseAi ? (preset) => void handleImprove(block.id, preset) : undefined}
+                      onVariants={canUseAi ? () => void handleVariants(block.id) : undefined}
+                      onSwap={canUseAi ? () => setSwapModal({ blockId: block.id }) : undefined}
                     />
                     <InsertGap
                       blocks={enabledBlockDefinitions}
@@ -1157,7 +1158,7 @@ export function BlockOutline({
       )}
 
       {/* Variants modal */}
-      {variantsModal && (
+      {canUseAi && variantsModal && (
         <VariantsModal
           blockName={
             blocks.find((b) => b.id === variantsModal.blockId)?.name ?? "block"
@@ -1169,7 +1170,7 @@ export function BlockOutline({
       )}
 
       {/* Swap-type modal */}
-      {swapModal && (
+      {canUseAi && swapModal && (
         <SwapTypeModal
           blocks={enabledBlockDefinitions}
           currentBlock={blocks.find((b) => b.id === swapModal.blockId)}

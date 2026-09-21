@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { normalizeEntityName, normalizeSlug } from "./hierarchyPolicy";
 import { authenticatedQuery, authorizedMutation } from "./rbac/functions";
+import { scheduleHierarchySessionRevocation } from "./siteBroker/revocationSchedule";
 
 const manageHierarchy = authorizedMutation({
   selector: { type: "capability", code: "hierarchy.manage" },
@@ -112,6 +113,9 @@ export const update = manageHierarchy({
       isActive: args.isActive ?? organization.isActive,
       updatedAt: Date.now(),
     });
+    if (organization.isActive && args.isActive === false) {
+      await scheduleHierarchySessionRevocation(ctx, { targetOrganizationId: organization._id });
+    }
     return summarize((await ctx.db.get(organization._id))!);
   },
 });

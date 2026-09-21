@@ -101,6 +101,7 @@ export const SETTINGS_GROUP_ORDER: SettingsSurfaceGroup[] = [
 ];
 
 export const SETTINGS_REGISTRY: SettingsSurfaceDefinition[] = [
+  {id:"languages",title:"Languages",description:"Language landing pages and connections between translated documents.",group:"core",icon:Globe,route:"/settings/languages",sections:[],capability:"settings.update_general",saveMode:"manual",location:"central",status:"live"},
   {
     id: "general",
     title: "General",
@@ -599,7 +600,7 @@ export const SETTINGS_REGISTRY: SettingsSurfaceDefinition[] = [
     description: "Global layout assignments for content and archive surfaces.",
     group: "appearance",
     icon: LayoutTemplate,
-    route: "/layouts/assign",
+    route: "/appearance/customize",
     sections: ["layout"],
     capability: "manage_options",
     saveMode: "autosave",
@@ -609,10 +610,10 @@ export const SETTINGS_REGISTRY: SettingsSurfaceDefinition[] = [
   {
     id: "header",
     title: "Header",
-    description: "Global site header composition, slots, and responsive behavior.",
+    description: "Active-template header composition, slots, and responsive behavior.",
     group: "appearance",
     icon: Palette,
-    route: "/appearance/header",
+    route: "/appearance/customize",
     sections: ["header"],
     capability: "edit_theme_options",
     saveMode: "manual",
@@ -622,10 +623,10 @@ export const SETTINGS_REGISTRY: SettingsSurfaceDefinition[] = [
   {
     id: "footer",
     title: "Footer",
-    description: "Global footer composition, column layout, and bottom-bar behavior.",
+    description: "Active-template footer composition, column layout, and bottom-bar behavior.",
     group: "appearance",
     icon: GalleryVerticalEnd,
-    route: "/appearance/footer",
+    route: "/appearance/customize",
     sections: ["footer"],
     capability: "edit_theme_options",
     saveMode: "manual",

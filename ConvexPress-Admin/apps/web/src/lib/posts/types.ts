@@ -53,6 +53,8 @@ export interface Post {
   autosaveContent?: string;
   autosaveTitle?: string;
   autosavedAt?: number;
+  blocksVersion?: number;
+  blocksRevision?: number;
 }
 
 // ─── Post With Author ───────────────────────────────────────────────────────

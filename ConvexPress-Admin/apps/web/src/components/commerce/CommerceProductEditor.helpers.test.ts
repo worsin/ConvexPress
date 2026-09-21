@@ -61,7 +61,7 @@ describe("CommerceProductEditor helpers", () => {
 				price: { amount: 2499 },
 				salePrice: { amount: 1999 },
 				stockQuantity: 8,
-			}),
+			}, {trackInventory:true}),
 		).toEqual(
 			testDraft({
 				title: "Large / Black",
@@ -69,6 +69,7 @@ describe("CommerceProductEditor helpers", () => {
 				price: "24.99",
 				salePrice: "19.99",
 				stockQuantity: "8",
+				manageStock: "yes",
 			}),
 		);
 	});
@@ -181,4 +182,18 @@ describe("CommerceProductEditor helpers", () => {
 		});
 		expect(result.v1.sku).toBe("NEW-SKU");
 	});
+});
+
+test("sale editor uses local wall time and preserves unchanged instants including epoch zero", async () => {
+  const { formatSaleDateLocal, saleDateChange } = await import("./CommerceProductEditor.helpers");
+  for (const time of [0, Date.parse("2026-09-06T16:00:00.123Z"), Date.parse("2026-11-01T08:30:00.000Z")]) {
+    const formatted = formatSaleDateLocal(time);
+    const date = new Date(time);
+    expect(formatted).toContain(`T${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`);
+    expect(saleDateChange(formatted, time)).toBeUndefined();
+    expect(saleDateChange("", time)).toBeNull();
+  }
+  expect(saleDateChange("", undefined)).toBeUndefined();
+  expect(saleDateChange("2026-09-06T10:00:00.123", undefined)).toBe(new Date("2026-09-06T10:00:00.123").getTime());
+  expect(() => saleDateChange("invalid", undefined)).toThrow("Choose a valid sale date.");
 });

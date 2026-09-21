@@ -1,3 +1,4 @@
+import { KBInheritedCategoryAccess } from "@/components/kb/KBInheritedCategoryAccess";
 /**
  * KB Article Editor - /admin/kb/$articleId/edit
  *
@@ -39,6 +40,7 @@ type KBArticle = {
   slug: string;
   status: "draft" | "review" | "published" | "archived";
   categoryId?: Id<"kb_categories">;
+  hasInheritedCategoryAccess?: boolean;
   metaTitle?: string;
   metaDescription?: string;
   keywords?: string[];
@@ -180,6 +182,7 @@ function ArticleEditor({ articleId }: { articleId: string }) {
 
   return (
     <div className="space-y-5">
+      {art?.hasInheritedCategoryAccess && <KBInheritedCategoryAccess articleId={articleId as Id<"kb_articles">} />}
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

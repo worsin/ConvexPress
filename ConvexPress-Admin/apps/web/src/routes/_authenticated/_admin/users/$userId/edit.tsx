@@ -58,6 +58,7 @@ interface EnrichedUser {
   preferences?: UserPreferences;
   status: UserStatus;
   roleId?: Id<"roles">;
+  authSource?: "local" | "clerk" | "management";
   roleName?: string;
   roleLevel?: number;
   createdAt: number;
@@ -129,7 +130,7 @@ function EditUserPage() {
 
   // Initialize role selector when user data loads
   useEffect(() => {
-    if (userData && userData.roleId && !selectedRoleId) {
+    if (userData && "roleId" in userData && userData.roleId && !selectedRoleId) {
       setSelectedRoleId(userData.roleId);
       setOriginalRoleId(userData.roleId);
     }
@@ -297,6 +298,7 @@ function EditUserPage() {
             </label>
             <RoleSelector
               id="user-role-select"
+              assignmentTarget={{ authSource: user.authSource }}
               value={selectedRoleId}
               onChange={setSelectedRoleId}
             />
@@ -314,7 +316,7 @@ function EditUserPage() {
                 id="role-change-reason"
                 value={roleReason}
                 onChange={(e) => setRoleReason(e.target.value)}
-                placeholder="e.g., Promoted to editor"
+                placeholder="e.g., Updated account responsibilities"
                 rows={2}
                 className="w-full border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:border-ring focus:outline-hidden focus:ring-1 focus:ring-ring/50 resize-none"
               />

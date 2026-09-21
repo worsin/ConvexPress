@@ -4,7 +4,6 @@ import { randomBytes } from "node:crypto";
 
 import {
   MANAGEMENT_CAPABILITY_CODES,
-  siteHealthResponseSchema,
 } from "@convexpress/site-contract";
 import { generateManagementKeyPair } from "@convexpress/site-contract/node";
 import { ConvexHttpClient } from "convex/browser";
@@ -13,7 +12,7 @@ import { ConvexError, v } from "convex/values";
 
 import { internal } from "../_generated/api";
 import { operatorAction } from "../rbac/functions";
-import { action } from "../_generated/server";
+import { action, type ActionCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import {
   createControllerCredential,
@@ -26,6 +25,8 @@ import {
   parseEnvelopeKeys,
 } from "./crypto";
 import { probeControllerAuthority } from "./authorityProbe";
+import { probeTargetIdentity } from "./healthProbe";
+import { healthEvidence } from "./healthEvidence";
 
 const actionResult = v.object({
   connectionId: v.id("overseer_connections"),
@@ -41,6 +42,8 @@ interface ConnectionActionTarget {
   connectionId: Id<"overseer_connections">;
   instanceId: Id<"overseer_websiteInstances">;
   controllerSubjectId: string;
+  connectionRevision: number;
+  targetRevision: string;
   websiteKey: string;
   instanceKey: string;
   deploymentOrigin: string;
@@ -105,39 +108,6 @@ function aad(target: {
   return `${target.websiteKey}|${target.instanceKey}|${String(target.connectionId)}`;
 }
 
-async function probeTargetIdentity(target: {
-  managementOrigin: string;
-  websiteKey: string;
-  instanceKey: string;
-}) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8_000);
-  try {
-    const response = await fetch(
-      `${target.managementOrigin}/api/convexpress/management/health`,
-      {
-        method: "GET",
-        headers: { Accept: "application/json" },
-        signal: controller.signal,
-      },
-    );
-    if (!response.ok) throw new Error("unreachable");
-    const length = Number(response.headers.get("content-length") ?? "0");
-    if (Number.isFinite(length) && length > 65_536) throw new Error("oversized");
-    const health = siteHealthResponseSchema.parse(await response.json());
-    if (
-      health.websiteKey !== target.websiteKey ||
-      health.instanceKey !== target.instanceKey
-    ) {
-      throw new Error("target mismatch");
-    }
-    return health;
-  } catch {
-    throw new Error("Site target identity could not be verified");
-  } finally {
-    clearTimeout(timeout);
-  }
-}
 
 function activeKeys() {
   return parseEnvelopeKeys({
@@ -174,6 +144,7 @@ export const create = operatorAction({
   returns: actionResult,
   handler: async (ctx, args): Promise<ConnectionActionResult> => {
     let connectionId: Id<"overseer_connections"> | null = null;
+    let sealed = false;
     let enrolled:
       | {
           client: ConvexHttpClient;
@@ -204,6 +175,10 @@ export const create = operatorAction({
         target.deploymentOrigin,
         credential.deploymentAdminKey,
       );
+      // Public identity alone is insufficient authority to enroll after a slow
+      // probe. Reauthorize the current operator and exact target before writing.
+      const current = await ctx.runQuery(internal.connections.mutations.prepare, { connectionId: target.connectionId });
+      if (!sameConnectionTarget(target, current)) throw Error("Connection target changed before enrollment");
       await client.mutation(enrollAuthority, {
         controllerId: credential.controllerId,
         keyId: credential.keyId,
@@ -227,12 +202,15 @@ export const create = operatorAction({
         connectionId: target.connectionId,
         envelope,
       });
-      return {
-        connectionId: target.connectionId,
-        status: "connected" as const,
-        credentialVersion: envelope.version,
-      };
+      sealed = true;
+      return await verifyConnection(ctx, target.connectionId, { target, credentialIv: envelope.iv });
     } catch (cause) {
+      if (sealed) {
+        // This key is now durable and may already have been rotated/revoked by
+        // another operation. Keep it retryable; guarded verification owns health
+        // evidence. Never deactivate or revoke a newer current connection here.
+        throw new Error("Connection credentials were saved, but signed verification failed. Retry the connection test.");
+      }
       if (enrolled) {
         try {
           await enrolled.client.mutation(revokeAuthority, {
@@ -361,55 +339,50 @@ export const rotate = operatorAction({
   },
 });
 
+function sameConnectionTarget(left: ConnectionActionTarget, right: ConnectionActionTarget) {
+  return (["connectionId", "instanceId", "controllerSubjectId", "websiteKey", "instanceKey", "deploymentOrigin", "managementOrigin", "siteOrigin", "kind"] as const).every(key => left[key] === right[key]);
+}
+
+async function verifyConnection(ctx: Pick<ActionCtx, "runQuery" | "runMutation">, connectionId: Id<"overseer_connections">, expected?: { target: ConnectionActionTarget; credentialIv: string }): Promise<ConnectionActionResult> {
+    const startedAt = Date.now();
+    let target: ConnectionActionTarget | null = null;
+    let report: Awaited<ReturnType<typeof probeTargetIdentity>>;
+    try {
+      const current: ConnectionActionTarget = await ctx.runQuery(internal.connections.mutations.prepare, { connectionId });
+      if (expected && (!sameConnectionTarget(expected.target, current) || current.credentials?.iv !== expected.credentialIv)) throw Error("Connection changed before verification");
+      target = current;
+      if (!target?.credentials) throw new Error("missing credentials");
+      const key = parseEnvelopeKey(process.env.CONVEXPRESS_CONNECTION_ENVELOPE_KEYS, target.credentials.version);
+      const credential = parseControllerCredential(decryptCredentialPayload({ envelope: target.credentials, key, aad: aad(target) }));
+      report = await probeTargetIdentity(target);
+      await probeControllerAuthority({ ...target, credential });
+    } catch {
+      if (target?.credentials) {
+        try {
+          await ctx.runMutation(internal.connections.mutations.recordHealth, {
+            connectionId: connectionId,
+            connectionRevision: target.connectionRevision, targetRevision: target.targetRevision,
+            credentialIv: target.credentials.iv,
+            latencyMs: Date.now() - startedAt, errorCode: "CONNECTION_TEST_FAILED",
+          });
+        } catch { /* Revoked access or a replaced target must not receive a late failure. */ }
+      }
+      throw new Error("Connection test failed");
+    }
+    await ctx.runMutation(internal.connections.mutations.recordHealth, {
+      connectionId: connectionId,
+      connectionRevision: target.connectionRevision, targetRevision: target.targetRevision,
+      credentialIv: target.credentials!.iv, report, latencyMs: Date.now() - startedAt,
+    });
+    const evidence = healthEvidence(report, target, Date.now());
+    if (evidence.health !== "ok" || evidence.compatibility !== "compatible") throw Error("Site reports degraded health or incompatible contracts");
+    return { connectionId: connectionId, status: "healthy", credentialVersion: target.credentials!.version };
+}
+
 export const test = action({
   args: { connectionId: v.id("overseer_connections") },
   returns: actionResult,
-  handler: async (ctx, args): Promise<ConnectionActionResult> => {
-    const startedAt = Date.now();
-    try {
-      const target: ConnectionActionTarget = await ctx.runQuery(internal.connections.mutations.prepare, {
-        connectionId: args.connectionId,
-      });
-      if (!target.credentials) throw new Error("missing credentials");
-      const key = parseEnvelopeKey(
-        process.env.CONVEXPRESS_CONNECTION_ENVELOPE_KEYS,
-        target.credentials.version,
-      );
-      const credential = parseControllerCredential(
-        decryptCredentialPayload({
-          envelope: target.credentials,
-          key,
-          aad: aad(target),
-        }),
-      );
-      await probeTargetIdentity(target);
-      await probeControllerAuthority({
-        managementOrigin: target.managementOrigin,
-        websiteKey: target.websiteKey,
-        instanceKey: target.instanceKey,
-        controllerSubjectId: target.controllerSubjectId,
-        credential,
-      });
-      await ctx.runMutation(internal.connections.mutations.recordHealth, {
-        connectionId: args.connectionId,
-        status: "healthy",
-        latencyMs: Date.now() - startedAt,
-      });
-      return {
-        connectionId: args.connectionId,
-        status: "healthy" as const,
-        credentialVersion: target.credentials.version,
-      };
-    } catch {
-      await ctx.runMutation(internal.connections.mutations.recordHealth, {
-        connectionId: args.connectionId,
-        status: "unreachable",
-        latencyMs: Date.now() - startedAt,
-        errorCode: "CONNECTION_TEST_FAILED",
-      });
-      throw new Error("Connection test failed");
-    }
-  },
+  handler: (ctx, args): Promise<ConnectionActionResult> => verifyConnection(ctx, args.connectionId),
 });
 
 export const revoke = operatorAction({
@@ -462,7 +435,8 @@ export const revoke = operatorAction({
       }
       await ctx.runMutation(internal.connections.mutations.recordHealth, {
         connectionId: args.connectionId,
-        status: "unreachable",
+        connectionRevision: target.connectionRevision, targetRevision: target.targetRevision,
+        credentialIv: target.credentials.iv,
         latencyMs: 0,
         errorCode: "FORCE_REVOKED_UNREACHABLE",
       });

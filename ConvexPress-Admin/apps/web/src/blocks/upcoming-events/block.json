@@ -1,0 +1,17 @@
+{
+  "name": "events/upcoming",
+  "title": "Upcoming Events",
+  "description": "Live public events, updated from the Events plugin without storing event copies in page content.",
+  "category": "site",
+  "keywords": [
+    "events",
+    "live",
+    "experiences"
+  ],
+  "version": 1,
+  "supports": {
+    "multiple": true,
+    "media": false
+  },
+  "rendererStatus": "ready"
+}

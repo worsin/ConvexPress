@@ -52,6 +52,12 @@ if (!fs.existsSync(sourceApp)) {
   throw new Error(`Could not find an Electron .app bundle under ${electronDist}`);
 }
 
+for (const required of ["Contents/Info.plist", "Contents/Frameworks/Electron Framework.framework/Electron Framework"]) {
+  if (!fs.existsSync(path.join(sourceApp, required))) {
+    throw new Error(`Electron installation is incomplete (${required}). Reinstall the pinned Electron binary before preparing the desktop bundle.`);
+  }
+}
+
 if (path.resolve(sourceApp) !== path.resolve(targetApp)) {
   fs.rmSync(bundleParent, { recursive: true, force: true });
   fs.mkdirSync(bundleParent, { recursive: true });

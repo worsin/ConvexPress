@@ -5,11 +5,14 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./hosting-provider": "./src/hosting-provider.ts",
+    "./preview-origin": "./src/preview-origin.ts",
+    "./vercel-artifact": "./src/vercel-artifact.ts",
     "./media-index-maintenance": "./src/media-index-maintenance.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit",
-    "test": "bun test src/__tests__"
+    "test": "bun test ./src/__tests__"
   },
   "dependencies": {
     "convex": "catalog:"

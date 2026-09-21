@@ -1,13 +1,9 @@
 /**
- * LayoutMetabox -- Allows editors to override the default layout for a specific
- * post or page, and optionally hide the site header/footer.
+ * LayoutMetabox -- Per-document header/footer controls for the active template.
  *
  * Appears in the editor sidebar alongside other metaboxes.
  */
 
-import { useQuery } from "convex-helpers/react/cache";
-import { api } from "@backend/convex/_generated/api";
-import { Label } from "@/components/ui/label";
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch";
 import { cn } from "@/lib/utils";
 
@@ -18,11 +14,6 @@ interface LayoutMetaboxProps {
   onLayoutChange: (layoutId: string) => void;
   onHideHeaderChange: (hide: boolean) => void;
   onHideFooterChange: (hide: boolean) => void;
-}
-
-interface LayoutOption {
-  _id: string;
-  name: string;
 }
 
 function ToggleRow({
@@ -64,37 +55,17 @@ function ToggleRow({
 }
 
 export function LayoutMetabox({
-  layoutId = "",
   hideHeader = false,
   hideFooter = false,
-  onLayoutChange,
   onHideHeaderChange,
   onHideFooterChange,
 }: LayoutMetaboxProps) {
-  const layouts = useQuery(api.layouts.queries.list) as LayoutOption[] | undefined;
 
   return (
     <div className="space-y-3">
-      {/* Layout override */}
-      <div className="space-y-1">
-        <Label className="text-xs font-medium">Layout</Label>
-        <select
-          value={layoutId}
-          onChange={(e) => onLayoutChange(e.target.value)}
-          className="w-full h-7 rounded-none border border-border bg-transparent px-2 text-xs"
-          aria-label="Layout override"
-        >
-          <option value="">Use default</option>
-          {layouts?.map((layout) => (
-            <option key={layout._id} value={layout._id}>
-              {layout.name}
-            </option>
-          ))}
-        </select>
-        <p className="text-xs text-muted-foreground">
-          Override the default layout for this content.
-        </p>
-      </div>
+      <p className="text-xs text-muted-foreground">
+        Page appearance follows the active template. Adjust its defaults in Appearance → Customize.
+      </p>
 
       {/* Hide header toggle */}
       <ToggleRow

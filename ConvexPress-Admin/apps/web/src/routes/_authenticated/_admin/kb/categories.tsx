@@ -13,6 +13,7 @@ import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
 import { Plus, Pencil, Trash2, X, Check, Folder } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/_admin/kb/categories")({
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/_authenticated/_admin/kb/categories")({
 
 type EditingCategory = {
   id: string;
+  parentId: string;
   name: string;
   description: string;
   icon: string;
@@ -53,9 +55,14 @@ function KBCategoriesPage() {
 }
 
 function KBCategoriesContent() {
-  const categoriesResult = useQuery(api.kb.categories.list);
+  const { can } = useAuth();
+  const canView = can("kb.view");
+  const canManage = can("kb.manageCategories");
+  const categoriesResult = useQuery(api.kb.categories.list, canView ? {} : "skip");
   const categories = (categoriesResult ?? []) as Array<{
     _id: string;
+    parentId?: string;
+    deletionJobId?: Id<"kb_category_deletions">;
     name: string;
     slug: string;
     description?: string;
@@ -104,8 +111,9 @@ function KBCategoriesContent() {
       await updateCategory({
         categoryId: editing.id as Id<"kb_categories">,
         name: editing.name.trim(),
-        description: editing.description || undefined,
-        icon: editing.icon || undefined,
+        description: editing.description,
+        icon: editing.icon,
+        parentId: (editing.parentId as Id<"kb_categories">) || null,
       });
       toast.success("Category updated");
       setEditing(null);
@@ -119,12 +127,14 @@ function KBCategoriesContent() {
   async function handleDelete(categoryId: string) {
     try {
       await removeCategory({ categoryId: categoryId as Id<"kb_categories"> });
-      toast.success("Category deleted");
+      toast.success("Category deletion started. Articles retain their existing access rules.");
       setConfirmDelete(null);
     } catch (err: unknown) {
       toast.error((err as { data?: { message?: string } })?.data?.message ?? "Failed to delete category");
     }
   }
+
+  if (!canView) return <p role="status">You do not have access to knowledge-base categories.</p>;
 
   if (categoriesResult === undefined) {
     return (
@@ -140,6 +150,7 @@ function KBCategoriesContent() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">KB Categories</h1>
         <button
+          disabled={!canManage}
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
         >
@@ -160,6 +171,7 @@ function KBCategoriesContent() {
               <input
                 type="text"
                 value={newCat.name}
+                aria-label="New category name"
                 onChange={(e) => setNewCat((p) => ({ ...p, name: e.target.value }))}
                 placeholder="Category name"
                 className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-background"
@@ -172,6 +184,7 @@ function KBCategoriesContent() {
               <input
                 type="text"
                 value={newCat.icon}
+                aria-label="New category icon"
                 onChange={(e) => setNewCat((p) => ({ ...p, icon: e.target.value }))}
                 placeholder="e.g. 📚 or book"
                 className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-background"
@@ -184,6 +197,7 @@ function KBCategoriesContent() {
               <input
                 type="text"
                 value={newCat.description}
+                aria-label="New category description"
                 onChange={(e) => setNewCat((p) => ({ ...p, description: e.target.value }))}
                 placeholder="Short description"
                 className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-background"
@@ -195,11 +209,12 @@ function KBCategoriesContent() {
               </label>
               <select
                 value={newCat.parentId}
+                aria-label="New category parent"
                 onChange={(e) => setNewCat((p) => ({ ...p, parentId: e.target.value }))}
                 className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card"
               >
                 <option value="">— None (top-level) —</option>
-                {categories.map((cat) => (
+                {categories.filter((cat) => cat.isActive !== false).map((cat) => (
                   <option key={cat._id} value={cat._id}>
                     {cat.name}
                   </option>
@@ -255,12 +270,14 @@ function KBCategoriesContent() {
                         <div className="flex items-center gap-2">
                           <input
                             type="text"
+                            aria-label="Category name"
                             value={editing.name}
                             onChange={(e) => setEditing((p) => p && { ...p, name: e.target.value })}
                             className="flex-1 px-2 py-1 text-sm border border-border rounded-md bg-background"
                           />
                           <input
                             type="text"
+                            aria-label="Category description"
                             value={editing.description}
                             onChange={(e) => setEditing((p) => p && { ...p, description: e.target.value })}
                             placeholder="Description"
@@ -268,11 +285,23 @@ function KBCategoriesContent() {
                           />
                           <input
                             type="text"
+                            aria-label="Category icon"
                             value={editing.icon}
                             onChange={(e) => setEditing((p) => p && { ...p, icon: e.target.value })}
                             placeholder="Icon"
                             className="w-20 px-2 py-1 text-sm border border-border rounded-md bg-background"
                           />
+                          <select
+                            aria-label="Parent category"
+                            value={editing.parentId}
+                            onChange={(e) => setEditing((previous) => previous && { ...previous, parentId: e.target.value })}
+                            className="max-w-48 px-2 py-1 text-sm border border-border rounded-md bg-background"
+                          >
+                            <option value="">No parent</option>
+                            {categories.filter((candidate) => candidate._id !== editing.id && candidate.isActive !== false).map((candidate) => (
+                              <option key={candidate._id} value={candidate._id}>{candidate.name}</option>
+                            ))}
+                          </select>
                         </div>
                       </td>
                       <td className="px-4 py-2 text-right">
@@ -322,13 +351,13 @@ function KBCategoriesContent() {
                               : "border-border bg-muted text-foreground/50",
                           ].join(" ")}
                         >
-                          {cat.isPublished ? "Published" : "Hidden"}
+                          {cat.deletionJobId ? "Deleting" : cat.isPublished ? "Published" : "Hidden"}
                         </span>
                       </td>
                       <td className="px-4 py-2.5 text-right">
-                        {confirmDelete === cat._id ? (
+                        {cat.deletionJobId ? <CategoryDeletionProgress jobId={cat.deletionJobId} categoryId={cat._id as Id<"kb_categories">} canManage={canManage} /> : confirmDelete === cat._id ? (
                           <div className="flex justify-end items-center gap-2">
-                            <span className="text-xs text-destructive">Delete?</span>
+                            <span className="max-w-xs text-xs text-destructive">Delete this category? Articles move to Uncategorized and keep their access restrictions.</span>
                             <button
                               onClick={() => void handleDelete(cat._id)}
                               className="text-xs px-2 py-1 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 transition-colors"
@@ -345,13 +374,15 @@ function KBCategoriesContent() {
                         ) : (
                           <div className="flex justify-end gap-1">
                             <button
-                              onClick={() => setEditing({ id: cat._id, name: cat.name, description: cat.description ?? "", icon: cat.icon ?? "" })}
+                              disabled={!canManage}
+                              onClick={() => setEditing({ id: cat._id, parentId: cat.parentId ?? "", name: cat.name, description: cat.description ?? "", icon: cat.icon ?? "" })}
                               aria-label={`Edit ${cat.name}`}
                               className="p-1 rounded hover:bg-muted transition-colors text-foreground/60 hover:text-foreground"
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
+                              disabled={!canManage}
                               onClick={() => setConfirmDelete(cat._id)}
                               aria-label={`Delete ${cat.name}`}
                               className="p-1 rounded hover:bg-destructive/10 text-foreground/60 hover:text-destructive transition-colors"
@@ -371,4 +402,20 @@ function KBCategoriesContent() {
       </div>
     </div>
   );
+}
+
+function CategoryDeletionProgress({ jobId, categoryId, canManage }: { jobId: Id<"kb_category_deletions">; categoryId: Id<"kb_categories">; canManage: boolean }) {
+  const status = useQuery(api.kb.categoryDeletion.status, { jobId });
+  const resume = useMutation(api.kb.categories.remove);
+  const [working, setWorking] = useState(false);
+  return <div className="space-y-1 text-right text-xs" role="status">
+    <p>{status ? `${status.childrenMoved} child categories · ${status.articlesMoved} articles moved` : "Preparing deletion…"}</p>
+    {status?.message && <p className="max-w-sm text-muted-foreground">{status.message}</p>}
+    <button type="button" disabled={!canManage || working} className="rounded border border-border px-2 py-1 disabled:opacity-50" onClick={async () => {
+      setWorking(true);
+      try { await resume({ categoryId }); }
+      catch { toast.error("Could not continue deletion. Check your access and try again."); }
+      finally { setWorking(false); }
+    }}>Continue deletion</button>
+  </div>;
 }

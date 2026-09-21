@@ -3,6 +3,7 @@
  * Dynamic segments ($param) are resolved from route data at runtime.
  */
 export const BREADCRUMB_LABELS: Record<string, string> = {
+  "synced-content": "Synced content",
   dashboard: "Dashboard",
   setup: "Integrations",
   posts: "Posts",
@@ -32,6 +33,8 @@ export const BREADCRUMB_LABELS: Record<string, string> = {
   capabilities: "Capabilities",
   events: "Events",
   routes: "Routes",
+  "mailing-lists": "Mailing lists",
+  "social": "Social feeds",
   "email-notifications": "Email Notifications",
   "site-notifications": "Site Notifications",
   notifications: "Notifications",

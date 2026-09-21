@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { api } from "@backend/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ import { ParentCategorySelect } from "./ParentCategorySelect";
 export function AddCategoryForm() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [parentId, setParentId] = useState("");
+  const [parentId, setParentId] = useState<Id<"terms"> | "">("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

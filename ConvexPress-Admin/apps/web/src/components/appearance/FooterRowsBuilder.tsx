@@ -10,7 +10,7 @@
  * the legacy section toggles so nothing visually disappears on the Website.
  */
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, type SetStateAction } from "react";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
@@ -138,8 +138,9 @@ function makeFooterPresetRows(preset: "classic" | "newsletter" | "minimal"): Foo
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function FooterRowsBuilder() {
-  const stored = useQuery(api.settings.queries.getBySection, { section: "footer" });
+export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, unknown>; onChange?: (value: Record<string, unknown>) => void } = {}) {
+  const serverStored = useQuery(api.settings.queries.getBySection, onChange ? "skip" : { section: "footer" });
+  const stored = onChange ? value : serverStored;
   const updateSection = useMutation(api.settings.mutations.updateSection);
 
   const merged: FooterConfig = useMemo(
@@ -147,7 +148,17 @@ export function FooterRowsBuilder() {
     [stored],
   );
 
-  const [rows, setRows] = useState<FooterRow[]>(merged.rows ?? []);
+  const [localRows, setLocalRows] = useState<FooterRow[]>(merged.rows ?? []);
+  const controlled = useRef({ merged, onChange });
+  controlled.current = { merged, onChange };
+  const rows = onChange ? merged.rows ?? [] : localRows;
+  const setRows = useCallback((next: SetStateAction<FooterRow[]>) => {
+    const current = controlled.current;
+    if (current.onChange) {
+      const nextRows = typeof next === "function" ? next(current.merged.rows ?? []) : next;
+      current.onChange({ ...current.merged, rows: nextRows });
+    } else setLocalRows(next);
+  }, []);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set());
@@ -156,9 +167,10 @@ export function FooterRowsBuilder() {
 
   // Resync from server when the cached settings change.
   useEffect(() => {
-    setRows(merged.rows ?? []);
+    setLocalRows(merged.rows ?? []);
     setDirty(false);
   }, [merged]);
+
 
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -306,6 +318,7 @@ export function FooterRowsBuilder() {
   }, []);
 
   const handleSave = useCallback(async () => {
+    if (onChange) return;
     setSaving(true);
     try {
       await updateSection({
@@ -319,7 +332,7 @@ export function FooterRowsBuilder() {
     } finally {
       setSaving(false);
     }
-  }, [merged, rows, updateSection]);
+  }, [merged, rows, updateSection, onChange]);
 
   const handleReset = useCallback(() => {
     setRows(merged.rows ?? []);
@@ -372,8 +385,7 @@ export function FooterRowsBuilder() {
         <div>
           <h2 className="text-lg font-semibold text-foreground">Footer Builder</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Drag to reorder. Click a row or cell to edit. Save publishes
-            instantly — no rebuild required.
+            Drag to reorder. Click a row or cell to edit. Changes stay in your draft until published.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -396,14 +408,14 @@ export function FooterRowsBuilder() {
             <RotateCcw className="mr-1 h-3.5 w-3.5" />
             Reset
           </Button>
-          <Button type="button" size="sm" onClick={handleSave} disabled={!dirty || saving}>
+          {!onChange && <Button type="button" size="sm" onClick={handleSave} disabled={!dirty || saving}>
             {saving ? (
               <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
             ) : (
               <Save className="mr-1 h-3.5 w-3.5" />
             )}
             Save footer
-          </Button>
+          </Button>}
         </div>
       </div>
 

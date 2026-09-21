@@ -5,6 +5,7 @@
  * Wired to api.kb.workflows.*
  */
 
+import type { FunctionArgs } from "convex/server";
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
@@ -21,12 +22,8 @@ export const Route = createFileRoute("/_authenticated/_admin/kb/workflows")({
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type WorkflowStep = {
-  id: string;
-  name: string;
-  requiredApprovals: number;
-  assigneeId?: string;
-};
+type WorkflowStep = FunctionArgs<typeof api.kb.workflows.create>["steps"][number] & { id: string };
+const stepTypes: WorkflowStep["type"][] = ["approval", "review", "auto"];
 
 type FormState = {
   name: string;
@@ -35,21 +32,9 @@ type FormState = {
   steps: WorkflowStep[];
 };
 
-type KBWorkflow = {
-  _id: string;
-  name: string;
-  description?: string;
-  isDefault: boolean;
-  isActive: boolean;
-  steps: Array<{
-    name: string;
-    requiredApprovals: number;
-    assigneeId?: string;
-  }>;
-};
 
 function createStep(): WorkflowStep {
-  return { id: crypto.randomUUID(), name: "", requiredApprovals: 1 };
+  return { id: crypto.randomUUID(), name: "", type: "approval", requiredApprovals: 1 };
 }
 
 const EMPTY_FORM: FormState = {
@@ -71,15 +56,15 @@ function KBWorkflowsPage() {
 
 function KBWorkflowsContent() {
   const workflowsResult = useQuery(api.kb.workflows.list);
-  const workflows = (workflowsResult ?? []) as KBWorkflow[];
+  const workflows = workflowsResult ?? [];
   const createWorkflow = useMutation(api.kb.workflows.create);
   const updateWorkflow = useMutation(api.kb.workflows.update);
   const removeWorkflow = useMutation(api.kb.workflows.remove);
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<Id<"kb_workflows"> | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Id<"kb_workflows"> | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   function startEdit(w: (typeof workflows)[0]) {
@@ -92,6 +77,8 @@ function KBWorkflowsContent() {
         ? w.steps.map((s) => ({
             id: crypto.randomUUID(),
             name: s.name,
+            type: s.type,
+            assigneeRole: s.assigneeRole,
             requiredApprovals: s.requiredApprovals,
             assigneeId: s.assigneeId,
           }))
@@ -111,7 +98,7 @@ function KBWorkflowsContent() {
     }));
   }
 
-  function updateStep(idx: number, field: keyof WorkflowStep, value: string | number) {
+  function updateStep<K extends keyof WorkflowStep>(idx: number, field: K, value: WorkflowStep[K]) {
     setForm((p) => ({
       ...p,
       steps: p.steps.map((s, i) =>
@@ -132,8 +119,10 @@ function KBWorkflowsContent() {
         isDefault: form.isDefault,
         steps: form.steps.map((s) => ({
           name: s.name.trim(),
+          type: s.type,
+          assigneeRole: s.assigneeRole,
           requiredApprovals: s.requiredApprovals,
-          assigneeId: s.assigneeId as Id<"users"> | undefined,
+          assigneeId: s.assigneeId,
         })),
       });
       toast.success("Workflow created");
@@ -154,14 +143,16 @@ function KBWorkflowsContent() {
     setIsSaving(true);
     try {
       await updateWorkflow({
-        workflowId: editingId as Id<"kb_workflows">,
+        workflowId: editingId,
         name: form.name.trim(),
         description: form.description || undefined,
         isDefault: form.isDefault,
         steps: form.steps.map((s) => ({
           name: s.name.trim(),
+          type: s.type,
+          assigneeRole: s.assigneeRole,
           requiredApprovals: s.requiredApprovals,
-          assigneeId: s.assigneeId as Id<"users"> | undefined,
+          assigneeId: s.assigneeId,
         })),
       });
       toast.success("Workflow updated");
@@ -174,9 +165,9 @@ function KBWorkflowsContent() {
     }
   }
 
-  async function handleDelete(workflowId: string) {
+  async function handleDelete(workflowId: Id<"kb_workflows">) {
     try {
-      await removeWorkflow({ workflowId: workflowId as Id<"kb_workflows"> });
+      await removeWorkflow({ workflowId });
       toast.success("Workflow deleted");
       setConfirmDelete(null);
     } catch (err: unknown) {
@@ -272,6 +263,14 @@ function KBWorkflowsContent() {
                     placeholder="Step name"
                     className="flex-1 px-2 py-1 text-sm border border-border rounded bg-card"
                   />
+                  <select
+                    aria-label={`Step ${idx + 1} type`}
+                    value={step.type}
+                    onChange={(e) => { const type = stepTypes.find((item) => item === e.target.value); if (type) updateStep(idx, "type", type); }}
+                    className="px-2 py-1 text-sm border border-border rounded bg-card"
+                  >
+                    {stepTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                  </select>
                   <div className="flex items-center gap-1">
                     <label className="text-xs text-foreground/50 whitespace-nowrap">Min approvals:</label>
                     <input

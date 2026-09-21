@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, memo } from "react";
+import { useCallback, useMemo, useRef, useState, memo } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
@@ -23,6 +23,7 @@ import { usePostMutations } from "@/hooks/posts/usePostMutations";
 import { usePostList } from "@/hooks/posts/usePostList";
 import { usePostCounts } from "@/hooks/posts/usePostCounts";
 import { usePostFilters } from "@/hooks/posts/usePostFilters";
+import { useAuth } from "@/lib/auth-context";
 import { formatPostDate, getDateLabel, getRelevantDate } from "@/lib/posts/utils";
 import type { PostWithAuthor } from "@/lib/posts/types";
 import type {
@@ -59,8 +60,8 @@ const PostCategoriesCell = memo(function PostCategoriesCell({
 
   return (
     <span className="text-muted-foreground">
-      {categories.map((cat: { name: string }, i: number) => (
-        <span key={i}>
+      {categories.map((cat: { _id: string; name: string }, i: number) => (
+        <span key={cat._id}>
           {i > 0 && ", "}
           <span className="hover:text-foreground transition-colors cursor-pointer">
             {cat.name}
@@ -92,8 +93,8 @@ const PostTagsCell = memo(function PostTagsCell({
 
   return (
     <span className="text-muted-foreground">
-      {tags.map((tag: { name: string }, i: number) => (
-        <span key={i}>
+      {tags.map((tag: { _id: string; name: string }, i: number) => (
+        <span key={tag._id}>
           {i > 0 && ", "}
           <span className="hover:text-foreground transition-colors cursor-pointer">
             {tag.name}
@@ -258,6 +259,12 @@ const postRowActions: RowAction<PostWithAuthor>[] = [
     visible: (row) => row.status !== "trash",
   },
   {
+    key: "duplicate",
+    label: "Duplicate",
+    type: "button",
+    visible: (row) => row.status !== "trash",
+  },
+  {
     key: "trash",
     label: "Trash",
     type: "button",
@@ -314,6 +321,8 @@ const postListConfig: ListTableConfig<PostWithAuthor> = {
 // --- Component ---
 
 export function PostListTable() {
+  const { user, role, can } = useAuth();
+  const duplicatingIds = useRef(new Set<string>());
   const [quickEditId, setQuickEditId] = useState<string | null>(null);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -336,6 +345,7 @@ export function PostListTable() {
     trashPost,
     restorePost,
     permanentDeletePost,
+    duplicatePost,
     bulkTrashPosts,
     bulkRestorePosts,
     bulkDeletePosts,
@@ -361,6 +371,29 @@ export function PostListTable() {
   const rowActionsWithHandlers = useMemo<RowAction<PostWithAuthor>[]>(
     () =>
       postRowActions.map((action) => {
+        if (action.key === "duplicate") {
+          return {
+            ...action,
+            visible: (row: PostWithAuthor) =>
+              row.status !== "trash" && can("post.duplicate") && can("post.update") &&
+              (row.authorId === user?._id || (role?.level ?? 0) >= 80),
+            onClick: async (row: PostWithAuthor) => {
+              if (duplicatingIds.current.has(row._id)) return;
+              duplicatingIds.current.add(row._id);
+              try {
+                await duplicatePost(
+                  row._id,
+                  row.title,
+                  row.blocksVersion === 2 ? row.blocksRevision : undefined,
+                );
+              } catch {
+                // The mutation hook displays the server's error toast.
+              } finally {
+                duplicatingIds.current.delete(row._id);
+              }
+            },
+          };
+        }
         if (action.key === "quick-edit") {
           return {
             ...action,
@@ -402,7 +435,7 @@ export function PostListTable() {
         }
         return action;
       }),
-    [trashPost, restorePost, permanentDeletePost],
+    [trashPost, restorePost, permanentDeletePost, duplicatePost, can, user?._id, role?.level],
   );
 
   // ─── Bulk Action Handler ───────────────────────────────────────────────

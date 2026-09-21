@@ -21,6 +21,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 type FormStatus = "draft" | "published" | "archived";
+const formStatusItems = [
+  { value: "draft", label: "Draft" },
+  { value: "published", label: "Published" },
+  { value: "archived", label: "Archived" },
+];
 
 export const Route = createFileRoute(
   "/_authenticated/_admin/forms/$formId/edit",
@@ -101,7 +106,7 @@ function EditFormContent({ formId }: { formId: Id<"forms"> }) {
     setIsSaving(true);
     try {
       await updateForm({ id: formId, title: trimmed, status });
-      toast.success("Form saved.");
+      toast.success("Form details saved.");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to save form.",
@@ -113,17 +118,16 @@ function EditFormContent({ formId }: { formId: Id<"forms"> }) {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">
             {form.title}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Edit form details and status above, then build the form&apos;s
-            fields in the canvas below.
+            Save form details and fields separately using their respective controls below.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link to="/forms">
             <Button variant="outline">Back to Forms</Button>
           </Link>
@@ -152,10 +156,10 @@ function EditFormContent({ formId }: { formId: Id<"forms"> }) {
                   className="size-4 animate-spin"
                   data-icon="inline-start"
                 />
-                Saving
+                Saving form details
               </>
             ) : (
-              "Save"
+              "Save form details"
             )}
           </Button>
         </div>
@@ -177,18 +181,21 @@ function EditFormContent({ formId }: { formId: Id<"forms"> }) {
           </div>
 
           <div className="grid gap-2">
-            <label className="text-sm font-medium">Status</label>
+            <label htmlFor="form-status" className="text-sm font-medium">Status</label>
             <Select
+              items={formStatusItems}
               value={status}
               onValueChange={(value) => setStatus(value as FormStatus)}
             >
-              <SelectTrigger>
+              <SelectTrigger id="form-status">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
+                {formStatusItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -239,7 +246,7 @@ function EditFormContent({ formId }: { formId: Id<"forms"> }) {
           </p>
         </section>
       ) : (
-        <FieldGroupBuilder group={group} fields={fields} />
+        <FieldGroupBuilder group={group} fields={fields ?? []} />
       )}
     </div>
   );

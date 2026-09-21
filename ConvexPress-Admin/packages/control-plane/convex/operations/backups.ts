@@ -146,6 +146,7 @@ export async function recordVerifiedSnapshot(
   const backupId = await ctx.db.insert("overseer_siteBackups", {
     snapshotId: manifest.snapshotId,
     sourceOperationId: operation._id,
+    ...(operation.schedulePolicyId ? {schedulePolicyId: operation.schedulePolicyId} : {}),
     purpose: input.purpose,
     websiteId: operation.websiteId,
     instanceId: instance._id,

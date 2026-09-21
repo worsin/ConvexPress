@@ -9,7 +9,7 @@ export function FieldPageLink({ field, value, onChange, labelPlacement, instruct
   const multiple = settings.multiple ?? false;
 
   // Fetch pages for selection
-  const pages = useQuery(api.posts.queries.list, { postType: "page", status: "publish", limit: 100 });
+  const pages = useQuery(api.posts.queries.list, { type: "page", status: "publish", perPage: 100 });
 
   return (
     <FieldWrapper label={field.label} instructions={field.instructions} required={field.required} labelPlacement={labelPlacement} instructionPlacement={instructionPlacement}>
@@ -28,7 +28,7 @@ export function FieldPageLink({ field, value, onChange, labelPlacement, instruct
         style={multiple ? { height: "auto", minHeight: "6rem" } : undefined}
       >
         {!multiple && <option value="">- Select Page -</option>}
-        {pages?.posts?.map((p: { _id: string; title: string }) => (
+        {pages?.posts?.filter(p => "_id" in p && "title" in p).map((p) => (
           <option key={p._id} value={p._id}>{p.title}</option>
         )) ?? []}
       </select>

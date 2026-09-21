@@ -42,6 +42,7 @@ interface TermRow {
   parentId?: string;
   description?: string;
   count: number;
+  countReady?: boolean;
   isDefault: boolean;
   depth: number;
   createdAt: number;
@@ -134,7 +135,7 @@ function getTermColumns(
           }}
           className="text-primary hover:underline"
         >
-          {row.count}
+          {row.countReady === true ? row.count : <span aria-label="Count is being updated">Updating…</span>}
         </Link>
       ),
     },

@@ -1,0 +1,6 @@
+import type { BlockEditorProps } from "@/lib/blocks/types";
+import { CheckboxField, NumberField, TextareaField, TextField } from "../_shared/editorFields";
+import type { UpcomingEventsAttrs } from "./schema";
+export function UpcomingEventsEditor({attrs,onChange,disabled}:BlockEditorProps<UpcomingEventsAttrs>) {
+ return <div className="grid gap-4"><TextField label="Heading" value={attrs.heading} disabled={disabled} onChange={heading=>onChange({...attrs,heading})}/><TextareaField label="Introduction" value={attrs.intro} disabled={disabled} onChange={intro=>onChange({...attrs,intro})}/><NumberField label="Event count" value={attrs.count} min={1} max={12} disabled={disabled} onChange={count=>onChange({...attrs,count})}/><CheckboxField label="Show descriptions" checked={attrs.showDescription} disabled={disabled} onChange={showDescription=>onChange({...attrs,showDescription})}/><TextField label="Empty message" value={attrs.emptyText} disabled={disabled} onChange={emptyText=>onChange({...attrs,emptyText})}/><p className="text-xs text-muted-foreground">Enable Events and publish events in the Events editor. This block stores display settings; dates, titles and availability stay live.</p></div>;
+}

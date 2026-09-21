@@ -67,5 +67,5 @@ function EditFieldGroupPage() {
     );
   }
 
-  return <FieldGroupBuilder group={group} fields={fields} />;
+  return <FieldGroupBuilder group={group} fields={fields ?? []} />;
 }

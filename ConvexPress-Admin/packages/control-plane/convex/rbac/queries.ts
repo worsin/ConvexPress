@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import { authenticatedQuery } from "./functions";
-import { resolveStoredAccess, targetFromArgs } from "./runtime";
+import { createStoredAccessResolver, resolveStoredAccess, targetFromArgs } from "./runtime";
 
 const selectorType = v.union(
   v.literal("route"),
@@ -69,13 +69,14 @@ export const checkManyAccess = authenticatedQuery({
       throw new Error("At most 32 access checks can be resolved at once");
     }
     const results = [];
+    const resolveAccess = createStoredAccessResolver(ctx, ctx.operator);
     for (const check of args.checks) {
       const code = check.code.trim();
       if (!code || code.length > 240 || /[\u0000-\u001f\u007f]/u.test(code)) {
         throw new Error("Invalid access selector code");
       }
       results.push(
-        await resolveStoredAccess(ctx, ctx.operator, {
+        await resolveAccess({
           selector: { type: check.selectorType, code },
           target: targetFromArgs(check),
         }),

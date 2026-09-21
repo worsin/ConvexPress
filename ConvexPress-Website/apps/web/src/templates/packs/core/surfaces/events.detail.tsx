@@ -1,0 +1,8 @@
+import { Link } from "@tanstack/react-router";
+import { CalendarDays, MapPin } from "lucide-react";
+import type { SurfaceProps } from "../../../sdk/types";
+import { eventDate, type EventDetailSurfaceData } from "@/extensions/events/types";
+export type { EventDetailSurfaceData } from "@/extensions/events/types";
+export default function EventDetail({ data: { event } }: SurfaceProps<EventDetailSurfaceData>) {
+ return <article className="mx-auto max-w-4xl space-y-8 px-4 py-12"><Link to="/events" className="text-sm text-primary hover:underline">← All events</Link><header className="space-y-4">{event.status === "cancelled" && <p role="status" className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-destructive">This event has been cancelled.</p>}<h1 className="font-display text-4xl sm:text-5xl">{event.title}</h1><div className="space-y-2 text-muted-foreground"><p className="flex gap-2"><CalendarDays className="mt-1 size-4 shrink-0" aria-hidden="true" /><span>{eventDate(event)} – {eventDate(event, event.endsAt)}<span className="block text-xs">{event.timeZone}</span></span></p>{event.venue && <p className="flex gap-2"><MapPin className="mt-1 size-4 shrink-0" aria-hidden="true" /><span>{event.venue}<span className="block text-sm">{event.venueAddress}</span></span></p>}</div></header><p className="whitespace-pre-line text-lg leading-relaxed">{event.description}</p>{event.registrationUrl && event.status === "published" && <a href={event.registrationUrl} target="_blank" rel="noopener noreferrer" className="inline-flex rounded-md bg-primary px-6 py-3 font-medium text-primary-foreground">Register for this event</a>}</article>;
+}

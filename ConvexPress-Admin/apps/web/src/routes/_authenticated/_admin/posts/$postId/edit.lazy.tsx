@@ -8,6 +8,7 @@ import { createLazyFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import { EditorLayout } from "@/components/editor/EditorLayout";
+import { CanonicalEditorEntry } from "@/components/blocks/canonical-editor/NativeCanonicalEditor";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePostMutations } from "@/hooks/posts/usePostMutations";
 import { tiptapContentToBlocks } from "@/lib/blocks/tiptap-to-blocks";
@@ -21,6 +22,7 @@ export const Route = createLazyFileRoute(
 });
 
 function EditPostPage() {
+  const { editor } = Route.useSearch();
   const { postId } = useParams({
     from: "/_authenticated/_admin/posts/$postId/edit",
   });
@@ -118,12 +120,12 @@ function EditPostPage() {
     excerpt: post.excerpt ?? "",
     status: post.status as PostStatus,
     visibility: post.visibility as PostVisibility,
-    password: post.password ?? "",
+    password: ("password" in post ? post.password : undefined) ?? "",
     commentStatus: post.commentStatus as CommentStatus,
     isSticky: post.isSticky,
     featuredImageId: post.featuredImageId ?? null,
     authorId: post.authorId as string,
-    scheduledFor: post.scheduledAt ? new Date(post.scheduledAt) : null,
+    scheduledFor: "scheduledAt" in post && typeof post.scheduledAt === "number" ? new Date(post.scheduledAt) : null,
     categoryIds: postTaxonomies?.categories?.map((c: { _id: string }) => c._id) ?? [],
     tagIds: postTaxonomies?.tags?.map((t: { _id: string }) => t._id) ?? [],
     menuOrder: post.menuOrder ?? 0,
@@ -154,7 +156,7 @@ function EditPostPage() {
       : { title: "", content: "" },
     sources: post.sources ?? "",
     tableOfContents: post.tableOfContents ?? "",
-    pagePrompt: post.pagePrompt ?? "",
+    pagePrompt: ("pagePrompt" in post ? post.pagePrompt : undefined) ?? "",
     // Phase 3 of the editor refactor: the article/blocks toggle is gone.
     // Every post is rendered through the BlockOutline. If the post still has
     // TipTap content and no blocks, convert lazily so the editor has something
@@ -169,6 +171,7 @@ function EditPostPage() {
   };
 
   return (
+    <CanonicalEditorEntry key={postId} initialOpen={editor === "blocks"} postId={postId as Id<"posts">} canonical={"blocksVersion" in post && post.blocksVersion === 2} draft={post.status === "draft"}>
     <EditorLayout
       contentType="post"
       mode="edit"
@@ -176,5 +179,6 @@ function EditPostPage() {
       initialData={initialData}
       publishedAt={post.publishedAt ?? null}
     />
+    </CanonicalEditorEntry>
   );
 }

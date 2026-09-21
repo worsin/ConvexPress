@@ -16,7 +16,11 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useControlShell } from "@/control/ControlShellContext";
-import { getElectronBridge, type SiteDeployProgress, type SiteInitializeRequest } from "@/lib/electron";
+import {
+  getElectronBridge,
+  type SiteDeployProgress,
+  type SiteInitializeRequest,
+} from "@/lib/electron";
 import { cn } from "@/lib/utils";
 
 import { Notice } from "../forms";
@@ -54,6 +58,7 @@ export function InitializeDeploymentPanel({
   onRunningChange?: (running: boolean) => void;
 }) {
   const shell = useControlShell();
+  const [runId, setRunId] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [log, setLog] = useState<SiteDeployProgress[]>([]);
   const [phase, setPhase] = useState<string | null>(null);
@@ -66,11 +71,44 @@ export function InitializeDeploymentPanel({
 
   useEffect(() => {
     if (!bridge?.siteDeploy) return;
-    return bridge.siteDeploy.onProgress((event) => {
+    let mounted = true;
+    void bridge.siteDeploy
+      .status({ deploymentOrigin: target.deploymentOrigin })
+      .then((status) => {
+        if (!mounted || !status) return;
+        setRunId(status.runId);
+        setPhase(status.phase);
+        setRunning(status.ok === null);
+        setError(
+          status.ok === false
+            ? "A previous deployment did not finish. Retry to reconcile it with fresh credentials."
+            : null,
+        );
+        setLog(
+          status.receipts.map((receipt) => ({
+            runId: status.runId ?? "",
+            targetOrigin: status.targetOrigin,
+            phase: receipt.phase,
+            message: `Attempt ${receipt.attempt}: ${receipt.status}`,
+            at: receipt.at,
+          })),
+        );
+      })
+      .catch((cause) => {
+        if (mounted) setError(friendlyError(cause));
+      });
+    const unsubscribe = bridge.siteDeploy.onProgress((event) => {
+      if (event.targetOrigin !== target.deploymentOrigin) return;
+      setRunId(event.runId);
+      setRunning(event.phase !== "complete" && event.phase !== "failed");
       setLog((current) => [...current.slice(-80), event]);
       setPhase(event.phase);
     });
-  }, [bridge]);
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [bridge, target.deploymentOrigin]);
 
   const start = async () => {
     if (!bridge?.siteDeploy?.initialize || !shell) return;
@@ -80,7 +118,8 @@ export function InitializeDeploymentPanel({
     setRunning(true);
     try {
       const authToken = await shell.getControlToken();
-      if (!authToken) throw new Error("Your protected operator session must be refreshed before connecting.");
+      if (!authToken)
+        throw new Error("Your protected operator session must be refreshed before connecting.");
       const result = await bridge.siteDeploy.initialize({
         ...target,
         connectionName: connectionName.trim() || "Standalone ConvexPress controller",
@@ -106,14 +145,31 @@ export function InitializeDeploymentPanel({
     <div className="space-y-3">
       {error && <Notice tone="error">{error}</Notice>}
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" onClick={start} disabled={disabled || running || !canInitializeDeployments()}>
+        <Button
+          type="button"
+          onClick={start}
+          disabled={disabled || running || !canInitializeDeployments()}
+        >
           {running ? (
             <Loader2 data-icon="inline-start" className="animate-spin" aria-hidden="true" />
           ) : (
             <Rocket data-icon="inline-start" aria-hidden="true" />
           )}
-          Install ConvexPress and connect
+          {phase === "failed" || phase === "interrupted"
+            ? "Retry initialization"
+            : "Install ConvexPress and connect"}
         </Button>
+        {running && runId && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              void bridge?.siteDeploy?.cancel(runId);
+            }}
+          >
+            Cancel deployment
+          </Button>
+        )}
         <span className="text-[12.5px] text-muted-foreground">
           Env, deploy, identity, roles, health check, connection. A few minutes.
         </span>
@@ -123,12 +179,16 @@ export function InitializeDeploymentPanel({
           <div className="mb-2 flex items-center gap-2 text-[12px] font-medium">
             {phase === "complete" ? (
               <CheckCircle2 className="size-3.5 text-success" aria-hidden="true" />
-            ) : phase === "failed" ? (
+            ) : phase === "failed" || phase === "interrupted" ? (
               <XCircle className="size-3.5 text-destructive" aria-hidden="true" />
             ) : (
               <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
             )}
-            {phase === "complete" ? "Done" : phase === "failed" ? "Failed" : `Working: ${phase}`}
+            {phase === "complete"
+              ? "Done"
+              : phase === "failed" || phase === "interrupted"
+                ? "Failed"
+                : `Working: ${phase}`}
           </div>
           <ol
             className={cn(
@@ -137,9 +197,14 @@ export function InitializeDeploymentPanel({
             aria-label="Install log"
           >
             {log.map((entry, index) => (
-              <li key={`${entry.at}-${index}`} className="grid grid-cols-[92px_minmax(0,1fr)] gap-2">
+              <li
+                key={`${entry.at}-${index}`}
+                className="grid grid-cols-[92px_minmax(0,1fr)] gap-2"
+              >
                 <span className="truncate text-muted-foreground">{entry.phase}</span>
-                <span className="min-w-0 break-words [overflow-wrap:anywhere]">{entry.message}</span>
+                <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+                  {entry.message}
+                </span>
               </li>
             ))}
           </ol>

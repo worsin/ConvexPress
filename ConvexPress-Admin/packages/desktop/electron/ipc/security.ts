@@ -10,6 +10,7 @@ import {
 import { isDev } from "../utils/platform.js";
 import path from "node:path";
 import { isAppRendererSender, isDevAppRendererSender } from "./setupSender.js";
+import {documentDeploymentReloadRequired} from '../documentDeploymentPolicy.js';
 
 const { ipcMain } = require("electron") as typeof import("electron");
 
@@ -26,7 +27,8 @@ function assertSender(event: Electron.IpcMainInvokeEvent): void {
 export function registerSecurityHandlers(): void {
   ipcMain.handle("security:register-deployment-origins", (event, origins: unknown) => {
     assertSender(event);
-    return registerDeploymentOrigins(origins);
+    const result = registerDeploymentOrigins(origins);
+    return {...result, reloadRequired: documentDeploymentReloadRequired(event.sender.id, Array.isArray(origins) ? origins : [])};
   });
   ipcMain.handle("security:list-deployment-origins", (event) => {
     assertSender(event);

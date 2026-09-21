@@ -1,4 +1,6 @@
 import { v } from "convex/values";
+import type { Doc } from "../_generated/dataModel";
+import type { MutationCtx } from "../_generated/server";
 
 import { authorizedMutation } from "./functions";
 import { MVP_ROLE_DEFINITIONS } from "./roleSeeds";
@@ -11,6 +13,39 @@ const platformRbacMutation = authorizedMutation({
   selector: { type: "capability", code: "rbac.manage" },
   target: {},
 });
+
+async function assertOwnerPermissionProtection(
+  ctx: Pick<MutationCtx, "db"> & { operator: Doc<"overseer_users"> },
+  permission: Pick<
+    Doc<"overseer_permissions">,
+    "effect" | "subjectType" | "subjectId" | "roleSlug"
+  >,
+) {
+  if (permission.effect !== "deny" || ctx.operator.role === "owner") return;
+  if (permission.subjectType === "user" && permission.subjectId) {
+    const id = ctx.db.normalizeId("overseer_users", permission.subjectId);
+    if (id && (await ctx.db.get(id))?.role === "owner") {
+      throw new Error("Only an owner can restrict another owner");
+    }
+  } else if (permission.subjectId === "owner" || permission.roleSlug === "owner") {
+    throw new Error("Only an owner can restrict the owner role");
+  }
+}
+
+async function revokePermissionSubjects(
+  ctx: Pick<MutationCtx, "scheduler">,
+  permissions: Pick<Doc<"overseer_permissions">, "subjectType" | "subjectId">[],
+) {
+  if (
+    permissions.some((permission) => permission.subjectType !== "user" || !permission.subjectId)
+  ) {
+    await scheduleControllerSessionRevocation(ctx);
+    return;
+  }
+  for (const subjectId of new Set(permissions.map((permission) => permission.subjectId!))) {
+    await scheduleOperatorSessionRevocation(ctx, subjectId);
+  }
+}
 
 export const seedMvpRoles = platformRbacMutation({
   args: {},
@@ -104,11 +139,7 @@ export const upsertPermission = platformRbacMutation({
     permissionId: v.optional(v.id("overseer_permissions")),
     subjectType: v.union(v.literal("user"), v.literal("role")),
     subjectId: v.string(),
-    selectorType: v.union(
-      v.literal("route"),
-      v.literal("capability"),
-      v.literal("action"),
-    ),
+    selectorType: v.union(v.literal("route"), v.literal("capability"), v.literal("action")),
     selectorCode: v.string(),
     effect: v.union(v.literal("allow"), v.literal("deny")),
     status: permissionStatus,
@@ -124,6 +155,7 @@ export const upsertPermission = platformRbacMutation({
   handler: async (ctx, args) => {
     const subjectId = cleanCode(args.subjectId, "permission subject");
     const selectorCode = cleanCode(args.selectorCode, "permission selector");
+    await assertOwnerPermissionProtection(ctx, { ...args, subjectId });
     // Role permissions are looked up by exact action code, so a wildcard other
     // than the global "*" would be stored but never evaluated.
     if (selectorCode.includes("*") && selectorCode !== "*") {
@@ -135,13 +167,7 @@ export const upsertPermission = platformRbacMutation({
       if (!subjectUser) {
         throw new Error("Permission subject user does not exist");
       }
-      if (args.effect === "deny" && subjectUser.role === "owner" && ctx.operator.role !== "owner") {
-        throw new Error("Only an owner can restrict another owner");
-      }
     } else {
-      if (args.effect === "deny" && subjectId === "owner" && ctx.operator.role !== "owner") {
-        throw new Error("Only an owner can restrict the owner role");
-      }
       const roles = await ctx.db
         .query("overseer_roles")
         .withIndex("by_slug", (q) => q.eq("slug", subjectId))
@@ -159,22 +185,15 @@ export const upsertPermission = platformRbacMutation({
     }
 
     const now = Date.now();
-    const actionCode =
-      args.selectorType === "route" ? `route:${selectorCode}` : selectorCode;
+    const actionCode = args.selectorType === "route" ? `route:${selectorCode}` : selectorCode;
     const constraints = {
       requestSelectorType: args.selectorType,
       ...(args.organizationId
         ? { organizationId: cleanCode(args.organizationId, "organization target") }
         : {}),
-      ...(args.businessId
-        ? { businessId: cleanCode(args.businessId, "business target") }
-        : {}),
-      ...(args.websiteId
-        ? { websiteId: cleanCode(args.websiteId, "website target") }
-        : {}),
-      ...(args.instanceId
-        ? { instanceId: cleanCode(args.instanceId, "environment target") }
-        : {}),
+      ...(args.businessId ? { businessId: cleanCode(args.businessId, "business target") } : {}),
+      ...(args.websiteId ? { websiteId: cleanCode(args.websiteId, "website target") } : {}),
+      ...(args.instanceId ? { instanceId: cleanCode(args.instanceId, "environment target") } : {}),
       includeChildren: args.includeChildren === true,
     };
     const value = {
@@ -182,8 +201,7 @@ export const upsertPermission = platformRbacMutation({
       subjectId,
       roleSlug: args.subjectType === "role" ? subjectId : undefined,
       actionCode,
-      capabilityCode:
-        args.selectorType === "capability" ? selectorCode : undefined,
+      capabilityCode: args.selectorType === "capability" ? selectorCode : undefined,
       selectorType: "action" as const,
       selectorCode: actionCode,
       constraints,
@@ -206,19 +224,11 @@ export const upsertPermission = platformRbacMutation({
         ...value,
         createdAt: existing.createdAt ?? now,
       });
-      if (args.subjectType === "user") {
-        await scheduleOperatorSessionRevocation(ctx, subjectId);
-      } else {
-        await scheduleControllerSessionRevocation(ctx);
-      }
+      await revokePermissionSubjects(ctx, [existing, value]);
       return args.permissionId;
     }
     const permissionId = await ctx.db.insert("overseer_permissions", value);
-    if (args.subjectType === "user") {
-      await scheduleOperatorSessionRevocation(ctx, subjectId);
-    } else {
-      await scheduleControllerSessionRevocation(ctx);
-    }
+    await revokePermissionSubjects(ctx, [value]);
     return permissionId;
   },
 });
@@ -232,16 +242,13 @@ export const setPermissionStatus = platformRbacMutation({
   handler: async (ctx, args) => {
     const permission = await ctx.db.get(args.permissionId);
     if (!permission) throw new Error("Permission not found");
+    if (args.status === "active") await assertOwnerPermissionProtection(ctx, permission);
     await ctx.db.patch(args.permissionId, {
       status: args.status,
       updatedAt: Date.now(),
       grantedBy: String(ctx.operator._id),
     });
-    if (permission.subjectType === "user" && permission.subjectId) {
-      await scheduleOperatorSessionRevocation(ctx, permission.subjectId);
-    } else {
-      await scheduleControllerSessionRevocation(ctx);
-    }
+    await revokePermissionSubjects(ctx, [permission]);
     return args.permissionId;
   },
 });

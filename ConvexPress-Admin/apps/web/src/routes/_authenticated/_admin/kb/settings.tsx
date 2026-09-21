@@ -13,6 +13,7 @@ import { api } from "@backend/convex/_generated/api";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
+import { KBSearchIndexing } from "@/components/kb/KBSearchIndexing";
 import {
   CredentialField,
   SECRET_SENTINEL,
@@ -64,7 +65,9 @@ function settingsReducer(state: KBSettingsState, action: KBSettingsAction): KBSe
     case "SET_FEATURES":
       return { ...state, features: { ...state.features, [action.field]: action.value } };
     case "SET_SEARCH":
-      return { ...state, search: { ...state.search, [action.field]: action.value } };
+      return { ...state, search: { ...state.search,
+        ...(action.field === "ragProvider" && action.value !== state.search.ragProvider ? { ragApiKey: "", ragModel: "" } : {}),
+        [action.field]: action.value } };
     case "RESET":
       return action.payload;
     default:
@@ -317,14 +320,15 @@ function KBSettingsForm() {
           {search.ragEnabled && (
             <>
               <div>
-                <label className="block text-xs font-medium text-foreground/70 mb-1">Provider</label>
+                <label htmlFor="kb-rag-provider" className="block text-xs font-medium text-foreground/70 mb-1">Provider</label>
                 <select
+                  id="kb-rag-provider"
                   value={search.ragProvider}
                   onChange={(e) => dispatch({ type: "SET_SEARCH", field: "ragProvider", value: e.target.value })}
                   className="w-full max-w-xs px-3 py-1.5 text-sm border border-border rounded-md bg-card"
                 >
                   <option value="openai">OpenAI</option>
-                  <option value="anthropic">Anthropic</option>
+                  {search.ragProvider === "anthropic" && <option value="anthropic" disabled>Anthropic — unsupported for embeddings</option>}
                 </select>
               </div>
               <CredentialField
@@ -346,7 +350,7 @@ function KBSettingsForm() {
                   type="text"
                   value={search.ragModel}
                   onChange={(e) => dispatch({ type: "SET_SEARCH", field: "ragModel", value: e.target.value })}
-                  placeholder={search.ragProvider === "openai" ? "text-embedding-3-small" : "claude-3-haiku-20240307"}
+                  placeholder="text-embedding-3-small"
                   className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-card"
                 />
               </div>
@@ -364,6 +368,7 @@ function KBSettingsForm() {
         <Save className="h-4 w-4" />
         {isSaving ? "Saving…" : "Save Settings"}
       </button>
+      <KBSearchIndexing />
     </div>
   );
 }

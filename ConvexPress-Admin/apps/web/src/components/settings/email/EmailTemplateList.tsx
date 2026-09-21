@@ -8,6 +8,7 @@
  * Wired to: api.emails.queries.listTemplates
  */
 
+import type { FunctionReturnType } from "convex/server";
 import { useState, useMemo } from "react";
 import { useQuery } from "convex-helpers/react/cache";
 import { Link } from "@tanstack/react-router";
@@ -24,7 +25,7 @@ import {
   EMAIL_PRIORITY_CONFIG,
   CATEGORY_OPTIONS,
 } from "@/lib/email/constants";
-import type { EmailCategory, EmailPriority, EmailTemplateListItem } from "@/lib/email/types";
+import type { EmailCategory, EmailPriority } from "@/lib/email/types";
 
 export function EmailTemplateList() {
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -40,7 +41,7 @@ export function EmailTemplateList() {
 
     const q = searchQuery.toLowerCase();
     return templates.filter(
-      (t: EmailTemplateListItem) =>
+      (t) =>
         t.name.toLowerCase().includes(q) ||
         t.slug.toLowerCase().includes(q) ||
         (t.description && t.description.toLowerCase().includes(q)),
@@ -126,7 +127,7 @@ export function EmailTemplateList() {
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {filteredTemplates.map((template: EmailTemplateListItem) => (
+            {filteredTemplates.map((template) => (
               <TemplateRow key={template._id} template={template} />
             ))}
           </div>
@@ -136,7 +137,7 @@ export function EmailTemplateList() {
   );
 }
 
-function TemplateRow({ template }: { template: EmailTemplateListItem }) {
+function TemplateRow({ template }: { template: FunctionReturnType<typeof api.emails.queries.listTemplates>[number] }) {
   const categoryConfig =
     EMAIL_CATEGORY_CONFIG[template.category as EmailCategory];
   const priorityConfig =

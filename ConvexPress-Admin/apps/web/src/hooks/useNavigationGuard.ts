@@ -43,6 +43,8 @@ export function useNavigationGuard(
   // TanStack Router navigation guard (in-app links)
   // Uses shouldBlockFn (current API) instead of deprecated blockerFn+condition
   useBlocker({
+    // Router defaults beforeunload protection to true even when the callback allows navigation.
+    enableBeforeUnload: shouldBlock,
     shouldBlockFn: () => {
       if (!shouldBlock) return false;
       return !window.confirm(

@@ -13,6 +13,8 @@ import {
   authenticatedQuery,
 } from "./rbac/functions";
 
+import { scheduleHierarchySessionRevocation } from "./siteBroker/revocationSchedule";
+
 const websiteResult = v.object({
   websiteId: v.id("overseer_websites"),
   websiteKey: v.string(),
@@ -230,6 +232,9 @@ export const update = authenticatedMutation({
         status === "active" ? args.makeDefault ?? website.isDefault : false,
       updatedAt: Date.now(),
     });
+    if (website.status === "active" && status === "inactive") {
+      await scheduleHierarchySessionRevocation(ctx, { targetWebsiteId: website._id });
+    }
     return summarize((await ctx.db.get(website._id))!);
   },
 });

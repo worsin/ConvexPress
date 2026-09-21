@@ -1,3 +1,4 @@
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { api } from "@backend/convex/_generated/api";
 import {
 	Outlet,
@@ -26,7 +27,7 @@ export const Route = createFileRoute(
 });
 
 type TaxRule = {
-	_id: string;
+	_id: Id<"commerce_tax_rules">;
 	name: string;
 	countryCode: string;
 	stateCode?: string;
@@ -161,7 +162,7 @@ function TaxRulesPage() {
 		}
 	}
 
-	async function handleSave(ruleId: string) {
+	async function handleSave(ruleId: Id<"commerce_tax_rules">) {
 		try {
 			await updateRule({ id: ruleId, ...toPayload(editDraft) });
 			toast.success("Tax rule updated.");
@@ -192,7 +193,7 @@ function TaxRulesPage() {
 		}
 	}
 
-	async function handleDelete(ruleId: string) {
+	async function handleDelete(ruleId: Id<"commerce_tax_rules">) {
 		if (!confirm("Delete this tax rule?")) return;
 		try {
 			await deleteRule({ id: ruleId });

@@ -1,3 +1,4 @@
+import { ProductBrandSelector } from "./ProductBrandSelector";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -5,6 +6,7 @@ import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
@@ -21,6 +23,8 @@ import {
 	emptyBulkEditFields,
 	getProductTypeLabel,
 	parseOptionValueInput,
+	saleDateChange,
+	formatSaleDateLocal,
 } from "./CommerceProductEditor.helpers";
 import { MediaPicker } from "@/components/media/MediaPicker";
 
@@ -85,6 +89,8 @@ type Product = {
 	sku?: string;
 	basePrice?: Money;
 	salePrice?: Money | null;
+	salePriceFrom?: number;
+	salePriceTo?: number;
 	stockQuantity?: number;
 	status?: ProductStatus;
 	trackInventory?: boolean;
@@ -101,6 +107,11 @@ type Product = {
 	licenseExpiresAfterDays?: number;
 	taxClass?: string;
 	categoryIds?: Id<"commerce_product_categories">[];
+	brandId?: Id<"commerce_product_brands">;
+	isFeatured?: boolean;
+	collectionIndexVersion?: 1;
+	tagNames?: string[];
+	missingTagIds?: string[];
 	featuredMediaId?: Id<"media">;
 	galleryMediaIds?: Id<"media">[];
 	productType?: string;
@@ -200,6 +211,8 @@ export function CommerceProductEditor({
 	const [sku, setSku] = useState("");
 	const [basePrice, setBasePrice] = useState("");
 	const [salePrice, setSalePrice] = useState("");
+	const [salePriceFrom, setSalePriceFrom] = useState("");
+	const [salePriceTo, setSalePriceTo] = useState("");
 	const [stockQuantity, setStockQuantity] = useState("");
 	const [status, setStatus] = useState<ProductStatus>("draft");
 	const [trackInventory, setTrackInventory] = useState(true);
@@ -217,6 +230,10 @@ export function CommerceProductEditor({
 	const [maxActivations, setMaxActivations] = useState("1");
 	const [licenseExpiresAfterDays, setLicenseExpiresAfterDays] = useState("");
 	const [taxClass, setTaxClass] = useState("");
+	const [isFeatured, setIsFeatured] = useState(false);
+	const [tagNamesText, setTagNamesText] = useState("");
+	const [brandId, setBrandId] = useState<Id<"commerce_product_brands">>();
+	const [removeMissingTags, setRemoveMissingTags] = useState(false);
 	const [selectedCategoryIds, setSelectedCategoryIds] = useState<
 		Id<"commerce_product_categories">[]
 	>([]);
@@ -321,6 +338,8 @@ export function CommerceProductEditor({
 		setSku(product.sku ?? "");
 		setBasePrice(centsToDisplay(product.basePrice?.amount));
 		setSalePrice(centsToDisplay(product.salePrice?.amount));
+		setSalePriceFrom(formatSaleDateLocal(product.salePriceFrom));
+		setSalePriceTo(formatSaleDateLocal(product.salePriceTo));
 		setStockQuantity(
 			typeof product.stockQuantity === "number"
 				? String(product.stockQuantity)
@@ -361,6 +380,10 @@ export function CommerceProductEditor({
 		);
 		setTaxClass(product.taxClass ?? "");
 		setSelectedCategoryIds(product.categoryIds ?? []);
+		setBrandId(product.brandId);
+		setIsFeatured(product.isFeatured ?? false);
+		setTagNamesText((product.tagNames ?? []).join("\n"));
+		setRemoveMissingTags(false);
 		setFeaturedMediaId(product.featuredMediaId);
 		setGalleryMediaIds(product.galleryMediaIds ?? []);
 		setInitialized(true);
@@ -508,12 +531,12 @@ export function CommerceProductEditor({
 			const next = { ...current };
 			for (const variant of resolvedVariants) {
 				if (next[variant._id] === undefined) {
-					next[variant._id] = buildVariantDraft(variant);
+					next[variant._id] = buildVariantDraft(variant, product ?? {});
 				}
 			}
 			return next;
 		});
-	}, [resolvedVariants]);
+	}, [resolvedVariants, product]);
 
 	function setVariantDraftField(
 		variantId: string,
@@ -907,9 +930,10 @@ export function CommerceProductEditor({
 		}
 	}
 
-	async function handleSaveVariant(variantId: string) {
+	async function handleSaveVariant(variantId: Id<"commerce_product_variants">) {
 		const draft = variantDrafts[variantId];
 		if (!draft) return;
+		const savedVariant = variants?.find((variant) => variant._id === variantId);
 
 		try {
 			await updateVariant({
@@ -919,17 +943,13 @@ export function CommerceProductEditor({
 				priceAmount: displayToMoney(draft.price).amount,
 				salePriceAmount: draft.salePrice.trim()
 					? displayToMoney(draft.salePrice).amount
-					: undefined,
-				salePriceFrom: draft.salePriceFrom
-					? new Date(draft.salePriceFrom).getTime()
-					: undefined,
-				salePriceTo: draft.salePriceTo
-					? new Date(draft.salePriceTo).getTime()
-					: undefined,
+					: null,
+				salePriceFrom: saleDateChange(draft.salePriceFrom, savedVariant?.salePriceFrom),
+				salePriceTo: saleDateChange(draft.salePriceTo, savedVariant?.salePriceTo),
 				stockQuantity: draft.stockQuantity.trim()
 					? Number(draft.stockQuantity)
 					: undefined,
-				featuredMediaId: variantMediaDrafts[variantId],
+				featuredMediaId: variantMediaDrafts[variantId] ?? null,
 				description: draft.description.trim() || undefined,
 				globalUniqueId: draft.globalUniqueId.trim() || undefined,
 				weight: draft.weight.trim() || undefined,
@@ -966,7 +986,7 @@ export function CommerceProductEditor({
 		}
 	}
 
-	async function handleSetDefaultVariant(variantId: string) {
+	async function handleSetDefaultVariant(variantId: Id<"commerce_product_variants">) {
 		try {
 			await updateVariant({ variantId, isDefault: true });
 			toast.success("Default variant updated.");
@@ -980,7 +1000,7 @@ export function CommerceProductEditor({
 		}
 	}
 
-	async function handleDeleteVariant(variantId: string) {
+	async function handleDeleteVariant(variantId: Id<"commerce_product_variants">) {
 		try {
 			await deleteVariant({ variantId });
 			toast.success("Variant deleted.");
@@ -1034,6 +1054,7 @@ export function CommerceProductEditor({
 	}
 
 	async function handleSubmit() {
+		if (mode === "edit" && !productId) { toast.error("Product is unavailable. Reload the editor."); return; }
 		if (!title.trim()) {
 			toast.error("Product title is required.");
 			return;
@@ -1050,6 +1071,10 @@ export function CommerceProductEditor({
 			excerpt: excerpt.trim() || undefined,
 			sku: sku.trim() || undefined,
 			categoryIds: selectedCategoryIds,
+			brandId,
+			...(product?.collectionIndexVersion === 1 ? { isFeatured } : {}),
+			...(product?.collectionIndexVersion === 1 && (removeMissingTags || tagNamesText !== (product.tagNames ?? []).join("\n"))
+				? {tagNames:tagNamesText.split("\n").map(name=>name.trim()).filter(Boolean)} : {}),
 			basePrice: displayToMoney(basePrice),
 			trackInventory,
 			allowBackorders,
@@ -1080,7 +1105,7 @@ export function CommerceProductEditor({
 						: undefined,
 				taxClass: taxClass.trim() || undefined,
 			featuredMediaId:
-				mode === "edit" ? (featuredMediaId ?? null) : featuredMediaId,
+				featuredMediaId,
 			galleryMediaIds,
 			status,
 		};
@@ -1094,17 +1119,29 @@ export function CommerceProductEditor({
 
 		setIsSaving(true);
 		try {
+      const from = saleDateChange(salePriceFrom, product?.salePriceFrom);
+      const to = saleDateChange(salePriceTo, product?.salePriceTo);
+      const effectiveFrom = from === undefined ? product?.salePriceFrom : from;
+      const effectiveTo = to === undefined ? product?.salePriceTo : to;
+      if (effectiveFrom != null && effectiveTo != null && effectiveTo < effectiveFrom)
+        throw new Error("Sale end must be on or after its start.");
 			const nextId =
-				mode === "create"
+				mode === "create" || !productId
 					? await createProduct({
 							...basePayload,
 							salePrice: salePriceValue,
+              salePriceFrom: from ?? undefined,
+              salePriceTo: to ?? undefined,
 							stockQuantity: stockQuantityValue,
 						})
 					: await updateProduct({
 							productId,
 							...basePayload,
+							featuredMediaId: featuredMediaId ?? null,
+              brandId: brandId ?? null,
 							salePrice: salePrice.trim() ? displayToMoney(salePrice) : null,
+              salePriceFrom: from,
+              salePriceTo: to,
 							stockQuantity: trackInventory
 								? stockQuantity.trim()
 									? Number(stockQuantity)
@@ -1119,10 +1156,7 @@ export function CommerceProductEditor({
 				params: { productId: String(nextId) },
 			});
 		} catch (error) {
-			toast.error(
-				(error as { data?: { message?: string } })?.data?.message ??
-					(error instanceof Error ? error.message : "Failed to save product"),
-			);
+			toast.error(getErrorMessage(error, "Could not save the product. Your changes are still here; please try again."));
 		} finally {
 			setIsSaving(false);
 		}
@@ -1671,7 +1705,7 @@ export function CommerceProductEditor({
 
 							{resolvedVariants.map((variant) => {
 								const draft =
-									variantDrafts[variant._id] ?? buildVariantDraft(variant);
+									variantDrafts[variant._id] ?? buildVariantDraft(variant, product ?? {});
 								const isExpanded = expandedVariants.has(variant._id);
 								const hasSaleSchedule = showSaleSchedule.has(variant._id);
 
@@ -1909,6 +1943,7 @@ export function CommerceProductEditor({
 																	</label>
 																	<Input
 																		type="datetime-local"
+																step="0.001"
 																		value={draft.salePriceFrom}
 																		onChange={(e) =>
 																			setVariantDraftField(
@@ -1925,6 +1960,7 @@ export function CommerceProductEditor({
 																	</label>
 																	<Input
 																		type="datetime-local"
+																step="0.001"
 																		value={draft.salePriceTo}
 																		onChange={(e) =>
 																			setVariantDraftField(
@@ -2388,6 +2424,14 @@ export function CommerceProductEditor({
 									/>
 								</div>
 							</div>
+              <fieldset className="grid gap-3">
+                <legend className="text-sm font-medium">Sale schedule</legend>
+                <p className="text-xs text-muted-foreground">Dates use this computer’s local time. Leave either date blank for an open-ended sale.</p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="grid gap-2"><label htmlFor="commerce-product-sale-from" className="text-sm font-medium">Sale starts</label><Input id="commerce-product-sale-from" type="datetime-local" step="0.001" value={salePriceFrom} onChange={event=>setSalePriceFrom(event.target.value)} /></div>
+                  <div className="grid gap-2"><label htmlFor="commerce-product-sale-to" className="text-sm font-medium">Sale ends</label><Input id="commerce-product-sale-to" type="datetime-local" step="0.001" value={salePriceTo} onChange={event=>setSalePriceTo(event.target.value)} /></div>
+                </div>
+              </fieldset>
 							<div className="grid gap-2">
 								<label
 									className="text-sm font-medium"
@@ -2722,6 +2766,26 @@ export function CommerceProductEditor({
 						</div>
 					</section>
 
+					<section className="rounded-3xl border border-border bg-card p-6"><ProductBrandSelector value={brandId} onChange={setBrandId} /></section>
+
+					{product?.collectionIndexVersion === 1 ? (
+					<section className="rounded-3xl border border-border bg-card p-6">
+						<label className="flex items-start gap-3 text-sm">
+							<input type="checkbox" checked={isFeatured} onChange={(event) => setIsFeatured(event.target.checked)} />
+							<span><span className="block font-semibold">Featured product</span><span className="text-muted-foreground">Include this product in featured collections when published.</span></span>
+						</label>
+						<div className="mt-5 space-y-2">
+							<label htmlFor="product-tag-names" className="block text-sm font-semibold">Product tags</label>
+							<textarea id="product-tag-names" disabled={Boolean(product.missingTagIds?.length) && !removeMissingTags} value={tagNamesText} onChange={(event)=>setTagNamesText(event.target.value)} rows={3} className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" aria-describedby="product-tags-help" />
+							<p id="product-tags-help" className="text-sm text-muted-foreground">One tag per line, up to 32. Use tags to group products into collections.</p>
+							{product.missingTagIds?.length ? <div className="space-y-2 text-sm">
+								<p>{product.missingTagIds.length} assigned tag{product.missingTagIds.length === 1 ? " is" : "s are"} missing. Remove the missing assignments to edit tags; otherwise they are preserved when you save.</p>
+								<button type="button" className="text-primary underline underline-offset-4" onClick={()=>setRemoveMissingTags(true)} disabled={removeMissingTags}>{removeMissingTags ? "Missing tags will be removed on save" : "Remove missing tags"}</button>
+							</div> : null}
+						</div>
+					</section>
+					) : null}
+
 					<section className="rounded-3xl border border-border bg-card p-6">
 						<div className="flex items-center justify-between gap-3">
 							<h2 className="text-lg font-semibold">Categories</h2>
@@ -2987,7 +3051,8 @@ export function CommerceProductEditor({
 					}))
 				}
 				onConfirm={() => {
-					void handleDeleteVariant(deleteVariantConfirm.variantId);
+					const variant = resolvedVariants.find(row => row._id === deleteVariantConfirm.variantId);
+					if (variant) void handleDeleteVariant(variant._id);
 					setDeleteVariantConfirm((prev) => ({
 						...prev,
 						open: false,

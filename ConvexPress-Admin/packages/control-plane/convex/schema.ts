@@ -1,3 +1,9 @@
+import { contentPromotionTables } from "./schema/contentPromotion";
+import { vercelHostingTables } from "./schema/vercelHosting";
+import { websiteHostingTables } from "./schema/websiteHosting";
+import {hostingAttachmentTables} from "./schema/hostingAttachments";
+import { hostingTables } from "./schema/hosting";
+import { fleetTables } from "./schema/fleet";
 import { defineSchema } from "convex/server";
 
 import { authTables } from "./schema/auth";
@@ -10,6 +16,12 @@ import { lifecycleTables } from "./schema/lifecycle";
 import { operatorInvitationTables } from "./schema/operatorInvitations";
 
 export default defineSchema({
+  ...vercelHostingTables,
+  ...contentPromotionTables,
+  ...websiteHostingTables,
+  ...fleetTables,
+  ...hostingTables,
+  ...hostingAttachmentTables,
   ...authTables,
   ...userProfileTables,
   ...rbacTables,

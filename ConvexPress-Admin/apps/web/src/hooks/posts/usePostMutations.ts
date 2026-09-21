@@ -209,9 +209,12 @@ export function usePostMutations() {
 
   // ─── Duplicate ──────────────────────────────────────────────────────────
 
-  async function duplicatePost(postId: Id<"posts">, title?: string) {
+  async function duplicatePost(postId: Id<"posts">, title?: string, expectedRevision?: number) {
     try {
-      const newPostId = await duplicateMutation({ postId });
+      const newPostId = await duplicateMutation({
+        postId,
+        ...(expectedRevision === undefined ? {} : { expectedRevision }),
+      });
       toast.success(
         title ? `"${title}" duplicated.` : "Post duplicated.",
       );

@@ -25,7 +25,7 @@ type CreateWebhookArgs = {
   name: string;
   deliveryUrl: string;
   eventCode: string;
-  contentType: string;
+  contentType: "application/json" | "application/x-www-form-urlencoded";
   maxConsecutiveFailures?: number;
   deliveryTimeout?: number;
 };

@@ -1,42 +1,8 @@
-import { describe, expect, test } from "bun:test";
-
-import { matchesPageAccess, pageAccessCandidates } from "./page-access";
-
-describe("page access route matching", () => {
-  test("normalizes public admin routes to their stored /admin route keys", () => {
-    expect(pageAccessCandidates("/setup")).toEqual(["/setup", "/admin/setup"]);
-    expect(pageAccessCandidates("/settings/email")).toEqual([
-      "/settings/email",
-      "/admin/settings/email",
-    ]);
-    expect(pageAccessCandidates("/admin/setup")).toEqual(["/admin/setup"]);
-    expect(pageAccessCandidates("/profile")).toEqual([
-      "/profile",
-      "/admin/profile",
-      "/admin/users/profile",
-    ]);
-    expect(pageAccessCandidates("/posts/categories")).toEqual([
-      "/posts/categories",
-      "/admin/posts/categories",
-      "/admin/categories",
-    ]);
-    expect(pageAccessCandidates("/admin/posts/tags")).toEqual([
-      "/posts/tags",
-      "/admin/posts/tags",
-      "/admin/tags",
-    ]);
-  });
-
-  test("does not let /admin grant every child admin page", () => {
-    expect(matchesPageAccess("/admin", "/admin")).toBe(true);
-    expect(matchesPageAccess("/admin/setup", "/admin")).toBe(false);
-    expect(matchesPageAccess("/admin/settings/email", "/admin")).toBe(false);
-  });
-
-  test("allows explicit setup access and explicit wildcards", () => {
-    expect(matchesPageAccess("/admin/setup", "/admin/setup")).toBe(true);
-    expect(matchesPageAccess("/admin/kb/articles", "/admin/kb/*")).toBe(true);
-    expect(matchesPageAccess("/admin/settings/email", "/admin/kb/*")).toBe(false);
-    expect(matchesPageAccess("/admin/commerce/orders", "/admin/*")).toBe(true);
-  });
+import { expect, test } from "bun:test";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+test("native auth effective permission DOM checks", () => {
+  const result = spawnSync(process.execPath, ["test", fileURLToPath(new URL("./auth-context.cases.jsx", import.meta.url))], {encoding:"utf8",timeout:30000});
+  if(result.status !== 0) throw Error(result.stdout + result.stderr);
+  expect(result.status).toBe(0);
 });

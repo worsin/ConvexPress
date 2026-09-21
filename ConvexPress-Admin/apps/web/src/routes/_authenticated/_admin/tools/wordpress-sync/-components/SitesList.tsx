@@ -81,7 +81,7 @@ function SiteCard({ site }: { site: Site }) {
     try {
       const result = await testConnection({ siteId: site._id });
       if (result.success) {
-        toast.success(`Connected successfully! WordPress ${result.wpVersion}`);
+        toast.success("Connected successfully!");
       } else {
         toast.error(result.error || "Connection failed");
       }

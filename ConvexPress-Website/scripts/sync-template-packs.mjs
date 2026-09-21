@@ -15,8 +15,17 @@ const root = resolve(here, "..");
 const packsDir = join(root, "apps/web/src/templates/packs");
 const catalogFile = join(root, "apps/web/src/templates/sdk/catalog.ts");
 const adminPacks = resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/packs.ts");
+// Mirror the surface vocabulary as well as installed pack coverage. Admin and
+// public plugin IDs intentionally differ for the Knowledge Base feature.
+const adminCatalog = readFileSync(catalogFile, "utf8")
+  .replace('import type { PublicPluginId } from "@/lib/plugins/public";', 'import type { AdminPluginId } from "@/lib/plugins/registry";')
+  .replaceAll("PublicPluginId", "AdminPluginId")
+  .replaceAll('plugin: "kb"', 'plugin: "knowledgeBase"');
+writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/catalog.ts"),
+  "// Generated from Website SDK catalog by sync:templates. Do not edit.\n" + adminCatalog);
 
-const catalogOrder = [...readFileSync(catalogFile, "utf8").matchAll(/S\("([a-zA-Z0-9.]+)",/g)].map((m) => m[1]);
+
+const catalogOrder = [...readFileSync(catalogFile, "utf8").matchAll(/S\("([a-zA-Z0-9.-]+)",/g)].map((m) => m[1]);
 const packs = readdirSync(packsDir).filter((entry) => statSync(join(packsDir, entry)).isDirectory()).sort((a, b) => (a === "core" ? -1 : b === "core" ? 1 : a.localeCompare(b)));
 
 const manifests = [];
@@ -48,6 +57,9 @@ const entries = manifests
       `    surfaces: [\n${m.surfaces.map((s) => `      ${JSON.stringify(s)},`).join("\n")}\n    ],`,
       Object.keys(m.variants ?? {}).length ? `    variants: ${JSON.stringify(m.variants, null, 6).replace(/\n\}$/, "\n    }")},` : null,
       m.modules ? `    modules: ${JSON.stringify(m.modules)},` : null,
+      m.defaults ? `    defaults: ${JSON.stringify(m.defaults)},` : null,
+      m.menuLocations ? `    menuLocations: ${JSON.stringify(m.menuLocations)},` : null,
+      m.presets ? `    presets: ${JSON.stringify(m.presets)},` : null,
     ].filter(Boolean);
     return `  {\n${fields.join("\n")}\n  },`;
   })
@@ -73,6 +85,9 @@ export interface TemplatePackSummary {
   surfaces: string[];
   variants?: Record<string, string[]>;
   modules?: string[];
+  defaults?: Record<string, Record<string, unknown>>;
+  menuLocations?: Record<string, string>;
+  presets?: Record<string, Array<{ id: string; name: string; colors: Record<string, string> }>>;
 }
 
 export const TEMPLATE_PACKS: TemplatePackSummary[] = [
@@ -85,3 +100,10 @@ export function getTemplatePack(id: string): TemplatePackSummary | undefined {
 `;
 writeFileSync(adminPacks, file);
 console.log(`admin mirror written: ${manifests.length} packs`);
+
+// One authoritative draft model; the Admin mirror is generated for its independent build.
+const draftModel = join(root, "apps/web/src/templates/sdk/draftModel.ts");
+writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/draftModel.ts"), readFileSync(draftModel, "utf8"));
+
+const chromeDefinitions = join(root, "apps/web/src/templates/sdk/chromeDefinitions.ts");
+if (existsSync(chromeDefinitions)) writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/chromeDefinitions.ts"), readFileSync(chromeDefinitions, "utf8"));

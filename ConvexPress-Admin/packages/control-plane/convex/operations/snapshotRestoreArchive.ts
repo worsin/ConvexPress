@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import type { EnvironmentKind } from "@convexpress/site-contract";
 import { zipSync } from "fflate";
 import yauzl from "yauzl";
+import { DERIVED_EMPTY_ON_MISSING_SOURCE, derivedSnapshotTable, resetDerivedSnapshotRow, convexSnapshotJson, snapshotScope } from "./snapshotDerivedState";
 
 import {
   inspectConvexSnapshot,
@@ -16,6 +17,9 @@ const MAX_UNCOMPRESSED_BYTES = 1024 * 1024 * 1024;
 const MAX_ARCHIVE_ENTRIES = 20_000;
 
 export const MANAGEMENT_TABLES_PRESERVED_ON_IMPORT = [
+  // Deployment-local completed import receipts must not roll back with authored data.
+  "media_epoch_import_receipts",
+  "media_epoch_claim",
   "convexpress_siteIdentity",
   "convexpress_managementAuthorities",
   "convexpress_managementBindings",
@@ -52,25 +56,7 @@ function parseJsonLines(bytes: Uint8Array, label: string) {
 }
 
 function convexJson(value: unknown): string {
-  if (value === null) return "null";
-  if (typeof value === "string" || typeof value === "boolean") {
-    return JSON.stringify(value);
-  }
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) {
-      throw new Error("Target management binding contains a non-finite number");
-    }
-    return Number.isInteger(value) ? `${value}.0` : String(value);
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map((entry) => convexJson(entry)).join(",")}]`;
-  }
-  if (value && typeof value === "object") {
-    return `{${Object.entries(value as Record<string, unknown>)
-      .map(([key, entry]) => `${JSON.stringify(key)}:${convexJson(entry)}`)
-      .join(",")}}`;
-  }
-  throw new Error("Target management binding contains an unsupported value");
+  return convexSnapshotJson(value);
 }
 
 function jsonLines(rows: readonly Record<string, unknown>[]) {
@@ -113,6 +99,9 @@ function resetTargetManagementSessions(entries: Record<string, Uint8Array>) {
   entries["convexpress_managementSessions/documents.jsonl"] =
     new Uint8Array();
   entries["convexpress_managementNonces/documents.jsonl"] = new Uint8Array();
+  // Transient source dispatch claims cannot be replayed into this target. The
+  // external known-ID pending epoch remains authoritative throughout replaceAll.
+  entries["media_epoch_claim/documents.jsonl"] = new Uint8Array();
 }
 
 function assertSafeName(name: string) {
@@ -257,6 +246,11 @@ export async function prepareTargetBoundSnapshot(input: {
     readAllEntries(input.sourceBytes),
     readAllEntries(input.targetPreBackupBytes),
   ]);
+  const identityPath = "convexpress_siteIdentity/documents.jsonl";
+  const rebinding = {
+    source: snapshotScope(parseJsonLines(sourceEntries[identityPath]!, "Source identity")[0]!),
+    target: snapshotScope(parseJsonLines(targetEntries[identityPath]!, "Target identity")[0]!),
+  };
   for (const table of MANAGEMENT_TABLES_PRESERVED_ON_IMPORT) {
     const documentsPath = `${table}/documents.jsonl`;
     const schemaPath = `${table}/generated_schema.jsonl`;
@@ -268,7 +262,23 @@ export async function prepareTargetBoundSnapshot(input: {
       sourceEntries[schemaPath] = targetEntries[schemaPath]!;
     }
   }
+  for (const table of DERIVED_EMPTY_ON_MISSING_SOURCE) {
+    const documents=`${table}/documents.jsonl`, schema=`${table}/generated_schema.jsonl`;
+    if (!(documents in sourceEntries) && documents in targetEntries) {
+      sourceEntries[documents]=new Uint8Array();
+      if(targetEntries[schema])sourceEntries[schema]=targetEntries[schema]!;
+    }
+  }
   resetTargetManagementSessions(sourceEntries);
+  for (const [path, content] of Object.entries(sourceEntries)) {
+    const table = derivedSnapshotTable(path);
+    if (!table) continue;
+    const rows = parseJsonLines(content, `Source ${table}`).flatMap(row => {
+      const reset = resetDerivedSnapshotRow(table, row, rebinding);
+      return reset ? [reset] : [];
+    });
+    sourceEntries[path] = jsonLines(rows);
+  }
   const bytes = zipSync(sourceEntries, { level: 6 });
   if (bytes.byteLength === 0 || bytes.byteLength > MAX_ARCHIVE_BYTES) {
     throw new Error("Prepared snapshot archive size is invalid");

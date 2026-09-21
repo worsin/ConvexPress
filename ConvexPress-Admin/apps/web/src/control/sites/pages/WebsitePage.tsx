@@ -1,3 +1,5 @@
+import { PromotionReviewPanel } from "../../components/PromotionReviewPanel";
+import { CloudEnvironmentsPanel } from "../../components/CloudEnvironmentsPanel";
 import { api as controlApi } from "@control/convex/_generated/api";
 import type { Id } from "@control/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
@@ -122,6 +124,8 @@ export function WebsitePage({ api, websiteId }: { api: WorkspaceApi; websiteId: 
         <p className="max-w-2xl text-[13.5px] leading-6 text-ink-2">{detail.description}</p>
       )}
 
+      <CloudEnvironmentsPanel primaryDomain={website.primaryDomain} websiteKey={website.websiteKey} organizationId={organization.organizationId} businessId={business.businessId} websiteId={websiteId} name={website.title} />
+
       <section aria-label="Environments" className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-[15px] font-semibold">Environments</h2>
@@ -134,7 +138,7 @@ export function WebsitePage({ api, websiteId }: { api: WorkspaceApi; websiteId: 
         ) : sorted.length === 0 ? (
           <div className="rounded-xl border border-dashed border-line-strong p-6 text-center">
             <p className="text-[13.5px] text-ink-2">
-              This website has no deployment yet. Attach its live environment to start managing it.
+              This website has no environments yet. Use Cloud environments to create or adopt production and staging databases, or attach an existing deployment.
             </p>
             {access.updateWebsite && (
               <Button className="mt-4" onClick={() => api.openDialog({ kind: "attach-environment", websiteId })}>
@@ -168,6 +172,8 @@ export function WebsitePage({ api, websiteId }: { api: WorkspaceApi; websiteId: 
           </div>
         )}
       </section>
+
+      <PromotionReviewPanel websiteId={websiteId} websiteKey={website.websiteKey} organizationId={organization.organizationId} businessId={business.businessId} environments={environments ?? []} connections={connections ?? []} />
 
       <AccessList
         api={api}

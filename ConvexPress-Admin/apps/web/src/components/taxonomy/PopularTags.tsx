@@ -13,6 +13,7 @@ interface TagData {
   name: string;
   slug: string;
   count: number;
+  countReady?: boolean;
 }
 
 interface PopularTagsProps {
@@ -38,7 +39,7 @@ function getTagSizeClass(count: number, maxCount: number): string {
 export function PopularTags({ tags, onTagClick, className }: PopularTagsProps) {
   if (tags.length === 0) return null;
 
-  const maxCount = Math.max(...tags.map((t) => t.count), 1);
+  const maxCount = Math.max(...tags.map((t) => t.countReady === true ? t.count : 0), 1);
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -53,9 +54,9 @@ export function PopularTags({ tags, onTagClick, className }: PopularTagsProps) {
             onClick={() => onTagClick?.(tag)}
             className={cn(
               "text-primary hover:underline transition-colors",
-              getTagSizeClass(tag.count, maxCount),
+              getTagSizeClass(tag.countReady === true ? tag.count : 0, maxCount),
             )}
-            title={`${tag.name} (${tag.count})`}
+            title={tag.countReady === true ? `${tag.name} (${tag.count})` : `${tag.name} (count updating)`}
           >
             {tag.name}
           </button>

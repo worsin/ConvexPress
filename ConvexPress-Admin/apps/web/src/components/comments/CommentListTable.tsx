@@ -690,7 +690,7 @@ export function CommentListTable({ defaultStatus }: CommentListTableProps) {
                     const trashResult = await Promise.resolve(listResult);
                     if (trashResult && trashResult.comments.length > 0) {
                       const trashIds = trashResult.comments.map(
-                        (c: CommentRow) => c._id,
+                        (c) => c._id,
                       );
                       const result = await bulkDeleteMutation({
                         commentIds: trashIds,

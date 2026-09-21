@@ -1,3 +1,4 @@
+import { assertFullSnapshotOperationAllowed } from "./replacementSafety";
 import {
   canonicalJson,
   fingerprintCanonicalJson,
@@ -134,6 +135,7 @@ export async function createOperationRecord(
   ctx: Pick<MutationCtx, "db">,
   input: CreateOperationRecordInput,
 ) {
+  assertFullSnapshotOperationAllowed(input.operationCode);
   const [website, instance, user] = await Promise.all([
     ctx.db.get(input.websiteId),
     ctx.db.get(input.instanceId),
@@ -420,6 +422,7 @@ export async function resumeOperationRecord(
 ): Promise<{ revision: number; state: "running" }> {
   const operation = await ctx.db.get(input.operationId);
   if (!operation) throw new Error("Lifecycle operation not found");
+  assertFullSnapshotOperationAllowed(operation.operationCode);
   if (operation.revision !== input.expectedRevision) {
     throw new Error("Lifecycle operation revision is stale");
   }

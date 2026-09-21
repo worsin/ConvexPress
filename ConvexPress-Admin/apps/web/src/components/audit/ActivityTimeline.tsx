@@ -41,7 +41,7 @@ export function ActivityTimeline({
   }, [activeCategory, limit]);
 
   const result = useQuery(api.auditLogs.queries.recentActivity, queryArgs);
-  const rawEntries = (result?.entries ?? []) as AuditEntryListItem[];
+  const rawEntries = (result?.entries ?? []);
 
   // Client-side category filtering
   const entries = useMemo(() => {

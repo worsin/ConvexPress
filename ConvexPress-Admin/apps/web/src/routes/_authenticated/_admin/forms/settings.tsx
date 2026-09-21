@@ -145,13 +145,14 @@ function SecuritySettingsForm() {
       toast.info("No changes to save.");
       return;
     }
-    // perFormLimit of 0 means "no per-form ceiling" — omit it rather than send 0
-    // (the mutation rejects limits <= 0).
-    if (changed.perFormLimit === 0) delete changed.perFormLimit;
+    // Omission means unchanged. Send an explicit clear when the user chooses 0.
+    const update = changed.perFormLimit === 0
+      ? { ...changed, perFormLimit: null }
+      : changed;
 
     setSaving(true);
     try {
-      await updateSettings(changed);
+      await updateSettings(update);
       toast.success("Security settings saved.");
       setDraft(null);
     } catch (err) {
@@ -359,14 +360,20 @@ function SecuritySettingsForm() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="perFormLimit">Per form (0 = off)</Label>
+              <Label htmlFor="perFormLimit">Per form / poll ceiling</Label>
               <Input
                 id="perFormLimit"
                 type="number"
                 min="0"
+                aria-describedby="perFormLimit-help"
                 value={form.perFormLimit}
                 onChange={(e) => set("perFormLimit", Number(e.target.value))}
               />
+              <p id="perFormLimit-help" className="text-xs text-muted-foreground">
+                A positive number limits each form or poll within the window.
+                Zero removes the form ceiling; polls use their default of 120.
+                Turn off rate limiting above to remove both limits.
+              </p>
             </div>
           </div>
         </CardContent>

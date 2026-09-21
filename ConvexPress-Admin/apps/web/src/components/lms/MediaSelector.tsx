@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { usePaginatedQuery } from "convex/react";
+import { MediaContinuation, MediaReadBoundary } from "../media/MediaPagination";
 import { useQuery } from "convex-helpers/react/cache";
 import { ImageIcon, Search, Video, X } from "lucide-react";
 
@@ -13,34 +15,31 @@ interface MediaSummary {
   title: string;
   fileName?: string;
   url?: string | null;
-  mediaType: MediaType;
+  mediaType: MediaType | "archive" | "other";
 }
 
-export function MediaSelector({
-  value,
-  onChange,
-  mediaType,
-  placeholder = "Search media",
-  disabled = false,
-}: {
+type MediaSelectorProps = {
   value: Id<"media"> | null;
   onChange: (value: Id<"media"> | null) => void;
   mediaType: MediaType;
   placeholder?: string;
   disabled?: boolean;
-}) {
+};
+
+export function MediaSelector(props: MediaSelectorProps) { return <MediaReadBoundary><MediaSelectorContent {...props} /></MediaReadBoundary>; }
+
+function MediaSelectorContent({ value, onChange, mediaType, placeholder = "Search media", disabled = false }: MediaSelectorProps) {
   const [search, setSearch] = useState("");
   const selected = useQuery(
     api.media.queries.get,
     value ? { mediaId: value } : "skip",
   ) as MediaSummary | null | undefined;
-  const results = useQuery(api.media.queries.list, {
+  const mediaPages = usePaginatedQuery(api.media.queries.list, {
     mediaType,
     search: search.trim() || undefined,
     trashView: "active",
-    paginationOpts: { numItems: 8, cursor: null },
-  }) as { page: MediaSummary[] } | undefined;
-  const items = results?.page ?? [];
+  }, { initialNumItems: 8 });
+  const items = mediaPages.results;
   const Icon = mediaType === "video" ? Video : ImageIcon;
 
   return (
@@ -52,6 +51,7 @@ export function MediaSelector({
           onChange={(event) => setSearch(event.target.value)}
           disabled={disabled}
           placeholder={placeholder}
+          maxLength={256}
           className="min-w-0 flex-1 bg-transparent text-sm outline-none disabled:cursor-not-allowed"
         />
       </div>
@@ -103,6 +103,7 @@ export function MediaSelector({
           );
         })}
       </div>
+      <MediaContinuation status={mediaPages.status} count={items.length} loadMore={mediaPages.loadMore} pageSize={8} disabled={disabled} />
     </div>
   );
 }

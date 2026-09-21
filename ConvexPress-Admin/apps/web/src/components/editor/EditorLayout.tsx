@@ -19,6 +19,8 @@ import type { Id } from "@backend/convex/_generated/dataModel";
 import { EditorHeader } from "./EditorHeader";
 import { TitleInput } from "./TitleInput";
 import { SlugEditor } from "./SlugEditor";
+import { resolveEditorSiteUrl } from "./editor-site-url";
+import { useControlShell } from "@/control/ControlShellContext";
 import { MetaboxContainer } from "./MetaboxContainer";
 import { PublishBox } from "./PublishBox";
 import { CategoriesMetabox } from "./CategoriesMetabox";
@@ -52,13 +54,6 @@ import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { useAuth } from "@/lib/auth-context";
 import type { EditorContentType, EditorFormValues, TagItem, CompositionBlock } from "@/types/editor";
 
-/** Shape of general settings response */
-interface GeneralSettings {
-  siteUrl?: string;
-  siteTitle?: string;
-  siteDescription?: string;
-}
-
 interface EditorLayoutProps {
   contentType: EditorContentType;
   mode: "new" | "edit";
@@ -90,7 +85,8 @@ function EditorLayoutInner({
 
   // Load site URL from settings for permalink preview
   const generalSettings = useQuery(api.settings.queries.get, { section: "general" });
-  const siteUrl = (generalSettings as GeneralSettings | undefined)?.siteUrl || "";
+  const control = useControlShell();
+  const siteUrl = resolveEditorSiteUrl(control ? control.selectedEnvironment?.siteOrigin ?? "" : undefined, generalSettings);
 
   // Load all postMeta for this post (edit mode only, needed for page parent ID)
   const postMetaRecords = useQuery(
@@ -178,10 +174,11 @@ function EditorLayoutInner({
     if (hydratedTagsForPostRef.current === hydrationKey) return;
 
     setSelectedTags(
-      editorTaxonomies.tags.map((tag: { _id: string; name: string; slug: string }) => ({
+      editorTaxonomies.tags.map((tag: { _id: string; name: string; slug: string; count?: number }) => ({
         id: tag._id,
         name: tag.name,
         slug: tag.slug,
+        postCount: tag.count ?? 0,
       })),
     );
     hydratedTagsForPostRef.current = hydrationKey;
@@ -471,6 +468,7 @@ function EditorLayoutInner({
           <SlugEditor
             contentType={contentType}
             slug={slug}
+            parentPageId={contentType === "page" ? parentPageId : undefined}
             onChange={(val) => form.setFieldValue("slug", val)}
             onManualEdit={() => setSlugManuallyEdited(true)}
             siteUrl={siteUrl}
@@ -581,6 +579,7 @@ function EditorLayoutInner({
             <SlugEditor
               contentType={contentType}
               slug={slug}
+              parentPageId={contentType === "page" ? parentPageId : undefined}
               onChange={(val) => form.setFieldValue("slug", val)}
               onManualEdit={() => setSlugManuallyEdited(true)}
               siteUrl={siteUrl}

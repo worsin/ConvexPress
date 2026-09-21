@@ -1,3 +1,5 @@
+import { INVITATION_ROLE_SLUGS } from "@backend/lib/auth/roleAssignment";
+import { RoleSelector } from "@/components/roles/role-selector";
 /**
  * Registration System - Invite User Form
  *
@@ -26,14 +28,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { getErrorMessage } from "@/lib/utils";
 
 // ─── Valid Roles ───────────────────────────────────────────────────────────────
-
-const ROLE_OPTIONS = [
-  { value: "subscriber", label: "Subscriber" },
-  { value: "contributor", label: "Contributor" },
-  { value: "author", label: "Author" },
-  { value: "editor", label: "Editor" },
-  { value: "administrator", label: "Administrator" },
-] as const;
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -88,7 +82,16 @@ export function InviteUserForm() {
         setIsSubmitting(false);
       }
     },
-    [email, role, firstName, lastName, message, sendNotification, inviteUser, resetForm],
+    [
+      email,
+      role,
+      firstName,
+      lastName,
+      message,
+      sendNotification,
+      inviteUser,
+      resetForm,
+    ],
   );
 
   return (
@@ -156,19 +159,15 @@ export function InviteUserForm() {
         {/* Role */}
         <div className="space-y-1">
           <Label htmlFor="invite-role">Role</Label>
-          <select
+          <RoleSelector
             id="invite-role"
             value={role}
-            onChange={(e) => setRole(e.target.value)}
+            valueKey="slug"
+            onChange={setRole}
             disabled={isSubmitting}
-            className="dark:bg-input/30 border-input text-foreground focus-visible:border-ring focus-visible:ring-ring/50 h-8 w-full rounded-none border bg-transparent px-2.5 py-1 text-xs transition-colors focus-visible:ring-1 outline-hidden disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {ROLE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            assignmentTarget={{ authSource: "clerk" }}
+            allowedSlugs={INVITATION_ROLE_SLUGS}
+          />
         </div>
 
         {/* Personal Message */}
@@ -190,9 +189,7 @@ export function InviteUserForm() {
           <Checkbox
             id="invite-send-notification"
             checked={sendNotification}
-            onCheckedChange={(checked) =>
-              setSendNotification(checked === true)
-            }
+            onCheckedChange={(checked) => setSendNotification(checked === true)}
             disabled={isSubmitting}
           />
           <Label

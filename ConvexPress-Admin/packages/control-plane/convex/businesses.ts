@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { scheduleHierarchySessionRevocation } from "./siteBroker/revocationSchedule";
 
 import {
   chooseDefaultId,
@@ -174,6 +175,9 @@ export const update = authenticatedMutation({
       isActive: args.isActive ?? business.isActive,
       updatedAt: Date.now(),
     });
+    if (business.isActive && args.isActive === false) {
+      await scheduleHierarchySessionRevocation(ctx, { targetBusinessId: business._id });
+    }
     await repairOrganizationDefault(ctx, business.organizationId);
     return summarize((await ctx.db.get(business._id))!);
   },

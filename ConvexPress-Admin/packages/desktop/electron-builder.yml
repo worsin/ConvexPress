@@ -3,6 +3,7 @@
 
 appId: com.convexpress.admin
 productName: ConvexPress
+beforePack: scripts/check-provisioning.cjs
 
 files:
   - dist-electron/**/*
@@ -10,6 +11,12 @@ files:
   - package.json
 
 extraResources:
+  - from: resources/website-vercel
+    to: website-vercel
+  - from: resources/website-hosting
+    to: website-hosting
+  - from: resources/provisioning
+    to: provisioning
   - from: resources/iconTemplate.png
     to: iconTemplate.png
   - from: resources/iconTemplate@2x.png

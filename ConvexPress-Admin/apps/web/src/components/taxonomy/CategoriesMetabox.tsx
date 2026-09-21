@@ -15,6 +15,7 @@ import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { toast } from "sonner";
 
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { api } from "@backend/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,7 +49,7 @@ export function CategoriesMetabox({
   const [activeTab, setActiveTab] = useState<"all" | "most-used">("all");
   const [showAddNew, setShowAddNew] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryParent, setNewCategoryParent] = useState("");
+  const [newCategoryParent, setNewCategoryParent] = useState<Id<"terms"> | "">("");
   const [isCreating, setIsCreating] = useState(false);
 
   const categoryTree = useQuery(api.taxonomies.queries.getCategoryTree);

@@ -1,5 +1,6 @@
 import { safeError, safeLog } from "../utils/safe-log.js";
 import { windowManager } from "../window-manager.js";
+import { assertAppSender } from "./appSender.js";
 
 const { ipcMain } = require("electron") as typeof import("electron");
 
@@ -19,7 +20,8 @@ async function getAutoUpdater() {
 }
 
 export function registerUpdaterHandlers(): void {
-  ipcMain.handle("app:check-for-updates", async () => {
+  ipcMain.handle("app:check-for-updates", async (event) => {
+    assertAppSender(event);
     const updater = await getAutoUpdater();
     if (updater) {
       try {
@@ -30,7 +32,8 @@ export function registerUpdaterHandlers(): void {
     }
   });
 
-  ipcMain.handle("app:install-update", async () => {
+  ipcMain.handle("app:install-update", async (event) => {
+    assertAppSender(event);
     const updater = await getAutoUpdater();
     if (updater) {
       updater.quitAndInstall();

@@ -5,6 +5,7 @@
  * Wired to api.kb.templates.*
  */
 
+import type { FunctionArgs } from "convex/server";
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
@@ -21,11 +22,14 @@ export const Route = createFileRoute("/_authenticated/_admin/kb/templates")({
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type TemplateCategory = FunctionArgs<typeof api.kb.templates.create>["category"];
+const categories: TemplateCategory[] = ["article", "faq", "tutorial", "howTo", "troubleshooting", "changelog"];
+
 type FormState = {
   name: string;
   description: string;
   content: string;
-  category: string;
+  category: TemplateCategory;
   isDefault: boolean;
 };
 
@@ -33,7 +37,7 @@ const EMPTY_FORM: FormState = {
   name: "",
   description: "",
   content: "",
-  category: "",
+  category: "article",
   isDefault: false,
 };
 
@@ -49,24 +53,15 @@ function KBTemplatesPage() {
 
 function KBTemplatesContent() {
   const templatesResult = useQuery(api.kb.templates.list);
-  const templates = (templatesResult ?? []) as Array<{
-    _id: string;
-    name: string;
-    description?: string;
-    content?: string;
-    category?: string;
-    isDefault: boolean;
-    isActive: boolean;
-    usageCount?: number;
-  }>;
+  const templates = templatesResult ?? [];
   const createTemplate = useMutation(api.kb.templates.create);
   const updateTemplate = useMutation(api.kb.templates.update);
   const removeTemplate = useMutation(api.kb.templates.remove);
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<Id<"kb_templates"> | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Id<"kb_templates"> | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   function startEdit(t: (typeof templates)[0]) {
@@ -75,7 +70,7 @@ function KBTemplatesContent() {
       name: t.name,
       description: t.description ?? "",
       content: t.content ?? "",
-      category: t.category ?? "",
+      category: t.category,
       isDefault: t.isDefault,
     });
     setShowCreate(false);
@@ -91,8 +86,8 @@ function KBTemplatesContent() {
       await createTemplate({
         name: form.name.trim(),
         description: form.description || undefined,
-        content: form.content || undefined,
-        category: form.category || undefined,
+        content: form.content,
+        category: form.category,
         isDefault: form.isDefault,
       });
       toast.success("Template created");
@@ -110,11 +105,11 @@ function KBTemplatesContent() {
     setIsSaving(true);
     try {
       await updateTemplate({
-        templateId: editingId as Id<"kb_templates">,
+        templateId: editingId,
         name: form.name.trim(),
         description: form.description || undefined,
-        content: form.content || undefined,
-        category: form.category || undefined,
+        content: form.content,
+        category: form.category,
         isDefault: form.isDefault,
       });
       toast.success("Template updated");
@@ -127,9 +122,9 @@ function KBTemplatesContent() {
     }
   }
 
-  async function handleDelete(templateId: string) {
+  async function handleDelete(templateId: Id<"kb_templates">) {
     try {
-      await removeTemplate({ templateId: templateId as Id<"kb_templates"> });
+      await removeTemplate({ templateId });
       toast.success("Template deleted");
       setConfirmDelete(null);
     } catch (err: unknown) {
@@ -180,13 +175,13 @@ function KBTemplatesContent() {
             </div>
             <div>
               <label className="block text-xs font-medium text-foreground/70 mb-1">Category</label>
-              <input
-                type="text"
+              <select
                 value={form.category}
-                onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-                placeholder="e.g. how-to, faq, reference"
+                onChange={(e) => { const category = categories.find((item) => item === e.target.value); if (category) setForm((p) => ({ ...p, category })); }}
                 className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-background"
-              />
+              >
+                {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+              </select>
             </div>
             <div className="col-span-2">
               <label className="block text-xs font-medium text-foreground/70 mb-1">Description</label>

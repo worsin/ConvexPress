@@ -21,6 +21,8 @@ export interface TemplateSettingsGroup {
   fields: TemplateSettingsField[];
 }
 
+import { readDraftField } from "./draftModel";
+
 export const COLOR_TOKENS = [
   ["background", "Background"],
   ["foreground", "Text"],
@@ -101,6 +103,15 @@ export const STANDARD_MODULES: Record<string, SettingsModule> = {
           { value: "full", label: "Full" },
         ],
       }),
+      field("sectionSpacing", "Section spacing", "select", "comfortable", {
+        options: [{ value: "compact", label: "Compact" }, { value: "comfortable", label: "Comfortable" }, { value: "spacious", label: "Spacious" }],
+      }),
+      field("elementSpacing", "Content spacing", "select", "comfortable", {
+        options: [{ value: "compact", label: "Compact" }, { value: "comfortable", label: "Comfortable" }, { value: "spacious", label: "Spacious" }],
+      }),
+      field("blockGap", "Space between blocks", "select", "none", {
+        options: [{ value: "none", label: "None" }, { value: "small", label: "Small" }, { value: "medium", label: "Medium" }, { value: "large", label: "Large" }],
+      }),
     ],
   },
   shop: {
@@ -109,6 +120,10 @@ export const STANDARD_MODULES: Record<string, SettingsModule> = {
     fields: [
       field("catalogVariant", "Catalog layout", "select", null, { surfaces: ["shop.catalog"] }),
       field("productVariant", "Product page layout", "select", null, { surfaces: ["shop.product"] }),
+      field("gridDensity", "Product grid density", "select", "comfortable", {
+        surfaces: ["shop.catalog"],
+        options: [{ value: "comfortable", label: "Comfortable" }, { value: "dense", label: "Dense" }],
+      }),
       field("cartPanel", "Cart", "select", "persistent", {
         surfaces: ["shop.catalog", "shop.product"],
         options: [
@@ -153,9 +168,15 @@ export const CONTENT_WIDTH_VALUES: Record<string, string> = {
 };
 
 /** Modules a pack includes, in order, with the pack's own groups appended. */
-export function modulesFor(manifest: { modules?: string[]; settings?: TemplateSettingsGroup[] } | undefined): SettingsModule[] {
-  const included = (manifest?.modules ?? []).map((id) => STANDARD_MODULES[id]).filter((m): m is SettingsModule => Boolean(m));
-  return [...included, ...((manifest?.settings ?? []) as SettingsModule[])];
+export function modulesFor(manifest: { modules?: string[]; settings?: TemplateSettingsGroup[]; presets?: Record<string, ColorPreset[]>; menuLocations?: Record<string, string>; defaults?: Record<string, Record<string, unknown>> } | undefined): SettingsModule[] {
+  const included = (manifest?.modules ?? []).map((id) => STANDARD_MODULES[id]).filter((m): m is SettingsModule => Boolean(m)).map((module) => ({ ...module, presets: manifest?.presets?.[module.id] ?? module.presets, ...(module.id === "menuLayout" ? { fields: module.fields.map((field) => ({ ...field, default: manifest?.menuLocations?.[field.id] ?? field.default })) } : {}) }));
+  return [...included, ...((manifest?.settings ?? []) as SettingsModule[])].map(module => ({
+    ...module,
+    fields: module.fields.map(field => {
+      const packDefault = readDraftField(manifest?.defaults?.[module.id], field.id);
+      return packDefault === undefined ? field : { ...field, default: packDefault };
+    }),
+  }));
 }
 
 /** Default values per module from the schema. */

@@ -1,12 +1,12 @@
 /**
  * Add New Post - Lazy-loaded component
  *
- * Creates an auto-draft via the Convex posts.create mutation on mount
- * and initializes the EditorLayout with empty form values and the new postId.
+ * Creates a draft and opens its stable edit URL in the block workspace.
  */
 
-import { createLazyFileRoute } from "@tanstack/react-router";
-import { EditorLayout } from "@/components/editor/EditorLayout";
+import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
+import { NativeCanonicalEditor } from "@/components/blocks/canonical-editor/NativeCanonicalEditor";
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef } from "react";
 import { usePostMutations } from "@/hooks/posts/usePostMutations";
@@ -22,6 +22,7 @@ function AddNewPostPage() {
   const createdRef = useRef(false);
 
   const { createPost } = usePostMutations();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Prevent double-creation in StrictMode
@@ -30,8 +31,9 @@ function AddNewPostPage() {
 
     const createAutoDraft = async () => {
       try {
-        const newPostId = await createPost({ status: "auto-draft" });
+        const newPostId = await createPost({ title: "Untitled post", status: "draft" });
         setPostId(newPostId as string);
+        await navigate({to:"/posts/$postId/edit",params:{postId:newPostId as string},search:{editor:"blocks"},replace:true});
         setIsCreating(false);
       } catch (err: unknown) {
         const e = err as { data?: { message?: string }; message?: string };
@@ -41,7 +43,7 @@ function AddNewPostPage() {
     };
 
     createAutoDraft();
-  }, [createPost]);
+  }, [createPost, navigate]);
 
   if (error) {
     return (
@@ -74,11 +76,5 @@ function AddNewPostPage() {
     );
   }
 
-  return (
-    <EditorLayout
-      contentType="post"
-      mode="new"
-      postId={postId}
-    />
-  );
+  return <NativeCanonicalEditor postId={postId as Id<"posts">} />;
 }

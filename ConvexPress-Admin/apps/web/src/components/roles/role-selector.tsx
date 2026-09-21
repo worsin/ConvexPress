@@ -9,7 +9,12 @@
  * WordPress equivalent: wp_dropdown_roles()
  */
 
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
+import {
+  roleCompatibleWithIdentity,
+  CUSTOMER_ROLE_ASSIGNMENT_EXPLANATION,
+  type RoleAssignmentTarget,
+} from "@backend/lib/auth/roleAssignment";
 import { useQuery } from "convex-helpers/react/cache";
 
 import { api } from "@backend/convex/_generated/api";
@@ -27,6 +32,11 @@ interface RoleSelectorProps {
   id?: string;
   /** Additional CSS classes */
   className?: string;
+  /** Existing account identity. Omit only for a new account whose source is not selected here. */
+  assignmentTarget?: RoleAssignmentTarget;
+  assignmentTargets?: readonly RoleAssignmentTarget[];
+  valueKey?: "_id" | "slug";
+  allowedSlugs?: readonly string[];
 }
 
 export function RoleSelector({
@@ -35,47 +45,90 @@ export function RoleSelector({
   disabled = false,
   id,
   className,
+  assignmentTarget,
+  assignmentTargets,
+  valueKey = "_id",
+  allowedSlugs,
 }: RoleSelectorProps) {
   const roles = useQuery(api.roles.queries.listRoles);
+  const explanationId = useId();
+  const targets =
+    assignmentTargets ?? (assignmentTarget ? [assignmentTarget] : undefined);
+  const customerOnly =
+    targets !== undefined &&
+    (targets.length === 0 ||
+      targets.some(
+        (target) => !roleCompatibleWithIdentity(target, { type: "internal" }),
+      ));
 
   const sortedRoles = useMemo(() => {
     if (!roles) return [];
     // Already sorted by level desc from the query
     return roles.filter(
-      (r: { status: string }) => r.status === "active",
+      (role) =>
+        role.status === "active" &&
+        (!customerOnly || role.type === "customer") &&
+        (!allowedSlugs || allowedSlugs.includes(role.slug)),
     );
-  }, [roles]);
+  }, [roles, customerOnly, allowedSlugs]);
 
   const isLoading = roles === undefined;
 
+  const unavailableSelection =
+    !isLoading &&
+    !!value &&
+    !sortedRoles.some((role) => role[valueKey] === value);
+
   return (
-    <select
-      id={id}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={disabled || isLoading}
-      className={cn(
-        "h-8 w-full border border-border bg-background px-2.5 text-xs text-foreground",
-        "focus:border-ring focus:outline-hidden focus:ring-1 focus:ring-ring/50",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        className,
+    <>
+      <select
+        id={id}
+        value={value}
+        aria-describedby={customerOnly ? explanationId : undefined}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled || isLoading}
+        className={cn(
+          "h-8 w-full border border-border bg-background px-2.5 text-xs text-foreground",
+          "focus:border-ring focus:outline-hidden focus:ring-1 focus:ring-ring/50",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          className,
+        )}
+      >
+        {unavailableSelection && (
+          <option value={value} disabled>
+            Current role is unavailable for this account
+          </option>
+        )}
+        {!isLoading && !value && (
+          <option value="" disabled>
+            Select a role
+          </option>
+        )}
+        {isLoading ? (
+          <option>Loading roles...</option>
+        ) : (
+          sortedRoles.map(
+            (role: {
+              _id: string;
+              name: string;
+              slug: string;
+              level: number;
+              isDefault: boolean;
+            }) => (
+              <option key={role._id} value={role[valueKey]}>
+                {role.name}
+                {role.isDefault ? " (Default)" : ""} &mdash; Level {role.level}
+              </option>
+            ),
+          )
+        )}
+      </select>
+      {customerOnly && (
+        <p id={explanationId} className="mt-2 text-xs text-muted-foreground">
+          {CUSTOMER_ROLE_ASSIGNMENT_EXPLANATION}
+        </p>
       )}
-    >
-      {isLoading ? (
-        <option>Loading roles...</option>
-      ) : (
-        sortedRoles.map(
-          (role: { _id: string; name: string; slug: string; level: number; isDefault: boolean }) => (
-            <option key={role._id} value={role._id}>
-              {role.name}
-              {role.isDefault ? " (Default)" : ""}
-              {" "}
-              &mdash; Level {role.level}
-            </option>
-          ),
-        )
-      )}
-    </select>
+    </>
   );
 }
 

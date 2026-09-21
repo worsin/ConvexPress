@@ -12,7 +12,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
-import { Check, ChevronDown, Loader2, Monitor, RotateCcw, Save, Smartphone, SlidersHorizontal, Tablet } from "lucide-react";
+import { Check, ChevronDown, Loader2, Monitor, RotateCcw, Save, Smartphone, SlidersHorizontal, Tablet, Undo2, Redo2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -22,6 +22,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { modulesFor, type SettingsModule, type TemplateSettingsField } from "@/lib/templates/settingsModules";
 import { getTemplatePack } from "@/lib/templates/packs";
+import { useControlShell, useControlClient } from "@/control/ControlShellContext";
+import { HeaderSettingsEditor } from "@/components/appearance/HeaderComposer";
+import { FooterSettingsEditor } from "@/components/appearance/FooterComposer";
+import { FooterRowsBuilder } from "@/components/appearance/FooterRowsBuilder";
+import { createDraftHistory, applyDraftChange, setDraftField, readDraftField, resetDraftModule, resetDraftBrand, applyColorPreset, undoDraft, redoDraft, draftChanges, type DraftSnapshot, type Values } from "@/lib/templates/draftModel";
+import { prepareTemplatePromotion, type TemplateSnapshot, type PromotionReview } from "@/lib/templates/templatePublishing";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/_admin/appearance/customize")({
@@ -29,15 +35,6 @@ export const Route = createFileRoute("/_authenticated/_admin/appearance/customiz
 });
 
 const CUSTOMIZE_MESSAGE = "convexpress:customize";
-
-type Values = Record<string, Record<string, unknown>>;
-
-interface TemplateSection {
-  active: string;
-  overrides: Record<string, string>;
-  variants: Record<string, string>;
-  settings: Record<string, Values>;
-}
 
 const PREVIEW_PAGES = [
   { id: "home", label: "Home", path: "/" },
@@ -56,57 +53,70 @@ const DEVICES = [
 const FONT_SUGGESTIONS = ["Inter", "Fraunces", "Space Grotesk", "Playfair Display", "DM Sans", "Instrument Serif", "Lora", "Manrope", "Newsreader", "Source Serif 4", "IBM Plex Sans", "Work Sans"];
 
 function CustomizePage() {
-  const stored = useQuery(api.settings.queries.getBySection, { section: "appearance.template" }) as TemplateSection | undefined;
+  const server = useQuery(api.settings.templateDrafts.snapshot, {}) as TemplateSnapshot | undefined;
   const general = useQuery(api.settings.queries.getBySection, { section: "general" }) as { siteUrl?: string } | undefined;
-  const updateSettings = useMutation(api.settings.mutations.updateSection);
-
+  const publishSettings = useMutation(api.settings.templateDrafts.publish);
+  const saveStoredDraft = useMutation(api.settings.templateDrafts.saveDraft);
+  const discardStoredDraft = useMutation(api.settings.templateDrafts.discardDraft);
+  const shell = useControlShell();
+  const control = useControlClient();
+  const [base, setBase] = useState<TemplateSnapshot | null>(null);
+  const [history, setHistory] = useState(() => createDraftHistory({ values: {}, variants: {} }));
+  const stored = base?.values ?? server?.values;
   const activeId = stored?.active ?? "core";
   const pack = getTemplatePack(activeId);
-  const modules = useMemo<SettingsModule[]>(() => {
-    const list = modulesFor(pack ? { modules: pack.modules } : undefined);
-    // Shop module: the variant options come from the pack.
-    return list.map((module) => {
-      if (module.id !== "shop") return module;
-      return {
-        ...module,
-        fields: module.fields.map((field) => {
-          if (field.id === "catalogVariant") return { ...field, options: (pack?.variants?.["shop.catalog"] ?? []).map((v) => ({ value: v, label: v })) };
-          if (field.id === "productVariant") return { ...field, options: (pack?.variants?.["shop.product"] ?? []).map((v) => ({ value: v, label: v })) };
-          return field;
-        }),
-      };
-    });
-  }, [pack]);
-
-  const [values, setValues] = useState<Values>({});
-  const [variants, setVariants] = useState<Record<string, string>>({});
-  const [seeded, setSeeded] = useState<string | null>(null);
+  const modules = useMemo<SettingsModule[]>(() => modulesFor(pack).map((module) => module.id !== "shop" ? module : {
+    ...module,
+    fields: module.fields.map((field) => field.id === "catalogVariant" ? { ...field, options: (pack?.variants?.["shop.catalog"] ?? []).map((value) => ({ value, label: value })) } : field.id === "productVariant" ? { ...field, options: (pack?.variants?.["shop.product"] ?? []).map((value) => ({ value, label: value })) } : field),
+  }), [pack]);
+  const values = history.present.values;
+  const variants = history.present.variants;
+  const savedDraft = useQuery(api.settings.templateDrafts.getDraft, { packId: activeId }) as { values: Values; variants: Record<string, string>; sourceRevision: string; revision: string } | null | undefined;
+  const [savedRevision, setSavedRevision] = useState<string | null | undefined>();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [page, setPage] = useState(PREVIEW_PAGES[0]);
   const [device, setDevice] = useState<(typeof DEVICES)[number]["id"]>("desktop");
   const [saving, setSaving] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const [confirmLive, setConfirmLive] = useState(false);
+  const [promotion, setPromotion] = useState<PromotionReview | null>(null);
+  const [confirmPromotion, setConfirmPromotion] = useState(false);
   const frameRef = useRef<HTMLIFrameElement>(null);
-
-  // Seed the draft from the saved values once per pack.
+  const scope = server?.identity?.instanceKey ?? "single-site";
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+  const seed = useCallback((snapshot: TemplateSnapshot) => {
+    setBase(snapshot);
+    setHistory(createDraftHistory({ values: snapshot.values.settings[snapshot.values.active] ?? {}, variants: snapshot.values.variants }));
+    setReviewing(false); setConfirmLive(false); setSavedRevision(undefined); setSaving(false);
+  }, []);
   useEffect(() => {
-    if (!stored || seeded === activeId) return;
-    setValues(stored.settings?.[activeId] ?? {});
-    setVariants(stored.variants ?? {});
-    setSeeded(activeId);
-    setOpenGroup(modules[0]?.id ?? null);
-  }, [stored, activeId, seeded, modules]);
+    if (server && (!base || (base.identity?.instanceKey ?? "single-site") !== scope)) {
+      seed(server); setOpenGroup(modules[0]?.id ?? null);
+    }
+  }, [server, base, scope, seed, modules]);
+  useEffect(() => () => promotion?.dispose(), [promotion]);
+  useEffect(() => { setPromotion(null); setConfirmPromotion(false); }, [scope]);
+  const baseline: DraftSnapshot = { values: stored?.settings[activeId] ?? {}, variants: stored?.variants ?? {} };
+  const changes = draftChanges(baseline, history.present);
+  const dirty = changes.length > 0;
+  const conflict = !!base && !!server && base.revision !== server.revision;
+  const isLive = !server?.identity || server.identity.environmentKind === "live";
+  const change = (next: DraftSnapshot) => { setHistory((current) => applyDraftChange(current, next)); setReviewing(false); };
+  const setField = (moduleId: string, fieldId: string, value: unknown) => change(setDraftField(history.present, moduleId, fieldId, value));
+  const resetModule = (moduleId: string) => change(resetDraftModule(history.present, moduleId));
+  const setModule = (moduleId: string, value: Record<string, unknown>) => change({ ...history.present, values: { ...values, [moduleId]: value } });
+  const live = shell?.websiteEnvironments.find((environment) => environment.kind === "live");
 
   const siteUrl = general?.siteUrl?.replace(/\/$/, "") ?? "";
   const previewUrl = siteUrl ? `${siteUrl}${page.path}${page.path.includes("?") ? "&" : "?"}customize=preview&template=${activeId}` : null;
 
   // Push the draft whenever it changes, and whenever the preview says it is ready.
   const post = useCallback(() => {
-    const draftVariants: Record<string, string> = { ...variants };
-    const shop = values.shop ?? {};
-    if (typeof shop.catalogVariant === "string" && shop.catalogVariant) draftVariants["shop.catalog"] = shop.catalogVariant;
-    if (typeof shop.productVariant === "string" && shop.productVariant) draftVariants["shop.product"] = shop.productVariant;
-    frameRef.current?.contentWindow?.postMessage({ type: CUSTOMIZE_MESSAGE, packId: activeId, values, variants: draftVariants }, "*");
-  }, [activeId, values, variants]);
+    if (!previewUrl) return;
+    const origin = new URL(previewUrl).origin;
+    frameRef.current?.contentWindow?.postMessage({ type: CUSTOMIZE_MESSAGE, packId: activeId, values, variants }, origin);
+  }, [activeId, values, variants, previewUrl]);
 
   useEffect(() => {
     post();
@@ -114,49 +124,54 @@ function CustomizePage() {
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (event.data && typeof event.data === "object" && (event.data as { type?: string }).type === `${CUSTOMIZE_MESSAGE}:ready`) post();
+      if (event.source === frameRef.current?.contentWindow && previewUrl && event.origin === new URL(previewUrl).origin && event.data && typeof event.data === "object" && (event.data as { type?: string }).type === `${CUSTOMIZE_MESSAGE}:ready`) post();
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [post]);
+  }, [post, previewUrl]);
 
-  const setField = (moduleId: string, fieldId: string, value: unknown) => {
-    setValues((current) => ({ ...current, [moduleId]: { ...(current[moduleId] ?? {}), [fieldId]: value } }));
-  };
-  const resetModule = (moduleId: string) => {
-    setValues((current) => {
-      const next = { ...current };
-      delete next[moduleId];
-      return next;
-    });
-  };
-
-  const dirty = stored ? JSON.stringify(stored.settings?.[activeId] ?? {}) !== JSON.stringify(values) || JSON.stringify(stored.variants ?? {}) !== JSON.stringify(variants) : false;
-
-  const publish = useCallback(async () => {
-    if (!stored) return;
-    setSaving(true);
+  const saveDraft = async () => {
+    if (!base) return;
+    setSaving(true); const requestScope = scope;
     try {
-      const shop = values.shop ?? {};
-      const nextVariants: Record<string, string> = { ...variants };
-      if (typeof shop.catalogVariant === "string" && shop.catalogVariant) nextVariants["shop.catalog"] = shop.catalogVariant;
-      if (typeof shop.productVariant === "string" && shop.productVariant) nextVariants["shop.product"] = shop.productVariant;
-      await updateSettings({
-        section: "appearance.template",
-        values: {
-          ...stored,
-          variants: nextVariants,
-          settings: { ...(stored.settings ?? {}), [activeId]: values },
-        } as unknown as Record<string, unknown>,
-      });
-      setVariants(nextVariants);
-      toast.success("Published. The site is already showing it.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not publish.");
-    } finally {
-      setSaving(false);
-    }
-  }, [stored, values, variants, activeId, updateSettings]);
+      const result = await saveStoredDraft({ packId: activeId, sourceRevision: base.revision, expectedDraftRevision: savedRevision === undefined ? savedDraft?.revision ?? null : savedRevision, values, variants });
+      if (scopeRef.current !== requestScope) return;
+      setSavedRevision(result.revision); toast.success("Draft saved. Published settings are unchanged.");
+    } catch (error) { if (scopeRef.current === requestScope) toast.error(error instanceof Error ? error.message : "Could not save the draft."); }
+    finally { if (scopeRef.current === requestScope) setSaving(false); }
+  };
+  const publish = async () => {
+    if (!base || conflict) return;
+    setSaving(true); const requestScope = scope;
+    try {
+      const next = await publishSettings({ values: { ...base.values, variants, settings: { ...base.values.settings, [activeId]: values } }, expectedRevision: base.revision, confirmLive });
+      if (scopeRef.current !== requestScope) return;
+      seed(next); toast.success("Template settings published.");
+      const revision = savedRevision === undefined ? savedDraft?.revision : savedRevision;
+      if (revision) {
+        try { await discardStoredDraft({ packId: activeId, expectedDraftRevision: revision }); if (scopeRef.current === requestScope) setSavedRevision(null); }
+        catch { if (scopeRef.current === requestScope) toast.info("Published successfully. A newer saved draft was retained."); }
+      }
+    } catch (error) { if (scopeRef.current === requestScope) toast.error(error instanceof Error ? error.message : "Could not publish."); }
+    finally { if (scopeRef.current === requestScope) setSaving(false); }
+  };
+  const reviewPromotion = async () => {
+    if (!server || !live || !control || dirty || conflict) return;
+    setSaving(true); const requestScope = scope;
+    try {
+      const review = await prepareTemplatePromotion(server, live, control);
+      if (scopeRef.current !== requestScope) { review.dispose(); return; }
+      setPromotion(review); setConfirmPromotion(false);
+    } catch (error) { if (scopeRef.current === requestScope) toast.error(error instanceof Error ? error.message : "Could not prepare promotion."); }
+    finally { if (scopeRef.current === requestScope) setSaving(false); }
+  };
+  const promote = async () => {
+    if (!promotion || !confirmPromotion) return;
+    setSaving(true); const requestScope = scope;
+    try { await promotion.publish(); if (scopeRef.current === requestScope) toast.success("Staging template settings promoted to live."); }
+    catch (error) { if (scopeRef.current === requestScope) toast.error(error instanceof Error ? error.message : "Promotion failed. Prepare a fresh live review before retrying."); }
+    finally { promotion.dispose(); if (scopeRef.current === requestScope) { setPromotion(null); setSaving(false); } }
+  };
 
   if (!stored) {
     return (
@@ -183,16 +198,41 @@ function CustomizePage() {
           dirty ? "Unpublished changes" : "Everything published",
         ]}
         actions={
-          <Button onClick={() => void publish()} disabled={saving || !dirty}>
-            {saving ? <Loader2 data-icon="inline-start" className="animate-spin" /> : <Save data-icon="inline-start" />}
-            Publish
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" aria-label="Undo draft change" disabled={!history.past.length || saving} onClick={() => { setHistory(undoDraft); setReviewing(false); }}><Undo2 className="size-4" /></Button>
+            <Button variant="outline" aria-label="Redo draft change" disabled={!history.future.length || saving} onClick={() => { setHistory(redoDraft); setReviewing(false); }}><Redo2 className="size-4" /></Button>
+            <Button variant="outline" onClick={() => change(resetDraftBrand(history.present, modules))} disabled={saving}>Use brand values</Button>
+            <Button variant="outline" onClick={() => void saveDraft()} disabled={saving || !dirty}>Save draft</Button>
+            {server?.identity?.environmentKind === "staging" && live && control && <Button variant="outline" onClick={() => void reviewPromotion()} disabled={saving || dirty || conflict}>Promote to live</Button>}
+            <Button onClick={() => { setReviewing(true); setConfirmLive(false); }} disabled={saving || !dirty || conflict}>
+              {saving ? <Loader2 data-icon="inline-start" className="animate-spin" /> : <Save data-icon="inline-start" />} Review changes
+            </Button>
+          </div>
         }
       />
+
+      {conflict && <div role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">Published settings changed while this draft was open. Your edits are preserved. <Button variant="outline" size="sm" disabled={saving} onClick={() => server && seed(server)}>Reload published version</Button></div>}
+      {savedDraft && savedRevision !== null && <div className="flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm">A saved draft is available for this template.
+        <Button variant="outline" size="sm" disabled={saving} onClick={() => { if (!base) return; setHistory(createDraftHistory({ values: savedDraft.values, variants: savedDraft.variants })); setBase({ ...base, revision: savedDraft.sourceRevision }); setSavedRevision(savedDraft.revision); }}>Load saved draft</Button>
+      </div>}
+      {reviewing && <section className="space-y-3 rounded-lg border p-4" aria-label="Review template changes">
+        <p className="text-sm font-medium">{changes.length} changed settings · {isLive ? "Live site" : server?.identity?.environmentKind}</p>
+        <ul className="list-inside list-disc text-sm text-muted-foreground">{changes.map((field) => <li key={field}>{field}</li>)}</ul>
+        {isLive && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={confirmLive} onChange={(event) => setConfirmLive(event.target.checked)} /> Publish these changes to the live site.</label>}
+        <Button onClick={() => void publish()} disabled={saving || conflict || (isLive && !confirmLive)}>Publish settings</Button>
+      </section>}
+      {promotion && <section className="space-y-3 rounded-lg border p-4" aria-label="Review staging promotion">
+        <p className="font-medium">Promote to {promotion.targetLabel}</p>
+        <p className="text-sm">Replace the live template “{promotion.target.values.active}” settings with the reviewed staging template “{promotion.source.values.active}” settings.</p>
+        <details className="text-sm"><summary>Review settings to copy</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(promotion.source.values, null, 2)}</pre></details>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={confirmPromotion} onChange={(event) => setConfirmPromotion(event.target.checked)} /> Apply this staging snapshot to the live environment.</label>
+        <div className="flex gap-2"><Button onClick={() => void promote()} disabled={!confirmPromotion || saving}>Promote settings</Button><Button variant="outline" onClick={() => setPromotion(null)} disabled={saving}>Cancel</Button></div>
+      </section>}
 
       <div className="grid gap-[18px] xl:grid-cols-[360px_minmax(0,1fr)]">
         {/* Groups */}
         <aside className="space-y-2 self-start rounded-xl border border-border bg-card p-2" aria-label="Template settings">
+          <fieldset disabled={saving} className="space-y-2">
           {modules.length === 0 && (
             <p className="p-3 text-[12.5px] text-muted-foreground">This template exposes no settings.</p>
           )}
@@ -216,13 +256,9 @@ function CustomizePage() {
                 </button>
                 {open && (
                   <div className="grid gap-3 border-t border-border px-3 py-3">
-                    {module.fields.map((field) => (
-                      <FieldControl
-                        key={field.id}
-                        field={field}
-                        value={values[module.id]?.[field.id]}
-                        onChange={(value) => setField(module.id, field.id, value)}
-                      />
+                    {module.presets?.length ? <div className="flex flex-wrap gap-2">{module.presets.map((preset) => <Button key={preset.id} size="sm" variant="outline" onClick={() => change(applyColorPreset(history.present, preset.colors))}>{preset.name}</Button>)}</div> : null}
+                    {module.id === "header" ? <HeaderSettingsEditor value={values.header ?? {}} onChange={(next) => setModule("header", next)} /> : module.id === "footer" ? <><FooterSettingsEditor value={values.footer ?? {}} onChange={(next) => setModule("footer", next)} /><FooterRowsBuilder value={values.footer ?? {}} onChange={(next) => setModule("footer", next)} /></> : module.fields.map((field) => (
+                      <FieldControl key={field.id} field={field} value={readDraftField(values[module.id], field.id)} onChange={(value) => setField(module.id, field.id, value)} />
                     ))}
                     {touched && (
                       <button type="button" onClick={() => resetModule(module.id)} className="inline-flex items-center gap-1 self-start text-[12px] font-medium text-primary hover:underline">
@@ -235,8 +271,9 @@ function CustomizePage() {
             );
           })}
           <p className="px-3 pb-1 pt-2 text-[11.5px] text-muted-foreground">
-            Header and footer builders live under Appearance › Header and Footer. Site title, logo and menus are global and apply to every template.
+            Header and footer changes are saved with this template. Site title, logo and menu content remain shared across templates.
           </p>
+          </fieldset>
         </aside>
 
         {/* Preview */}

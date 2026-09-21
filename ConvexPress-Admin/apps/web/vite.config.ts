@@ -64,7 +64,11 @@ export default defineConfig({
     }),
   ],
   resolve: {
+    // Shared block contracts live above this package. Resolve their peers from
+    // the Admin installation for both development and production bundles.
+    dedupe: ["react", "react-dom", "zod"],
     alias: {
+      zod: path.resolve(__dirname, "node_modules/zod"),
       "@": path.resolve(__dirname, "./src"),
       "@backend": path.resolve(__dirname, "../../packages/backend"),
       "@convexpress/backend": path.resolve(__dirname, "../../packages/backend"),

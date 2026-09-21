@@ -1,0 +1,25 @@
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+const { mock } = createRequire(import.meta.url)("bun:test") as { mock: { module(path: string, factory: () => unknown): void } };
+import { anyApi, getFunctionName } from "convex/server";
+import { renderToStaticMarkup } from "react-dom/server";
+import type { ReactNode } from "react";
+mock.module("@backend/convex/_generated/api", () => ({ api: anyApi }));
+const post = { _id: "post-one", title: "Current title", content: "ZZZZ", contentMode: "blocks", blocks: [], pagePrompt: "YYYY", updatedAt: 2 };
+let revisions = [{ snapshotVersion: 2, _id: "revision-one", revisionNumber: 1, authorName: "Editor", createdAt: 1, type: "manual", title: "Original title", content: "AAAA", details: '{"pagePrompt":"BBBB"}' }];
+mock.module("convex-helpers/react/cache", () => ({ useQuery: (fn: unknown, args: unknown) => args === "skip" ? undefined : getFunctionName(fn as never) === "posts/queries:get" ? post : { revisions } }));
+mock.module("@tanstack/react-router", () => ({ Link: ({ children }: { children: ReactNode }) => <span>{children}</span> }));
+mock.module("./restore-dialog", () => ({ RestoreDialog: () => null }));
+mock.module("./revision-slider", () => ({ RevisionSlider: () => <div>Revision selector</div> }));
+const { RevisionComparison } = await import("./revision-comparison");
+function render(canRestore: boolean) { return renderToStaticMarkup(<RevisionComparison contentType="post" contentId="post-one" canRestore={canRestore} />); }
+const html = render(true);
+assert.match(html, /Restore This Revision/);
+assert.match(html.replace(/<[^>]+>/g, ""), /ZZZZ/);
+assert.match(html.replace(/<[^>]+>/g, ""), /AAAA/);
+assert.match(html.replace(/<[^>]+>/g, ""), /YYYY/);
+assert.doesNotMatch(render(false), /Restore This Revision/);
+revisions = [];
+assert.match(render(true), /No revisions yet/);
+assert.doesNotMatch(render(true), /Restore This Revision/);
+console.log("revision comparison acceptance passed");

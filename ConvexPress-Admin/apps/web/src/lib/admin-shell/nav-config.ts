@@ -61,6 +61,13 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
     capability: "manage_options",
   },
   {
+    id: "synced-content",
+    label: "Synced content",
+    to: "/synced-content",
+    icon: Repeat,
+    capability: "post.read",
+  },
+  {
     id: "posts",
     label: "Posts",
     to: "/posts",
@@ -137,6 +144,7 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
         to: "/pages/new",
         isAddNew: true,
       },
+      { id: "pages-custom-blocks", label: "Custom Blocks", to: "/pages/custom-blocks", capability: "blocks.compose" },
       {
         id: "pages-blocks",
         label: "Blocks",
@@ -184,6 +192,7 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
       { id: "products-all", label: "All Products", to: "/commerce/products", exact: true },
       { id: "products-new", label: "Add New", to: "/commerce/products/new", isAddNew: true },
       { id: "products-categories", label: "Categories", to: "/commerce/categories" },
+      { id: "products-brands", label: "Brands", to: "/commerce/brands" },
       { id: "products-attributes", label: "Attributes", to: "/commerce/attributes" },
       { id: "products-reviews", label: "Reviews", to: "/commerce/reviews", pluginId: "commerceReviews" },
       { id: "products-bundles", label: "Bundles", to: "/commerce/bundles", pluginId: "commerceBundles" },
@@ -390,19 +399,12 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
       // from the live values. NOT a preset picker — full per-section control.
       { id: "appearance-templates", label: "Templates", to: "/appearance/templates" },
       { id: "appearance-customize", label: "Customize", to: "/appearance/customize" },
-      { id: "appearance-header", label: "Header", to: "/appearance/header" },
-      { id: "appearance-footer", label: "Footer", to: "/appearance/footer" },
-      { id: "appearance-colors", label: "Colors", to: "/appearance/colors" },
 
       // ── Menus ─────────────────────────────────────────────────────────────
       { id: "appearance-menus", label: "Menus", to: "/menus", exact: true },
       { id: "appearance-menu-locations", label: "Menu Locations", to: "/menus/locations" },
 
-      // ── Hidden — preset theme picker (intentionally not in nav) ───────────
-      // /appearance/themes is a pre-built preset picker that's too restrictive
-      // for our one-admin-many-sites model. The route file still exists for
-      // historical reasons but is not surfaced. Header/Footer/Colors above
-      // give per-section control without locking sites into a preset.
+
     ],
   },
   {
@@ -452,13 +454,6 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
         label: "Reading",
         to: "/settings/reading",
         capability: "settings.update_reading",
-      },
-      {
-        id: "settings-shop-layout",
-        label: "Shop layouts",
-        to: "/settings/shop-layout",
-        capability: "manage_options",
-        pluginId: "commerce",
       },
       {
         id: "settings-shop-assistant",
@@ -540,6 +535,12 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
         capability: "manage_options",
       },
       {
+        id: "settings-social-feeds",
+        label: "Social feeds",
+        to: "/settings/integrations/social",
+        capability: "manage_options",
+      },
+      {
         id: "settings-tools",
         label: "Import / Export",
         to: "/settings/tools",
@@ -580,6 +581,7 @@ const PLATFORM_NAV_SECTIONS: AdminNavSection[] = [
       },
       { id: "tools-events", label: "Events", to: "/tools/events" },
       { id: "tools-routes", label: "Routes", to: "/tools/routes" },
+      { id: "tools-mailing-lists", label: "Mailing lists", to: "/tools/mailing-lists", capability: "manage_options" },
       {
         id: "tools-email",
         label: "Email Notifications",

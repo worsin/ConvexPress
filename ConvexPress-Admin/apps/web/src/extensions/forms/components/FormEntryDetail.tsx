@@ -128,6 +128,7 @@ export function FormEntryDetail({
   const [note, setNote] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editingDefinition, setEditingDefinition] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -137,6 +138,22 @@ export function FormEntryDetail({
   const detail = useQuery(api.extensions.forms.queries.getSubmission, {
     id: entryId,
   }) as SubmissionDetail | null | undefined;
+  const editingFields = useQuery(api.extensions.forms.queries.getSubmissionEditing,
+    canView && canEdit && detail?.submission.formId === formId ? { id: entryId } : "skip");
+  const editingFieldsByKey = useMemo(() => new Map(
+    (editingFields ?? []).map(field => [field.fieldKey, field]),
+  ), [editingFields]);
+  const activeDefinition = editingKey ? editingFieldsByKey.get(editingKey) : undefined;
+  const editStillAllowed = canView && canEdit && activeDefinition?.editable === true &&
+    editingDefinition === JSON.stringify([entryId, formId, activeDefinition]);
+
+  useEffect(() => {
+    if (editingKey && !editStillAllowed) {
+      setEditingKey(null);
+      setEditingDefinition(null);
+      setEditValue("");
+    }
+  }, [editingKey, editStillAllowed]);
 
   const updateEntry = useMutation(api.extensions.forms.mutations.updateEntry);
   const deleteEntry = useMutation(api.extensions.forms.mutations.deleteEntry);
@@ -213,12 +230,15 @@ export function FormEntryDetail({
   };
 
   const startValueEdit = (value: FieldValueRow) => {
+    const field = editingFieldsByKey.get(value.fieldKey);
+    if (!canView || !canEdit || !field?.editable) return;
     setEditingKey(value.fieldKey);
+    setEditingDefinition(JSON.stringify([entryId, formId, field]));
     setEditValue(value.value);
   };
 
   const handleSaveValue = async (fieldKey: string) => {
-    if (!submission) return;
+    if (!submission || editingKey !== fieldKey || !editStillAllowed) return;
     setSavingKey(fieldKey);
     try {
       await updateEntry({
@@ -379,11 +399,8 @@ export function FormEntryDetail({
                       <span className="block truncate">
                         {value.fieldLabel ?? value.fieldName ?? value.fieldKey}
                       </span>
-                      <span className="mt-1 block normal-case text-muted-foreground/80">
-                        {value.fieldKey}
-                      </span>
                     </dt>
-                    {canEdit && value.fieldType !== "calculation" ? (
+                    {canEdit && editingFieldsByKey.get(value.fieldKey)?.editable ? (
                       editingKey === value.fieldKey ? (
                         <div className="flex shrink-0 gap-1">
                           <Button
@@ -424,18 +441,36 @@ export function FormEntryDetail({
                       )
                     ) : null}
                   </div>
-                  {editingKey === value.fieldKey ? (
+                  {editingKey === value.fieldKey && editStillAllowed ? (
+                    <>
+                    <p className="text-sm text-muted-foreground">
+                      Correcting the current field: {activeDefinition?.label} ({activeDefinition?.type}
+                      {activeDefinition?.required ? ", required" : ", optional"}). Current form validation applies;
+                      the original question above stays unchanged.
+                    </p>
                     <Textarea
+                      aria-label={`Correct answer for ${activeDefinition?.label}`}
                       value={editValue}
                       onChange={(event) => setEditValue(event.target.value)}
                       rows={5}
                       className="font-mono text-sm"
                     />
+                    </>
                   ) : (
                     <dd className="whitespace-pre-wrap break-words text-sm text-foreground">
                       {displayValue(value.value)}
                     </dd>
                   )}
+                  {canEdit && editingFields !== undefined && editingFields !== null &&
+                    !editingFieldsByKey.get(value.fieldKey)?.editable && (
+                      <p className="text-xs text-muted-foreground">
+                        {!editingFieldsByKey.has(value.fieldKey)
+                          ? "Historical answer · field no longer in this form"
+                          : editingFieldsByKey.get(value.fieldKey)?.type === "calculation"
+                            ? "Calculated by the current form · read only"
+                            : "Current field does not accept answers · read only"}
+                      </p>
+                    )}
                 </div>
               ))
             )}

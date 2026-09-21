@@ -1,8 +1,9 @@
+import {useWindowScopeSelection} from "./useWindowScopeSelection";
 import { api as controlApi } from "@control/convex/_generated/api";
 import type { Id } from "@control/convex/_generated/dataModel";
 import type { AnyRouter } from "@tanstack/react-router";
 import { RouterProvider } from "@tanstack/react-router";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useConvex, useMutation, useQuery } from "convex/react";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 
@@ -15,7 +16,7 @@ import {
   type ControlShellValue,
 } from "./ControlShellContext";
 import { OperatorLogin } from "./OperatorLogin";
-import { SiteRuntimeProvider } from "./SiteRuntimeProvider";
+import { SiteRuntimeProvider, type SelectedSiteTarget } from "./SiteRuntimeProvider";
 import { HandoffPanel } from "./components/HandoffPanel";
 import { LifecyclePanel } from "./components/LifecyclePanel";
 import type { ScopeSelection } from "./components/ScopeSwitcher";
@@ -24,6 +25,7 @@ import { SitesWorkspace } from "./sites/SitesWorkspace";
 import type { SitesNode } from "./sites/sites-model";
 import { controlSurfaceVisibility } from "./components/site-manager-view";
 import { siteSessionRole } from "./site-session-role";
+import { prepareSiteScopeNavigation } from "./siteScopeNavigation";
 
 export function StandaloneApp({
   authClient,
@@ -35,7 +37,7 @@ export function StandaloneApp({
   const { data: session, isPending } = authClient.useSession();
   if (isPending) return <StartupState label="Restoring protected operator session" />;
   if (!session) return <OperatorLogin authClient={authClient} />;
-  return <ControlPlaneShell authClient={authClient} router={router} />;
+  return <ControlPlaneShell key={session.user.id} authClient={authClient} router={router} />;
 }
 
 function ControlPlaneShell({
@@ -45,8 +47,10 @@ function ControlPlaneShell({
   authClient: ControlAuthClient;
   router: AnyRouter;
 }) {
+  const controlClient=useConvex();
   const context = useQuery(controlApi.context.get, {});
-  const operator = useQuery(controlApi.operators.current, {});
+  // Context already authenticates this operator; a second query duplicated nested auth reads.
+  const operator = context?.operator;
   const setActive = useMutation(controlApi.context.setActive);
   const exchange = useAction(controlApi.siteBroker.session.exchange);
   const [pendingSelection, setPendingSelection] = useState<ScopeSelection | null>(null);
@@ -57,13 +61,8 @@ function ControlPlaneShell({
   const switchGeneration = useRef(0);
   const managerOpen = openPanel === "sites";
 
-  const serverSelection: ScopeSelection = context?.active ?? {
-    organizationId: null,
-    businessId: null,
-    websiteId: null,
-    instanceId: null,
-  };
-  const selection = pendingSelection ?? serverSelection;
+  const [committedSelection,commitSelection]=useWindowScopeSelection(context?.active,operator?`convexpress.window-scope:${controlClient.url}:${operator.userId}`:null);
+  const selection = pendingSelection ?? committedSelection;
   const selectedEnvironment =
     context?.environments.find(
       (entry) => String(entry.instanceId) === selection.instanceId,
@@ -90,9 +89,12 @@ function ControlPlaneShell({
         (entry) => String(entry.organizationId) === selection.organizationId,
       ) ?? null
     : null;
+  // Sites covers the current editor; it does not end its environment session.
+  // Keep connection and authorization subscriptions live so opening the panel
+  // neither destroys unsaved state nor caches authority through revocation.
   const connections = useQuery(
     controlApi.connections.queries.listForInstance,
-    !managerOpen && selectedEnvironment
+    selectedEnvironment
       ? { instanceId: selectedEnvironment.instanceId }
       : "skip",
   );
@@ -109,7 +111,7 @@ function ControlPlaneShell({
   // backends cap concurrent query executions and a burst of tiny checks on
   // reconnect keeps the socket cycling.
   const shellChecks = useMemo(() => {
-    if (managerOpen || !selectedBusiness) return [];
+    if (!selectedBusiness) return [];
     const business = {
       organizationId: String(selectedBusiness.organizationId),
       businessId: String(selectedBusiness.businessId),
@@ -144,10 +146,10 @@ function ControlPlaneShell({
       });
     }
     return checks;
-  }, [managerOpen, selectedBusiness, selectedEnvironment, selectedWebsite, liveEnvironment]);
+  }, [selectedBusiness, selectedEnvironment, selectedWebsite, liveEnvironment]);
   const shellDecisions = useQuery(
     controlApi.rbac.queries.checkManyAccess,
-    shellChecks.length > 0
+    shellChecks.length > 0 && (!selectedEnvironment || connections !== undefined)
       ? { checks: shellChecks.map(({ key: _key, ...check }) => check) }
       : "skip",
   );
@@ -174,7 +176,7 @@ function ControlPlaneShell({
     environmentKind: selectedEnvironment?.kind,
     liveOperateAllowed: liveOperateAccess?.allowed,
   });
-  const target = useMemo(() => {
+  const target = useMemo<SelectedSiteTarget | null>(() => {
     if (
       !selectedEnvironment ||
       !activeConnection ||
@@ -188,8 +190,10 @@ function ControlPlaneShell({
       instanceKey: selectedEnvironment.instanceKey,
       deploymentOrigin: selectedEnvironment.deploymentOrigin,
       siteOrigin: selectedEnvironment.siteOrigin,
+      websiteKey: selectedWebsite?.websiteKey,
+      sessionRoleKey: siteRole,
     };
-  }, [activeConnection, selectedEnvironment, siteRole]);
+  }, [activeConnection, selectedEnvironment, selectedWebsite?.websiteKey, siteRole]);
 
   const exchangeSession = useCallback(
     async (requestedTarget: NonNullable<typeof target>) => {
@@ -211,13 +215,21 @@ function ControlPlaneShell({
     (next: ScopeSelection) => {
       const generation = ++switchGeneration.current;
       setScopeError(null);
-      setPendingSelection(next);
-      void setActive({
+      void (async () => {
+        const ready = await prepareSiteScopeNavigation(selection, next,
+          () => router.navigate({to:'/dashboard',replace:true}),
+          () => router.state.location.pathname,
+          () => switchGeneration.current === generation);
+        if (!ready) return;
+        setPendingSelection(next);
+        await setActive({
         organizationId: next.organizationId as Id<"overseer_organizations"> | null,
         businessId: next.businessId as Id<"overseer_businesses"> | null,
         websiteId: next.websiteId as Id<"overseer_websites"> | null,
         instanceId: next.instanceId as Id<"overseer_websiteInstances"> | null,
-      })
+        });
+        if(switchGeneration.current===generation)commitSelection(next);
+      })()
         .then(() => {
           if (switchGeneration.current === generation) setPendingSelection(null);
         })
@@ -227,7 +239,7 @@ function ControlPlaneShell({
           setScopeError("The selected scope is no longer available to this operator.");
         });
     },
-    [setActive],
+    [setActive, router, selection.websiteId, selection.instanceId, commitSelection],
   );
 
   const selectWebsite = useCallback(
@@ -347,6 +359,7 @@ function ControlPlaneShell({
           onDismissScopeError={() => setScopeError(null)}
         />
         <div className="relative min-h-0 flex-1 overflow-hidden">
+          <div className="h-full" inert={managerOpen} aria-hidden={managerOpen || undefined} data-site-runtime-surface>
           <SiteRuntimeProvider
             target={target}
             resolving={Boolean(
@@ -363,6 +376,7 @@ function ControlPlaneShell({
           >
             <RouterProvider router={router} />
           </SiteRuntimeProvider>
+          </div>
           <LifecyclePanel
             open={openPanel === "operations"}
             environments={websiteEnvironments.map((environment) => ({

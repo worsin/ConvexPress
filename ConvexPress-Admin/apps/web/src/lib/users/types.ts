@@ -82,6 +82,7 @@ export interface User {
 
   // Denormalized counts
   postCount?: number;
+  postCountReady?: boolean;
   commentCount?: number;
 
   // Metadata
@@ -119,7 +120,6 @@ export interface UserPublic {
   avatarUrl: string | null;
   url?: string;
   socialLinks?: SocialLinks;
-  postCount: number;
   status: UserStatus;
 }
 

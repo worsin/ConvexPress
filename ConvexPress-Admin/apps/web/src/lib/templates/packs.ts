@@ -18,6 +18,9 @@ export interface TemplatePackSummary {
   surfaces: string[];
   variants?: Record<string, string[]>;
   modules?: string[];
+  defaults?: Record<string, Record<string, unknown>>;
+  menuLocations?: Record<string, string>;
+  presets?: Record<string, Array<{ id: string; name: string; colors: Record<string, string> }>>;
 }
 
 export const TEMPLATE_PACKS: TemplatePackSummary[] = [
@@ -29,6 +32,132 @@ export const TEMPLATE_PACKS: TemplatePackSummary[] = [
     description: "The storefront as shipped: centred content, configurable header and footer, the boutique and marketplace shop layouts, five product page layouts. Every surface is implemented, so it is the fallback for any surface another template leaves out.",
     author: "ConvexPress",
     bestFor: ["Any site as the safe default","Sites that customise through the header, footer and colour settings"],
+    surfaces: [
+      "chrome.header",
+      "chrome.mobileNav",
+      "chrome.footer",
+      "chrome.searchOverlay",
+      "chrome.cartDrawer",
+      "system.notFound",
+      "system.error",
+      "system.restricted",
+      "system.passwordGate",
+      "home",
+      "page",
+      "blog.index",
+      "blog.post",
+      "blog.archive",
+      "blog.author",
+      "blog.category",
+      "blog.tag",
+      "search",
+      "shop.catalog",
+      "shop.product",
+      "shop.brand",
+      "shop.categories",
+      "shop.category",
+      "cart",
+      "cart.shared",
+      "checkout.details",
+      "checkout.shipping",
+      "checkout.payment",
+      "checkout.review",
+      "checkout.confirmation",
+      "order.track",
+      "bundles.index",
+      "bundles.detail",
+      "wishlist.shared",
+      "pricing",
+      "signup.offer",
+      "courses.index",
+      "courses.detail",
+      "courses.lessonPreview",
+      "certificates.verify",
+      "certificates.view",
+      "help.home",
+      "help.search",
+      "help.category",
+      "help.article",
+      "help.collection",
+      "support.home",
+      "support.new",
+      "support.tickets",
+      "support.ticket",
+      "gallery.index",
+      "gallery.album",
+      "gallery.category",
+      "recipes.index",
+      "recipes.detail",
+      "recipes.category",
+      "forms.form",
+      "forms.resume",
+      "dashboard.shell",
+      "dashboard.home",
+      "dashboard.profile",
+      "dashboard.settings",
+      "dashboard.security",
+      "dashboard.notifications",
+      "dashboard.comments",
+      "dashboard.posts",
+      "dashboard.courses",
+      "dashboard.lesson",
+      "dashboard.orders",
+      "dashboard.order",
+      "dashboard.orderReturn",
+      "dashboard.returns",
+      "dashboard.return",
+      "dashboard.subscriptions",
+      "dashboard.subscription",
+      "dashboard.downloads",
+      "dashboard.reviews",
+      "dashboard.wishlist",
+      "dashboard.addresses",
+      "dashboard.membership",
+      "events.index",
+      "events.detail",
+      "dashboard.events",
+      "auth.shell",
+      "auth.login",
+      "auth.register",
+      "auth.logout",
+      "auth.forgot",
+      "auth.reset",
+      "auth.verify",
+    ],
+    variants: {
+      "shop.catalog": [
+            "boutique",
+            "marketplace"
+      ],
+      "shop.product": [
+            "classic",
+            "marketplace",
+            "split",
+            "showcase",
+            "minimal"
+      ],
+      "page": [
+            "default",
+            "sidebar-left",
+            "full-width",
+            "no-sidebar",
+            "landing",
+            "blank"
+      ]
+    },
+    modules: ["colors","typography","layout","header","footer","menuLayout","shop","pageTemplates"],
+    defaults: {"layout":{"sectionSpacing":"comfortable","elementSpacing":"comfortable","blockGap":"none"}},
+    menuLocations: {"primary":"header","secondary":"secondary","footer-1":"footer-1","footer-2":"footer-2","footer-3":"footer-3"},
+    presets: {"colors":[{"id":"clear","name":"Clear","colors":{"background":"#ffffff","foreground":"#182230","card":"#ffffff","card-foreground":"#182230","primary":"#205ea6","primary-foreground":"#ffffff","secondary":"#f1f5f9","secondary-foreground":"#182230","muted":"#f1f5f9","muted-foreground":"#182230","accent":"#f1f5f9","accent-foreground":"#182230","border":"#cbd5e1","input":"#cbd5e1","ring":"#205ea6","destructive":"#b42318"}},{"id":"midnight","name":"Midnight","colors":{"background":"#101828","foreground":"#f1f5f9","card":"#101828","card-foreground":"#f1f5f9","primary":"#93c5fd","primary-foreground":"#101828","secondary":"#1e293b","secondary-foreground":"#f1f5f9","muted":"#1e293b","muted-foreground":"#f1f5f9","accent":"#1e293b","accent-foreground":"#f1f5f9","border":"#475569","input":"#475569","ring":"#93c5fd","destructive":"#b42318"}}]},
+  },
+  {
+    id: "aster-house",
+    name: "Aster House",
+    version: "1.0.0",
+    tagline: "A field journal for places worth finding",
+    description: "An image-led editorial template for retreats, outdoor experiences and thoughtfully made objects. Monumental serif headlines, a limestone canvas, forest ink and precise vermillion accents.",
+    author: "ConvexPress",
+    bestFor: ["Retreats and hospitality","Outdoor experiences","Design-led shops","Member communities"],
     surfaces: [
       "chrome.header",
       "chrome.mobileNav",
@@ -109,6 +238,9 @@ export const TEMPLATE_PACKS: TemplatePackSummary[] = [
       "dashboard.wishlist",
       "dashboard.addresses",
       "dashboard.membership",
+      "events.index",
+      "events.detail",
+      "dashboard.events",
       "auth.shell",
       "auth.login",
       "auth.register",
@@ -118,17 +250,6 @@ export const TEMPLATE_PACKS: TemplatePackSummary[] = [
       "auth.verify",
     ],
     variants: {
-      "shop.catalog": [
-            "boutique",
-            "marketplace"
-      ],
-      "shop.product": [
-            "classic",
-            "marketplace",
-            "split",
-            "showcase",
-            "minimal"
-      ],
       "page": [
             "default",
             "sidebar-left",
@@ -136,9 +257,20 @@ export const TEMPLATE_PACKS: TemplatePackSummary[] = [
             "no-sidebar",
             "landing",
             "blank"
+      ],
+      "shop.catalog": [
+            "boutique"
+      ],
+      "shop.product": [
+            "split",
+            "classic",
+            "minimal"
       ]
     },
-    modules: ["colors","typography","layout","header","footer","menuLayout","shop","pageTemplates"],
+    modules: ["colors","typography","layout","header","footer","shop","pageTemplates","menuLayout"],
+    defaults: {"colors":{"background":"#eee9dc","foreground":"#21392e","card":"#f8f4e9","card-foreground":"#21392e","muted":"#e1dccd","muted-foreground":"#637164","primary":"#ae412a","primary-foreground":"#fff9ec","secondary":"#294535","secondary-foreground":"#f8f4e9","accent":"#d2c7a9","accent-foreground":"#21392e","border":"#c7cbb9","input":"#bcc3b3","ring":"#ae412a","destructive":"#b43e2c","dark-background":"#172a22","dark-foreground":"#eee9dc","dark-card":"#21392e","dark-card-foreground":"#eee9dc","dark-muted":"#2e4337","dark-muted-foreground":"#b1bdad","dark-primary":"#ed9472","dark-primary-foreground":"#172a22","dark-secondary":"#d2c7a9","dark-secondary-foreground":"#172a22","dark-border":"#48614f","dark-input":"#48614f","dark-ring":"#ed9472"},"typography":{"display":"Cormorant Garamond","body":"DM Sans","scale":"spacious"},"layout":{"radius":"sharp","contentWidth":"full","sectionSpacing":"comfortable","elementSpacing":"comfortable","blockGap":"none"},"shop":{"catalogVariant":"boutique","productVariant":"split","gridDensity":"comfortable","cartPanel":"drawer"},"header":{"layout":{"height":"tall","background":"solid"},"navigation":{"style":"underline"}},"footer":{"layout":{"padding":"spacious"}}},
+    menuLocations: {"primary":"header","footer-1":"footer-1","footer-2":"footer-2","footer-3":"footer-3"},
+    presets: {"colors":[{"id":"limestone","name":"Limestone & forest","colors":{"background":"#eee9dc","foreground":"#21392e","card":"#f8f4e9","card-foreground":"#21392e","muted":"#e1dccd","muted-foreground":"#637164","primary":"#ae412a","primary-foreground":"#fff9ec","secondary":"#294535","secondary-foreground":"#f8f4e9","accent":"#d2c7a9","accent-foreground":"#21392e","border":"#c7cbb9","input":"#bcc3b3","ring":"#ae412a","destructive":"#b43e2c","dark-background":"#172a22","dark-foreground":"#eee9dc","dark-card":"#21392e","dark-card-foreground":"#eee9dc","dark-muted":"#2e4337","dark-muted-foreground":"#b1bdad","dark-primary":"#ed9472","dark-primary-foreground":"#172a22","dark-secondary":"#d2c7a9","dark-secondary-foreground":"#172a22","dark-border":"#48614f","dark-input":"#48614f","dark-ring":"#ed9472"}},{"id":"dusk","name":"Dusk & ember","colors":{"background":"#172a22","foreground":"#eee9dc","card":"#21392e","card-foreground":"#eee9dc","muted":"#2e4337","muted-foreground":"#b1bdad","primary":"#ed9472","primary-foreground":"#172a22","secondary":"#294535","secondary-foreground":"#f8f4e9","accent":"#d2c7a9","accent-foreground":"#21392e","border":"#48614f","input":"#48614f","ring":"#ae412a","destructive":"#b43e2c","dark-background":"#172a22","dark-foreground":"#eee9dc","dark-card":"#21392e","dark-card-foreground":"#eee9dc","dark-muted":"#2e4337","dark-muted-foreground":"#b1bdad","dark-primary":"#ed9472","dark-primary-foreground":"#172a22","dark-secondary":"#d2c7a9","dark-secondary-foreground":"#172a22","dark-border":"#48614f","dark-input":"#48614f","dark-ring":"#ed9472"}}]},
   },
   {
     id: "depot",
@@ -255,6 +387,9 @@ export const TEMPLATE_PACKS: TemplatePackSummary[] = [
       ]
     },
     modules: ["colors","typography","layout","header","footer","menuLayout","shop","pageTemplates"],
+    defaults: {"layout":{"contentWidth":"full","sectionSpacing":"compact","elementSpacing":"compact","blockGap":"none"}},
+    menuLocations: {"primary":"header","secondary":"secondary","footer-1":"footer-1","footer-2":"footer-2","footer-3":"footer-3"},
+    presets: {"colors":[{"id":"workshop","name":"Workshop","colors":{"background":"#f7f8f9","foreground":"#16202b","card":"#f7f8f9","card-foreground":"#16202b","primary":"#235e91","primary-foreground":"#ffffff","secondary":"#e9edf0","secondary-foreground":"#16202b","muted":"#e9edf0","muted-foreground":"#16202b","accent":"#e9edf0","accent-foreground":"#16202b","border":"#c0cbd3","input":"#c0cbd3","ring":"#235e91","destructive":"#b42318"}},{"id":"night-shift","name":"Night shift","colors":{"background":"#111820","foreground":"#edf4f8","card":"#111820","card-foreground":"#edf4f8","primary":"#f5ad42","primary-foreground":"#111820","secondary":"#222e3a","secondary-foreground":"#edf4f8","muted":"#222e3a","muted-foreground":"#edf4f8","accent":"#222e3a","accent-foreground":"#edf4f8","border":"#455567","input":"#455567","ring":"#f5ad42","destructive":"#b42318"}},{"id":"signal","name":"Signal","colors":{"background":"#fbfaf4","foreground":"#25352d","card":"#fbfaf4","card-foreground":"#25352d","primary":"#326d4f","primary-foreground":"#ffffff","secondary":"#e8eee5","secondary-foreground":"#25352d","muted":"#e8eee5","muted-foreground":"#25352d","accent":"#e8eee5","accent-foreground":"#25352d","border":"#b7c9b7","input":"#b7c9b7","ring":"#326d4f","destructive":"#b42318"}}]},
   },
   {
     id: "journal",
@@ -370,7 +505,10 @@ export const TEMPLATE_PACKS: TemplatePackSummary[] = [
             "minimal"
       ]
     },
-    modules: ["colors","typography","layout","header","footer","shop","pageTemplates"],
+    modules: ["colors","typography","layout","header","footer","shop","pageTemplates","menuLayout"],
+    defaults: {"layout":{"contentWidth":"wide","sectionSpacing":"comfortable","elementSpacing":"spacious","blockGap":"none"}},
+    menuLocations: {"primary":"header","footer-1":"footer-1","footer-2":"footer-2","footer-3":"footer-3"},
+    presets: {"colors":[{"id":"parchment","name":"Parchment","colors":{"background":"#faf7f0","foreground":"#29241e","card":"#faf7f0","card-foreground":"#29241e","primary":"#80532a","primary-foreground":"#ffffff","secondary":"#eee7db","secondary-foreground":"#29241e","muted":"#eee7db","muted-foreground":"#29241e","accent":"#eee7db","accent-foreground":"#29241e","border":"#d6ccbc","input":"#d6ccbc","ring":"#80532a","destructive":"#b42318"}},{"id":"ink","name":"Ink","colors":{"background":"#191c20","foreground":"#f3efe7","card":"#191c20","card-foreground":"#f3efe7","primary":"#dec398","primary-foreground":"#191c20","secondary":"#292d33","secondary-foreground":"#f3efe7","muted":"#292d33","muted-foreground":"#f3efe7","accent":"#292d33","accent-foreground":"#f3efe7","border":"#53575f","input":"#53575f","ring":"#dec398","destructive":"#b42318"}},{"id":"rosewood","name":"Rosewood","colors":{"background":"#fff7f3","foreground":"#3c2527","card":"#fff7f3","card-foreground":"#3c2527","primary":"#91444b","primary-foreground":"#ffffff","secondary":"#f4e4df","secondary-foreground":"#3c2527","muted":"#f4e4df","muted-foreground":"#3c2527","accent":"#f4e4df","accent-foreground":"#3c2527","border":"#d9bdb5","input":"#d9bdb5","ring":"#91444b","destructive":"#b42318"}}]},
   },
 ];
 

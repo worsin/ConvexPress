@@ -1,7 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { z } from "zod";
-
-import { OrderListTable } from "@/components/commerce/OrderListTable";
 
 const orderSearchSchema = z.object({
   status: z
@@ -44,9 +42,5 @@ const orderSearchSchema = z.object({
 
 export const Route = createFileRoute("/_authenticated/_admin/commerce/orders")({
   validateSearch: orderSearchSchema,
-  component: CommerceOrdersPage,
+  component: Outlet,
 });
-
-function CommerceOrdersPage() {
-  return <OrderListTable />;
-}

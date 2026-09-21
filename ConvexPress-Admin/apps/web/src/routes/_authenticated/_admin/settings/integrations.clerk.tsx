@@ -217,14 +217,16 @@ function ClerkConnectionPage() {
   const [deployPhase, setDeployPhase] = useState<string | null>(null);
   const [webhookSecretDraft, setWebhookSecretDraft] = useState<string | null>(null);
 
+  const deploymentOrigin = shell?.selectedEnvironment?.deploymentOrigin ?? status?.deployment.origin;
   // Live deploy progress from the desktop app.
   useEffect(() => {
     if (!bridge?.siteDeploy) return;
     return bridge.siteDeploy.onProgress((event) => {
+      if (event.targetOrigin !== deploymentOrigin?.replace(/\/+$/, "")) return;
       setDeployLog((current) => [...current.slice(-80), event]);
       setDeployPhase(event.phase);
     });
-  }, [bridge]);
+  }, [bridge, deploymentOrigin]);
 
   const environment = shell?.selectedEnvironment ?? null;
   const website = shell?.selectedWebsite ?? null;

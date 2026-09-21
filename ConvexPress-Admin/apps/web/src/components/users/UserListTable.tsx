@@ -107,6 +107,9 @@ const userColumns: ColumnDef<UserWithRole>[] = [
     width: "w-[10%]",
     align: "center",
     render: (row) => {
+      if (row.postCountReady === false) {
+        return <span className="text-muted-foreground text-xs" title="Updating post total" aria-label="Updating post total">—</span>;
+      }
       const count = row.postCount ?? 0;
       if (count === 0) {
         return <span className="text-muted-foreground text-xs">0</span>;
@@ -448,6 +451,7 @@ export function UserListTable() {
         open={bulkChangeRoleOpen}
         onClose={() => setBulkChangeRoleOpen(false)}
         userIds={Array.from(table.selection.selectedIds) as Id<"users">[]}
+        assignmentTargets={Array.from(table.selection.selectedIds).map(id => ({ authSource: usersResult?.users.find(user => user._id === id)?.authSource }))}
         onComplete={() => table.clearSelection()}
       />
     </div>

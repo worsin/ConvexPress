@@ -10,6 +10,8 @@ import type { Id } from "../_generated/dataModel";
 import { requireAuth } from "../helpers/auth";
 import { assertStoredAccess } from "../rbac/functions";
 
+import { connectionTargetRevision, healthEvidence, healthReportValidator } from "./healthEvidence";
+
 const envelopeValidator = v.object({
   encrypted: v.string(),
   iv: v.string(),
@@ -24,6 +26,8 @@ const actionTargetResult = v.object({
   connectionId: v.id("overseer_connections"),
   instanceId: v.id("overseer_websiteInstances"),
   controllerSubjectId: v.string(),
+  connectionRevision: v.number(),
+  targetRevision: v.string(),
   websiteKey: v.string(),
   instanceKey: v.string(),
   deploymentOrigin: v.string(),
@@ -143,6 +147,8 @@ export const createPending = internalMutation({
       connectionId,
       instanceId: instance._id,
       controllerSubjectId: String(operator._id),
+      connectionRevision: now,
+      targetRevision: connectionTargetRevision(instance, website.websiteKey),
       websiteKey: website.websiteKey,
       instanceKey: instance.instanceKey,
       deploymentOrigin: instance.deploymentOrigin,
@@ -177,6 +183,8 @@ export const prepare = internalQuery({
       connectionId: connection._id,
       instanceId: instance._id,
       controllerSubjectId: String(operator._id),
+      connectionRevision: connection.updatedAt,
+      targetRevision: connectionTargetRevision(instance, website.websiteKey),
       websiteKey: website.websiteKey,
       instanceKey: instance.instanceKey,
       deploymentOrigin: instance.deploymentOrigin,
@@ -219,7 +227,12 @@ export const saveEnvelope = internalMutation({
     });
     await ctx.db.patch(instance._id, {
       connection_id: connection._id,
-      updatedAt: Date.now(),
+      provisioning: "unprovisioned",
+      provisioningError: undefined,
+      health: "unknown",
+      lastHealthAt: undefined,
+      lastHealthError: undefined,
+      updatedAt: Math.max(Date.now(), instance.updatedAt + 1),
     });
     return null;
   },
@@ -247,36 +260,44 @@ export const markError = internalMutation({
 export const recordHealth = internalMutation({
   args: {
     connectionId: v.id("overseer_connections"),
-    status: v.union(
-      v.literal("healthy"),
-      v.literal("degraded"),
-      v.literal("unreachable"),
-      v.literal("revoked"),
-    ),
+    connectionRevision: v.number(),
+    targetRevision: v.string(),
+    credentialIv: v.string(),
+    report: v.optional(healthReportValidator),
     latencyMs: v.optional(v.number()),
     errorCode: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const connection = await ctx.db.get(args.connectionId);
-    if (!connection) throw new Error("Connection not found");
+    if (!connection?.isActive || !connection.instance_id || !connection.credentials) throw Error("Connection not active");
+    const { instance, website } = await requireConnectionTarget(ctx, connection.instance_id);
+    if (instance.connection_id !== connection._id || connection.website_id !== website._id ||
+        connection.organization_id !== website.organization_id || connection.business_id !== website.business_id ||
+        connection.updatedAt !== args.connectionRevision || connectionTargetRevision(instance, website.websiteKey) !== args.targetRevision ||
+        connection.credentials.iv !== args.credentialIv) throw Error("Connection test target changed");
+    const now = Date.now();
+    const evidence = args.report ? healthEvidence(args.report, { websiteKey: website.websiteKey, instanceKey: instance.instanceKey }, now) : null;
+    const status = evidence ? evidence.health === "ok" ? "healthy" as const : "degraded" as const : "unreachable" as const;
+    const errorCode = evidence?.lastHealthError ?? args.errorCode?.slice(0, 120);
     await ctx.db.insert("overseer_connectionHealthHistory", {
-      connectionId: connection._id,
-      instanceId: connection.instance_id,
-      status: args.status,
-      latencyMs: args.latencyMs,
-      errorCode: args.errorCode?.slice(0, 120),
-      checkedAt: Date.now(),
+      connectionId: connection._id, instanceId: instance._id, status,
+      latencyMs: args.latencyMs, errorCode, checkedAt: now,
     });
     await ctx.db.patch(connection._id, {
-      status:
-        args.status === "healthy"
-          ? "connected"
-          : args.status === "revoked"
-            ? "revoked"
-            : "error",
-      lastError: args.errorCode?.slice(0, 120),
-      updatedAt: Date.now(),
+      status: evidence ? "connected" : "error", lastError: errorCode,
+      updatedAt: Math.max(now, connection.updatedAt + 1),
+    });
+    await ctx.db.patch(instance._id, {
+      ...(evidence ?? { health: "unreachable" as const, lastHealthAt: now, lastHealthError: errorCode }),
+      // The test action supplies a report only after matching site identity and
+      // proving the current controller's signed authority. Attaching credentials
+      // alone cannot establish readiness. Leave active/failed provisioning jobs
+      // to their lifecycle owner; this reconciles newly attached runtimes only.
+      ...(instance.provisioning === "unprovisioned" && evidence?.health === "ok" && evidence.compatibility === "compatible"
+        ? { provisioning: "ready" as const, provisioningError: undefined }
+        : {}),
+      updatedAt: Math.max(now, instance.updatedAt + 1),
     });
     return null;
   },
@@ -298,7 +319,12 @@ export const revoke = internalMutation({
     if (instance.connection_id === connection._id) {
       await ctx.db.patch(instance._id, {
         connection_id: undefined,
-        updatedAt: Date.now(),
+        provisioning: "unprovisioned",
+        provisioningError: undefined,
+        health: "unknown",
+        lastHealthAt: undefined,
+        lastHealthError: undefined,
+        updatedAt: Math.max(Date.now(), instance.updatedAt + 1),
       });
     }
     await ctx.db.insert("overseer_connectionHealthHistory", {

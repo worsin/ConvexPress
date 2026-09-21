@@ -41,7 +41,7 @@ export function usePageMutations() {
     title: string;
     content?: string;
     excerpt?: string;
-    status?: PageStatus;
+    status?: Exclude<PageStatus, "trash">;
     visibility?: PageVisibility;
     password?: string;
     parentId?: Id<"posts">;

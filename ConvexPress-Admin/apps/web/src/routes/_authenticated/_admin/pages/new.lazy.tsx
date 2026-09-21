@@ -1,12 +1,12 @@
 /**
  * Add New Page - Lazy-loaded component
  *
- * Creates an auto-draft page on mount via Convex mutation and
- * initializes the EditorLayout with empty form values.
+ * Creates a draft and opens its stable edit URL in the block workspace.
  */
 
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
-import { EditorLayout } from "@/components/editor/EditorLayout";
+import { NativeCanonicalEditor } from "@/components/blocks/canonical-editor/NativeCanonicalEditor";
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef } from "react";
 import { usePageMutations } from "@/hooks/pages/usePageMutations";
@@ -31,11 +31,12 @@ function AddNewPagePage() {
     async function createAutoDraft() {
       try {
         const newPageId = await createPage({
-          title: "",
-          status: "auto-draft",
+          title: "Untitled page",
+          status: "draft",
         });
         if (newPageId) {
           setPageId(newPageId);
+          await navigate({to:"/pages/$pageId/edit",params:{pageId:newPageId},search:{editor:"blocks"},replace:true});
           setIsCreating(false);
         }
       } catch (err: unknown) {
@@ -46,7 +47,7 @@ function AddNewPagePage() {
     }
 
     createAutoDraft();
-  }, [createPage]);
+  }, [createPage, navigate]);
 
   if (isCreating) {
     return (
@@ -88,11 +89,5 @@ function AddNewPagePage() {
     );
   }
 
-  return (
-    <EditorLayout
-      contentType="page"
-      mode="new"
-      postId={pageId}
-    />
-  );
+  return <NativeCanonicalEditor postId={pageId as Id<"posts">} />;
 }

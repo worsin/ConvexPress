@@ -1,3 +1,4 @@
+import { StorefrontPromisesSettings } from "@/components/commerce/StorefrontPromisesSettings";
 import { useEffect, useState } from "react";
 import {
   Link,
@@ -42,9 +43,7 @@ function CommerceSettingsPage() {
   const [returnWindowDays, setReturnWindowDays] = useState(30);
   const [requireDeliveryBeforeReturn, setRequireDeliveryBeforeReturn] =
     useState(true);
-  const [shippingMethodsText, setShippingMethodsText] = useState(
-    "standard:Standard shipping\nexpress:Express shipping",
-  );
+  const [shippingMethodsText, setShippingMethodsText] = useState("");
   const [paymentMethodsText, setPaymentMethodsText] = useState(
     "card:Credit or debit card:true\nmanual_invoice:Manual invoice:true\ncash_on_delivery:Cash on delivery:false",
   );
@@ -306,9 +305,9 @@ function CommerceSettingsPage() {
         </section>
 
         <section className="rounded-3xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold">Shipping methods</h2>
+          <h2 className="text-lg font-semibold">Free shipping methods</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            One per line in the format `code:Label`.
+            These legacy methods charge no shipping fee. Enter one per line as code:Label. Configure priced flat rates, delivery areas, and carrier rates in Shipping zones.
           </p>
           <textarea
             className="mt-4 min-h-40 w-full rounded-xl border border-input bg-input/30 px-3 py-3 text-sm outline-hidden"
@@ -329,6 +328,8 @@ function CommerceSettingsPage() {
           />
         </section>
       </div>
+
+      <StorefrontPromisesSettings />
 
       <div>
         <Button onClick={() => void handleSave()} disabled={isSaving}>

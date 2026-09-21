@@ -97,8 +97,8 @@ export function AttachEnvironmentDialog({ api, websiteId }: { api: WorkspaceApi;
               Attach an environment to {website.title}
             </DialogTitle>
             <DialogDescription className="text-[13.5px] leading-6">
-              ConvexPress records the addresses of a deployment you already run. It does not create
-              infrastructure. After attaching, connect the controller with the deployment's admin key.
+              Enter an existing deployment here, then connect its controller. To create new production
+              and staging databases with a connected Convex account, use Cloud environments on the website page.
             </DialogDescription>
           </DialogHeader>
           {error && <Notice tone="error">{error}</Notice>}

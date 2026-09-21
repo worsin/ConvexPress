@@ -442,8 +442,8 @@ export function FieldGroupList() {
                   type="checkbox"
                   checked={
                     groups !== undefined &&
-                    groups.length > 0 &&
-                    selectedIds.size === groups.length
+                    (groups?.length ?? 0) > 0 &&
+                    selectedIds.size === groups?.length
                   }
                   onChange={handleToggleAll}
                   className="size-3.5"

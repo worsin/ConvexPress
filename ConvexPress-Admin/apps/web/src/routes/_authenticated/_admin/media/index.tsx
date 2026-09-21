@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
+import { MediaReferenceIndexPanel } from "@/components/media/MediaReferenceIndexPanel";
 import { MediaListTable } from "@/components/media/MediaListTable";
 import { RoutePermissionGuard } from "@/lib/route-permission-guard";
 
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/_admin/media/")({
 function MediaPage() {
   return (
     <RoutePermissionGuard requiredAccess="/admin/media">
+      <MediaReferenceIndexPanel />
       <MediaListTable />
     </RoutePermissionGuard>
   );

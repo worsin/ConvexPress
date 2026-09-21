@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePostSeo } from "@/hooks/seo/usePostSeo";
 import { SeoScoreBadge } from "@/components/seo/SeoScoreBadge";
+import { useControlShell } from "@/control/ControlShellContext";
+import { editorContentUrl, resolveEditorSiteUrl } from "./editor-site-url";
 
 type ContentType = "post" | "page";
 
@@ -84,6 +86,9 @@ function PostDetailLayoutInner({
   postId: string;
 }) {
   const location = useLocation();
+  const control = useControlShell();
+  const generalSettings = useQuery(api.settings.queries.get, control ? "skip" : { section: "general" });
+  const siteOrigin = resolveEditorSiteUrl(control ? control.selectedEnvironment?.siteOrigin ?? "" : undefined, generalSettings);
 
   // Use separate queries for posts and pages to maintain type safety.
   // Only one will be active at a time; the other is skipped.
@@ -189,9 +194,14 @@ function PostDetailLayoutInner({
             ? "bg-destructive/10 text-destructive"
             : "bg-muted text-muted-foreground";
 
-  const lastSaved = post._creationTime
-    ? new Date(post._creationTime).toLocaleString()
+  const lastSaved = post.updatedAt
+    ? new Date(post.updatedAt).toLocaleString()
     : null;
+  const viewUrl = editorContentUrl(siteOrigin, {
+    type: contentType,
+    slug: post.slug || postId,
+    path: "path" in post && typeof post.path === "string" ? post.path : undefined,
+  });
 
   const outletContext: PostDetailContext = {
     contentType,
@@ -217,13 +227,9 @@ function PostDetailLayoutInner({
             >
               {statusLabel}
             </span>
-            {post.status === "publish" && (
+            {post.status === "publish" && viewUrl && (
               <a
-                href={
-                  contentType === "post"
-                    ? `/blog/${post.slug || postId}`
-                    : `/${post.slug || postId}`
-                }
+                href={viewUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="shrink-0 inline-flex items-center gap-1 text-xs text-primary hover:underline"

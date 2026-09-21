@@ -4,6 +4,7 @@ import {
   type UpdateProgress,
 } from "../app-updater.js";
 import { windowManager } from "../window-manager.js";
+import { assertAppSender } from "./appSender.js";
 
 const { ipcMain } = require("electron") as typeof import("electron");
 
@@ -44,12 +45,14 @@ export function stopAppUpdater(): void {
 }
 
 export function registerAppUpdaterHandlers(): void {
-  ipcMain.handle("app-update:check", async () => {
+  ipcMain.handle("app-update:check", async (event) => {
+    assertAppSender(event);
     if (!updater) return null;
     return updater.checkForUpdate();
   });
 
-  ipcMain.handle("app-update:install", async () => {
+  ipcMain.handle("app-update:install", async (event) => {
+    assertAppSender(event);
     if (!updater) throw new Error("Updater not initialized");
     await updater.performUpdate();
   });

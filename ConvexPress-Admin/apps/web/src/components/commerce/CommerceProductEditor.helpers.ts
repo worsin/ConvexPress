@@ -1,3 +1,4 @@
+import { effectiveStockMode, type ProductStock } from "@convexpress-admin/backend/canonical-blocks-foundation/commerceInventory";
 export type VariantDraft = {
 	title: string;
 	sku: string;
@@ -74,7 +75,7 @@ export function buildVariantDraft(variant: {
 	salePriceFrom?: number;
 	salePriceTo?: number;
 	menuOrder?: number;
-}): VariantDraft {
+}, product: ProductStock = {}): VariantDraft {
 	return {
 		title: variant.title ?? "",
 		sku: variant.sku ?? "",
@@ -90,9 +91,9 @@ export function buildVariantDraft(variant: {
 		shippingLengthIn: variant.shippingLengthIn ?? "",
 		shippingWidthIn: variant.shippingWidthIn ?? "",
 		shippingHeightIn: variant.shippingHeightIn ?? "",
-		manageStock: variant.manageStock ?? "parent",
+		manageStock: effectiveStockMode(product, variant),
 		stockStatus: variant.stockStatus ?? "instock",
-		backorders: variant.backorders ?? "no",
+		backorders: variant.backorders ?? (variant.manageStock === undefined && product.allowBackorders ? "yes" : "no"),
 		lowStockAmount:
 			typeof variant.lowStockAmount === "number"
 				? String(variant.lowStockAmount)
@@ -110,12 +111,8 @@ export function buildVariantDraft(variant: {
 				? String(variant.downloadExpiry)
 				: "",
 		status: variant.status ?? "publish",
-		salePriceFrom: variant.salePriceFrom
-			? new Date(variant.salePriceFrom).toISOString().slice(0, 16)
-			: "",
-		salePriceTo: variant.salePriceTo
-			? new Date(variant.salePriceTo).toISOString().slice(0, 16)
-			: "",
+		salePriceFrom: formatSaleDateLocal(variant.salePriceFrom),
+		salePriceTo: formatSaleDateLocal(variant.salePriceTo),
 		menuOrder:
 			typeof variant.menuOrder === "number" ? String(variant.menuOrder) : "",
 	};
@@ -189,4 +186,25 @@ export function applyBulkEditToVariants(
 		};
 	}
 	return next;
+}
+
+/** datetime-local contains computer-local wall time, never UTC text. Keep
+ * seconds/milliseconds so opening an existing schedule does not truncate it. */
+export function formatSaleDateLocal(time: number | undefined): string {
+  if (time === undefined || !Number.isFinite(time)) return "";
+  const date = new Date(time);
+  if (!Number.isFinite(date.getTime())) return "";
+  const pad = (value: number, length = 2) => String(value).padStart(length, "0");
+  const minute = `${pad(date.getFullYear(), 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  if (!date.getSeconds() && !date.getMilliseconds()) return minute;
+  const seconds = `${minute}:${pad(date.getSeconds())}`;
+  return date.getMilliseconds() ? `${seconds}.${pad(date.getMilliseconds(), 3).replace(/0+$/, "")}` : seconds;
+}
+/** Omission preserves the original instant, including a DST repeated hour. */
+export function saleDateChange(value: string, original: number | undefined): number | null | undefined {
+  if (value === formatSaleDateLocal(original)) return undefined;
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) throw new Error("Choose a valid sale date.");
+  return time;
 }

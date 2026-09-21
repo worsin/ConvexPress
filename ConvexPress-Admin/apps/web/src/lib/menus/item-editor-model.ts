@@ -171,7 +171,7 @@ export function validateMenuItemDraft(
 export function buildMenuItemUpdateArgs(
   normalized: NormalizedMenuItemDraft,
   item: Pick<MenuItem, "_id" | "itemType">,
-): Record<string, unknown> {
+) {
   return {
     itemId: item._id,
     label: normalized.label,

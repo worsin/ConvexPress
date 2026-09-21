@@ -53,16 +53,7 @@ function CourseListPage() {
   const courses = useQuery(api.lms.courses.queries.list, {
     status: status === "all" ? undefined : status,
     search: search.trim() || undefined,
-  }) as
-    | Array<{
-        _id: string;
-        title: string;
-        slug: string;
-        status: string;
-        lessonCount?: number;
-        updatedAt: number;
-      }>
-    | undefined;
+  });
 
   const publish = useMutation(api.lms.courses.mutations.publish);
   const unpublish = useMutation(api.lms.courses.mutations.unpublish);

@@ -1,3 +1,4 @@
+import type { RoleAssignmentTarget } from "@backend/lib/auth/roleAssignment";
 /**
  * Bulk Change Role Dialog
  *
@@ -24,6 +25,7 @@ interface BulkChangeRoleDialogProps {
   onClose: () => void;
   /** Array of user IDs to change roles for. */
   userIds: Id<"users">[];
+  assignmentTargets: readonly RoleAssignmentTarget[];
   /** Callback when the role change is complete. */
   onComplete: () => void;
 }
@@ -32,12 +34,15 @@ export function BulkChangeRoleDialog({
   open,
   onClose,
   userIds,
+  assignmentTargets,
   onComplete,
 }: BulkChangeRoleDialogProps) {
   const [selectedRoleId, setSelectedRoleId] = useState<string>("");
   const [isExecuting, setIsExecuting] = useState(false);
 
-  const bulkChangeRoleMutation = useMutation(api.profiles.mutations.bulkChangeRole);
+  const bulkChangeRoleMutation = useMutation(
+    api.profiles.mutations.bulkChangeRole,
+  );
 
   async function handleConfirm() {
     if (!selectedRoleId) {
@@ -53,18 +58,23 @@ export function BulkChangeRoleDialog({
       });
 
       if (result.updated > 0) {
-        toast.success(`Changed role for ${result.updated} user${result.updated === 1 ? "" : "s"}`);
+        toast.success(
+          `Changed role for ${result.updated} user${result.updated === 1 ? "" : "s"}`,
+        );
       }
 
       if (result.errors.length > 0) {
         const errorCount = result.errors.length;
-        toast.warning(`${errorCount} user${errorCount === 1 ? "" : "s"} could not be updated`);
+        toast.warning(
+          `${errorCount} user${errorCount === 1 ? "" : "s"} could not be updated`,
+        );
       }
 
       onComplete();
       onClose();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to change roles";
+      const message =
+        error instanceof Error ? error.message : "Failed to change roles";
       toast.error(message);
     } finally {
       setIsExecuting(false);
@@ -81,9 +91,7 @@ export function BulkChangeRoleDialog({
     <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40 data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0" />
-        <DialogPrimitive.Popup
-          className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-full max-w-md rounded-none border border-border bg-card p-6 shadow-lg data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95"
-        >
+        <DialogPrimitive.Popup className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-full max-w-md rounded-none border border-border bg-card p-6 shadow-lg data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95">
           <div className="flex items-start gap-4">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-none bg-primary/10">
               <UsersIcon className="size-5 text-primary" />
@@ -93,17 +101,22 @@ export function BulkChangeRoleDialog({
                 Change Role
               </DialogPrimitive.Title>
               <DialogPrimitive.Description className="mt-2 text-xs text-muted-foreground">
-                Change the role for {userIds.length} selected user{userIds.length === 1 ? "" : "s"}.
+                Change the role for {userIds.length} selected user
+                {userIds.length === 1 ? "" : "s"}.
               </DialogPrimitive.Description>
             </div>
           </div>
 
           <div className="mt-4">
-            <label htmlFor="bulk-role-select" className="block text-xs font-medium text-foreground mb-1.5">
+            <label
+              htmlFor="bulk-role-select"
+              className="block text-xs font-medium text-foreground mb-1.5"
+            >
               New Role
             </label>
             <RoleSelector
               id="bulk-role-select"
+              assignmentTargets={assignmentTargets}
               value={selectedRoleId}
               onChange={setSelectedRoleId}
               disabled={isExecuting}

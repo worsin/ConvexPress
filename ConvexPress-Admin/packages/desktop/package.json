@@ -10,9 +10,12 @@
     "build:electron": "rm -rf dist-electron && tsup electron/main.ts --outDir dist-electron --format cjs --external electron --external electron-updater --external fix-path && tsup electron/preload.ts --outDir dist-electron --format cjs --external electron && cp -r electron/wizard dist-electron/wizard && cp -r electron/credential dist-electron/credential",
     "build:web": "cd ../../apps/web && ELECTRON_BUILD=true VITE_STANDALONE_CONTROL_PLANE=true bun run build && rm -rf ../../packages/desktop/dist && cp -R dist ../../packages/desktop/dist",
     "build": "bun run build:web && bun run build:electron",
-    "package:mac": "electron-builder --mac",
-    "package:win": "electron-builder --win",
-    "package:linux": "electron-builder --linux"
+    "package:mac": "node scripts/package-native.mjs mac",
+    "package:win": "node scripts/package-native.mjs win",
+    "package:linux": "node scripts/package-native.mjs linux",
+    "prepare:hosting": "node scripts/prepare-hosting.mjs",
+    "prepare:vercel": "node scripts/prepare-vercel-hosting.mjs",
+    "prepare:provisioning": "node scripts/prepare-provisioning.mjs"
   },
   "dependencies": {
     "convex": "catalog:",

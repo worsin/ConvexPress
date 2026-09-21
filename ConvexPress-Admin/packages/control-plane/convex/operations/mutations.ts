@@ -19,6 +19,8 @@ import {
 } from "./records";
 import { assertSnapshotCompatibleForTarget } from "./policy";
 
+import { assertFullSnapshotOperationAllowed, assertSameEnvironmentRestore } from "./replacementSafety";
+
 const startState = v.union(
   v.literal("queued"),
   v.literal("running"),
@@ -171,6 +173,7 @@ export const startRestore = authenticatedMutation({
       throw new Error("Restore snapshot was not found");
     }
     const snapshot = snapshots[0]!;
+    assertSameEnvironmentRestore(snapshot, { websiteId: website._id, instanceId: instance._id, websiteKey: website.websiteKey, instanceKey: instance.instanceKey, environmentKind: instance.kind });
     if (
       snapshot.verificationStatus !== "verified" ||
       snapshot.websiteId !== website._id ||
@@ -246,6 +249,7 @@ export const startClone = authenticatedMutation({
   },
   returns: startResult,
   handler: async (ctx, args) => {
+    assertFullSnapshotOperationAllowed("site.clone");
     const capability = outerCapabilityForSiteCapability(
       OPERATION_CAPABILITY[OPERATION_CODES.clone],
     );
@@ -315,6 +319,7 @@ export const startPromotion = authenticatedMutation({
   },
   returns: startResult,
   handler: async (ctx, args) => {
+    assertFullSnapshotOperationAllowed("site.promote");
     const capability = outerCapabilityForSiteCapability(
       OPERATION_CAPABILITY[OPERATION_CODES.promote],
     );
@@ -413,10 +418,16 @@ export const resumeOperation = authenticatedMutation({
     if (!operation?.workflowId || operation.state !== "interrupted") {
       throw new Error("Lifecycle operation is not resumable");
     }
-    await requireLifecycleAccess(ctx, ctx.operator, {
+    assertFullSnapshotOperationAllowed(operation.operationCode);
+    const target = await requireLifecycleAccess(ctx, ctx.operator, {
       instanceId: operation.instanceId,
       outerCapability: outerCapabilityForSiteCapability("operation.resume"),
     });
+    if (operation.operationCode === OPERATION_CODES.restore) {
+      const sources = operation.snapshotId ? await ctx.db.query("overseer_siteBackups").withIndex("by_snapshot_id", q => q.eq("snapshotId", operation.snapshotId!)).take(2) : [];
+      if (sources.length !== 1 || sources[0]!.verificationStatus !== "verified") throw Error("Restore requires a verified snapshot from the same environment");
+      assertSameEnvironmentRestore(sources[0]!, { websiteId: target.website._id, instanceId: target.instance._id, websiteKey: target.website.websiteKey, instanceKey: target.instance.instanceKey, environmentKind: target.instance.kind });
+    }
     if (!operation.currentStep) {
       throw new Error("Lifecycle operation has no durable checkpoint");
     }
