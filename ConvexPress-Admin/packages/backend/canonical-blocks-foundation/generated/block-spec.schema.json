@@ -1124,6 +1124,48 @@
       ],
       "type": "object"
     },
+    "authoringActions": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "href": {
+            "maxLength": 80,
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 80,
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+            "type": "string"
+          },
+          "path": {
+            "items": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                  "type": "string"
+                },
+                {
+                  "const": "*",
+                  "type": "string"
+                }
+              ]
+            },
+            "maxItems": 16,
+            "type": "array"
+          }
+        },
+        "required": [
+          "path",
+          "href",
+          "label"
+        ],
+        "type": "object"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
     "category": {
       "enum": [
         "text",

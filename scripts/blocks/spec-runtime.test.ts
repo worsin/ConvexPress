@@ -2,12 +2,40 @@ import { expect, test } from "bun:test";
 import { fileURLToPath } from "node:url";
 import { discoverBlocks } from "./discovery.mjs";
 import { z } from "./schema.mjs";
-import { createBlockSpecCompiler } from "./spec-runtime.mjs";
+import { createBlockSpecCompiler, validateAuthoringActions } from "./spec-runtime.mjs";
+import tabbedSpec from "../../blocks/blocks/tabbed-content/block.json";
 import { blockSchemas } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/schemas";
 import type { BlockName } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/types";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const runtime = createBlockSpecCompiler(z);
+
+test("authoring action declarations bind real sibling fields and preserve read compatibility", () => {
+  const spec = runtime.parseBlockSpec(tabbedSpec);
+  const schema = runtime.attrsSchema(spec.fields, spec.constraints);
+  for (const href of ["javascript:alert(1)", "//outside.test", "data:text/html,hello", " https://example.com", "https://example.com/\nnext", "/\\outside.test"]) {
+    const old = schema.parse({ tabs: [{ ctaUrl: href, ctaLabel: "Open" }] });
+    const before = JSON.stringify(old);
+    expect(() => validateAuthoringActions(z, old, spec.authoringActions)).toThrow();
+    expect(JSON.stringify(old)).toBe(before);
+  }
+  for (const ctaUrl of ["", "/page/example/", "#study", "https://example.com", "mailto:hello@example.com", "tel:+18005550100"]) {
+    const attrs = schema.parse({ tabs: [{ ctaUrl, ctaLabel: "Open" }] });
+    expect(validateAuthoringActions(z, attrs, spec.authoringActions)).toBe(attrs);
+  }
+  for (const action of [
+    { path: ["missing"], href: "ctaUrl", label: "ctaLabel" },
+    { path: ["tabs"], href: "ctaUrl", label: "ctaLabel" },
+    { path: ["tabs", "*"], href: "mediaId", label: "ctaLabel" },
+    { path: ["tabs", "*"], href: "ctaUrl", label: "ctaUrl" },
+  ]) expect(() => runtime.parseBlockSpec({ ...tabbedSpec, authoringActions: [action] })).toThrow();
+  expect(() => runtime.parseBlockSpec({ ...tabbedSpec, authoringActions: [...tabbedSpec.authoringActions, ...tabbedSpec.authoringActions] })).toThrow();
+  expect(() => runtime.parseBlockSpec({ ...tabbedSpec, examples: [{ tabs: [{ ctaUrl: "/valid", ctaLabel: " " }] }] })).toThrow();
+  const nested = runtime.parseBlockSpec({ ...tabbedSpec, fields: [{ id: "panel", type: "object", fields: tabbedSpec.fields }], preview: "", searchText: [], examples: [{}], authoringActions: [{ path: ["panel", "tabs", "*"], href: "ctaUrl", label: "ctaLabel" }] });
+  const nestedSchema = runtime.attrsSchema(nested.fields);
+  expect(validateAuthoringActions(z, nestedSchema.parse({}), nested.authoringActions)).toEqual({});
+  expect(() => validateAuthoringActions(z, nestedSchema.parse({ panel: { tabs: [{ ctaUrl: "/valid", ctaLabel: "" }] } }), nested.authoringActions)).toThrow();
+});
 
 test("runtime compilation matches shipped generated validators for every example and invalid field", async () => {
 	const { blocks } = await discoverBlocks(root);

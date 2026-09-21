@@ -1,5 +1,25 @@
 import { expect, test } from "bun:test";
 import { fixture, create, save, review, publish, withdraw, get, text, reference } from "./fixture.test-support";
+import { content } from "../model";
+
+test("reusable content cannot bypass action rules and older drafts remain repairable", async () => {
+  const { operator, t } = await fixture();
+  const invalid = content("Old CTA", [{ id: "cta", name: "blocks/tabbed-content", version: 2, attrs: { tabs: [{ ctaUrl: "javascript:alert(1)", ctaLabel: "Open" }] } }]);
+  await expect(operator.mutation(create, { title: invalid.title, blocks: invalid.blocks })).rejects.toThrow();
+  expect(await t.run(ctx => ctx.db.query("syncedBlocks").collect())).toHaveLength(0);
+  const source = await operator.mutation(create, { title: invalid.title, blocks: text });
+  await t.run(async ctx => {
+    const revision = (await ctx.db.query("syncedBlockRevisions").withIndex("by_source_revision", q => q.eq("syncedBlockId", source.id)).unique())!;
+    await ctx.db.patch("syncedBlockRevisions", revision._id, invalid);
+  });
+  expect((await operator.query(get, { id: source.id })).blocks).toEqual(invalid.blocks);
+  const before = await t.run(async ctx => ({ source: await ctx.db.get("syncedBlocks", source.id), revisions: await ctx.db.query("syncedBlockRevisions").collect() }));
+  await expect(operator.mutation(save, { id: source.id, expectedGeneration: 1, title: invalid.title, blocks: invalid.blocks })).rejects.toThrow();
+  await expect(operator.query(review, { id: source.id, expectedGeneration: 1, revision: 1 })).rejects.toThrow();
+  await expect(operator.mutation(publish, { id: source.id, expectedGeneration: 1, revision: 1, reviewDigest: "0".repeat(64) })).rejects.toThrow();
+  expect(await t.run(async ctx => ({ source: await ctx.db.get("syncedBlocks", source.id), revisions: await ctx.db.query("syncedBlockRevisions").collect() }))).toEqual(before);
+  expect((await operator.mutation(save, { id: source.id, expectedGeneration: 1, title: invalid.title, blocks: text })).revision).toBe(2);
+});
 
 test("drafts stay private, publication pins immutable content, and saving leaves live content unchanged", async () => {
   const { operator, read, release, t } = await fixture();

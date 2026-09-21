@@ -13,6 +13,18 @@ const {
 	sameScope,
 } = loaded.module;
 import { editorDefinitions } from "../../../../../../../blocks/.generated/editor-metadata";
+test("tabbed CTA drafts retain invalid text and expose the exact destination or label field", () => {
+  for (const [ctaUrl, ctaLabel, field] of [["javascript:alert(1)", "Open", "ctaUrl"], ["//outside.test", "Open", "ctaUrl"], ["/page/example/", "   ", "ctaLabel"]]) {
+    const draft = { tabs: [{ ctaUrl, ctaLabel }] };
+    const before = JSON.stringify(draft);
+    const result = validateDraft("blocks/tabbed-content", draft);
+    expect(result.ok).toBe(false);
+    expect(result.issues.some((issue: any) => JSON.stringify(issue.path) === JSON.stringify(["tabs", 0, field]))).toBe(true);
+    expect(JSON.stringify(draft)).toBe(before);
+  }
+  for (const [ctaUrl, ctaLabel] of [["", ""], ["", "Text only"], ["/page/example/", "Open"], ["#study", "Study"], ["https://example.com", "Visit"]])
+    expect(validateDraft("blocks/tabbed-content", { tabs: [{ ctaUrl, ctaLabel }] }).ok).toBe(true);
+});
 
 test("immutable drafts preserve unknown fields, explicit null, empty number input and array order", () => {
 	const original = {

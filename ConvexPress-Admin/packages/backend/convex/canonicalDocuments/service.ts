@@ -1,6 +1,6 @@
 import { owned as ownedDefinition, checkGeneration as checkDefinitionGeneration, readVersion as readDefinitionVersion } from "../blockDefinitions/model";
 import { decodeComposedDefinition, composedAttrsSchema } from "./foundation/composedDefinitions";
-import { parseAuthoredDefinitionContent, type AuthoredDefinitionContent } from "./foundation/authoredDefinitions";
+import { assertAuthoredActions, parseAuthoredDefinitionContent, type AuthoredDefinitionContent } from "./foundation/authoredDefinitions";
 import { owned as ownedSyncedSource, checkGeneration } from "../syncedBlocks/model";
 import { requireAssignableCategory } from "../kb/helpers/categoryHierarchy";
 import { installation, displayContext } from "./displayContext";
@@ -57,6 +57,7 @@ import {
 	initializationReason,
 	prepareCanonicalInitialize,
 	prepareCanonicalSave,
+  prepareCanonicalCurrent,
 	prepareCanonicalRestore,
  prepareCanonicalPublication,
  type PublicationStatus,
@@ -345,6 +346,7 @@ async function commit(
   publication?: CanonicalPublicationPatch,
   scheduled = false,
 ): Promise<CanonicalWriteReceipt> {
+  if ((publication?.status ?? post.status) !== "draft") assertAuthoredActions(prepared, prepared.composedDefinitions?.scope);
   const previous = post.blocksVersion === 2 ? await (scheduled ? readApprovedDocument : readAuthoredDocument)(ctx, post, budget) : undefined;
   await validateNewKnowledgeCategoryReferences(ctx, prepared.blocks, previous?.blocks ?? [], budget);
 	// A no-op still revalidates current policy and exact referenced resources.
@@ -833,7 +835,7 @@ export async function recoverLegacyDocument(ctx: MutationCtx, args: LegacyRecove
   await requireCan(ctx, "revision.restore", budget);
   if (post.status !== "draft") await requireCan(ctx, post.type === "page" ? "page.publish" : "post.publish", budget);
   // Validates current canonical format and exact revision before reading history.
-  prepareCanonicalSave(post, { expectedRevision: args.expectedRevision, title: post.title, blocks: post.blocks });
+  prepareCanonicalCurrent(post, args.expectedRevision);
   budget.beforeRead();
   const revision = budget.record(await ctx.db.get("revisions", args.revisionId));
   if (!revision) refuse("NOT_FOUND", "Revision not found.");
@@ -974,7 +976,7 @@ export async function setDocumentSettings(ctx: MutationCtx, args: CanonicalSetti
   if (accessChanged) await requireCan(ctx, post.type === "page" ? "page.publish" : "post.publish", budget);
   // Reuses canonical format, full-tree and exact revision preparation. A settings
   // save never sends a stale client copy of the body back to the server.
-  const prepared = prepareCanonicalSave(post,{expectedRevision:requested.expectedRevision,title:post.title,blocks:post.blocks});
+  const prepared = prepareCanonicalCurrent(post, requested.expectedRevision);
   await project(ctx,post,budget,prepared);
   if (post.type === "post" && requested.pageTemplate !== previous.pageTemplate)
     refuse("DOCUMENT_LAYOUT_INVALID", "Page layouts apply to pages. Posts use the active template's article layout.");
@@ -1045,6 +1047,7 @@ export async function writePromotedCanonicalDocument(
     refuse("PROMOTION_PUBLICATION_INVALID", "Unsupported publication transition.");
   const type = fields.type;
   const blocks = validateCanonicalTree(fields.blocks);
+  if (!restoring || fields.status !== "draft") assertAuthoredActions({ blocks });
   await validateNewKnowledgeCategoryReferences(ctx, blocks, [], budget);
   canonicalContentDigest(String(fields.title), blocks);
   await requireCan(ctx, type === "page" ? targetId && !allocation ? "page.update" : "page.create" : targetId && !allocation ? "post.update" : "post.create", budget);

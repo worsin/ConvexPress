@@ -5,6 +5,9 @@
   "category": "layout",
   "role": "content",
   "version": 2,
+  "authoringActions": [
+    { "path": ["tabs", "*"], "href": "ctaUrl", "label": "ctaLabel" }
+  ],
   "keywords": [
     "site",
     "tabs",

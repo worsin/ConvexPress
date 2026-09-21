@@ -1,8 +1,8 @@
 {
   "files": {
-    "ai-catalog.ts": "d7f349d87f69b15c0b4d111d352208c43063107f41d21f7e5bfe9841d314d582",
-    "block-spec.schema.json": "9e894ec7c8d1e4b9d94f0c3c0e2cd98ad234c01ebec65bb92d21ac7ff9680396",
-    "catalog.json": "c30d829e46900120193885744c0027f82b0e1646ef7cc83d91e3bb44715bc653",
+    "ai-catalog.ts": "7f56d5763ab822b7c8f93c95af56222ea7a588cb3c61be0c7f9879e1544e79a7",
+    "block-spec.schema.json": "d2ce2ef6d06fc2ad5ff4c4bd69d4847e03a8d7814cafc8fc64772e630225536e",
+    "catalog.json": "d1d4f39e37c505a1d1ea1a1bc9f591311847d937666e5df7ce912b13e807c1d0",
     "convex.ts": "260e25b952044e4279f557cb4f8136c24bf09e0e6a224902ee608276ce59d366",
     "coverage.json": "04e46c0c6cb2b9a8298771697b3bbd86a442e4a3ef1952677e5c3b3e2bcf9c0d",
     "dependencies.json": "14abfada88ce7ccbe60f51ad42667773f00d7b8f1a0d53787c867b51e9586820",
@@ -19,10 +19,10 @@
     "patterns.ts": "2ec3505c0b75e44834a38aaf79a8ec7d6ce9f9c2273bb76b267eb7896449906e",
     "promotions.ts": "7545ede36ecd059123045889f0aa32d6c0c9f4b157fc29ace43d597a942633eb",
     "renderer-coverage.ts": "646fe78683882b53ec9994526f20dd09ce29371fac6e525b686b0e98de18fb06",
-    "schemas.ts": "d3b0c8564aad30d764897dfd25bfee959981efa40fb87495a33c56e3d3585d9b",
+    "schemas.ts": "90bd930e2a2d5c264c410d44f31e6072fe20a340be4d4b3019fc006f5d285d40",
     "search-text.ts": "ec776042d472925e245a0a1a21277960271ff8a8fd0bd34d6b990cd4ded9cd30",
-    "spec-runtime.d.mts": "7f8fbe9dd797c169b0d007e97f362072717c96b27397ff5c25441187ebfbbffa",
-    "spec-runtime.mjs": "90b1f6b9d639ccb648b2e2de6fe5696a5a162f63da148c3187311053ae9dd913",
+    "spec-runtime.d.mts": "b57479bd8fc8ba510435d8af2206a0293cc07ceb780c34673867b5e200d56564",
+    "spec-runtime.mjs": "e1be548126a0d09dc35e0afb11cc8d3d0fcd8d837fd5e94451ea57ff90b9b87b",
     "storage.ts": "b2f5ebbfe01a0797325cf5f71700a05f508a3a46ccf9ddd4eb89b6bcda5df1db",
     "types.ts": "d7dc7f8b23163e082db94f17a47e83f797d278716c614c2b6d9ea2022f48ea32"
   },
@@ -69,7 +69,7 @@
       "source": "blocks/blocks/studio-services/block.json"
     },
     {
-      "sha256": "c71daa049180245a87e7152e2f93ac4538cf8cf1dc7dce58623c7afdc59c42fc",
+      "sha256": "0f8756bc73d86be02de8b67578872f3ed46c5fd18e1707e532346dd182915862",
       "source": "blocks/blocks/tabbed-content/block.json"
     },
     {

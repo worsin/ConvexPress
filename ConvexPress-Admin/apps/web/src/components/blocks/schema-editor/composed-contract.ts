@@ -1,6 +1,8 @@
 import { composedAttrsSchema, type ComposedDefinition } from "@backend/canonical-blocks-foundation/composedDefinitions";
 import type { ComposedRegistry } from "@backend/canonical-blocks-foundation/composedRegistry";
 import type { BlockEditorContract, Draft, Path } from "./model";
+import { z } from "zod";
+import { validateAuthoringActions } from "@backend/canonical-blocks-foundation/generated/spec-runtime.mjs";
 
 interface FieldValidator {
   unwrap?: () => FieldValidator;
@@ -22,7 +24,7 @@ export function definitionEditorContract(definition: ComposedDefinition): BlockE
   return {
     name,
     definition: { ...spec, requires: spec.requires ?? { plugins: [], capabilities: [] }, constraints: spec.constraints ?? [] },
-    validateAttrs: value => schema.parse(value) as Draft,
+    validateAttrs: value => validateAuthoringActions(z, schema.parse(value), spec.authoringActions) as Draft,
     validateField(path: Path, value: unknown) {
       if (!path.length) throw new Error("Unknown block field");
       let field = schema as unknown as FieldValidator;

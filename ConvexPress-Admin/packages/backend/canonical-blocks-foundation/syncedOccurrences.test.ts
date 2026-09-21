@@ -82,11 +82,17 @@ test("cycles and expanded node overflow are refused before dynamic planning", as
 });
 
 
-test("unsupported audience visibility remains refused at the canonical boundary", async () => {
+test("occurrences preserve supported audience declarations for the separate authorized display projection", async () => {
   for (const visibility of ["signedIn", "signedOut"]) {
-    expect(await code(() => resolveSyncedOccurrences([{ ...ref("wrapper", "shared"), visibility }], scope, async () => source("shared")))).toBe("UNSUPPORTED_VISIBILITY");
-    expect(await code(() => resolveSyncedOccurrences([ref("wrapper", "shared")], scope, async () => ({ ...source("shared"), blocks: [{ ...text(), visibility }] })))).toBe("SYNCED_SOURCE_INVALID");
+    const blocks = [{ ...ref("wrapper", "shared"), visibility }];
+    const shared = source("shared", 1, [{ ...text(), visibility }]);
+    const plan = await resolveSyncedOccurrences(blocks, scope, async () => shared);
+    expect(plan.roots[0].node.visibility).toBe(visibility);
+    expect(plan.roots[0].children[0].node.visibility).toBe(visibility);
+    expect(plan.resolution.blocks).toEqual(validateCanonicalTree(blocks));
+    expect(plan.resolution.revisions[0].digest).toBe(shared.digest);
   }
+  expect(await code(() => resolveSyncedOccurrences([{ ...ref("wrapper", "shared"), visibility: "administrator" }], scope, async () => source("shared")))).not.toBeNull();
 });
 
 

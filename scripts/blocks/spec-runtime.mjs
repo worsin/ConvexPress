@@ -73,6 +73,9 @@ export function createBlockSpecCompiler(z) {
     keywords: z.array(z.string().min(1).max(80)).max(50),
     ai: z.object({ useFor: z.string().min(1).max(2000), avoid: z.string().max(2000) }).strict(),
     fields: z.array(fieldSchema).max(100), constraints,
+    // Write-time rules are separate from the stored shape: old values must
+    // remain readable so an operator can repair them or recover a draft.
+    authoringActions: z.array(z.object({ path: z.array(z.union([id, z.literal("*")])).max(16), href: id, label: id }).strict()).max(20).optional(),
     // Editorial text only. This declaration is not permission to disclose it.
     searchText: z.array(z.union([searchPath, z.object({ path: searchPath, format: z.literal("prose") }).strict()])).max(100).optional(),
     treatments: z.array(z.object({ name: id, title: z.string().min(1).max(160), axes: z.array(treatmentAxisSchema).min(1).max(8) }).strict()).max(8).optional(),
@@ -196,8 +199,9 @@ export function createBlockSpecCompiler(z) {
     if (/[{}]/.test(spec.preview.replace(/\{[^{}]+\}/g, ""))) throw new Error("Malformed preview template");
     if (spec.data) checkBindings(spec.data.args, spec.fields);
     checkConstraints(spec.fields, spec.constraints);
+    checkAuthoringActions(spec.fields, spec.authoringActions);
     const schema = attrsSchema(spec.fields, spec.constraints);
-    for (const example of spec.examples) schema.parse(example);
+    for (const example of spec.examples) validateAuthoringActions(z, schema.parse(example), spec.authoringActions);
     return spec;
   }
 
@@ -219,6 +223,50 @@ export function createBlockSpecCompiler(z) {
     }
   }
   return { fieldSchema, fieldTypeNames, treatmentAxisSchema, blockSpecSchema, attrsSchema, parseBlockSpec };
+}
+
+function checkAuthoringActions(fields, actions = []) {
+  const seen = new Set();
+  for (const action of actions) {
+    let siblings = fields;
+    for (let i = 0; i < action.path.length; i++) {
+      const field = siblings.find(item => item.id === action.path[i]);
+      if (field?.type === "object") siblings = field.fields;
+      else if (field?.type === "repeater" && field.fields && action.path[++i] === "*") siblings = field.fields;
+      else throw Error("Authoring action path must select declared objects or object repeater rows");
+    }
+    const href = siblings.find(field => field.id === action.href), label = siblings.find(field => field.id === action.label);
+    if (action.href === action.label || label?.type !== "text" || !(href?.type === "text" || href?.type === "link" && href.storage === "href")) throw Error("Authoring actions require distinct text label and text/href destination fields");
+    const key = JSON.stringify([...action.path, action.href]);
+    if (seen.has(key)) throw Error("Duplicate authoring action destination");
+    seen.add(key);
+  }
+}
+
+/** Run only after shape validation, with rules from a parsed spec. Never
+ * normalizes or rewrites the supplied attrs, including invalid legacy text. */
+export function validateAuthoringActions(z, attrs, actions = []) {
+  if (!actions.length) return attrs;
+  const hrefSchema = safeLinkSchema(z), issues = [];
+  for (const action of actions) {
+    function visit(value, offset, path) {
+      if (value == null) return;
+      if (offset < action.path.length) {
+        const part = action.path[offset];
+        if (part === "*") value.forEach((row, index) => visit(row, offset + 1, [...path, index]));
+        else visit(value[part], offset + 1, [...path, part]);
+        return;
+      }
+      const href = value[action.href];
+      if (href == null || href === "") return;
+      const checked = hrefSchema.safeParse(href);
+      if (!checked.success) issues.push({ code: "custom", path: [...path, action.href], message: checked.error.issues[0].message });
+      if (typeof value[action.label] !== "string" || !value[action.label].trim()) issues.push({ code: "custom", path: [...path, action.label], message: "A destination needs a visible action label" });
+    }
+    visit(attrs, 0, []);
+  }
+  if (issues.length) throw new z.ZodError(issues);
+  return attrs;
 }
 
 /** Compile explicit paths; never infer search text from arbitrary string attrs. */

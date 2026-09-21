@@ -9,7 +9,7 @@ import type { CanonicalEnvelope } from "./generated/instance_runtime.mjs";
 import { assertCanonicalBlockLocks } from "./generated/instance_runtime.mjs";
 import type { ComposedRegistrySnapshot, RuntimeCanonicalTree } from "./composedRegistry";
 import type { SyncedScope } from "./syncedContent";
-import { parseAuthoredDefinitionContent, type AuthoredDefinitionContent } from "./authoredDefinitions";
+import { assertAuthoredActions, parseAuthoredDefinitionContent, type AuthoredDefinitionContent } from "./authoredDefinitions";
 /** Context comes from the authorized server loader, never client write args. */
 export interface ComposedWriteContext { scope: SyncedScope; definitions?: ComposedRegistrySnapshot }
 export type PreparedRuntimeCanonicalWrite = PreparedCanonicalWrite<RuntimeCanonicalTree>;
@@ -67,23 +67,33 @@ export function prepareCanonicalInitialize(row: StoredAuthoring, args: Initializ
   if (authoringSourceDigest(row) !== args.expectedAuthoringDigest) fail("CONFLICT", "The legacy authoring state changed after this draft was opened");
   const reason = initializationReason(row);
   if (reason !== null) fail("CANONICAL_INITIALIZATION_UNAVAILABLE", "This authored document requires an explicit lossless migration");
-  return { ...candidate(args.title, args.blocks, context?.definitions, context), revision: revision + 1, changed: true };
+  const next = candidate(args.title, args.blocks, context?.definitions, context);
+  assertAuthoredActions(next, context?.scope);
+  return { ...next, revision: revision + 1, changed: true };
+}
+/** Validate existing state and CAS without submitting it as new content. Used
+ * by settings/recovery so a legacy invalid action cannot trap its owner. */
+export function prepareCanonicalCurrent(row: StoredAuthoring, expectedRevision: number): PreparedCanonicalWrite;
+export function prepareCanonicalCurrent(row: StoredAuthoring, expectedRevision: number, context: ComposedWriteContext): PreparedRuntimeCanonicalWrite;
+export function prepareCanonicalCurrent(row: StoredAuthoring, expectedRevision: number, context?: ComposedWriteContext): PreparedRuntimeCanonicalWrite {
+  const revision = checkRevision(row, expectedRevision);
+  if (row.composedDefinitions !== undefined && !context) fail("COMPOSED_AUTHORING_CONTEXT_REQUIRED", "Saving composed definitions requires the version-aware authoring service");
+  if (row.blocksVersion !== 2 || row.contentMode !== "blocks") fail("UNSUPPORTED_AUTHORING_VERSION", "The canonical editor requires a canonical document");
+  if (!["draft", "publish", "future", "private"].includes(String(row.status))) fail("CANONICAL_DRAFT_REQUIRED", "Restore a supported editable publication state before changing this document");
+  if (typeof row.title !== "string") fail("INVALID_DOCUMENT_TITLE", "The stored title is invalid");
+  return { ...candidate(row.title, row.blocks, row.composedDefinitions, context), revision, changed: false };
 }
 type SaveArgs = { expectedRevision: number; title: string; blocks: unknown };
 export function prepareCanonicalSave(row: StoredAuthoring, args: SaveArgs): PreparedCanonicalWrite;
 export function prepareCanonicalSave(row: StoredAuthoring, args: SaveArgs, context: ComposedWriteContext): PreparedRuntimeCanonicalWrite;
 export function prepareCanonicalSave(row: StoredAuthoring, args: SaveArgs, context?: ComposedWriteContext): PreparedRuntimeCanonicalWrite {
   // A stale identical retry remains a conflict. Never compare before CAS.
-  const revision = checkRevision(row, args.expectedRevision);
-  if (row.composedDefinitions !== undefined && !context) fail("COMPOSED_AUTHORING_CONTEXT_REQUIRED", "Saving composed definitions requires the version-aware authoring service");
-  if (row.blocksVersion !== 2 || row.contentMode !== "blocks") fail("UNSUPPORTED_AUTHORING_VERSION", "The canonical editor requires a canonical document");
-  if (!["draft", "publish", "future", "private"].includes(String(row.status))) fail("CANONICAL_DRAFT_REQUIRED", "Restore a supported editable publication state before changing this document");
-  if (typeof row.title !== "string") fail("INVALID_DOCUMENT_TITLE", "The stored title is invalid");
-  const saved = candidate(row.title, row.blocks, row.composedDefinitions, context);
+  const saved = context ? prepareCanonicalCurrent(row, args.expectedRevision, context) : prepareCanonicalCurrent(row, args.expectedRevision);
   const next = candidate(args.title, args.blocks, context?.definitions, context);
+  assertAuthoredActions(next, context?.scope);
   assertCanonicalBlockLocks(saved.blocks, next.blocks);
   const changed = next.digest !== saved.digest;
-  return { ...next, revision: revision + (changed ? 1 : 0), changed };
+  return { ...next, revision: saved.revision + (changed ? 1 : 0), changed };
 }
 type RestoreArgs = { expectedRevision: number; postId: string; expectedAuthoringDigest?: string };
 export function prepareCanonicalRestore(row: StoredAuthoring, snapshot: StoredAuthoring, args: RestoreArgs): PreparedCanonicalWrite;
@@ -100,9 +110,12 @@ export function prepareCanonicalRestore(row: StoredAuthoring, snapshot: StoredAu
     if (!["draft", "publish", "future", "private"].includes(String(row.status))) fail("CANONICAL_DRAFT_REQUIRED", "Restore a supported publication state before recovering canonical authoring");
     next = { ...candidate(snapshot.title, snapshot.blocks, snapshot.composedDefinitions, context), changed: true, revision: authoringRevision(row) + 1 };
   } else {
-    const save = { expectedRevision: args.expectedRevision, title: snapshot.title, blocks: snapshot.blocks };
-    next = context ? prepareCanonicalSave(row, save, { ...context, definitions: snapshot.composedDefinitions as ComposedRegistrySnapshot | undefined }) : prepareCanonicalSave(row, save);
+    const saved = context ? prepareCanonicalCurrent(row, args.expectedRevision, context) : prepareCanonicalCurrent(row, args.expectedRevision);
+    const restored = candidate(snapshot.title, snapshot.blocks, snapshot.composedDefinitions, context);
+    assertCanonicalBlockLocks(saved.blocks, restored.blocks);
+    next = { ...restored, revision: saved.revision + 1, changed: true };
   }
+  if (row.status !== "draft") assertAuthoredActions(next, context?.scope);
   // Restore is an explicit history operation, even if content is identical;
   // always advance the CURRENT revision rather than reviving the snapshot's.
   return { ...next, changed: true, revision: authoringRevision(row) + 1 };
@@ -123,5 +136,7 @@ export function prepareCanonicalPublication(row: StoredAuthoring, args: Publicat
   if (row.publishedAt !== undefined && (typeof row.publishedAt !== "number" || !Number.isFinite(row.publishedAt))) fail("INVALID_PUBLICATION_TIME", "The saved publication time is invalid");
   const publication: CanonicalPublicationPatch = { status: args.status, scheduledAt: args.status === "future" ? args.scheduledAt : undefined, publishedAt: typeof row.publishedAt === "number" ? row.publishedAt : args.status === "publish" || args.status === "private" ? now : undefined };
   const changed = publication.status !== row.status || publication.scheduledAt !== row.scheduledAt || publication.publishedAt !== row.publishedAt;
-  return { ...candidate(row.title as string, row.blocks, row.composedDefinitions, context), revision: revision + (changed ? 1 : 0), changed, publication };
+  const next = candidate(row.title as string, row.blocks, row.composedDefinitions, context);
+  if (args.status !== "draft") assertAuthoredActions(next, context?.scope);
+  return { ...next, revision: revision + (changed ? 1 : 0), changed, publication };
 }

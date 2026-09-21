@@ -4,12 +4,31 @@ import { canonicalContentDigest, DOCUMENT_LIMITS } from "./documentContracts";
 import { validateCanonicalTree } from "./generated/instances";
 import { canonicalJson, sha256Hex } from "./shared/fingerprints";
 import type { SyncedScope } from "./syncedContent";
+import { validateBlockAuthoringAttrs } from "./generated/schemas";
+import { validateAuthoringActions } from "./generated/spec-runtime.mjs";
 
 export interface AuthoredDefinitionContent {
   title: string;
   blocks: RuntimeCanonicalTree;
   digest: string;
   composedDefinitions?: ComposedRegistrySnapshot;
+}
+
+/** Additional write-time requirements. Reading/history uses the stored shape
+ * so old invalid values remain available for explicit repair or draft recovery. */
+export function assertAuthoredActions(content: Pick<AuthoredDefinitionContent, "blocks" | "composedDefinitions">, scope?: SyncedScope): void {
+  const registry = content.composedDefinitions && scope ? createComposedRegistry(content.composedDefinitions, scope) : undefined;
+  function visit(nodes: RuntimeCanonicalTree) {
+    for (const node of nodes) {
+      if (node.name.startsWith("composed/")) {
+        const definition = registry?.definition(node.name, node.version);
+        if (!definition) throw Error("Composed authoring requires the current site definition");
+        validateAuthoringActions(z, node.attrs, definition.spec.authoringActions);
+      } else validateBlockAuthoringAttrs(node.name, node.attrs);
+      if (node.children) visit(node.children);
+    }
+  }
+  visit(content.blocks);
 }
 
 /** Validate an immutable document snapshot independently of definition heads.

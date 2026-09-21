@@ -37,7 +37,9 @@ test("unrepresented semantics fail at an exact path without returning a partial 
   ]) expect(() => migrate(doc(paragraph(text("Keep")), node))).toThrow();
   try { migrate(doc(paragraph(text("Keep")), { type: "table" })); } catch (error) { expect((error as { path: unknown }).path).toEqual(["content", 1]); }
   expect(() => migrate(doc(paragraph({ type: "text", text: "Unsafe", marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }] })))).toThrow();
-  expect(() => migrate(doc(paragraph(text("x".repeat(2001)))))).toThrow();
+  const maximumParagraph = doc(paragraph(text("x".repeat(20000))));
+  expect(migrate(maximumParagraph)[0].attrs).toMatchObject({ body: maximumParagraph });
+  expect(() => migrate(doc(paragraph(text("x".repeat(20001)))))).toThrow();
   expect(() => migrate(doc(...Array.from({ length: 81 }, () => paragraph(text("x")))))).toThrow();
   expect(() => migrateLegacyDocument({ postId: "post", content: "<p>HTML</p>" })).toThrow();
 });

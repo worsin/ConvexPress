@@ -1,3 +1,4 @@
+import { assertAuthoredActions } from "../canonicalDocuments/foundation/authoredDefinitions";
 import { collectCanonicalMediaIds } from "../canonicalDocuments/foundation/documentContracts";
 import { collectContactDefinitions } from "../canonicalDocuments/contactDefinitions";
 import { RequestReadLedger } from "../helpers/requestReadLedger";
@@ -71,7 +72,7 @@ export async function publicationReview(ctx: QueryCtx, source: Doc<"syncedBlocks
   }, { requireAvailable: true });
   // Reject semantic form errors before a source can invalidate all consumers.
   // Creating or updating per-page Forms projections remains an authorized write.
-  for (const revision of graph.revisions) collectContactDefinitions(revision.blocks);
+  for (const revision of graph.revisions) { assertAuthoredActions(revision); collectContactDefinitions(revision.blocks); }
   for (const revision of graph.revisions) await assertMediaAttachments(ctx, "syncedBlockRevisions", { title: revision.title, blocks: revision.blocks }, budget, collectCanonicalMediaIds(revision.blocks));
   const dependencies = graph.bindings.map(binding => ({ path: binding.path, ...binding.target! }));
   const digest = sha256Hex(canonicalJson({ scope, id: source._id, generation: source.generation, revision: version.revision, digest: version.digest, dependencies }));

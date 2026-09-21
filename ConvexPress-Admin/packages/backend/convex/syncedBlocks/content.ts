@@ -7,6 +7,7 @@ import { insertWithMediaReferences, patchWithMediaReferences, assertMediaAttachm
 import { canonicalStoredTreeValidator } from "../canonicalDocuments/foundation/generated/storage";
 import { enqueueRefresh } from "./refresh";
 import { content, owned, selected, checkGeneration, installation, publicationReview, storedRevision, syncedFailure } from "./model";
+import { assertAuthoredActions } from "../canonicalDocuments/foundation/authoredDefinitions";
 
 const id = v.id("syncedBlocks"), selection = { id, expectedGeneration: v.number() };
 const receipt = v.object({ id, generation: v.number(), revision: v.number(), digest: v.string(), changed: v.boolean() });
@@ -16,6 +17,7 @@ export const create = mutation({
   args: { title: v.string(), blocks: canonicalStoredTreeValidator }, returns: receipt,
   handler: async (ctx, args) => {
     const budget = new RequestReadLedger(), actor = await requireCan(ctx, "post.create", budget), scope = await installation(ctx, budget), value = content(args.title, args.blocks), now = Date.now();
+    assertAuthoredActions(value);
     const sourceId = await ctx.db.insert("syncedBlocks", { ...scope, title: value.title, generation: 1, lastRevision: 1, createdBy: actor._id, updatedBy: actor._id, createdAt: now, updatedAt: now });
     await insertWithMediaReferences(ctx, "syncedBlockRevisions", { syncedBlockId: sourceId, revision: 1, ...value, createdBy: actor._id, createdAt: now }, undefined, budget, collectCanonicalMediaIds(value.blocks));
     return { id: sourceId, generation: 1, revision: 1, digest: value.digest, changed: true };
@@ -27,6 +29,7 @@ export const save = mutation({
     const budget = new RequestReadLedger(), actor = await requireCan(ctx, "post.update", budget), { source } = await owned(ctx, args.id, actor._id, budget);
     checkGeneration(source, args.expectedGeneration);
     const value = content(args.title, args.blocks), current = await storedRevision(ctx, source._id, source.lastRevision, budget);
+    assertAuthoredActions(value);
     if (!current) return syncedFailure("SYNCED_REVISION", "The current revision is unavailable. Recover it before editing.");
     if (content(current.title, current.blocks).digest !== current.digest) return syncedFailure("SYNCED_REVISION", "Recover the damaged current revision before editing.");
     if (current.digest === value.digest) {

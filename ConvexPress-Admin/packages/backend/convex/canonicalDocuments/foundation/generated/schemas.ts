@@ -284,6 +284,22 @@ export function validateBlockAttrs(name: string, attrs: unknown) {
   if (!Object.prototype.hasOwnProperty.call(blockSchemas, name)) throw new Error(`Unknown block name ${name}`);
   return blockSchemas[name as BlockName].parse(attrs);
 }
+
+import { validateAuthoringActions, type AuthoringAction } from "./spec_runtime.mjs";
+const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
+  "blocks/tabbed-content": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": [
+        "tabs",
+        "*"
+      ]
+    }
+  ]
+}
+;
+export function validateBlockAuthoringAttrs(name: string, attrs: unknown) { return validateAuthoringActions(z, validateBlockAttrs(name, attrs), authoringActions[name]); }
 const treatmentFactories = {"blocks/contact-stack":once(()=>z.never()),
 "blocks/customer-showcase":once(()=>z.never()),
 "blocks/grade-gallery":once(()=>z.never()),

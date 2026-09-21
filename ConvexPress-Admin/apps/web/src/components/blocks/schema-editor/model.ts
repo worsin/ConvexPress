@@ -1,5 +1,5 @@
 import {
-	validateBlockAttrs,
+	validateBlockAuthoringAttrs,
 	validateBlockField,
 } from "../../../../../../../blocks/.generated/schemas";
 import type { EditorField, EditorDefinition } from "../../../../../../../blocks/.generated/editor-metadata";
@@ -120,7 +120,7 @@ export function validateDraft(name: string, draft: Draft, contract?: BlockEditor
 		if (contract && contract.name !== name) throw new Error("Mismatched block contract");
 		return {
 			ok: true,
-			attrs: contract ? contract.validateAttrs(draft) : validateBlockAttrs(name, draft) as Draft,
+			attrs: contract ? contract.validateAttrs(draft) : validateBlockAuthoringAttrs(name, draft) as Draft,
 			issues: [],
 		};
 	} catch (error) {
@@ -173,5 +173,5 @@ export function applyPickerResult(request: PickerRequest, result: PickerResult, 
   let next = updateDraft(draft, request.path, value);
   next = updateDraft(next, ["revisionPolicy"], choice.revisionPolicy);
   next = updateDraft(next, ["revision"], choice.revisionPolicy === "pinned" ? choice.revision : undefined);
-  return validateBlockAttrs(request.name, next) as Draft;
+  return validateBlockAuthoringAttrs(request.name, next) as Draft;
 }

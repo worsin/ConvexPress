@@ -1746,6 +1746,16 @@
       "avoid": "linear history sections that should use blocks/story-timeline",
       "useFor": "content where each item needs a label and its own visible panel"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": [
+          "tabs",
+          "*"
+        ]
+      }
+    ],
     "category": "layout",
     "constraints": [],
     "data": null,

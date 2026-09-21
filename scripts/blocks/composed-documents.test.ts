@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { encodeComposedDefinition } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/composedDefinitions";
 import { createComposedRegistry } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/composedRegistry";
-import { parseAuthoredDefinitionContent } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/authoredDefinitions";
+import { assertAuthoredActions, parseAuthoredDefinitionContent } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/authoredDefinitions";
 import { canonicalContentDigest, canonicalPreviewDocument, documentComposedContext, parseCanonicalDocumentRead, collectCanonicalMediaIds, resolveDocumentDisplayTree, type CanonicalDocumentDto } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/documentContracts";
 import { parsePublicCanonicalDocument } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/publicDocumentContracts";
 import { resolveCanonicalDataWithDefinitions } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/resolve";
@@ -10,6 +10,20 @@ import { canonicalPreviewCodec } from "../../ConvexPress-Website/apps/web/src/te
 const scope = { websiteKey: "composed-document", instanceKey: "staging" };
 const installation = { ...scope, deploymentOrigin: "https://composed-document.convex.cloud" };
 const policy = { enabledPlugins: [], capabilities: [], disabledBlocks: [] };
+test("scoped custom definitions enforce declared action rules without changing stored-read contracts", () => {
+  const source = JSON.parse(definition("action").definitionJson);
+  source.spec.fields.push({ id: "url", type: "text", default: "" });
+  source.spec.authoringActions = [{ path: [], href: "url", label: "title" }];
+  const encoded = encodeComposedDefinition(source);
+  const composedDefinitions = { scope: installation, definitions: [{ name: source.spec.name, version: 1, digest: encoded.digest, definitionJson: encoded.json }] };
+  const old = parseAuthoredDefinitionContent({ title: "Repairable", composedDefinitions, blocks: [{ id: "action", name: source.spec.name, version: 1, attrs: { title: "Open", url: "javascript:alert(1)" } }] }, installation);
+  const before = JSON.stringify(old);
+  expect(() => assertAuthoredActions(old, installation)).toThrow();
+  expect(JSON.stringify(old)).toBe(before);
+  const repaired = parseAuthoredDefinitionContent({ ...old, blocks: [{ ...old.blocks[0], attrs: { title: "Open", url: "/study" } }] }, installation);
+  expect(() => assertAuthoredActions(repaired, installation)).not.toThrow();
+  expect(() => assertAuthoredActions(repaired, { ...installation, instanceKey: "foreign" })).toThrow();
+});
 function definition(slug: string, version = 1) {
   const encoded = encodeComposedDefinition({
     spec: { name: `composed/${slug}`, title: slug, description: `Definition copy for ${slug}`, category: "text", role: "content", version,

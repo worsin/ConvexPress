@@ -6,6 +6,44 @@ import { parseCanonicalDocumentRead } from "../foundation/documentContracts";
 const reference = (name: string, kind: "query" | "mutation" = "query") =>
 	makeFunctionReference<any, any, any>(`canonicalDocuments:${name}`);
 
+test("CTA authoring rejects save, preview and publication atomically while legacy repair and recovery stay available", async () => {
+  const f = await fixture();
+  await initialize(f);
+  await f.t.run(async ctx => {
+    const user = (await ctx.db.get("users", f.ids.user))!;
+    await ctx.db.patch("roles", user.roleId!, { capabilities: ["page.update", "page.publish", "revision.restore"] });
+    // A saved value from before the authoring rule, not a permitted new write.
+    await ctx.db.patch("posts", f.ids.post, { blocks: [{ id: "cta", name: "blocks/tabbed-content", version: 2, attrs: { tabs: [{ ctaLabel: "Open", ctaUrl: "javascript:alert(1)" }] } }] });
+  });
+  const opened = await f.client.query(reference("get"), { postId: f.ids.post });
+  const before = await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }));
+  const args = { postId: f.ids.post, expectedRevision: opened.document.revision, title: opened.document.title, blocks: opened.document.blocks };
+  for (const operation of [
+    () => f.client.mutation(reference("save", "mutation"), args),
+    () => f.client.query(reference("previewDraft"), args),
+    ...(["publish", "private", "future"] as const).map(status => () => f.client.mutation(reference("setPublication", "mutation"), { postId: f.ids.post, expectedRevision: args.expectedRevision, status, ...(status === "future" ? { scheduledAt: Date.now() + 60000 } : {}) })),
+  ]) {
+    await expect(operation()).rejects.toThrow();
+    expect(await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }))).toEqual(before);
+  }
+  expect(opened.document.blocks[0].attrs.tabs[0].ctaUrl).toBe("javascript:alert(1)");
+  const repaired = structuredClone(args.blocks);
+  repaired[0].attrs.tabs[0].ctaUrl = "/page/example/";
+  const saved = await f.client.mutation(reference("save", "mutation"), { ...args, blocks: repaired });
+  expect(saved.revision).toBe(args.expectedRevision + 1);
+  const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
+  const old = history.page.find((row: any) => row.blocksVersion === 2);
+  expect(old).toBeDefined();
+  const restored = await f.client.mutation(reference("restore", "mutation"), { postId: f.ids.post, expectedRevision: saved.revision, revisionId: old.id });
+  expect((await f.client.query(reference("get"), { postId: f.ids.post })).document.blocks).toEqual(args.blocks);
+  const settings = await f.client.query(reference("getSettings"), { postId: f.ids.post });
+  const changed = await f.client.mutation(reference("setSettings", "mutation"), { postId: f.ids.post, expectedRevision: restored.revision, expectedSettingsDigest: settings.settingsDigest, slug: settings.slug, pageTemplate: settings.pageTemplate, hideHeader: !settings.hideHeader, hideFooter: settings.hideFooter });
+  const original = history.page.find((row: any) => row.action === "recover-legacy");
+  expect(original).toBeDefined();
+  await f.client.mutation(reference("recoverLegacy", "mutation"), { postId: f.ids.post, expectedRevision: changed.revision, revisionId: original.id });
+  expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))?.blocksVersion).toBe(1);
+});
+
 test("saved block locks reject combined unlock/edit, removal and order changes without creating revisions", async () => {
 	const f = await fixture();
 	const blocks = [

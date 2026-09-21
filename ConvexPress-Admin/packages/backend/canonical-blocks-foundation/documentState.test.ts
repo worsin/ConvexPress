@@ -1,8 +1,23 @@
 import { expect, test } from "bun:test";
 import { authoringRevision, authoringSourceDigest, initializationReason, prepareCanonicalInitialize, prepareCanonicalSave, prepareCanonicalRestore, prepareCanonicalPublication } from "./documentState";
+import { validateBlockAttrs } from "./generated/schemas";
 const empty = { _id: "post", title: "Empty draft", status: "draft", content: "", blocksRevision: 0 };
 const current = { ...empty, blocksVersion: 2, contentMode: "blocks", blocks: [], blocksRevision: 9 };
 const code = (fn: () => unknown) => {try {fn();return null;}catch(error:any){return error.code;}};
+test("legacy CTA values remain readable and repairable but cannot be newly saved or published", () => {
+  const attrs = validateBlockAttrs("blocks/tabbed-content", { tabs: [{ ctaUrl: "javascript:alert(1)", ctaLabel: "Open" }] });
+  const blocks = [{ id: "tabbed", name: "blocks/tabbed-content", version: 2, attrs }];
+  const old = { ...current, blocks };
+  expect(() => prepareCanonicalSave(old, { expectedRevision: 9, title: old.title, blocks })).toThrow();
+  for (const status of ["publish", "private", "future"] as const)
+    expect(() => prepareCanonicalPublication(old, { expectedRevision: 9, status, ...(status === "future" ? { scheduledAt: 200 } : {}) }, 100)).toThrow();
+  expect(prepareCanonicalPublication({ ...old, status: "publish" }, { expectedRevision: 9, status: "draft" }, 100).blocks).toEqual(blocks);
+  const repaired = [{ ...blocks[0], attrs: validateBlockAttrs("blocks/tabbed-content", { tabs: [{ ctaUrl: "/page/example/", ctaLabel: "Open" }] }) }];
+  expect(prepareCanonicalSave(old, { expectedRevision: 9, title: old.title, blocks: repaired })).toMatchObject({ changed: true, revision: 10, blocks: repaired });
+  const snapshot = { ...old, parentId: "post" };
+  expect(prepareCanonicalRestore(current, snapshot, { expectedRevision: 9, postId: "post" }).blocks).toEqual(blocks);
+  expect(() => prepareCanonicalRestore({ ...current, status: "publish" }, snapshot, { expectedRevision: 9, postId: "post" })).toThrow();
+});
 test("initialization requires exact empty authoring and both source digest and revision CAS",()=>{
   const args={expectedRevision:0,expectedAuthoringDigest:authoringSourceDigest(empty),title:"New",blocks:[]};
   expect(prepareCanonicalInitialize(empty,args).revision).toBe(1);

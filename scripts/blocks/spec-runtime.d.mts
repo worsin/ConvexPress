@@ -30,6 +30,7 @@ export type BlockSpec = {
   role: "hero" | "opener" | "content" | "cta" | "aside" | "utility";
   version: number; keywords: string[]; ai: { useFor: string; avoid: string };
   fields: BlockField[]; constraints?: FieldConstraint[];
+  authoringActions?: AuthoringAction[];
   searchText?: (string[] | { path: string[]; format: "prose" })[];
   treatments?: { name: string; title: string; axes: TreatmentAxis[] }[];
   supports: { children: boolean; styles: boolean; layout: ("width" | "tone" | "spacing" | "align")[]; anchor: boolean; visibility: boolean };
@@ -41,6 +42,8 @@ export type BlockSpec = {
     | { kind: "text-to-richtext"; path: string[]; mode: "plain-prose" | "markdown-prose" | "plain-inline" | "markdown-inline" }
   )[] };
 };
+export interface AuthoringAction { path: readonly string[]; href: string; label: string }
+export function validateAuthoringActions<T>(zod: typeof z, attrs: T, actions?: readonly AuthoringAction[]): T;
 export function copyBlockSpecJson(input: unknown): SpecJson;
 export function createBlockSpecCompiler(zod: typeof z): {
   fieldSchema: z.ZodType<BlockField>;
