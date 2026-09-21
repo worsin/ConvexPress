@@ -49,6 +49,8 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 *.log*
+!src/templates/packs/*/surfaces/auth.login.tsx
+!src/templates/packs/*/surfaces/auth.logout.tsx
 
 # TypeScript
 *.tsbuildinfo
@@ -66,3 +68,5 @@ dev-dist
 .dev.vars*
 
 .open-next
+
+/.template-smoke/

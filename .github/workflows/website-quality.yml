@@ -3,14 +3,26 @@ name: Website Quality
 on:
   pull_request:
     paths:
+      - "blocks/**"
+      - "block-kit/**"
+      - "scripts/blocks/**"
       - "ConvexPress-Website/**"
+      - "scripts/website/**"
+      - "scripts/shared/**"
+      - "ConvexPress-Admin/packages/site-contract/**"
       - ".github/workflows/website-quality.yml"
   push:
     branches:
       - main
       - master
     paths:
+      - "blocks/**"
+      - "block-kit/**"
+      - "scripts/blocks/**"
       - "ConvexPress-Website/**"
+      - "scripts/website/**"
+      - "scripts/shared/**"
+      - "ConvexPress-Admin/packages/site-contract/**"
       - ".github/workflows/website-quality.yml"
 
 jobs:
@@ -22,6 +34,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: ConvexPress-Website/.bun-version
@@ -29,6 +45,13 @@ jobs:
       - name: Install workspace dependencies
         working-directory: ConvexPress-Website
         run: bun install --frozen-lockfile
+
+      - name: Unit and integration regressions
+        working-directory: ConvexPress-Website
+        run: bun run test
+
+      - name: Template contract coverage
+        run: bun run check:templates
 
       - name: Lint baseline
         run: bun run lint

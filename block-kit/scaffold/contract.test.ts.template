@@ -1,0 +1,13 @@
+import { expect, test } from "bun:test";
+import spec from "./block.json";
+import { attrsSchema, parseBlockSpec } from "../../../scripts/blocks/schema.mjs";
+
+test("announcement content remains bounded and rejects unknown attrs", () => {
+  const parsed = parseBlockSpec(spec);
+  const schema = attrsSchema(parsed.fields, parsed.constraints);
+  for (const example of parsed.examples) expect(schema.parse(example)).toEqual(example);
+  expect(() => schema.parse({ heading: "" })).toThrow();
+  expect(() => schema.parse({ heading: "x".repeat(161) })).toThrow();
+  expect(() => schema.parse({ heading: "Update", body: "x".repeat(2001) })).toThrow();
+  expect(() => schema.parse({ heading: "Update", html: "<script>" })).toThrow();
+});

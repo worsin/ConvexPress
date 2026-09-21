@@ -1,0 +1,9 @@
+import { defineBlock } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model";
+import * as P from "../../../ConvexPress-Website/apps/web/src/templates/sdk/primitives";
+
+export default defineBlock(__BLOCK_NAME__, ({ attrs }) => (
+  <P.Stack gap="md">
+    <P.Heading level={2}>{attrs.heading}</P.Heading>
+    {attrs.body && <P.Text>{attrs.body}</P.Text>}
+  </P.Stack>
+));

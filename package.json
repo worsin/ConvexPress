@@ -1,0 +1,28 @@
+{
+  "name": "convexpress-tooling",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "create:block": "node scripts/blocks/create.mjs",
+    "pattern:build": "node scripts/blocks/build-pattern.mjs",
+    "sync:blocks:all": "node scripts/blocks/sync-all.mjs",
+    "sync:block-kit": "node scripts/blocks/sync-kit.mjs",
+    "check:block-kit": "node scripts/blocks/sync-kit.mjs --check",
+    "sync:blocks": "node scripts/blocks/cli.mjs",
+    "sync:blocks:transport-validators": "bun scripts/blocks/generate-transport-validators.ts",
+    "check:blocks": "node scripts/blocks/check.mjs",
+    "test:blocks": "bun test ./scripts/blocks ./blocks",
+    "check:blocks-migration": "bun scripts/blocks/migrate-existing.ts --check",
+    "sync:blocks:backend-foundation": "node scripts/blocks/backend-foundation.mjs",
+    "check:blocks:backend-foundation": "node scripts/blocks/backend-foundation.mjs --check",
+    "sync:blocks:portable-data": "node scripts/blocks/portable-data.mjs",
+    "check:blocks:portable-data": "node scripts/blocks/portable-data.mjs --check",
+    "sync:blocks:deployed-foundation": "node scripts/blocks/deployed-foundation.mjs",
+    "check:blocks:deployed-foundation": "node scripts/blocks/deployed-foundation.mjs --check",
+    "sync:blocks:legacy-compatibility": "bun scripts/blocks/generate-legacy-compatibility.ts",
+    "check:blocks:legacy-compatibility": "bun scripts/blocks/generate-legacy-compatibility.ts --check",
+    "promote:block": "bun scripts/blocks/promote.ts",
+    "capture:block-thumbnails": "node scripts/blocks/capture-thumbnails.mjs",
+    "check:block-thumbnails": "node scripts/blocks/thumbnail-catalog.mjs"
+  }
+}

@@ -1,0 +1,5035 @@
+[
+  {
+    "name": "core/paragraph",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px71z2awes89g1jrm08fdnp8rn8dvyzk",
+    "specPath": "blocks/core/paragraph/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Paragraph",
+      "category": "text",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "body",
+          "default": {
+            "type": "doc",
+            "content": []
+          },
+          "type": "richtext",
+          "max": 2000,
+          "inline": false
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "text-to-richtext",
+            "path": [
+              "body"
+            ],
+            "mode": "markdown-prose"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/heading",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px71x5st2kbcc602k1ezgrr5c18dv81w",
+    "specPath": "blocks/core/heading/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": {
+      "savedDefaults": {
+        "level": 2,
+        "text": "Heading",
+        "anchor": ""
+      },
+      "renderDefaults": {
+        "level": 2,
+        "text": "",
+        "anchor": ""
+      }
+    },
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Heading",
+      "category": "text",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "level",
+          "default": 2,
+          "type": "select",
+          "options": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        {
+          "id": "text",
+          "default": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Heading"
+                  }
+                ]
+              }
+            ]
+          },
+          "type": "richtext",
+          "max": 200,
+          "nullable": true,
+          "inline": true
+        },
+        {
+          "id": "anchor",
+          "default": "",
+          "type": "text",
+          "max": 80
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "empty-to-null",
+            "path": [
+              "text"
+            ]
+          },
+          {
+            "kind": "text-to-richtext",
+            "path": [
+              "text"
+            ],
+            "mode": "plain-inline"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/list",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px77q41m5jpcegfhb2kz5hrhg58dv304",
+    "specPath": "blocks/core/list/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": {
+      "savedDefaults": {
+        "style": "bullet",
+        "items": [
+          {
+            "text": ""
+          }
+        ]
+      },
+      "renderDefaults": {
+        "style": "bullet",
+        "items": []
+      }
+    },
+    "state": "staged-migration",
+    "metadata": {
+      "title": "List",
+      "category": "text",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "style",
+          "default": "bullet",
+          "type": "select",
+          "options": [
+            "bullet",
+            "ordered",
+            "task"
+          ]
+        },
+        {
+          "id": "items",
+          "default": [
+            {
+              "text": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": []
+                  }
+                ]
+              }
+            }
+          ],
+          "type": "repeater",
+          "fields": [
+            {
+              "id": "text",
+              "default": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": []
+                  }
+                ]
+              },
+              "type": "richtext",
+              "max": 500,
+              "inline": true
+            },
+            {
+              "id": "done",
+              "type": "boolean"
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "text-to-richtext",
+            "path": [
+              "items",
+              "*",
+              "text"
+            ],
+            "mode": "markdown-inline"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/image",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px73cwhq20cwfnte2spg8xxsy18dvk8g",
+    "specPath": "blocks/core/image/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Image",
+      "category": "media",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "alt",
+          "default": "",
+          "type": "text",
+          "max": 200
+        },
+        {
+          "id": "caption",
+          "default": "",
+          "type": "text",
+          "max": 300
+        },
+        {
+          "id": "href",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/quote",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px739df1d29szvwbpzfm8wr4158dttnz",
+    "specPath": "blocks/core/quote/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Quote",
+      "category": "text",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "text",
+          "default": null,
+          "type": "text",
+          "min": 1,
+          "max": 800,
+          "nullable": true
+        },
+        {
+          "id": "cite",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "source",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "empty-to-null",
+            "path": [
+              "text"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/code",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px722t6y4vcpyawzem1p0pe0xs8dvc3x",
+    "specPath": "blocks/core/code/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Code",
+      "category": "text",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "language",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "code",
+          "default": "",
+          "type": "text"
+        },
+        {
+          "id": "filename",
+          "default": "",
+          "type": "text",
+          "max": 120
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/divider",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px77rdhjexydjj5xj7hr15hp7x8dvsgj",
+    "specPath": "blocks/core/divider/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Divider",
+      "category": "layout",
+      "role": "utility",
+      "version": 2,
+      "fields": [],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "variant"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/spacer",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px712qbrs0d3vsrhyw8hvrwnm58dtvdx",
+    "specPath": "blocks/core/spacer/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Spacer",
+      "category": "layout",
+      "role": "utility",
+      "version": 2,
+      "fields": [],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "size"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/embed",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px736q0h958z85ys6yyqn2t20h8dv3rs",
+    "specPath": "blocks/core/embed/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Embed",
+      "category": "media",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "url",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        },
+        {
+          "id": "caption",
+          "default": "",
+          "type": "text",
+          "max": 300
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/hero",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px735sz6p3s1ny529pd398jhex8dt31q",
+    "specPath": "blocks/core/hero/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Hero",
+      "category": "marketing",
+      "role": "hero",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "title",
+          "default": null,
+          "type": "text",
+          "min": 1,
+          "max": 120,
+          "nullable": true
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 600
+        },
+        {
+          "id": "primaryCtaLabel",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "primaryCtaUrl",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        },
+        {
+          "id": "secondaryCtaLabel",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "secondaryCtaUrl",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "empty-to-null",
+            "path": [
+              "title"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/rich-text",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px73bermwjm7h74sqrf87482d58dvjq7",
+    "specPath": "blocks/core/rich-text/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Rich Text Section",
+      "category": "text",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": {
+            "type": "doc",
+            "content": []
+          },
+          "type": "richtext",
+          "max": 2000,
+          "inline": false
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "text-to-richtext",
+            "path": [
+              "body"
+            ],
+            "mode": "plain-prose"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/feature-grid",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px71hvjjtj9e4vqq7q18tqbswn8dtznc",
+    "specPath": "blocks/core/feature-grid/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Feature Grid",
+      "category": "marketing",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "items",
+          "default": [],
+          "type": "repeater",
+          "max": 12,
+          "fields": [
+            {
+              "id": "title",
+              "default": "",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "description",
+              "default": "",
+              "type": "text",
+              "max": 300
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/cta-band",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px70jw2ct99pzkyhdt2z1n5kk18dtbfy",
+    "specPath": "blocks/core/cta-band/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "CTA Band",
+      "category": "marketing",
+      "role": "cta",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": null,
+          "type": "text",
+          "min": 1,
+          "max": 120,
+          "nullable": true
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "primaryCtaLabel",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "primaryCtaUrl",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        },
+        {
+          "id": "secondaryCtaLabel",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "secondaryCtaUrl",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "empty-to-null",
+            "path": [
+              "heading"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/media-text",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px76ks8q16pmw5fgm85cbjvy298dtv0c",
+    "specPath": "blocks/core/media-text/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Media + Text",
+      "category": "media",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 600
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "mediaAlt",
+          "default": "",
+          "type": "text",
+          "max": 200
+        },
+        {
+          "id": "ctaLabel",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "ctaUrl",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "mediaPosition"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/testimonials",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px71ehhn1jxhhda5t364ds1f2d8dv981",
+    "specPath": "blocks/core/testimonials/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Testimonials",
+      "category": "marketing",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "items",
+          "default": [],
+          "type": "repeater",
+          "max": 20,
+          "fields": [
+            {
+              "id": "quote",
+              "default": "",
+              "type": "text",
+              "max": 500
+            },
+            {
+              "id": "name",
+              "default": "",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "role",
+              "default": "",
+              "type": "text",
+              "max": 80
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/pricing-cards",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px75ghbhdrcy9w5g9rhmjz0hp98dth21",
+    "specPath": "blocks/core/pricing-cards/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Pricing Cards",
+      "category": "commerce",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "plans",
+          "default": [],
+          "type": "repeater",
+          "max": 6,
+          "fields": [
+            {
+              "id": "name",
+              "default": "",
+              "type": "text",
+              "max": 40
+            },
+            {
+              "id": "price",
+              "default": "",
+              "type": "text",
+              "max": 40
+            },
+            {
+              "id": "description",
+              "default": "",
+              "type": "text",
+              "max": 200
+            },
+            {
+              "id": "features",
+              "default": [],
+              "type": "repeater",
+              "max": 20,
+              "item": {
+                "id": "value",
+                "required": true,
+                "type": "text",
+                "max": 120
+              }
+            },
+            {
+              "id": "ctaLabel",
+              "default": "",
+              "type": "text",
+              "max": 40
+            },
+            {
+              "id": "ctaUrl",
+              "default": "",
+              "type": "link",
+              "storage": "href",
+              "allowEmpty": true
+            },
+            {
+              "id": "featured",
+              "default": false,
+              "type": "boolean"
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/faq",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px75k0850j3281spbvtfhh0yxh8dt54y",
+    "specPath": "blocks/core/faq/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "FAQ",
+      "category": "text",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "items",
+          "default": [],
+          "type": "repeater",
+          "max": 40,
+          "fields": [
+            {
+              "id": "question",
+              "default": "",
+              "type": "text",
+              "max": 200
+            },
+            {
+              "id": "answer",
+              "default": "",
+              "type": "text",
+              "max": 1000
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/hero-text-only",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px7651kgma7w8vhe26cs56g5xh8dvrq4",
+    "specPath": "blocks/core/hero-text-only/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Hero (text only)",
+      "category": "marketing",
+      "role": "hero",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "title",
+          "default": null,
+          "type": "text",
+          "min": 1,
+          "max": 120,
+          "nullable": true
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 600
+        },
+        {
+          "id": "primaryCtaLabel",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "primaryCtaUrl",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        },
+        {
+          "id": "secondaryCtaLabel",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "secondaryCtaUrl",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "empty-to-null",
+            "path": [
+              "title"
+            ]
+          },
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "alignment"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/hero-split",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px7dbeksgw55b3nhr8z3f5ce458dvpnc",
+    "specPath": "blocks/core/hero-split/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Hero (split)",
+      "category": "marketing",
+      "role": "hero",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "title",
+          "default": null,
+          "type": "text",
+          "min": 1,
+          "max": 120,
+          "nullable": true
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 600
+        },
+        {
+          "id": "primaryCtaLabel",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "primaryCtaUrl",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        },
+        {
+          "id": "secondaryCtaLabel",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "secondaryCtaUrl",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "mediaAlt",
+          "default": "",
+          "type": "text",
+          "max": 200
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "empty-to-null",
+            "path": [
+              "title"
+            ]
+          },
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "mediaSide"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/feature-list-alternating",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px75mk6jxvxgkzdxb4yd4v5m018dvq91",
+    "specPath": "blocks/core/feature-list-alternating/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Feature list (alternating)",
+      "category": "marketing",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "items",
+          "default": [],
+          "type": "repeater",
+          "max": 10,
+          "fields": [
+            {
+              "id": "title",
+              "default": "",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "body",
+              "default": "",
+              "type": "text",
+              "max": 400
+            },
+            {
+              "id": "mediaId",
+              "default": "",
+              "type": "media",
+              "storage": "id",
+              "allowEmpty": true
+            },
+            {
+              "id": "mediaAlt",
+              "default": "",
+              "type": "text",
+              "max": 200
+            },
+            {
+              "id": "ctaLabel",
+              "default": "",
+              "type": "text",
+              "max": 40
+            },
+            {
+              "id": "ctaUrl",
+              "default": "",
+              "type": "link",
+              "storage": "href",
+              "allowEmpty": true
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/logo-cloud",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px781vbmsrq7tbnw5xcxfr6pr98dtk8r",
+    "specPath": "blocks/core/logo-cloud/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Logo cloud",
+      "category": "marketing",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "logos",
+          "default": [],
+          "type": "repeater",
+          "max": 24,
+          "fields": [
+            {
+              "id": "name",
+              "default": "",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "mediaId",
+              "default": "",
+              "type": "media",
+              "storage": "id",
+              "allowEmpty": true
+            },
+            {
+              "id": "href",
+              "default": "",
+              "type": "link",
+              "storage": "href",
+              "allowEmpty": true
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/stats-band",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px75h0qh7ydt7zxr277ykf76d98dt1q4",
+    "specPath": "blocks/core/stats-band/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Stats band",
+      "category": "marketing",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 300
+        },
+        {
+          "id": "stats",
+          "default": [],
+          "type": "repeater",
+          "max": 6,
+          "fields": [
+            {
+              "id": "value",
+              "default": "",
+              "type": "text",
+              "max": 40
+            },
+            {
+              "id": "label",
+              "default": "",
+              "type": "text",
+              "max": 80
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/team-grid",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px7fzrpvy8zfvbq506vt8etsf58dt5vj",
+    "specPath": "blocks/core/team-grid/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Team grid",
+      "category": "marketing",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "members",
+          "default": [],
+          "type": "repeater",
+          "max": 20,
+          "fields": [
+            {
+              "id": "name",
+              "default": "",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "role",
+              "default": "",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "bio",
+              "default": "",
+              "type": "text",
+              "max": 400
+            },
+            {
+              "id": "mediaId",
+              "default": "",
+              "type": "media",
+              "storage": "id",
+              "allowEmpty": true
+            },
+            {
+              "id": "href",
+              "default": "",
+              "type": "link",
+              "storage": "href",
+              "allowEmpty": true
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/comparison-table",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px7exg0fwdqgbp1g4ztme66tnn8dtm09",
+    "specPath": "blocks/core/comparison-table/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": {
+      "savedDefaults": {
+        "eyebrow": "",
+        "heading": "",
+        "body": "",
+        "columns": [
+          "Feature",
+          "Us",
+          "Them"
+        ],
+        "rows": []
+      },
+      "renderDefaults": {
+        "eyebrow": "",
+        "heading": "",
+        "body": "",
+        "columns": [],
+        "rows": []
+      }
+    },
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Comparison table",
+      "category": "marketing",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 300
+        },
+        {
+          "id": "columns",
+          "default": [
+            "Feature",
+            "Us",
+            "Them"
+          ],
+          "type": "repeater",
+          "min": 2,
+          "max": 6,
+          "item": {
+            "id": "value",
+            "required": true,
+            "type": "text",
+            "max": 40
+          },
+          "nullable": true
+        },
+        {
+          "id": "rows",
+          "default": [],
+          "type": "repeater",
+          "max": 40,
+          "fields": [
+            {
+              "id": "label",
+              "default": "",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "cells",
+              "default": [],
+              "type": "repeater",
+              "item": {
+                "id": "value",
+                "required": true,
+                "type": "text",
+                "max": 80
+              }
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "empty-to-null",
+            "path": [
+              "columns"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/process-steps",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px72wje4cjexzhnx9rf0ehsv0h8dvjcn",
+    "specPath": "blocks/core/process-steps/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Process steps",
+      "category": "marketing",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 300
+        },
+        {
+          "id": "steps",
+          "default": [],
+          "type": "repeater",
+          "max": 12,
+          "fields": [
+            {
+              "id": "title",
+              "default": "",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "body",
+              "default": "",
+              "type": "text",
+              "max": 400
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/roadmap-timeline",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px741khes6pn9j0y3gztg8ebp18dvfam",
+    "specPath": "blocks/core/roadmap-timeline/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Roadmap timeline",
+      "category": "marketing",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 300
+        },
+        {
+          "id": "items",
+          "default": [],
+          "type": "repeater",
+          "max": 30,
+          "fields": [
+            {
+              "id": "label",
+              "default": "",
+              "type": "text",
+              "max": 40
+            },
+            {
+              "id": "title",
+              "default": "",
+              "type": "text",
+              "max": 120
+            },
+            {
+              "id": "body",
+              "default": "",
+              "type": "text",
+              "max": 400
+            },
+            {
+              "id": "status",
+              "default": "planned",
+              "type": "select",
+              "options": [
+                "done",
+                "in_progress",
+                "planned"
+              ]
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/bento-grid",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px7fd1c1ngej9byfb4wk5v1hj18dt2gp",
+    "specPath": "blocks/core/bento-grid/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Bento grid",
+      "category": "marketing",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 300
+        },
+        {
+          "id": "items",
+          "default": [],
+          "type": "repeater",
+          "max": 12,
+          "fields": [
+            {
+              "id": "title",
+              "default": "",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "body",
+              "default": "",
+              "type": "text",
+              "max": 400
+            },
+            {
+              "id": "mediaId",
+              "default": "",
+              "type": "media",
+              "storage": "id",
+              "allowEmpty": true
+            },
+            {
+              "id": "ctaLabel",
+              "default": "",
+              "type": "text",
+              "max": 40
+            },
+            {
+              "id": "ctaUrl",
+              "default": "",
+              "type": "link",
+              "storage": "href",
+              "allowEmpty": true
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "items",
+              "*",
+              "size"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/contact-form",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px70a3bq74wemk9y4wh96gbb1x8dte4q",
+    "specPath": "blocks/core/contact-form/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": {
+      "savedDefaults": {
+        "eyebrow": "",
+        "heading": "",
+        "body": "",
+        "fields": [],
+        "submitLabel": "Send message",
+        "recipientEmail": "",
+        "successMessage": "Thanks — we'll be in touch."
+      },
+      "renderDefaults": {
+        "eyebrow": "",
+        "heading": "",
+        "body": "",
+        "fields": [],
+        "submitLabel": "Send",
+        "recipientEmail": "",
+        "successMessage": ""
+      }
+    },
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Contact form",
+      "category": "forms",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "fields",
+          "default": [],
+          "type": "repeater",
+          "max": 12,
+          "fields": [
+            {
+              "id": "name",
+              "default": "name",
+              "type": "text",
+              "max": 40
+            },
+            {
+              "id": "label",
+              "default": "Name",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "type",
+              "default": "text",
+              "type": "select",
+              "options": [
+                "text",
+                "email",
+                "tel",
+                "textarea",
+                "select"
+              ]
+            },
+            {
+              "id": "required",
+              "default": false,
+              "type": "boolean"
+            },
+            {
+              "id": "placeholder",
+              "default": "",
+              "type": "text",
+              "max": 120
+            },
+            {
+              "id": "options",
+              "default": [],
+              "type": "repeater",
+              "item": {
+                "id": "value",
+                "required": true,
+                "type": "text",
+                "max": 80
+              }
+            }
+          ]
+        },
+        {
+          "id": "submitLabel",
+          "default": "Send message",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "recipientEmail",
+          "default": "",
+          "type": "text",
+          "max": 200
+        },
+        {
+          "id": "successMessage",
+          "default": "Thanks — we'll be in touch.",
+          "type": "text",
+          "max": 200
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/newsletter-signup",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px70s74ywsrsfjkh0tn7gq38b18dvsbz",
+    "specPath": "blocks/core/newsletter-signup/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": {
+      "savedDefaults": {
+        "eyebrow": "",
+        "heading": "",
+        "body": "",
+        "placeholder": "Your email",
+        "submitLabel": "Subscribe",
+        "successMessage": "Check your inbox to confirm.",
+        "variant": "inline"
+      },
+      "renderDefaults": {
+        "eyebrow": "",
+        "heading": "",
+        "body": "",
+        "placeholder": "Your email",
+        "submitLabel": "Subscribe",
+        "successMessage": "",
+        "variant": "inline"
+      }
+    },
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Newsletter signup",
+      "category": "forms",
+      "role": "cta",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 300
+        },
+        {
+          "id": "placeholder",
+          "default": "Your email",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "submitLabel",
+          "default": "Subscribe",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "successMessage",
+          "default": "Check your inbox to confirm.",
+          "type": "text",
+          "max": 200
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "variant"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/cta-with-form",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px7ecqmtz2s1ajhzzrzyycb0zh8dt4bn",
+    "specPath": "blocks/core/cta-with-form/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": {
+      "savedDefaults": {
+        "eyebrow": "",
+        "heading": "",
+        "body": "",
+        "placeholder": "you@company.com",
+        "submitLabel": "Get started",
+        "fineprint": ""
+      },
+      "renderDefaults": {
+        "eyebrow": "",
+        "heading": "",
+        "body": "",
+        "placeholder": "",
+        "submitLabel": "Get started",
+        "fineprint": ""
+      }
+    },
+    "state": "staged-migration",
+    "metadata": {
+      "title": "CTA with inline form",
+      "category": "forms",
+      "role": "cta",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": null,
+          "type": "text",
+          "min": 1,
+          "max": 120,
+          "nullable": true
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "placeholder",
+          "default": "you@company.com",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "submitLabel",
+          "default": "Get started",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "fineprint",
+          "default": "",
+          "type": "text",
+          "max": 200
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "empty-to-null",
+            "path": [
+              "heading"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/booking-cta",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px77ee0tbnt984n3kbtzxz7c9n8dvnwv",
+    "specPath": "blocks/core/booking-cta/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": {
+      "savedDefaults": {
+        "eyebrow": "",
+        "heading": "",
+        "body": "",
+        "ctaLabel": "Book a time",
+        "ctaUrl": "",
+        "embedUrl": ""
+      },
+      "renderDefaults": {
+        "eyebrow": "",
+        "heading": "",
+        "body": "",
+        "ctaLabel": "",
+        "ctaUrl": "",
+        "embedUrl": ""
+      }
+    },
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Booking CTA",
+      "category": "forms",
+      "role": "cta",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": null,
+          "type": "text",
+          "min": 1,
+          "max": 120,
+          "nullable": true
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "ctaLabel",
+          "default": "Book a time",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "ctaUrl",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        },
+        {
+          "id": "embedUrl",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "empty-to-null",
+            "path": [
+              "heading"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "core/latest-posts",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px74avycv7zbex7dv9nyfmbmr98dvn3v",
+    "specPath": "blocks/core/latest-posts/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Latest posts",
+      "category": "site",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 300
+        },
+        {
+          "id": "count",
+          "default": 3,
+          "type": "number",
+          "min": 1,
+          "max": 24
+        },
+        {
+          "id": "categorySlug",
+          "default": "",
+          "type": "reference",
+          "max": 120,
+          "of": "category",
+          "storage": "slug",
+          "allowEmpty": true
+        },
+        {
+          "id": "tagSlug",
+          "default": "",
+          "type": "reference",
+          "max": 120,
+          "of": "tag",
+          "storage": "slug",
+          "allowEmpty": true
+        },
+        {
+          "id": "showExcerpts",
+          "default": true,
+          "type": "boolean"
+        },
+        {
+          "id": "showAuthors",
+          "default": true,
+          "type": "boolean"
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/featured-products",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px7bp9ctmyqh64de0vrv1e1apn8dt4jy",
+    "specPath": "blocks/core/featured-products/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Featured products",
+      "category": "commerce",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 300
+        },
+        {
+          "id": "productIds",
+          "default": [],
+          "type": "repeater",
+          "max": 12,
+          "item": {
+            "id": "value",
+            "required": true,
+            "type": "reference",
+            "of": "product",
+            "storage": "id",
+            "allowEmpty": true
+          }
+        },
+        {
+          "id": "count",
+          "default": 4,
+          "type": "number",
+          "min": 1,
+          "max": 12
+        },
+        {
+          "id": "showPrice",
+          "default": true,
+          "type": "boolean"
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/author-bio",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px74vded3ctf77v289aasexadh8dtnr9",
+    "specPath": "blocks/core/author-bio/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Author bio",
+      "category": "site",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "userId",
+          "default": "",
+          "type": "reference",
+          "of": "user",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "name",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "role",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "bio",
+          "default": "",
+          "type": "text",
+          "max": 500
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "links",
+          "default": [],
+          "type": "repeater",
+          "max": 6,
+          "fields": [
+            {
+              "id": "label",
+              "default": "",
+              "type": "text",
+              "max": 40
+            },
+            {
+              "id": "href",
+              "default": "",
+              "type": "link",
+              "storage": "href",
+              "allowEmpty": true
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/social-links",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px77gfyx51x0v6zr3jh13nkjp58dvm52",
+    "specPath": "blocks/core/social-links/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Social links",
+      "category": "site",
+      "role": "utility",
+      "version": 2,
+      "fields": [
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "links",
+          "default": [],
+          "type": "repeater",
+          "max": 12,
+          "fields": [
+            {
+              "id": "platform",
+              "default": "",
+              "type": "text",
+              "max": 40
+            },
+            {
+              "id": "label",
+              "default": "",
+              "type": "text",
+              "max": 40
+            },
+            {
+              "id": "href",
+              "default": "",
+              "type": "link",
+              "storage": "href",
+              "allowEmpty": true
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/tag-cloud",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px78zdcctg4k3yhgy11p858scd8dtrgy",
+    "specPath": "blocks/core/tag-cloud/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Tag cloud",
+      "category": "site",
+      "role": "aside",
+      "version": 2,
+      "fields": [
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "max",
+          "default": 30,
+          "type": "number",
+          "min": 1,
+          "max": 100
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/accordion",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px79f285636gqwx9j07hkhctwh8dvxn6",
+    "specPath": "blocks/core/accordion/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Accordion",
+      "category": "layout",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 300
+        },
+        {
+          "id": "items",
+          "default": [],
+          "type": "repeater",
+          "max": 40,
+          "fields": [
+            {
+              "id": "title",
+              "default": "",
+              "type": "text",
+              "max": 120
+            },
+            {
+              "id": "body",
+              "default": "",
+              "type": "text",
+              "max": 2000
+            }
+          ]
+        },
+        {
+          "id": "defaultOpen",
+          "default": 0,
+          "type": "number",
+          "min": 0
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "core/tabs",
+    "source": "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts",
+    "sourceHash": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "rowId": "px71p7m9h9hgwxbf069js0s5jd8dvkh3",
+    "specPath": "blocks/core/tabs/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": true,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Tabs",
+      "category": "layout",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "tabs",
+          "default": [],
+          "type": "repeater",
+          "max": 8,
+          "fields": [
+            {
+              "id": "label",
+              "default": "",
+              "type": "text",
+              "max": 40
+            },
+            {
+              "id": "body",
+              "default": "",
+              "type": "text",
+              "max": 2000
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": []
+      }
+    }
+  },
+  {
+    "name": "commerce/assistant-band",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/assistant-band/schema.ts",
+    "sourceHash": "15faf11b08337b90512b4daf3b6ecbd6eac4e7e32176b351acfef24348e9928c",
+    "rowId": "px70avbt98j6gjhzscnsa9gymh8dvw0j",
+    "specPath": "blocks/commerce/assistant-band/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "representable",
+    "metadata": {
+      "title": "Shopping Assistant Band",
+      "category": "commerce",
+      "role": "cta",
+      "version": 1,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "Not sure what fits? Ask.",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 600
+        },
+        {
+          "id": "prompts",
+          "default": [],
+          "type": "repeater",
+          "max": 8,
+          "item": {
+            "id": "value",
+            "required": true,
+            "type": "text",
+            "max": 160
+          }
+        },
+        {
+          "id": "ctaLabel",
+          "default": "Browse the shop",
+          "type": "text",
+          "max": 60
+        },
+        {
+          "id": "ctaUrl",
+          "default": "/products",
+          "type": "text",
+          "max": 500
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      }
+    }
+  },
+  {
+    "name": "commerce/category-tiles",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/category-tiles/schema.ts",
+    "sourceHash": "0c125db99baae211a87361af04ffdc6293259f71a46ff35db1f1e9dda413e958",
+    "rowId": "px7fdgxktgr491k8pd07k4jw7h8dtth0",
+    "specPath": "blocks/commerce/category-tiles/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Category Tiles",
+      "category": "commerce",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "Shop by category",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "intro",
+          "default": "",
+          "type": "text",
+          "max": 700
+        },
+        {
+          "id": "categorySlugs",
+          "default": [],
+          "type": "repeater",
+          "max": 24,
+          "item": {
+            "id": "value",
+            "required": true,
+            "type": "reference",
+            "max": 160,
+            "of": "category",
+            "storage": "slug",
+            "allowEmpty": true
+          }
+        },
+        {
+          "id": "limit",
+          "default": 6,
+          "type": "number",
+          "min": 1,
+          "max": 24
+        },
+        {
+          "id": "showCounts",
+          "default": true,
+          "type": "boolean"
+        },
+        {
+          "id": "showDescriptions",
+          "default": false,
+          "type": "boolean"
+        },
+        {
+          "id": "ctaLabel",
+          "default": "",
+          "type": "text",
+          "max": 60
+        },
+        {
+          "id": "ctaUrl",
+          "default": "",
+          "type": "text",
+          "max": 500
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "columns"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "blocks/contact-stack",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/contact-stack/schema.ts",
+    "sourceHash": "cbce1f6486c4df0a86dde51a8812b8696974b0dfca97fd1ceb2c4eacbc7ecdc1",
+    "rowId": "px72n0bxdpxd82gnscq6z1akyn8dva84",
+    "specPath": "blocks/blocks/contact-stack/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "representable",
+    "metadata": {
+      "title": "Contact Stack",
+      "category": "site",
+      "role": "content",
+      "version": 1,
+      "fields": [
+        {
+          "id": "heading",
+          "default": "Contact the site",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "intro",
+          "default": "",
+          "type": "text",
+          "max": 800
+        },
+        {
+          "id": "phone",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "email",
+          "default": "",
+          "type": "text",
+          "max": 160
+        },
+        {
+          "id": "address",
+          "default": "",
+          "type": "text",
+          "max": 500
+        },
+        {
+          "id": "hours",
+          "default": "",
+          "type": "text",
+          "max": 500
+        },
+        {
+          "id": "mapEmbedUrl",
+          "default": "",
+          "type": "text",
+          "max": 1000
+        },
+        {
+          "id": "items",
+          "default": [],
+          "type": "repeater",
+          "max": 8,
+          "fields": [
+            {
+              "id": "label",
+              "default": "",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "value",
+              "default": "",
+              "type": "text",
+              "max": 300
+            },
+            {
+              "id": "href",
+              "default": "",
+              "type": "text",
+              "max": 500
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      }
+    }
+  },
+  {
+    "name": "blocks/customer-showcase",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/customer-showcase/schema.ts",
+    "sourceHash": "4777c9b6cdabdb00df8aabc693ff3da5da3f51dc6eb1b227ee9e8cd14d9f7196",
+    "rowId": "px7ev9gqfykdcbg5zs6nb2d3g98dtp43",
+    "specPath": "blocks/blocks/customer-showcase/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "representable",
+    "metadata": {
+      "title": "Customer Showcase",
+      "category": "marketing",
+      "role": "content",
+      "version": 1,
+      "fields": [
+        {
+          "id": "heading",
+          "default": "Built with site product",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "intro",
+          "default": "",
+          "type": "text",
+          "max": 800
+        },
+        {
+          "id": "items",
+          "default": [],
+          "type": "repeater",
+          "max": 24,
+          "fields": [
+            {
+              "id": "quote",
+              "default": "",
+              "type": "text",
+              "max": 900
+            },
+            {
+              "id": "name",
+              "default": "",
+              "type": "text",
+              "max": 120
+            },
+            {
+              "id": "role",
+              "default": "",
+              "type": "text",
+              "max": 120
+            },
+            {
+              "id": "company",
+              "default": "",
+              "type": "text",
+              "max": 140
+            },
+            {
+              "id": "mediaId",
+              "default": "",
+              "type": "media",
+              "storage": "id",
+              "allowEmpty": true
+            },
+            {
+              "id": "mediaAlt",
+              "default": "",
+              "type": "text",
+              "max": 200
+            },
+            {
+              "id": "instrumentType",
+              "default": "",
+              "type": "text",
+              "max": 120
+            },
+            {
+              "id": "url",
+              "default": "",
+              "type": "text",
+              "max": 500
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      }
+    }
+  },
+  {
+    "name": "reference/field-guide",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/field-guide/schema.ts",
+    "sourceHash": "989687b1af5f18dc0098bed90939c255b84674f6fb42c85fe4ca976e2002cf11",
+    "rowId": "px71cezwvbdbcy3qx9x298c9m18dtap8",
+    "specPath": "blocks/reference/field-guide/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Field Guide",
+      "category": "site",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 160
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 4000
+        },
+        {
+          "id": "count",
+          "default": 3,
+          "type": "number",
+          "integer": true,
+          "min": 1,
+          "max": 12
+        },
+        {
+          "id": "showDetails",
+          "default": true,
+          "type": "boolean"
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "max": 256,
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "mediaAlt",
+          "default": "",
+          "type": "text",
+          "max": 250
+        },
+        {
+          "id": "note",
+          "default": null,
+          "nullable": true,
+          "type": "text",
+          "max": 160
+        },
+        {
+          "id": "link",
+          "default": {
+            "label": "",
+            "href": "",
+            "newTab": false
+          },
+          "type": "object",
+          "fields": [
+            {
+              "id": "label",
+              "default": "",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "href",
+              "default": "",
+              "type": "link",
+              "max": 2000,
+              "storage": "href",
+              "allowEmpty": true
+            },
+            {
+              "id": "newTab",
+              "default": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "id": "items",
+          "default": [],
+          "type": "repeater",
+          "max": 12,
+          "fields": [
+            {
+              "id": "label",
+              "required": true,
+              "type": "text",
+              "max": 100
+            },
+            {
+              "id": "value",
+              "required": true,
+              "type": "text",
+              "max": 300
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "spacing"
+            ]
+          },
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "alignment"
+            ]
+          },
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "ink"
+            ]
+          },
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "font"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "blocks/grade-gallery",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/grade-gallery/schema.ts",
+    "sourceHash": "3d391459db693b6bef2cce0dbe7d8a8540cbc06fe889266b3e313cb4627623fe",
+    "rowId": "px7448qsedtaw91m0g9yp29sv98dv6g8",
+    "specPath": "blocks/blocks/grade-gallery/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "representable",
+    "metadata": {
+      "title": "Grade Gallery",
+      "category": "media",
+      "role": "content",
+      "version": 1,
+      "fields": [
+        {
+          "id": "heading",
+          "default": "Product grades",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "intro",
+          "default": "",
+          "type": "text",
+          "max": 800
+        },
+        {
+          "id": "sections",
+          "default": [],
+          "type": "repeater",
+          "max": 12,
+          "fields": [
+            {
+              "id": "grade",
+              "default": "Grade",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "description",
+              "default": "",
+              "type": "text",
+              "max": 1600
+            },
+            {
+              "id": "notes",
+              "default": "",
+              "type": "text",
+              "max": 800
+            },
+            {
+              "id": "images",
+              "default": [],
+              "type": "repeater",
+              "max": 16,
+              "fields": [
+                {
+                  "id": "mediaId",
+                  "default": "",
+                  "type": "media",
+                  "storage": "id",
+                  "allowEmpty": true
+                },
+                {
+                  "id": "alt",
+                  "default": "",
+                  "type": "text",
+                  "max": 200
+                },
+                {
+                  "id": "caption",
+                  "default": "",
+                  "type": "text",
+                  "max": 220
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      }
+    }
+  },
+  {
+    "name": "blocks/media-mentions",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/media-mentions/schema.ts",
+    "sourceHash": "fae52828cbaa43ab8f85e65567ac91cb8529659c758037c0b29f128a1c95a474",
+    "rowId": "px7bz3vsrqcqdaf89hyrnd0twd8dv8gn",
+    "specPath": "blocks/blocks/media-mentions/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "representable",
+    "metadata": {
+      "title": "Media Mentions",
+      "category": "marketing",
+      "role": "content",
+      "version": 1,
+      "fields": [
+        {
+          "id": "heading",
+          "default": "In the media",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "intro",
+          "default": "",
+          "type": "text",
+          "max": 800
+        },
+        {
+          "id": "items",
+          "default": [],
+          "type": "repeater",
+          "max": 24,
+          "fields": [
+            {
+              "id": "title",
+              "default": "",
+              "type": "text",
+              "max": 180
+            },
+            {
+              "id": "source",
+              "default": "",
+              "type": "text",
+              "max": 120
+            },
+            {
+              "id": "byline",
+              "default": "",
+              "type": "text",
+              "max": 160
+            },
+            {
+              "id": "summary",
+              "default": "",
+              "type": "text",
+              "max": 700
+            },
+            {
+              "id": "mediaId",
+              "default": "",
+              "type": "media",
+              "storage": "id",
+              "allowEmpty": true
+            },
+            {
+              "id": "mediaAlt",
+              "default": "",
+              "type": "text",
+              "max": 200
+            },
+            {
+              "id": "ctaLabel",
+              "default": "Read more",
+              "type": "text",
+              "max": 60
+            },
+            {
+              "id": "ctaUrl",
+              "default": "",
+              "type": "text",
+              "max": 500
+            },
+            {
+              "id": "kind",
+              "default": "article",
+              "type": "select",
+              "options": [
+                "article",
+                "pdf",
+                "video",
+                "audio"
+              ]
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      }
+    }
+  },
+  {
+    "name": "blocks/page-banner",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/page-banner/schema.ts",
+    "sourceHash": "391a5d9a071ca9d143514b6c381fef9d72501a4ad962619c18c1801f8d11c0cf",
+    "rowId": "px72vy6r2wvrdj4hypfg4n8hhh8dvs5s",
+    "specPath": "blocks/blocks/page-banner/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "representable",
+    "metadata": {
+      "title": "Page Banner",
+      "category": "marketing",
+      "role": "opener",
+      "version": 1,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "title",
+          "default": "Page title",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "subtitle",
+          "default": "",
+          "type": "text",
+          "max": 500
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "mediaAlt",
+          "default": "",
+          "type": "text",
+          "max": 200
+        },
+        {
+          "id": "breadcrumbLabel",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "ctaLabel",
+          "default": "",
+          "type": "text",
+          "max": 60
+        },
+        {
+          "id": "ctaUrl",
+          "default": "",
+          "type": "text",
+          "max": 500
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      }
+    }
+  },
+  {
+    "name": "blocks/product-collection",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/product-collection/schema.ts",
+    "sourceHash": "ca94b13f34c9448efebb6f048bcfc3e5e710426a9302496909cb6de71ecfa72b",
+    "rowId": "px7b1wrvpbp4yv32v2ym1t0wkh8dt850",
+    "specPath": "blocks/blocks/product-collection/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Product Collection",
+      "category": "commerce",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "Featured products",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "intro",
+          "default": "",
+          "type": "text",
+          "max": 700
+        },
+        {
+          "id": "mode",
+          "default": "manual",
+          "type": "select",
+          "options": [
+            "manual",
+            "category",
+            "tag",
+            "sale",
+            "featured",
+            "recent",
+            "recentlyViewed"
+          ]
+        },
+        {
+          "id": "productIds",
+          "default": [],
+          "type": "repeater",
+          "max": 48,
+          "item": {
+            "id": "value",
+            "required": true,
+            "type": "reference",
+            "max": 120,
+            "of": "product",
+            "storage": "id",
+            "allowEmpty": true
+          }
+        },
+        {
+          "id": "categorySlug",
+          "default": "",
+          "type": "reference",
+          "max": 160,
+          "of": "category",
+          "storage": "slug",
+          "allowEmpty": true
+        },
+        {
+          "id": "tagSlug",
+          "default": "",
+          "type": "reference",
+          "max": 160,
+          "of": "tag",
+          "storage": "slug",
+          "allowEmpty": true
+        },
+        {
+          "id": "count",
+          "default": 4,
+          "type": "number",
+          "min": 1,
+          "max": 24
+        },
+        {
+          "id": "showPrice",
+          "default": true,
+          "type": "boolean"
+        },
+        {
+          "id": "showRating",
+          "default": false,
+          "type": "boolean"
+        },
+        {
+          "id": "showSaleBadge",
+          "default": true,
+          "type": "boolean"
+        },
+        {
+          "id": "showAddToCart",
+          "default": false,
+          "type": "boolean"
+        },
+        {
+          "id": "ctaLabel",
+          "default": "",
+          "type": "text",
+          "max": 60
+        },
+        {
+          "id": "ctaUrl",
+          "default": "",
+          "type": "text",
+          "max": 500
+        },
+        {
+          "id": "products",
+          "default": [],
+          "type": "repeater",
+          "max": 24,
+          "fields": [
+            {
+              "id": "title",
+              "default": "",
+              "type": "text",
+              "max": 160
+            },
+            {
+              "id": "summary",
+              "default": "",
+              "type": "text",
+              "max": 400
+            },
+            {
+              "id": "href",
+              "default": "",
+              "type": "text",
+              "max": 500
+            },
+            {
+              "id": "price",
+              "default": "",
+              "type": "text",
+              "max": 60
+            },
+            {
+              "id": "badge",
+              "default": "",
+              "type": "text",
+              "max": 60
+            },
+            {
+              "id": "mediaId",
+              "default": "",
+              "type": "media",
+              "storage": "id",
+              "allowEmpty": true
+            },
+            {
+              "id": "imageAlt",
+              "default": "",
+              "type": "text",
+              "max": 200
+            }
+          ]
+        },
+        {
+          "id": "groups",
+          "default": [],
+          "type": "repeater",
+          "max": 8,
+          "fields": [
+            {
+              "id": "label",
+              "default": "Group",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "productIds",
+              "default": [],
+              "type": "repeater",
+              "max": 24,
+              "item": {
+                "id": "value",
+                "required": true,
+                "type": "reference",
+                "max": 120,
+                "of": "product",
+                "storage": "id",
+                "allowEmpty": true
+              }
+            },
+            {
+              "id": "products",
+              "default": [],
+              "type": "repeater",
+              "max": 24,
+              "fields": [
+                {
+                  "id": "title",
+                  "default": "",
+                  "type": "text",
+                  "max": 160
+                },
+                {
+                  "id": "summary",
+                  "default": "",
+                  "type": "text",
+                  "max": 400
+                },
+                {
+                  "id": "href",
+                  "default": "",
+                  "type": "text",
+                  "max": 500
+                },
+                {
+                  "id": "price",
+                  "default": "",
+                  "type": "text",
+                  "max": 60
+                },
+                {
+                  "id": "badge",
+                  "default": "",
+                  "type": "text",
+                  "max": 60
+                },
+                {
+                  "id": "mediaId",
+                  "default": "",
+                  "type": "media",
+                  "storage": "id",
+                  "allowEmpty": true
+                },
+                {
+                  "id": "imageAlt",
+                  "default": "",
+                  "type": "text",
+                  "max": 200
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "display"
+            ]
+          },
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "columns"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "commerce/product-showcase",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/product-showcase/schema.ts",
+    "sourceHash": "81531e53cf742113c20376e0f7000bb22c61ee703770d3228f287ca5d2c4035c",
+    "rowId": "px739sgbvqrbtcfvmck0tdb9618dvcez",
+    "specPath": "blocks/commerce/product-showcase/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Product Showcase",
+      "category": "commerce",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "Featured products",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "intro",
+          "default": "",
+          "type": "text",
+          "max": 700
+        },
+        {
+          "id": "source",
+          "default": "newest",
+          "type": "select",
+          "options": [
+            "newest",
+            "category",
+            "sale",
+            "slugs"
+          ]
+        },
+        {
+          "id": "categorySlug",
+          "default": "",
+          "type": "reference",
+          "max": 160,
+          "of": "category",
+          "storage": "slug",
+          "allowEmpty": true
+        },
+        {
+          "id": "productSlugs",
+          "default": [],
+          "type": "repeater",
+          "max": 24,
+          "item": {
+            "id": "value",
+            "required": true,
+            "type": "reference",
+            "max": 160,
+            "of": "product",
+            "storage": "slug",
+            "allowEmpty": true
+          }
+        },
+        {
+          "id": "count",
+          "default": 4,
+          "type": "number",
+          "min": 1,
+          "max": 24
+        },
+        {
+          "id": "showAddToCart",
+          "default": true,
+          "type": "boolean"
+        },
+        {
+          "id": "ctaLabel",
+          "default": "",
+          "type": "text",
+          "max": 60
+        },
+        {
+          "id": "ctaUrl",
+          "default": "",
+          "type": "text",
+          "max": 500
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "columns"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "blocks/promo-band",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/promo-band/schema.ts",
+    "sourceHash": "c54014912b577d0135478e8021d6b3a20ff3cb78c1c150044e429cdfcb5fe64b",
+    "rowId": "px78w0jjys5c0nh2e7ypqbeskx8dv2jy",
+    "specPath": "blocks/blocks/promo-band/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "representable",
+    "metadata": {
+      "title": "Promo Band",
+      "category": "marketing",
+      "role": "cta",
+      "version": 1,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "Promotion",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "Promotion",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 1000
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "mediaAlt",
+          "default": "",
+          "type": "text",
+          "max": 200
+        },
+        {
+          "id": "primaryCtaLabel",
+          "default": "",
+          "type": "text",
+          "max": 60
+        },
+        {
+          "id": "primaryCtaUrl",
+          "default": "",
+          "type": "text",
+          "max": 500
+        },
+        {
+          "id": "secondaryCtaLabel",
+          "default": "",
+          "type": "text",
+          "max": 60
+        },
+        {
+          "id": "secondaryCtaUrl",
+          "default": "",
+          "type": "text",
+          "max": 500
+        },
+        {
+          "id": "details",
+          "default": [],
+          "type": "repeater",
+          "max": 6,
+          "fields": [
+            {
+              "id": "label",
+              "default": "",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "value",
+              "default": "",
+              "type": "text",
+              "max": 180
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      }
+    }
+  },
+  {
+    "name": "blocks/social-share",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/social-share/schema.ts",
+    "sourceHash": "8a201dba0ed294d8c65d064f9e66745acdcf5684096ebb59afb7b8c69a4102d5",
+    "rowId": "px723y7mq8vwzmenhbbgh4zpqh8dtmtq",
+    "specPath": "blocks/blocks/social-share/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "representable",
+    "metadata": {
+      "title": "Social Share",
+      "category": "site",
+      "role": "utility",
+      "version": 1,
+      "fields": [
+        {
+          "id": "heading",
+          "default": "Share this page",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 500
+        },
+        {
+          "id": "networks",
+          "default": [
+            "facebook",
+            "x",
+            "pinterest",
+            "email"
+          ],
+          "type": "repeater",
+          "max": 8,
+          "item": {
+            "id": "value",
+            "required": true,
+            "type": "select",
+            "options": [
+              "facebook",
+              "x",
+              "pinterest",
+              "linkedin",
+              "email",
+              "copy"
+            ]
+          }
+        },
+        {
+          "id": "shareUrlMode",
+          "default": "currentPage",
+          "type": "select",
+          "options": [
+            "currentPage",
+            "custom"
+          ]
+        },
+        {
+          "id": "customUrl",
+          "default": "",
+          "type": "text",
+          "max": 500
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      }
+    }
+  },
+  {
+    "name": "blocks/story-timeline",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/story-timeline/schema.ts",
+    "sourceHash": "6b275bc3c97d3ceaa72a1bfc46e33b556d964c7fd35c3843cfadbc14f34933ba",
+    "rowId": "px7fdfc5km58a6gwa6nfj98das8dtj2x",
+    "specPath": "blocks/blocks/story-timeline/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Story Timeline",
+      "category": "marketing",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "eyebrow",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "intro",
+          "default": "",
+          "type": "text",
+          "max": 800
+        },
+        {
+          "id": "items",
+          "default": [],
+          "type": "repeater",
+          "max": 40,
+          "fields": [
+            {
+              "id": "label",
+              "default": "",
+              "type": "text",
+              "max": 80
+            },
+            {
+              "id": "title",
+              "default": "",
+              "type": "text",
+              "max": 160
+            },
+            {
+              "id": "body",
+              "default": "",
+              "type": "text",
+              "max": 1600
+            },
+            {
+              "id": "mediaId",
+              "default": "",
+              "type": "media",
+              "storage": "id",
+              "allowEmpty": true
+            },
+            {
+              "id": "mediaAlt",
+              "default": "",
+              "type": "text",
+              "max": 200
+            },
+            {
+              "id": "linkLabel",
+              "default": "",
+              "type": "text",
+              "max": 60
+            },
+            {
+              "id": "linkUrl",
+              "default": "",
+              "type": "text",
+              "max": 500
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "items",
+              "*",
+              "side"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "blocks/tabbed-content",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/tabbed-content/schema.ts",
+    "sourceHash": "dcc9dd350faee080561dbef70ba36c17a2748ae2f8bcb34ad6c8930e79c8e318",
+    "rowId": "px72k7xxa99bjh30svyszsdex98dv7y1",
+    "specPath": "blocks/blocks/tabbed-content/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "staged-migration",
+    "metadata": {
+      "title": "Tabbed Content",
+      "category": "layout",
+      "role": "content",
+      "version": 2,
+      "fields": [
+        {
+          "id": "heading",
+          "default": "",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "intro",
+          "default": "",
+          "type": "text",
+          "max": 700
+        },
+        {
+          "id": "tabs",
+          "default": [
+            {
+              "label": "Overview",
+              "title": "Overview",
+              "body": "",
+              "mediaId": "",
+              "mediaAlt": "",
+              "ctaLabel": "",
+              "ctaUrl": ""
+            },
+            {
+              "label": "Details",
+              "title": "Details",
+              "body": "",
+              "mediaId": "",
+              "mediaAlt": "",
+              "ctaLabel": "",
+              "ctaUrl": ""
+            }
+          ],
+          "type": "repeater",
+          "max": 12,
+          "fields": [
+            {
+              "id": "label",
+              "default": "Tab",
+              "type": "text",
+              "max": 60
+            },
+            {
+              "id": "title",
+              "default": "",
+              "type": "text",
+              "max": 140
+            },
+            {
+              "id": "body",
+              "default": "",
+              "type": "text",
+              "max": 3000
+            },
+            {
+              "id": "mediaId",
+              "default": "",
+              "type": "media",
+              "storage": "id",
+              "allowEmpty": true
+            },
+            {
+              "id": "mediaAlt",
+              "default": "",
+              "type": "text",
+              "max": 200
+            },
+            {
+              "id": "ctaLabel",
+              "default": "",
+              "type": "text",
+              "max": 60
+            },
+            {
+              "id": "ctaUrl",
+              "default": "",
+              "type": "text",
+              "max": 500
+            }
+          ]
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      },
+      "migration": {
+        "fromVersion": 1,
+        "preserveLegacyRender": true,
+        "transforms": [
+          {
+            "kind": "pack-treatment",
+            "path": [
+              "orientation"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "events/upcoming",
+    "source": "ConvexPress-Admin/apps/web/src/blocks/upcoming-events/schema.ts",
+    "sourceHash": "fde3af2d311825707ff2847ff157d4f06bf6b5827d319f28e8ca7b01ee6a9a16",
+    "rowId": "px7f5yhs4xhaw8y7ehz5y5nman8dvt30",
+    "specPath": "blocks/events/upcoming/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "representable",
+    "metadata": {
+      "title": "Upcoming Events",
+      "category": "site",
+      "role": "content",
+      "version": 1,
+      "fields": [
+        {
+          "id": "heading",
+          "default": "Upcoming events",
+          "type": "text",
+          "max": 160
+        },
+        {
+          "id": "intro",
+          "default": "",
+          "type": "text",
+          "max": 1000
+        },
+        {
+          "id": "count",
+          "default": 3,
+          "type": "number",
+          "integer": true,
+          "min": 1,
+          "max": 12
+        },
+        {
+          "id": "showDescription",
+          "default": true,
+          "type": "boolean"
+        },
+        {
+          "id": "emptyText",
+          "default": "New dates are on the way.",
+          "type": "text",
+          "max": 240
+        }
+      ],
+      "data": {
+        "resolver": "events.upcoming",
+        "args": {
+          "limit": "attrs.count"
+        }
+      },
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      }
+    }
+  },
+  {
+    "name": "local/sample-alert",
+    "source": "ConvexPress-Admin/apps/web/src/blocks.local/sample-alert/schema.ts",
+    "sourceHash": "58ee39862f10610a883fc4b2a8cff0356a82777ebd61452e43b733deabd5ede5",
+    "rowId": "px76r6xb6bre08jnwbjvfa2je58dvhkk",
+    "specPath": "blocks/local/sample-alert/block.json",
+    "issues": [],
+    "websiteSchemaAvailable": true,
+    "websiteSchemaDiffers": false,
+    "websiteDefaultDifference": null,
+    "state": "representable",
+    "metadata": {
+      "title": "Sample Alert",
+      "category": "site",
+      "role": "content",
+      "version": 1,
+      "fields": [
+        {
+          "id": "heading",
+          "default": "Important update",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "Add the alert copy here.",
+          "type": "text",
+          "max": 800
+        },
+        {
+          "id": "variant",
+          "default": "info",
+          "type": "select",
+          "options": [
+            "info",
+            "success",
+            "warning"
+          ]
+        },
+        {
+          "id": "ctaLabel",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "ctaUrl",
+          "default": "",
+          "type": "text",
+          "max": 300
+        }
+      ],
+      "data": null,
+      "supports": {
+        "children": false,
+        "styles": true,
+        "layout": [
+          "width",
+          "tone",
+          "spacing",
+          "align"
+        ],
+        "anchor": true,
+        "visibility": true
+      }
+    }
+  }
+]

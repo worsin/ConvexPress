@@ -1,0 +1,2 @@
+# This existing ignore file contains CRLF lines; preserve their style in diffs.
+ConvexPress-Website/apps/web/.gitignore whitespace=cr-at-eol

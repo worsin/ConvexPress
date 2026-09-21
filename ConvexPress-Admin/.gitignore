@@ -1,5 +1,6 @@
 # Dependencies
 node_modules
+packages/desktop/resources/provisioning/
 .pnp
 .pnp.js
 
@@ -72,3 +73,7 @@ packages/backend/convex/extensions.local/*
 # Regenerates on predev / predeploy. Never hand-edit.
 packages/backend/convex/schema/_extensionsIndex.generated.ts
 packages/backend/convex/schema/_dashboardIndex.generated.ts
+
+packages/backend/convex/schema/_searchIndex.generated.ts
+
+packages/backend/convex/schema/_rsvpIndex.generated.ts

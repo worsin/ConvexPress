@@ -1,0 +1,10 @@
+{
+  "id": "mini-reference",
+  "name": "Annotated mini reference",
+  "version": "1.0.0",
+  "sdk": "^1",
+  "tagline": "One surface, complete data behavior",
+  "description": "A minimal composition boundary that retains Core's full content contract.",
+  "surfaces": ["home"],
+  "modules": ["colors", "typography", "layout", "header", "footer", "menuLayout"]
+}

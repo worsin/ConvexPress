@@ -97,6 +97,19 @@ Thumbs.db
 .claude/settings.local.json
 .claude/worktrees/
 .codex/
+# Distribute the canonical block skills; keep other root Codex state local.
+!/.codex/
+/.codex/*
+!/.codex/skills/
+/.codex/skills/*
+!/.codex/skills/block-build/
+!/.codex/skills/block-add-feature/
+!/.codex/skills/block-audit/
+!/.codex/skills/pattern-build/
+!/.codex/skills/block-style/
+!/.codex/skills/block-compose/
+!/.codex/skills/block-migrate-content/
+!/.codex/skills/block-promote/
 !ConvexPress-Admin/.codex/
 ConvexPress-Admin/.codex/*
 !ConvexPress-Admin/.codex/skills/
@@ -121,3 +134,12 @@ ConvexPress-Website/.codex/skills/*
 /output/
 /ConvexPress-Admin/output/
 /ConvexPress-Website/output/
+
+ConvexPress-Admin/packages/desktop/resources/website-hosting/
+ConvexPress-Admin/packages/desktop/resources/website-vercel/
+
+# Local provider cache and disposable verification artifacts are never source.
+/.wrangler/
+/ConvexPress-Admin/apps/web/.block-editor-test-*/
+/ConvexPress-Website/apps/web/output/
+/ConvexPress-Admin/packages/desktop/dist-electron/

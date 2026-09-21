@@ -1,0 +1,87 @@
+name: Canonical Block Quality
+
+on:
+  pull_request:
+    paths:
+      - "blocks/**"
+      - "block-kit/**"
+      - "scripts/blocks/**"
+      - "package.json"
+      - "ConvexPress-Admin/**"
+      - "ConvexPress-Website/**"
+      - "agents/kits/block-kit/**"
+      - "agents/admin/**/block-*/**"
+      - "agents/admin/**/pattern-build/**"
+      - ".codex/skills/block-*/**"
+      - ".claude/skills/block-*/**"
+      - ".codex/skills/pattern-build/**"
+      - ".claude/skills/pattern-build/**"
+      - ".github/workflows/canonical-block-quality.yml"
+  push:
+    branches: [main, master]
+    paths:
+      - "blocks/**"
+      - "block-kit/**"
+      - "scripts/blocks/**"
+      - "package.json"
+      - "ConvexPress-Admin/**"
+      - "ConvexPress-Website/**"
+      - "agents/kits/block-kit/**"
+      - "agents/admin/**/block-*/**"
+      - "agents/admin/**/pattern-build/**"
+      - ".codex/skills/block-*/**"
+      - ".claude/skills/block-*/**"
+      - ".codex/skills/pattern-build/**"
+      - ".claude/skills/pattern-build/**"
+      - ".github/workflows/canonical-block-quality.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  canonical-block-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ConvexPress-Admin/.bun-version
+      - name: Install Admin dependencies
+        working-directory: ConvexPress-Admin
+        run: bun install --frozen-lockfile
+      - name: Install Website dependencies
+        working-directory: ConvexPress-Website
+        run: bun install --frozen-lockfile
+      - name: Generate backend extension indexes
+        working-directory: ConvexPress-Admin/packages/backend
+        run: bun run codegen:extensions
+      - name: Check canonical generated contracts
+        run: bun run sync:blocks:all --check
+      - name: Check runtime block contracts
+        run: bun run check:blocks
+      - name: Verify template-specific block thumbnails
+        run: bun run check:block-thumbnails
+      - name: Check SDK instruction distribution
+        run: bun run check:block-kit
+      - name: Run schema, migration and scaffold regressions
+        run: bun run test:blocks
+      - name: Verify composed definition isolation and immutable version recovery
+        run: bun test ./ConvexPress-Admin/packages/backend/convex/blockDefinitions/__tests__
+      - name: Verify canonical data, authoring snapshots and write fences
+        run: bun test ./ConvexPress-Admin/packages/backend/canonical-blocks-foundation ./ConvexPress-Admin/packages/backend/convex/helpers/__tests__/authoring-version-fence.test.ts ./ConvexPress-Admin/packages/backend/convex/helpers/__tests__/composed-authoring-snapshot.test.ts
+      - name: Check backend schema and canonical service types
+        working-directory: ConvexPress-Admin/packages/backend
+        run: bunx tsc --noEmit -p convex/tsconfig.json
+      - name: Render actual Library and pack modules
+        working-directory: ConvexPress-Website/apps/web
+        run: bun src/templates/sdk/block-renderer/run-tests.fixture.mjs
+      - name: Check BlockDemo and renderer types
+        working-directory: ConvexPress-Website/apps/web
+        run: bunx tsc --noEmit -p tsconfig.block-demo.json
+      - name: Build internal BlockDemo
+        working-directory: ConvexPress-Website/apps/web
+        run: bunx vite build --config vite.block-demo.config.ts

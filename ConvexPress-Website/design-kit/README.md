@@ -1,3 +1,5 @@
+> Current visual generation targets template packs. Start with `../template-kit/README.md` and its contract. Historical route examples below explain data loaders; keep those loaders intact and implement their SDK surfaces.
+
 # Design Kit
 
 This folder is Claude's brain for designing the front end of this site.

@@ -1,0 +1,21 @@
+{
+  "name": "blocks/notice",
+  "title": "Notice",
+  "description": "A heading and supporting message.",
+  "category": "text",
+  "role": "content",
+  "version": 1,
+  "keywords": [],
+  "ai": { "useFor": "A short announcement or supporting message", "avoid": "Live data or purchase controls" },
+  "fields": [
+    { "id": "heading", "type": "text", "required": true, "min": 1, "max": 160, "default": "A useful update" },
+    { "id": "body", "type": "text", "max": 2000, "default": "Share the details your visitors need." }
+  ],
+  "supports": { "children": false, "styles": true, "layout": ["width", "tone", "spacing", "align"], "anchor": true, "visibility": true },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    { "heading": "A useful update", "body": "Share the details your visitors need." },
+    { "heading": "A short announcement", "body": "" }
+  ]
+}

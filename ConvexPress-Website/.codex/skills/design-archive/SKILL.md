@@ -1,57 +1,16 @@
 ---
 name: design-archive
-description: Use when the user asks to design, redesign, build, regenerate, or restyle any archive/index list page — the blog index, category archives, tag archives, author archives, recipes index, or similar listings of posts. Triggers on "design the blog index", "rebuild the post list", "redo category archives", "fix the tag pages". Generates one or more of apps/web/src/routes/_marketing/blog/index.tsx, category/$slug.tsx, tag/$slug.tsx, author/$slug.tsx.
+description: Design or restyle ConvexPress template pack surfaces for blog.index, blog.archive, blog.category, blog.tag, blog.author using the template SDK.
 ---
 
 # design-archive
 
-You are generating an **archive** template — a paginated list of posts.
-The same shape covers blog index, category archives, tag archives, and
-author archives; the data source changes, the layout is consistent.
+This skill targets the active or explicitly requested pack, not the public route files. Read `template-kit/README.md`, `template-kit/CONTRACT.md`, `design-kit/BRAND.md` and the pack DESIGN.md.
 
-## Workflow
+1. Identify the requested pack and surface: blog.index, blog.archive, blog.category, blog.tag, blog.author. Read the actual Core data types and existing pack implementation.
+2. Use the session-authorized brand brief and current site data. If live data access is unavailable, keep content-driven placeholders/loading states and report the acceptance gap; do not invent business claims.
+3. Edit `apps/web/src/templates/packs/<pack-id>/surfaces/<surface-id>.tsx` and pack-owned parts. Preserve the route loader, SEO, mutations, password/member checks and the complete SDK view model.
+4. Expose variations through declared Customize modules, defaults/presets, variants and field surface metadata. Header/footer/menu controls remain per pack. Page-specific interactions that need new data belong in an extension or block before the pack renders them.
+5. Run sync:templates, check:templates, check:templates:ssr, types and lint. Capture authorized staging screenshots and verify the affected loaded/empty/error/restricted states. Record what was implemented, tested and observed.
 
-1. **Read the kit:** README, ARCHITECTURE, CONTRACTS, BRAND, and
-   `references/archive.example.tsx`.
-
-2. **Confirm scope with the user before generating multiple files.**
-   If they said "the blog index," only generate that. If they said
-   "all archives," generate all four. Ask if ambiguous.
-
-3. **Pull brand + sample data:**
-   ```bash
-   bunx convex run settings:queries:getBySection '{"section":"brand"}'
-   bunx convex run posts:queries:listPublished '{"paginationOpts":{"numItems":12,"cursor":null}}'
-   bunx convex run commerce:categories:list
-   ```
-
-4. **Read current files** for whichever archives you're regenerating.
-
-5. **Generate each file** following the reference's structure:
-   - SSR loader prefetches the first page of results + brand
-   - Component renders header → optional filter chips → grid of cards
-   - "Load more" pagination using `continueCursor`
-   - Empty state when zero results
-   - `head:` with archive title and canonical
-   - For category/tag/author variants: pull the term first
-     (`categories:queries:getBySlug`), then filter posts by it
-
-6. **Verify it compiles** and **record generation** per file (see
-   CONTRACTS §8) — one receipt per file written.
-
-## Output contract per file
-
-- **Files (one or more):**
-  - Blog index: `apps/web/src/routes/_marketing/blog/index.tsx`
-  - Category: `apps/web/src/routes/_marketing/category/$slug.tsx`
-  - Tag: `apps/web/src/routes/_marketing/tag/$slug.tsx`
-  - Author: `apps/web/src/routes/_marketing/author/$slug.tsx`
-- **Required exports:** `Route`
-- **Must include:** loader with paginated prefetch, `head:` with title +
-  canonical, `<h1>`, grid + empty + skeleton states, pagination control.
-
-## When NOT to use this skill
-
-- Single post → `design:single-post`
-- Product catalog → `design:catalog`
-- Search → `design:search`
+No direct backend/provider calls in pack surfaces or parts. Do not replace route files for a visual redesign. Site deployment remains owned by ConvexPress-Admin and follows the session authorization.

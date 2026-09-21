@@ -1,50 +1,16 @@
 ---
 name: design-not-found
-description: Use when the user asks to design, redesign, build, regenerate, or restyle the 404 / not-found page. Triggers on "design the 404", "rebuild the not-found page", "redo the 404 template", "fix how 404 looks". Generates apps/web/src/templates/NotFoundTemplate.tsx (the component referenced by routes/__root.tsx as notFoundComponent).
+description: Design or restyle ConvexPress template pack surfaces for system.notFound using the template SDK.
 ---
 
 # design-not-found
 
-You are generating the **404 / not-found** template. Output: a complete
-`apps/web/src/templates/NotFoundTemplate.tsx` (note: this is the one
-legacy `templates/` file that stays, because it's already wired into
-`routes/__root.tsx` as the `notFoundComponent`).
+This skill targets the active or explicitly requested pack, not the public route files. Read `template-kit/README.md`, `template-kit/CONTRACT.md`, `design-kit/BRAND.md` and the pack DESIGN.md.
 
-## Workflow
+1. Identify the requested pack and surface: system.notFound. Read the actual Core data types and existing pack implementation.
+2. Use the session-authorized brand brief and current site data. If live data access is unavailable, keep content-driven placeholders/loading states and report the acceptance gap; do not invent business claims.
+3. Edit `apps/web/src/templates/packs/<pack-id>/surfaces/<surface-id>.tsx` and pack-owned parts. Preserve the route loader, SEO, mutations, password/member checks and the complete SDK view model.
+4. Expose variations through declared Customize modules, defaults/presets, variants and field surface metadata. Header/footer/menu controls remain per pack. Page-specific interactions that need new data belong in an extension or block before the pack renders them.
+5. Run sync:templates, check:templates, check:templates:ssr, types and lint. Capture authorized staging screenshots and verify the affected loaded/empty/error/restricted states. Record what was implemented, tested and observed.
 
-1. **Read the kit:** README, ARCHITECTURE, CONTRACTS, BRAND, and
-   `references/not-found.example.tsx`.
-
-2. **Pull brand + recent posts (for the hint):**
-   ```bash
-   bunx convex run settings:queries:getBySection '{"section":"brand"}'
-   bunx convex run posts:queries:listPublished '{"paginationOpts":{"numItems":3,"cursor":null}}'
-   ```
-
-3. **Read** `apps/web/src/templates/NotFoundTemplate.tsx` and
-   `apps/web/src/routes/__root.tsx` (to see where it's wired).
-
-4. **Generate the new file** following the reference's structure:
-   - Big "404" eyebrow + clear primary headline
-   - Helpful guidance copy in brand voice
-   - Two CTAs: Home + Search
-   - Optional "recent posts" hint
-   - Brand-consistent styling via CSS variables
-   - Component reads as a `<main>`, not just a `<div>`, with `<h1>`
-
-5. **Note:** the 404 template doesn't define its own `head:` — it's
-   wired via `__root.tsx`'s notFoundComponent. If `noindex` isn't already
-   set in the root for the not-found case, that's a separate fix to flag.
-
-6. **Verify it compiles** and **record generation** (CONTRACTS §8).
-
-## Output contract
-
-- **File:** `apps/web/src/templates/NotFoundTemplate.tsx`
-- **Required exports:** `NotFoundTemplate` (named export consumed by `__root.tsx`)
-- **Must include:** semantic `<main>`, single `<h1>`, two CTAs to safe
-  destinations, optional recent-content hint, responsive layout.
-
-## When NOT to use this skill
-
-- 500/error → that's a separate template (`ErrorTemplate.tsx`).
+No direct backend/provider calls in pack surfaces or parts. Do not replace route files for a visual redesign. Site deployment remains owned by ConvexPress-Admin and follows the session authorization.

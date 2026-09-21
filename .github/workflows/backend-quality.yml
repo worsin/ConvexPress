@@ -3,14 +3,34 @@ name: Backend Quality
 on:
   pull_request:
     paths:
+      - "blocks/**"
       - "ConvexPress-Admin/packages/backend/**"
+      - "ConvexPress-Admin/packages/control-plane/**"
+      - "ConvexPress-Admin/packages/site-contract/**"
+      - "ConvexPress-Admin/packages/runtime-clients/**"
+      - "ConvexPress-Admin/packages/blocks-catalog/**"
+      - "ConvexPress-Admin/bun.lock"
+      - "ConvexPress-Admin/.bun-version"
+      - "ConvexPress-Admin/package.json"
+      - "scripts/admin/**"
+      - "scripts/shared/**"
       - ".github/workflows/backend-quality.yml"
   push:
     branches:
       - main
       - master
     paths:
+      - "blocks/**"
       - "ConvexPress-Admin/packages/backend/**"
+      - "ConvexPress-Admin/packages/control-plane/**"
+      - "ConvexPress-Admin/packages/site-contract/**"
+      - "ConvexPress-Admin/packages/runtime-clients/**"
+      - "ConvexPress-Admin/packages/blocks-catalog/**"
+      - "ConvexPress-Admin/bun.lock"
+      - "ConvexPress-Admin/.bun-version"
+      - "ConvexPress-Admin/package.json"
+      - "scripts/admin/**"
+      - "scripts/shared/**"
       - ".github/workflows/backend-quality.yml"
 
 jobs:
@@ -21,6 +41,10 @@ jobs:
         working-directory: ConvexPress-Admin/packages/backend
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -34,4 +58,19 @@ jobs:
         run: bun run codegen:extensions
 
       - name: Typecheck Convex functions
-        run: bunx convex typecheck
+        run: bunx tsc --noEmit -p convex/tsconfig.json
+
+      - name: Verify local control-plane bindings
+        working-directory: ConvexPress-Admin
+        run: bun run check:control-bindings
+
+      - name: Typecheck control plane
+        working-directory: ConvexPress-Admin/packages/control-plane
+        run: bun run check-types
+
+      - name: Backend and control-plane regression suites
+        working-directory: ConvexPress-Admin
+        run: |
+          bun run test:backend
+          bun run test:control
+          bun run test:contracts

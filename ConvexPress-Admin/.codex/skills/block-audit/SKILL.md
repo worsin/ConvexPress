@@ -1,36 +1,12 @@
 ---
 name: block-audit
-description: Use when the user asks to audit, verify, review, or inspect ConvexPress page blocks or the block registry. Triggers on "audit the block system", "check this block", "verify custom blocks are update-safe", or "why is this block not available".
+description: Audit ConvexPress canonical block contracts, generated wiring, template coverage, authoring and rendered behavior using current evidence.
 ---
 
-# block-audit
+Locate the repository root and read `block-kit/CONTRACT.md`, `WORKFLOW.md` and `DATA-API.md`. Scope the audit to the requested blocks or full catalog. Review only by default; fix within an existing user request to repair or complete the work.
 
-You are auditing the ConvexPress block system or one block. This skill is
-read-only unless the user separately asks you to fix findings.
+Run `bun run check:blocks`, `bun run sync:blocks:all --check` and `bun run check:block-kit`. Inspect the discovered catalog and pack coverage, then the actual root specs, renderer modules, templates, editor controls, resolver contracts and backend boundaries. Distinguish SDK baseline from pack-owned treatment and a declared resolver from a working authorized implementation.
 
-## Checks
+Trace saved content versions, source revision preservation, nested identity/anchors, plugin requirements, denied data and cross-site references. Match every claim to appropriate evidence: contract tests, registered backend tests, actual Electron authoring save/reopen, public rendering, keyboard/empty/error states, and narrow/wide layout. Reduced-motion screenshots do not prove smooth animation.
 
-- Read `agents/knowledge/BLOCK-SYSTEM.md`,
-  `agents/knowledge/BLOCK-CONTRACT.md`, and
-  `plans/project/BLOCK-MIGRATIONS.md` first.
-- The block is registered by scanner (`blocks/` or `blocks.local/`) or is a
-  deliberate core block in `lib/blocks/registry.tsx`.
-- Local blocks live under `apps/web/src/blocks.local/` and use `local/<name>`.
-- Official add-on blocks live under `apps/web/src/blocks/` and do not patch the
-  core registry.
-- `manifest.tsx` exports a valid `AdminBlockDefinition`.
-- `block.json` metadata matches the manifest.
-- Schema has no unbounded `any` and defaults parse successfully.
-- Editor uses existing admin UI patterns, no Radix imports, no hardcoded color
-  literals, and no unrelated design controls.
-- Version changes have migrations.
-- Website rendering exists or the report clearly flags it as missing.
-- Core blocks duplicated in `packages/backend/convex/blocks/aiPromptBuilder.ts`
-  are in sync with frontend definitions.
-- Disabled block settings hide blocks from inserters and AI generation without
-  breaking existing saved page content.
-
-## Report
-
-Return findings first, ordered by severity, with file paths and line numbers.
-Then list open questions, compatibility risks, and recommended fixes.
+Return actionable findings with paths and impact; name missing evidence separately. Do not count renderer existence or screenshot totals as full acceptance. Preserve standalone per-site database isolation and the user's active sessions. Consult the handoff and original production ledger before declaring broad completion.

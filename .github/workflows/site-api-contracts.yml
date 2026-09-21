@@ -1,0 +1,74 @@
+name: Site API Contracts
+
+on:
+  pull_request:
+    paths:
+      - "ConvexPress-Admin/**"
+      - "ConvexPress-Website/**"
+      - "blocks/**"
+      - "scripts/admin/**"
+      - "scripts/blocks/**"
+      - ".github/workflows/site-api-contracts.yml"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "ConvexPress-Admin/**"
+      - "ConvexPress-Website/**"
+      - "blocks/**"
+      - "scripts/admin/**"
+      - "scripts/blocks/**"
+      - ".github/workflows/site-api-contracts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  site-api-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_OPTIONS: --max-old-space-size=8192
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ConvexPress-Admin/.bun-version
+
+      - name: Install Admin dependencies
+        working-directory: ConvexPress-Admin
+        run: bun install --frozen-lockfile
+
+      - name: Install Website dependencies
+        working-directory: ConvexPress-Website
+        run: bun install --frozen-lockfile
+
+      - name: Generate extension schema index
+        working-directory: ConvexPress-Admin/packages/backend
+        run: bun run codegen:extensions
+
+      - name: Verify control-plane bindings
+        working-directory: ConvexPress-Admin
+        run: bun run check:control-bindings
+
+      - name: Verify site contracts and negative compiler fixtures
+        working-directory: ConvexPress-Admin
+        run: bun run check:site-contracts
+
+      - name: Typecheck backend signatures
+        working-directory: ConvexPress-Admin/packages/backend
+        run: bunx tsc --noEmit -p convex/tsconfig.json
+
+      - name: Typecheck Admin consumers
+        working-directory: ConvexPress-Admin/apps/web
+        run: bun run check-types
+
+      - name: Typecheck Website consumers
+        working-directory: ConvexPress-Website/apps/web
+        run: bun run check-types

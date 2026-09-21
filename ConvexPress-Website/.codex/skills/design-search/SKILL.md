@@ -1,50 +1,16 @@
 ---
 name: design-search
-description: Use when the user asks to design, redesign, build, regenerate, or restyle the site search / search results page. Triggers on "design the search page", "rebuild search results", "redo the site search", "fix how search looks". Generates apps/web/src/routes/_marketing/search.tsx.
+description: Design or restyle ConvexPress template pack surfaces for search using the template SDK.
 ---
 
 # design-search
 
-You are generating the **search results** template. Output:
-`apps/web/src/routes/_marketing/search.tsx`.
+This skill targets the active or explicitly requested pack, not the public route files. Read `template-kit/README.md`, `template-kit/CONTRACT.md`, `design-kit/BRAND.md` and the pack DESIGN.md.
 
-## Workflow
+1. Identify the requested pack and surface: search. Read the actual Core data types and existing pack implementation.
+2. Use the session-authorized brand brief and current site data. If live data access is unavailable, keep content-driven placeholders/loading states and report the acceptance gap; do not invent business claims.
+3. Edit `apps/web/src/templates/packs/<pack-id>/surfaces/<surface-id>.tsx` and pack-owned parts. Preserve the route loader, SEO, mutations, password/member checks and the complete SDK view model.
+4. Expose variations through declared Customize modules, defaults/presets, variants and field surface metadata. Header/footer/menu controls remain per pack. Page-specific interactions that need new data belong in an extension or block before the pack renders them.
+5. Run sync:templates, check:templates, check:templates:ssr, types and lint. Capture authorized staging screenshots and verify the affected loaded/empty/error/restricted states. Record what was implemented, tested and observed.
 
-1. **Read the kit:** README, ARCHITECTURE, CONTRACTS, BRAND, and
-   `references/search.example.tsx`.
-
-2. **Pull brand + run a sample search:**
-   ```bash
-   bunx convex run settings:queries:getBySection '{"section":"brand"}'
-   bunx convex run search:queries:search '{"query":"the"}'
-   ```
-
-3. **Read current file** at `apps/web/src/routes/_marketing/search.tsx`.
-
-4. **Generate the new file** following the reference's structure:
-   - `validateSearch` with Zod for the `q` search param
-   - `loaderDeps` to gate refetch on `q` change
-   - Conditional loader prefetch (only if `q` is present)
-   - `head:` includes `<meta name="robots" content="noindex, follow" />`
-   - Component renders three states:
-     - No query yet → search prompt
-     - Loading → skeleton
-     - Has query, has results → result list
-     - Has query, no results → empty state
-   - Each result row shows type badge + title + excerpt + link
-   - Multi-type results (posts + products + pages) routed to correct paths
-
-5. **Verify it compiles** and **record generation** (CONTRACTS §8).
-
-## Output contract
-
-- **File:** `apps/web/src/routes/_marketing/search.tsx`
-- **Required exports:** `Route`
-- **Must include:** Zod-validated search params, conditional loader,
-  `head:` with noindex, `<h1>`, all four UI states (empty prompt / loading /
-  results / no-results), per-result-type routing.
-
-## When NOT to use this skill
-
-- Search UI inside the header (the magnifying-glass button) → that's
-  part of `design:header`.
+No direct backend/provider calls in pack surfaces or parts. Do not replace route files for a visual redesign. Site deployment remains owned by ConvexPress-Admin and follows the session authorization.

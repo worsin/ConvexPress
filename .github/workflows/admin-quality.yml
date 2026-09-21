@@ -3,14 +3,34 @@ name: Admin Quality
 on:
   pull_request:
     paths:
+      - "blocks/**"
+      - "ConvexPress-Website/scripts/**"
+      - "ConvexPress-Website/apps/web/src/templates/sdk/**"
       - "ConvexPress-Admin/**"
+      - "ConvexPress-Website/apps/web/src/extensions/events/**"
+      - "ConvexPress-Website/apps/web/src/routes/_marketing/events/**"
+      - "ConvexPress-Website/apps/web/src/dashboard/pages/events/**"
+      - "ConvexPress-Website/apps/web/src/routes/dashboard/events.tsx"
+      - "ConvexPress-Website/apps/web/src/templates/packs/core/surfaces/**"
+      - "scripts/admin/**"
+      - "scripts/shared/**"
       - ".github/workflows/admin-quality.yml"
   push:
     branches:
       - main
       - master
     paths:
+      - "blocks/**"
+      - "ConvexPress-Website/scripts/**"
+      - "ConvexPress-Website/apps/web/src/templates/sdk/**"
       - "ConvexPress-Admin/**"
+      - "ConvexPress-Website/apps/web/src/extensions/events/**"
+      - "ConvexPress-Website/apps/web/src/routes/_marketing/events/**"
+      - "ConvexPress-Website/apps/web/src/dashboard/pages/events/**"
+      - "ConvexPress-Website/apps/web/src/routes/dashboard/events.tsx"
+      - "ConvexPress-Website/apps/web/src/templates/packs/core/surfaces/**"
+      - "scripts/admin/**"
+      - "scripts/shared/**"
       - ".github/workflows/admin-quality.yml"
 
 jobs:
@@ -21,6 +41,10 @@ jobs:
         working-directory: ConvexPress-Admin/apps/web
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -33,6 +57,16 @@ jobs:
       - name: Generate extension schema index
         working-directory: ConvexPress-Admin/packages/backend
         run: bun run codegen:extensions
+
+      - name: Verify local control-plane bindings
+        working-directory: ConvexPress-Admin
+        run: bun run check:control-bindings
+
+      - name: Unit and integration regressions
+        working-directory: ConvexPress-Admin
+        run: |
+          bun run test:web
+          bun run test:tooling
 
       - name: Type check
         run: bun run check-types

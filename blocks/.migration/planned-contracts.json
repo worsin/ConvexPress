@@ -1,0 +1,1588 @@
+{
+  "inventoryRows": 136,
+  "plannedSpecs": 82,
+  "changes": [
+    {
+      "rowId": "px72drjrtnat8e9yzkkg8hnme18dta7z",
+      "Name": "core/pullquote",
+      "Spec Path": "blocks/core/pullquote/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "text (text), cite (text)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px76bmpp1bysh5f7xrg7q8smqh8dtxgq",
+      "Name": "core/table",
+      "Spec Path": "blocks/core/table/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "columns (repeater), rows (repeater), caption (text)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [
+        {
+          "kind": "matrix",
+          "headers": "columns",
+          "rows": "rows"
+        }
+      ],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7ew1ta4p97ytbrn4zxqvhb398dtzh1",
+      "Name": "core/callout",
+      "Spec Path": "blocks/core/callout/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "kind (select), title (text), body (richtext)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px78pqx2entgf3sqv7rjdk7jts8dvybe",
+      "Name": "core/table-of-contents",
+      "Spec Path": "blocks/core/table-of-contents/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "title (text), depth (number)",
+      "Data Resolver": "content.headings",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7e4t9ctx746z7cjejgjbfrs98dvaa0",
+      "Name": "core/footnotes",
+      "Spec Path": "blocks/core/footnotes/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "notes (repeater)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7azcwp96kbtcqn7929xx8rbn8dv0zq",
+      "Name": "core/section",
+      "Spec Path": "blocks/core/section/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "children only",
+      "Data Resolver": "",
+      "Supports Children": true,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "tree.children"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px775rsd5kbzk22wt5wce6k7458dthqp",
+      "Name": "core/columns",
+      "Spec Path": "blocks/core/columns/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "children only",
+      "Data Resolver": "",
+      "Supports Children": true,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "tree.children"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px73b7w2fwfc89d9qf4vg1kst18dtgg9",
+      "Name": "core/group",
+      "Spec Path": "blocks/core/group/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "children only",
+      "Data Resolver": "",
+      "Supports Children": true,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "tree.children"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px72fwc4fryykekrsbjt8z2jf58dtfmv",
+      "Name": "core/grid",
+      "Spec Path": "blocks/core/grid/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "children only",
+      "Data Resolver": "",
+      "Supports Children": true,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "tree.children"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px714m731cazrqj485pvd6nrf18dtry3",
+      "Name": "core/split",
+      "Spec Path": "blocks/core/split/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "children only",
+      "Data Resolver": "",
+      "Supports Children": true,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "tree.children"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px75f5wtmgdkkfdymxfe7s8aqs8dvgjg",
+      "Name": "core/sticky-aside",
+      "Spec Path": "blocks/core/sticky-aside/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "children only",
+      "Data Resolver": "",
+      "Supports Children": true,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "tree.children"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px798w8b1hegp48admbratdqg18dtyg7",
+      "Name": "core/gallery",
+      "Spec Path": "blocks/core/gallery/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "items (repeater), lightbox (boolean)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px746r84z138yh1f8k9xv5gcbh8dt31s",
+      "Name": "core/carousel",
+      "Spec Path": "blocks/core/carousel/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "accessibleLabel (text)",
+      "Data Resolver": "",
+      "Supports Children": true,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "tree.children"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7b0t6xgm98vjg8yes5vde0m18dtd4r",
+      "Name": "core/video",
+      "Spec Path": "blocks/core/video/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "media (media), url (link), poster (media), title (text), transcript (link)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [
+        {
+          "kind": "at-most-one",
+          "fields": [
+            "media",
+            "url"
+          ]
+        }
+      ],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px77qkbjwvyy110c8hkem0gg1h8dvw8a",
+      "Name": "core/audio",
+      "Spec Path": "blocks/core/audio/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "media (media), title (text), transcript (link)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7bsk62mt34hcp394e5sh4eg18dvy1p",
+      "Name": "core/before-after",
+      "Spec Path": "blocks/core/before-after/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "before (media), after (media), beforeLabel (text), afterLabel (text)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px73zpe722enwrym3ehyqcemzh8dtz92",
+      "Name": "core/lightbox-grid",
+      "Spec Path": "blocks/core/lightbox-grid/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "items (repeater)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7ahz69bqz5tac3enry8yqyn18dvv89",
+      "Name": "core/map",
+      "Spec Path": "blocks/core/map/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "address (text), latitude (number), longitude (number), provider (select), directions (link)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "map.approvedProvider"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px758hgtbv0k5xh9n2bjj6xma18dvqfj",
+      "Name": "core/file-download",
+      "Spec Path": "blocks/core/file-download/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "media (media), title (text), description (text)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7dh7esqqx75brfr3p9xbyg158dtecw",
+      "Name": "core/hero-video",
+      "Spec Path": "blocks/core/hero-video/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "video (media), poster (media), title (text), subtitle (text), cta (link)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px79ec2gv9ps75x3e3ah6m64218dvpey",
+      "Name": "core/announcement-bar",
+      "Spec Path": "blocks/core/announcement-bar/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "text (text), link (link), dismissible (boolean), schedule (object)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px749fvn15mmpkcvze2885feyd8dtj7n",
+      "Name": "core/breadcrumbs",
+      "Spec Path": "blocks/core/breadcrumbs/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "source (select), items (repeater)",
+      "Data Resolver": "content.breadcrumbs",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px76mydps22hyehczvrh0eq6yx8dvct3",
+      "Name": "core/pricing-table",
+      "Spec Path": "blocks/core/pricing-table/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "plans (repeater), rows (repeater)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px75m3nfwm42145tyz7a2sv0b58dt9p6",
+      "Name": "core/testimonial-wall",
+      "Spec Path": "blocks/core/testimonial-wall/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "items (repeater)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7b0d9zhsxbq2fae1ad704hv58dt3de",
+      "Name": "core/trust-badges",
+      "Spec Path": "blocks/core/trust-badges/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "items (repeater)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px76vvb68fvfhydpdgkmpvyefx8dtv4t",
+      "Name": "core/countdown",
+      "Spec Path": "blocks/core/countdown/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "target (date), title (text), expiredText (text), cta (link)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7fzj814y0b43d91bgnnez91h8dvzv4",
+      "Name": "core/steps-with-media",
+      "Spec Path": "blocks/core/steps-with-media/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "steps (repeater)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7ec979x7v2prfz802zd6db8d8dtm8k",
+      "Name": "core/feature-tabs",
+      "Spec Path": "blocks/core/feature-tabs/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "tabs (repeater)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7dh379ch2fe4hq7r2thftw0s8dtwxz",
+      "Name": "core/marquee",
+      "Spec Path": "blocks/core/marquee/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "items (repeater)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7bw3t5ttd7vtk7kbcn8s77r18dtn6f",
+      "Name": "core/reviews",
+      "Spec Path": "blocks/core/reviews/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "source (select), product (reference), limit (number), minRating (number)",
+      "Data Resolver": "commerce.reviews",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "commerce"
+        ],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px769wjxqc6xqec8kz3fwasc9s8dvmat",
+      "Name": "core/social-feed",
+      "Spec Path": "blocks/core/social-feed/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "provider (select), handle (text), limit (number)",
+      "Data Resolver": "social.feed",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "feed.approvedProvider"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7315phm79py2v3xk75c72gh58dt7zd",
+      "Name": "core/ugc-grid",
+      "Spec Path": "blocks/core/ugc-grid/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "tag (reference), limit (number)",
+      "Data Resolver": "media.tagged",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7ahscqtj7z8c17f9z33vzy058dt6zq",
+      "Name": "commerce/product-compare",
+      "Spec Path": "blocks/commerce/product-compare/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "products (repeater), attributes (repeater)",
+      "Data Resolver": "commerce.productCompare",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px703bejdjqga0rh58ejn1dyp58dtjwh",
+      "Name": "commerce/bundle-offer",
+      "Spec Path": "blocks/commerce/bundle-offer/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "bundle (reference), title (text), body (text)",
+      "Data Resolver": "commerce.bundle",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px705jc4g6j5cb8g9a2ecvcwz18dvvnj",
+      "Name": "commerce/sale-countdown",
+      "Spec Path": "blocks/commerce/sale-countdown/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "target (date), title (text), limit (number)",
+      "Data Resolver": "commerce.productCards",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7esfqrxyf8kxkvfjhhr5jbp58dva02",
+      "Name": "commerce/recently-viewed",
+      "Spec Path": "blocks/commerce/recently-viewed/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "limit (number), title (text)",
+      "Data Resolver": "commerce.recentlyViewed",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "viewer.authorization"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7dgtn6d5zqcb1as2dqqfw52x8dt1tk",
+      "Name": "commerce/cart-cta",
+      "Spec Path": "blocks/commerce/cart-cta/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "title (text), emptyText (text)",
+      "Data Resolver": "commerce.cartSummary",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "viewer.authorization"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7bsry5dtvscfsxxtzj2ebyas8dva0s",
+      "Name": "commerce/search-band",
+      "Spec Path": "blocks/commerce/search-band/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "placeholder (text), suggestions (repeater)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px74w1cyskbezv0vz0wcxyw5618dttek",
+      "Name": "commerce/brand-list",
+      "Spec Path": "blocks/commerce/brand-list/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "limit (number)",
+      "Data Resolver": "commerce.brands",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7fa1htpbh8g22snrrbdg7ka98dtzeg",
+      "Name": "commerce/product-hero",
+      "Spec Path": "blocks/commerce/product-hero/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "product (reference), title (text), media (media)",
+      "Data Resolver": "commerce.product",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7dbr418nyaz95mb26s1rz7v18dths7",
+      "Name": "commerce/variant-picker-teaser",
+      "Spec Path": "blocks/commerce/variant-picker-teaser/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "product (reference), attribute (text)",
+      "Data Resolver": "commerce.product",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7fz5zrbgdx0s73p7h5vw1t818dva71",
+      "Name": "commerce/shipping-promise",
+      "Spec Path": "blocks/commerce/shipping-promise/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "items (repeater)",
+      "Data Resolver": "commerce.shippingPolicy",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px795wp8ed53b64z2dft30n0rd8dv7se",
+      "Name": "core/post-grid",
+      "Spec Path": "blocks/core/post-grid/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "query (object), limit (number), showExcerpt (boolean)",
+      "Data Resolver": "content.posts",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px715y7be9mh9pbxzzhd25bhx58dv3bg",
+      "Name": "core/related-content",
+      "Spec Path": "blocks/core/related-content/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "limit (number), type (select)",
+      "Data Resolver": "content.related",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7fbbhpfqg29328qz24j4f30d8dt8tr",
+      "Name": "core/archive-list",
+      "Spec Path": "blocks/core/archive-list/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "groupBy (select), limit (number)",
+      "Data Resolver": "content.archive",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7ajqw5njx1zwt72c4k60v0cn8dv5bx",
+      "Name": "core/search-box",
+      "Spec Path": "blocks/core/search-box/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "placeholder (text), scope (select)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px75f868ezx55wv5cmfa42h9pd8dt5tj",
+      "Name": "core/featured-page",
+      "Spec Path": "blocks/core/featured-page/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "page (reference), ctaLabel (text)",
+      "Data Resolver": "content.page",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px73aw6fvzy2e5y31ecgfgrv618dtey8",
+      "Name": "core/child-pages",
+      "Spec Path": "blocks/core/child-pages/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "depth (number)",
+      "Data Resolver": "content.childPages",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px77ndsp1e2qqggva90x0h2ze18dvxy8",
+      "Name": "core/form",
+      "Spec Path": "blocks/core/form/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "form (form), title (text)",
+      "Data Resolver": "forms.form",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "forms"
+        ],
+        "capabilities": [
+          "form.submission",
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px72z0ezktjh7sqdxp8a9t2de98dvck0",
+      "Name": "core/lead-magnet",
+      "Spec Path": "blocks/core/lead-magnet/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "title (text), body (richtext), media (media), file (media), list (reference)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "forms"
+        ],
+        "capabilities": [
+          "form.submission",
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px74dz9ytbbngzk21ya7ztnjz58dtjy7",
+      "Name": "core/poll",
+      "Spec Path": "blocks/core/poll/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "question (text), options (repeater), showResults (boolean)",
+      "Data Resolver": "forms.poll",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "forms"
+        ],
+        "capabilities": [
+          "form.submission"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7dg9wf7y7w88bb02hcnjp4y58dvjc3",
+      "Name": "core/event-rsvp",
+      "Spec Path": "blocks/core/event-rsvp/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "event (reference)",
+      "Data Resolver": "events.event",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "events"
+        ],
+        "capabilities": [
+          "form.submission",
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7bbctbjwckbpa6ax90gc7w8d8dt2ad",
+      "Name": "lms/course-grid",
+      "Spec Path": "blocks/lms/course-grid/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "query (object), limit (number)",
+      "Data Resolver": "lms.courses",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "lms"
+        ],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px75ane820jvqgdx3am3njz0xn8dv9ma",
+      "Name": "lms/curriculum",
+      "Spec Path": "blocks/lms/curriculum/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "course (reference), expanded (boolean)",
+      "Data Resolver": "lms.curriculum",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "lms"
+        ],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px76sp9jjh6a17vp7ep4s7s6bs8dv51d",
+      "Name": "lms/instructor",
+      "Spec Path": "blocks/lms/instructor/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "instructor (reference)",
+      "Data Resolver": "lms.instructor",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "lms"
+        ],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px70enes2de89w7yghd2y97c2h8dtyb3",
+      "Name": "lms/progress",
+      "Spec Path": "blocks/lms/progress/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "scope (select), course (reference)",
+      "Data Resolver": "lms.progress",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "lms"
+        ],
+        "capabilities": [
+          "viewer.authorization",
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px776j6krpn7pfre1y8hy3tahd8dv6qe",
+      "Name": "events/calendar",
+      "Spec Path": "blocks/events/calendar/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "view (select), category (reference), limit (number)",
+      "Data Resolver": "events.list",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "events"
+        ],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px74r1vzyxjnfr3sxwxg8z3c1x8dtd8z",
+      "Name": "events/next-event",
+      "Spec Path": "blocks/events/next-event/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "category (reference)",
+      "Data Resolver": "events.next",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "events"
+        ],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7d61fyyehsq5askyzttab8y58dvd7y",
+      "Name": "membership/plans",
+      "Spec Path": "blocks/membership/plans/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "selection (select), plans (repeater)",
+      "Data Resolver": "membership.plans",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "membership"
+        ],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7cdr6j202ppyyf853f8jett58dvrsh",
+      "Name": "membership/gated-teaser",
+      "Spec Path": "blocks/membership/gated-teaser/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "teaserText (text), requiredPlan (reference)",
+      "Data Resolver": "membership.access",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "membership"
+        ],
+        "capabilities": [
+          "viewer.authorization",
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7btsn40njjb3795ax4wtnv1s8dtrqa",
+      "Name": "gallery/recipe-card",
+      "Spec Path": "blocks/gallery/recipe-card/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "recipe (reference)",
+      "Data Resolver": "recipes.recipe",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "gallery-recipes"
+        ],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7av98gme0g9ybdqwagg29pys8dtcwm",
+      "Name": "gallery/album",
+      "Spec Path": "blocks/gallery/album/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "album (reference)",
+      "Data Resolver": "gallery.album",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "gallery-recipes"
+        ],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7ew1arsss5jsa9cxac0dcjs18dvkjn",
+      "Name": "support/kb-search",
+      "Spec Path": "blocks/support/kb-search/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "placeholder (text), category (reference)",
+      "Data Resolver": "support.search",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "support"
+        ],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px717p8p82g82vj63sf8g49k9h8dvqb8",
+      "Name": "support/ticket-cta",
+      "Spec Path": "blocks/support/ticket-cta/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "title (text), body (text)",
+      "Data Resolver": "support.form",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "support"
+        ],
+        "capabilities": [
+          "form.submission",
+          "viewer.authorization"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px78y2mp7gdaj8jdhs1k6ng56d8dtrd5",
+      "Name": "certificates/verify",
+      "Spec Path": "blocks/certificates/verify/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "title (text)",
+      "Data Resolver": "certificates.verify",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "certificates"
+        ],
+        "capabilities": [
+          "form.submission"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px785dmat38wqyf8429z966qyh8dtjy3",
+      "Name": "core/site-info",
+      "Spec Path": "blocks/core/site-info/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "show (repeater)",
+      "Data Resolver": "site.info",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7c4bvq2s6e2ctfabgq5ss6sn8dvqqf",
+      "Name": "core/menu",
+      "Spec Path": "blocks/core/menu/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "source (select), location (text), menu (menu)",
+      "Data Resolver": "site.menu",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px750ftp5jrdm4v7tdjscb884n8dtvvm",
+      "Name": "core/account-teaser",
+      "Spec Path": "blocks/core/account-teaser/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "signedOutText (text), signedInText (text)",
+      "Data Resolver": "site.viewer",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "viewer.authorization"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px73yyvb3ycvn2jed216h4pk4h8dtz1q",
+      "Name": "core/custom-html",
+      "Spec Path": "blocks/core/custom-html/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "html (text)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "html.sanitize"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px786xjmd9z6w59tfwmzk9wk298dt4ed",
+      "Name": "core/iframe",
+      "Spec Path": "blocks/core/iframe/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "url (link), title (text)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "embed.sandbox"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px794knk1vpc7psnhebgfz8qh58dtp12",
+      "Name": "core/script-embed",
+      "Spec Path": "blocks/core/script-embed/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "provider (select), resourceId (text)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "embed.approvedScript"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7br6xkrd5x4f7d2k6d30hde98dv5vm",
+      "Name": "core/anchor-nav",
+      "Spec Path": "blocks/core/anchor-nav/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "source (select), items (repeater)",
+      "Data Resolver": "content.anchors",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7eba4hs5f9he71x4w1qagrnh8dtmg5",
+      "Name": "core/language-switcher",
+      "Spec Path": "blocks/core/language-switcher/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "context only",
+      "Data Resolver": "site.locales",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "locale.routing"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px711dawytqsd6p1790rks5chd8dt25f",
+      "Name": "core/synced",
+      "Spec Path": "blocks/core/synced/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "syncedBlock (reference), revisionPolicy (select), revision (number)",
+      "Data Resolver": "content.syncedBlock",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "tree.children",
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px732at6wj20p21khmqha7ak0x8dvjkb",
+      "Name": "core/definition-list",
+      "Spec Path": "blocks/core/definition-list/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "items (repeater)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7atm1nps68gdfjwfsnz3gp118dvxjp",
+      "Name": "business/opening-hours",
+      "Spec Path": "blocks/business/opening-hours/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "timezone (text), week (repeater), exceptions (repeater), contactLink (link)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [
+        {
+          "kind": "unique-by",
+          "field": "week",
+          "key": "day"
+        },
+        {
+          "kind": "unique-by",
+          "field": "exceptions",
+          "key": "date"
+        }
+      ],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px71j3p4b54pst6qj7sja4kt6h8dtmy0",
+      "Name": "business/locations",
+      "Spec Path": "blocks/business/locations/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "locations (repeater)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7dea4j42a0883zn318qqvfvx8dtf24",
+      "Name": "business/service-list",
+      "Spec Path": "blocks/business/service-list/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "services (repeater)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px78x3gpsbvjq6rnthv4534vmx8dtpqc",
+      "Name": "business/menu",
+      "Spec Path": "blocks/business/menu/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "sections (repeater)",
+      "Data Resolver": "",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px721ejv5csr1dkssn7c2g7svs8dtsx7",
+      "Name": "commerce/wishlist",
+      "Spec Path": "blocks/commerce/wishlist/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "heading (text), emptyMessage (text), browseLink (link)",
+      "Data Resolver": "wishlists.current",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "wishlists"
+        ],
+        "capabilities": [
+          "viewer.authorization"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px7f882f7wysvq6e3wqtawdfg98dvv9n",
+      "Name": "commerce/download-library",
+      "Spec Path": "blocks/commerce/download-library/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "heading (text), emptyMessage (text), helpLink (link)",
+      "Data Resolver": "downloads.entitlements",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [
+          "digital"
+        ],
+        "capabilities": [
+          "viewer.authorization"
+        ]
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    },
+    {
+      "rowId": "px71at39ntfn7me0z1jsdn15ks8dvmrd",
+      "Name": "core/search-results",
+      "Spec Path": "blocks/core/search-results/block.json",
+      "Status": "Spec written",
+      "Version": 1,
+      "Key Fields": "queryBinding (select), kinds (repeater), pageSize (number), emptyMessage (text)",
+      "Data Resolver": "content.search",
+      "Supports Children": false,
+      "Layout Intents": "width, tone, spacing, align",
+      "requires": {
+        "plugins": [],
+        "capabilities": []
+      },
+      "constraints": [],
+      "Notes": "Canonical specification staged and validated. Resolver/plugin/security requirements are declarations, not evidence of implemented adapters. Runtime activation, renderer/pack acceptance and screenshots remain pending."
+    }
+  ]
+}

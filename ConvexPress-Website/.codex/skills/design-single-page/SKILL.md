@@ -1,52 +1,16 @@
 ---
 name: design-single-page
-description: Use when the user asks to design, redesign, build, regenerate, or restyle a static page route — About, Contact, Services, marketing landing pages, or any page authored in the Pages system. Triggers on phrases like "design the page template", "rebuild the page route", "redo static pages", "fix how pages look". Generates apps/web/src/routes/_marketing/page/$.tsx.
+description: Design or restyle ConvexPress template pack surfaces for page using the template SDK.
 ---
 
 # design-single-page
 
-You are generating the **single-page** template — the catch-all route that
-renders any static page authored in the Pages system by its path. Output:
-a complete `apps/web/src/routes/_marketing/page/$.tsx`.
+This skill targets the active or explicitly requested pack, not the public route files. Read `template-kit/README.md`, `template-kit/CONTRACT.md`, `design-kit/BRAND.md` and the pack DESIGN.md.
 
-## Workflow
+1. Identify the requested pack and surface: page. Read the actual Core data types and existing pack implementation.
+2. Use the session-authorized brand brief and current site data. If live data access is unavailable, keep content-driven placeholders/loading states and report the acceptance gap; do not invent business claims.
+3. Edit `apps/web/src/templates/packs/<pack-id>/surfaces/<surface-id>.tsx` and pack-owned parts. Preserve the route loader, SEO, mutations, password/member checks and the complete SDK view model.
+4. Expose variations through declared Customize modules, defaults/presets, variants and field surface metadata. Header/footer/menu controls remain per pack. Page-specific interactions that need new data belong in an extension or block before the pack renders them.
+5. Run sync:templates, check:templates, check:templates:ssr, types and lint. Capture authorized staging screenshots and verify the affected loaded/empty/error/restricted states. Record what was implemented, tested and observed.
 
-1. **Read the kit:** README, ARCHITECTURE, CONTRACTS, BRAND, and
-   `references/single-page.example.tsx`.
-
-2. **Pull brand + sample data:**
-   ```bash
-   bunx convex run settings:queries:getBySection '{"section":"brand"}'
-   bunx convex run pages:queries:getByPath '{"path":"/about"}'
-   ```
-   (Substitute a real path if `/about` doesn't exist. List pages with
-   `pages:queries:list` if needed.)
-
-3. **Read current file** at `apps/web/src/routes/_marketing/page/$.tsx`.
-
-4. **Generate the new file** following the reference's structure:
-   - Catch-all `$` param using `_splat`
-   - Loader prefetches `pages.queries.getByPath` + brand
-   - `head:` sets per-page title/description from the page data
-   - Component: header (title, optional subtitle) → page body rendered via
-     the existing structured-content renderer / `PageRenderer` component
-   - Skeleton + notFound() states
-
-5. **Use existing components** for body rendering. There may be a
-   `<PageRenderer>` already — prefer it.
-
-6. **Verify it compiles** and **record generation** (see CONTRACTS §8).
-
-## Output contract
-
-- **File:** `apps/web/src/routes/_marketing/page/$.tsx`
-- **Required exports:** `Route`
-- **Must include:** catch-all param handling, loader prefetch, `head:`
-  with per-page title/description/canonical, semantic `<main>` + `<h1>`,
-  skeleton + notFound.
-
-## When NOT to use this skill
-
-- Homepage → `design:homepage`
-- Blog post → `design:single-post`
-- Product → `design:single-product`
+No direct backend/provider calls in pack surfaces or parts. Do not replace route files for a visual redesign. Site deployment remains owned by ConvexPress-Admin and follows the session authorization.

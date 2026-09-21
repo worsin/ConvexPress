@@ -1,45 +1,12 @@
 ---
 name: block-add-feature
-description: Use when the user asks to extend, modify, migrate, or improve an existing ConvexPress page block. Triggers on "add a field to the hero block", "make this block support images", "change the testimonial block", or "upgrade a custom block".
+description: Extend an existing ConvexPress canonical block while preserving saved content, generated contracts and template behavior.
 ---
 
-# block-add-feature
+Find the repository root, read `block-kit/CONTRACT.md`, `WORKFLOW.md` and `DATA-API.md`, then locate the block through `scripts/blocks/discovery.mjs` or `blocks/.generated/catalog.json`. Read its root spec, renderer, affected data/host contracts and existing examples/tests.
 
-You are extending an existing ConvexPress block without breaking existing
-pages.
+Determine how saved values and every supported version behave before changing fields or semantics. Add meaningful regression coverage for existing content and the requested behavior. Version changes require a wired canonical converter with preservation/recovery tests; an adjacent `migrations.ts` or automatic version increment is insufficient. Inspect `scripts/blocks/content-migration.mjs`, `staged-migration.mjs` and the canonical document migration service for the applicable path.
 
-## Rules
+Edit the root contract and renderer, then run the canonical sync and relevant checks in WORKFLOW.md. Generated controls should expose the new content fields; add specialized editor support only when required. Keep presentation in SDK/template treatments. Do not copy schemas into app registries or bypass revision, data-grant, site or publication checks.
 
-- Read the block's manifest, schema, editor, migrations, and Website renderer
-  before editing.
-- Preserve existing attrs. New fields should usually be optional or have
-  defaults.
-- If the attrs shape changes, bump the block version and add a migration in the
-  block's `migrations.ts`.
-- Do not rename attrs unless you migrate old content.
-- Do not move local blocks into core files.
-- Do not edit `lib/blocks/registry.tsx` for local or official add-on blocks.
-- Keep the admin editor content-focused; visual presentation belongs to the
-  Website renderer/design skill.
-
-## Workflow
-
-1. Read `agents/knowledge/BLOCK-CONTRACT.md`,
-   `plans/project/BLOCK-MIGRATIONS.md`, and the current block files.
-2. Locate the block by name in `registry.tsx`, `blocks/`, or `blocks.local/`.
-3. Identify every layer touched:
-   - metadata / AI hints
-   - attrs schema
-   - admin editor
-   - migrations
-   - Website renderer
-   - AI backend catalog if this is still a core block duplicated there
-4. Patch only the block's own files unless it is a true core block.
-5. For core blocks, keep frontend registry and backend
-   `convex/blocks/aiPromptBuilder.ts` in sync.
-6. Run `bun run check-types` from `ConvexPress-Admin/`.
-
-## Report
-
-List changed files, version/migration decisions, compatibility notes, Website
-renderer status, and verification result.
+Report compatibility, actual migration evidence, rendered/editor acceptance and remaining gaps. Do not mark a field migration complete based solely on validation of freshly created instances.

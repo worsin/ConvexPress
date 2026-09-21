@@ -1,0 +1,687 @@
+[
+  {
+    "Name": "core/paragraph",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/paragraph/block.json"
+  },
+  {
+    "Name": "core/heading",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/heading/block.json"
+  },
+  {
+    "Name": "core/list",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/list/block.json"
+  },
+  {
+    "Name": "core/quote",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/quote/block.json"
+  },
+  {
+    "Name": "core/pullquote",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/pullquote/block.json"
+  },
+  {
+    "Name": "core/code",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/code/block.json"
+  },
+  {
+    "Name": "core/table",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/table/block.json"
+  },
+  {
+    "Name": "core/callout",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/callout/block.json"
+  },
+  {
+    "Name": "core/rich-text",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/rich-text/block.json"
+  },
+  {
+    "Name": "core/table-of-contents",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/table-of-contents/block.json"
+  },
+  {
+    "Name": "core/footnotes",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/footnotes/block.json"
+  },
+  {
+    "Name": "core/section",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/section/block.json"
+  },
+  {
+    "Name": "core/columns",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/columns/block.json"
+  },
+  {
+    "Name": "core/group",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/group/block.json"
+  },
+  {
+    "Name": "core/grid",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/grid/block.json"
+  },
+  {
+    "Name": "core/split",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/split/block.json"
+  },
+  {
+    "Name": "core/spacer",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/spacer/block.json"
+  },
+  {
+    "Name": "core/divider",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/divider/block.json"
+  },
+  {
+    "Name": "core/sticky-aside",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/sticky-aside/block.json"
+  },
+  {
+    "Name": "core/accordion",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/accordion/block.json"
+  },
+  {
+    "Name": "core/tabs",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/tabs/block.json"
+  },
+  {
+    "Name": "core/image",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/image/block.json"
+  },
+  {
+    "Name": "core/gallery",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/gallery/block.json"
+  },
+  {
+    "Name": "core/carousel",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/carousel/block.json"
+  },
+  {
+    "Name": "core/video",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/video/block.json"
+  },
+  {
+    "Name": "core/audio",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/audio/block.json"
+  },
+  {
+    "Name": "core/embed",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/embed/block.json"
+  },
+  {
+    "Name": "core/before-after",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/before-after/block.json"
+  },
+  {
+    "Name": "core/lightbox-grid",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/lightbox-grid/block.json"
+  },
+  {
+    "Name": "core/logo-cloud",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/logo-cloud/block.json"
+  },
+  {
+    "Name": "core/map",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/map/block.json"
+  },
+  {
+    "Name": "core/file-download",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/file-download/block.json"
+  },
+  {
+    "Name": "core/hero",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/hero/block.json"
+  },
+  {
+    "Name": "core/hero-split",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/hero-split/block.json"
+  },
+  {
+    "Name": "core/hero-text-only",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/hero-text-only/block.json"
+  },
+  {
+    "Name": "core/hero-video",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/hero-video/block.json"
+  },
+  {
+    "Name": "blocks/page-banner",
+    "Status": "In progress",
+    "Spec Path": "blocks/blocks/page-banner/block.json"
+  },
+  {
+    "Name": "core/announcement-bar",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/announcement-bar/block.json"
+  },
+  {
+    "Name": "core/breadcrumbs",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/breadcrumbs/block.json"
+  },
+  {
+    "Name": "core/feature-grid",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/feature-grid/block.json"
+  },
+  {
+    "Name": "core/feature-list-alternating",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/feature-list-alternating/block.json"
+  },
+  {
+    "Name": "core/bento-grid",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/bento-grid/block.json"
+  },
+  {
+    "Name": "core/stats-band",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/stats-band/block.json"
+  },
+  {
+    "Name": "core/cta-band",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/cta-band/block.json"
+  },
+  {
+    "Name": "core/cta-with-form",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/cta-with-form/block.json"
+  },
+  {
+    "Name": "core/media-text",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/media-text/block.json"
+  },
+  {
+    "Name": "core/process-steps",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/process-steps/block.json"
+  },
+  {
+    "Name": "core/roadmap-timeline",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/roadmap-timeline/block.json"
+  },
+  {
+    "Name": "blocks/story-timeline",
+    "Status": "In progress",
+    "Spec Path": "blocks/blocks/story-timeline/block.json"
+  },
+  {
+    "Name": "core/comparison-table",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/comparison-table/block.json"
+  },
+  {
+    "Name": "core/pricing-cards",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/pricing-cards/block.json"
+  },
+  {
+    "Name": "core/pricing-table",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/pricing-table/block.json"
+  },
+  {
+    "Name": "core/faq",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/faq/block.json"
+  },
+  {
+    "Name": "core/testimonials",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/testimonials/block.json"
+  },
+  {
+    "Name": "core/testimonial-wall",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/testimonial-wall/block.json"
+  },
+  {
+    "Name": "core/trust-badges",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/trust-badges/block.json"
+  },
+  {
+    "Name": "blocks/media-mentions",
+    "Status": "In progress",
+    "Spec Path": "blocks/blocks/media-mentions/block.json"
+  },
+  {
+    "Name": "core/team-grid",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/team-grid/block.json"
+  },
+  {
+    "Name": "blocks/promo-band",
+    "Status": "In progress",
+    "Spec Path": "blocks/blocks/promo-band/block.json"
+  },
+  {
+    "Name": "core/countdown",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/countdown/block.json"
+  },
+  {
+    "Name": "blocks/tabbed-content",
+    "Status": "In progress",
+    "Spec Path": "blocks/blocks/tabbed-content/block.json"
+  },
+  {
+    "Name": "core/steps-with-media",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/steps-with-media/block.json"
+  },
+  {
+    "Name": "core/feature-tabs",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/feature-tabs/block.json"
+  },
+  {
+    "Name": "core/marquee",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/marquee/block.json"
+  },
+  {
+    "Name": "blocks/customer-showcase",
+    "Status": "In progress",
+    "Spec Path": "blocks/blocks/customer-showcase/block.json"
+  },
+  {
+    "Name": "blocks/social-share",
+    "Status": "In progress",
+    "Spec Path": "blocks/blocks/social-share/block.json"
+  },
+  {
+    "Name": "core/social-links",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/social-links/block.json"
+  },
+  {
+    "Name": "core/reviews",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/reviews/block.json"
+  },
+  {
+    "Name": "core/social-feed",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/social-feed/block.json"
+  },
+  {
+    "Name": "core/ugc-grid",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/ugc-grid/block.json"
+  },
+  {
+    "Name": "commerce/product-showcase",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/product-showcase/block.json"
+  },
+  {
+    "Name": "blocks/product-collection",
+    "Status": "In progress",
+    "Spec Path": "blocks/blocks/product-collection/block.json"
+  },
+  {
+    "Name": "commerce/category-tiles",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/category-tiles/block.json"
+  },
+  {
+    "Name": "core/featured-products",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/featured-products/block.json"
+  },
+  {
+    "Name": "commerce/assistant-band",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/assistant-band/block.json"
+  },
+  {
+    "Name": "commerce/product-compare",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/product-compare/block.json"
+  },
+  {
+    "Name": "commerce/bundle-offer",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/bundle-offer/block.json"
+  },
+  {
+    "Name": "commerce/sale-countdown",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/sale-countdown/block.json"
+  },
+  {
+    "Name": "commerce/recently-viewed",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/recently-viewed/block.json"
+  },
+  {
+    "Name": "commerce/cart-cta",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/cart-cta/block.json"
+  },
+  {
+    "Name": "commerce/search-band",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/search-band/block.json"
+  },
+  {
+    "Name": "commerce/brand-list",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/brand-list/block.json"
+  },
+  {
+    "Name": "commerce/product-hero",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/product-hero/block.json"
+  },
+  {
+    "Name": "commerce/variant-picker-teaser",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/variant-picker-teaser/block.json"
+  },
+  {
+    "Name": "commerce/shipping-promise",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/shipping-promise/block.json"
+  },
+  {
+    "Name": "core/latest-posts",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/latest-posts/block.json"
+  },
+  {
+    "Name": "core/post-grid",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/post-grid/block.json"
+  },
+  {
+    "Name": "core/author-bio",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/author-bio/block.json"
+  },
+  {
+    "Name": "core/tag-cloud",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/tag-cloud/block.json"
+  },
+  {
+    "Name": "core/related-content",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/related-content/block.json"
+  },
+  {
+    "Name": "core/archive-list",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/archive-list/block.json"
+  },
+  {
+    "Name": "core/search-box",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/search-box/block.json"
+  },
+  {
+    "Name": "core/featured-page",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/featured-page/block.json"
+  },
+  {
+    "Name": "core/child-pages",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/child-pages/block.json"
+  },
+  {
+    "Name": "core/contact-form",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/contact-form/block.json"
+  },
+  {
+    "Name": "core/newsletter-signup",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/newsletter-signup/block.json"
+  },
+  {
+    "Name": "core/booking-cta",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/booking-cta/block.json"
+  },
+  {
+    "Name": "blocks/contact-stack",
+    "Status": "In progress",
+    "Spec Path": "blocks/blocks/contact-stack/block.json"
+  },
+  {
+    "Name": "core/form",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/form/block.json"
+  },
+  {
+    "Name": "core/lead-magnet",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/lead-magnet/block.json"
+  },
+  {
+    "Name": "core/poll",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/poll/block.json"
+  },
+  {
+    "Name": "core/event-rsvp",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/event-rsvp/block.json"
+  },
+  {
+    "Name": "lms/course-grid",
+    "Status": "In progress",
+    "Spec Path": "blocks/lms/course-grid/block.json"
+  },
+  {
+    "Name": "lms/curriculum",
+    "Status": "In progress",
+    "Spec Path": "blocks/lms/curriculum/block.json"
+  },
+  {
+    "Name": "lms/instructor",
+    "Status": "In progress",
+    "Spec Path": "blocks/lms/instructor/block.json"
+  },
+  {
+    "Name": "lms/progress",
+    "Status": "In progress",
+    "Spec Path": "blocks/lms/progress/block.json"
+  },
+  {
+    "Name": "events/calendar",
+    "Status": "In progress",
+    "Spec Path": "blocks/events/calendar/block.json"
+  },
+  {
+    "Name": "events/upcoming",
+    "Status": "In progress",
+    "Spec Path": "blocks/events/upcoming/block.json"
+  },
+  {
+    "Name": "events/next-event",
+    "Status": "In progress",
+    "Spec Path": "blocks/events/next-event/block.json"
+  },
+  {
+    "Name": "membership/plans",
+    "Status": "In progress",
+    "Spec Path": "blocks/membership/plans/block.json"
+  },
+  {
+    "Name": "membership/gated-teaser",
+    "Status": "In progress",
+    "Spec Path": "blocks/membership/gated-teaser/block.json"
+  },
+  {
+    "Name": "gallery/recipe-card",
+    "Status": "In progress",
+    "Spec Path": "blocks/gallery/recipe-card/block.json"
+  },
+  {
+    "Name": "gallery/album",
+    "Status": "In progress",
+    "Spec Path": "blocks/gallery/album/block.json"
+  },
+  {
+    "Name": "support/kb-search",
+    "Status": "In progress",
+    "Spec Path": "blocks/support/kb-search/block.json"
+  },
+  {
+    "Name": "support/ticket-cta",
+    "Status": "In progress",
+    "Spec Path": "blocks/support/ticket-cta/block.json"
+  },
+  {
+    "Name": "certificates/verify",
+    "Status": "In progress",
+    "Spec Path": "blocks/certificates/verify/block.json"
+  },
+  {
+    "Name": "core/site-info",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/site-info/block.json"
+  },
+  {
+    "Name": "core/menu",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/menu/block.json"
+  },
+  {
+    "Name": "core/account-teaser",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/account-teaser/block.json"
+  },
+  {
+    "Name": "core/custom-html",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/custom-html/block.json"
+  },
+  {
+    "Name": "core/iframe",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/iframe/block.json"
+  },
+  {
+    "Name": "core/script-embed",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/script-embed/block.json"
+  },
+  {
+    "Name": "core/anchor-nav",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/anchor-nav/block.json"
+  },
+  {
+    "Name": "core/language-switcher",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/language-switcher/block.json"
+  },
+  {
+    "Name": "blocks/grade-gallery",
+    "Status": "In progress",
+    "Spec Path": "blocks/blocks/grade-gallery/block.json"
+  },
+  {
+    "Name": "core/synced",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/synced/block.json"
+  },
+  {
+    "Name": "core/definition-list",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/definition-list/block.json"
+  },
+  {
+    "Name": "business/opening-hours",
+    "Status": "In progress",
+    "Spec Path": "blocks/business/opening-hours/block.json"
+  },
+  {
+    "Name": "business/locations",
+    "Status": "In progress",
+    "Spec Path": "blocks/business/locations/block.json"
+  },
+  {
+    "Name": "business/service-list",
+    "Status": "In progress",
+    "Spec Path": "blocks/business/service-list/block.json"
+  },
+  {
+    "Name": "business/menu",
+    "Status": "In progress",
+    "Spec Path": "blocks/business/menu/block.json"
+  },
+  {
+    "Name": "commerce/wishlist",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/wishlist/block.json"
+  },
+  {
+    "Name": "commerce/download-library",
+    "Status": "In progress",
+    "Spec Path": "blocks/commerce/download-library/block.json"
+  },
+  {
+    "Name": "core/search-results",
+    "Status": "In progress",
+    "Spec Path": "blocks/core/search-results/block.json"
+  },
+  {
+    "Name": "reference/field-guide",
+    "Status": "In progress",
+    "Spec Path": "blocks/reference/field-guide/block.json"
+  },
+  {
+    "Name": "local/sample-alert",
+    "Status": "In progress",
+    "Spec Path": "blocks/local/sample-alert/block.json"
+  },
+  {
+    "Name": "blocks/studio-services",
+    "Status": "In progress",
+    "Spec Path": "blocks/blocks/studio-services/block.json"
+  }
+]
