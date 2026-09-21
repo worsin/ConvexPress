@@ -6,6 +6,8 @@
  * Wired to Convex post mutations for create, update, publish, trash, etc.
  */
 
+import { structuredArticlePatch } from "@/components/editor/legacy-article";
+
 import { useCallback, useMemo, useRef, useTransition } from "react";
 import { useForm, useStore } from "@tanstack/react-form";
 import { useMutation } from "convex/react";
@@ -248,40 +250,11 @@ export function useEditorForm(options: UseEditorFormOptions) {
         args.tagIds = values.tagIds as Id<"terms">[];
       }
 
-      // Structured content fields
-      if (values.hero !== undefined) {
-        const h = values.hero;
-        const hasContent = h.title || h.subtitle || h.content || h.imageId || h.videoUrl || h.ctaText || h.ctaUrl;
-        args.hero = hasContent ? {
-          title: h.title || undefined,
-          subtitle: h.subtitle || undefined,
-          content: h.content || undefined,
-          imageId: h.imageId ? (h.imageId as unknown as Id<"media">) : undefined,
-          videoUrl: h.videoUrl || undefined,
-          ctaText: h.ctaText || undefined,
-          ctaUrl: h.ctaUrl || undefined,
-        } : undefined;
-      }
-      if (values.topics !== undefined && values.topics.length > 0) {
-        args.topics = values.topics.map((t) => ({
-          title: t.title || undefined,
-          subtitle: t.subtitle || undefined,
-          content: t.content || undefined,
-          imageId: t.imageId ? (t.imageId as unknown as Id<"media">) : undefined,
-          videoUrl: t.videoUrl || undefined,
-        }));
-      }
-      if (values.summary !== undefined) {
-        const s = values.summary;
-        const hasContent = s.title || s.content;
-        args.summary = hasContent ? {
-          title: s.title || undefined,
-          content: s.content || undefined,
-        } : undefined;
-      }
-      if (values.sources !== undefined) args.sources = values.sources || undefined;
-      if (values.tableOfContents !== undefined) args.tableOfContents = values.tableOfContents || undefined;
-      if (values.pagePrompt !== undefined) args.pagePrompt = values.pagePrompt || undefined;
+      // Empty sections are explicit removals; untouched optional fields retain
+      // their stored absence and original bytes.
+      const baseline = savedBaseline.current && savedBaseline.current.postId === postId
+        ? savedBaseline.current.values : defaultValues;
+      Object.assign(args, structuredArticlePatch(values, baseline));
       if (values.contentMode !== undefined) args.contentMode = values.contentMode;
       if (values.blocks !== undefined) {
         args.blocks = values.blocks;
@@ -291,7 +264,7 @@ export function useEditorForm(options: UseEditorFormOptions) {
 
       return args;
     },
-    [contentType, form, postId],
+    [contentType, form, postId, defaultValues],
   );
 
   const runUpdate = useCallback(

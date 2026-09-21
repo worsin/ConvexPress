@@ -6,6 +6,8 @@
  * Uses auth context for role-aware rendering.
  */
 
+import { OriginalArticleEditor } from "./OriginalArticleEditor";
+
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import {
@@ -56,6 +58,7 @@ import type { EditorContentType, EditorFormValues, TagItem, CompositionBlock } f
 
 interface EditorLayoutProps {
   contentType: EditorContentType;
+  originalArticle?: boolean;
   mode: "new" | "edit";
   postId?: string;
   initialData?: Partial<EditorFormValues>;
@@ -72,6 +75,7 @@ interface EditorLayoutProps {
 
 function EditorLayoutInner({
   contentType,
+  originalArticle = false,
   mode,
   postId,
   initialData,
@@ -591,7 +595,17 @@ function EditorLayoutInner({
             <CustomFieldsMetabox context={customFieldContext} position="after_title" />
           )}
 
-          {postId ? (
+          {originalArticle ? (
+            <OriginalArticleEditor values={formValues} onChange={{
+              hero: value => form.setFieldValue("hero", value),
+              topics: value => form.setFieldValue("topics", value),
+              summary: value => form.setFieldValue("summary", value),
+              sources: value => form.setFieldValue("sources", value),
+              tableOfContents: value => form.setFieldValue("tableOfContents", value),
+              content: value => form.setFieldValue("content", value),
+              pagePrompt: value => form.setFieldValue("pagePrompt", value),
+            }} disabled={isSubmitting} />
+          ) : postId ? (
             <div className="space-y-3">
               <PageGenerationPrompt
                 postId={postId}
@@ -620,12 +634,13 @@ function EditorLayoutInner({
           )}
 
           {/* Editor footer with word/character/block stats */}
-          <EditorFooter
+          {/* Original articles do not use the fallback-body statistics. */}
+          {!originalArticle && <EditorFooter
             wordCount={editorStats.wordCount}
             characterCount={editorStats.characterCount}
             blockCount={editorStats.blockCount}
             readingTime={editorStats.readingTime}
-          />
+          />}
         </div>
 
         {/* Sidebar column */}
@@ -662,7 +677,7 @@ function EditorLayoutInner({
           />
 
           {/* Block outline panel — jump-to-block sidebar */}
-          {compositionBlocks.length > 0 && (
+          {!originalArticle && compositionBlocks.length > 0 && (
             <BlockOutlinePanel blocks={compositionBlocks} />
           )}
 

@@ -4,6 +4,8 @@
  * The heavy EditorLayout component is lazy-loaded to reduce initial bundle size.
  */
 
+import { usesOriginalArticleEditor } from "@/components/editor/legacy-article";
+
 import { createLazyFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
@@ -112,6 +114,8 @@ function EditPostPage() {
     );
   }
 
+  const originalArticle = usesOriginalArticleEditor(post);
+
   // ─── Map Convex post data to EditorFormValues ──────────────────────────
   const initialData: Partial<EditorFormValues> = {
     title: post.title,
@@ -157,14 +161,13 @@ function EditPostPage() {
     sources: post.sources ?? "",
     tableOfContents: post.tableOfContents ?? "",
     pagePrompt: ("pagePrompt" in post ? post.pagePrompt : undefined) ?? "",
-    // Phase 3 of the editor refactor: the article/blocks toggle is gone.
-    // Every post is rendered through the BlockOutline. If the post still has
-    // TipTap content and no blocks, convert lazily so the editor has something
-    // to show — the first save will persist the migrated blocks.
-    contentMode: "blocks" as const,
-    blocks:
-      Array.isArray((post as any).blocks) && (post as any).blocks.length > 0
-        ? ((post as any).blocks as [])
+    // A recovered article keeps its original authoring format. Conversion to
+    // canonical blocks belongs to the explicit review above this editor.
+    contentMode: originalArticle ? "article" as const : "blocks" as const,
+    blocks: originalArticle
+      ? ((post.blocks ?? []) as [])
+      : Array.isArray(post.blocks) && post.blocks.length > 0
+        ? (post.blocks as [])
         : (tiptapContentToBlocks(post.content) as unknown as []),
     blocksVersion: (post as any).blocksVersion ?? 1,
     blocksRevision: (post as any).blocksRevision ?? 0,
@@ -174,6 +177,7 @@ function EditPostPage() {
     <CanonicalEditorEntry key={postId} initialOpen={editor === "blocks"} postId={postId as Id<"posts">} canonical={"blocksVersion" in post && post.blocksVersion === 2} draft={post.status === "draft"}>
     <EditorLayout
       contentType="post"
+      originalArticle={originalArticle}
       mode="edit"
       postId={postId}
       initialData={initialData}

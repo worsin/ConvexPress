@@ -79,3 +79,34 @@ test("publishing retains edits made after the content save", async () => {
   await act(async () => editor.form.reset());
   expect(editor.form.state.values.title).toBe("Published title");
 });
+
+test("article section removals persist and unchanged sections are not rewritten", async () => {
+  await mount();
+  const calls=[];mutate=async args=>{calls.push(args);return 'page-id';};
+  await act(async () => {
+    editor.form.setFieldValue('hero',{title:'Saved title',subtitle:'Introduction',content:'Original body',imageId:'image-id',videoUrl:'',ctaText:'',ctaUrl:''});
+    editor.form.setFieldValue('topics',[{title:'Topic',subtitle:'',content:'Original topic',imageId:null,videoUrl:''}]);
+    editor.form.setFieldValue('summary',{title:'Summary',content:'Original summary'});
+    editor.form.setFieldValue('sources','Original source');
+    editor.form.setFieldValue('tableOfContents','Original contents');
+    editor.form.setFieldValue('pagePrompt','Original brief');
+    editor.form.setFieldValue('contentMode','article');
+  });
+  await act(async () => editor.handleSaveDraft());
+  expect(calls[0].hero.imageId).toBe('image-id');
+  await act(async () => editor.form.setFieldValue('title','Only the title changed'));
+  await act(async () => editor.handleSaveDraft());
+  for(const field of ['hero','topics','summary','sources','tableOfContents','pagePrompt'])expect(calls[1]).not.toHaveProperty(field);
+  await act(async () => {
+    editor.form.setFieldValue('hero',{title:'',subtitle:'',content:'',imageId:null,videoUrl:'',ctaText:'',ctaUrl:''});
+    editor.form.setFieldValue('topics',[]);
+    editor.form.setFieldValue('summary',{title:'',content:''});
+    editor.form.setFieldValue('sources','');
+    editor.form.setFieldValue('tableOfContents','');
+    editor.form.setFieldValue('pagePrompt','');
+  });
+  await act(async () => editor.handleSaveDraft());
+  const serialized=JSON.parse(JSON.stringify(calls[2]));
+  expect(serialized).toMatchObject({contentMode:'article',hero:{},topics:[],summary:{},sources:'',tableOfContents:'',pagePrompt:''});
+  expect(editor.form.state.isDirty).toBe(false);
+});
