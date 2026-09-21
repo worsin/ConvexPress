@@ -30,8 +30,17 @@ const categoryRecords=[
  {id:"demo-category-gifts",slug:"gifts",name:"Thoughtfully given",description:"Simple things that say a little more. Chosen to be kept.",src:null,count:0},
 ];
 const categories=(args:CategoryTilesArgs)=>({items:(args.categorySlugs.length?[...new Set(args.categorySlugs)].flatMap(slug=>categoryRecords.filter(c=>c.slug===slug)):categoryRecords).slice(0,args.count).map(c=>({id:c.id,slug:c.slug,name:c.name,href:`/categories/${c.slug}`,description:args.showDescriptions?c.description:null,image:c.src?{src:c.src.startsWith('/')?c.src:`/${c.src}`,alt:c.name}:null,productCount:args.showCounts?c.count:null}))});
-export function resolveProductsDemo(tree:unknown,scope:DataScope,policy:ResolverPolicy,options:{emptyHistory?:boolean;emptyCategories?:boolean}={}) {
- const parameters:Parameters<typeof resolveCanonicalData>=[tree,scope,policy,async()=>({page:null}),undefined,undefined,undefined,{},undefined,undefined,undefined,undefined,undefined,undefined,undefined,async args=>featured(args),async args=>args.mode==="recentlyViewed" && options.emptyHistory?{items:[],groups:[]}:collection(args),async args=>options.emptyCategories?{items:[]}:categories(args),async args=>showcase(args)];
+export type CategorySpecimen = "available" | "empty" | "discovering" | "counting" | "maximum";
+function categorySpecimen(args: CategoryTilesArgs, state: CategorySpecimen = "available") {
+ if (state === "empty") return { items: [] };
+ if (state === "discovering") return { items: [], state, cursor: null, nextCursor: "synthetic-category-discovery" };
+ const result = categories(args);
+ if (state === "counting" && args.showCounts) return { items: result.items.map(item => ({ ...item, productCount: null })), state, cursor: null, nextCursor: "synthetic-category-counting" };
+ if (state === "maximum") return { items: result.items.map(item => ({ ...item, name: "W".repeat(512), description: args.showDescriptions ? "Long description ".repeat(600).slice(0,8192) : null, productCount: args.showCounts ? Number.MAX_SAFE_INTEGER : null })) };
+ return result;
+}
+export function resolveProductsDemo(tree:unknown,scope:DataScope,policy:ResolverPolicy,options:{emptyHistory?:boolean;emptyCategories?:boolean;categoryState?:CategorySpecimen}={}) {
+ const parameters:Parameters<typeof resolveCanonicalData>=[tree,scope,policy,async()=>({page:null}),undefined,undefined,undefined,{},undefined,undefined,undefined,undefined,undefined,undefined,undefined,async args=>featured(args),async args=>args.mode==="recentlyViewed" && options.emptyHistory?{items:[],groups:[]}:collection(args),async args=>categorySpecimen(args,options.emptyCategories?"empty":options.categoryState),async args=>showcase(args)];
  parameters[36]=async args=>{const product=select(args.product?[args.product]:[],1,false)[0]??null;const groups=product?[{id:"color",name:"Color",values:[{id:"forest",label:"Forest"},{id:"oat",label:"Oat"},{id:"ink",label:"Ink"}]},{id:"size",name:"Size",values:[{id:"pocket",label:"Pocket"},{id:"desk",label:"Desk"}]}]:[];return {product,groups:args.attribute.trim()?groups.filter(group=>group.id===args.attribute.trim()||group.name.toLowerCase()===args.attribute.trim().toLowerCase()):groups};};
  return resolveCanonicalData(...parameters);
 }

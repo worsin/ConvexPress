@@ -1,4 +1,4 @@
-import { assertAuthoringResolverArgs } from "@backend/canonical-blocks-foundation/resolverBindings";
+import { assertAuthoringResolverArgs } from "../../../../../../packages/backend/canonical-blocks-foundation/resolverBindings";
 import {
 	validateBlockAuthoringAttrs,
 	validateBlockField,

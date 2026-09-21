@@ -34,6 +34,7 @@
 .cp-owned-journal .journal-categories .cp-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--grid-gap, 2rem); }
 .cp-owned-journal .journal-categories .cp-category-image { aspect-ratio: 3/2; border-radius: 0; }
 .cp-owned-journal .journal-categories .cp-category-index { font-style: italic; }
-@media (max-width: 640px) { .cp-owned-journal .journal-products .cp-showcase-grid, .cp-owned-journal .journal-categories .cp-category-grid { grid-template-columns: minmax(0,1fr); } }
+@media (max-width: 640px) { .cp-owned-journal .journal-products .cp-showcase-grid { grid-template-columns: minmax(0,1fr); } }
+@container (max-width: 30rem) { .cp-owned-journal .journal-categories .cp-category-grid { grid-template-columns: minmax(0,1fr); } }
 
 .cp-owned-journal .journal-cta[data-block-style="inset"] { border: 1px solid var(--border); padding: clamp(1.25rem, 4vw, 3rem); background: var(--muted); border-radius: var(--radius, 0.5rem); }
