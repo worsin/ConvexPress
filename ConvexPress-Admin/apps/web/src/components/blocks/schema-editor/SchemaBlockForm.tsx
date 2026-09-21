@@ -8,10 +8,15 @@ import { validateBlockField } from "../../../../../../../blocks/.generated/schem
 import type { RichTextDoc } from "../../../../../../../blocks/.generated/field-runtime.mjs";
 import { RichTextField } from "./RichTextField";
 import {
+	editRepeater,
+	repeaterEditAllowed,
+	matrixEditorHint,
+	type RepeaterEdit,
+} from "./matrix-editor";
+import {
 	applyPickerResult,
 	draftAt,
 	initialFieldValue,
-	moveRow,
 	updateDraft,
 	validateDraft,
 	type Draft,
@@ -80,9 +85,13 @@ export type SchemaBlockFormProps = SchemaBlockFormBase &
 		| { mode: "preview"; onCommit?: never }
 	);
 export function SchemaBlockForm(props: SchemaBlockFormProps) {
-	const definition = props.contract ? (props.contract.name === props.name ? props.contract.definition : undefined) : Object.hasOwn(editorDefinitions, props.name)
-		? editorDefinitions[props.name as keyof typeof editorDefinitions]
-		: undefined;
+	const definition = props.contract
+		? props.contract.name === props.name
+			? props.contract.definition
+			: undefined
+		: Object.hasOwn(editorDefinitions, props.name)
+			? editorDefinitions[props.name as keyof typeof editorDefinitions]
+			: undefined;
 	if (!definition || definition.version !== props.version)
 		return (
 			<p role="alert">
@@ -199,13 +208,19 @@ function FormBody(
 				signal: controller.signal,
 			});
 			if (!alive.current || controller.signal.aborted || !selection) return;
-			const next = applyPickerResult(request, selection, {
-				blockId: current.current.blockId,
-				name: current.current.name,
-				path,
-				scope: current.current.scope,
-				revision: current.current.revision,
-			}, draft, props.contract);
+			const next = applyPickerResult(
+				request,
+				selection,
+				{
+					blockId: current.current.blockId,
+					name: current.current.name,
+					path,
+					scope: current.current.scope,
+					revision: current.current.revision,
+				},
+				draft,
+				props.contract,
+			);
 			setSaved(null);
 			setMessage("");
 			setDraft(next);
@@ -291,15 +306,24 @@ function FormBody(
 					path={[field.id]}
 					draft={draft}
 					name={props.name}
-					validateField={(path, value) => props.contract ? props.contract.validateField(path, value) : validateBlockField(props.name, path, value)}
+					validateField={(path, value) =>
+						props.contract
+							? props.contract.validateField(path, value)
+							: validateBlockField(props.name, path, value)
+					}
 					edit={edit}
 					disabled={disabled}
 					issues={result.issues}
 					canPick={Boolean(props.pickResource)}
 					pick={pick}
-					move={(path, from, to) => {
+					definition={props.definition}
+					canEditRows={(path, edit) =>
+						repeaterEditAllowed(draft, path, edit, props.definition)
+					}
+					editRows={(path, edit) => {
 						setSaved(null);
-						setDraft((old) => moveRow(old, path, from, to));
+						setMessage("");
+						setDraft((old) => editRepeater(old, path, edit, props.definition));
 					}}
 				/>
 			))}
@@ -344,7 +368,9 @@ interface FieldProps {
 	issues: readonly FieldIssue[];
 	canPick: boolean;
 	pick: (field: EditorField, path: Path) => Promise<void>;
-	move: (path: Path, from: number, to: number) => void;
+	definition: EditorDefinition;
+	canEditRows: (path: Path, edit: RepeaterEdit) => boolean;
+	editRows: (path: Path, edit: RepeaterEdit) => void;
 }
 function Field(props: FieldProps) {
 	const { field, path, draft, edit, disabled } = props;
@@ -544,8 +570,12 @@ function Field(props: FieldProps) {
 		);
 	} else if (field.type === "repeater") {
 		const rows = Array.isArray(value) ? value : [];
+		const matrixHint = matrixEditorHint(props.definition, path);
 		content = (
 			<div className="grid gap-3">
+				{matrixHint && (
+					<p className="text-sm text-muted-foreground">{matrixHint}</p>
+				)}
 				{rows.map((_row, index) => (
 					<fieldset
 						key={index}
@@ -565,24 +595,54 @@ function Field(props: FieldProps) {
 						<div className="flex gap-3">
 							<button
 								type="button"
-								disabled={disabled || index === 0}
-								onClick={() => props.move(path, index, index - 1)}
+								disabled={
+									disabled ||
+									!props.canEditRows(path, {
+										kind: "move",
+										from: index,
+										to: index - 1,
+									})
+								}
+								onClick={() =>
+									props.editRows(path, {
+										kind: "move",
+										from: index,
+										to: index - 1,
+									})
+								}
 								aria-label={`Move ${label} ${index + 1} up`}
 							>
 								Move up
 							</button>
 							<button
 								type="button"
-								disabled={disabled || index === rows.length - 1}
-								onClick={() => props.move(path, index, index + 1)}
+								disabled={
+									disabled ||
+									!props.canEditRows(path, {
+										kind: "move",
+										from: index,
+										to: index + 1,
+									})
+								}
+								onClick={() =>
+									props.editRows(path, {
+										kind: "move",
+										from: index,
+										to: index + 1,
+									})
+								}
 								aria-label={`Move ${label} ${index + 1} down`}
 							>
 								Move down
 							</button>
 							<button
 								type="button"
-								disabled={disabled || rows.length <= (field.min ?? 0)}
-								onClick={() => set(rows.filter((_, at) => at !== index))}
+								disabled={
+									disabled ||
+									rows.length <= (field.min ?? 0) ||
+									!props.canEditRows(path, { kind: "remove", index })
+								}
+								onClick={() => props.editRows(path, { kind: "remove", index })}
 								aria-label={`Remove ${label} ${index + 1}`}
 							>
 								Remove
@@ -592,11 +652,15 @@ function Field(props: FieldProps) {
 				))}
 				<button
 					type="button"
-					disabled={disabled || rows.length >= (field.max ?? 1000)}
+					disabled={
+						disabled ||
+						rows.length >= (field.max ?? 1000) ||
+						!props.canEditRows(path, { kind: "append", value: null })
+					}
 					onClick={() =>
-						set([
-							...rows,
-							field.item
+						props.editRows(path, {
+							kind: "append",
+							value: field.item
 								? (initialFieldValue(field.item) ??
 									(field.item.type === "text" ? "" : null))
 								: Object.fromEntries(
@@ -604,7 +668,7 @@ function Field(props: FieldProps) {
 											.filter((child) => Object.hasOwn(child, "default"))
 											.map((child) => [child.id, initialFieldValue(child)]),
 									),
-						])
+						})
 					}
 				>
 					Add {label}

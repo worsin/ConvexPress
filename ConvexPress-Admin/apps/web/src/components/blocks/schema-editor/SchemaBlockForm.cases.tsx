@@ -421,3 +421,105 @@ test("reusable source selection emits only the complete new source and revision"
 				revision: 2,
 			});
 	}));
+
+for (const specimen of [
+	{
+		name: "core/comparison-table",
+		version: 2,
+		header: "Columns",
+		last: 3,
+		value: {
+			columns: ["Feature", "Digital", "Paper"],
+			rows: [{ label: "Find", cells: ["Search", "Page numbers"] }],
+		},
+		expected: {
+			columns: ["Feature", "Paper", "Digital"],
+			rows: [{ label: "Find", cells: ["Page numbers", "Search"] }],
+		},
+	},
+	{
+		name: "core/table",
+		version: 1,
+		header: "Columns",
+		last: 2,
+		value: {
+			columns: ["Practice", "Bring"],
+			rows: [["Observation", "Notebook"]],
+		},
+		expected: {
+			columns: ["Bring", "Practice"],
+			rows: [["Notebook", "Observation"]],
+		},
+	},
+	{
+		name: "core/pricing-table",
+		version: 1,
+		header: "Plans",
+		last: 2,
+		value: {
+			plans: [
+				{ name: "Small", priceLabel: "$12" },
+				{ name: "Large", priceLabel: "$24" },
+			],
+			rows: [{ label: "Notebooks", values: ["One", "Three"] }],
+		},
+		expected: {
+			plans: [
+				{ name: "Large", priceLabel: "$24" },
+				{ name: "Small", priceLabel: "$12" },
+			],
+			rows: [{ label: "Notebooks", values: ["Three", "One"] }],
+		},
+	},
+])
+	test(`${specimen.name} column controls keep header and every cell associated`, async () =>
+		domTest(async (host, render) => {
+			const writes: { attrs: Record<string, unknown> }[] = [];
+			await render({
+				name: specimen.name,
+				version: specimen.version,
+				value: specimen.value,
+				revision: "matrix-1",
+				scope,
+				onCommit: async (value: { attrs: Record<string, unknown> }) => {
+					writes.push(value);
+				},
+			});
+			await act(async () =>
+				host
+					.querySelector<HTMLButtonElement>(
+						`[aria-label="Move ${specimen.header} ${specimen.last} up"]`,
+					)!
+					.click(),
+			);
+			await act(async () => button(host, "Save content").click());
+			expect(writes[0].attrs).toMatchObject(specimen.expected);
+			if (specimen.name === "core/comparison-table") {
+				expect(
+					host.querySelector<HTMLButtonElement>(
+						'[aria-label="Move Columns 1 down"]',
+					)!.disabled,
+				).toBe(true);
+				expect(
+					host.querySelector<HTMLButtonElement>(
+						'[aria-label="Remove Columns 1"]',
+					)!.disabled,
+				).toBe(true);
+			}
+			await act(async () =>
+				host
+					.querySelector<HTMLButtonElement>(
+						`[aria-label="Remove ${specimen.header} ${specimen.last}"]`,
+					)!
+					.click(),
+			);
+			expect(button(host, "Save content").disabled).toBe(false);
+			await act(async () => button(host, "Save content").click());
+			const remaining =
+				specimen.name === "core/table"
+					? [["Notebook"]]
+					: specimen.name === "core/comparison-table"
+						? [{ label: "Find", cells: ["Page numbers"] }]
+						: [{ label: "Notebooks", values: ["Three"] }];
+			expect(writes[1].attrs.rows).toEqual(remaining);
+		}));
