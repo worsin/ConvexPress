@@ -2,7 +2,7 @@
 
 **Release acceptance is incomplete.** This index retains all 24 original audit IDs separately. It supersedes grouped historical tables for finding remaining work, not their dated evidence.
 
-Latest follow-up: B07 revision recovery is accepted after original-text editing and native block-body search/restore verification; see [recovery acceptance](original-text-recovery-20260921.md). Six original audit rows are accepted and eighteen remain open. Dated entries below retain their historical counts.
+Latest follow-up: A06 permission boundaries and A08 owner protection are accepted after isolated live-handler and native recovery verification; see [permission acceptance](permission-boundaries-20260921.md). Eight original audit rows are accepted and sixteen remain open. Dated entries below retain their historical counts.
 
 Implementation and historical tests are recorded in the linked outcomes. The last column identifies required final acceptance; it does not imply none of its individual cases has ever passed. No percentage or release-complete flag is inferred.
 
@@ -13,9 +13,9 @@ Implementation and historical tests are recorded in the linked outcomes. The las
 | A03 | Alternate publishing channels bypass protection | [content-access-outcome.md](content-access-outcome.md) | **Accepted September20:** current-source search filtering with stale indexes, actual feeds, protected homepage HTML and browser unlock; [evidence](content-access-live-acceptance.md) |
 | A04 | Disabling a parent does not disable site access | [auth-runtime-outcome.md](auth-runtime-outcome.md) | Live parent disable across organization/business/site and existing sessions |
 | A05 | Permission reassignment misses the previous holder | [auth-runtime-outcome.md](auth-runtime-outcome.md) | **Accepted September20:** live user allow/deny transfers revoke both old sessions; role-to-user transfer invalidates broadly; two-operator Electron evidence in output/permission-reassignment-20260920 |
-| A06 | Permission truncation can discard explicit denies | [auth-runtime-outcome.md](auth-runtime-outcome.md) | Deny overflow at production policy boundaries and loaded clients |
+| A06 | Permission truncation can discard explicit denies | [auth-runtime-outcome.md](auth-runtime-outcome.md) | **Accepted September21:** role/direct500/501 boundaries, late deny,48-site benchmark and reactive native recovery; [evidence](permission-boundaries-20260921.md) |
 | A07 | Packaged desktop trusts the development origin | [auth-runtime-outcome.md](auth-runtime-outcome.md) | Packaged sender origin/frame restrictions in delivered binaries |
-| A08 | Permission status changes bypass owner protection | [auth-runtime-outcome.md](auth-runtime-outcome.md) | Owner protection across permission status transitions |
+| A08 | Permission status changes bypass owner protection | [auth-runtime-outcome.md](auth-runtime-outcome.md) | **Accepted September21:** non-owner status/upsert activation rejected for owner user/role across inactive/revoked/expired states; [evidence](permission-boundaries-20260921.md) |
 | B01 | Failed payment creation leaves checkout stuck | [commerce-outcome.md](commerce-outcome.md) | Provider-failed payment and retry without stuck or duplicate checkout |
 | B02 | Refund screens disagree about pending refunds | [commerce-outcome.md](commerce-outcome.md) | Pending/failed/refunded webhook ordering and consistent rendered totals |
 | B03 | Bulk order actions skip lifecycle side effects | [commerce-outcome.md](commerce-outcome.md) | Bulk lifecycle transitions, stock, refunds and listeners exactly once |
@@ -266,3 +266,7 @@ Original rich-text post/page editing now preserves nested source content instead
 ## September 21 Latest Posts default-template and native acceptance
 
 Journal now uses a lead story and rule-separated entries; Depot uses compact thumbnail rows and container-responsive typography. Five browser cases,289 renderer cases, presentation/contract/type/build checks pass. Real Electron insertion/edit/save/reopen/publication, Journal/Depot previews, native Journal/Depot/Core activation and actual desktop/mobile production Website checks preserve saved content. Count/excerpt controls persist and alter public output. Two thumbnails refreshed; one MagicTables row updated with scoped evidence and accurate fields. Owned fixtures removed; original42 pages/2 posts/4 images/settings/155 listeners preserved. [Exact evidence and remaining scope](latest-posts-treatments-20260921.md). Original production audit remains six accepted/eighteen open; all-block/template production acceptance remains incomplete.
+
+## September21 permission boundaries and native subscription repair
+
+A06/A08 are accepted. The final loaded Sites view uses seven subscriptions instead of twelve; shared operator-scoped permission batches retain target separation and reactive denial. Actual Electron cleared the oversized-policy portfolio in928ms, recovered through Try Again, removed ordinary denied editing controls in971ms and switched website successfully. Zero reconnects or backend concurrency errors occurred during the67-second final window.383 controller and488 Admin tests, types/build and focused lint pass. Temporary controller/volume/profile removed; original processes and52 other containers preserved. Evidence: [permission-boundaries-20260921.md](permission-boundaries-20260921.md). Eight original audit rows accepted, sixteen open; full block/template/release scope remains open.

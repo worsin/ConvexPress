@@ -5,6 +5,7 @@ import type { Id } from "@control/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { Archive, ExternalLink, PackageOpen, PencilLine, Plus } from "lucide-react";
 
+import { useControlShell } from "../../ControlShellContext";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Button } from "@/components/ui/button";
 import { EnvironmentCard } from "../EnvironmentCard";
@@ -16,11 +17,9 @@ import { AccessList } from "./AccessList";
 export function WebsitePage({ api, websiteId }: { api: WorkspaceApi; websiteId: string }) {
   const found = findWebsite(api.tree, websiteId);
   const websiteIdTyped = websiteId as Id<"overseer_websites">;
-  const details = useQuery(
-    controlApi.websites.list,
-    found ? { businessId: found.business.businessId as Id<"overseer_businesses"> } : "skip",
-  );
-  const detail = details?.find((entry) => String(entry.websiteId) === websiteId);
+  // The authorized portfolio already contains this active website's description.
+  const shell = useControlShell();
+  const detail = shell?.context.websites.find((entry) => String(entry.websiteId) === websiteId);
   const environments = useQuery(controlApi.websiteInstances.list, { websiteId: websiteIdTyped });
   const connections = useQuery(controlApi.connections.queries.listForWebsite, {
     websiteId: websiteIdTyped,

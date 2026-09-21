@@ -1,3 +1,4 @@
+import { useControlAccessChecks } from "../ControlAccessProvider";
 import { WebsitePublishingBoundary } from "./WebsitePublishingBoundary";
 import { useEffect, useId, useState } from "react";
 import { useQuery } from "convex/react";
@@ -14,7 +15,7 @@ export function WebsitePublishingPanel(props: Props) {
 function AuthorizedPublishingPanel(props: Props) {
   const shell = useControlShell();
   const agency = !!shell && ["owner", "admin"].includes(shell.operator.role);
-  const access = useQuery(api.rbac.queries.checkManyAccess, agency ? { checks: ["connection.manage", "site.deploy", ...(props.kind === "live" ? ["environment.live.operate"] : [])].map(code => ({ selectorType: "capability" as const, code, organizationId: props.organizationId, businessId: props.businessId, websiteId: props.websiteId, instanceId: props.instanceId })) } : "skip");
+  const access = useControlAccessChecks(agency ? { checks: ["connection.manage", "site.deploy", ...(props.kind === "live" ? ["environment.live.operate"] : [])].map(code => ({ selectorType: "capability" as const, code, organizationId: props.organizationId, businessId: props.businessId, websiteId: props.websiteId, instanceId: props.instanceId })) } : "skip");
   return agency && access?.every(result => result.allowed) ? <PublishingForm key={props.instanceId} {...props} /> : null;
 }
 function PublishingForm(props: Props) {

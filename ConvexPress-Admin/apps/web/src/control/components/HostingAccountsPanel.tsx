@@ -1,3 +1,4 @@
+import { useControlAccessChecks } from "../ControlAccessProvider";
 import { api } from "@control/convex/_generated/api";
 import type { Id } from "@control/convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
@@ -11,9 +12,7 @@ type Provider = "convex" | "cloudflare" | "vercel";
 export function HostingAccountsPanel(props: Scope) {
   const shell = useControlShell();
   const agency = !!shell && ["owner", "admin"].includes(shell.operator.role);
-  const access = useQuery(
-    api.rbac.queries.checkManyAccess,
-    agency
+  const access = useControlAccessChecks(agency
       ? { checks: [{ selectorType: "capability", code: "connection.manage", ...props }] }
       : "skip",
   );

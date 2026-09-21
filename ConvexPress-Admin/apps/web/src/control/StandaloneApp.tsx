@@ -1,3 +1,4 @@
+import { ControlAccessProvider, useControlAccessChecks } from "./ControlAccessProvider";
 import {useWindowScopeSelection} from "./useWindowScopeSelection";
 import { api as controlApi } from "@control/convex/_generated/api";
 import type { Id } from "@control/convex/_generated/dataModel";
@@ -43,7 +44,7 @@ export function StandaloneApp({
   }, [session]);
   if (isPending) return <StartupState label="Restoring protected operator session" />;
   if (!session) return <OperatorLogin authClient={authClient} initialError={loginError} />;
-  return <ControlPlaneShell key={session.user.id} authClient={authClient} router={router} />;
+  return <ControlAccessProvider key={session.user.id}><ControlPlaneShell authClient={authClient} router={router} /></ControlAccessProvider>;
 }
 
 function ControlPlaneShell({
@@ -153,9 +154,7 @@ function ControlPlaneShell({
     }
     return checks;
   }, [selectedBusiness, selectedEnvironment, selectedWebsite, liveEnvironment]);
-  const shellDecisions = useQuery(
-    controlApi.rbac.queries.checkManyAccess,
-    shellChecks.length > 0 && (!selectedEnvironment || connections !== undefined)
+  const shellDecisions = useControlAccessChecks(shellChecks.length > 0 && (!selectedEnvironment || connections !== undefined)
       ? { checks: shellChecks.map(({ key: _key, ...check }) => check) }
       : "skip",
   );

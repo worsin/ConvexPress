@@ -1,3 +1,4 @@
+import { useControlAccessChecks } from "../ControlAccessProvider";
 import { DeploymentCredentialRecovery } from "./DeploymentCredentialRecovery";
 import {
   InitializeDeploymentPanel,
@@ -27,9 +28,7 @@ type Environments = {
 export function CloudEnvironmentsPanel(props: Props) {
   const shell = useControlShell();
   const agency = !!shell && ["owner", "admin"].includes(shell.operator.role);
-  const access = useQuery(
-    api.rbac.queries.checkManyAccess,
-    agency
+  const access = useControlAccessChecks(agency
       ? {
           checks: [
             {

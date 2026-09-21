@@ -1,4 +1,5 @@
 import type { Doc } from "../_generated/dataModel";
+import { ConvexError } from "convex/values";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import {
   resolveAccessDecision,
@@ -231,9 +232,10 @@ async function resolveWithReads(
     websiteGrants.length > 500 ||
     actionGroups.some((rows) => rows.length > 500)
   ) {
-    throw new Error(
-      "Authorization rule limit exceeded; narrow the operator's grants or permission catalog",
-    );
+    throw new ConvexError({
+      code: "CONTROL_PLANE_AUTHORIZATION_CAPACITY",
+      message: "Authorization rule limit exceeded; narrow the operator's grants or permission catalog",
+    });
   }
 
   const assignmentRows = uniqueById([...directAssignments, ...subjectAssignments]);

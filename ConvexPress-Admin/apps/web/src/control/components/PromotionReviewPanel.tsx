@@ -1,6 +1,7 @@
+import { useControlAccessChecks } from "../ControlAccessProvider";
 import { api as controlApi } from "@control/convex/_generated/api";
 import type { Id } from "@control/convex/_generated/dataModel";
-import { useAction, useConvex, useQuery } from "convex/react";
+import { useAction, useConvex } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -138,9 +139,7 @@ function PromotionReviewPanelContent(props: Props) {
 				}))
 			: [],
 	);
-	const decisions = useQuery(
-		controlApi.rbac.queries.checkManyAccess,
-		open && pairReady ? { checks } : "skip",
+	const decisions = useControlAccessChecks(open && pairReady ? { checks } : "skip",
 	);
 	const allowed =
 		pairReady &&

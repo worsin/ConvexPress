@@ -390,7 +390,8 @@ describe("authorization lifecycle handlers", () => {
   });
 
   for (const subjectType of ["user", "role"] as const) {
-    test(`admin cannot reactivate an owner ${subjectType} deny`, async () => {
+    for (const status of ["inactive", "revoked", "expired"] as const)
+    test(`admin cannot reactivate an owner ${subjectType} deny from ${status}`, async () => {
       const f = await fixture();
       const permissionId = await f.t.run((ctx) =>
         ctx.db.insert("overseer_permissions", {
@@ -398,51 +399,56 @@ describe("authorization lifecycle handlers", () => {
           subjectId: subjectType === "user" ? String(f.ids.owner) : "owner",
           actionCode: "site.read",
           effect: "deny",
-          status: "inactive",
+          status,
         }),
       );
       await expect(
         f.invoke(setPermissionStatus, { permissionId, status: "active" }),
       ).rejects.toThrow("Only an owner");
+      expect((await f.t.run(ctx => ctx.db.get(permissionId)))?.status).toBe(status);
+      expect(f.scheduled).toHaveLength(0);
+      await expect(f.invoke(upsertPermission, {
+        permissionId, subjectType, subjectId: subjectType === "user" ? String(f.ids.owner) : "owner",
+        selectorType: "capability", selectorCode: "site.read", effect: "deny", status: "active",
+      })).rejects.toThrow("Only an owner");
+      expect((await f.t.run(ctx => ctx.db.get(permissionId)))?.status).toBe(status);
+      expect(f.scheduled).toHaveLength(0);
       await expect(
         f.invoke(setPermissionStatus, { permissionId, status: "active" }, f.ids.owner),
       ).resolves.toBe(permissionId);
     });
   }
 
-  test("permissions beyond the read limit cannot disappear before deny evaluation", async () => {
-    const f = await fixture();
-    await f.t.run(async (ctx) => {
-      for (let i = 0; i < 500; i++)
-        await ctx.db.insert("overseer_permissions", {
-          subjectType: "role",
-          subjectId: "unrelated",
-          actionCode: "site.read",
-          effect: "deny",
-          status: "inactive",
-        });
-      await ctx.db.insert("overseer_permissions", {
-        subjectType: "role",
-        subjectId: "admin",
-        actionCode: "site.read",
-        effect: "deny",
-        status: "active",
+  for (const subjectType of ["role", "user"] as const) {
+    test(`${subjectType} permissions fail closed at overflow and recover the final deny`, async () => {
+      const f = await fixture();
+      const ids = await f.t.run(async ctx => {
+        const ids = [];
+        for (let i=0; i<500; i++) ids.push(await ctx.db.insert("overseer_permissions", {
+          subjectType, subjectId: subjectType === "user" ? String(f.ids.operator) : "unrelated",
+          actionCode: subjectType === "user" ? "unrelated.padding" : "site.read",
+          effect: "deny", status: "inactive",
+        }));
+        return ids;
       });
+      const read = () => f.t.run(async ctx => resolveStoredAccess(ctx, (await ctx.db.get(f.ids.operator))!, {
+        selector: {type:"capability",code:"site.read"}, target:{},
+      }));
+      expect((await read()).allowed).toBe(true);
+      const deny = await f.t.run(ctx => ctx.db.insert("overseer_permissions", {
+        subjectType, subjectId: subjectType === "user" ? String(f.ids.operator) : "admin",
+        actionCode:"site.read", effect:"deny", status:"active",
+      }));
+      await expect(read()).rejects.toMatchObject({data:{code:"CONTROL_PLANE_AUTHORIZATION_CAPACITY"}});
+      await expect(f.invoke(checkManyAccess, {checks:[{selectorType:"capability",code:"site.read"}]}))
+        .rejects.toMatchObject({data:{code:"CONTROL_PLANE_AUTHORIZATION_CAPACITY"}});
+      await f.t.run(ctx => ctx.db.delete(ids[0]));
+      expect(await read()).toMatchObject({allowed:false,reason:"explicit_deny",winningRuleId:String(deny)});
+      await f.t.run(ctx => ctx.db.delete(deny));
+      expect((await read()).allowed).toBe(true);
     });
-    const allowed = await f.t.run(async (ctx) => {
-      try {
-        return (
-          await resolveStoredAccess(ctx, (await ctx.db.get(f.ids.operator))!, {
-            selector: { type: "capability", code: "site.read" },
-            target: {},
-          })
-        ).allowed;
-      } catch {
-        return false;
-      }
-    });
-    expect(allowed).toBe(false);
-  });
+  }
+
 });
 
 

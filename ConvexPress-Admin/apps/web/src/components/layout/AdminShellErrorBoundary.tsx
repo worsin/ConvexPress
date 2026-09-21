@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { authorizationCapacityMessage, authorizationCapacityTitle, isAuthorizationCapacityError } from "../../lib/authorization-capacity";
 
 interface Props {
   children: ReactNode;
@@ -43,6 +44,7 @@ export class AdminShellErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const capacity = isAuthorizationCapacityError(this.state.error);
       return (
         <div className="flex h-svh items-center justify-center bg-background p-8">
           <div className="mx-auto max-w-md text-center">
@@ -50,13 +52,12 @@ export class AdminShellErrorBoundary extends Component<Props, State> {
               <AlertTriangle className="size-6 text-destructive" />
             </div>
             <h1 className="mb-2 text-lg font-semibold text-foreground">
-              Something went wrong
+              {capacity ? authorizationCapacityTitle : "Something went wrong"}
             </h1>
             <p className="mb-6 text-sm text-muted-foreground">
-              The admin panel encountered an unexpected error. You can try
-              recovering or reload the page.
+              {capacity ? authorizationCapacityMessage : "The admin panel encountered an unexpected error. You can try recovering or reload the page."}
             </p>
-            {this.state.error && (
+            {this.state.error && !capacity && (
               <pre className="mb-6 overflow-auto rounded-sm border border-border bg-muted p-3 text-left text-xs text-muted-foreground">
                 {this.state.error.message}
               </pre>

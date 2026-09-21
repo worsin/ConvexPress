@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { authorizationCapacityMessage, authorizationCapacityTitle, isAuthorizationCapacityError } from "../../lib/authorization-capacity";
 
 interface Props {
   children: ReactNode;
@@ -50,6 +51,7 @@ export class AdminContentErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       const message = this.state.error?.message ?? "Unknown error";
+      const capacity = isAuthorizationCapacityError(this.state.error);
       return (
         <div className="mx-auto max-w-2xl py-12">
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-8 text-center">
@@ -57,15 +59,14 @@ export class AdminContentErrorBoundary extends Component<Props, State> {
               <AlertTriangle className="size-6 text-destructive" />
             </div>
             <h2 className="mb-2 text-lg font-semibold text-foreground">
-              This page hit an error
+              {capacity ? authorizationCapacityTitle : "This page hit an error"}
             </h2>
             <p className="mb-4 text-sm text-muted-foreground">
-              The page content failed to render. The admin shell is still
-              available — pick another page from the sidebar, or try again.
+              {capacity ? authorizationCapacityMessage : "The page content failed to render. The admin shell is still available — pick another page from the sidebar, or try again."}
             </p>
-            <pre className="mx-auto mb-6 max-h-48 max-w-full overflow-auto rounded-sm border border-border bg-card p-3 text-left text-xs text-muted-foreground">
+            {!capacity && <pre className="mx-auto mb-6 max-h-48 max-w-full overflow-auto rounded-sm border border-border bg-card p-3 text-left text-xs text-muted-foreground">
               {message}
-            </pre>
+            </pre>}
             <button
               type="button"
               onClick={this.handleRetry}

@@ -1,18 +1,16 @@
+import { useControlAccessChecks } from "../ControlAccessProvider";
 /**
  * Capability checks for the Sites workspace, resolved against the RBAC
  * engine for the current node. Every mutation is re-authorized on the
  * backend; these only decide which controls to show.
  *
- * Each hook makes exactly ONE subscription (`rbac.queries.checkManyAccess`).
- * Self-hosted and starter-plan Convex backends cap concurrent query
- * executions (the test fleet allows 8); a screen that opens a dozen tiny
- * `checkMyAccess` subscriptions trips that cap every time the socket
- * reconnects and never recovers. Keep it batched.
+ * Hooks register with the operator-scoped controller provider, which deduplicates
+ * and batches checks across panels. Batching each hook separately still overloads
+ * small backends when every subscription reruns after a policy change.
  */
 
 import { api as controlApi } from "@control/convex/_generated/api";
 import type { FunctionArgs } from "convex/server";
-import { useQuery } from "convex/react";
 import { useMemo } from "react";
 
 type AccessCheck = FunctionArgs<typeof controlApi.rbac.queries.checkManyAccess>["checks"][number];
@@ -56,7 +54,7 @@ export function useSitesAccess(scope: {
     }
     return list;
   }, [businessScoped, websiteScoped, scope.organizationId, scope.businessId, scope.websiteId]);
-  const decisions = useQuery(controlApi.rbac.queries.checkManyAccess, { checks });
+  const decisions = useControlAccessChecks({ checks });
   const allowed = (index: number) => decisions?.[index]?.allowed === true;
   return {
     loading: decisions === undefined,
@@ -106,9 +104,7 @@ export function useEnvironmentsAccess(
     // eslint-disable-next-line react-hooks/exhaustive-deps -- key captures every id
     [key],
   );
-  const decisions = useQuery(
-    controlApi.rbac.queries.checkManyAccess,
-    checks.length > 0 ? { checks } : "skip",
+  const decisions = useControlAccessChecks(checks.length > 0 ? { checks } : "skip",
   );
   return useMemo(() => {
     const map = new Map<string, EnvironmentAccess>();
