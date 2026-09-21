@@ -34,3 +34,4 @@ export function createCanonicalNodeSchema(zod: typeof z): CanonicalTreeContract[
 export function collectCanonicalAnchors(attrs: unknown, descriptors: readonly { path: readonly string[] }[], path?: string): { value: string; path: string }[];
 export function validateCanonicalTree(input: unknown, contract: CanonicalTreeContract): CanonicalEnvelope[];
 export function createCanonicalTreeSchema(zod: typeof z, contract: CanonicalTreeContract): z.ZodType<CanonicalEnvelope[]>;
+export function assertCanonicalBlockLocks(previous: unknown, next: unknown): void;

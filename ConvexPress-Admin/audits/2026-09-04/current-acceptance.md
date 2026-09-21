@@ -1,5 +1,7 @@
 # Current production acceptance index — September 21
 
+September21 block protection: shared edit/move/remove safeguards, saved-unlock requirement and native sibling controls now pass scoped backend/native/public acceptance. Original-editor recovery gives actionable unlock guidance; original fixture content and all42 existing pages/appearance restored. An initial saved-draft conflict during consumer-index rebuilding remains a disclosed follow-up. Conditional visibility/full Library/release acceptance remains open; eight original audit rows accepted/sixteen open. [Evidence](block-locks-20260921.md).
+
 **Release acceptance is incomplete.** This index retains all 24 original audit IDs separately. It supersedes grouped historical tables for finding remaining work, not their dated evidence.
 
 Latest follow-up: A06 permission boundaries and A08 owner protection are accepted after isolated live-handler and native recovery verification; see [permission acceptance](permission-boundaries-20260921.md). Eight original audit rows are accepted and sixteen remain open. Dated entries below retain their historical counts.

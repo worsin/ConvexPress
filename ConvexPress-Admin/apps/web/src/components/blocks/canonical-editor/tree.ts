@@ -112,3 +112,20 @@ export function removeNodes<N>(
 			);
 	return visit(nodes);
 }
+
+/** Reorder one sibling without changing IDs, descendants or stored envelopes. */
+export function moveNode<N>(nodes: readonly N[], id: string, direction: -1 | 1, adapter: TreeAdapter<N>): N[] {
+	if (!outline(nodes, adapter).some(row => adapter.id(row.node) === id)) throw new Error("The selected block is no longer in this document.");
+	const visit = (list: readonly N[]): N[] => {
+		const index = list.findIndex(node => adapter.id(node) === id);
+		if (index >= 0) {
+			const target = index + direction;
+			if (target < 0 || target >= list.length) throw new Error("This block is already at the edge of its group.");
+			const next = [...list];
+			[next[index], next[target]] = [next[target], next[index]];
+			return next;
+		}
+		return list.map(node => adapter.children(node).length ? adapter.withChildren(node, visit(adapter.children(node))) : node);
+	};
+	return visit(nodes);
+}

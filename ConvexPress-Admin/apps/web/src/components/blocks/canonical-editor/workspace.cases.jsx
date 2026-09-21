@@ -499,7 +499,7 @@ test("native write adapter refuses wrong scope, digest, document and revision re
 		expect(() =>
 			m.checkedDraft({
 				title: "Locked",
-				blocks: [{ ...marked, lock: { edit: true } }],
+				blocks: [{ ...marked, lock: { edit: "yes" } }],
 			}),
 		).toThrow();
 	} finally {
@@ -958,6 +958,12 @@ test("original recovery verifies source digest and keeps canonical safety undo",
 		expect(
 			document.querySelector('[aria-label="Document editor"]'),
 		).not.toBeNull();
+		const originalRecovery = client.recoverLegacy;
+		client.recoverLegacy = async () => { throw { data: { code: "BLOCK_LOCKED", message: "Unlock blocks and save before returning to the original editor." } }; };
+		await act(async () => button("Restore this revision").click());
+		expect(document.body.textContent).toContain("Unlock blocks and save before returning to the original editor.");
+		expect(recovered).toBe(0);
+		client.recoverLegacy = originalRecovery;
 		wrong = false;
 		await act(async () => button("Restore this revision").click());
 		expect(writes[1]).toEqual({ expectedRevision: 5, revisionId: "original" });

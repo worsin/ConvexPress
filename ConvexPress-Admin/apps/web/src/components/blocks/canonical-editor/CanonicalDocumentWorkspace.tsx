@@ -1,3 +1,4 @@
+import { getErrorMessage } from "../../../lib/utils";
 import { ElementCreator, type ElementCreation } from "./ElementCreator";
 import { SavedContentInserter } from "./SavedContentInserter";
 import {
@@ -673,11 +674,11 @@ function RevisionHistory({
 											throw new Error("Restore reopen mismatch");
 									}
 									if (mounted.current) setSelected(null);
-								} catch {
+								} catch (error) {
 									if (mounted.current)
-										setError(
+										setError(getErrorMessage(error,
 											"The document changed or restoration was denied. Reload the current revision before trying again.",
-										);
+										));
 								} finally {
 									pending.current = false;
 									if (mounted.current) setBusy(false);

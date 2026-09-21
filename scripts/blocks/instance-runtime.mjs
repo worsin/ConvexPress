@@ -73,7 +73,6 @@ export function validateCanonicalTree(input, contract) {
     // identities to default so switching templates never invalidates saved content.
     if (node.style !== undefined && !descriptor.supports.styles) fail("UNSUPPORTED_STYLE", `${path}.style`, "This block does not support styles");
     if (node.visibility !== undefined && (!descriptor.supports.visibility || node.visibility !== "everyone")) fail("UNSUPPORTED_VISIBILITY", `${path}.visibility`, "Visibility filtering must be implemented before this rule can be saved");
-    if (Object.values(node.lock ?? {}).some(Boolean)) fail("UNSUPPORTED_LOCK", `${path}.lock`, "Active locks need the reviewed mutation and editor policy");
     if (node.treatment !== undefined) {
       try {
         if (composed) {
@@ -110,4 +109,59 @@ export function createCanonicalTreeSchema(z, contract) {
       return z.NEVER;
     }
   });
+}
+
+/** Authoring safeguards, not permission grants. Call with the stored tree and the
+ * validated candidate. Unlocking changes only lock flags until a separate save.
+ * New siblings may be inserted around a move-locked block; existing siblings
+ * cannot cross it, and moving an ancestor cannot bypass its protection. */
+export function assertCanonicalBlockLocks(previous, next) {
+  const index = tree => {
+    checkSize(tree);
+    if (!Array.isArray(tree)) fail("INVALID_TREE", "blocks", "Expected canonical array");
+    const rows = new Map();
+    const visit = (nodes, parent, ancestors) => {
+      if (!Array.isArray(nodes)) fail("INVALID_TREE", "blocks", "Expected canonical children");
+      for (const node of nodes) {
+        if (!node || typeof node !== "object" || typeof node.id !== "string") fail("INVALID_INSTANCE", "blocks", "Expected canonical block identity");
+        if (rows.has(node.id)) fail("DUPLICATE_BLOCK_ID", "blocks", "Block IDs must be unique");
+        if (rows.size >= CANONICAL_TREE_LIMITS.nodes || ancestors.length >= CANONICAL_TREE_LIMITS.depth) fail("TREE_BUDGET", "blocks", "Maximum 80 blocks and eight levels");
+        rows.set(node.id, { node, parent, ancestors, siblings: nodes.map(item => item.id) });
+        visit(node.children ?? [], node.id, [...ancestors, node.id]);
+      }
+    };
+    visit(tree, null, []);
+    return rows;
+  };
+  const before = index(previous), after = index(next);
+  const ordered = value => {
+    if (Array.isArray(value)) return value.map(ordered);
+    if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().filter(key => value[key] !== undefined).map(key => [key, ordered(value[key])]));
+    return value;
+  };
+  const content = node => {
+    const { lock: _lock, children, ...authored } = node;
+    return { ...authored, ...(children ? { children: children.map(content) } : {}) };
+  };
+  const same = (a, b) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
+  for (const [id, saved] of before) {
+    const candidate = after.get(id);
+    if (!candidate) {
+      if (saved.node.lock?.remove) fail("BLOCK_REMOVE_LOCKED", `blocks.${id}`, "Unlock removal and save before removing this block or its parent.");
+      continue;
+    }
+    if (saved.node.lock?.edit && !same(content(saved.node), content(candidate.node))) fail("BLOCK_EDIT_LOCKED", `blocks.${id}`, "Unlock editing and save before changing this block or its contents.");
+    if (saved.node.lock?.move) {
+      for (const protectedId of [...saved.ancestors, id]) {
+        const oldPosition = before.get(protectedId), newPosition = after.get(protectedId);
+        if (!newPosition || oldPosition.parent !== newPosition.parent) fail("BLOCK_MOVE_LOCKED", `blocks.${id}`, "Unlock movement and save before moving this block or its parent.");
+        const retained = new Set(oldPosition.siblings.filter(sibling => after.get(sibling)?.parent === oldPosition.parent));
+        const oldSiblings = oldPosition.siblings.filter(sibling => retained.has(sibling));
+        const newSiblings = newPosition.siblings.filter(sibling => retained.has(sibling));
+        const oldBefore = new Set(oldSiblings.slice(0, oldSiblings.indexOf(protectedId)));
+        const newBefore = new Set(newSiblings.slice(0, newSiblings.indexOf(protectedId)));
+        if (oldBefore.size !== newBefore.size || [...oldBefore].some(sibling => !newBefore.has(sibling))) fail("BLOCK_MOVE_LOCKED", `blocks.${id}`, "Unlock movement and save before changing this block's order.");
+      }
+    }
+  }
 }

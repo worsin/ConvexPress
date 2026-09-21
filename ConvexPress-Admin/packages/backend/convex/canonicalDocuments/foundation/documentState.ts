@@ -6,6 +6,7 @@ import { canonicalContentDigest, DOCUMENT_LIMITS } from "./documentContracts";
 import { validateCanonicalTree } from "./generated/instances";
 import type { CanonicalTree } from "./generated/types";
 import type { CanonicalEnvelope } from "./generated/instance_runtime.mjs";
+import { assertCanonicalBlockLocks } from "./generated/instance_runtime.mjs";
 import type { ComposedRegistrySnapshot, RuntimeCanonicalTree } from "./composedRegistry";
 import type { SyncedScope } from "./syncedContent";
 import { parseAuthoredDefinitionContent, type AuthoredDefinitionContent } from "./authoredDefinitions";
@@ -80,6 +81,7 @@ export function prepareCanonicalSave(row: StoredAuthoring, args: SaveArgs, conte
   if (typeof row.title !== "string") fail("INVALID_DOCUMENT_TITLE", "The stored title is invalid");
   const saved = candidate(row.title, row.blocks, row.composedDefinitions, context);
   const next = candidate(args.title, args.blocks, context?.definitions, context);
+  assertCanonicalBlockLocks(saved.blocks, next.blocks);
   const changed = next.digest !== saved.digest;
   return { ...next, revision: revision + (changed ? 1 : 0), changed };
 }

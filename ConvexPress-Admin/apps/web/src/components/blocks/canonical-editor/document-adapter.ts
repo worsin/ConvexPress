@@ -1,6 +1,6 @@
 import thumbnailCatalog from "./block-thumbnails.generated.json";
 import { z } from "zod";
-import { BLOCK_LAYOUT_VALUES, createCanonicalLayoutSchema } from "../../../../../../../blocks/.generated/instance-runtime.mjs";
+import { BLOCK_LAYOUT_VALUES, createCanonicalLayoutSchema, assertCanonicalBlockLocks } from "../../../../../../../blocks/.generated/instance-runtime.mjs";
 import { templatePatterns } from "../../../../../../../blocks/.generated/patterns";
 import { instantiatePattern } from "./patterns";
 import { planCanonicalData } from "@backend/canonical-blocks-foundation/planner";
@@ -231,6 +231,27 @@ export function canonicalEditorAdapter(
 	};
 	return {
 		contract,
+		lockValue: (node, field) => node.lock?.[field] === true,
+		withLock: (node, field, enabled) => {
+			if (!["edit", "move", "remove"].includes(field)) throw new Error("Unknown block protection.");
+			return { ...node, lock: { ...node.lock, [field]: enabled } };
+		},
+		lockedInDocument: (value, id, operation) => {
+			let path: EditableBlock[] = [];
+			const find = (nodes: readonly EditableBlock[], parents: EditableBlock[]): boolean => nodes.some(node => {
+				if (node.id === id) { path = [...parents, node]; return true; }
+				return find(node.children ?? [], [...parents, node]);
+			});
+			if (!find(value.blocks, [])) return false;
+			if (operation === "edit") return path.some(node => node.lock?.edit);
+			if (path.slice(0, -1).some(node => node.lock?.edit)) return true;
+			const protectedTree = (node: EditableBlock): boolean => node.lock?.[operation] === true || (node.children ?? []).some(protectedTree);
+			return protectedTree(path[path.length - 1]);
+		},
+		validateTransition: (previous, next) => {
+			try { assertCanonicalBlockLocks(previous.blocks, next.blocks); return null; }
+			catch (error) { return error instanceof Error ? error.message : "A saved block is protected."; }
+		},
 		treatmentOptions: node => treatments(node).map(treatment => ({
 			name: treatment.name,
 			title: treatment.title,

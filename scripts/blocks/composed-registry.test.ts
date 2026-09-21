@@ -50,7 +50,7 @@ test("registry snapshots reject cross-site identities, mismatched versions, dupl
 
 test("composed nodes retain canonical structure, anchor collision and closed-attribute enforcement", () => {
   const registry = create(snapshot());
-  for (const extra of [{ attrs: { unknown: true } }, { children: [] }, { layout: { tone: "muted" } }, { style: "uninstalled" }, { visibility: "signedIn" }, { lock: { edit: true } }, { definition: {} }, { treatment: { name: "default", values: {} } }]) {
+  for (const extra of [{ attrs: { unknown: true } }, { children: [] }, { layout: { tone: "muted" } }, { style: "uninstalled" }, { visibility: "signedIn" }, { lock: { edit: "invalid" } }, { definition: {} }, { treatment: { name: "default", values: {} } }]) {
     expect(() => registry.validateTree([{ ...node(), ...extra }])).toThrow();
   }
   expect(() => registry.validateTree([node("a", 1, { target: "same" }), { id: "heading", name: "core/heading", version: 2, attrs: { anchor: "same" } }])).toThrow("Duplicate page-wide");

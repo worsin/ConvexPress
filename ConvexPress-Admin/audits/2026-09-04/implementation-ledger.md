@@ -1,5 +1,7 @@
 # ConvexPress production-readiness implementation ledger
 
+September21 block protection: shared edit/move/remove safeguards, saved-unlock requirement and native sibling controls now pass scoped backend/native/public acceptance. Original-editor recovery gives actionable unlock guidance; original fixture content and all42 existing pages/appearance restored. An initial saved-draft conflict during consumer-index rebuilding remains a disclosed follow-up. Conditional visibility/full Library/release acceptance remains open; eight original audit rows accepted/sixteen open. [Evidence](block-locks-20260921.md).
+
 Active goal: complete the revalidated Astra audit and Claude handoff, then prove production readiness for isolated client websites.
 
 Worktree: `/Users/worsin/.codex/worktrees/convexpress-hardening`; branch `codex/convexpress-hardening`. Application source and Claude handoffs were integrated into main at `ee7087f4` on September20. Later verified fixes are recorded below; original live processes are preserved. The initial audit started at `3816d7af`. Historical process notes below are checkpoints, not current process inventory; inspect actual process paths before acceptance.

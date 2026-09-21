@@ -1,5 +1,6 @@
 import { InsertionTabs } from "./InsertionTabs";
 import { TreatmentControls, type TreatmentOption } from "./TreatmentControls";
+import { BlockLockControls, type BlockLockOperation } from "./BlockLockControls";
 import { BlockInserter, type InserterBlock } from "./BlockInserter";
 import {
 	useId,
@@ -17,7 +18,7 @@ import {
 	type BlockEditorContract,
 } from "../schema-editor/model";
 import { CanonicalOutline, type BlockLabel } from "./CanonicalOutline";
-import { changeNode, removeNodes, outline, type TreeAdapter } from "./tree";
+import { changeNode, removeNodes, moveNode, outline, type TreeAdapter } from "./tree";
 import { useEditorRecovery } from "./EditorRecoveryProvider";
 import {
 	openDocument,
@@ -54,6 +55,10 @@ export interface CanonicalEditorAdapter<N, V> extends TreeAdapter<N> {
 	withLayout?(node: N, field: string, value: string): N;
 	anchorValue?(node: N): string | undefined;
 	withAnchor?(node: N, value: string): N;
+	lockValue?(node: N, operation: BlockLockOperation): boolean;
+	withLock?(node: N, operation: BlockLockOperation, enabled: boolean): N;
+	lockedInDocument?(value: V, id: string, operation: BlockLockOperation): boolean;
+	validateTransition?(previous: V, next: V): string | null;
 	title?(value: V): string;
 	withTitle?(value: V, title: string): V;
 	validate?(value: V): string | null;
@@ -68,7 +73,7 @@ export interface CanonicalEditorAdapter<N, V> extends TreeAdapter<N> {
 	}[];
 	createPattern?(id: string): N[];
 	supportsChildren?(node: N): boolean;
-	locked?(node: N, operation: "edit" | "remove"): boolean;
+	locked?(node: N, operation: BlockLockOperation): boolean;
 }
 type Picker = ComponentProps<typeof SchemaBlockForm>["pickResource"];
 export interface CanonicalEditorProps<N, V> {
@@ -265,37 +270,30 @@ function EditorBody<N, V>({
 		} else setSelection(id);
 		typingGroup.current++;
 	};
-	const canRemoveSelection =
-		!!visibleSelection.length &&
-		!contentLocked &&
-		!state.pending &&
-		!state.conflict &&
-		rows
-			.filter((row) => visibleSelection.includes(adapter.id(row.node)))
-			.every((row) =>
-				outline([row.node], adapter).every(
-					(child) => !adapter.locked?.(child.node, "remove"),
-				),
-			);
-	const removeSelection = () => {
+	const isBlockLocked = (node: N, operation: BlockLockOperation): boolean => {
 		const now = current.current;
-		if (!canRemoveSelection || lockedNow.current || now.pending || now.conflict)
-			return;
-		const currentRows = outline(adapter.nodes(now.draft), adapter);
-		if (
-			visibleSelection.some(
-				(id) => !currentRows.some((row) => adapter.id(row.node) === id),
-			)
-		)
-			return;
-		const next = removeNodes(
-			adapter.nodes(now.draft),
-			visibleSelection,
-			adapter,
-			(node) => adapter.locked?.(node, "remove") ?? false,
-		);
-		update(editDocument(now, adapter.withNodes(now.draft, next)));
-		setSelection(next[0] ? adapter.id(next[0]) : null);
+		return adapter.lockedInDocument
+			? adapter.lockedInDocument(now.base.value, adapter.id(node), operation) || adapter.lockedInDocument(now.draft, adapter.id(node), operation)
+			: adapter.locked?.(node, operation) ?? false;
+	};
+	const removedDraft = () => {
+		const now = current.current;
+		if (!visibleSelection.length || contentLocked || now.pending || now.conflict) return null;
+		try {
+			const nodes = removeNodes(adapter.nodes(now.draft), visibleSelection, adapter,
+				node => adapter.validateTransition ? false : adapter.locked?.(node, "remove") ?? false);
+			const next = adapter.withNodes(now.draft, nodes);
+			if (adapter.validateTransition?.(now.base.value, next) || adapter.validateTransition?.(now.draft, next)) return null;
+			return next;
+		} catch { return null; }
+	};
+	const canRemoveSelection = removedDraft() !== null;
+	const removeSelection = () => {
+		const now = current.current, next = removedDraft();
+		if (!mounted.current || lockedNow.current || !next) return;
+		update(editDocument(now, next));
+		const nodes = adapter.nodes(next);
+		setSelection(nodes[0] ? adapter.id(nodes[0]) : null);
 	};
 	const invalid = rows.some(
 		(row) =>
@@ -305,7 +303,7 @@ function EditorBody<N, V>({
 				adapter.contract?.(row.node),
 			).ok,
 	);
-	const documentIssue = adapter.validate?.(state.draft) ?? null;
+	const documentIssue = adapter.validate?.(state.draft) ?? adapter.validateTransition?.(state.base.value, state.draft) ?? null;
 	const [newBlock, setNewBlock] = useState("");
 	const [blockInsertionIssue, setBlockInsertionIssue] = useState<string | null>(
 		null,
@@ -346,6 +344,15 @@ function EditorBody<N, V>({
 	const selected = rows.find((row) => adapter.id(row.node) === selection)?.node;
 	const layoutOptions = selected ? adapter.layoutOptions?.(selected) ?? {} : {};
 	const treatmentOptions = selected ? adapter.treatmentOptions?.(selected) ?? [] : [];
+	const movedDraft = (direction: -1 | 1) => {
+		const now = current.current;
+		if (!selected || visibleSelection.length !== 1 || contentLocked || now.pending || now.conflict || isBlockLocked(selected, "move")) return null;
+		try {
+			const next = adapter.withNodes(now.draft, moveNode(adapter.nodes(now.draft), adapter.id(selected), direction, adapter));
+			if (adapter.validateTransition?.(now.base.value, next) || adapter.validateTransition?.(now.draft, next)) return null;
+			return next;
+		} catch { return null; }
+	};
 	const insertBlock = (inside: boolean) => {
 		const now = current.current;
 		if (
@@ -360,7 +367,7 @@ function EditorBody<N, V>({
 			inside &&
 			(!selected ||
 				!adapter.supportsChildren?.(selected) ||
-				adapter.locked?.(selected, "edit"))
+				isBlockLocked(selected, "edit"))
 		)
 			return;
 		try {
@@ -388,6 +395,7 @@ function EditorBody<N, V>({
 	const historyAllowed = (value: V | undefined) => {
 		if (value === undefined || contentLocked || state.pending || state.conflict)
 			return false;
+		if (adapter.validateTransition) return !adapter.validateTransition(state.base.value, value) && !adapter.validateTransition(state.draft, value);
 		const targets = new Map(
 			outline(adapter.nodes(value), adapter).map((row) => [
 				adapter.id(row.node),
@@ -397,8 +405,8 @@ function EditorBody<N, V>({
 		return rows.every(({ node }) => {
 			const target = targets.get(adapter.id(node));
 			return target
-				? !adapter.locked?.(node, "edit") || sameDraft(node, target)
-				: !adapter.locked?.(node, "remove");
+				? !isBlockLocked(node, "edit") || sameDraft(node, target)
+				: !isBlockLocked(node, "remove");
 		});
 	};
 	const canUndo = historyAllowed(state.history.past.at(-1)?.value);
@@ -459,7 +467,7 @@ function EditorBody<N, V>({
 			)
 		)
 			return;
-		if (adapter.validate?.(current.current.draft)) return;
+		if (adapter.validate?.(current.current.draft) || adapter.validateTransition?.(current.current.base.value, current.current.draft)) return;
 		if (adapter.prepareSave)
 			update(
 				editDocument(
@@ -505,6 +513,7 @@ function EditorBody<N, V>({
 			const next = transform(now.draft),
 				nextAdapter = adapterForDraft?.(next.draft) ?? savedAdapter;
 			outline(nextAdapter.nodes(next.draft), nextAdapter);
+			if (nextAdapter.validateTransition?.(now.base.value, next.draft) || nextAdapter.validateTransition?.(now.draft, next.draft)) return false;
 			update(editDocument(now, next.draft));
 			setSelection(next.id);
 			return true;
@@ -683,7 +692,7 @@ function EditorBody<N, V>({
 												) ||
 												!!state.conflict ||
 												!!state.pending ||
-												adapter.locked?.(selected, "edit")
+												isBlockLocked(selected, "edit")
 											}
 											className="min-h-11 rounded-md border px-4 text-sm disabled:opacity-50"
 											onClick={() => insertBlock(true)}
@@ -867,7 +876,7 @@ function EditorBody<N, V>({
 													disabled={
 														!!state.pending ||
 														contentLocked ||
-														adapter.locked?.(selected, "edit")
+														isBlockLocked(selected, "edit")
 													}
 													onChange={(event) => {
 														const style = event.currentTarget.value,
@@ -876,7 +885,7 @@ function EditorBody<N, V>({
 															!mounted.current ||
 															lockedNow.current ||
 															now.pending ||
-															adapter.locked?.(selected, "edit")
+															isBlockLocked(selected, "edit")
 														)
 															return;
 														const next = changeNode(
@@ -915,16 +924,32 @@ function EditorBody<N, V>({
 										);
 									})()
 								: null}
+							{selected && <div className="mb-4 flex gap-2">
+								{([-1, 1] as const).map(direction => <button key={direction} type="button" className="min-h-11 rounded-md border border-input px-3 text-sm disabled:opacity-50" disabled={!movedDraft(direction)} onClick={() => {
+									const next = movedDraft(direction);
+									if (mounted.current && !lockedNow.current && next) update(editDocument(current.current, next));
+								}}>Move {direction === -1 ? "up" : "down"}</button>)}
+							</div>}
+							{selected && adapter.withLock && <BlockLockControls
+								value={operation => adapter.lockValue?.(selected, operation) ?? false}
+								disabled={contentLocked || !!state.pending || !!state.conflict}
+								onChange={(operation, enabled) => {
+									const now = current.current;
+									if (!mounted.current || lockedNow.current || now.pending || now.conflict) return;
+									const next = changeNode(adapter.nodes(now.draft), adapter.id(selected), adapter, node => adapter.withLock!(node, operation, enabled));
+									update(editDocument(now, adapter.withNodes(now.draft, next)));
+								}}
+							/>}
 							{selected && adapter.withTreatment && adapter.withTreatmentAxis &&
 								(treatmentOptions.length > 0 || adapter.treatmentValue?.(selected)) && (
 									<TreatmentControls
 										options={treatmentOptions}
 										value={adapter.treatmentValue?.(selected) ?? ""}
 										axisValue={field => adapter.treatmentAxisValue?.(selected, field) ?? ""}
-										disabled={contentLocked || !!state.pending || !!state.conflict || !!adapter.locked?.(selected, "edit")}
+										disabled={contentLocked || !!state.pending || !!state.conflict || !!isBlockLocked(selected, "edit")}
 										onChange={(value, field) => {
 											const now = current.current;
-											if (!mounted.current || lockedNow.current || now.pending || now.conflict || adapter.locked?.(selected, "edit")) return;
+											if (!mounted.current || lockedNow.current || now.pending || now.conflict || isBlockLocked(selected, "edit")) return;
 											const next = changeNode(adapter.nodes(now.draft), adapter.id(selected), adapter, node =>
 												field === undefined ? adapter.withTreatment!(node, value) : adapter.withTreatmentAxis!(node, field, value));
 											update(editDocument(now, adapter.withNodes(now.draft, next)));
@@ -940,7 +965,7 @@ function EditorBody<N, V>({
 											contentLocked ||
 											!!state.pending ||
 											!!state.conflict ||
-											adapter.locked?.(selected, "edit")
+											isBlockLocked(selected, "edit")
 										}
 									>
 										<legend className="mb-2 text-sm font-semibold">
@@ -965,7 +990,7 @@ function EditorBody<N, V>({
 																lockedNow.current ||
 																now.pending ||
 																now.conflict ||
-																adapter.locked?.(selected, "edit")
+																isBlockLocked(selected, "edit")
 															)
 																return;
 															const value = event.currentTarget.value;
@@ -1013,7 +1038,7 @@ function EditorBody<N, V>({
 												contentLocked ||
 												!!state.pending ||
 												!!state.conflict ||
-												adapter.locked?.(selected, "edit")
+												isBlockLocked(selected, "edit")
 											}
 											onChange={(event) => {
 												const now = current.current;
@@ -1022,7 +1047,7 @@ function EditorBody<N, V>({
 													lockedNow.current ||
 													now.pending ||
 													now.conflict ||
-													adapter.locked?.(selected, "edit")
+													isBlockLocked(selected, "edit")
 												)
 													return;
 												const value = event.currentTarget.value;
@@ -1061,14 +1086,14 @@ function EditorBody<N, V>({
 									revision={String(state.base.revision)}
 									scope={state.base.key}
 									pickResource={pickResource}
-									disabled={adapter.locked?.(selected, "edit")}
+									disabled={isBlockLocked(selected, "edit")}
 									onDraftChange={(preview) => {
 										const attrs = preview.draft;
 										const now = current.current;
 										if (
 											!mounted.current ||
 											formGeneration !== formGenerationRef.current ||
-											adapter.locked?.(selected, "edit") ||
+											isBlockLocked(selected, "edit") ||
 											preview.revision !== String(now.base.revision) ||
 											preview.scope.websiteKey !== now.base.key.websiteKey ||
 											preview.scope.instanceKey !== now.base.key.instanceKey

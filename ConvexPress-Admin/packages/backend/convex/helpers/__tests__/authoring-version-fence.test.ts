@@ -114,3 +114,16 @@ test("definition snapshots cannot enter legacy rows or bypass canonical write pe
   const cleared = { ...write, value: { blocksVersion: 1, composedDefinitions: undefined } };
   assertAuthoringWrite(cleared, permitValidatedLegacyRecoveryWrite(cleared));
 });
+
+test("exact canonical permits cannot bypass stored block locks or downgrade around them", () => {
+  const node = { id: "protected", name: "core/heading", version: 2, attrs: { text: "Original" }, lock: { edit: true, remove: true, move: true } };
+  const saved = { ...previous, blocks: [node] };
+  for (const [blocks, expected] of [[[], "BLOCK_REMOVE_LOCKED"], [[{ ...node, lock: {}, attrs: { text: "Changed" } }], "BLOCK_EDIT_LOCKED"]] as const) {
+    const write = { table: "posts", operation: "patch" as const, id: "post", previous: saved, value: { blocks } };
+    expect(errorCode(() => assertAuthoringWrite(write, permitValidatedCanonicalAuthoringWrite(write)))).toBe(expected);
+  }
+  const recovery = { table: "posts", operation: "patch" as const, id: "post", previous: saved, value: { blocksVersion: 1, blocks: [] } };
+  expect(errorCode(() => assertAuthoringWrite(recovery, permitValidatedLegacyRecoveryWrite(recovery)))).toBe("BLOCK_LOCKED");
+  const unlock = { table: "posts", operation: "patch" as const, id: "post", previous: saved, value: { blocks: [{ ...node, lock: {} }] } };
+  expect(() => assertAuthoringWrite(unlock, permitValidatedCanonicalAuthoringWrite(unlock))).not.toThrow();
+});

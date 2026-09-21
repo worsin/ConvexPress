@@ -6,6 +6,32 @@ import { parseCanonicalDocumentRead } from "../foundation/documentContracts";
 const reference = (name: string, kind: "query" | "mutation" = "query") =>
 	makeFunctionReference<any, any, any>(`canonicalDocuments:${name}`);
 
+test("saved block locks reject combined unlock/edit, removal and order changes without creating revisions", async () => {
+	const f = await fixture();
+	const blocks = [
+		{ id: "protected", name: "core/heading", version: 2, attrs: { text: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Original" }] }] } }, lock: { edit: true, move: true, remove: true } },
+		{ id: "space", name: "core/spacer", version: 2, attrs: {} },
+	];
+	await initialize(f);
+	await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: 1, title: "Protected content", blocks });
+	const read = await f.client.query(reference("get"), { postId: f.ids.post });
+	const before = await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }));
+	for (const candidate of [
+		read.document.blocks.slice(1),
+		[...read.document.blocks].reverse(),
+		[{ ...read.document.blocks[0], lock: {}, anchor: "changed" }, read.document.blocks[1]],
+	]) {
+		await expect(f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: read.document.revision, title: read.document.title, blocks: candidate })).rejects.toThrow();
+		expect(await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }))).toEqual(before);
+	}
+	const unlocked = read.document.blocks.map((block: any) => ({ ...block, lock: {} }));
+	const first = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: read.document.revision, title: read.document.title, blocks: unlocked });
+	const changed = [{ ...unlocked[0], anchor: "changed" }, unlocked[1]];
+	const second = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: first.revision, title: read.document.title, blocks: changed });
+	expect(second.revision).toBe(first.revision + 1);
+	expect((await f.client.query(reference("get"), { postId: f.ids.post })).document.blocks).toEqual(changed);
+});
+
 test("legacy utility variants migrate together, save and recover their exact original attrs", async () => {
   const f = await fixture();
   const blocks = [
@@ -625,42 +651,18 @@ test("actual canonical references resolve only public pages and react to current
 	expect(hidden.data.dataByBlock.featured.data.page).toBeNull();
 	expect(JSON.stringify(hidden)).not.toContain("Public summary");
 });
-test("direct lock edits and removal of unsupported stored locks are refused, and legacy block readers cannot flatten v2", async () => {
+test("canonical lock changes require canonical writes and legacy readers cannot flatten protected content", async () => {
 	const f = await fixture();
 	await initialize(f);
-	const args = {
-		postId: f.ids.post,
-		expectedRevision: 1,
-		title: "Locked edit",
-		blocks: tree,
-	};
-	expect(
-		await code(() =>
-			f.client.mutation(reference("save", "mutation"), {
-				...args,
-				blocks: [{ ...tree[0], lock: { edit: true } }],
-			}),
-		),
-	).toBe("UNSUPPORTED_LOCK");
-	await f.t.run(async (ctx) => {
-		await ctx.db.patch("posts", f.ids.post, {
-			blocks: [{ ...tree[0], lock: { remove: true } }],
-		});
+	const receipt = await f.client.mutation(reference("save", "mutation"), {
+		postId: f.ids.post, expectedRevision: 1, title: "Protected content", blocks: [{ ...tree[0], lock: { remove: true } }],
 	});
-	expect(
-		await code(() => f.client.mutation(reference("save", "mutation"), args)),
-	).toBe("UNSUPPORTED_LOCK");
-	expect(
-		await code(() =>
-			f.client.query(
-				makeFunctionReference<any, any, any>("blocks/queries:getForDocument"),
-				{ postId: f.ids.post },
-			),
-		),
-	).toBe("CANONICAL_AUTHORING_REQUIRED");
-	expect(
-		(await f.t.run((ctx) => ctx.db.get("posts", f.ids.post)))?.blocksRevision,
-	).toBe(1);
+	expect(receipt.revision).toBe(2);
+	expect(await code(() => f.client.mutation(reference("save", "mutation"), {
+		postId: f.ids.post, expectedRevision: 2, title: "Protected content", blocks: [],
+	}))).toBe("BLOCK_REMOVE_LOCKED");
+	expect(await code(() => f.client.query(makeFunctionReference<any, any, any>("blocks/queries:getForDocument"), { postId: f.ids.post }))).toBe("CANONICAL_AUTHORING_REQUIRED");
+	expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))?.blocksRevision).toBe(2);
 });
 
 test("ordinary post/page edits, autosave and legacy revision restore cannot mutate canonical documents", async () => {
@@ -989,7 +991,7 @@ test("public canonical ready data is separate, strips editorial locks, and refus
   const f = await fixture();
   await initialize(f);
   expect(await f.t.query(reference("getForRender"), { postId: f.ids.post })).toBeNull();
-  await f.t.run(async ctx => { const post = await ctx.db.get("posts", f.ids.post); await ctx.db.patch("posts", f.ids.post, { status: "publish", blocks: (post!.blocks ?? []).map(block => ({ ...block, lock: { edit: false } })) }); });
+  await f.t.run(async ctx => { const post = await ctx.db.get("posts", f.ids.post); await ctx.db.patch("posts", f.ids.post, { status: "publish", blocks: (post!.blocks ?? []).map(block => ({ ...block, lock: { edit: true, move: true, remove: true } })) }); });
   const ready = await f.t.query(reference("getForRender"), { postId: f.ids.post });
   expect(ready.contract).toBe("canonical-public-document-v1");
   expect(ready.state).toBe("ready");
@@ -2412,4 +2414,30 @@ test("long article paragraphs migrate, save, reopen and recover without splittin
     const restored=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));expect(restored!.content).toBe(originalContent);
     expect(restored!.hero).toEqual(structured?{content:text+"https://example.org/source"}:undefined);
   }
+});
+
+
+test("revision restore and original-editor recovery honor saved locks before creating history", async () => {
+  const f = await fixture();
+  await initialize(f);
+  const before = await f.client.query(reference("get"), { postId: f.ids.post });
+  const locked = before.document.blocks.map((block: any) => ({ ...block, lock: { edit: true, move: true, remove: true } }));
+  // Change content before locking, so the older canonical revision is protected too.
+  locked[0].anchor = "protected-revision";
+  const saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: before.document.revision, title: before.document.title, blocks: locked });
+  const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
+  const canonical = history.page.find((row: any) => row.action === "restore-canonical");
+  const legacy = history.page.find((row: any) => row.action === "recover-legacy");
+  expect(canonical).toBeDefined(); expect(legacy).toBeDefined();
+  const stored = await f.t.run(ctx => ctx.db.get("posts", f.ids.post));
+  for (const [name, revision] of [["restore", canonical], ["recoverLegacy", legacy]] as const) {
+    await expect(f.client.mutation(reference(name, "mutation"), { postId: f.ids.post, revisionId: revision.id, expectedRevision: saved.revision })).rejects.toThrow();
+    expect(await f.t.run(ctx => ctx.db.get("posts", f.ids.post))).toEqual(stored);
+    expect(await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } })).toEqual(history);
+  }
+  const unlocked = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: saved.revision, title: before.document.title, blocks: locked.map((block: any) => ({ ...block, lock: {} })) });
+  const restored = await f.client.mutation(reference("restore", "mutation"), { postId: f.ids.post, revisionId: canonical.id, expectedRevision: unlocked.revision });
+  expect((await f.client.query(reference("get"), { postId: f.ids.post })).document.blocks).toEqual(before.document.blocks);
+  await f.client.mutation(reference("recoverLegacy", "mutation"), { postId: f.ids.post, revisionId: legacy.id, expectedRevision: restored.revision });
+  expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))!.blocksVersion).toBe(1);
 });

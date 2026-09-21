@@ -37,7 +37,7 @@ test("generated name-correlated tree preserves marks, intent, IDs and recursive 
 test("the shared type vocabulary is closed and unsupported active policies refuse", () => {
   for (const extra of [
     { visibility: { mode: "signedIn" } }, { visibility: "signedIn" },
-    { visibility: "signedOut" }, { lock: { edit: true } }, { lock: { unknown: false } },
+    { visibility: "signedOut" }, { lock: { edit: "yes" } }, { lock: { unknown: false } },
     { layout: { className: "mx-8" } }, { innerBlocks: [] }, { attrs: [] },
   ]) expect(canonicalTreeSchema.safeParse([{ ...heading("x"), ...extra }]).success).toBe(false);
   expect(canonicalTreeSchema.safeParse([{ ...heading("x"), unknown: true }]).success).toBe(false);

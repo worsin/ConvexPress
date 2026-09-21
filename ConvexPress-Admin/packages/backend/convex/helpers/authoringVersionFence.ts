@@ -5,6 +5,7 @@
  * construct a permit, and a permit is valid for one exact prepared write only. */
 import { ConvexError } from "convex/values";
 import { AUTHORING_FIELDS } from "./authoringSnapshot";
+import { assertCanonicalBlockLocks, CanonicalTreeError } from "../canonicalDocuments/foundation/generated/instance_runtime.mjs";
 
 export type AuthoringWrite = {
   table: string;
@@ -92,4 +93,17 @@ export function assertAuthoringWrite(write: AuthoringWrite, permit?: CanonicalAu
   const receipt = permit && permits.get(permit);
   if (permit) permits.delete(permit);
   if (!receipt || (to !== 2 && !(receipt.legacyRecovery && from === 2 && to === 1)) || receipt.table !== write.table || receipt.operation !== write.operation || receipt.id !== write.id || receipt.value !== write.value || receipt.encodedValue !== encode(write.value) || receipt.previous !== priorBinding(write)) refusal();
+  if (write.table === "posts" && from === 2) {
+    const candidate = write.operation === "patch" ? { ...write.previous, ...write.value } : write.value;
+    try {
+      // Returning to a legacy editor cannot erase live canonical safeguards.
+      if (to !== 2) {
+        const visit = (nodes: unknown): boolean => Array.isArray(nodes) && nodes.some(node => node && typeof node === "object" && (Object.values(node.lock ?? {}).some(Boolean) || visit(node.children)));
+        if (visit(write.previous?.blocks)) throw new ConvexError({ code: "BLOCK_LOCKED", message: "Unlock blocks and save before returning to the original editor." });
+      } else assertCanonicalBlockLocks(write.previous?.blocks, candidate.blocks);
+    } catch (error) {
+      if (error instanceof CanonicalTreeError) throw new ConvexError({ code: error.code, message: error.message });
+      throw error;
+    }
+  }
 }
