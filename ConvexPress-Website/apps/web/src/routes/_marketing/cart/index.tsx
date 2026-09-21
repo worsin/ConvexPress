@@ -13,6 +13,7 @@ import { convexQuery } from "@convex-dev/react-query";
 import { buildSeoHead } from "@/lib/seo/head";
 import CoreCart, { type CartSurfaceCart, type CartSurfaceData } from "@/templates/packs/core/surfaces/cart";
 import { Surface } from "@/templates/sdk/Surface";
+import { SavedCarts } from "@/components/commerce/SavedCarts";
 
 export const Route = createFileRoute("/_marketing/cart/")({
   loader: async ({ context: { queryClient } }) => {
@@ -34,7 +35,7 @@ function CartPage() {
   const settings = useSettings();
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
   const currencyCode = settings?.commerceConfig?.currencyCode || "USD";
-  const { sessionToken, isReady } = useCommerceSessionToken();
+  const { sessionToken, isReady, changeCart } = useCommerceSessionToken();
   const cart = useQuery(
     api.commerce.cart.getMine,
     commerceEnabled && isReady && sessionToken ? { sessionToken } : "skip",
@@ -189,6 +190,7 @@ function CartPage() {
   return (
     <PublicPluginGate pluginId="commerce">
       <ShopShell kind="cart" cart={false}>
+        {isReady && sessionToken ? <SavedCarts sessionToken={sessionToken} changeCart={changeCart} canCombine={Boolean(cart?.items.length) && cart?.status !== "pending_payment"} /> : null}
         <Surface name="cart" data={surfaceData} fallback={CoreCart} />
       </ShopShell>
     </PublicPluginGate>

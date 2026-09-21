@@ -3,7 +3,9 @@ import { isClosedCart } from "./cartLifecycle";
 import { activePriceAmount } from "./activePrice";
 import { resolveStockPolicy, canOrderQuantity } from "./stockPolicy";
 import { readReservedStock } from "./stockTarget";
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
+import type { MutationCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 
 import { internalMutation, mutation, query } from "../_generated/server";
 import { emitEvent } from "../helpers/events";
@@ -38,16 +40,14 @@ async function findCartBySession(ctx: any, sessionToken: string) {
 		.unique();
 }
 
-async function findActiveCartByUser(ctx: any, userId: any) {
-	const carts = await ctx.db
-		.query("commerce_carts")
-		.withIndex("by_user", (q: any) => q.eq("userId", userId))
-		.collect();
-	return (
-		carts.find((cart: any) => cart.status === "active") ??
-		carts.find((cart: any) => cart.status === "abandoned") ??
-		null
-	);
+async function findActiveCartByUser(ctx: any, userId: any, includePending = false) {
+	const statuses = includePending ? ["pending_payment", "active", "abandoned"] : ["active", "abandoned"];
+	for (const status of statuses) {
+		const cart = await ctx.db.query("commerce_carts")
+			.withIndex("by_user_status", (q: any) => q.eq("userId", userId).eq("status", status)).first();
+		if (cart) return cart;
+	}
+	return null;
 }
 
 async function getCartItems(ctx: any, cartId: any) {
@@ -964,115 +964,154 @@ export const removeDiscountCode = mutation({
 	},
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const merge = mutation({
-	args: mergeCartArgs,
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-	handler: async (ctx, args) => {
-		await requireCommerceEnabled(ctx);
-		const user = await getCurrentUser(ctx);
-		if (!user) {
-			throw new ConvexError({
-				code: "UNAUTHORIZED",
-				message: "Sign in to merge your cart.",
-			});
-		}
+/** Shared transactional path for explicit merging and storefront session settlement. */
+export async function mergeCartForSession(ctx: MutationCtx, args: { sessionToken: string }, targetCartId?: Id<"commerce_carts">): Promise<Id<"commerce_carts"> | null> {
+	await requireCommerceEnabled(ctx);
+	const user = await getCurrentUser(ctx);
+	if (!user) {
+		throw new ConvexError({
+			code: "UNAUTHORIZED",
+			message: "Sign in to merge your cart.",
+		});
+	}
 
-		const guestCart = await findCartBySession(ctx, args.sessionToken);
-		if (guestCart) assertCartAccess(guestCart, args.sessionToken, user._id);
-		const userCart = await findActiveCartByUser(ctx, user._id);
+	const guestCart = await findCartBySession(ctx, args.sessionToken);
+	if (guestCart) assertCartAccess(guestCart, args.sessionToken, user._id);
+	const userCart = targetCartId ? await ctx.db.get("commerce_carts", targetCartId) : await findActiveCartByUser(ctx, user._id, true);
+	if (targetCartId && (!userCart || userCart.userId !== user._id || isClosedCart(userCart))) {
+		throw new ConvexError({ code: "FORBIDDEN", message: "This saved basket is no longer available." });
+	}
+	if (targetCartId && (userCart?.status === "pending_payment" || guestCart?.status === "pending_payment")) {
+		throw new ConvexError({ code: "CART_LOCKED", message: "Finish or cancel the pending payment before combining these baskets." });
+	}
 
-		if (!guestCart || isClosedCart(guestCart) || guestCart.status === "pending_payment") return userCart?._id ?? null;
-
-		if (guestCart.userId?.toString() === user._id.toString()) {
-			if (guestCart.status === "abandoned") {
-				await ctx.db.patch("commerce_carts", guestCart._id, {
-					status: "active",
-					recoveredAt: Date.now(),
-					updatedAt: Date.now(),
-				});
-				await emitEvent(ctx, CART_EVENTS.RECOVERED, SYSTEM.CART, {
-					cartId: guestCart._id,
-					userId: user._id,
-				});
-			}
-			await recalculateCart(ctx, guestCart._id);
+	// A payment in flight keeps its amounts, checkout and token. Another guest
+	// basket is retained as an owned active cart for recovery after payment.
+	if (guestCart?.status === "pending_payment") {
+		if (!guestCart.userId) await ctx.db.patch("commerce_carts", guestCart._id, { userId: user._id, updatedAt: Date.now() });
+		return guestCart._id;
+	}
+	if (userCart?.status === "pending_payment") {
+		if (guestCart && !isClosedCart(guestCart)) {
+			if (!guestCart.userId) await ctx.db.patch("commerce_carts", guestCart._id, { userId: user._id, updatedAt: Date.now() });
 			return guestCart._id;
 		}
+		return userCart._id;
+	}
+	if (!guestCart || isClosedCart(guestCart)) {
+		if (userCart?.status === "abandoned") {
+			await ctx.db.patch("commerce_carts", userCart._id, { status: "active", recoveredAt: Date.now(), updatedAt: Date.now() });
+			await emitEvent(ctx, CART_EVENTS.RECOVERED, SYSTEM.CART, { cartId: userCart._id, userId: user._id });
+		}
+		return userCart?._id ?? null;
+	}
 
-		if (!userCart || userCart._id.toString() === guestCart._id.toString()) {
+	if (guestCart.userId?.toString() === user._id.toString() && (!targetCartId || targetCartId === guestCart._id)) {
+		if (guestCart.status === "abandoned") {
 			await ctx.db.patch("commerce_carts", guestCart._id, {
-				userId: user._id,
 				status: "active",
-				recoveredAt:
-					guestCart.status === "abandoned" ? Date.now() : guestCart.recoveredAt,
+				recoveredAt: Date.now(),
 				updatedAt: Date.now(),
 			});
-			await emitEvent(ctx, CART_EVENTS.MERGED, SYSTEM.CART, {
+			await emitEvent(ctx, CART_EVENTS.RECOVERED, SYSTEM.CART, {
 				cartId: guestCart._id,
-				source: "session_claimed",
 				userId: user._id,
 			});
-			await recalculateCart(ctx, guestCart._id);
-			return guestCart._id;
 		}
+		return guestCart._id;
+	}
 
-		const guestItems = await getCartItems(ctx, guestCart._id);
-		const userItems = await getCartItems(ctx, userCart._id);
-
-		for (const guestItem of guestItems) {
-			const guestLineKey = cartLineKey(guestItem);
-			const match = userItems.find(
-				(item: any) =>
-					item.productId.toString() === guestItem.productId.toString() &&
-					(item.variantId?.toString() ?? null) ===
-						(guestItem.variantId?.toString() ?? null) &&
-					cartLineKey(item) === guestLineKey,
-			);
-
-			if (match) {
-				const quantity = match.quantity + guestItem.quantity;
-				const { product, variant } = await resolvePurchasableProductAndVariant(
-					ctx,
-					match.productId,
-					match.variantId,
-				);
-				await assertSufficientStock(ctx, product, variant, quantity);
-				await ctx.db.patch("commerce_cart_items", match._id, {
-					quantity,
-					lineTotalAmount: quantity * match.unitPriceAmount,
-					updatedAt: Date.now(),
-				});
-				await ctx.db.delete("commerce_cart_items", guestItem._id);
-			} else {
-				await ctx.db.patch("commerce_cart_items", guestItem._id, {
-					cartId: userCart._id,
-					updatedAt: Date.now(),
-				});
-			}
-		}
-
+	if (!userCart || userCart._id.toString() === guestCart._id.toString()) {
 		await ctx.db.patch("commerce_carts", guestCart._id, {
-			status: "merged",
-			itemCount: 0,
-			subtotalAmount: 0,
-			discountAmount: 0,
-			shippingAmount: 0,
-			taxAmount: 0,
-			totalAmount: 0,
-			mergedIntoCartId: userCart._id,
+			userId: user._id,
+			status: "active",
+			recoveredAt:
+				guestCart.status === "abandoned" ? Date.now() : guestCart.recoveredAt,
 			updatedAt: Date.now(),
 		});
-		await recalculateCart(ctx, userCart._id);
 		await emitEvent(ctx, CART_EVENTS.MERGED, SYSTEM.CART, {
-			cartId: userCart._id,
-			mergedCartId: guestCart._id,
-			itemsMerged: guestItems.length,
+			cartId: guestCart._id,
+			source: "session_claimed",
 			userId: user._id,
 		});
+		await recalculateCart(ctx, guestCart._id);
+		return guestCart._id;
+	}
 
-		return userCart._id;
-	},
+	if (guestCart.currencyCode !== userCart.currencyCode || guestCart.regionId !== userCart.regionId || guestCart.salesChannelId !== userCart.salesChannelId) {
+		throw new ConvexError({ code: "CART_CONTEXT_MISMATCH", message: "These baskets use different store regions or currencies and cannot be combined." });
+	}
+	const readMergeItems = (cartId: Id<"commerce_carts">) => ctx.db.query("commerce_cart_items").withIndex("by_cart", q => q.eq("cartId", cartId)).take(251);
+	const [guestItems, userItems] = await Promise.all([readMergeItems(guestCart._id), readMergeItems(userCart._id)]);
+	if (guestItems.length > 250 || userItems.length > 250 || guestItems.length + userItems.length > 250) {
+		throw new ConvexError({ code: "CART_MERGE_LIMIT", message: "These baskets are too large to combine in one operation. Please reduce the item selections first." });
+	}
+
+	for (const guestItem of guestItems) {
+		const guestLineKey = cartLineKey(guestItem);
+		const match = userItems.find(
+			(item: any) =>
+				item.productId.toString() === guestItem.productId.toString() &&
+				(item.variantId?.toString() ?? null) ===
+					(guestItem.variantId?.toString() ?? null) &&
+				cartLineKey(item) === guestLineKey,
+		);
+
+		if (match) {
+			const quantity = match.quantity + guestItem.quantity;
+			const { product, variant } = await resolvePurchasableProductAndVariant(
+				ctx,
+				match.productId,
+				match.variantId,
+			);
+			await assertSufficientStock(ctx, product, variant, quantity);
+			await ctx.db.patch("commerce_cart_items", match._id, {
+				quantity,
+				lineTotalAmount: quantity * match.unitPriceAmount,
+				updatedAt: Date.now(),
+			});
+			await ctx.db.delete("commerce_cart_items", guestItem._id);
+			match.quantity = quantity;
+		} else {
+			await ctx.db.patch("commerce_cart_items", guestItem._id, {
+				cartId: userCart._id,
+				updatedAt: Date.now(),
+			});
+			userItems.push({ ...guestItem, cartId: userCart._id });
+		}
+	}
+
+	if (userCart.status === "abandoned") {
+		await ctx.db.patch("commerce_carts", userCart._id, { status: "active", recoveredAt: Date.now(), updatedAt: Date.now() });
+		await emitEvent(ctx, CART_EVENTS.RECOVERED, SYSTEM.CART, { cartId: userCart._id, userId: user._id });
+	}
+	await ctx.db.patch("commerce_carts", guestCart._id, {
+		status: "merged",
+		userId: user._id,
+		itemCount: 0,
+		subtotalAmount: 0,
+		discountAmount: 0,
+		shippingAmount: 0,
+		taxAmount: 0,
+		totalAmount: 0,
+		mergedIntoCartId: userCart._id,
+		updatedAt: Date.now(),
+	});
+	await recalculateCart(ctx, userCart._id);
+	await emitEvent(ctx, CART_EVENTS.MERGED, SYSTEM.CART, {
+		cartId: userCart._id,
+		mergedCartId: guestCart._id,
+		itemsMerged: guestItems.length,
+		userId: user._id,
+	});
+
+	return userCart._id;
+}
+
+export const merge: import("convex/server").RegisteredMutation<"public", { sessionToken: string }, Id<"commerce_carts"> | null> = mutation({
+	args: mergeCartArgs,
+	returns: v.union(v.id("commerce_carts"), v.null()),
+	handler: (ctx: MutationCtx, args: { sessionToken: string }) => mergeCartForSession(ctx, args),
 });
 
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.

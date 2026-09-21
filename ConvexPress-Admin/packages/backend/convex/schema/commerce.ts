@@ -430,6 +430,7 @@ export const commerceTables = {
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
+    .index("by_user_status", ["userId", "status"])
     .index("by_session", ["sessionToken"])
     .index("by_share_token", ["shareToken"])
     .index("by_status", ["status"])

@@ -44,6 +44,7 @@ export interface CartSurfaceItem {
 }
 
 export interface CartSurfaceCart {
+  status?: "active" | "abandoned" | "pending_payment" | "converted" | "merged";
   itemCount: number;
   appliedDiscountCode?: string;
   appliedDiscountDescription?: string;

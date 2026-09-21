@@ -1,15 +1,14 @@
 /* eslint-disable */
-  /**
-   * Generated `api` utility.
-   *
-   * THIS CODE IS AUTOMATICALLY GENERATED.
-   *
-   * To regenerate, run `npx convex dev`.
-   * @module
-   */
+/**
+ * Generated `api` utility.
+ *
+ * THIS CODE IS AUTOMATICALLY GENERATED.
+ *
+ * To regenerate, run `npx convex dev`.
+ * @module
+ */
 
-  import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
-  import type * as _devCounts from "../_devCounts.js";
+import type * as _devCounts from "../_devCounts.js";
 import type * as _devEnable from "../_devEnable.js";
 import type * as _devPurge from "../_devPurge.js";
 import type * as ai_actions from "../ai/actions.js";
@@ -64,6 +63,10 @@ import type * as auth_jwks from "../auth/jwks.js";
 import type * as auth_login from "../auth/login.js";
 import type * as auth_logout from "../auth/logout.js";
 import type * as auth_migrations from "../auth/migrations.js";
+import type * as auth_operatorAuthority from "../auth/operatorAuthority.js";
+import type * as auth_operatorHandoffs from "../auth/operatorHandoffs.js";
+import type * as auth_operatorHttp from "../auth/operatorHttp.js";
+import type * as auth_operatorValidators from "../auth/operatorValidators.js";
 import type * as auth_queries from "../auth/queries.js";
 import type * as auth_refresh from "../auth/refresh.js";
 import type * as auth_refreshTransport from "../auth/refreshTransport.js";
@@ -172,6 +175,7 @@ import type * as canonicalDocuments_foundation_generated_pack_designs from "../c
 import type * as canonicalDocuments_foundation_generated_patterns from "../canonicalDocuments/foundation/generated/patterns.js";
 import type * as canonicalDocuments_foundation_generated_promotions from "../canonicalDocuments/foundation/generated/promotions.js";
 import type * as canonicalDocuments_foundation_generated_schemas from "../canonicalDocuments/foundation/generated/schemas.js";
+import type * as canonicalDocuments_foundation_generated_search_text from "../canonicalDocuments/foundation/generated/search_text.js";
 import type * as canonicalDocuments_foundation_generated_spec_runtime from "../canonicalDocuments/foundation/generated/spec_runtime.js";
 import type * as canonicalDocuments_foundation_generated_storage from "../canonicalDocuments/foundation/generated/storage.js";
 import type * as canonicalDocuments_foundation_generated_types from "../canonicalDocuments/foundation/generated/types.js";
@@ -208,10 +212,12 @@ import type * as canonicalDocuments_foundation_recipeContracts from "../canonica
 import type * as canonicalDocuments_foundation_relatedContracts from "../canonicalDocuments/foundation/relatedContracts.js";
 import type * as canonicalDocuments_foundation_renderResources from "../canonicalDocuments/foundation/renderResources.js";
 import type * as canonicalDocuments_foundation_resolve from "../canonicalDocuments/foundation/resolve.js";
+import type * as canonicalDocuments_foundation_resolverBindings from "../canonicalDocuments/foundation/resolverBindings.js";
 import type * as canonicalDocuments_foundation_resolverReferences from "../canonicalDocuments/foundation/resolverReferences.js";
 import type * as canonicalDocuments_foundation_reviewsContracts from "../canonicalDocuments/foundation/reviewsContracts.js";
 import type * as canonicalDocuments_foundation_rsvpContracts from "../canonicalDocuments/foundation/rsvpContracts.js";
 import type * as canonicalDocuments_foundation_searchContracts from "../canonicalDocuments/foundation/searchContracts.js";
+import type * as canonicalDocuments_foundation_searchText from "../canonicalDocuments/foundation/searchText.js";
 import type * as canonicalDocuments_foundation_shared_authoringFields from "../canonicalDocuments/foundation/shared/authoringFields.js";
 import type * as canonicalDocuments_foundation_shared_embedProviders from "../canonicalDocuments/foundation/shared/embedProviders.js";
 import type * as canonicalDocuments_foundation_shared_fingerprints from "../canonicalDocuments/foundation/shared/fingerprints.js";
@@ -282,6 +288,7 @@ import type * as commerce_cart from "../commerce/cart.js";
 import type * as commerce_cartBundle from "../commerce/cartBundle.js";
 import type * as commerce_cartHelpers from "../commerce/cartHelpers.js";
 import type * as commerce_cartLifecycle from "../commerce/cartLifecycle.js";
+import type * as commerce_cartRecovery from "../commerce/cartRecovery.js";
 import type * as commerce_catalogContinuation from "../commerce/catalogContinuation.js";
 import type * as commerce_catalogRevision from "../commerce/catalogRevision.js";
 import type * as commerce_categories from "../commerce/categories.js";
@@ -451,6 +458,21 @@ import type * as events_internals from "../events/internals.js";
 import type * as events_mutations from "../events/mutations.js";
 import type * as events_queries from "../events/queries.js";
 import type * as events_validators from "../events/validators.js";
+import type * as extensions_community_events_calendarIndex from "../extensions/community_events/calendarIndex.js";
+import type * as extensions_community_events_categories from "../extensions/community_events/categories.js";
+import type * as extensions_community_events_dashboard from "../extensions/community_events/dashboard.js";
+import type * as extensions_community_events_model from "../extensions/community_events/model.js";
+import type * as extensions_community_events_mutations from "../extensions/community_events/mutations.js";
+import type * as extensions_community_events_plugin from "../extensions/community_events/plugin.js";
+import type * as extensions_community_events_publicAccess from "../extensions/community_events/publicAccess.js";
+import type * as extensions_community_events_queries from "../extensions/community_events/queries.js";
+import type * as extensions_community_events_rsvp from "../extensions/community_events/rsvp.js";
+import type * as extensions_community_events_rsvpAuthority from "../extensions/community_events/rsvpAuthority.js";
+import type * as extensions_community_events_rsvpOrganizer from "../extensions/community_events/rsvpOrganizer.js";
+import type * as extensions_community_events_rsvpSecurity from "../extensions/community_events/rsvpSecurity.js";
+import type * as extensions_community_events_rsvpSource from "../extensions/community_events/rsvpSource.js";
+import type * as extensions_community_events_rsvpValidators from "../extensions/community_events/rsvpValidators.js";
+import type * as extensions_community_events_search from "../extensions/community_events/search.js";
 import type * as extensions_dashboard_mutations from "../extensions/dashboard/mutations.js";
 import type * as extensions_dashboard_plugin from "../extensions/dashboard/plugin.js";
 import type * as extensions_dashboard_queries from "../extensions/dashboard/queries.js";
@@ -851,9 +873,12 @@ import type * as schema_users from "../schema/users.js";
 import type * as schema_wordpressSync from "../schema/wordpressSync.js";
 import type * as search_actions from "../search/actions.js";
 import type * as search_candidates from "../search/candidates.js";
+import type * as search_canonicalText from "../search/canonicalText.js";
+import type * as search_currentMatch from "../search/currentMatch.js";
 import type * as search_eventBackfill from "../search/eventBackfill.js";
 import type * as search_eventHandlers from "../search/eventHandlers.js";
 import type * as search_events from "../search/events.js";
+import type * as search_excerpt from "../search/excerpt.js";
 import type * as search_extensionSources from "../search/extensionSources.js";
 import type * as search_helpers from "../search/helpers.js";
 import type * as search_internals from "../search/internals.js";
@@ -1062,1069 +1087,1117 @@ import type * as wordpressSync_phases_users from "../wordpressSync/phases/users.
 import type * as wordpressSync_queries from "../wordpressSync/queries.js";
 import type * as wordpressSync_validators from "../wordpressSync/validators.js";
 
-  /**
-   * A utility for referencing Convex functions in your app's API.
-   *
-   * Usage:
-   * ```js
-   * const myFunctionReference = api.myModule.myFunction;
-   * ```
-   */
-  declare const fullApi: ApiFromModules<{
-    "_devCounts": typeof _devCounts,
-"_devEnable": typeof _devEnable,
-"_devPurge": typeof _devPurge,
-"ai/actions": typeof ai_actions,
-"ai/helpers": typeof ai_helpers,
-"ai/internals": typeof ai_internals,
-"ai/prompts": typeof ai_prompts,
-"ai/structuredProvider": typeof ai_structuredProvider,
-"ai/validators": typeof ai_validators,
-"airtableSync/_internal": typeof airtableSync__internal,
-"airtableSync/actions": typeof airtableSync_actions,
-"airtableSync/syncCapabilities": typeof airtableSync_syncCapabilities,
-"airtableSync/syncEmailNotifications": typeof airtableSync_syncEmailNotifications,
-"airtableSync/syncEvents": typeof airtableSync_syncEvents,
-"airtableSync/syncRoles": typeof airtableSync_syncRoles,
-"airtableSync/syncRoutes": typeof airtableSync_syncRoutes,
-"airtableSync/syncSiteNotifications": typeof airtableSync_syncSiteNotifications,
-"analytics/internals": typeof analytics_internals,
-"analytics/mutations": typeof analytics_mutations,
-"analytics/queries": typeof analytics_queries,
-"analytics/validators": typeof analytics_validators,
-"api/actions": typeof api_actions,
-"api/crypto_helpers": typeof api_crypto_helpers,
-"api/internals": typeof api_internals,
-"api/mutations": typeof api_mutations,
-"api/queries": typeof api_queries,
-"api/validators": typeof api_validators,
-"audiences/lists": typeof audiences_lists,
-"audiences/policy": typeof audiences_policy,
-"audiences/subscribers": typeof audiences_subscribers,
-"audiences/types": typeof audiences_types,
-"auditLogs/actions": typeof auditLogs_actions,
-"auditLogs/internals": typeof auditLogs_internals,
-"auditLogs/mutations": typeof auditLogs_mutations,
-"auditLogs/queries": typeof auditLogs_queries,
-"auditLogs/validators": typeof auditLogs_validators,
-"auth/adminPresence": typeof auth_adminPresence,
-"auth/clerkConnection": typeof auth_clerkConnection,
-"auth/clerkConnectionHelpers": typeof auth_clerkConnectionHelpers,
-"auth/clerkConnectionInternals": typeof auth_clerkConnectionInternals,
-"auth/clerkManagement": typeof auth_clerkManagement,
-"auth/clerkManagementHelpers": typeof auth_clerkManagementHelpers,
-"auth/clerkProvisioning": typeof auth_clerkProvisioning,
-"auth/clerkPublic": typeof auth_clerkPublic,
-"auth/clerkSync": typeof auth_clerkSync,
-"auth/clerkWebhook": typeof auth_clerkWebhook,
-"auth/environmentBinding": typeof auth_environmentBinding,
-"auth/helpers": typeof auth_helpers,
-"auth/httpSecurity": typeof auth_httpSecurity,
-"auth/inputLimits": typeof auth_inputLimits,
-"auth/internals": typeof auth_internals,
-"auth/jwks": typeof auth_jwks,
-"auth/login": typeof auth_login,
-"auth/logout": typeof auth_logout,
-"auth/migrations": typeof auth_migrations,
-"auth/queries": typeof auth_queries,
-"auth/refresh": typeof auth_refresh,
-"auth/refreshTransport": typeof auth_refreshTransport,
-"auth/setup": typeof auth_setup,
-"authTracking/actions": typeof authTracking_actions,
-"authTracking/internals": typeof authTracking_internals,
-"authTracking/mutations": typeof authTracking_mutations,
-"authTracking/queries": typeof authTracking_queries,
-"authTracking/validators": typeof authTracking_validators,
-"blockDefinitions/ai": typeof blockDefinitions_ai,
-"blockDefinitions/aiLibrary": typeof blockDefinitions_aiLibrary,
-"blockDefinitions/composeContext": typeof blockDefinitions_composeContext,
-"blockDefinitions/composeContracts": typeof blockDefinitions_composeContracts,
-"blockDefinitions/composeReferences": typeof blockDefinitions_composeReferences,
-"blockDefinitions/composeResources": typeof blockDefinitions_composeResources,
-"blockDefinitions/composeSchema": typeof blockDefinitions_composeSchema,
-"blockDefinitions/createDraft": typeof blockDefinitions_createDraft,
-"blockDefinitions/drafts": typeof blockDefinitions_drafts,
-"blockDefinitions/management": typeof blockDefinitions_management,
-"blockDefinitions/model": typeof blockDefinitions_model,
-"blockDefinitions/picker": typeof blockDefinitions_picker,
-"blockDefinitions/preview": typeof blockDefinitions_preview,
-"blockDefinitions/promotion": typeof blockDefinitions_promotion,
-"blockDefinitions/publication": typeof blockDefinitions_publication,
-"blockDefinitions/publishedRegistry": typeof blockDefinitions_publishedRegistry,
-"blockDefinitions/registry": typeof blockDefinitions_registry,
-"blockDefinitions/styleContext": typeof blockDefinitions_styleContext,
-"blockDefinitions/styleContracts": typeof blockDefinitions_styleContracts,
-"blockDefinitions/styleProposal": typeof blockDefinitions_styleProposal,
-"blocks/ai": typeof blocks_ai,
-"blocks/aiPromptBuilder": typeof blocks_aiPromptBuilder,
-"blocks/diagnostics": typeof blocks_diagnostics,
-"blocks/helpers": typeof blocks_helpers,
-"blocks/migrations": typeof blocks_migrations,
-"blocks/mutations": typeof blocks_mutations,
-"blocks/policy": typeof blocks_policy,
-"blocks/queries": typeof blocks_queries,
-"blocks/usage": typeof blocks_usage,
-"blocks/validators": typeof blocks_validators,
-"bootstrap/registerListeners": typeof bootstrap_registerListeners,
-"bootstrap/requiredRecords": typeof bootstrap_requiredRecords,
-"canonicalDocuments": typeof canonicalDocuments,
-"canonicalDocuments/ai": typeof canonicalDocuments_ai,
-"canonicalDocuments/aiContext": typeof canonicalDocuments_aiContext,
-"canonicalDocuments/aiResources": typeof canonicalDocuments_aiResources,
-"canonicalDocuments/album": typeof canonicalDocuments_album,
-"canonicalDocuments/brands": typeof canonicalDocuments_brands,
-"canonicalDocuments/bundleOffer": typeof canonicalDocuments_bundleOffer,
-"canonicalDocuments/calendar": typeof canonicalDocuments_calendar,
-"canonicalDocuments/categoryTiles": typeof canonicalDocuments_categoryTiles,
-"canonicalDocuments/contact": typeof canonicalDocuments_contact,
-"canonicalDocuments/contactDefinitions": typeof canonicalDocuments_contactDefinitions,
-"canonicalDocuments/contactDocuments": typeof canonicalDocuments_contactDocuments,
-"canonicalDocuments/contactFields": typeof canonicalDocuments_contactFields,
-"canonicalDocuments/contactForms": typeof canonicalDocuments_contactForms,
-"canonicalDocuments/contactMessaging": typeof canonicalDocuments_contactMessaging,
-"canonicalDocuments/contactProjection": typeof canonicalDocuments_contactProjection,
-"canonicalDocuments/contactSource": typeof canonicalDocuments_contactSource,
-"canonicalDocuments/contactTypes": typeof canonicalDocuments_contactTypes,
-"canonicalDocuments/contactWriteRequirement": typeof canonicalDocuments_contactWriteRequirement,
-"canonicalDocuments/courses": typeof canonicalDocuments_courses,
-"canonicalDocuments/curriculum": typeof canonicalDocuments_curriculum,
-"canonicalDocuments/data": typeof canonicalDocuments_data,
-"canonicalDocuments/dateArchive": typeof canonicalDocuments_dateArchive,
-"canonicalDocuments/definitionStorage": typeof canonicalDocuments_definitionStorage,
-"canonicalDocuments/definitions": typeof canonicalDocuments_definitions,
-"canonicalDocuments/displayContext": typeof canonicalDocuments_displayContext,
-"canonicalDocuments/eventRsvp": typeof canonicalDocuments_eventRsvp,
-"canonicalDocuments/featuredProducts": typeof canonicalDocuments_featuredProducts,
-"canonicalDocuments/form": typeof canonicalDocuments_form,
-"canonicalDocuments/foundation/aiCatalog": typeof canonicalDocuments_foundation_aiCatalog,
-"canonicalDocuments/foundation/albumContracts": typeof canonicalDocuments_foundation_albumContracts,
-"canonicalDocuments/foundation/archiveContracts": typeof canonicalDocuments_foundation_archiveContracts,
-"canonicalDocuments/foundation/authoredDefinitions": typeof canonicalDocuments_foundation_authoredDefinitions,
-"canonicalDocuments/foundation/blockPromotion": typeof canonicalDocuments_foundation_blockPromotion,
-"canonicalDocuments/foundation/brandContracts": typeof canonicalDocuments_foundation_brandContracts,
-"canonicalDocuments/foundation/bundleOfferContracts": typeof canonicalDocuments_foundation_bundleOfferContracts,
-"canonicalDocuments/foundation/calendarContracts": typeof canonicalDocuments_foundation_calendarContracts,
-"canonicalDocuments/foundation/categoryTilesContracts": typeof canonicalDocuments_foundation_categoryTilesContracts,
-"canonicalDocuments/foundation/certificateContracts": typeof canonicalDocuments_foundation_certificateContracts,
-"canonicalDocuments/foundation/commerceInventory": typeof canonicalDocuments_foundation_commerceInventory,
-"canonicalDocuments/foundation/commercePricing": typeof canonicalDocuments_foundation_commercePricing,
-"canonicalDocuments/foundation/compatibility/legacy_schemas": typeof canonicalDocuments_foundation_compatibility_legacy_schemas,
-"canonicalDocuments/foundation/compatibility/rich_text": typeof canonicalDocuments_foundation_compatibility_rich_text,
-"canonicalDocuments/foundation/composedDefinitions": typeof canonicalDocuments_foundation_composedDefinitions,
-"canonicalDocuments/foundation/composedPresentation": typeof canonicalDocuments_foundation_composedPresentation,
-"canonicalDocuments/foundation/composedRegistry": typeof canonicalDocuments_foundation_composedRegistry,
-"canonicalDocuments/foundation/composition": typeof canonicalDocuments_foundation_composition,
-"canonicalDocuments/foundation/compositionExpressions": typeof canonicalDocuments_foundation_compositionExpressions,
-"canonicalDocuments/foundation/contactContracts": typeof canonicalDocuments_foundation_contactContracts,
-"canonicalDocuments/foundation/contactDataContracts": typeof canonicalDocuments_foundation_contactDataContracts,
-"canonicalDocuments/foundation/contracts": typeof canonicalDocuments_foundation_contracts,
-"canonicalDocuments/foundation/courseContracts": typeof canonicalDocuments_foundation_courseContracts,
-"canonicalDocuments/foundation/curriculumContracts": typeof canonicalDocuments_foundation_curriculumContracts,
-"canonicalDocuments/foundation/documentContracts": typeof canonicalDocuments_foundation_documentContracts,
-"canonicalDocuments/foundation/documentState": typeof canonicalDocuments_foundation_documentState,
-"canonicalDocuments/foundation/eventContracts": typeof canonicalDocuments_foundation_eventContracts,
-"canonicalDocuments/foundation/eventIntervalIndex": typeof canonicalDocuments_foundation_eventIntervalIndex,
-"canonicalDocuments/foundation/formContracts": typeof canonicalDocuments_foundation_formContracts,
-"canonicalDocuments/foundation/generated/ai_catalog": typeof canonicalDocuments_foundation_generated_ai_catalog,
-"canonicalDocuments/foundation/generated/field_runtime": typeof canonicalDocuments_foundation_generated_field_runtime,
-"canonicalDocuments/foundation/generated/instance_runtime": typeof canonicalDocuments_foundation_generated_instance_runtime,
-"canonicalDocuments/foundation/generated/instances": typeof canonicalDocuments_foundation_generated_instances,
-"canonicalDocuments/foundation/generated/metadata": typeof canonicalDocuments_foundation_generated_metadata,
-"canonicalDocuments/foundation/generated/pack_designs": typeof canonicalDocuments_foundation_generated_pack_designs,
-"canonicalDocuments/foundation/generated/patterns": typeof canonicalDocuments_foundation_generated_patterns,
-"canonicalDocuments/foundation/generated/promotions": typeof canonicalDocuments_foundation_generated_promotions,
-"canonicalDocuments/foundation/generated/schemas": typeof canonicalDocuments_foundation_generated_schemas,
-"canonicalDocuments/foundation/generated/spec_runtime": typeof canonicalDocuments_foundation_generated_spec_runtime,
-"canonicalDocuments/foundation/generated/storage": typeof canonicalDocuments_foundation_generated_storage,
-"canonicalDocuments/foundation/generated/types": typeof canonicalDocuments_foundation_generated_types,
-"canonicalDocuments/foundation/instructorContracts": typeof canonicalDocuments_foundation_instructorContracts,
-"canonicalDocuments/foundation/knowledgeBaseContracts": typeof canonicalDocuments_foundation_knowledgeBaseContracts,
-"canonicalDocuments/foundation/leadMagnetContracts": typeof canonicalDocuments_foundation_leadMagnetContracts,
-"canonicalDocuments/foundation/learnerProgressContracts": typeof canonicalDocuments_foundation_learnerProgressContracts,
-"canonicalDocuments/foundation/legacyBlockMigration": typeof canonicalDocuments_foundation_legacyBlockMigration,
-"canonicalDocuments/foundation/legacyDocumentMigration": typeof canonicalDocuments_foundation_legacyDocumentMigration,
-"canonicalDocuments/foundation/legacySectionMigration": typeof canonicalDocuments_foundation_legacySectionMigration,
-"canonicalDocuments/foundation/legacyStructuredMigration": typeof canonicalDocuments_foundation_legacyStructuredMigration,
-"canonicalDocuments/foundation/localeContracts": typeof canonicalDocuments_foundation_localeContracts,
-"canonicalDocuments/foundation/membershipContracts": typeof canonicalDocuments_foundation_membershipContracts,
-"canonicalDocuments/foundation/membershipPlanContracts": typeof canonicalDocuments_foundation_membershipPlanContracts,
-"canonicalDocuments/foundation/migrationContracts": typeof canonicalDocuments_foundation_migrationContracts,
-"canonicalDocuments/foundation/navigationContracts": typeof canonicalDocuments_foundation_navigationContracts,
-"canonicalDocuments/foundation/navigationTree": typeof canonicalDocuments_foundation_navigationTree,
-"canonicalDocuments/foundation/planner": typeof canonicalDocuments_foundation_planner,
-"canonicalDocuments/foundation/pollContracts": typeof canonicalDocuments_foundation_pollContracts,
-"canonicalDocuments/foundation/pollDataContracts": typeof canonicalDocuments_foundation_pollDataContracts,
-"canonicalDocuments/foundation/pollRetry": typeof canonicalDocuments_foundation_pollRetry,
-"canonicalDocuments/foundation/postContracts": typeof canonicalDocuments_foundation_postContracts,
-"canonicalDocuments/foundation/postGridContracts": typeof canonicalDocuments_foundation_postGridContracts,
-"canonicalDocuments/foundation/primitiveContracts": typeof canonicalDocuments_foundation_primitiveContracts,
-"canonicalDocuments/foundation/productCollectionContracts": typeof canonicalDocuments_foundation_productCollectionContracts,
-"canonicalDocuments/foundation/productCompareContracts": typeof canonicalDocuments_foundation_productCompareContracts,
-"canonicalDocuments/foundation/productContracts": typeof canonicalDocuments_foundation_productContracts,
-"canonicalDocuments/foundation/productOptionsContracts": typeof canonicalDocuments_foundation_productOptionsContracts,
-"canonicalDocuments/foundation/productShowcaseContracts": typeof canonicalDocuments_foundation_productShowcaseContracts,
-"canonicalDocuments/foundation/promotionTree": typeof canonicalDocuments_foundation_promotionTree,
-"canonicalDocuments/foundation/publicDocumentContracts": typeof canonicalDocuments_foundation_publicDocumentContracts,
-"canonicalDocuments/foundation/publicTree": typeof canonicalDocuments_foundation_publicTree,
-"canonicalDocuments/foundation/recipeContracts": typeof canonicalDocuments_foundation_recipeContracts,
-"canonicalDocuments/foundation/relatedContracts": typeof canonicalDocuments_foundation_relatedContracts,
-"canonicalDocuments/foundation/renderResources": typeof canonicalDocuments_foundation_renderResources,
-"canonicalDocuments/foundation/resolve": typeof canonicalDocuments_foundation_resolve,
-"canonicalDocuments/foundation/resolverReferences": typeof canonicalDocuments_foundation_resolverReferences,
-"canonicalDocuments/foundation/reviewsContracts": typeof canonicalDocuments_foundation_reviewsContracts,
-"canonicalDocuments/foundation/rsvpContracts": typeof canonicalDocuments_foundation_rsvpContracts,
-"canonicalDocuments/foundation/searchContracts": typeof canonicalDocuments_foundation_searchContracts,
-"canonicalDocuments/foundation/shared/authoringFields": typeof canonicalDocuments_foundation_shared_authoringFields,
-"canonicalDocuments/foundation/shared/embedProviders": typeof canonicalDocuments_foundation_shared_embedProviders,
-"canonicalDocuments/foundation/shared/fingerprints": typeof canonicalDocuments_foundation_shared_fingerprints,
-"canonicalDocuments/foundation/shared/legacyHref": typeof canonicalDocuments_foundation_shared_legacyHref,
-"canonicalDocuments/foundation/shippingPolicyContracts": typeof canonicalDocuments_foundation_shippingPolicyContracts,
-"canonicalDocuments/foundation/socialFeedContracts": typeof canonicalDocuments_foundation_socialFeedContracts,
-"canonicalDocuments/foundation/supportContracts": typeof canonicalDocuments_foundation_supportContracts,
-"canonicalDocuments/foundation/syncedContent": typeof canonicalDocuments_foundation_syncedContent,
-"canonicalDocuments/foundation/syncedDisplay": typeof canonicalDocuments_foundation_syncedDisplay,
-"canonicalDocuments/foundation/syncedOccurrences": typeof canonicalDocuments_foundation_syncedOccurrences,
-"canonicalDocuments/foundation/syncedPromotion": typeof canonicalDocuments_foundation_syncedPromotion,
-"canonicalDocuments/foundation/tagCloudContracts": typeof canonicalDocuments_foundation_tagCloudContracts,
-"canonicalDocuments/foundation/taggedMediaContracts": typeof canonicalDocuments_foundation_taggedMediaContracts,
-"canonicalDocuments/instructor": typeof canonicalDocuments_instructor,
-"canonicalDocuments/knowledgeBase": typeof canonicalDocuments_knowledgeBase,
-"canonicalDocuments/latestPosts": typeof canonicalDocuments_latestPosts,
-"canonicalDocuments/leadMagnet": typeof canonicalDocuments_leadMagnet,
-"canonicalDocuments/learnerProgress": typeof canonicalDocuments_learnerProgress,
-"canonicalDocuments/membership": typeof canonicalDocuments_membership,
-"canonicalDocuments/membershipPlans": typeof canonicalDocuments_membershipPlans,
-"canonicalDocuments/navigation": typeof canonicalDocuments_navigation,
-"canonicalDocuments/nextEvent": typeof canonicalDocuments_nextEvent,
-"canonicalDocuments/poll": typeof canonicalDocuments_poll,
-"canonicalDocuments/postGrid": typeof canonicalDocuments_postGrid,
-"canonicalDocuments/productCollection": typeof canonicalDocuments_productCollection,
-"canonicalDocuments/productCompare": typeof canonicalDocuments_productCompare,
-"canonicalDocuments/productOptionSource": typeof canonicalDocuments_productOptionSource,
-"canonicalDocuments/productOptions": typeof canonicalDocuments_productOptions,
-"canonicalDocuments/productShowcase": typeof canonicalDocuments_productShowcase,
-"canonicalDocuments/promotion": typeof canonicalDocuments_promotion,
-"canonicalDocuments/publicBlockSource": typeof canonicalDocuments_publicBlockSource,
-"canonicalDocuments/publicBlocks": typeof canonicalDocuments_publicBlocks,
-"canonicalDocuments/publicTree": typeof canonicalDocuments_publicTree,
-"canonicalDocuments/publishedBlockPath": typeof canonicalDocuments_publishedBlockPath,
-"canonicalDocuments/recipe": typeof canonicalDocuments_recipe,
-"canonicalDocuments/relatedContent": typeof canonicalDocuments_relatedContent,
-"canonicalDocuments/reviews": typeof canonicalDocuments_reviews,
-"canonicalDocuments/rsvpSources": typeof canonicalDocuments_rsvpSources,
-"canonicalDocuments/search": typeof canonicalDocuments_search,
-"canonicalDocuments/service": typeof canonicalDocuments_service,
-"canonicalDocuments/settingsRoutes": typeof canonicalDocuments_settingsRoutes,
-"canonicalDocuments/shippingPolicy": typeof canonicalDocuments_shippingPolicy,
-"canonicalDocuments/sourceBudget": typeof canonicalDocuments_sourceBudget,
-"canonicalDocuments/support": typeof canonicalDocuments_support,
-"canonicalDocuments/tagCloud": typeof canonicalDocuments_tagCloud,
-"canonicalDocuments/taggedMedia": typeof canonicalDocuments_taggedMedia,
-"canonicalDocuments/upcomingEvents": typeof canonicalDocuments_upcomingEvents,
-"canonicalDocuments/validators": typeof canonicalDocuments_validators,
-"canonicalRsvp": typeof canonicalRsvp,
-"capabilities/queries": typeof capabilities_queries,
-"categoryArchives": typeof categoryArchives,
-"comments/httpInternals": typeof comments_httpInternals,
-"comments/internals": typeof comments_internals,
-"comments/mutations": typeof comments_mutations,
-"comments/queries": typeof comments_queries,
-"comments/validators": typeof comments_validators,
-"commerce/activePrice": typeof commerce_activePrice,
-"commerce/assistant/actions": typeof commerce_assistant_actions,
-"commerce/assistant/blocks": typeof commerce_assistant_blocks,
-"commerce/assistant/mutations": typeof commerce_assistant_mutations,
-"commerce/assistant/prompts": typeof commerce_assistant_prompts,
-"commerce/assistant/provider": typeof commerce_assistant_provider,
-"commerce/assistant/queries": typeof commerce_assistant_queries,
-"commerce/assistant/scope": typeof commerce_assistant_scope,
-"commerce/brandCatalog": typeof commerce_brandCatalog,
-"commerce/brands": typeof commerce_brands,
-"commerce/cart": typeof commerce_cart,
-"commerce/cartBundle": typeof commerce_cartBundle,
-"commerce/cartHelpers": typeof commerce_cartHelpers,
-"commerce/cartLifecycle": typeof commerce_cartLifecycle,
-"commerce/catalogContinuation": typeof commerce_catalogContinuation,
-"commerce/catalogRevision": typeof commerce_catalogRevision,
-"commerce/categories": typeof commerce_categories,
-"commerce/categoryVisibility": typeof commerce_categoryVisibility,
-"commerce/checkout": typeof commerce_checkout,
-"commerce/checkoutBundleHelpers": typeof commerce_checkoutBundleHelpers,
-"commerce/checkoutShippingGuards": typeof commerce_checkoutShippingGuards,
-"commerce/couponLifecycle": typeof commerce_couponLifecycle,
-"commerce/customerGroups": typeof commerce_customerGroups,
-"commerce/customers": typeof commerce_customers,
-"commerce/discountEngine": typeof commerce_discountEngine,
-"commerce/discountInternals": typeof commerce_discountInternals,
-"commerce/discountStripeMirror": typeof commerce_discountStripeMirror,
-"commerce/discounts": typeof commerce_discounts,
-"commerce/draftOrders": typeof commerce_draftOrders,
-"commerce/dynamicPricing": typeof commerce_dynamicPricing,
-"commerce/fulfillment": typeof commerce_fulfillment,
-"commerce/helpers": typeof commerce_helpers,
-"commerce/inventory": typeof commerce_inventory,
-"commerce/migrations": typeof commerce_migrations,
-"commerce/orderBundleHelpers": typeof commerce_orderBundleHelpers,
-"commerce/orderChanges": typeof commerce_orderChanges,
-"commerce/orders": typeof commerce_orders,
-"commerce/paymentActions": typeof commerce_paymentActions,
-"commerce/payments": typeof commerce_payments,
-"commerce/paypalMode": typeof commerce_paypalMode,
-"commerce/pricing": typeof commerce_pricing,
-"commerce/productDiscovery": typeof commerce_productDiscovery,
-"commerce/productDiscoveryMaintenance": typeof commerce_productDiscoveryMaintenance,
-"commerce/productSaleIndex": typeof commerce_productSaleIndex,
-"commerce/productSaleMaintenance": typeof commerce_productSaleMaintenance,
-"commerce/productTags": typeof commerce_productTags,
-"commerce/products": typeof commerce_products,
-"commerce/publicProduct": typeof commerce_publicProduct,
-"commerce/publicProductAccess": typeof commerce_publicProductAccess,
-"commerce/publicProductVariant": typeof commerce_publicProductVariant,
-"commerce/regions": typeof commerce_regions,
-"commerce/relations": typeof commerce_relations,
-"commerce/reservationCommit": typeof commerce_reservationCommit,
-"commerce/saleIntervals": typeof commerce_saleIntervals,
-"commerce/saleSchedule": typeof commerce_saleSchedule,
-"commerce/salesChannels": typeof commerce_salesChannels,
-"commerce/shopperAccess": typeof commerce_shopperAccess,
-"commerce/stockLedger": typeof commerce_stockLedger,
-"commerce/stockPolicy": typeof commerce_stockPolicy,
-"commerce/stockTarget": typeof commerce_stockTarget,
-"commerce/storefront": typeof commerce_storefront,
-"commerce/tax": typeof commerce_tax,
-"commerce/taxClasses": typeof commerce_taxClasses,
-"commerce/taxStripe": typeof commerce_taxStripe,
-"commerce/validators": typeof commerce_validators,
-"commerce/variantHelpers": typeof commerce_variantHelpers,
-"commerce/variantResolvers": typeof commerce_variantResolvers,
-"commerce/workflows": typeof commerce_workflows,
-"commerceBundles/helpers": typeof commerceBundles_helpers,
-"commerceBundles/internals": typeof commerceBundles_internals,
-"commerceBundles/mutations": typeof commerceBundles_mutations,
-"commerceBundles/publicBundle": typeof commerceBundles_publicBundle,
-"commerceBundles/queries": typeof commerceBundles_queries,
-"commerceBundles/runtime": typeof commerceBundles_runtime,
-"commerceDigital/byteTransport": typeof commerceDigital_byteTransport,
-"commerceDigital/delivery": typeof commerceDigital_delivery,
-"commerceDigital/downloadEntitlement": typeof commerceDigital_downloadEntitlement,
-"commerceDigital/fulfillment": typeof commerceDigital_fulfillment,
-"commerceDigital/http": typeof commerceDigital_http,
-"commerceDigital/library": typeof commerceDigital_library,
-"commerceDigital/mutations": typeof commerceDigital_mutations,
-"commerceDigital/queries": typeof commerceDigital_queries,
-"commerceReturns/eligibility": typeof commerceReturns_eligibility,
-"commerceReturns/helpers": typeof commerceReturns_helpers,
-"commerceReturns/itemState": typeof commerceReturns_itemState,
-"commerceReturns/migrations": typeof commerceReturns_migrations,
-"commerceReturns/mutations": typeof commerceReturns_mutations,
-"commerceReturns/queries": typeof commerceReturns_queries,
-"commerceReturns/reasons": typeof commerceReturns_reasons,
-"commerceReturns/refundLifecycle": typeof commerceReturns_refundLifecycle,
-"commerceReturns/refundPolicy": typeof commerceReturns_refundPolicy,
-"commerceReturns/storeCredit": typeof commerceReturns_storeCredit,
-"commerceReviews/helpers": typeof commerceReviews_helpers,
-"commerceReviews/mutations": typeof commerceReviews_mutations,
-"commerceReviews/publicFeed": typeof commerceReviews_publicFeed,
-"commerceReviews/queries": typeof commerceReviews_queries,
-"commerceReviews/ratingIndex": typeof commerceReviews_ratingIndex,
-"commerceReviews/ratingMaintenance": typeof commerceReviews_ratingMaintenance,
-"commerceSubscriptions/actions": typeof commerceSubscriptions_actions,
-"commerceSubscriptions/bridgeDecisions": typeof commerceSubscriptions_bridgeDecisions,
-"commerceSubscriptions/checkout": typeof commerceSubscriptions_checkout,
-"commerceSubscriptions/coupons": typeof commerceSubscriptions_coupons,
-"commerceSubscriptions/dunning": typeof commerceSubscriptions_dunning,
-"commerceSubscriptions/emails": typeof commerceSubscriptions_emails,
-"commerceSubscriptions/helpers": typeof commerceSubscriptions_helpers,
-"commerceSubscriptions/internals": typeof commerceSubscriptions_internals,
-"commerceSubscriptions/mutations": typeof commerceSubscriptions_mutations,
-"commerceSubscriptions/offers": typeof commerceSubscriptions_offers,
-"commerceSubscriptions/portal": typeof commerceSubscriptions_portal,
-"commerceSubscriptions/pricing": typeof commerceSubscriptions_pricing,
-"commerceSubscriptions/pricingCards": typeof commerceSubscriptions_pricingCards,
-"commerceSubscriptions/proration": typeof commerceSubscriptions_proration,
-"commerceSubscriptions/publicCharge": typeof commerceSubscriptions_publicCharge,
-"commerceSubscriptions/queries": typeof commerceSubscriptions_queries,
-"commerceSubscriptions/renewal": typeof commerceSubscriptions_renewal,
-"commerceSubscriptions/stripeCharge": typeof commerceSubscriptions_stripeCharge,
-"commerceSubscriptions/templates": typeof commerceSubscriptions_templates,
-"commerceSubscriptions/validators": typeof commerceSubscriptions_validators,
-"commerceWishlists/availability": typeof commerceWishlists_availability,
-"commerceWishlists/cleanup": typeof commerceWishlists_cleanup,
-"commerceWishlists/countMaintenance": typeof commerceWishlists_countMaintenance,
-"commerceWishlists/counts": typeof commerceWishlists_counts,
-"commerceWishlists/deletion": typeof commerceWishlists_deletion,
-"commerceWishlists/guestMerge": typeof commerceWishlists_guestMerge,
-"commerceWishlists/helpers": typeof commerceWishlists_helpers,
-"commerceWishlists/lookup": typeof commerceWishlists_lookup,
-"commerceWishlists/mutations": typeof commerceWishlists_mutations,
-"commerceWishlists/ownerMaintenance": typeof commerceWishlists_ownerMaintenance,
-"commerceWishlists/ownerQueries": typeof commerceWishlists_ownerQueries,
-"commerceWishlists/ownerTotals": typeof commerceWishlists_ownerTotals,
-"commerceWishlists/pages": typeof commerceWishlists_pages,
-"commerceWishlists/publicItems": typeof commerceWishlists_publicItems,
-"commerceWishlists/queries": typeof commerceWishlists_queries,
-"commerceWishlists/recentActivity": typeof commerceWishlists_recentActivity,
-"commerceWishlists/shared": typeof commerceWishlists_shared,
-"commerceWishlists/validators": typeof commerceWishlists_validators,
-"contentPromotion/authorization": typeof contentPromotion_authorization,
-"contentPromotion/canonicalAllocation": typeof contentPromotion_canonicalAllocation,
-"contentPromotion/commerce": typeof contentPromotion_commerce,
-"contentPromotion/eventRsvp": typeof contentPromotion_eventRsvp,
-"contentPromotion/exporter": typeof contentPromotion_exporter,
-"contentPromotion/learning": typeof contentPromotion_learning,
-"contentPromotion/mediaRecovery": typeof contentPromotion_mediaRecovery,
-"contentPromotion/mediaUploads": typeof contentPromotion_mediaUploads,
-"contentPromotion/operations": typeof contentPromotion_operations,
-"contentPromotion/planner": typeof contentPromotion_planner,
-"contentPromotion/shared": typeof contentPromotion_shared,
-"contentPromotion/syncedClosure": typeof contentPromotion_syncedClosure,
-"contentPromotion/syncedTarget": typeof contentPromotion_syncedTarget,
-"crons": typeof crons,
-"customFields/internals": typeof customFields_internals,
-"customFields/mutations": typeof customFields_mutations,
-"customFields/queries": typeof customFields_queries,
-"customFields/validators": typeof customFields_validators,
-"dashboard/helpers": typeof dashboard_helpers,
-"dashboard/mutations": typeof dashboard_mutations,
-"dashboard/queries": typeof dashboard_queries,
-"dateArchives": typeof dateArchives,
-"demoSeed/actions": typeof demoSeed_actions,
-"demoSeed/catalogs/northstarCoffee": typeof demoSeed_catalogs_northstarCoffee,
-"demoSeed/catalogs/ridgelineCycles": typeof demoSeed_catalogs_ridgelineCycles,
-"demoSeed/catalogs/types": typeof demoSeed_catalogs_types,
-"demoSeed/internals": typeof demoSeed_internals,
-"demoSeed/shops": typeof demoSeed_shops,
-"editor/internals": typeof editor_internals,
-"editor/mutations": typeof editor_mutations,
-"editor/queries": typeof editor_queries,
-"editor/validators": typeof editor_validators,
-"emails/actions": typeof emails_actions,
-"emails/internals": typeof emails_internals,
-"emails/mutations": typeof emails_mutations,
-"emails/queries": typeof emails_queries,
-"emails/registry": typeof emails_registry,
-"emails/templateDefaults": typeof emails_templateDefaults,
-"emails/testData": typeof emails_testData,
-"emails/validators": typeof emails_validators,
-"embeds/actions": typeof embeds_actions,
-"eventDefinitions/queries": typeof eventDefinitions_queries,
-"events/constants": typeof events_constants,
-"events/internals": typeof events_internals,
-"events/mutations": typeof events_mutations,
-"events/queries": typeof events_queries,
-"events/validators": typeof events_validators,
-"extensions/dashboard/mutations": typeof extensions_dashboard_mutations,
-"extensions/dashboard/plugin": typeof extensions_dashboard_plugin,
-"extensions/dashboard/queries": typeof extensions_dashboard_queries,
-"extensions/dashboard/registry": typeof extensions_dashboard_registry,
-"extensions/dashboard/visibility": typeof extensions_dashboard_visibility,
-"extensions/events/calendarIndex": typeof extensions_events_calendarIndex,
-"extensions/events/categories": typeof extensions_events_categories,
-"extensions/events/dashboard": typeof extensions_events_dashboard,
-"extensions/events/model": typeof extensions_events_model,
-"extensions/events/mutations": typeof extensions_events_mutations,
-"extensions/events/plugin": typeof extensions_events_plugin,
-"extensions/events/publicAccess": typeof extensions_events_publicAccess,
-"extensions/events/queries": typeof extensions_events_queries,
-"extensions/events/rsvp": typeof extensions_events_rsvp,
-"extensions/events/rsvpAuthority": typeof extensions_events_rsvpAuthority,
-"extensions/events/rsvpOrganizer": typeof extensions_events_rsvpOrganizer,
-"extensions/events/rsvpSecurity": typeof extensions_events_rsvpSecurity,
-"extensions/events/rsvpSource": typeof extensions_events_rsvpSource,
-"extensions/events/rsvpValidators": typeof extensions_events_rsvpValidators,
-"extensions/events/search": typeof extensions_events_search,
-"extensions/forms/actionRegistry": typeof extensions_forms_actionRegistry,
-"extensions/forms/actionTypes": typeof extensions_forms_actionTypes,
-"extensions/forms/actions": typeof extensions_forms_actions,
-"extensions/forms/analytics": typeof extensions_forms_analytics,
-"extensions/forms/builderCore": typeof extensions_forms_builderCore,
-"extensions/forms/calc/evaluate": typeof extensions_forms_calc_evaluate,
-"extensions/forms/calc/format": typeof extensions_forms_calc_format,
-"extensions/forms/calc/grammar": typeof extensions_forms_calc_grammar,
-"extensions/forms/calc/graph": typeof extensions_forms_calc_graph,
-"extensions/forms/calc/index": typeof extensions_forms_calc_index,
-"extensions/forms/calc/parse": typeof extensions_forms_calc_parse,
-"extensions/forms/calc/recompute": typeof extensions_forms_calc_recompute,
-"extensions/forms/commerce": typeof extensions_forms_commerce,
-"extensions/forms/conditionalLogic": typeof extensions_forms_conditionalLogic,
-"extensions/forms/confirmations": typeof extensions_forms_confirmations,
-"extensions/forms/counts": typeof extensions_forms_counts,
-"extensions/forms/devFixtures": typeof extensions_forms_devFixtures,
-"extensions/forms/draftValidation": typeof extensions_forms_draftValidation,
-"extensions/forms/export": typeof extensions_forms_export,
-"extensions/forms/formLogic": typeof extensions_forms_formLogic,
-"extensions/forms/mergeTags": typeof extensions_forms_mergeTags,
-"extensions/forms/mutations": typeof extensions_forms_mutations,
-"extensions/forms/notifications": typeof extensions_forms_notifications,
-"extensions/forms/orderPaymentActions": typeof extensions_forms_orderPaymentActions,
-"extensions/forms/orderPayments": typeof extensions_forms_orderPayments,
-"extensions/forms/polls": typeof extensions_forms_polls,
-"extensions/forms/queries": typeof extensions_forms_queries,
-"extensions/forms/redirects": typeof extensions_forms_redirects,
-"extensions/forms/spam": typeof extensions_forms_spam,
-"extensions/forms/submitGuards": typeof extensions_forms_submitGuards,
-"extensions/forms/tokens": typeof extensions_forms_tokens,
-"feeds/actions": typeof feeds_actions,
-"feeds/internals": typeof feeds_internals,
-"feeds/queries": typeof feeds_queries,
-"feeds/validators": typeof feeds_validators,
-"ga4/actions": typeof ga4_actions,
-"ga4/helpers": typeof ga4_helpers,
-"ga4/internals": typeof ga4_internals,
-"ga4/mutations": typeof ga4_mutations,
-"ga4/queries": typeof ga4_queries,
-"ga4/validators": typeof ga4_validators,
-"gallery/helpers": typeof gallery_helpers,
-"gallery/mutations": typeof gallery_mutations,
-"gallery/queries": typeof gallery_queries,
-"gallery/validators": typeof gallery_validators,
-"healthCheck": typeof healthCheck,
-"helpers/airtable": typeof helpers_airtable,
-"helpers/auditClassification": typeof helpers_auditClassification,
-"helpers/auditDescriptions": typeof helpers_auditDescriptions,
-"helpers/auditObjectExtractors": typeof helpers_auditObjectExtractors,
-"helpers/auth": typeof helpers_auth,
-"helpers/authorPostCounts": typeof helpers_authorPostCounts,
-"helpers/authoringFields": typeof helpers_authoringFields,
-"helpers/authoringSnapshot": typeof helpers_authoringSnapshot,
-"helpers/authoringVersionFence": typeof helpers_authoringVersionFence,
-"helpers/autosaveReconciliation": typeof helpers_autosaveReconciliation,
-"helpers/comment": typeof helpers_comment,
-"helpers/contentMembershipPaths": typeof helpers_contentMembershipPaths,
-"helpers/coupons": typeof helpers_coupons,
-"helpers/customFieldValidation": typeof helpers_customFieldValidation,
-"helpers/email": typeof helpers_email,
-"helpers/eventFilter": typeof helpers_eventFilter,
-"helpers/eventRetry": typeof helpers_eventRetry,
-"helpers/events": typeof helpers_events,
-"helpers/feedContent": typeof helpers_feedContent,
-"helpers/feedUrls": typeof helpers_feedUrls,
-"helpers/feedXml": typeof helpers_feedXml,
-"helpers/formSubmissionCounts": typeof helpers_formSubmissionCounts,
-"helpers/locationRules": typeof helpers_locationRules,
-"helpers/membershipAuthority": typeof helpers_membershipAuthority,
-"helpers/notification": typeof helpers_notification,
-"helpers/pageRouteGuard": typeof helpers_pageRouteGuard,
-"helpers/pageRoutePolicy": typeof helpers_pageRoutePolicy,
-"helpers/password": typeof helpers_password,
-"helpers/permissions": typeof helpers_permissions,
-"helpers/plugins": typeof helpers_plugins,
-"helpers/postAuth": typeof helpers_postAuth,
-"helpers/postDiscovery": typeof helpers_postDiscovery,
-"helpers/profile": typeof helpers_profile,
-"helpers/proration": typeof helpers_proration,
-"helpers/publicAuthor": typeof helpers_publicAuthor,
-"helpers/publicContent": typeof helpers_publicContent,
-"helpers/publicationSchedule": typeof helpers_publicationSchedule,
-"helpers/registration": typeof helpers_registration,
-"helpers/requestReadLedger": typeof helpers_requestReadLedger,
-"helpers/revisions": typeof helpers_revisions,
-"helpers/routing": typeof helpers_routing,
-"helpers/sanitize": typeof helpers_sanitize,
-"helpers/seo": typeof helpers_seo,
-"helpers/serviceKeys": typeof helpers_serviceKeys,
-"helpers/settingsSecret": typeof helpers_settingsSecret,
-"helpers/settingsSecretUpgrade": typeof helpers_settingsSecretUpgrade,
-"helpers/sitemap": typeof helpers_sitemap,
-"helpers/slug": typeof helpers_slug,
-"helpers/taxonomy": typeof helpers_taxonomy,
-"helpers/termCounts": typeof helpers_termCounts,
-"helpers/timingSafe": typeof helpers_timingSafe,
-"helpers/types": typeof helpers_types,
-"http": typeof http,
-"http/analytics": typeof http_analytics,
-"http/checkout": typeof http_checkout,
-"http/comments": typeof http_comments,
-"http/discovery": typeof http_discovery,
-"http/helpers": typeof http_helpers,
-"http/inboundEmailWebhook": typeof http_inboundEmailWebhook,
-"http/media": typeof http_media,
-"http/menus": typeof http_menus,
-"http/pages": typeof http_pages,
-"http/posts": typeof http_posts,
-"http/resendWebhook": typeof http_resendWebhook,
-"http/settings": typeof http_settings,
-"http/taxonomies": typeof http_taxonomies,
-"http/users": typeof http_users,
-"integrations/actions": typeof integrations_actions,
-"integrations/fingerprint": typeof integrations_fingerprint,
-"integrations/internals": typeof integrations_internals,
-"integrations/queries": typeof integrations_queries,
-"integrations/registry": typeof integrations_registry,
-"kb/analytics": typeof kb_analytics,
-"kb/bookmarks": typeof kb_bookmarks,
-"kb/categories": typeof kb_categories,
-"kb/categoryAccess": typeof kb_categoryAccess,
-"kb/categoryDeletion": typeof kb_categoryDeletion,
-"kb/collections": typeof kb_collections,
-"kb/comments": typeof kb_comments,
-"kb/feedback": typeof kb_feedback,
-"kb/helpers/categoryHierarchy": typeof kb_helpers_categoryHierarchy,
-"kb/helpers/enrichUser": typeof kb_helpers_enrichUser,
-"kb/helpers/utils": typeof kb_helpers_utils,
-"kb/integration": typeof kb_integration,
-"kb/internals": typeof kb_internals,
-"kb/meilisearch": typeof kb_meilisearch,
-"kb/meilisearchTasks": typeof kb_meilisearchTasks,
-"kb/mutations": typeof kb_mutations,
-"kb/progress": typeof kb_progress,
-"kb/publicAccess": typeof kb_publicAccess,
-"kb/queries": typeof kb_queries,
-"kb/rag": typeof kb_rag,
-"kb/search": typeof kb_search,
-"kb/searchCandidates": typeof kb_searchCandidates,
-"kb/searchDocument": typeof kb_searchDocument,
-"kb/searchJobWorker": typeof kb_searchJobWorker,
-"kb/searchJobs": typeof kb_searchJobs,
-"kb/searchProviderHttp": typeof kb_searchProviderHttp,
-"kb/searchReconciliation": typeof kb_searchReconciliation,
-"kb/searchReconciliationProof": typeof kb_searchReconciliationProof,
-"kb/searchSecurity": typeof kb_searchSecurity,
-"kb/settings": typeof kb_settings,
-"kb/tags": typeof kb_tags,
-"kb/templates": typeof kb_templates,
-"kb/validators": typeof kb_validators,
-"kb/workflows": typeof kb_workflows,
-"leadMagnets/actions": typeof leadMagnets_actions,
-"leadMagnets/delivery": typeof leadMagnets_delivery,
-"leadMagnets/http": typeof leadMagnets_http,
-"leadMagnets/queries": typeof leadMagnets_queries,
-"leadMagnets/source": typeof leadMagnets_source,
-"leadMagnets/submission": typeof leadMagnets_submission,
-"leadMagnets/types": typeof leadMagnets_types,
-"lms/access": typeof lms_access,
-"lms/ai/actions": typeof lms_ai_actions,
-"lms/ai/helpers": typeof lms_ai_helpers,
-"lms/ai/internalActions": typeof lms_ai_internalActions,
-"lms/ai/internals": typeof lms_ai_internals,
-"lms/ai/mutations": typeof lms_ai_mutations,
-"lms/ai/queries": typeof lms_ai_queries,
-"lms/certificates/actions": typeof lms_certificates_actions,
-"lms/certificates/mutations": typeof lms_certificates_mutations,
-"lms/certificates/queries": typeof lms_certificates_queries,
-"lms/certificates/rendering": typeof lms_certificates_rendering,
-"lms/certificates/revocationPolicy": typeof lms_certificates_revocationPolicy,
-"lms/certificates/serial": typeof lms_certificates_serial,
-"lms/courseCatalog": typeof lms_courseCatalog,
-"lms/courseCatalogMaintenance": typeof lms_courseCatalogMaintenance,
-"lms/courseCatalogReader": typeof lms_courseCatalogReader,
-"lms/courseCatalogRecovery": typeof lms_courseCatalogRecovery,
-"lms/courses/helpers": typeof lms_courses_helpers,
-"lms/courses/mutations": typeof lms_courses_mutations,
-"lms/courses/queries": typeof lms_courses_queries,
-"lms/courses/validators": typeof lms_courses_validators,
-"lms/curriculumCountMaintenance": typeof lms_curriculumCountMaintenance,
-"lms/curriculumCountRecovery": typeof lms_curriculumCountRecovery,
-"lms/curriculumCounts": typeof lms_curriculumCounts,
-"lms/enrollment/internals": typeof lms_enrollment_internals,
-"lms/enrollment/mutations": typeof lms_enrollment_mutations,
-"lms/enrollment/queries": typeof lms_enrollment_queries,
-"lms/lessons/helpers": typeof lms_lessons_helpers,
-"lms/lessons/mutations": typeof lms_lessons_mutations,
-"lms/lessons/queries": typeof lms_lessons_queries,
-"lms/nodes/mutations": typeof lms_nodes_mutations,
-"lms/nodes/queries": typeof lms_nodes_queries,
-"lms/nodes/validators": typeof lms_nodes_validators,
-"lms/progress/countMaintenance": typeof lms_progress_countMaintenance,
-"lms/progress/countRecovery": typeof lms_progress_countRecovery,
-"lms/progress/counts": typeof lms_progress_counts,
-"lms/progress/mutations": typeof lms_progress_mutations,
-"lms/progress/queries": typeof lms_progress_queries,
-"lms/progress/summary": typeof lms_progress_summary,
-"lms/seed": typeof lms_seed,
-"lms/topics/mutations": typeof lms_topics_mutations,
-"lms/topics/queries": typeof lms_topics_queries,
-"localization": typeof localization,
-"localization/model": typeof localization_model,
-"localization/validators": typeof localization_validators,
-"management/actions": typeof management_actions,
-"management/authority": typeof management_authority,
-"management/bootstrap": typeof management_bootstrap,
-"management/http": typeof management_http,
-"management/migrations": typeof management_migrations,
-"management/model": typeof management_model,
-"management/queries": typeof management_queries,
-"management/runtime": typeof management_runtime,
-"management/sessionExpiry": typeof management_sessionExpiry,
-"management/sessionPolicy": typeof management_sessionPolicy,
-"management/validators": typeof management_validators,
-"media/actions": typeof media_actions,
-"media/ai": typeof media_ai,
-"media/attachmentGuard": typeof media_attachmentGuard,
-"media/deletion": typeof media_deletion,
-"media/epochAuthority": typeof media_epochAuthority,
-"media/helpers": typeof media_helpers,
-"media/imageProcessing": typeof media_imageProcessing,
-"media/internals": typeof media_internals,
-"media/libraryRead": typeof media_libraryRead,
-"media/mediaAuth": typeof media_mediaAuth,
-"media/mutations": typeof media_mutations,
-"media/queries": typeof media_queries,
-"media/referenceExtraction": typeof media_referenceExtraction,
-"media/referenceIndexes": typeof media_referenceIndexes,
-"media/referenceOwners": typeof media_referenceOwners,
-"media/referencePolicy": typeof media_referencePolicy,
-"media/referenceReads": typeof media_referenceReads,
-"media/referenceScan": typeof media_referenceScan,
-"media/references": typeof media_references,
-"media/reverseBackfill": typeof media_reverseBackfill,
-"media/reverseIndex": typeof media_reverseIndex,
-"media/reverseIndexVersion": typeof media_reverseIndexVersion,
-"media/showcase": typeof media_showcase,
-"media/showcasePolicy": typeof media_showcasePolicy,
-"media/validators": typeof media_validators,
-"membership/access": typeof membership_access,
-"membership/bridgeLogic": typeof membership_bridgeLogic,
-"membership/enrollmentRepairs": typeof membership_enrollmentRepairs,
-"membership/expiry": typeof membership_expiry,
-"membership/helpers": typeof membership_helpers,
-"membership/internals": typeof membership_internals,
-"membership/mutations": typeof membership_mutations,
-"membership/policyCopy": typeof membership_policyCopy,
-"membership/policyReads": typeof membership_policyReads,
-"membership/queries": typeof membership_queries,
-"membership/validators": typeof membership_validators,
-"menus/internals": typeof menus_internals,
-"menus/mutations": typeof menus_mutations,
-"menus/publicContract": typeof menus_publicContract,
-"menus/queries": typeof menus_queries,
-"menus/validators": typeof menus_validators,
-"notificationEngine/registry": typeof notificationEngine_registry,
-"notifications/center": typeof notifications_center,
-"notifications/internals": typeof notifications_internals,
-"notifications/loginContext": typeof notifications_loginContext,
-"notifications/mutations": typeof notifications_mutations,
-"notifications/queries": typeof notifications_queries,
-"notifications/validators": typeof notifications_validators,
-"pages/httpInternals": typeof pages_httpInternals,
-"pages/internals": typeof pages_internals,
-"pages/mutations": typeof pages_mutations,
-"pages/queries": typeof pages_queries,
-"pages/templates": typeof pages_templates,
-"pages/validators": typeof pages_validators,
-"password/actions": typeof password_actions,
-"password/internals": typeof password_internals,
-"password/mutations": typeof password_mutations,
-"password/queries": typeof password_queries,
-"password/validators": typeof password_validators,
-"plugins/registry": typeof plugins_registry,
-"posts/authorCounts": typeof posts_authorCounts,
-"posts/discovery": typeof posts_discovery,
-"posts/httpInternals": typeof posts_httpInternals,
-"posts/internals": typeof posts_internals,
-"posts/mutations": typeof posts_mutations,
-"posts/queries": typeof posts_queries,
-"posts/validators": typeof posts_validators,
-"productAttributes/mutations": typeof productAttributes_mutations,
-"productAttributes/queries": typeof productAttributes_queries,
-"profiles/actions": typeof profiles_actions,
-"profiles/internals": typeof profiles_internals,
-"profiles/mutations": typeof profiles_mutations,
-"profiles/queries": typeof profiles_queries,
-"profiles/types": typeof profiles_types,
-"profiles/validators": typeof profiles_validators,
-"purchases/internals": typeof purchases_internals,
-"purchases/migrations": typeof purchases_migrations,
-"purchases/queries": typeof purchases_queries,
-"recipes/actions": typeof recipes_actions,
-"recipes/mutations": typeof recipes_mutations,
-"recipes/publicRead": typeof recipes_publicRead,
-"recipes/queries": typeof recipes_queries,
-"recipes/validators": typeof recipes_validators,
-"registration/internals": typeof registration_internals,
-"registration/mutations": typeof registration_mutations,
-"registration/queries": typeof registration_queries,
-"registration/validators": typeof registration_validators,
-"revisions/internals": typeof revisions_internals,
-"revisions/mutations": typeof revisions_mutations,
-"revisions/queries": typeof revisions_queries,
-"revisions/validators": typeof revisions_validators,
-"roles/internals": typeof roles_internals,
-"roles/mutations": typeof roles_mutations,
-"roles/queries": typeof roles_queries,
-"roles/validators": typeof roles_validators,
-"routeDefinitions/queries": typeof routeDefinitions_queries,
-"routing/eventHandlers": typeof routing_eventHandlers,
-"routing/internals": typeof routing_internals,
-"routing/mutations": typeof routing_mutations,
-"routing/public": typeof routing_public,
-"routing/queries": typeof routing_queries,
-"routing/validators": typeof routing_validators,
-"schema/analytics": typeof schema_analytics,
-"schema/api": typeof schema_api,
-"schema/audiences": typeof schema_audiences,
-"schema/auditLogs": typeof schema_auditLogs,
-"schema/auth": typeof schema_auth,
-"schema/authTracking": typeof schema_authTracking,
-"schema/authorCounts": typeof schema_authorCounts,
-"schema/blockDefinitions": typeof schema_blockDefinitions,
-"schema/capabilities": typeof schema_capabilities,
-"schema/comments": typeof schema_comments,
-"schema/commerce": typeof schema_commerce,
-"schema/commerceAssistant": typeof schema_commerceAssistant,
-"schema/commerceBundles": typeof schema_commerceBundles,
-"schema/commerceDigital": typeof schema_commerceDigital,
-"schema/commerceReturns": typeof schema_commerceReturns,
-"schema/commerceReviews": typeof schema_commerceReviews,
-"schema/commerceSubscriptions": typeof schema_commerceSubscriptions,
-"schema/commerceWishlists": typeof schema_commerceWishlists,
-"schema/contentPromotion": typeof schema_contentPromotion,
-"schema/customFields": typeof schema_customFields,
-"schema/dashboard": typeof schema_dashboard,
-"schema/editor": typeof schema_editor,
-"schema/emails": typeof schema_emails,
-"schema/eventDefinitions": typeof schema_eventDefinitions,
-"schema/events": typeof schema_events,
-"schema/ga4": typeof schema_ga4,
-"schema/gallery": typeof schema_gallery,
-"schema/integrations": typeof schema_integrations,
-"schema/kb": typeof schema_kb,
-"schema/layouts": typeof schema_layouts,
-"schema/leadMagnets": typeof schema_leadMagnets,
-"schema/lms": typeof schema_lms,
-"schema/localization": typeof schema_localization,
-"schema/management": typeof schema_management,
-"schema/media": typeof schema_media,
-"schema/membership": typeof schema_membership,
-"schema/menus": typeof schema_menus,
-"schema/notifications": typeof schema_notifications,
-"schema/posts": typeof schema_posts,
-"schema/productAttributes": typeof schema_productAttributes,
-"schema/purchases": typeof schema_purchases,
-"schema/recipes": typeof schema_recipes,
-"schema/registration": typeof schema_registration,
-"schema/revisions": typeof schema_revisions,
-"schema/roles": typeof schema_roles,
-"schema/routeDefinitions": typeof schema_routeDefinitions,
-"schema/routing": typeof schema_routing,
-"schema/search": typeof schema_search,
-"schema/seo": typeof schema_seo,
-"schema/settings": typeof schema_settings,
-"schema/shipping": typeof schema_shipping,
-"schema/siteNotificationDefinitions": typeof schema_siteNotificationDefinitions,
-"schema/sitemap": typeof schema_sitemap,
-"schema/socialFeeds": typeof schema_socialFeeds,
-"schema/support": typeof schema_support,
-"schema/syncedBlocks": typeof schema_syncedBlocks,
-"schema/taxonomies": typeof schema_taxonomies,
-"schema/themes": typeof schema_themes,
-"schema/tickets": typeof schema_tickets,
-"schema/users": typeof schema_users,
-"schema/wordpressSync": typeof schema_wordpressSync,
-"search/actions": typeof search_actions,
-"search/candidates": typeof search_candidates,
-"search/eventBackfill": typeof search_eventBackfill,
-"search/eventHandlers": typeof search_eventHandlers,
-"search/events": typeof search_events,
-"search/extensionSources": typeof search_extensionSources,
-"search/helpers": typeof search_helpers,
-"search/internals": typeof search_internals,
-"search/mutations": typeof search_mutations,
-"search/products": typeof search_products,
-"search/publicSource": typeof search_publicSource,
-"search/queries": typeof search_queries,
-"search/validators": typeof search_validators,
-"seed/roles": typeof seed_roles,
-"seo/internals": typeof seo_internals,
-"seo/mutations": typeof seo_mutations,
-"seo/queries": typeof seo_queries,
-"seo/validators": typeof seo_validators,
-"settings/appearanceMigration": typeof settings_appearanceMigration,
-"settings/defaults": typeof settings_defaults,
-"settings/footerRows": typeof settings_footerRows,
-"settings/helpers": typeof settings_helpers,
-"settings/httpInternals": typeof settings_httpInternals,
-"settings/integrations/testActions": typeof settings_integrations_testActions,
-"settings/internals": typeof settings_internals,
-"settings/migrations": typeof settings_migrations,
-"settings/mutations": typeof settings_mutations,
-"settings/queries": typeof settings_queries,
-"settings/templateDrafts": typeof settings_templateDrafts,
-"settings/validation": typeof settings_validation,
-"settings/validators": typeof settings_validators,
-"shipping/actions": typeof shipping_actions,
-"shipping/addressValidation/actions": typeof shipping_addressValidation_actions,
-"shipping/addressValidation/mutations": typeof shipping_addressValidation_mutations,
-"shipping/addressValidation/queries": typeof shipping_addressValidation_queries,
-"shipping/addressValidation/validators": typeof shipping_addressValidation_validators,
-"shipping/bootstrap": typeof shipping_bootstrap,
-"shipping/classes/internals": typeof shipping_classes_internals,
-"shipping/classes/mutations": typeof shipping_classes_mutations,
-"shipping/classes/queries": typeof shipping_classes_queries,
-"shipping/classes/validators": typeof shipping_classes_validators,
-"shipping/helpers": typeof shipping_helpers,
-"shipping/helpers/addressFingerprint": typeof shipping_helpers_addressFingerprint,
-"shipping/helpers/binPacking": typeof shipping_helpers_binPacking,
-"shipping/helpers/classResolution": typeof shipping_helpers_classResolution,
-"shipping/helpers/distance": typeof shipping_helpers_distance,
-"shipping/helpers/settings": typeof shipping_helpers_settings,
-"shipping/helpers/zoneMatching": typeof shipping_helpers_zoneMatching,
-"shipping/internals": typeof shipping_internals,
-"shipping/labelOrigin": typeof shipping_labelOrigin,
-"shipping/labels/actions": typeof shipping_labels_actions,
-"shipping/labels/internals": typeof shipping_labels_internals,
-"shipping/labels/mutations": typeof shipping_labels_mutations,
-"shipping/labels/queries": typeof shipping_labels_queries,
-"shipping/labels/validators": typeof shipping_labels_validators,
-"shipping/manifests/actions": typeof shipping_manifests_actions,
-"shipping/manifests/internals": typeof shipping_manifests_internals,
-"shipping/manifests/mutations": typeof shipping_manifests_mutations,
-"shipping/manifests/queries": typeof shipping_manifests_queries,
-"shipping/methods/dimensional": typeof shipping_methods_dimensional,
-"shipping/methods/flatRate": typeof shipping_methods_flatRate,
-"shipping/methods/free": typeof shipping_methods_free,
-"shipping/methods/localDelivery": typeof shipping_methods_localDelivery,
-"shipping/methods/localPickup": typeof shipping_methods_localPickup,
-"shipping/methods/mutations": typeof shipping_methods_mutations,
-"shipping/methods/preview": typeof shipping_methods_preview,
-"shipping/methods/priceBased": typeof shipping_methods_priceBased,
-"shipping/methods/quantityBased": typeof shipping_methods_quantityBased,
-"shipping/methods/queries": typeof shipping_methods_queries,
-"shipping/methods/tableRate": typeof shipping_methods_tableRate,
-"shipping/methods/weightBased": typeof shipping_methods_weightBased,
-"shipping/mutations": typeof shipping_mutations,
-"shipping/packages/internals": typeof shipping_packages_internals,
-"shipping/packages/mutations": typeof shipping_packages_mutations,
-"shipping/packages/queries": typeof shipping_packages_queries,
-"shipping/packages/validators": typeof shipping_packages_validators,
-"shipping/providers": typeof shipping_providers,
-"shipping/providers/_shared/credentials": typeof shipping_providers__shared_credentials,
-"shipping/providers/_shared/tokenCache": typeof shipping_providers__shared_tokenCache,
-"shipping/providers/contract": typeof shipping_providers_contract,
-"shipping/providers/dhl/auth": typeof shipping_providers_dhl_auth,
-"shipping/providers/dhl/rates": typeof shipping_providers_dhl_rates,
-"shipping/providers/dhl/serviceCodes": typeof shipping_providers_dhl_serviceCodes,
-"shipping/providers/fedex/auth": typeof shipping_providers_fedex_auth,
-"shipping/providers/fedex/rates": typeof shipping_providers_fedex_rates,
-"shipping/providers/fedex/serviceCodes": typeof shipping_providers_fedex_serviceCodes,
-"shipping/providers/shipstation/rates": typeof shipping_providers_shipstation_rates,
-"shipping/providers/ups/auth": typeof shipping_providers_ups_auth,
-"shipping/providers/ups/rates": typeof shipping_providers_ups_rates,
-"shipping/providers/ups/serviceCodes": typeof shipping_providers_ups_serviceCodes,
-"shipping/providers/usps/auth": typeof shipping_providers_usps_auth,
-"shipping/providers/usps/rates": typeof shipping_providers_usps_rates,
-"shipping/providers/usps/serviceCodes": typeof shipping_providers_usps_serviceCodes,
-"shipping/queries": typeof shipping_queries,
-"shipping/quoteProvenance": typeof shipping_quoteProvenance,
-"shipping/rates/internals": typeof shipping_rates_internals,
-"shipping/rates/pipeline": typeof shipping_rates_pipeline,
-"shipping/rates/ranking": typeof shipping_rates_ranking,
-"shipping/rates/types": typeof shipping_rates_types,
-"shipping/rulesEngine/evaluator": typeof shipping_rulesEngine_evaluator,
-"shipping/rulesEngine/internals": typeof shipping_rulesEngine_internals,
-"shipping/rulesEngine/mutations": typeof shipping_rulesEngine_mutations,
-"shipping/rulesEngine/queries": typeof shipping_rulesEngine_queries,
-"shipping/rulesEngine/types": typeof shipping_rulesEngine_types,
-"shipping/rulesEngine/validator": typeof shipping_rulesEngine_validator,
-"shipping/shipFromLocations/internals": typeof shipping_shipFromLocations_internals,
-"shipping/shipFromLocations/mutations": typeof shipping_shipFromLocations_mutations,
-"shipping/shipFromLocations/queries": typeof shipping_shipFromLocations_queries,
-"shipping/shipFromLocations/validators": typeof shipping_shipFromLocations_validators,
-"shipping/tracking/actions": typeof shipping_tracking_actions,
-"shipping/tracking/internals": typeof shipping_tracking_internals,
-"shipping/tracking/mutations": typeof shipping_tracking_mutations,
-"shipping/tracking/queries": typeof shipping_tracking_queries,
-"shipping/tracking/statusNormalization": typeof shipping_tracking_statusNormalization,
-"shipping/validators": typeof shipping_validators,
-"shipping/webhookDedup": typeof shipping_webhookDedup,
-"shipping/webhooks": typeof shipping_webhooks,
-"shipping/zones/internals": typeof shipping_zones_internals,
-"shipping/zones/mutations": typeof shipping_zones_mutations,
-"shipping/zones/queries": typeof shipping_zones_queries,
-"shipping/zones/validators": typeof shipping_zones_validators,
-"siteNotificationDefinitions/queries": typeof siteNotificationDefinitions_queries,
-"sitemaps/actions": typeof sitemaps_actions,
-"sitemaps/helpers/auth": typeof sitemaps_helpers_auth,
-"sitemaps/helpers/settings": typeof sitemaps_helpers_settings,
-"sitemaps/internals": typeof sitemaps_internals,
-"sitemaps/mutations": typeof sitemaps_mutations,
-"sitemaps/queries": typeof sitemaps_queries,
-"sitemaps/subscribers": typeof sitemaps_subscribers,
-"sitemaps/validators": typeof sitemaps_validators,
-"socialFeeds/actions": typeof socialFeeds_actions,
-"socialFeeds/cache": typeof socialFeeds_cache,
-"socialFeeds/mastodon": typeof socialFeeds_mastodon,
-"socialFeeds/policy": typeof socialFeeds_policy,
-"socialFeeds/read": typeof socialFeeds_read,
-"socialFeeds/sources": typeof socialFeeds_sources,
-"socialFeeds/transport": typeof socialFeeds_transport,
-"support/analytics": typeof support_analytics,
-"support/channels": typeof support_channels,
-"support/deflection": typeof support_deflection,
-"support/inboundEmail": typeof support_inboundEmail,
-"support/inboundEmailParser": typeof support_inboundEmailParser,
-"support/inboundSecurity": typeof support_inboundSecurity,
-"support/integration": typeof support_integration,
-"support/internals": typeof support_internals,
-"support/settings": typeof support_settings,
-"support/validators": typeof support_validators,
-"support/widget": typeof support_widget,
-"syncedBlocks/consumerIndex": typeof syncedBlocks_consumerIndex,
-"syncedBlocks/consumerIndexState": typeof syncedBlocks_consumerIndexState,
-"syncedBlocks/consumerWrites": typeof syncedBlocks_consumerWrites,
-"syncedBlocks/consumers": typeof syncedBlocks_consumers,
-"syncedBlocks/content": typeof syncedBlocks_content,
-"syncedBlocks/editor": typeof syncedBlocks_editor,
-"syncedBlocks/model": typeof syncedBlocks_model,
-"syncedBlocks/occurrences": typeof syncedBlocks_occurrences,
-"syncedBlocks/options": typeof syncedBlocks_options,
-"syncedBlocks/picker": typeof syncedBlocks_picker,
-"syncedBlocks/queries": typeof syncedBlocks_queries,
-"syncedBlocks/refresh": typeof syncedBlocks_refresh,
-"syncedBlocks/refreshValidators": typeof syncedBlocks_refreshValidators,
-"taxonomies/counts": typeof taxonomies_counts,
-"taxonomies/httpInternals": typeof taxonomies_httpInternals,
-"taxonomies/internals": typeof taxonomies_internals,
-"taxonomies/mutations": typeof taxonomies_mutations,
-"taxonomies/queries": typeof taxonomies_queries,
-"taxonomies/validators": typeof taxonomies_validators,
-"taxonomyArchives": typeof taxonomyArchives,
-"tickets/attachments": typeof tickets_attachments,
-"tickets/cannedResponses": typeof tickets_cannedResponses,
-"tickets/customer": typeof tickets_customer,
-"tickets/integration": typeof tickets_integration,
-"tickets/internals": typeof tickets_internals,
-"tickets/messages": typeof tickets_messages,
-"tickets/mutations": typeof tickets_mutations,
-"tickets/queries": typeof tickets_queries,
-"tickets/rateLimit": typeof tickets_rateLimit,
-"tickets/sessions": typeof tickets_sessions,
-"tickets/settings": typeof tickets_settings,
-"tickets/validators": typeof tickets_validators,
-"types/capabilities": typeof types_capabilities,
-"users": typeof users,
-"wordpressSync/actions": typeof wordpressSync_actions,
-"wordpressSync/fieldPolicy": typeof wordpressSync_fieldPolicy,
-"wordpressSync/helpers/acfParser": typeof wordpressSync_helpers_acfParser,
-"wordpressSync/helpers/adapters/baseAdapter": typeof wordpressSync_helpers_adapters_baseAdapter,
-"wordpressSync/helpers/adapters/elementorAdapter": typeof wordpressSync_helpers_adapters_elementorAdapter,
-"wordpressSync/helpers/adapters/mediaAdapter": typeof wordpressSync_helpers_adapters_mediaAdapter,
-"wordpressSync/helpers/adapters/menuAdapter": typeof wordpressSync_helpers_adapters_menuAdapter,
-"wordpressSync/helpers/adapters/types": typeof wordpressSync_helpers_adapters_types,
-"wordpressSync/helpers/adapters/wooAdapter": typeof wordpressSync_helpers_adapters_wooAdapter,
-"wordpressSync/helpers/adapters/wpAdapter": typeof wordpressSync_helpers_adapters_wpAdapter,
-"wordpressSync/helpers/elementor": typeof wordpressSync_helpers_elementor,
-"wordpressSync/helpers/idMapping": typeof wordpressSync_helpers_idMapping,
-"wordpressSync/helpers/phpUnserialize": typeof wordpressSync_helpers_phpUnserialize,
-"wordpressSync/helpers/wooClient": typeof wordpressSync_helpers_wooClient,
-"wordpressSync/helpers/wpClient": typeof wordpressSync_helpers_wpClient,
-"wordpressSync/helpers/yoastParser": typeof wordpressSync_helpers_yoastParser,
-"wordpressSync/internals": typeof wordpressSync_internals,
-"wordpressSync/mutations": typeof wordpressSync_mutations,
-"wordpressSync/phases/comments": typeof wordpressSync_phases_comments,
-"wordpressSync/phases/commerceCatalog": typeof wordpressSync_phases_commerceCatalog,
-"wordpressSync/phases/commerceTransactions": typeof wordpressSync_phases_commerceTransactions,
-"wordpressSync/phases/media": typeof wordpressSync_phases_media,
-"wordpressSync/phases/menus": typeof wordpressSync_phases_menus,
-"wordpressSync/phases/pages": typeof wordpressSync_phases_pages,
-"wordpressSync/phases/posts": typeof wordpressSync_phases_posts,
-"wordpressSync/phases/reconciliation": typeof wordpressSync_phases_reconciliation,
-"wordpressSync/phases/taxonomies": typeof wordpressSync_phases_taxonomies,
-"wordpressSync/phases/users": typeof wordpressSync_phases_users,
-"wordpressSync/queries": typeof wordpressSync_queries,
-"wordpressSync/validators": typeof wordpressSync_validators,
-  }>;
-  export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
-  export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+
+declare const fullApi: ApiFromModules<{
+  _devCounts: typeof _devCounts;
+  _devEnable: typeof _devEnable;
+  _devPurge: typeof _devPurge;
+  "ai/actions": typeof ai_actions;
+  "ai/helpers": typeof ai_helpers;
+  "ai/internals": typeof ai_internals;
+  "ai/prompts": typeof ai_prompts;
+  "ai/structuredProvider": typeof ai_structuredProvider;
+  "ai/validators": typeof ai_validators;
+  "airtableSync/_internal": typeof airtableSync__internal;
+  "airtableSync/actions": typeof airtableSync_actions;
+  "airtableSync/syncCapabilities": typeof airtableSync_syncCapabilities;
+  "airtableSync/syncEmailNotifications": typeof airtableSync_syncEmailNotifications;
+  "airtableSync/syncEvents": typeof airtableSync_syncEvents;
+  "airtableSync/syncRoles": typeof airtableSync_syncRoles;
+  "airtableSync/syncRoutes": typeof airtableSync_syncRoutes;
+  "airtableSync/syncSiteNotifications": typeof airtableSync_syncSiteNotifications;
+  "analytics/internals": typeof analytics_internals;
+  "analytics/mutations": typeof analytics_mutations;
+  "analytics/queries": typeof analytics_queries;
+  "analytics/validators": typeof analytics_validators;
+  "api/actions": typeof api_actions;
+  "api/crypto_helpers": typeof api_crypto_helpers;
+  "api/internals": typeof api_internals;
+  "api/mutations": typeof api_mutations;
+  "api/queries": typeof api_queries;
+  "api/validators": typeof api_validators;
+  "audiences/lists": typeof audiences_lists;
+  "audiences/policy": typeof audiences_policy;
+  "audiences/subscribers": typeof audiences_subscribers;
+  "audiences/types": typeof audiences_types;
+  "auditLogs/actions": typeof auditLogs_actions;
+  "auditLogs/internals": typeof auditLogs_internals;
+  "auditLogs/mutations": typeof auditLogs_mutations;
+  "auditLogs/queries": typeof auditLogs_queries;
+  "auditLogs/validators": typeof auditLogs_validators;
+  "auth/adminPresence": typeof auth_adminPresence;
+  "auth/clerkConnection": typeof auth_clerkConnection;
+  "auth/clerkConnectionHelpers": typeof auth_clerkConnectionHelpers;
+  "auth/clerkConnectionInternals": typeof auth_clerkConnectionInternals;
+  "auth/clerkManagement": typeof auth_clerkManagement;
+  "auth/clerkManagementHelpers": typeof auth_clerkManagementHelpers;
+  "auth/clerkProvisioning": typeof auth_clerkProvisioning;
+  "auth/clerkPublic": typeof auth_clerkPublic;
+  "auth/clerkSync": typeof auth_clerkSync;
+  "auth/clerkWebhook": typeof auth_clerkWebhook;
+  "auth/environmentBinding": typeof auth_environmentBinding;
+  "auth/helpers": typeof auth_helpers;
+  "auth/httpSecurity": typeof auth_httpSecurity;
+  "auth/inputLimits": typeof auth_inputLimits;
+  "auth/internals": typeof auth_internals;
+  "auth/jwks": typeof auth_jwks;
+  "auth/login": typeof auth_login;
+  "auth/logout": typeof auth_logout;
+  "auth/migrations": typeof auth_migrations;
+  "auth/operatorAuthority": typeof auth_operatorAuthority;
+  "auth/operatorHandoffs": typeof auth_operatorHandoffs;
+  "auth/operatorHttp": typeof auth_operatorHttp;
+  "auth/operatorValidators": typeof auth_operatorValidators;
+  "auth/queries": typeof auth_queries;
+  "auth/refresh": typeof auth_refresh;
+  "auth/refreshTransport": typeof auth_refreshTransport;
+  "auth/setup": typeof auth_setup;
+  "authTracking/actions": typeof authTracking_actions;
+  "authTracking/internals": typeof authTracking_internals;
+  "authTracking/mutations": typeof authTracking_mutations;
+  "authTracking/queries": typeof authTracking_queries;
+  "authTracking/validators": typeof authTracking_validators;
+  "blockDefinitions/ai": typeof blockDefinitions_ai;
+  "blockDefinitions/aiLibrary": typeof blockDefinitions_aiLibrary;
+  "blockDefinitions/composeContext": typeof blockDefinitions_composeContext;
+  "blockDefinitions/composeContracts": typeof blockDefinitions_composeContracts;
+  "blockDefinitions/composeReferences": typeof blockDefinitions_composeReferences;
+  "blockDefinitions/composeResources": typeof blockDefinitions_composeResources;
+  "blockDefinitions/composeSchema": typeof blockDefinitions_composeSchema;
+  "blockDefinitions/createDraft": typeof blockDefinitions_createDraft;
+  "blockDefinitions/drafts": typeof blockDefinitions_drafts;
+  "blockDefinitions/management": typeof blockDefinitions_management;
+  "blockDefinitions/model": typeof blockDefinitions_model;
+  "blockDefinitions/picker": typeof blockDefinitions_picker;
+  "blockDefinitions/preview": typeof blockDefinitions_preview;
+  "blockDefinitions/promotion": typeof blockDefinitions_promotion;
+  "blockDefinitions/publication": typeof blockDefinitions_publication;
+  "blockDefinitions/publishedRegistry": typeof blockDefinitions_publishedRegistry;
+  "blockDefinitions/registry": typeof blockDefinitions_registry;
+  "blockDefinitions/styleContext": typeof blockDefinitions_styleContext;
+  "blockDefinitions/styleContracts": typeof blockDefinitions_styleContracts;
+  "blockDefinitions/styleProposal": typeof blockDefinitions_styleProposal;
+  "blocks/ai": typeof blocks_ai;
+  "blocks/aiPromptBuilder": typeof blocks_aiPromptBuilder;
+  "blocks/diagnostics": typeof blocks_diagnostics;
+  "blocks/helpers": typeof blocks_helpers;
+  "blocks/migrations": typeof blocks_migrations;
+  "blocks/mutations": typeof blocks_mutations;
+  "blocks/policy": typeof blocks_policy;
+  "blocks/queries": typeof blocks_queries;
+  "blocks/usage": typeof blocks_usage;
+  "blocks/validators": typeof blocks_validators;
+  "bootstrap/registerListeners": typeof bootstrap_registerListeners;
+  "bootstrap/requiredRecords": typeof bootstrap_requiredRecords;
+  canonicalDocuments: typeof canonicalDocuments;
+  "canonicalDocuments/ai": typeof canonicalDocuments_ai;
+  "canonicalDocuments/aiContext": typeof canonicalDocuments_aiContext;
+  "canonicalDocuments/aiResources": typeof canonicalDocuments_aiResources;
+  "canonicalDocuments/album": typeof canonicalDocuments_album;
+  "canonicalDocuments/brands": typeof canonicalDocuments_brands;
+  "canonicalDocuments/bundleOffer": typeof canonicalDocuments_bundleOffer;
+  "canonicalDocuments/calendar": typeof canonicalDocuments_calendar;
+  "canonicalDocuments/categoryTiles": typeof canonicalDocuments_categoryTiles;
+  "canonicalDocuments/contact": typeof canonicalDocuments_contact;
+  "canonicalDocuments/contactDefinitions": typeof canonicalDocuments_contactDefinitions;
+  "canonicalDocuments/contactDocuments": typeof canonicalDocuments_contactDocuments;
+  "canonicalDocuments/contactFields": typeof canonicalDocuments_contactFields;
+  "canonicalDocuments/contactForms": typeof canonicalDocuments_contactForms;
+  "canonicalDocuments/contactMessaging": typeof canonicalDocuments_contactMessaging;
+  "canonicalDocuments/contactProjection": typeof canonicalDocuments_contactProjection;
+  "canonicalDocuments/contactSource": typeof canonicalDocuments_contactSource;
+  "canonicalDocuments/contactTypes": typeof canonicalDocuments_contactTypes;
+  "canonicalDocuments/contactWriteRequirement": typeof canonicalDocuments_contactWriteRequirement;
+  "canonicalDocuments/courses": typeof canonicalDocuments_courses;
+  "canonicalDocuments/curriculum": typeof canonicalDocuments_curriculum;
+  "canonicalDocuments/data": typeof canonicalDocuments_data;
+  "canonicalDocuments/dateArchive": typeof canonicalDocuments_dateArchive;
+  "canonicalDocuments/definitionStorage": typeof canonicalDocuments_definitionStorage;
+  "canonicalDocuments/definitions": typeof canonicalDocuments_definitions;
+  "canonicalDocuments/displayContext": typeof canonicalDocuments_displayContext;
+  "canonicalDocuments/eventRsvp": typeof canonicalDocuments_eventRsvp;
+  "canonicalDocuments/featuredProducts": typeof canonicalDocuments_featuredProducts;
+  "canonicalDocuments/form": typeof canonicalDocuments_form;
+  "canonicalDocuments/foundation/aiCatalog": typeof canonicalDocuments_foundation_aiCatalog;
+  "canonicalDocuments/foundation/albumContracts": typeof canonicalDocuments_foundation_albumContracts;
+  "canonicalDocuments/foundation/archiveContracts": typeof canonicalDocuments_foundation_archiveContracts;
+  "canonicalDocuments/foundation/authoredDefinitions": typeof canonicalDocuments_foundation_authoredDefinitions;
+  "canonicalDocuments/foundation/blockPromotion": typeof canonicalDocuments_foundation_blockPromotion;
+  "canonicalDocuments/foundation/brandContracts": typeof canonicalDocuments_foundation_brandContracts;
+  "canonicalDocuments/foundation/bundleOfferContracts": typeof canonicalDocuments_foundation_bundleOfferContracts;
+  "canonicalDocuments/foundation/calendarContracts": typeof canonicalDocuments_foundation_calendarContracts;
+  "canonicalDocuments/foundation/categoryTilesContracts": typeof canonicalDocuments_foundation_categoryTilesContracts;
+  "canonicalDocuments/foundation/certificateContracts": typeof canonicalDocuments_foundation_certificateContracts;
+  "canonicalDocuments/foundation/commerceInventory": typeof canonicalDocuments_foundation_commerceInventory;
+  "canonicalDocuments/foundation/commercePricing": typeof canonicalDocuments_foundation_commercePricing;
+  "canonicalDocuments/foundation/compatibility/legacy_schemas": typeof canonicalDocuments_foundation_compatibility_legacy_schemas;
+  "canonicalDocuments/foundation/compatibility/rich_text": typeof canonicalDocuments_foundation_compatibility_rich_text;
+  "canonicalDocuments/foundation/composedDefinitions": typeof canonicalDocuments_foundation_composedDefinitions;
+  "canonicalDocuments/foundation/composedPresentation": typeof canonicalDocuments_foundation_composedPresentation;
+  "canonicalDocuments/foundation/composedRegistry": typeof canonicalDocuments_foundation_composedRegistry;
+  "canonicalDocuments/foundation/composition": typeof canonicalDocuments_foundation_composition;
+  "canonicalDocuments/foundation/compositionExpressions": typeof canonicalDocuments_foundation_compositionExpressions;
+  "canonicalDocuments/foundation/contactContracts": typeof canonicalDocuments_foundation_contactContracts;
+  "canonicalDocuments/foundation/contactDataContracts": typeof canonicalDocuments_foundation_contactDataContracts;
+  "canonicalDocuments/foundation/contracts": typeof canonicalDocuments_foundation_contracts;
+  "canonicalDocuments/foundation/courseContracts": typeof canonicalDocuments_foundation_courseContracts;
+  "canonicalDocuments/foundation/curriculumContracts": typeof canonicalDocuments_foundation_curriculumContracts;
+  "canonicalDocuments/foundation/documentContracts": typeof canonicalDocuments_foundation_documentContracts;
+  "canonicalDocuments/foundation/documentState": typeof canonicalDocuments_foundation_documentState;
+  "canonicalDocuments/foundation/eventContracts": typeof canonicalDocuments_foundation_eventContracts;
+  "canonicalDocuments/foundation/eventIntervalIndex": typeof canonicalDocuments_foundation_eventIntervalIndex;
+  "canonicalDocuments/foundation/formContracts": typeof canonicalDocuments_foundation_formContracts;
+  "canonicalDocuments/foundation/generated/ai_catalog": typeof canonicalDocuments_foundation_generated_ai_catalog;
+  "canonicalDocuments/foundation/generated/field_runtime": typeof canonicalDocuments_foundation_generated_field_runtime;
+  "canonicalDocuments/foundation/generated/instance_runtime": typeof canonicalDocuments_foundation_generated_instance_runtime;
+  "canonicalDocuments/foundation/generated/instances": typeof canonicalDocuments_foundation_generated_instances;
+  "canonicalDocuments/foundation/generated/metadata": typeof canonicalDocuments_foundation_generated_metadata;
+  "canonicalDocuments/foundation/generated/pack_designs": typeof canonicalDocuments_foundation_generated_pack_designs;
+  "canonicalDocuments/foundation/generated/patterns": typeof canonicalDocuments_foundation_generated_patterns;
+  "canonicalDocuments/foundation/generated/promotions": typeof canonicalDocuments_foundation_generated_promotions;
+  "canonicalDocuments/foundation/generated/schemas": typeof canonicalDocuments_foundation_generated_schemas;
+  "canonicalDocuments/foundation/generated/search_text": typeof canonicalDocuments_foundation_generated_search_text;
+  "canonicalDocuments/foundation/generated/spec_runtime": typeof canonicalDocuments_foundation_generated_spec_runtime;
+  "canonicalDocuments/foundation/generated/storage": typeof canonicalDocuments_foundation_generated_storage;
+  "canonicalDocuments/foundation/generated/types": typeof canonicalDocuments_foundation_generated_types;
+  "canonicalDocuments/foundation/instructorContracts": typeof canonicalDocuments_foundation_instructorContracts;
+  "canonicalDocuments/foundation/knowledgeBaseContracts": typeof canonicalDocuments_foundation_knowledgeBaseContracts;
+  "canonicalDocuments/foundation/leadMagnetContracts": typeof canonicalDocuments_foundation_leadMagnetContracts;
+  "canonicalDocuments/foundation/learnerProgressContracts": typeof canonicalDocuments_foundation_learnerProgressContracts;
+  "canonicalDocuments/foundation/legacyBlockMigration": typeof canonicalDocuments_foundation_legacyBlockMigration;
+  "canonicalDocuments/foundation/legacyDocumentMigration": typeof canonicalDocuments_foundation_legacyDocumentMigration;
+  "canonicalDocuments/foundation/legacySectionMigration": typeof canonicalDocuments_foundation_legacySectionMigration;
+  "canonicalDocuments/foundation/legacyStructuredMigration": typeof canonicalDocuments_foundation_legacyStructuredMigration;
+  "canonicalDocuments/foundation/localeContracts": typeof canonicalDocuments_foundation_localeContracts;
+  "canonicalDocuments/foundation/membershipContracts": typeof canonicalDocuments_foundation_membershipContracts;
+  "canonicalDocuments/foundation/membershipPlanContracts": typeof canonicalDocuments_foundation_membershipPlanContracts;
+  "canonicalDocuments/foundation/migrationContracts": typeof canonicalDocuments_foundation_migrationContracts;
+  "canonicalDocuments/foundation/navigationContracts": typeof canonicalDocuments_foundation_navigationContracts;
+  "canonicalDocuments/foundation/navigationTree": typeof canonicalDocuments_foundation_navigationTree;
+  "canonicalDocuments/foundation/planner": typeof canonicalDocuments_foundation_planner;
+  "canonicalDocuments/foundation/pollContracts": typeof canonicalDocuments_foundation_pollContracts;
+  "canonicalDocuments/foundation/pollDataContracts": typeof canonicalDocuments_foundation_pollDataContracts;
+  "canonicalDocuments/foundation/pollRetry": typeof canonicalDocuments_foundation_pollRetry;
+  "canonicalDocuments/foundation/postContracts": typeof canonicalDocuments_foundation_postContracts;
+  "canonicalDocuments/foundation/postGridContracts": typeof canonicalDocuments_foundation_postGridContracts;
+  "canonicalDocuments/foundation/primitiveContracts": typeof canonicalDocuments_foundation_primitiveContracts;
+  "canonicalDocuments/foundation/productCollectionContracts": typeof canonicalDocuments_foundation_productCollectionContracts;
+  "canonicalDocuments/foundation/productCompareContracts": typeof canonicalDocuments_foundation_productCompareContracts;
+  "canonicalDocuments/foundation/productContracts": typeof canonicalDocuments_foundation_productContracts;
+  "canonicalDocuments/foundation/productOptionsContracts": typeof canonicalDocuments_foundation_productOptionsContracts;
+  "canonicalDocuments/foundation/productShowcaseContracts": typeof canonicalDocuments_foundation_productShowcaseContracts;
+  "canonicalDocuments/foundation/promotionTree": typeof canonicalDocuments_foundation_promotionTree;
+  "canonicalDocuments/foundation/publicDocumentContracts": typeof canonicalDocuments_foundation_publicDocumentContracts;
+  "canonicalDocuments/foundation/publicTree": typeof canonicalDocuments_foundation_publicTree;
+  "canonicalDocuments/foundation/recipeContracts": typeof canonicalDocuments_foundation_recipeContracts;
+  "canonicalDocuments/foundation/relatedContracts": typeof canonicalDocuments_foundation_relatedContracts;
+  "canonicalDocuments/foundation/renderResources": typeof canonicalDocuments_foundation_renderResources;
+  "canonicalDocuments/foundation/resolve": typeof canonicalDocuments_foundation_resolve;
+  "canonicalDocuments/foundation/resolverBindings": typeof canonicalDocuments_foundation_resolverBindings;
+  "canonicalDocuments/foundation/resolverReferences": typeof canonicalDocuments_foundation_resolverReferences;
+  "canonicalDocuments/foundation/reviewsContracts": typeof canonicalDocuments_foundation_reviewsContracts;
+  "canonicalDocuments/foundation/rsvpContracts": typeof canonicalDocuments_foundation_rsvpContracts;
+  "canonicalDocuments/foundation/searchContracts": typeof canonicalDocuments_foundation_searchContracts;
+  "canonicalDocuments/foundation/searchText": typeof canonicalDocuments_foundation_searchText;
+  "canonicalDocuments/foundation/shared/authoringFields": typeof canonicalDocuments_foundation_shared_authoringFields;
+  "canonicalDocuments/foundation/shared/embedProviders": typeof canonicalDocuments_foundation_shared_embedProviders;
+  "canonicalDocuments/foundation/shared/fingerprints": typeof canonicalDocuments_foundation_shared_fingerprints;
+  "canonicalDocuments/foundation/shared/legacyHref": typeof canonicalDocuments_foundation_shared_legacyHref;
+  "canonicalDocuments/foundation/shippingPolicyContracts": typeof canonicalDocuments_foundation_shippingPolicyContracts;
+  "canonicalDocuments/foundation/socialFeedContracts": typeof canonicalDocuments_foundation_socialFeedContracts;
+  "canonicalDocuments/foundation/supportContracts": typeof canonicalDocuments_foundation_supportContracts;
+  "canonicalDocuments/foundation/syncedContent": typeof canonicalDocuments_foundation_syncedContent;
+  "canonicalDocuments/foundation/syncedDisplay": typeof canonicalDocuments_foundation_syncedDisplay;
+  "canonicalDocuments/foundation/syncedOccurrences": typeof canonicalDocuments_foundation_syncedOccurrences;
+  "canonicalDocuments/foundation/syncedPromotion": typeof canonicalDocuments_foundation_syncedPromotion;
+  "canonicalDocuments/foundation/tagCloudContracts": typeof canonicalDocuments_foundation_tagCloudContracts;
+  "canonicalDocuments/foundation/taggedMediaContracts": typeof canonicalDocuments_foundation_taggedMediaContracts;
+  "canonicalDocuments/instructor": typeof canonicalDocuments_instructor;
+  "canonicalDocuments/knowledgeBase": typeof canonicalDocuments_knowledgeBase;
+  "canonicalDocuments/latestPosts": typeof canonicalDocuments_latestPosts;
+  "canonicalDocuments/leadMagnet": typeof canonicalDocuments_leadMagnet;
+  "canonicalDocuments/learnerProgress": typeof canonicalDocuments_learnerProgress;
+  "canonicalDocuments/membership": typeof canonicalDocuments_membership;
+  "canonicalDocuments/membershipPlans": typeof canonicalDocuments_membershipPlans;
+  "canonicalDocuments/navigation": typeof canonicalDocuments_navigation;
+  "canonicalDocuments/nextEvent": typeof canonicalDocuments_nextEvent;
+  "canonicalDocuments/poll": typeof canonicalDocuments_poll;
+  "canonicalDocuments/postGrid": typeof canonicalDocuments_postGrid;
+  "canonicalDocuments/productCollection": typeof canonicalDocuments_productCollection;
+  "canonicalDocuments/productCompare": typeof canonicalDocuments_productCompare;
+  "canonicalDocuments/productOptionSource": typeof canonicalDocuments_productOptionSource;
+  "canonicalDocuments/productOptions": typeof canonicalDocuments_productOptions;
+  "canonicalDocuments/productShowcase": typeof canonicalDocuments_productShowcase;
+  "canonicalDocuments/promotion": typeof canonicalDocuments_promotion;
+  "canonicalDocuments/publicBlockSource": typeof canonicalDocuments_publicBlockSource;
+  "canonicalDocuments/publicBlocks": typeof canonicalDocuments_publicBlocks;
+  "canonicalDocuments/publicTree": typeof canonicalDocuments_publicTree;
+  "canonicalDocuments/publishedBlockPath": typeof canonicalDocuments_publishedBlockPath;
+  "canonicalDocuments/recipe": typeof canonicalDocuments_recipe;
+  "canonicalDocuments/relatedContent": typeof canonicalDocuments_relatedContent;
+  "canonicalDocuments/reviews": typeof canonicalDocuments_reviews;
+  "canonicalDocuments/rsvpSources": typeof canonicalDocuments_rsvpSources;
+  "canonicalDocuments/search": typeof canonicalDocuments_search;
+  "canonicalDocuments/service": typeof canonicalDocuments_service;
+  "canonicalDocuments/settingsRoutes": typeof canonicalDocuments_settingsRoutes;
+  "canonicalDocuments/shippingPolicy": typeof canonicalDocuments_shippingPolicy;
+  "canonicalDocuments/sourceBudget": typeof canonicalDocuments_sourceBudget;
+  "canonicalDocuments/support": typeof canonicalDocuments_support;
+  "canonicalDocuments/tagCloud": typeof canonicalDocuments_tagCloud;
+  "canonicalDocuments/taggedMedia": typeof canonicalDocuments_taggedMedia;
+  "canonicalDocuments/upcomingEvents": typeof canonicalDocuments_upcomingEvents;
+  "canonicalDocuments/validators": typeof canonicalDocuments_validators;
+  canonicalRsvp: typeof canonicalRsvp;
+  "capabilities/queries": typeof capabilities_queries;
+  categoryArchives: typeof categoryArchives;
+  "comments/httpInternals": typeof comments_httpInternals;
+  "comments/internals": typeof comments_internals;
+  "comments/mutations": typeof comments_mutations;
+  "comments/queries": typeof comments_queries;
+  "comments/validators": typeof comments_validators;
+  "commerce/activePrice": typeof commerce_activePrice;
+  "commerce/assistant/actions": typeof commerce_assistant_actions;
+  "commerce/assistant/blocks": typeof commerce_assistant_blocks;
+  "commerce/assistant/mutations": typeof commerce_assistant_mutations;
+  "commerce/assistant/prompts": typeof commerce_assistant_prompts;
+  "commerce/assistant/provider": typeof commerce_assistant_provider;
+  "commerce/assistant/queries": typeof commerce_assistant_queries;
+  "commerce/assistant/scope": typeof commerce_assistant_scope;
+  "commerce/brandCatalog": typeof commerce_brandCatalog;
+  "commerce/brands": typeof commerce_brands;
+  "commerce/cart": typeof commerce_cart;
+  "commerce/cartBundle": typeof commerce_cartBundle;
+  "commerce/cartHelpers": typeof commerce_cartHelpers;
+  "commerce/cartLifecycle": typeof commerce_cartLifecycle;
+  "commerce/cartRecovery": typeof commerce_cartRecovery;
+  "commerce/catalogContinuation": typeof commerce_catalogContinuation;
+  "commerce/catalogRevision": typeof commerce_catalogRevision;
+  "commerce/categories": typeof commerce_categories;
+  "commerce/categoryVisibility": typeof commerce_categoryVisibility;
+  "commerce/checkout": typeof commerce_checkout;
+  "commerce/checkoutBundleHelpers": typeof commerce_checkoutBundleHelpers;
+  "commerce/checkoutShippingGuards": typeof commerce_checkoutShippingGuards;
+  "commerce/couponLifecycle": typeof commerce_couponLifecycle;
+  "commerce/customerGroups": typeof commerce_customerGroups;
+  "commerce/customers": typeof commerce_customers;
+  "commerce/discountEngine": typeof commerce_discountEngine;
+  "commerce/discountInternals": typeof commerce_discountInternals;
+  "commerce/discountStripeMirror": typeof commerce_discountStripeMirror;
+  "commerce/discounts": typeof commerce_discounts;
+  "commerce/draftOrders": typeof commerce_draftOrders;
+  "commerce/dynamicPricing": typeof commerce_dynamicPricing;
+  "commerce/fulfillment": typeof commerce_fulfillment;
+  "commerce/helpers": typeof commerce_helpers;
+  "commerce/inventory": typeof commerce_inventory;
+  "commerce/migrations": typeof commerce_migrations;
+  "commerce/orderBundleHelpers": typeof commerce_orderBundleHelpers;
+  "commerce/orderChanges": typeof commerce_orderChanges;
+  "commerce/orders": typeof commerce_orders;
+  "commerce/paymentActions": typeof commerce_paymentActions;
+  "commerce/payments": typeof commerce_payments;
+  "commerce/paypalMode": typeof commerce_paypalMode;
+  "commerce/pricing": typeof commerce_pricing;
+  "commerce/productDiscovery": typeof commerce_productDiscovery;
+  "commerce/productDiscoveryMaintenance": typeof commerce_productDiscoveryMaintenance;
+  "commerce/productSaleIndex": typeof commerce_productSaleIndex;
+  "commerce/productSaleMaintenance": typeof commerce_productSaleMaintenance;
+  "commerce/productTags": typeof commerce_productTags;
+  "commerce/products": typeof commerce_products;
+  "commerce/publicProduct": typeof commerce_publicProduct;
+  "commerce/publicProductAccess": typeof commerce_publicProductAccess;
+  "commerce/publicProductVariant": typeof commerce_publicProductVariant;
+  "commerce/regions": typeof commerce_regions;
+  "commerce/relations": typeof commerce_relations;
+  "commerce/reservationCommit": typeof commerce_reservationCommit;
+  "commerce/saleIntervals": typeof commerce_saleIntervals;
+  "commerce/saleSchedule": typeof commerce_saleSchedule;
+  "commerce/salesChannels": typeof commerce_salesChannels;
+  "commerce/shopperAccess": typeof commerce_shopperAccess;
+  "commerce/stockLedger": typeof commerce_stockLedger;
+  "commerce/stockPolicy": typeof commerce_stockPolicy;
+  "commerce/stockTarget": typeof commerce_stockTarget;
+  "commerce/storefront": typeof commerce_storefront;
+  "commerce/tax": typeof commerce_tax;
+  "commerce/taxClasses": typeof commerce_taxClasses;
+  "commerce/taxStripe": typeof commerce_taxStripe;
+  "commerce/validators": typeof commerce_validators;
+  "commerce/variantHelpers": typeof commerce_variantHelpers;
+  "commerce/variantResolvers": typeof commerce_variantResolvers;
+  "commerce/workflows": typeof commerce_workflows;
+  "commerceBundles/helpers": typeof commerceBundles_helpers;
+  "commerceBundles/internals": typeof commerceBundles_internals;
+  "commerceBundles/mutations": typeof commerceBundles_mutations;
+  "commerceBundles/publicBundle": typeof commerceBundles_publicBundle;
+  "commerceBundles/queries": typeof commerceBundles_queries;
+  "commerceBundles/runtime": typeof commerceBundles_runtime;
+  "commerceDigital/byteTransport": typeof commerceDigital_byteTransport;
+  "commerceDigital/delivery": typeof commerceDigital_delivery;
+  "commerceDigital/downloadEntitlement": typeof commerceDigital_downloadEntitlement;
+  "commerceDigital/fulfillment": typeof commerceDigital_fulfillment;
+  "commerceDigital/http": typeof commerceDigital_http;
+  "commerceDigital/library": typeof commerceDigital_library;
+  "commerceDigital/mutations": typeof commerceDigital_mutations;
+  "commerceDigital/queries": typeof commerceDigital_queries;
+  "commerceReturns/eligibility": typeof commerceReturns_eligibility;
+  "commerceReturns/helpers": typeof commerceReturns_helpers;
+  "commerceReturns/itemState": typeof commerceReturns_itemState;
+  "commerceReturns/migrations": typeof commerceReturns_migrations;
+  "commerceReturns/mutations": typeof commerceReturns_mutations;
+  "commerceReturns/queries": typeof commerceReturns_queries;
+  "commerceReturns/reasons": typeof commerceReturns_reasons;
+  "commerceReturns/refundLifecycle": typeof commerceReturns_refundLifecycle;
+  "commerceReturns/refundPolicy": typeof commerceReturns_refundPolicy;
+  "commerceReturns/storeCredit": typeof commerceReturns_storeCredit;
+  "commerceReviews/helpers": typeof commerceReviews_helpers;
+  "commerceReviews/mutations": typeof commerceReviews_mutations;
+  "commerceReviews/publicFeed": typeof commerceReviews_publicFeed;
+  "commerceReviews/queries": typeof commerceReviews_queries;
+  "commerceReviews/ratingIndex": typeof commerceReviews_ratingIndex;
+  "commerceReviews/ratingMaintenance": typeof commerceReviews_ratingMaintenance;
+  "commerceSubscriptions/actions": typeof commerceSubscriptions_actions;
+  "commerceSubscriptions/bridgeDecisions": typeof commerceSubscriptions_bridgeDecisions;
+  "commerceSubscriptions/checkout": typeof commerceSubscriptions_checkout;
+  "commerceSubscriptions/coupons": typeof commerceSubscriptions_coupons;
+  "commerceSubscriptions/dunning": typeof commerceSubscriptions_dunning;
+  "commerceSubscriptions/emails": typeof commerceSubscriptions_emails;
+  "commerceSubscriptions/helpers": typeof commerceSubscriptions_helpers;
+  "commerceSubscriptions/internals": typeof commerceSubscriptions_internals;
+  "commerceSubscriptions/mutations": typeof commerceSubscriptions_mutations;
+  "commerceSubscriptions/offers": typeof commerceSubscriptions_offers;
+  "commerceSubscriptions/portal": typeof commerceSubscriptions_portal;
+  "commerceSubscriptions/pricing": typeof commerceSubscriptions_pricing;
+  "commerceSubscriptions/pricingCards": typeof commerceSubscriptions_pricingCards;
+  "commerceSubscriptions/proration": typeof commerceSubscriptions_proration;
+  "commerceSubscriptions/publicCharge": typeof commerceSubscriptions_publicCharge;
+  "commerceSubscriptions/queries": typeof commerceSubscriptions_queries;
+  "commerceSubscriptions/renewal": typeof commerceSubscriptions_renewal;
+  "commerceSubscriptions/stripeCharge": typeof commerceSubscriptions_stripeCharge;
+  "commerceSubscriptions/templates": typeof commerceSubscriptions_templates;
+  "commerceSubscriptions/validators": typeof commerceSubscriptions_validators;
+  "commerceWishlists/availability": typeof commerceWishlists_availability;
+  "commerceWishlists/cleanup": typeof commerceWishlists_cleanup;
+  "commerceWishlists/countMaintenance": typeof commerceWishlists_countMaintenance;
+  "commerceWishlists/counts": typeof commerceWishlists_counts;
+  "commerceWishlists/deletion": typeof commerceWishlists_deletion;
+  "commerceWishlists/guestMerge": typeof commerceWishlists_guestMerge;
+  "commerceWishlists/helpers": typeof commerceWishlists_helpers;
+  "commerceWishlists/lookup": typeof commerceWishlists_lookup;
+  "commerceWishlists/mutations": typeof commerceWishlists_mutations;
+  "commerceWishlists/ownerMaintenance": typeof commerceWishlists_ownerMaintenance;
+  "commerceWishlists/ownerQueries": typeof commerceWishlists_ownerQueries;
+  "commerceWishlists/ownerTotals": typeof commerceWishlists_ownerTotals;
+  "commerceWishlists/pages": typeof commerceWishlists_pages;
+  "commerceWishlists/publicItems": typeof commerceWishlists_publicItems;
+  "commerceWishlists/queries": typeof commerceWishlists_queries;
+  "commerceWishlists/recentActivity": typeof commerceWishlists_recentActivity;
+  "commerceWishlists/shared": typeof commerceWishlists_shared;
+  "commerceWishlists/validators": typeof commerceWishlists_validators;
+  "contentPromotion/authorization": typeof contentPromotion_authorization;
+  "contentPromotion/canonicalAllocation": typeof contentPromotion_canonicalAllocation;
+  "contentPromotion/commerce": typeof contentPromotion_commerce;
+  "contentPromotion/eventRsvp": typeof contentPromotion_eventRsvp;
+  "contentPromotion/exporter": typeof contentPromotion_exporter;
+  "contentPromotion/learning": typeof contentPromotion_learning;
+  "contentPromotion/mediaRecovery": typeof contentPromotion_mediaRecovery;
+  "contentPromotion/mediaUploads": typeof contentPromotion_mediaUploads;
+  "contentPromotion/operations": typeof contentPromotion_operations;
+  "contentPromotion/planner": typeof contentPromotion_planner;
+  "contentPromotion/shared": typeof contentPromotion_shared;
+  "contentPromotion/syncedClosure": typeof contentPromotion_syncedClosure;
+  "contentPromotion/syncedTarget": typeof contentPromotion_syncedTarget;
+  crons: typeof crons;
+  "customFields/internals": typeof customFields_internals;
+  "customFields/mutations": typeof customFields_mutations;
+  "customFields/queries": typeof customFields_queries;
+  "customFields/validators": typeof customFields_validators;
+  "dashboard/helpers": typeof dashboard_helpers;
+  "dashboard/mutations": typeof dashboard_mutations;
+  "dashboard/queries": typeof dashboard_queries;
+  dateArchives: typeof dateArchives;
+  "demoSeed/actions": typeof demoSeed_actions;
+  "demoSeed/catalogs/northstarCoffee": typeof demoSeed_catalogs_northstarCoffee;
+  "demoSeed/catalogs/ridgelineCycles": typeof demoSeed_catalogs_ridgelineCycles;
+  "demoSeed/catalogs/types": typeof demoSeed_catalogs_types;
+  "demoSeed/internals": typeof demoSeed_internals;
+  "demoSeed/shops": typeof demoSeed_shops;
+  "editor/internals": typeof editor_internals;
+  "editor/mutations": typeof editor_mutations;
+  "editor/queries": typeof editor_queries;
+  "editor/validators": typeof editor_validators;
+  "emails/actions": typeof emails_actions;
+  "emails/internals": typeof emails_internals;
+  "emails/mutations": typeof emails_mutations;
+  "emails/queries": typeof emails_queries;
+  "emails/registry": typeof emails_registry;
+  "emails/templateDefaults": typeof emails_templateDefaults;
+  "emails/testData": typeof emails_testData;
+  "emails/validators": typeof emails_validators;
+  "embeds/actions": typeof embeds_actions;
+  "eventDefinitions/queries": typeof eventDefinitions_queries;
+  "events/constants": typeof events_constants;
+  "events/internals": typeof events_internals;
+  "events/mutations": typeof events_mutations;
+  "events/queries": typeof events_queries;
+  "events/validators": typeof events_validators;
+  "extensions/community_events/calendarIndex": typeof extensions_community_events_calendarIndex;
+  "extensions/community_events/categories": typeof extensions_community_events_categories;
+  "extensions/community_events/dashboard": typeof extensions_community_events_dashboard;
+  "extensions/community_events/model": typeof extensions_community_events_model;
+  "extensions/community_events/mutations": typeof extensions_community_events_mutations;
+  "extensions/community_events/plugin": typeof extensions_community_events_plugin;
+  "extensions/community_events/publicAccess": typeof extensions_community_events_publicAccess;
+  "extensions/community_events/queries": typeof extensions_community_events_queries;
+  "extensions/community_events/rsvp": typeof extensions_community_events_rsvp;
+  "extensions/community_events/rsvpAuthority": typeof extensions_community_events_rsvpAuthority;
+  "extensions/community_events/rsvpOrganizer": typeof extensions_community_events_rsvpOrganizer;
+  "extensions/community_events/rsvpSecurity": typeof extensions_community_events_rsvpSecurity;
+  "extensions/community_events/rsvpSource": typeof extensions_community_events_rsvpSource;
+  "extensions/community_events/rsvpValidators": typeof extensions_community_events_rsvpValidators;
+  "extensions/community_events/search": typeof extensions_community_events_search;
+  "extensions/dashboard/mutations": typeof extensions_dashboard_mutations;
+  "extensions/dashboard/plugin": typeof extensions_dashboard_plugin;
+  "extensions/dashboard/queries": typeof extensions_dashboard_queries;
+  "extensions/dashboard/registry": typeof extensions_dashboard_registry;
+  "extensions/dashboard/visibility": typeof extensions_dashboard_visibility;
+  "extensions/events/calendarIndex": typeof extensions_events_calendarIndex;
+  "extensions/events/categories": typeof extensions_events_categories;
+  "extensions/events/dashboard": typeof extensions_events_dashboard;
+  "extensions/events/model": typeof extensions_events_model;
+  "extensions/events/mutations": typeof extensions_events_mutations;
+  "extensions/events/plugin": typeof extensions_events_plugin;
+  "extensions/events/publicAccess": typeof extensions_events_publicAccess;
+  "extensions/events/queries": typeof extensions_events_queries;
+  "extensions/events/rsvp": typeof extensions_events_rsvp;
+  "extensions/events/rsvpAuthority": typeof extensions_events_rsvpAuthority;
+  "extensions/events/rsvpOrganizer": typeof extensions_events_rsvpOrganizer;
+  "extensions/events/rsvpSecurity": typeof extensions_events_rsvpSecurity;
+  "extensions/events/rsvpSource": typeof extensions_events_rsvpSource;
+  "extensions/events/rsvpValidators": typeof extensions_events_rsvpValidators;
+  "extensions/events/search": typeof extensions_events_search;
+  "extensions/forms/actionRegistry": typeof extensions_forms_actionRegistry;
+  "extensions/forms/actionTypes": typeof extensions_forms_actionTypes;
+  "extensions/forms/actions": typeof extensions_forms_actions;
+  "extensions/forms/analytics": typeof extensions_forms_analytics;
+  "extensions/forms/builderCore": typeof extensions_forms_builderCore;
+  "extensions/forms/calc/evaluate": typeof extensions_forms_calc_evaluate;
+  "extensions/forms/calc/format": typeof extensions_forms_calc_format;
+  "extensions/forms/calc/grammar": typeof extensions_forms_calc_grammar;
+  "extensions/forms/calc/graph": typeof extensions_forms_calc_graph;
+  "extensions/forms/calc/index": typeof extensions_forms_calc_index;
+  "extensions/forms/calc/parse": typeof extensions_forms_calc_parse;
+  "extensions/forms/calc/recompute": typeof extensions_forms_calc_recompute;
+  "extensions/forms/commerce": typeof extensions_forms_commerce;
+  "extensions/forms/conditionalLogic": typeof extensions_forms_conditionalLogic;
+  "extensions/forms/confirmations": typeof extensions_forms_confirmations;
+  "extensions/forms/counts": typeof extensions_forms_counts;
+  "extensions/forms/devFixtures": typeof extensions_forms_devFixtures;
+  "extensions/forms/draftValidation": typeof extensions_forms_draftValidation;
+  "extensions/forms/export": typeof extensions_forms_export;
+  "extensions/forms/formLogic": typeof extensions_forms_formLogic;
+  "extensions/forms/mergeTags": typeof extensions_forms_mergeTags;
+  "extensions/forms/mutations": typeof extensions_forms_mutations;
+  "extensions/forms/notifications": typeof extensions_forms_notifications;
+  "extensions/forms/orderPaymentActions": typeof extensions_forms_orderPaymentActions;
+  "extensions/forms/orderPayments": typeof extensions_forms_orderPayments;
+  "extensions/forms/polls": typeof extensions_forms_polls;
+  "extensions/forms/queries": typeof extensions_forms_queries;
+  "extensions/forms/redirects": typeof extensions_forms_redirects;
+  "extensions/forms/spam": typeof extensions_forms_spam;
+  "extensions/forms/submitGuards": typeof extensions_forms_submitGuards;
+  "extensions/forms/tokens": typeof extensions_forms_tokens;
+  "feeds/actions": typeof feeds_actions;
+  "feeds/internals": typeof feeds_internals;
+  "feeds/queries": typeof feeds_queries;
+  "feeds/validators": typeof feeds_validators;
+  "ga4/actions": typeof ga4_actions;
+  "ga4/helpers": typeof ga4_helpers;
+  "ga4/internals": typeof ga4_internals;
+  "ga4/mutations": typeof ga4_mutations;
+  "ga4/queries": typeof ga4_queries;
+  "ga4/validators": typeof ga4_validators;
+  "gallery/helpers": typeof gallery_helpers;
+  "gallery/mutations": typeof gallery_mutations;
+  "gallery/queries": typeof gallery_queries;
+  "gallery/validators": typeof gallery_validators;
+  healthCheck: typeof healthCheck;
+  "helpers/airtable": typeof helpers_airtable;
+  "helpers/auditClassification": typeof helpers_auditClassification;
+  "helpers/auditDescriptions": typeof helpers_auditDescriptions;
+  "helpers/auditObjectExtractors": typeof helpers_auditObjectExtractors;
+  "helpers/auth": typeof helpers_auth;
+  "helpers/authorPostCounts": typeof helpers_authorPostCounts;
+  "helpers/authoringFields": typeof helpers_authoringFields;
+  "helpers/authoringSnapshot": typeof helpers_authoringSnapshot;
+  "helpers/authoringVersionFence": typeof helpers_authoringVersionFence;
+  "helpers/autosaveReconciliation": typeof helpers_autosaveReconciliation;
+  "helpers/comment": typeof helpers_comment;
+  "helpers/contentMembershipPaths": typeof helpers_contentMembershipPaths;
+  "helpers/coupons": typeof helpers_coupons;
+  "helpers/customFieldValidation": typeof helpers_customFieldValidation;
+  "helpers/email": typeof helpers_email;
+  "helpers/eventFilter": typeof helpers_eventFilter;
+  "helpers/eventRetry": typeof helpers_eventRetry;
+  "helpers/events": typeof helpers_events;
+  "helpers/feedContent": typeof helpers_feedContent;
+  "helpers/feedUrls": typeof helpers_feedUrls;
+  "helpers/feedXml": typeof helpers_feedXml;
+  "helpers/formSubmissionCounts": typeof helpers_formSubmissionCounts;
+  "helpers/locationRules": typeof helpers_locationRules;
+  "helpers/membershipAuthority": typeof helpers_membershipAuthority;
+  "helpers/notification": typeof helpers_notification;
+  "helpers/pageRouteGuard": typeof helpers_pageRouteGuard;
+  "helpers/pageRoutePolicy": typeof helpers_pageRoutePolicy;
+  "helpers/password": typeof helpers_password;
+  "helpers/permissions": typeof helpers_permissions;
+  "helpers/plugins": typeof helpers_plugins;
+  "helpers/postAuth": typeof helpers_postAuth;
+  "helpers/postDiscovery": typeof helpers_postDiscovery;
+  "helpers/profile": typeof helpers_profile;
+  "helpers/proration": typeof helpers_proration;
+  "helpers/publicAuthor": typeof helpers_publicAuthor;
+  "helpers/publicContent": typeof helpers_publicContent;
+  "helpers/publicationSchedule": typeof helpers_publicationSchedule;
+  "helpers/registration": typeof helpers_registration;
+  "helpers/requestReadLedger": typeof helpers_requestReadLedger;
+  "helpers/revisions": typeof helpers_revisions;
+  "helpers/routing": typeof helpers_routing;
+  "helpers/sanitize": typeof helpers_sanitize;
+  "helpers/seo": typeof helpers_seo;
+  "helpers/serviceKeys": typeof helpers_serviceKeys;
+  "helpers/settingsSecret": typeof helpers_settingsSecret;
+  "helpers/settingsSecretUpgrade": typeof helpers_settingsSecretUpgrade;
+  "helpers/sitemap": typeof helpers_sitemap;
+  "helpers/slug": typeof helpers_slug;
+  "helpers/taxonomy": typeof helpers_taxonomy;
+  "helpers/termCounts": typeof helpers_termCounts;
+  "helpers/timingSafe": typeof helpers_timingSafe;
+  "helpers/types": typeof helpers_types;
+  http: typeof http;
+  "http/analytics": typeof http_analytics;
+  "http/checkout": typeof http_checkout;
+  "http/comments": typeof http_comments;
+  "http/discovery": typeof http_discovery;
+  "http/helpers": typeof http_helpers;
+  "http/inboundEmailWebhook": typeof http_inboundEmailWebhook;
+  "http/media": typeof http_media;
+  "http/menus": typeof http_menus;
+  "http/pages": typeof http_pages;
+  "http/posts": typeof http_posts;
+  "http/resendWebhook": typeof http_resendWebhook;
+  "http/settings": typeof http_settings;
+  "http/taxonomies": typeof http_taxonomies;
+  "http/users": typeof http_users;
+  "integrations/actions": typeof integrations_actions;
+  "integrations/fingerprint": typeof integrations_fingerprint;
+  "integrations/internals": typeof integrations_internals;
+  "integrations/queries": typeof integrations_queries;
+  "integrations/registry": typeof integrations_registry;
+  "kb/analytics": typeof kb_analytics;
+  "kb/bookmarks": typeof kb_bookmarks;
+  "kb/categories": typeof kb_categories;
+  "kb/categoryAccess": typeof kb_categoryAccess;
+  "kb/categoryDeletion": typeof kb_categoryDeletion;
+  "kb/collections": typeof kb_collections;
+  "kb/comments": typeof kb_comments;
+  "kb/feedback": typeof kb_feedback;
+  "kb/helpers/categoryHierarchy": typeof kb_helpers_categoryHierarchy;
+  "kb/helpers/enrichUser": typeof kb_helpers_enrichUser;
+  "kb/helpers/utils": typeof kb_helpers_utils;
+  "kb/integration": typeof kb_integration;
+  "kb/internals": typeof kb_internals;
+  "kb/meilisearch": typeof kb_meilisearch;
+  "kb/meilisearchTasks": typeof kb_meilisearchTasks;
+  "kb/mutations": typeof kb_mutations;
+  "kb/progress": typeof kb_progress;
+  "kb/publicAccess": typeof kb_publicAccess;
+  "kb/queries": typeof kb_queries;
+  "kb/rag": typeof kb_rag;
+  "kb/search": typeof kb_search;
+  "kb/searchCandidates": typeof kb_searchCandidates;
+  "kb/searchDocument": typeof kb_searchDocument;
+  "kb/searchJobWorker": typeof kb_searchJobWorker;
+  "kb/searchJobs": typeof kb_searchJobs;
+  "kb/searchProviderHttp": typeof kb_searchProviderHttp;
+  "kb/searchReconciliation": typeof kb_searchReconciliation;
+  "kb/searchReconciliationProof": typeof kb_searchReconciliationProof;
+  "kb/searchSecurity": typeof kb_searchSecurity;
+  "kb/settings": typeof kb_settings;
+  "kb/tags": typeof kb_tags;
+  "kb/templates": typeof kb_templates;
+  "kb/validators": typeof kb_validators;
+  "kb/workflows": typeof kb_workflows;
+  "leadMagnets/actions": typeof leadMagnets_actions;
+  "leadMagnets/delivery": typeof leadMagnets_delivery;
+  "leadMagnets/http": typeof leadMagnets_http;
+  "leadMagnets/queries": typeof leadMagnets_queries;
+  "leadMagnets/source": typeof leadMagnets_source;
+  "leadMagnets/submission": typeof leadMagnets_submission;
+  "leadMagnets/types": typeof leadMagnets_types;
+  "lms/access": typeof lms_access;
+  "lms/ai/actions": typeof lms_ai_actions;
+  "lms/ai/helpers": typeof lms_ai_helpers;
+  "lms/ai/internalActions": typeof lms_ai_internalActions;
+  "lms/ai/internals": typeof lms_ai_internals;
+  "lms/ai/mutations": typeof lms_ai_mutations;
+  "lms/ai/queries": typeof lms_ai_queries;
+  "lms/certificates/actions": typeof lms_certificates_actions;
+  "lms/certificates/mutations": typeof lms_certificates_mutations;
+  "lms/certificates/queries": typeof lms_certificates_queries;
+  "lms/certificates/rendering": typeof lms_certificates_rendering;
+  "lms/certificates/revocationPolicy": typeof lms_certificates_revocationPolicy;
+  "lms/certificates/serial": typeof lms_certificates_serial;
+  "lms/courseCatalog": typeof lms_courseCatalog;
+  "lms/courseCatalogMaintenance": typeof lms_courseCatalogMaintenance;
+  "lms/courseCatalogReader": typeof lms_courseCatalogReader;
+  "lms/courseCatalogRecovery": typeof lms_courseCatalogRecovery;
+  "lms/courses/helpers": typeof lms_courses_helpers;
+  "lms/courses/mutations": typeof lms_courses_mutations;
+  "lms/courses/queries": typeof lms_courses_queries;
+  "lms/courses/validators": typeof lms_courses_validators;
+  "lms/curriculumCountMaintenance": typeof lms_curriculumCountMaintenance;
+  "lms/curriculumCountRecovery": typeof lms_curriculumCountRecovery;
+  "lms/curriculumCounts": typeof lms_curriculumCounts;
+  "lms/enrollment/internals": typeof lms_enrollment_internals;
+  "lms/enrollment/mutations": typeof lms_enrollment_mutations;
+  "lms/enrollment/queries": typeof lms_enrollment_queries;
+  "lms/lessons/helpers": typeof lms_lessons_helpers;
+  "lms/lessons/mutations": typeof lms_lessons_mutations;
+  "lms/lessons/queries": typeof lms_lessons_queries;
+  "lms/nodes/mutations": typeof lms_nodes_mutations;
+  "lms/nodes/queries": typeof lms_nodes_queries;
+  "lms/nodes/validators": typeof lms_nodes_validators;
+  "lms/progress/countMaintenance": typeof lms_progress_countMaintenance;
+  "lms/progress/countRecovery": typeof lms_progress_countRecovery;
+  "lms/progress/counts": typeof lms_progress_counts;
+  "lms/progress/mutations": typeof lms_progress_mutations;
+  "lms/progress/queries": typeof lms_progress_queries;
+  "lms/progress/summary": typeof lms_progress_summary;
+  "lms/seed": typeof lms_seed;
+  "lms/topics/mutations": typeof lms_topics_mutations;
+  "lms/topics/queries": typeof lms_topics_queries;
+  localization: typeof localization;
+  "localization/model": typeof localization_model;
+  "localization/validators": typeof localization_validators;
+  "management/actions": typeof management_actions;
+  "management/authority": typeof management_authority;
+  "management/bootstrap": typeof management_bootstrap;
+  "management/http": typeof management_http;
+  "management/migrations": typeof management_migrations;
+  "management/model": typeof management_model;
+  "management/queries": typeof management_queries;
+  "management/runtime": typeof management_runtime;
+  "management/sessionExpiry": typeof management_sessionExpiry;
+  "management/sessionPolicy": typeof management_sessionPolicy;
+  "management/validators": typeof management_validators;
+  "media/actions": typeof media_actions;
+  "media/ai": typeof media_ai;
+  "media/attachmentGuard": typeof media_attachmentGuard;
+  "media/deletion": typeof media_deletion;
+  "media/epochAuthority": typeof media_epochAuthority;
+  "media/helpers": typeof media_helpers;
+  "media/imageProcessing": typeof media_imageProcessing;
+  "media/internals": typeof media_internals;
+  "media/libraryRead": typeof media_libraryRead;
+  "media/mediaAuth": typeof media_mediaAuth;
+  "media/mutations": typeof media_mutations;
+  "media/queries": typeof media_queries;
+  "media/referenceExtraction": typeof media_referenceExtraction;
+  "media/referenceIndexes": typeof media_referenceIndexes;
+  "media/referenceOwners": typeof media_referenceOwners;
+  "media/referencePolicy": typeof media_referencePolicy;
+  "media/referenceReads": typeof media_referenceReads;
+  "media/referenceScan": typeof media_referenceScan;
+  "media/references": typeof media_references;
+  "media/reverseBackfill": typeof media_reverseBackfill;
+  "media/reverseIndex": typeof media_reverseIndex;
+  "media/reverseIndexVersion": typeof media_reverseIndexVersion;
+  "media/showcase": typeof media_showcase;
+  "media/showcasePolicy": typeof media_showcasePolicy;
+  "media/validators": typeof media_validators;
+  "membership/access": typeof membership_access;
+  "membership/bridgeLogic": typeof membership_bridgeLogic;
+  "membership/enrollmentRepairs": typeof membership_enrollmentRepairs;
+  "membership/expiry": typeof membership_expiry;
+  "membership/helpers": typeof membership_helpers;
+  "membership/internals": typeof membership_internals;
+  "membership/mutations": typeof membership_mutations;
+  "membership/policyCopy": typeof membership_policyCopy;
+  "membership/policyReads": typeof membership_policyReads;
+  "membership/queries": typeof membership_queries;
+  "membership/validators": typeof membership_validators;
+  "menus/internals": typeof menus_internals;
+  "menus/mutations": typeof menus_mutations;
+  "menus/publicContract": typeof menus_publicContract;
+  "menus/queries": typeof menus_queries;
+  "menus/validators": typeof menus_validators;
+  "notificationEngine/registry": typeof notificationEngine_registry;
+  "notifications/center": typeof notifications_center;
+  "notifications/internals": typeof notifications_internals;
+  "notifications/loginContext": typeof notifications_loginContext;
+  "notifications/mutations": typeof notifications_mutations;
+  "notifications/queries": typeof notifications_queries;
+  "notifications/validators": typeof notifications_validators;
+  "pages/httpInternals": typeof pages_httpInternals;
+  "pages/internals": typeof pages_internals;
+  "pages/mutations": typeof pages_mutations;
+  "pages/queries": typeof pages_queries;
+  "pages/templates": typeof pages_templates;
+  "pages/validators": typeof pages_validators;
+  "password/actions": typeof password_actions;
+  "password/internals": typeof password_internals;
+  "password/mutations": typeof password_mutations;
+  "password/queries": typeof password_queries;
+  "password/validators": typeof password_validators;
+  "plugins/registry": typeof plugins_registry;
+  "posts/authorCounts": typeof posts_authorCounts;
+  "posts/discovery": typeof posts_discovery;
+  "posts/httpInternals": typeof posts_httpInternals;
+  "posts/internals": typeof posts_internals;
+  "posts/mutations": typeof posts_mutations;
+  "posts/queries": typeof posts_queries;
+  "posts/validators": typeof posts_validators;
+  "productAttributes/mutations": typeof productAttributes_mutations;
+  "productAttributes/queries": typeof productAttributes_queries;
+  "profiles/actions": typeof profiles_actions;
+  "profiles/internals": typeof profiles_internals;
+  "profiles/mutations": typeof profiles_mutations;
+  "profiles/queries": typeof profiles_queries;
+  "profiles/types": typeof profiles_types;
+  "profiles/validators": typeof profiles_validators;
+  "purchases/internals": typeof purchases_internals;
+  "purchases/migrations": typeof purchases_migrations;
+  "purchases/queries": typeof purchases_queries;
+  "recipes/actions": typeof recipes_actions;
+  "recipes/mutations": typeof recipes_mutations;
+  "recipes/publicRead": typeof recipes_publicRead;
+  "recipes/queries": typeof recipes_queries;
+  "recipes/validators": typeof recipes_validators;
+  "registration/internals": typeof registration_internals;
+  "registration/mutations": typeof registration_mutations;
+  "registration/queries": typeof registration_queries;
+  "registration/validators": typeof registration_validators;
+  "revisions/internals": typeof revisions_internals;
+  "revisions/mutations": typeof revisions_mutations;
+  "revisions/queries": typeof revisions_queries;
+  "revisions/validators": typeof revisions_validators;
+  "roles/internals": typeof roles_internals;
+  "roles/mutations": typeof roles_mutations;
+  "roles/queries": typeof roles_queries;
+  "roles/validators": typeof roles_validators;
+  "routeDefinitions/queries": typeof routeDefinitions_queries;
+  "routing/eventHandlers": typeof routing_eventHandlers;
+  "routing/internals": typeof routing_internals;
+  "routing/mutations": typeof routing_mutations;
+  "routing/public": typeof routing_public;
+  "routing/queries": typeof routing_queries;
+  "routing/validators": typeof routing_validators;
+  "schema/analytics": typeof schema_analytics;
+  "schema/api": typeof schema_api;
+  "schema/audiences": typeof schema_audiences;
+  "schema/auditLogs": typeof schema_auditLogs;
+  "schema/auth": typeof schema_auth;
+  "schema/authTracking": typeof schema_authTracking;
+  "schema/authorCounts": typeof schema_authorCounts;
+  "schema/blockDefinitions": typeof schema_blockDefinitions;
+  "schema/capabilities": typeof schema_capabilities;
+  "schema/comments": typeof schema_comments;
+  "schema/commerce": typeof schema_commerce;
+  "schema/commerceAssistant": typeof schema_commerceAssistant;
+  "schema/commerceBundles": typeof schema_commerceBundles;
+  "schema/commerceDigital": typeof schema_commerceDigital;
+  "schema/commerceReturns": typeof schema_commerceReturns;
+  "schema/commerceReviews": typeof schema_commerceReviews;
+  "schema/commerceSubscriptions": typeof schema_commerceSubscriptions;
+  "schema/commerceWishlists": typeof schema_commerceWishlists;
+  "schema/contentPromotion": typeof schema_contentPromotion;
+  "schema/customFields": typeof schema_customFields;
+  "schema/dashboard": typeof schema_dashboard;
+  "schema/editor": typeof schema_editor;
+  "schema/emails": typeof schema_emails;
+  "schema/eventDefinitions": typeof schema_eventDefinitions;
+  "schema/events": typeof schema_events;
+  "schema/ga4": typeof schema_ga4;
+  "schema/gallery": typeof schema_gallery;
+  "schema/integrations": typeof schema_integrations;
+  "schema/kb": typeof schema_kb;
+  "schema/layouts": typeof schema_layouts;
+  "schema/leadMagnets": typeof schema_leadMagnets;
+  "schema/lms": typeof schema_lms;
+  "schema/localization": typeof schema_localization;
+  "schema/management": typeof schema_management;
+  "schema/media": typeof schema_media;
+  "schema/membership": typeof schema_membership;
+  "schema/menus": typeof schema_menus;
+  "schema/notifications": typeof schema_notifications;
+  "schema/posts": typeof schema_posts;
+  "schema/productAttributes": typeof schema_productAttributes;
+  "schema/purchases": typeof schema_purchases;
+  "schema/recipes": typeof schema_recipes;
+  "schema/registration": typeof schema_registration;
+  "schema/revisions": typeof schema_revisions;
+  "schema/roles": typeof schema_roles;
+  "schema/routeDefinitions": typeof schema_routeDefinitions;
+  "schema/routing": typeof schema_routing;
+  "schema/search": typeof schema_search;
+  "schema/seo": typeof schema_seo;
+  "schema/settings": typeof schema_settings;
+  "schema/shipping": typeof schema_shipping;
+  "schema/siteNotificationDefinitions": typeof schema_siteNotificationDefinitions;
+  "schema/sitemap": typeof schema_sitemap;
+  "schema/socialFeeds": typeof schema_socialFeeds;
+  "schema/support": typeof schema_support;
+  "schema/syncedBlocks": typeof schema_syncedBlocks;
+  "schema/taxonomies": typeof schema_taxonomies;
+  "schema/themes": typeof schema_themes;
+  "schema/tickets": typeof schema_tickets;
+  "schema/users": typeof schema_users;
+  "schema/wordpressSync": typeof schema_wordpressSync;
+  "search/actions": typeof search_actions;
+  "search/candidates": typeof search_candidates;
+  "search/canonicalText": typeof search_canonicalText;
+  "search/currentMatch": typeof search_currentMatch;
+  "search/eventBackfill": typeof search_eventBackfill;
+  "search/eventHandlers": typeof search_eventHandlers;
+  "search/events": typeof search_events;
+  "search/excerpt": typeof search_excerpt;
+  "search/extensionSources": typeof search_extensionSources;
+  "search/helpers": typeof search_helpers;
+  "search/internals": typeof search_internals;
+  "search/mutations": typeof search_mutations;
+  "search/products": typeof search_products;
+  "search/publicSource": typeof search_publicSource;
+  "search/queries": typeof search_queries;
+  "search/validators": typeof search_validators;
+  "seed/roles": typeof seed_roles;
+  "seo/internals": typeof seo_internals;
+  "seo/mutations": typeof seo_mutations;
+  "seo/queries": typeof seo_queries;
+  "seo/validators": typeof seo_validators;
+  "settings/appearanceMigration": typeof settings_appearanceMigration;
+  "settings/defaults": typeof settings_defaults;
+  "settings/footerRows": typeof settings_footerRows;
+  "settings/helpers": typeof settings_helpers;
+  "settings/httpInternals": typeof settings_httpInternals;
+  "settings/integrations/testActions": typeof settings_integrations_testActions;
+  "settings/internals": typeof settings_internals;
+  "settings/migrations": typeof settings_migrations;
+  "settings/mutations": typeof settings_mutations;
+  "settings/queries": typeof settings_queries;
+  "settings/templateDrafts": typeof settings_templateDrafts;
+  "settings/validation": typeof settings_validation;
+  "settings/validators": typeof settings_validators;
+  "shipping/actions": typeof shipping_actions;
+  "shipping/addressValidation/actions": typeof shipping_addressValidation_actions;
+  "shipping/addressValidation/mutations": typeof shipping_addressValidation_mutations;
+  "shipping/addressValidation/queries": typeof shipping_addressValidation_queries;
+  "shipping/addressValidation/validators": typeof shipping_addressValidation_validators;
+  "shipping/bootstrap": typeof shipping_bootstrap;
+  "shipping/classes/internals": typeof shipping_classes_internals;
+  "shipping/classes/mutations": typeof shipping_classes_mutations;
+  "shipping/classes/queries": typeof shipping_classes_queries;
+  "shipping/classes/validators": typeof shipping_classes_validators;
+  "shipping/helpers": typeof shipping_helpers;
+  "shipping/helpers/addressFingerprint": typeof shipping_helpers_addressFingerprint;
+  "shipping/helpers/binPacking": typeof shipping_helpers_binPacking;
+  "shipping/helpers/classResolution": typeof shipping_helpers_classResolution;
+  "shipping/helpers/distance": typeof shipping_helpers_distance;
+  "shipping/helpers/settings": typeof shipping_helpers_settings;
+  "shipping/helpers/zoneMatching": typeof shipping_helpers_zoneMatching;
+  "shipping/internals": typeof shipping_internals;
+  "shipping/labelOrigin": typeof shipping_labelOrigin;
+  "shipping/labels/actions": typeof shipping_labels_actions;
+  "shipping/labels/internals": typeof shipping_labels_internals;
+  "shipping/labels/mutations": typeof shipping_labels_mutations;
+  "shipping/labels/queries": typeof shipping_labels_queries;
+  "shipping/labels/validators": typeof shipping_labels_validators;
+  "shipping/manifests/actions": typeof shipping_manifests_actions;
+  "shipping/manifests/internals": typeof shipping_manifests_internals;
+  "shipping/manifests/mutations": typeof shipping_manifests_mutations;
+  "shipping/manifests/queries": typeof shipping_manifests_queries;
+  "shipping/methods/dimensional": typeof shipping_methods_dimensional;
+  "shipping/methods/flatRate": typeof shipping_methods_flatRate;
+  "shipping/methods/free": typeof shipping_methods_free;
+  "shipping/methods/localDelivery": typeof shipping_methods_localDelivery;
+  "shipping/methods/localPickup": typeof shipping_methods_localPickup;
+  "shipping/methods/mutations": typeof shipping_methods_mutations;
+  "shipping/methods/preview": typeof shipping_methods_preview;
+  "shipping/methods/priceBased": typeof shipping_methods_priceBased;
+  "shipping/methods/quantityBased": typeof shipping_methods_quantityBased;
+  "shipping/methods/queries": typeof shipping_methods_queries;
+  "shipping/methods/tableRate": typeof shipping_methods_tableRate;
+  "shipping/methods/weightBased": typeof shipping_methods_weightBased;
+  "shipping/mutations": typeof shipping_mutations;
+  "shipping/packages/internals": typeof shipping_packages_internals;
+  "shipping/packages/mutations": typeof shipping_packages_mutations;
+  "shipping/packages/queries": typeof shipping_packages_queries;
+  "shipping/packages/validators": typeof shipping_packages_validators;
+  "shipping/providers": typeof shipping_providers;
+  "shipping/providers/_shared/credentials": typeof shipping_providers__shared_credentials;
+  "shipping/providers/_shared/tokenCache": typeof shipping_providers__shared_tokenCache;
+  "shipping/providers/contract": typeof shipping_providers_contract;
+  "shipping/providers/dhl/auth": typeof shipping_providers_dhl_auth;
+  "shipping/providers/dhl/rates": typeof shipping_providers_dhl_rates;
+  "shipping/providers/dhl/serviceCodes": typeof shipping_providers_dhl_serviceCodes;
+  "shipping/providers/fedex/auth": typeof shipping_providers_fedex_auth;
+  "shipping/providers/fedex/rates": typeof shipping_providers_fedex_rates;
+  "shipping/providers/fedex/serviceCodes": typeof shipping_providers_fedex_serviceCodes;
+  "shipping/providers/shipstation/rates": typeof shipping_providers_shipstation_rates;
+  "shipping/providers/ups/auth": typeof shipping_providers_ups_auth;
+  "shipping/providers/ups/rates": typeof shipping_providers_ups_rates;
+  "shipping/providers/ups/serviceCodes": typeof shipping_providers_ups_serviceCodes;
+  "shipping/providers/usps/auth": typeof shipping_providers_usps_auth;
+  "shipping/providers/usps/rates": typeof shipping_providers_usps_rates;
+  "shipping/providers/usps/serviceCodes": typeof shipping_providers_usps_serviceCodes;
+  "shipping/queries": typeof shipping_queries;
+  "shipping/quoteProvenance": typeof shipping_quoteProvenance;
+  "shipping/rates/internals": typeof shipping_rates_internals;
+  "shipping/rates/pipeline": typeof shipping_rates_pipeline;
+  "shipping/rates/ranking": typeof shipping_rates_ranking;
+  "shipping/rates/types": typeof shipping_rates_types;
+  "shipping/rulesEngine/evaluator": typeof shipping_rulesEngine_evaluator;
+  "shipping/rulesEngine/internals": typeof shipping_rulesEngine_internals;
+  "shipping/rulesEngine/mutations": typeof shipping_rulesEngine_mutations;
+  "shipping/rulesEngine/queries": typeof shipping_rulesEngine_queries;
+  "shipping/rulesEngine/types": typeof shipping_rulesEngine_types;
+  "shipping/rulesEngine/validator": typeof shipping_rulesEngine_validator;
+  "shipping/shipFromLocations/internals": typeof shipping_shipFromLocations_internals;
+  "shipping/shipFromLocations/mutations": typeof shipping_shipFromLocations_mutations;
+  "shipping/shipFromLocations/queries": typeof shipping_shipFromLocations_queries;
+  "shipping/shipFromLocations/validators": typeof shipping_shipFromLocations_validators;
+  "shipping/tracking/actions": typeof shipping_tracking_actions;
+  "shipping/tracking/internals": typeof shipping_tracking_internals;
+  "shipping/tracking/mutations": typeof shipping_tracking_mutations;
+  "shipping/tracking/queries": typeof shipping_tracking_queries;
+  "shipping/tracking/statusNormalization": typeof shipping_tracking_statusNormalization;
+  "shipping/validators": typeof shipping_validators;
+  "shipping/webhookDedup": typeof shipping_webhookDedup;
+  "shipping/webhooks": typeof shipping_webhooks;
+  "shipping/zones/internals": typeof shipping_zones_internals;
+  "shipping/zones/mutations": typeof shipping_zones_mutations;
+  "shipping/zones/queries": typeof shipping_zones_queries;
+  "shipping/zones/validators": typeof shipping_zones_validators;
+  "siteNotificationDefinitions/queries": typeof siteNotificationDefinitions_queries;
+  "sitemaps/actions": typeof sitemaps_actions;
+  "sitemaps/helpers/auth": typeof sitemaps_helpers_auth;
+  "sitemaps/helpers/settings": typeof sitemaps_helpers_settings;
+  "sitemaps/internals": typeof sitemaps_internals;
+  "sitemaps/mutations": typeof sitemaps_mutations;
+  "sitemaps/queries": typeof sitemaps_queries;
+  "sitemaps/subscribers": typeof sitemaps_subscribers;
+  "sitemaps/validators": typeof sitemaps_validators;
+  "socialFeeds/actions": typeof socialFeeds_actions;
+  "socialFeeds/cache": typeof socialFeeds_cache;
+  "socialFeeds/mastodon": typeof socialFeeds_mastodon;
+  "socialFeeds/policy": typeof socialFeeds_policy;
+  "socialFeeds/read": typeof socialFeeds_read;
+  "socialFeeds/sources": typeof socialFeeds_sources;
+  "socialFeeds/transport": typeof socialFeeds_transport;
+  "support/analytics": typeof support_analytics;
+  "support/channels": typeof support_channels;
+  "support/deflection": typeof support_deflection;
+  "support/inboundEmail": typeof support_inboundEmail;
+  "support/inboundEmailParser": typeof support_inboundEmailParser;
+  "support/inboundSecurity": typeof support_inboundSecurity;
+  "support/integration": typeof support_integration;
+  "support/internals": typeof support_internals;
+  "support/settings": typeof support_settings;
+  "support/validators": typeof support_validators;
+  "support/widget": typeof support_widget;
+  "syncedBlocks/consumerIndex": typeof syncedBlocks_consumerIndex;
+  "syncedBlocks/consumerIndexState": typeof syncedBlocks_consumerIndexState;
+  "syncedBlocks/consumerWrites": typeof syncedBlocks_consumerWrites;
+  "syncedBlocks/consumers": typeof syncedBlocks_consumers;
+  "syncedBlocks/content": typeof syncedBlocks_content;
+  "syncedBlocks/editor": typeof syncedBlocks_editor;
+  "syncedBlocks/model": typeof syncedBlocks_model;
+  "syncedBlocks/occurrences": typeof syncedBlocks_occurrences;
+  "syncedBlocks/options": typeof syncedBlocks_options;
+  "syncedBlocks/picker": typeof syncedBlocks_picker;
+  "syncedBlocks/queries": typeof syncedBlocks_queries;
+  "syncedBlocks/refresh": typeof syncedBlocks_refresh;
+  "syncedBlocks/refreshValidators": typeof syncedBlocks_refreshValidators;
+  "taxonomies/counts": typeof taxonomies_counts;
+  "taxonomies/httpInternals": typeof taxonomies_httpInternals;
+  "taxonomies/internals": typeof taxonomies_internals;
+  "taxonomies/mutations": typeof taxonomies_mutations;
+  "taxonomies/queries": typeof taxonomies_queries;
+  "taxonomies/validators": typeof taxonomies_validators;
+  taxonomyArchives: typeof taxonomyArchives;
+  "tickets/attachments": typeof tickets_attachments;
+  "tickets/cannedResponses": typeof tickets_cannedResponses;
+  "tickets/customer": typeof tickets_customer;
+  "tickets/integration": typeof tickets_integration;
+  "tickets/internals": typeof tickets_internals;
+  "tickets/messages": typeof tickets_messages;
+  "tickets/mutations": typeof tickets_mutations;
+  "tickets/queries": typeof tickets_queries;
+  "tickets/rateLimit": typeof tickets_rateLimit;
+  "tickets/sessions": typeof tickets_sessions;
+  "tickets/settings": typeof tickets_settings;
+  "tickets/validators": typeof tickets_validators;
+  "types/capabilities": typeof types_capabilities;
+  users: typeof users;
+  "wordpressSync/actions": typeof wordpressSync_actions;
+  "wordpressSync/fieldPolicy": typeof wordpressSync_fieldPolicy;
+  "wordpressSync/helpers/acfParser": typeof wordpressSync_helpers_acfParser;
+  "wordpressSync/helpers/adapters/baseAdapter": typeof wordpressSync_helpers_adapters_baseAdapter;
+  "wordpressSync/helpers/adapters/elementorAdapter": typeof wordpressSync_helpers_adapters_elementorAdapter;
+  "wordpressSync/helpers/adapters/mediaAdapter": typeof wordpressSync_helpers_adapters_mediaAdapter;
+  "wordpressSync/helpers/adapters/menuAdapter": typeof wordpressSync_helpers_adapters_menuAdapter;
+  "wordpressSync/helpers/adapters/types": typeof wordpressSync_helpers_adapters_types;
+  "wordpressSync/helpers/adapters/wooAdapter": typeof wordpressSync_helpers_adapters_wooAdapter;
+  "wordpressSync/helpers/adapters/wpAdapter": typeof wordpressSync_helpers_adapters_wpAdapter;
+  "wordpressSync/helpers/elementor": typeof wordpressSync_helpers_elementor;
+  "wordpressSync/helpers/idMapping": typeof wordpressSync_helpers_idMapping;
+  "wordpressSync/helpers/phpUnserialize": typeof wordpressSync_helpers_phpUnserialize;
+  "wordpressSync/helpers/wooClient": typeof wordpressSync_helpers_wooClient;
+  "wordpressSync/helpers/wpClient": typeof wordpressSync_helpers_wpClient;
+  "wordpressSync/helpers/yoastParser": typeof wordpressSync_helpers_yoastParser;
+  "wordpressSync/internals": typeof wordpressSync_internals;
+  "wordpressSync/mutations": typeof wordpressSync_mutations;
+  "wordpressSync/phases/comments": typeof wordpressSync_phases_comments;
+  "wordpressSync/phases/commerceCatalog": typeof wordpressSync_phases_commerceCatalog;
+  "wordpressSync/phases/commerceTransactions": typeof wordpressSync_phases_commerceTransactions;
+  "wordpressSync/phases/media": typeof wordpressSync_phases_media;
+  "wordpressSync/phases/menus": typeof wordpressSync_phases_menus;
+  "wordpressSync/phases/pages": typeof wordpressSync_phases_pages;
+  "wordpressSync/phases/posts": typeof wordpressSync_phases_posts;
+  "wordpressSync/phases/reconciliation": typeof wordpressSync_phases_reconciliation;
+  "wordpressSync/phases/taxonomies": typeof wordpressSync_phases_taxonomies;
+  "wordpressSync/phases/users": typeof wordpressSync_phases_users;
+  "wordpressSync/queries": typeof wordpressSync_queries;
+  "wordpressSync/validators": typeof wordpressSync_validators;
+}>;
+
+/**
+ * A utility for referencing Convex functions in your app's public API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
+export declare const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "public">
+>;
+
+/**
+ * A utility for referencing Convex functions in your app's internal API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = internal.myModule.myFunction;
+ * ```
+ */
+export declare const internal: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "internal">
+>;
 
 export declare const components: {};

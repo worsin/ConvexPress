@@ -4,6 +4,7 @@ import { api, internal } from "../../_generated/api";
 import schema from "../../schema";
 import { purgeThread } from "../assistant/mutations";
 const modules = {
+  "./convex/commerce/cart.ts": () => import("../cart"),
   "./convex/_generated/api.js": () => import("../../_generated/api.js"),
   "./convex/_generated/server.js": () => import("../../_generated/server.js"),
   "./convex/commerce/assistant/queries.ts": () => import("../assistant/queries"),

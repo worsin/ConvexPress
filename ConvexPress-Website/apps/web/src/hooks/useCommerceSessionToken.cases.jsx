@@ -53,7 +53,7 @@ test("settled cart authority is masked until the new site has resolved its own t
     await f.resolve(0); const token = current[0].sessionToken;
     await f.switchSite(); expect(current[0].isReady).toBe(false); expect(calls).toHaveLength(2);
     expect(calls[1].args.sessionToken).not.toBe(token);
-    await f.resolve(1); expect(current[0]).toEqual({ isReady: true, sessionToken: calls[1].args.sessionToken });
+    await f.resolve(1); expect(current[0]).toMatchObject({ isReady: true, sessionToken: calls[1].args.sessionToken });
   } finally { await f.cleanup(); }
 });
 
@@ -127,5 +127,43 @@ test("storage-disabled site round trips retain only that site's in-memory basket
     await f.resolve(1); runtime = f.originalRuntime; await f.render();
     expect(current[0].isReady).toBe(false); expect(calls[2].args.sessionToken).toBe(sourceToken);
     await f.resolve(2); expect(current[0].sessionToken).toBe(sourceToken);
+  } finally { await f.cleanup(); }
+});
+
+test("selecting a saved basket updates all current consumers without storage", async () => {
+  const f = await fixture({ storageDisabled: true, consumers: 3 }); try {
+    await f.resolve(0);
+    let selection;
+    await act(async () => { selection = current[0].changeCart("saved-cart"); });
+    expect(calls).toHaveLength(2);
+    await f.resolve(1, "selected-owned-token");
+    expect(await selection).toBe(true);
+    expect(current.every(value => value.sessionToken === "selected-owned-token")).toBe(true);
+    await f.switchSite(); await f.resolve(calls.length - 1);
+    runtime = f.originalRuntime; await f.render();
+    expect(calls.at(-1).args.sessionToken).toBe("selected-owned-token");
+  } finally { await f.cleanup(); }
+});
+
+test("saved basket results cannot follow an account round trip", async () => {
+  const f = await fixture(); try {
+    await f.resolve(0); const originalIdentity = identity;
+    let selection; await act(async () => { selection = current[0].changeCart("saved-cart"); });
+    identity = { ...identity, userId: "different-owner", sessionId: "different-login" }; await f.render();
+    identity = originalIdentity; await f.render();
+    await f.resolve(1, "obsolete-selection");
+    expect(await selection).toBe(false);
+    expect(current[0].sessionToken).not.toBe("obsolete-selection");
+  } finally { await f.cleanup(); }
+});
+
+test("the latest saved basket choice wins when replies arrive out of order", async () => {
+  const f = await fixture({ consumers: 2 }); try {
+    await f.resolve(0);
+    let first, second;
+    await act(async () => { first = current[0].changeCart("first"); second = current[1].changeCart("second"); });
+    await f.resolve(1, "first-token"); expect(await first).toBe(false);
+    await f.resolve(2, "second-token"); expect(await second).toBe(true);
+    expect(current.every(value => value.sessionToken === "second-token")).toBe(true);
   } finally { await f.cleanup(); }
 });

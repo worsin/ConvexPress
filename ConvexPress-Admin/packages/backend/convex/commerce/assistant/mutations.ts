@@ -6,8 +6,10 @@
  */
 
 import { assistantScope } from "./scope";
+import { isClosedCart } from "../cartLifecycle";
 import { ConvexError, v } from "convex/values";
-import { internal } from "../../_generated/api";
+import { api, internal } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
 import { getSettingsDoc, mergeWithDefaults } from "../../settings/helpers";
 import { internalMutation, mutation } from "../../_generated/server";
 import {
@@ -42,14 +44,35 @@ export const resolveSession = mutation({
   args: { sessionToken: v.string() },
   returns: v.string(),
   handler: async (ctx, args) => {
+    let sessionToken = args.sessionToken;
+    let scope;
     try {
-      await assistantScope(ctx, args.sessionToken);
-      return args.sessionToken;
+      scope = await assistantScope(ctx, sessionToken);
     } catch (error) {
       const code = error instanceof ConvexError ? (error.data as { code?: string }).code : undefined;
-      if (code === "SESSION_OWNER_MISMATCH" || code === "INVALID_SESSION") return crypto.randomUUID();
-      throw error;
+      if (code !== "SESSION_OWNER_MISMATCH" && code !== "INVALID_SESSION") throw error;
+      sessionToken = crypto.randomUUID();
+      scope = await assistantScope(ctx, sessionToken);
     }
+    if (!scope.user) return sessionToken;
+    let cartId: Id<"commerce_carts"> | null;
+    try {
+      // A sub-transaction is essential: later inventory validation can fail
+      // after earlier lines have moved. Never commit those partial transfers.
+      cartId = await ctx.runMutation(api.commerce.cart.merge, { sessionToken });
+    } catch (error) {
+      const code = error instanceof ConvexError ? (error.data as { code?: string }).code : undefined;
+      const recoverable = ["CART_CONTEXT_MISMATCH", "CART_MERGE_LIMIT", "INSUFFICIENT_STOCK", "NOT_FOUND", "VALIDATION_ERROR", "BUNDLE_UNAVAILABLE", "BUNDLE_CHANGED", "invalid_bundle_selection"].includes(code ?? "");
+      if (!recoverable || !scope.cart || isClosedCart(scope.cart)) throw error;
+      // Preserve the current basket without repricing it. The signed-in cart
+      // page exposes the other saved baskets and explicit combine/retry actions.
+      cartId = scope.cart._id;
+      if (!scope.cart.userId) await ctx.db.patch("commerce_carts", scope.cart._id, { userId: scope.user._id, updatedAt: Date.now() });
+    }
+    const cart = cartId ? await ctx.db.get("commerce_carts", cartId) : null;
+    if (!cart) return sessionToken;
+    await assistantScope(ctx, cart.sessionToken);
+    return cart.sessionToken;
   },
 });
 
