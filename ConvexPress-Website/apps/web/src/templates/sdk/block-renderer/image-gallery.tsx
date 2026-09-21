@@ -69,7 +69,7 @@ export function ImageGallery({ attrs, resources }: BlockProps<"core/gallery">) {
 		if (mediaId) setSelection({ index, mediaId });
 	};
 	return (
-		<>
+		<div className="cp-library-gallery-frame">
 			<div
 				ref={gallery}
 				className="cp-library-gallery"
@@ -216,6 +216,6 @@ export function ImageGallery({ attrs, resources }: BlockProps<"core/gallery">) {
 					</div>
 				</dialog>
 			)}
-		</>
+		</div>
 	);
 }

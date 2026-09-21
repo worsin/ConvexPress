@@ -1,4 +1,5 @@
-.cp-library-gallery {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;}
+.cp-library-gallery-frame {container:image-gallery / inline-size;inline-size:100%;min-inline-size:0;}
+.cp-library-gallery {display:grid;grid-template-columns:minmax(0,1fr);gap:1rem;}
 .cp-library-gallery .cp-card {min-inline-size:0;}
 .cp-library-gallery .cp-image img {aspect-ratio:4/3;object-fit:cover;}
 .cp-library-gallery-control {appearance:none;display:inline-flex;align-items:center;justify-content:space-between;gap:.75rem;min-block-size:2.75rem;padding:.65rem .85rem;border:1px solid var(--border);border-radius:var(--radius,.25rem);background:var(--background);color:var(--foreground);font:inherit;text-align:start;cursor:pointer;overflow-wrap:anywhere;}
@@ -11,4 +12,5 @@
 .cp-library-lightbox::backdrop {background:rgb(8 12 18 / .78);}
 .cp-library-lightbox .cp-image img {max-block-size:65svh;inline-size:100%;object-fit:contain;}
 .cp-library-lightbox-toolbar {display:flex;flex-shrink:0;align-items:center;justify-content:space-between;gap:1rem;margin-block:.5rem;}
-@media(max-width:599px){.cp-library-gallery {grid-template-columns:minmax(0,1fr);}.cp-library-lightbox {padding:.7rem;}}
+@container image-gallery (min-width:37.5rem){.cp-library-gallery {grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:599px){.cp-library-lightbox {padding:.7rem;}}

@@ -406,6 +406,13 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
       ]
     }
   ],
+  "core/media-text": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": []
+    }
+  ],
   "local/sample-alert": [
     {
       "href": "ctaUrl",

@@ -6,6 +6,7 @@ import {
 	ResolvedImage,
 } from "../../../../sdk/block-renderer/presentation";
 import "../owned.css";
+import "../../../../../../../../../blocks/core/media-text/media-text.css";
 export default defineBlock("core/media-text", ({ attrs, resources }) => {
 	const copy = (
 		<P.Stack gap="lg">
@@ -14,7 +15,7 @@ export default defineBlock("core/media-text", ({ attrs, resources }) => {
 		</P.Stack>
 	);
 	return (
-		<div className="journal-media-text">
+		<div className="journal-media-text cp-library-media-text">
 			{attrs.mediaId ? (
 				<P.Split ratio="one-two" gap="lg" align="center">
 					<ResolvedImage

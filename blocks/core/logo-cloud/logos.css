@@ -1,7 +1,8 @@
+.cp-library-logo-cloud {container:logo-cloud / inline-size;inline-size:100%;min-inline-size:0;}
 .cp-library-logos {display:flex;flex-wrap:wrap;inline-size:100%;box-sizing:border-box;gap:1px;border:1px solid var(--border);background:var(--border);}
 .cp-library-logos:empty {display:none;}
 .cp-library-logos>div {display:grid;flex:1 1 calc((100% - 1px)/2);box-sizing:border-box;place-items:center;min-block-size:8rem;min-inline-size:0;padding:1.5rem;background:var(--background);text-align:center;}
 .cp-library-logos a {display:block; inline-size:100%;color:inherit;text-decoration:none;}
 .cp-library-logos a:focus-visible {outline:2px solid var(--primary);outline-offset:4px;}
 .cp-library-logos .cp-image {inline-size:100%;max-inline-size:12rem;}
-@media(min-width:768px){.cp-library-logos>div {flex-basis:calc((100% - 3px)/4);}}
+@container logo-cloud (min-width:48rem){.cp-library-logos>div {flex-basis:calc((100% - 3px)/4);}}

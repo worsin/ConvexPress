@@ -9200,6 +9200,13 @@
       "avoid": "",
       "useFor": "alternating image-text storytelling sections"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": []
+      }
+    ],
     "category": "media",
     "constraints": [],
     "data": null,

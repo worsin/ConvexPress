@@ -124,5 +124,12 @@
       ],
       "format": "prose"
     }
+  ],
+  "authoringActions": [
+    {
+      "path": [],
+      "href": "ctaUrl",
+      "label": "ctaLabel"
+    }
   ]
 }

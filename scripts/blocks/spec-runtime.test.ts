@@ -93,3 +93,13 @@ test("runtime compilation matches shipped generated validators for every example
 	}
 	expect(examples).toBe(285);
 });
+
+test("Media + Text refuses unlabeled actions before writes without invalidating saved content", async () => {
+  const spec = runtime.parseBlockSpec((await import("../../blocks/core/media-text/block.json")).default);
+  const schema = runtime.attrsSchema(spec.fields, spec.constraints);
+  const historical = schema.parse({ heading: "Studio visit", ctaUrl: "/visit", ctaLabel: "" });
+  expect(historical.ctaUrl).toBe("/visit");
+  expect(() => validateAuthoringActions(z, historical, spec.authoringActions)).toThrow();
+  const valid = schema.parse({ ctaUrl: "/visit", ctaLabel: "Plan a visit" });
+  expect(validateAuthoringActions(z, valid, spec.authoringActions)).toEqual(valid);
+});
