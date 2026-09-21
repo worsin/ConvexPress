@@ -320,3 +320,6 @@ September21 Paragraph:2k→20k canonical text capacity is backward-compatible fo
 
 
 September21 native block layout: Heading/Paragraph/Divider/Spacer authored and saved in Electron, four-pack public desktop/mobile checks pass. Added declared width/tone/spacing/alignment and instance-anchor controls with draft/undo/CAS/validation guards. Fixed Spacer retaining64px for spacing=none and announcing an empty region.291 renderer and6 editor/adapter/composition checks pass; types/build/freshness pass. Original42pages and complete appearance values restored; owned fixtures/sessions/processes cleaned up. Evidence: ConvexPress-Admin/audits/2026-09-04/core-text-layout-20260921.md. Original audit8accepted/16open; full-block statuses remain open.
+
+
+September21 family closeout: core/heading, core/paragraph, core/spacer and core/divider now have current contract/editor/public/four-pack visual acceptance; MagicTables advances these four to Verified with exact evidence. Heading empty accessibility and size hierarchy are repaired. Remaining133 blocks, full templates, dynamic/provider/SDK/fleet/legacy-retirement and release requirements remain open. See `ConvexPress-Admin/audits/2026-09-04/core-family-20260921.md`.

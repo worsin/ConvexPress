@@ -25,13 +25,26 @@ const policy: RenderPolicy = {
 	capabilities: ["tree.children"],
 	disabledBlocks: [],
 };
+test("authored heading levels use the template typography hierarchy", () => {
+  for (const [level, size] of [[1, "display"], [2, "lg"], [3, "md"], [4, "sm"], [5, "sm"], [6, "sm"]] as const) {
+    const html = renderToStaticMarkup(prepareBlocks([{ ...instance, attrs: { ...instance.attrs, level } }], registry, policy));
+    expect(html).toContain(`data-size="${size}"`);
+  }
+});
+test("empty headings keep an explicit link target without announcing an empty heading", () => {
+  for (const text of [null, { type: "doc", content: [] }, { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "  " }, { type: "hardBreak" }] }] }]) {
+    const html = renderToStaticMarkup(prepareBlocks([{ ...instance, attrs: { text, level: 3, anchor: "reserved-section" } }], registry, policy));
+    expect(/<h[1-6]\b/.test(html)).toBe(false);
+    expect(html).toContain('id="reserved-section"');
+  }
+});
 test("server-selected audience blocks render after authoring policy metadata is removed", () => {
   for (const visibility of ["everyone", "signedIn", "signedOut"] as const) {
     const authored = validateCanonicalTree([{ ...instance, visibility }]);
     expect(() => prepareBlocks(authored, registry, policy)).toThrow("instance-policy adapter");
     const display = publicCanonicalTree(authored);
     expect(renderToStaticMarkup(prepareBlocks(display, registry, policy))).toContain("A real heading");
-    expect(display[0]).not.toHaveProperty("visibility");
+    expect(Object.hasOwn(display[0]!, "visibility")).toBe(false);
     expect(authored[0]!.visibility).toBe(visibility);
   }
 });

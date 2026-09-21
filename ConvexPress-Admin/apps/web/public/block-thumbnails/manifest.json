@@ -421,8 +421,9 @@
       "core/heading": {
         "src": "/block-thumbnails/aster-house/core--heading.jpg",
         "example": 1,
-        "sha256": "87f39e63b2192da17d32e648f13a9c3c5d4e2d7bf1c2bfabe13648f335779ed9",
-        "bytes": 4822
+        "sha256": "abdc11bb782f4c7e8e662afd03be49e1f982b753c30dd46dcbe347d5cfb8b65b",
+        "bytes": 5496,
+        "capturedAt": "2026-09-21T17:59:42.628Z"
       },
       "core/hero": {
         "src": "/block-thumbnails/aster-house/core--hero.jpg",
@@ -1247,8 +1248,9 @@
       "core/heading": {
         "src": "/block-thumbnails/core/core--heading.jpg",
         "example": 1,
-        "sha256": "1dce30f36e8311624cbc8360e0832cc79685b9345a11d68c9873656936c6c1c5",
-        "bytes": 6002
+        "sha256": "3c46826ed933982a5ca7854805c064a02bba4dc4d961188869d5409fe688477c",
+        "bytes": 6751,
+        "capturedAt": "2026-09-21T17:59:41.735Z"
       },
       "core/hero": {
         "src": "/block-thumbnails/core/core--hero.jpg",
@@ -2144,7 +2146,7 @@
         "example": 1,
         "sha256": "95f5eeeaf7a4b8fbe7ef262b9eb614909980106d5aa82fb6c9b95a902b1ae354",
         "bytes": 3752,
-        "capturedAt": "2026-09-21T11:57:19.760Z"
+        "capturedAt": "2026-09-21T17:59:42.153Z"
       },
       "core/hero": {
         "src": "/block-thumbnails/depot/core--hero.jpg",
@@ -3034,8 +3036,9 @@
       "core/heading": {
         "src": "/block-thumbnails/journal/core--heading.jpg",
         "example": 1,
-        "sha256": "8eb1004f361fe412840ae539bfdd88e9acbba182e5cb67eb7ab3d845aefe17ba",
-        "bytes": 6110
+        "sha256": "7d854ce27babceeb0543d3ae2bf2277b1f3f82188a8340052f484ddeab2def46",
+        "bytes": 6782,
+        "capturedAt": "2026-09-21T17:59:41.960Z"
       },
       "core/hero": {
         "src": "/block-thumbnails/journal/core--hero.jpg",
